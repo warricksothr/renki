@@ -122,6 +122,9 @@ not send anything outside it.
 }
 ```
 
+`agentName` is the name the bot answers to in chat. It is empty when the
+controller follows the character's own name, the `character` in `state`.
+
 `allowedTasks` can only *narrow* what the plugin's own safety config allows
 (section 8). `owners` are the players whose commands the bot obeys. Everyone
 else gets conversation but no tasks.
@@ -144,7 +147,7 @@ The bot's own body. Small and sent often.
 ```json
 {
   "v": 1, "type": "state", "seq": 1042, "t": 18234.52,
-  "phase": "in_world",
+  "phase": "in_world", "character": "Tasleroch",
   "pos": [123.45, 31.02, -88.10], "yaw": 271.5, "vel": [0.0, 0.0, 3.9],
   "hp": 47.0, "hpMax": 60.0, "stamina": 38.0, "staminaMax": 75.0,
   "eitr": 0.0, "eitrMax": 0.0,
@@ -157,6 +160,9 @@ The bot's own body. Small and sent often.
   "task": { "id": "t-17", "task": "follow", "status": "running" }
 }
 ```
+
+`character` is the bot's character name as other players see it, empty
+until the bot is in the world.
 
 `flags` is drawn from: `grounded`, `running`, `crouching`, `swimming`,
 `sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `in_shelter`,
@@ -392,8 +398,9 @@ chat event
                           └─► controller validates (owner? allowed? args?) ─► task
 ```
 
-- **Addressed** means a whisper to the bot, a message containing `agentName`,
-  or a reply within 20 s of the bot speaking to that player.
+- **Addressed** means a whisper to the bot, a message containing its name
+  (`agentName`, or else the character's name), or a reply within 20 s of the
+  bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
   `stop`, `status`, `come here`, `wait here`, `go home`. Only `owners` can
   issue tasks.

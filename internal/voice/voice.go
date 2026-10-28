@@ -165,11 +165,15 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 }
 
 func (v *Voice) persona(agent string) string {
-	if v.opts.Persona != "" {
-		return v.opts.Persona
+	persona := v.opts.Persona
+	if persona == "" {
+		persona = "You are a Viking farmhand in Valheim who follows the players around and helps out. " +
+			"You are good-humoured, plain-spoken and brief."
 	}
-	return fmt.Sprintf("You are %s, a Viking farmhand in Valheim who follows the players around and helps out. "+
-		"You are good-humoured, plain-spoken and brief.", agent)
+	if agent == "" {
+		return persona
+	}
+	return fmt.Sprintf("Your name is %s. %s", agent, persona)
 }
 
 func (v *Voice) checkBudget() error {

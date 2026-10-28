@@ -116,7 +116,8 @@ namespace Renki.Plugin
                     runner.Welcome(w.AllowedTasks);
                     loggingOut = false;
                     Driver.Active = true;
-                    Logger.LogInfo($"session started as {w.AgentName}; owners {string.Join(", ", w.Owners)}; " +
+                    var name = w.AgentName != "" ? w.AgentName : "the character's name";
+                    Logger.LogInfo($"session started, answering to {name}; owners {string.Join(", ", w.Owners)}; " +
                                    $"allowed {string.Join(", ", runner.Allowed)}");
                     break;
                 case TaskRequest t:

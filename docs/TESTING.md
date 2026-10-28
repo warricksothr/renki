@@ -62,7 +62,7 @@ Work down the list. The first failure usually explains the ones after it.
 | # | Do | Expect | Ticket |
 |---|---|---|---|
 | 1 | Start the game with the plugin installed | `renki 0.1.0 loaded; dialling ws://…` in LogOutput.log | TKT-01M61T36H, criterion 4 |
-| 2 | Start the controller with the game at the menu | Controller logs `plugin connected` and `session started`; plugin logs `session started as Bjorn` | TKT-01M61T36CC, criterion 1 |
+| 2 | Start the controller with the game at the menu | Controller logs `plugin connected` and `session started`; plugin logs `session started` | TKT-01M61T36CC, criterion 1 |
 | 3 | Stop the controller for 30 s, then start it again | Plugin logs `disconnected; retrying`, then a new session within 30 s | TKT-01M61T36CC, criterion 2 |
 | 4 | Launch with `-joinserverwithcharacter` | The character is in the world with no clicks; with a password set, no prompt | TKT-01M61T36P8, criteria 1 and 2 |
 | 5 | Say `bjorn status` (as an owner) | A status line in chat with health, biome and time | TKT-01M61T36M4 (state), TKT-01M61T36QB |

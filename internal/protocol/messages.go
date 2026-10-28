@@ -124,6 +124,7 @@ func (*Config) MessageType() string { return TypeConfig }
 type State struct {
 	Envelope
 	Phase      string            `json:"phase"`
+	Character  string            `json:"character"`
 	Pos        Vec3              `json:"pos"`
 	Yaw        float64           `json:"yaw"`
 	Vel        Vec3              `json:"vel"`

@@ -70,6 +70,9 @@ func (a *App) status() Status {
 	st := Status{Connected: true, Character: hello.Character, Phase: hello.Phase}
 	if s := a.Session.State(); s != nil {
 		st.Phase, st.Task = s.Phase, s.Task
+		if s.Character != "" {
+			st.Character = s.Character
+		}
 	}
 	return st
 }

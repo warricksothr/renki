@@ -37,10 +37,11 @@ func TestAppendixExchange(t *testing.T) {
 	})
 
 	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
-	if w := p.Welcome; w.AgentName != "Bjorn" || w.Owners[0] != "Sothr" || len(w.AllowedTasks) != 6 || w.Rates.StateHz != 5 {
+	// No agentName configured: the bot answers to its character's name.
+	if w := p.Welcome; w.AgentName != "" || w.Owners[0] != "Sothr" || len(w.AllowedTasks) != 6 || w.Rates.StateHz != 5 {
 		t.Fatalf("welcome %+v", w)
 	}
-	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, HP: 47, HPMax: 60, Biome: "BlackForest", Env: "Rain"})
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Bjorn", HP: 47, HPMax: 60, Biome: "BlackForest", Env: "Rain"})
 	p.Send(&protocol.Chat{From: protocol.ChatSender{Name: "Sothr", PlayerID: "1234", Owner: true},
 		Channel: protocol.ChannelNormal, Text: "bjorn, follow me", Pos: protocol.Vec3{120.1, 31, -86}, Dist: 4.2})
 
@@ -122,12 +123,12 @@ func TestControlAPI(t *testing.T) {
 	}
 
 	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
-	p.Send(&protocol.State{Phase: protocol.PhaseInWorld})
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Tasleroch"})
 	waitFor(t, func() bool {
 		_, st := call("GET", "/control/status", "sekrit")
 		return st.Phase == protocol.PhaseInWorld
 	})
-	if code, st := call("POST", "/control/logout", "sekrit"); code != http.StatusAccepted || !st.Connected || st.Character != "Bjorn" {
+	if code, st := call("POST", "/control/logout", "sekrit"); code != http.StatusAccepted || !st.Connected || st.Character != "Tasleroch" {
 		t.Errorf("logout: %d %+v", code, st)
 	}
 	if _, ok := p.Next().(*protocol.Logout); !ok {

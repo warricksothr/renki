@@ -23,6 +23,8 @@ type Config struct {
 	// it, so it can stay out of the file.
 	Token string `json:"token"`
 
+	// AgentName is the name the bot answers to in chat. Empty, the default,
+	// means the bot's character name in the game.
 	AgentName    string                    `json:"agentName"`
 	Owners       []string                  `json:"owners"`
 	Rates        protocol.Rates            `json:"rates"`
@@ -36,7 +38,8 @@ type Config struct {
 
 // LLM configures how the controller reaches terva.
 type LLM struct {
-	// Persona is the character the bot plays.
+	// Persona is the character the bot plays. The bot's name is given to
+	// the model separately, so the persona need not repeat it.
 	Persona string `json:"persona"`
 	// CooldownS is the minimum time between replies to one player.
 	CooldownS float64 `json:"cooldownS"`
@@ -56,7 +59,6 @@ var M1Tasks = []string{
 func Default() Config {
 	return Config{
 		Listen:       "127.0.0.1:8765",
-		AgentName:    "Bjorn",
 		Rates:        protocol.Rates{StateHz: 5, PerceptionHz: 1},
 		Perception:   protocol.PerceptionConfig{Radius: 40, MaxPerKind: 24},
 		AllowedTasks: slices.Clone(M1Tasks),
@@ -92,9 +94,6 @@ func (c Config) Validate() error {
 		if ip == nil || !ip.IsLoopback() {
 			return fmt.Errorf("listen %q is not loopback, so a token is required (set token or RENKI_TOKEN)", c.Listen)
 		}
-	}
-	if c.AgentName == "" {
-		return errors.New("agentName is empty")
 	}
 	if c.Rates.StateHz <= 0 {
 		return errors.New("rates.stateHz must be positive")

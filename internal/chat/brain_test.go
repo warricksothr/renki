@@ -141,6 +141,33 @@ func TestNotAddressedIsIgnored(t *testing.T) {
 	}
 }
 
+func TestNameFollowsTheCharacterUnlessConfigured(t *testing.T) {
+	b, f, c := newBrain(nil)
+	b.opts.AgentName = ""
+	b.Chat(line("Sothr", "tasleroch follow"))
+	if len(f.sent()) != 0 {
+		t.Fatalf("sent %v before the bot had a name", f.sent())
+	}
+
+	f.state = &protocol.State{Character: "Tasleroch"}
+	b.Chat(line("Sothr", "tasleroch follow"))
+	f.state = &protocol.State{Character: "Ylva"}
+	c.advance(time.Minute) // past the reply window
+	b.Chat(line("Sothr", "tasleroch stop"))
+	b.Chat(line("Sothr", "Ylva, stop"))
+	if got := f.tasks(); !slices.Equal(got, []string{protocol.TaskFollow, protocol.TaskStop}) {
+		t.Errorf("tasks %v; want follow as Tasleroch, then stop as Ylva", got)
+	}
+
+	b2, f2, _ := newBrain(nil)
+	f2.state = &protocol.State{Character: "Tasleroch"}
+	b2.Chat(line("Sothr", "tasleroch follow"))
+	b2.Chat(line("Sothr", "bjorn follow"))
+	if got := f2.tasks(); !slices.Equal(got, []string{protocol.TaskFollow}) {
+		t.Errorf("tasks %v; the configured name Bjorn should win over the character's", got)
+	}
+}
+
 func TestWhisperIsAddressedAndAnsweredByWhisper(t *testing.T) {
 	b, f, _ := newBrain(nil)
 	c := line("Sothr", "stop")

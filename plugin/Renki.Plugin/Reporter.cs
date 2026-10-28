@@ -116,6 +116,7 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             var s = new State { Phase = phase, Task = task };
             if (p == null) return s;
+            s.Character = p.GetPlayerName();
             s.Pos = Convert.ToArray(p.transform.position);
             s.Yaw = System.Math.Round(p.transform.rotation.eulerAngles.y, 1);
             s.Vel = Convert.ToArray(p.GetVelocity());

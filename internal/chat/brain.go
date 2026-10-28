@@ -68,6 +68,8 @@ type Line struct {
 
 // Options configure a Brain.
 type Options struct {
+	// AgentName is the name the bot answers to. Empty means the in-game
+	// character's name, from the latest state.
 	AgentName string
 	Owners    []string
 	// Voice answers lines the grammar does not match. Nil means the bot
@@ -88,9 +90,10 @@ type Options struct {
 type Brain struct {
 	opts Options
 	d    Dispatcher
-	name *regexp.Regexp
 
 	mu        sync.Mutex
+	name      *regexp.Regexp
+	nameFor   string
 	spokeTo   map[string]time.Time
 	lastVoice map[string]time.Time
 	recent    []Line
@@ -119,10 +122,39 @@ func New(opts Options, d Dispatcher) *Brain {
 	return &Brain{
 		opts:      opts,
 		d:         d,
-		name:      regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(opts.AgentName) + `\b`),
 		spokeTo:   map[string]time.Time{},
 		lastVoice: map[string]time.Time{},
 	}
+}
+
+// agentName is the name the bot answers to: the configured one, or else the
+// character's name from the latest state. Empty before the bot has a body.
+func (b *Brain) agentName() string {
+	if b.opts.AgentName != "" {
+		return b.opts.AgentName
+	}
+	if st := b.d.State(); st != nil {
+		return st.Character
+	}
+	return ""
+}
+
+// nothing never matches.
+var nothing = regexp.MustCompile(`[^\s\S]`)
+
+// nameRE matches the bot's name as a word, or nothing while it has none. It
+// is rebuilt only when the name changes.
+func (b *Brain) nameRE() *regexp.Regexp {
+	name := b.agentName()
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.name == nil || b.nameFor != name {
+		b.name, b.nameFor = nothing, name
+		if name != "" {
+			b.name = regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(name) + `\b`)
+		}
+	}
+	return b.name
 }
 
 // origin rides on a task so a failure can be explained to whoever asked.
@@ -174,7 +206,7 @@ func (b *Brain) TaskDone(t *session.Task) {
 }
 
 func (b *Brain) addressed(c *protocol.Chat) bool {
-	if c.Channel == protocol.ChannelWhisper || b.name.MatchString(c.Text) {
+	if c.Channel == protocol.ChannelWhisper || b.nameRE().MatchString(c.Text) {
 		return true
 	}
 	b.mu.Lock()
@@ -186,7 +218,7 @@ func (b *Brain) addressed(c *protocol.Chat) bool {
 // strip lower-cases text and drops punctuation, the bot's name and "please",
 // leaving words separated by single spaces.
 func (b *Brain) strip(text string) string {
-	text = b.name.ReplaceAllString(text, " ")
+	text = b.nameRE().ReplaceAllString(text, " ")
 	text = strings.Map(func(r rune) rune {
 		if r == '\'' {
 			return -1
@@ -281,7 +313,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 	b.mu.Unlock()
 
 	req := Request{
-		AgentName: b.opts.AgentName,
+		AgentName: b.agentName(),
 		Speaker:   c.From.Name,
 		Owner:     owner,
 		Text:      c.Text,
@@ -342,7 +374,7 @@ func (b *Brain) say(to origin, text string) {
 	b.mu.Lock()
 	b.spokeTo[to.player] = b.opts.Now()
 	b.mu.Unlock()
-	b.remember(Line{From: b.opts.AgentName, Text: text, Bot: true})
+	b.remember(Line{From: b.agentName(), Text: text, Bot: true})
 }
 
 func (b *Brain) remember(l Line) {

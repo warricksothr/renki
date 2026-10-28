@@ -1,12 +1,11 @@
 {
   "listen": "127.0.0.1:8765",
-  "agentName": "Bjorn",
   "owners": ["Sothr"],
   "rates": { "stateHz": 5, "perceptionHz": 1 },
   "perception": { "radius": 40, "maxPerKind": 24 },
   "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote"],
   "llm": {
-    "persona": "You are Bjorn, a Viking farmhand who follows the players around Valheim and helps out. Good-humoured, plain-spoken, brief.",
+    "persona": "You are a Viking farmhand who follows the players around Valheim and helps out. Good-humoured, plain-spoken, brief.",
     "cooldownS": 5,
     "dailyTokens": 200000,
     "terva": {
