@@ -81,7 +81,7 @@ func (c *clock) advance(d time.Duration) {
 	c.mu.Unlock()
 }
 
-var rules = config.HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: true}
+var rules = config.HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: config.AfterDeathHome}
 
 func inWorld(pos protocol.Vec3, task *protocol.TaskRef) *protocol.State {
 	return &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", Pos: pos, Task: task}
@@ -279,10 +279,37 @@ func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
 		t.Errorf("went home twice: %v", f.sent())
 	}
 
-	k.rules.AfterDeath = false
+	k.rules.AfterDeath = config.AfterDeathStay
 	k.Respawned()
 	k.Tick(ctx)
 	if len(f.sent()) != 2 {
-		t.Errorf("afterDeath off still went home: %v", f.sent())
+		t.Errorf("afterDeath stay still went home: %v", f.sent())
+	}
+}
+
+func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	k.rules.AfterDeath = config.AfterDeathResume
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	resumed := 0
+	k.ResumeAfterDeath(func(context.Context) bool { resumed++; return true })
+	k.Respawned()
+	k.Tick(ctx)
+	if resumed != 1 || len(f.sent()) != 0 {
+		t.Fatalf("resumed %d, sent %v", resumed, f.sent())
+	}
+
+	// Nothing to resume, or a resume that cannot start: go home.
+	k.Respawned()
+	k.Tick(ctx)
+	k.ResumeAfterDeath(func(context.Context) bool { return false })
+	k.Respawned()
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 4 || got[1] != "say: I'm back. Heading home." || resumed != 1 {
+		t.Errorf("fallbacks: %v, resumed %d", got, resumed)
 	}
 }

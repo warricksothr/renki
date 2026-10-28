@@ -84,6 +84,9 @@ type Home interface {
 	Touch()
 	// Respawned notes that the bot came back from death.
 	Respawned()
+	// ResumeAfterDeath leaves what to start again after a respawn, when
+	// the rules say resume; nil clears it.
+	ResumeAfterDeath(func(context.Context) bool)
 }
 
 // Options configure a Brain.
@@ -191,6 +194,9 @@ func (b *Brain) nameRE() *regexp.Regexp {
 type origin struct {
 	player  string
 	channel string
+	// follow is the player a follow command was for, so a death can
+	// resume it.
+	follow string
 }
 
 // Chat implements session.Listener.
@@ -216,6 +222,10 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	b.opts.Logger.Info("command", "from", c.From.Name, "command", cmd)
 	if b.opts.Home != nil {
 		b.opts.Home.Touch()
+		if cmd != cmdStatus {
+			// A newer order wins over resuming one a death cut short.
+			b.opts.Home.ResumeAfterDeath(nil)
+		}
 	}
 	b.run(cmd, c, from)
 }
@@ -240,6 +250,9 @@ func (b *Brain) TaskDone(t *session.Task) {
 		return
 	}
 	msg := explain(t.Name, reason, o.player)
+	if reason == protocol.ReasonDied && b.opts.Home != nil {
+		b.leaveResume(t, o)
+	}
 	if b.returnHome(t, reason, o) {
 		switch reason {
 		case protocol.ReasonStuck:
@@ -251,6 +264,27 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if msg != "" {
 		b.say(o, msg)
 	}
+}
+
+// leaveResume tells the home keeper what a death cut short: a follow
+// starts again for the same player, if they are still about (if not, the
+// follow fails with target_lost and the bot goes home on that). Anything
+// else leaves nothing to resume.
+func (b *Brain) leaveResume(t *session.Task, o origin) {
+	if t.Name != protocol.TaskFollow || o.follow == "" {
+		b.opts.Home.ResumeAfterDeath(nil)
+		return
+	}
+	b.opts.Home.ResumeAfterDeath(func(ctx context.Context) bool {
+		order := session.Order{Task: protocol.TaskFollow, Origin: o,
+			Args: &protocol.FollowArgs{Player: o.follow, Run: protocol.RunAuto}}
+		if _, err := b.d.Dispatch(ctx, order); err != nil {
+			b.opts.Logger.Warn("could not resume the follow", "player", o.follow, "err", err)
+			return false
+		}
+		b.say(o, fmt.Sprintf("I'm back. Coming to find you, %s.", o.follow))
+		return true
+	})
 }
 
 // returnHome sends the bot home after a body task failed, when the home
@@ -349,6 +383,7 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdFollow:
 		order = session.Order{Task: protocol.TaskFollow, Args: &protocol.FollowArgs{Player: c.From.Name, Run: protocol.RunAuto}}
 		ack = "Right behind you."
+		from.follow = c.From.Name
 	case cmdStop:
 		order = session.Order{Task: protocol.TaskStop}
 		ack = "Stopping."

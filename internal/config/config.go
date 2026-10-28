@@ -72,9 +72,20 @@ type HomeRules struct {
 	AfterOutage bool `json:"afterOutage"`
 	// IdleMinutes: this long with no task, away from home. 0 never.
 	IdleMinutes float64 `json:"idleMinutes"`
-	// AfterDeath: the bot respawned, usually far from home.
-	AfterDeath bool `json:"afterDeath"`
+	// AfterDeath is what the bot does once it is back after a respawn:
+	// AfterDeathHome, AfterDeathResume or AfterDeathStay.
+	AfterDeath string `json:"afterDeath"`
 }
+
+// What the bot does after a respawn (HomeRules.AfterDeath).
+const (
+	// AfterDeathHome goes home.
+	AfterDeathHome = "home"
+	// AfterDeathResume picks a follow back up, and otherwise goes home.
+	AfterDeathResume = "resume"
+	// AfterDeathStay stays at the spawn point.
+	AfterDeathStay = "stay"
+)
 
 // Audit configures the audit log.
 type Audit struct {
@@ -113,7 +124,7 @@ func Default() Config {
 		AllowedTasks: slices.Clone(M1Tasks),
 		Audit:        Audit{Dir: "audit", KeepDays: 14},
 		DataDir:      "data",
-		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: true},
+		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: AfterDeathHome},
 	}
 }
 
@@ -160,6 +171,11 @@ func (c Config) Validate() error {
 	}
 	if c.DataDir == "" {
 		return errors.New("dataDir is empty")
+	}
+	switch c.Home.AfterDeath {
+	case AfterDeathHome, AfterDeathResume, AfterDeathStay:
+	default:
+		return fmt.Errorf("home.afterDeath %q: want home, resume or stay", c.Home.AfterDeath)
 	}
 	if c.Home.IdleMinutes < 0 {
 		return errors.New("home.idleMinutes must not be negative")

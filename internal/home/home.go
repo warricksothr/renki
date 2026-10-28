@@ -57,6 +57,9 @@ type Keeper struct {
 	active time.Time
 	// respawned is set by Respawned and cleared once Tick has acted on it.
 	respawned bool
+	// resume picks up what a death cut short, for AfterDeathResume. The
+	// chat brain sets it, since it knows what that was and for whom.
+	resume func(context.Context) bool
 }
 
 // New returns a keeper over store. now may be nil.
@@ -172,8 +175,17 @@ func (k *Keeper) ReturnOn(reason string) bool {
 	return false
 }
 
-// Respawned notes that the bot came back from death. Tick sends it home
-// once it is in the world with nothing to do, if the rules allow.
+// ResumeAfterDeath leaves what to do if the bot dies now and the rules
+// say resume: f starts it again and reports whether it did. Nil clears it.
+func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
+	k.mu.Lock()
+	k.resume = f
+	k.mu.Unlock()
+}
+
+// Respawned notes that the bot came back from death. Once it is in the
+// world with nothing to do, Tick resumes, goes home or stays, as
+// rules.AfterDeath says.
 func (k *Keeper) Respawned() {
 	k.mu.Lock()
 	k.respawned = true
@@ -235,12 +247,22 @@ func (k *Keeper) Tick(ctx context.Context) {
 
 	k.mu.Lock()
 	respawned := k.respawned && st.Task == nil
+	resume := k.resume
 	if respawned {
-		k.respawned = false
+		k.respawned, k.resume = false, nil
 	}
 	k.mu.Unlock()
-	if respawned && k.rules.AfterDeath {
-		k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+	if respawned {
+		switch k.rules.AfterDeath {
+		case config.AfterDeathResume:
+			if resume != nil && resume(ctx) {
+				k.log.Info("resumed after a respawn")
+				return
+			}
+			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+		case config.AfterDeathHome:
+			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+		}
 		return
 	}
 
