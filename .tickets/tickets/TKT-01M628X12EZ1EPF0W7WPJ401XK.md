@@ -14,7 +14,8 @@ assignees: []
 milestone: null
 parent: TKT-01M628X106RD9FFR8YBXV7K5HT
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M62BMD18K3SE1WXJ7FDN8EPT
 blocks_on: none
 references: []
 moved_to: null
@@ -28,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-28T22:45:26Z
+updated_at: 2026-10-28T23:24:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -53,7 +54,7 @@ the audit records as they are written. No build step for the page.
 - [x] The page shows connection, character, world, phase, task, health, position and home distance, live
 - [ ] A top-down map draws the bot's trail, nearby players and home
 - [x] Chat, task statuses, the plugin's traces and the controller's decisions stream into the page as they happen
-- [ ] The VM firewall admits the panel port from the tailnet only, and the panel opens from a tailnet device
+- [x] The VM firewall admits the panel port from the tailnet only, and the panel opens from a tailnet device
 
 ## Implementation plan
 
@@ -72,3 +73,7 @@ the audit records as they are written. No build step for the page.
 **agent:claude-code/renki-groom** at 2026-10-28T22:45:26Z
 
 Deployed as 4d357a1. From the dev box over Tailscale: / redirects to /login without the token, /api/status answers with it, and the LAN address does not answer. The page, map and feed were checked in a browser against a simulated plugin on the dev box. Criteria 4 and 6 wait on Sothr opening it from a tailnet device with the real bot. Not checked: whether Windows showed a firewall prompt on the VM desktop; the RenkiPanel program rule should prevent one.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:24:05Z
+
+Sothr opened the panel from a tailnet device on 2026-10-28 ('That panel looks good'). The map draws the trail and home from the real game; players and creatures wait on perception (TKT-01M62BMD1).

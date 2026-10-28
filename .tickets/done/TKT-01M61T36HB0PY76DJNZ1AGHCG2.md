@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M61T36HB0PY76DJNZ1AGHCG2
 title: Scaffold the BepInEx plugin project and its build
 type: task
-status: review
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 94c0949e9abff4d3c2953c782958e7a0cbd1595c
-  session: null
-  claimed_at: 2026-10-28T18:37:51Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T18:50:44Z
+updated_at: 2026-10-28T23:24:05Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -49,7 +42,7 @@ configured game install rather than from the repository.
 - [x] `plugin/` builds against a game path given by configuration, with no game DLLs committed
 - [x] It references BepInEx 5, Harmony and assembly_valheim
 - [x] A just recipe builds the DLL, and another copies it into a configured BepInEx/plugins folder
-- [ ] The plugin logs its version on load in a real game
+- [x] The plugin logs its version on load in a real game
 - [x] A C# test project under `plugin/` runs with `dotnet test` on Linux, with no game install, so the protocol types can be checked against the shared fixtures
 
 ## Implementation plan
@@ -70,6 +63,10 @@ Since TKT-01M61VAXH7 (Standardize on just as the task entry point): the plugin's
 
 Built against the game (assembly_valheim 0.221.x on the dev box) and unit-tested off-game; not yet run inside Valheim. In review = check it in game; docs/TESTING.md has the steps.
 
+**agent:claude-code/renki-groom** at 2026-10-28T23:24:04Z
+
+Seen on the bot VM: BepInEx logs 'renki 0.1.0 loaded; dialling ws://127.0.0.1:8765/ws/' at every start.
+
 ## Summary
 
-plugin/ has Renki.Core (netstandard2.1, no Unity: protocol, bridge client, task runner, safety, movement maths), Renki.Plugin (BepInEx 5.4.21 + HarmonyX, publicized assembly_valheim, game assemblies from ValheimDir), and Renki.Tests (net8.0 xunit: 77 tests, including the shared Go fixtures and interop against the real Go controller). plugin/justfile implements the six shared verbs and deploy. Without a game path, the DLL build says it skipped. Only "logs its version on load in a real game" is open.
+The plugin project builds against the game's assemblies from configuration, tests run on Linux without the game, just plugin build/deploy work, and it loads in the real game.

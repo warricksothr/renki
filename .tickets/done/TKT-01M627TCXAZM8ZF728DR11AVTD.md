@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M627TCXAZM8ZF728DR11AVTD
 title: Audit log of everything the bot saw, decided and did
 type: task
-status: review
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: a4058a0f5baf9515154c5e201ea3e6a93c36844f
-  session: null
-  claimed_at: 2026-10-28T21:49:20Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T21:49:20Z
-updated_at: 2026-10-28T22:01:14Z
+updated_at: 2026-10-28T23:24:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -64,7 +57,7 @@ and nothing at all for the plugin's internal choices.
 ## Acceptance criteria
 
 - [x] The controller writes every bridge frame both ways, connects, disconnects and its own log records to a daily JSON Lines file, with the hello token redacted
-- [ ] The plugin sends trace messages for follow gait changes, new paths and stuck recoveries, tagged with the current task
+- [x] The plugin sends trace messages for follow gait changes, new paths and stuck recoveries, tagged with the current task
 - [x] renki-audit prints a timeline of the files, filtered by task and time window
 - [x] just vm audit fetches the VM's audit files and runs renki-audit on them
 - [x] The protocol doc, fixtures and docs describe trace and the audit log
@@ -89,3 +82,11 @@ and nothing at all for the plugin's internal choices.
 **agent:claude-code/renki-groom** at 2026-10-28T22:01:14Z
 
 Deployed as 5e97c84. just vm audit fetched the VM's file and showed the restart, handshake and state. Criterion 2 is implemented and covered by the trace fixture on both sides, but no in-game follow has produced a trace yet; tick it once one shows up in just vm audit.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:24:05Z
+
+In the game on 2026-10-28 the audit log holds 250 traces tagged with their tasks: follow gait changes, walker paths (including 6 'no navmesh path'), and stuck recoveries escalating jump, strafe, repath.
+
+## Summary
+
+The controller keeps a daily audit log of every frame and decision, the plugin traces its own decisions into it, and renki-audit / just vm audit read it back.

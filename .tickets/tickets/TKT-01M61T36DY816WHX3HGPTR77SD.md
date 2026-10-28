@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T18:20:51Z
+updated_at: 2026-10-28T23:23:28Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -40,4 +40,10 @@ minimized, and when the RDP session disconnects. docs/BRIDGE-PROTOCOL.md section
 ## Acceptance criteria
 
 - [ ] Each of the three cases is tested and the result recorded
-- [ ] The VM session setup that keeps the game running is written down
+- [x] The VM session setup that keeps the game running is written down
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:23:28Z
+
+Partly answered on 2026-10-28. Handing the RDP session back to the console with release-rdp.ps1 (tscon) keeps the game running and the bot playing: it followed, went home and reported state for hours with nobody connected. Not tested: the game window unfocused while someone uses the desktop, and minimised. docs/VM.md writes down the session setup (auto-logon, release-rdp, a dummy display plug).
