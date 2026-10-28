@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M61T36DY816WHX3HGPTR77SD
 title: "Spike: does Valheim keep running unattended on the VM"
 type: spike
-status: draft
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T17:49:28Z
+updated_at: 2026-10-28T18:20:51Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
 updated_by:
-  id: agent:claude-code/valheim-setup
+  id: agent:claude-code/renki-groom
   name: Claude Code
 extensions: {}
 ---

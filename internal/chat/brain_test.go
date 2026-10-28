@@ -1,0 +1,325 @@
+package chat
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
+)
+
+// fakeSession records orders, checking them the way Session.Dispatch does.
+type fakeSession struct {
+	mu      sync.Mutex
+	orders  []session.Order
+	allowed []string
+	state   *protocol.State
+}
+
+func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Task, error) {
+	if !slices.Contains(f.allowed, o.Task) {
+		return nil, session.ErrNotAllowed
+	}
+	req, err := protocol.NewTask("t", o.Task, o.Args, 0)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := req.DecodeArgs(); err != nil {
+		return nil, err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.orders = append(f.orders, o)
+	return &session.Task{ID: "t", Name: o.Task, Origin: o.Origin}, nil
+}
+
+func (f *fakeSession) State() *protocol.State { return f.state }
+func (f *fakeSession) AllowedTasks() []string { return f.allowed }
+
+func (f *fakeSession) sent() []session.Order {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.orders)
+}
+
+// said returns what the bot said, in order.
+func (f *fakeSession) said() []string {
+	var out []string
+	for _, o := range f.sent() {
+		if o.Task == protocol.TaskSay {
+			out = append(out, o.Args.(*protocol.SayArgs).Text)
+		}
+	}
+	return out
+}
+
+func (f *fakeSession) tasks() []string {
+	var out []string
+	for _, o := range f.sent() {
+		if o.Task != protocol.TaskSay {
+			out = append(out, o.Task)
+		}
+	}
+	return out
+}
+
+type clock struct {
+	mu sync.Mutex
+	t  time.Time
+}
+
+func (c *clock) now() time.Time { c.mu.Lock(); defer c.mu.Unlock(); return c.t }
+
+func (c *clock) advance(d time.Duration) { c.mu.Lock(); c.t = c.t.Add(d); c.mu.Unlock() }
+
+func newBrain(voice Voice) (*Brain, *fakeSession, *clock) {
+	f := &fakeSession{allowed: []string{"stop", "move_to", "follow", "look_at", "say", "emote"}}
+	c := &clock{t: time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)}
+	b := New(Options{AgentName: "Bjorn", Owners: []string{"Sothr"}, Voice: voice,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: c.now}, f)
+	return b, f, c
+}
+
+func line(from, text string) *protocol.Chat {
+	return &protocol.Chat{From: protocol.ChatSender{Name: from}, Channel: protocol.ChannelNormal, Text: text,
+		Pos: protocol.Vec3{10, 0, 10}, Dist: 4}
+}
+
+func TestGrammar(t *testing.T) {
+	tests := []struct {
+		text string
+		task string
+		say  string
+	}{
+		{"bjorn, follow me", protocol.TaskFollow, "Right behind you."},
+		{"Bjorn follow!", protocol.TaskFollow, "Right behind you."},
+		{"BJORN STOP", protocol.TaskStop, "Stopping."},
+		{"bjorn: come here please", protocol.TaskMoveTo, "On my way."},
+		{"wait here, Bjorn", protocol.TaskStop, "I'll wait here."},
+	}
+	for _, tc := range tests {
+		t.Run(tc.text, func(t *testing.T) {
+			b, f, _ := newBrain(nil)
+			b.Chat(line("Sothr", tc.text))
+			if got := f.tasks(); len(got) != 1 || got[0] != tc.task {
+				t.Fatalf("tasks %v; want [%s]", got, tc.task)
+			}
+			if got := f.said(); len(got) != 1 || got[0] != tc.say {
+				t.Errorf("said %q; want %q", got, tc.say)
+			}
+		})
+	}
+}
+
+func TestFollowTargetsTheSpeakerAndComeUsesTheirPosition(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn follow me"))
+	b.Chat(line("Sothr", "bjorn come here"))
+	orders := f.sent()
+	if a := orders[0].Args.(*protocol.FollowArgs); a.Player != "Sothr" || a.Run != protocol.RunAuto {
+		t.Errorf("follow args %+v", a)
+	}
+	if a := orders[2].Args.(*protocol.MoveToArgs); *a.To.Pos != (protocol.Vec3{10, 0, 10}) {
+		t.Errorf("move_to args %+v", a)
+	}
+}
+
+func TestNotAddressedIsIgnored(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "follow me"))
+	b.Chat(line("Sothr", "bjornsson is a fine name"))
+	if len(f.sent()) != 0 {
+		t.Fatalf("sent %v for chat not addressed to the bot", f.sent())
+	}
+}
+
+func TestWhisperIsAddressedAndAnsweredByWhisper(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	c := line("Sothr", "stop")
+	c.Channel = protocol.ChannelWhisper
+	b.Chat(c)
+	if got := f.tasks(); len(got) != 1 || got[0] != protocol.TaskStop {
+		t.Fatalf("tasks %v", got)
+	}
+	say := f.sent()[1].Args.(*protocol.SayArgs)
+	if say.Channel != protocol.ChannelWhisper || say.To != "Sothr" {
+		t.Errorf("reply %+v; want a whisper to Sothr", say)
+	}
+}
+
+func TestReplyWindow(t *testing.T) {
+	b, f, c := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn follow"))
+	c.advance(10 * time.Second)
+	b.Chat(line("Sothr", "stop"))
+	if got := f.tasks(); len(got) != 2 {
+		t.Fatalf("within the window, tasks %v; want follow and stop", got)
+	}
+	c.advance(25 * time.Second)
+	b.Chat(line("Sothr", "follow"))
+	if got := f.tasks(); len(got) != 2 {
+		t.Fatalf("after the window, tasks %v; want no new task", got)
+	}
+}
+
+func TestOnlyOwnersCommand(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Mallory", "bjorn follow me"))
+	if len(f.tasks()) != 0 {
+		t.Fatalf("a non-owner's command was sent: %v", f.tasks())
+	}
+	if got := f.said(); len(got) != 1 || !strings.Contains(got[0], "only take orders from Sothr") {
+		t.Errorf("said %q; want a polite refusal", got)
+	}
+}
+
+func TestStatus(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn status"))
+	if got := f.said(); got[0] != "I'm not in the world yet." {
+		t.Errorf("before any state: %q", got)
+	}
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, HP: 47, HPMax: 60, Stamina: 38, StaminaMax: 75,
+		Biome: "BlackForest", Env: "Rain", Time: protocol.GameTime{Day: 14, DayFraction: 0.81},
+		Task: &protocol.TaskRef{Task: "follow", Status: "running"}}
+	b.Chat(line("Sothr", "bjorn status"))
+	want := "Health 47/60, stamina 38/75. Black Forest, rain, day 14, evening. Following."
+	if got := f.said()[1]; got != want {
+		t.Errorf("status %q\nwant   %q", got, want)
+	}
+	if len(f.tasks()) != 0 {
+		t.Error("status sent a body task")
+	}
+}
+
+func TestFailedTaskIsExplainedToWhoAsked(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn follow me"))
+	follow := f.sent()[0]
+	task := doneTask(follow, protocol.StatusFailed, protocol.ReasonTargetLost)
+	b.TaskDone(task)
+	if got := f.said(); len(got) != 2 || got[1] != "I lost track of you, Sothr." {
+		t.Errorf("said %q", got)
+	}
+	// Superseded is the normal end of a task and says nothing.
+	b.TaskDone(doneTask(follow, protocol.StatusCancelled, protocol.ReasonSuperseded))
+	if len(f.said()) != 2 {
+		t.Errorf("a superseded task was explained: %q", f.said())
+	}
+}
+
+// doneTask makes a finished task through a real session, since its status
+// is only settable from inside that package.
+func doneTask(o session.Order, status, reason string) *session.Task {
+	return session.Finished(o.Task, o.Origin, status, reason)
+}
+
+type stubVoice struct {
+	reply Reply
+	err   error
+	got   chan Request
+}
+
+func (v *stubVoice) Reply(_ context.Context, req Request) (Reply, error) {
+	v.got <- req
+	return v.reply, v.err
+}
+
+func waitSaid(t *testing.T, f *fakeSession, n int) []string {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for len(f.said()) < n {
+		if time.Now().After(deadline) {
+			t.Fatalf("said %q; waited for %d lines", f.said(), n)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return f.said()
+}
+
+func TestUnmatchedGoesToVoice(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "Wet, bruised, and still swinging.",
+		Task: &Proposal{Task: "emote", Args: json.RawMessage(`{"name":"wave"}`)}}}
+	b, f, _ := newBrain(v)
+	b.Chat(line("Sothr", "hey"))
+	b.Chat(line("Sothr", "bjorn how are you holding up?"))
+	req := <-v.got
+	if !req.Owner || req.Speaker != "Sothr" || len(req.Tasks) == 0 || req.Summary == "" {
+		t.Errorf("request %+v", req)
+	}
+	if len(req.Recent) != 2 || req.Recent[0].Text != "hey" {
+		t.Errorf("recent chat %+v; want both lines", req.Recent)
+	}
+	waitSaid(t, f, 1)
+	if got := f.tasks(); len(got) != 1 || got[0] != "emote" {
+		t.Errorf("tasks %v; want the proposed emote", got)
+	}
+}
+
+func TestVoiceProposalsAreChecked(t *testing.T) {
+	cases := []struct {
+		name     string
+		speaker  string
+		proposal Proposal
+	}{
+		{"non-owner", "Mallory", Proposal{Task: "follow", Args: json.RawMessage(`{"player":"Mallory"}`)}},
+		{"not allowed", "Sothr", Proposal{Task: "attack", Args: json.RawMessage(`{"entity":"0:1"}`)}},
+		{"bad args", "Sothr", Proposal{Task: "follow", Args: json.RawMessage(`{"distance":2}`)}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "Sure.", Task: &tc.proposal}}
+			b, f, _ := newBrain(v)
+			b.Chat(line(tc.speaker, "bjorn do the thing"))
+			req := <-v.got
+			if tc.speaker != "Sothr" && len(req.Tasks) != 0 {
+				t.Errorf("a non-owner was offered tasks %v", req.Tasks)
+			}
+			waitSaid(t, f, 1)
+			if got := f.tasks(); len(got) != 0 {
+				t.Errorf("proposal reached the plugin: %v", got)
+			}
+		})
+	}
+}
+
+func TestVoiceFailureSaysHm(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), err: errors.New("provider down")}
+	b, f, _ := newBrain(v)
+	b.Chat(line("Sothr", "bjorn tell me a story"))
+	<-v.got
+	if got := waitSaid(t, f, 1); got[0] != "Hm?" {
+		t.Errorf("said %q", got)
+	}
+}
+
+func TestNoVoiceSaysHm(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn tell me a story"))
+	if got := f.said(); len(got) != 1 || got[0] != "Hm?" {
+		t.Errorf("said %q", got)
+	}
+}
+
+func TestVoiceCooldownPerPlayer(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 4), reply: Reply{Say: "Aye."}}
+	b, f, c := newBrain(v)
+	b.Chat(line("Sothr", "bjorn hello"))
+	<-v.got
+	waitSaid(t, f, 1)
+	c.advance(time.Second)
+	b.Chat(line("Sothr", "bjorn hello again"))
+	b.Chat(line("Ada", "bjorn hello"))
+	waitSaid(t, f, 2)
+	if len(v.got) != 1 { // Ada's; Sothr's second is still cooling down
+		t.Errorf("voice called %d more times; want 1 (Ada only)", len(v.got))
+	}
+}

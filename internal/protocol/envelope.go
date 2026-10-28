@@ -126,3 +126,17 @@ func Encode(msg Message) ([]byte, error) {
 
 // Vec3 is a Unity world-space position in metres, y up (section 4).
 type Vec3 [3]float64
+
+// EnvelopeOf returns the envelope inside m, for code that stamps `seq` and
+// `t` or reads `id` and `re` without knowing the message type.
+func EnvelopeOf(m Message) *Envelope { return m.envelope() }
+
+// IDOf reads `id` from a frame that may not decode, so an `error` reply can
+// still name what it answers. It returns "" when there is none.
+func IDOf(data []byte) string {
+	var env struct {
+		ID string `json:"id"`
+	}
+	_ = json.Unmarshal(data, &env)
+	return env.ID
+}

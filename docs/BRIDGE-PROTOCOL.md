@@ -29,6 +29,13 @@ the controller but no LLM key, the command grammar in section 9 still works.
   plugin config sets `controllerUrl` and `token`. The token goes in `hello`, and
   a bad token closes the socket with code `4401`. (If the brain runs in WSL2, it
   needs mirrored networking or a port-proxy on the WSL host.)
+- Close codes beyond the standard ones: `4400` when the first message is not
+  a usable `hello` (including an unknown major version, which first gets an
+  `error` with code `unsupported_version`), `4401` for a bad token, and `4409`
+  when a newer plugin connection replaces this one. The controller holds one
+  plugin connection at a time.
+- The controller sends `ping` every 3 s, well inside the plugin's 10 s
+  dead-man limit, and gives up on a plugin that sends nothing for 15 s.
 - On disconnect the plugin reconnects with backoff (1 s, then 2, 4 … up to 30 s).
   While disconnected, the dead-man rule in section 8 applies.
 - **Threading:** the socket runs on a background thread. Inbound messages go

@@ -30,6 +30,18 @@ build-windows:
     GOOS=windows GOARCH=amd64 go build {{buildvcs}} -trimpath -ldflags "{{ldflags}}" -o dist/controller.exe ./cmd/controller
     @echo "built dist/controller.exe ({{version}})"
 
+# Run the controller, with controller.local.json as its config when present.
+run *ARGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cfg=()
+    [ -f controller.local.json ] && cfg=(-config controller.local.json)
+    exec go run {{buildvcs}} ./cmd/controller "${cfg[@]}" {{ARGS}}
+
+# Talk to a running controller with no game: stdin lines become chat.
+fake *ARGS:
+    go run {{buildvcs}} ./cmd/fakeplugin {{ARGS}}
+
 # Run the tests.
 test *ARGS:
     go test ./... {{ARGS}}
