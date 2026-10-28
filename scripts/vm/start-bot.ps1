@@ -16,6 +16,9 @@ param([double]$WaitMinutes = 5)
 
 . (Join-Path $PSScriptRoot 'common.ps1')
 $s = Read-BotSettings
+if (-not (Test-Path -LiteralPath $s.ValheimExe -PathType Leaf)) {
+    throw "ValheimExe in bot.local.psd1 is not a file: [$($s.ValheimExe)]"
+}
 $logs = Join-Path $PSScriptRoot 'logs'
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
@@ -36,9 +39,26 @@ if ($s.ControllerExe) {
 if (Get-Valheim) {
     Write-Host 'valheim: already running'
 } else {
+    # The game joins from the command line before its matchmaking (and DNS)
+    # is up, so it can only join an IP address: resolve a host name here.
+    $server = $s.Server
+    if ($server -match '^(?<host>.+):(?<port>\d+)$') {
+        $hostName = $Matches.host
+        $port = $Matches.port
+    } else {
+        $hostName = $server
+        $port = '2456'
+    }
+    $ip = $null
+    if (-not [Net.IPAddress]::TryParse($hostName, [ref]$ip)) {
+        $ip = [Net.Dns]::GetHostAddresses($hostName) |
+            Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1
+        if (-not $ip) { throw "cannot resolve $hostName to an IPv4 address" }
+        Write-Host "server: $hostName is $ip"
+    }
     # The game only honours -joinserverwithcharacter when another argument
     # follows the character, so there is always one.
-    $game = @('-joinserverwithcharacter', $s.Server, $s.Character)
+    $game = @('-joinserverwithcharacter', "$($ip):$port", $s.Character)
     if ($s.Password) { $game += @('-password', $s.Password) } else { $game += '-renki' }
     $game += $s.ExtraArgs
     Start-Process -FilePath $s.ValheimExe -ArgumentList $game -WorkingDirectory (Split-Path $s.ValheimExe) | Out-Null
