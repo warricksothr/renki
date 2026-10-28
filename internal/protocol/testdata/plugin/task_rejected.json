@@ -1,0 +1,1 @@
+{ "v": 1, "type": "task", "seq": 811, "t": 18234.10, "re": "t-18", "status": "rejected", "reason": "not_allowed", "detail": "allowRawControls is off" }

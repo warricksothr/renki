@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "seq": 812, "t": 18236.20,
+  "re": "t-17", "status": "failed", "reason": "stuck", "detail": "no progress for 9s" }

@@ -1,0 +1,7 @@
+{
+  "v": 1, "type": "chat", "seq": 501, "t": 18235.10,
+  "from": { "name": "Sothr", "playerId": "1234", "owner": true },
+  "channel": "normal",
+  "text": "bjorn, follow me",
+  "pos": [120.1, 31.0, -86.0], "dist": 4.2
+}

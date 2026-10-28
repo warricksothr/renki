@@ -1,0 +1,12 @@
+{
+  "v": 1, "type": "hello", "seq": 1, "t": 0,
+  "token": "…",
+  "plugin": "0.2.0",
+  "game": "0.221.12",
+  "phase": "in_world",
+  "character": "Bjorn",
+  "world": "Midgard",
+  "capabilities": ["stop", "move_to", "follow", "look_at", "say", "emote"],
+  "addedInV1Point5": { "anything": [1, 2, 3] },
+  "os": "windows"
+}

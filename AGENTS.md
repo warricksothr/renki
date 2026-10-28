@@ -1,3 +1,38 @@
+## Tasks
+
+Every task that a person, an agent or CI runs more than once is a `just`
+recipe. Run it through `just` rather than calling `go`, `dotnet`, `vuoro` or
+`git ticket check` directly, and name the recipe, not the command it wraps,
+in tickets, docs and CI. If a task you need has no recipe, add one. Then
+there is one place that says how it is done.
+
+The root justfile routes. `build`, `test`, `lint`, `fmt`, `ci` and `clean` run
+the same verb in every component that exists, in the order of `components`.
+Each component keeps its recipes in a just module that runs in its own
+directory:
+
+| Component | Module file | Example |
+|---|---|---|
+| Go controller | `controller.just` (root, beside go.mod) | `just controller build-windows` |
+| C# plugin | `plugin/justfile`, picked up once it exists | `just plugin deploy` |
+
+Every component implements all six shared verbs, even if one of them does
+nothing. A component that lacks one makes the root verb fail, rather than
+letting a gap pass inside a green `just ci`. To add a component, add its
+`mod` line and its name in `components`, and give it the six verbs. Recipes
+that belong to one component stay in its module. The root holds only routing
+and tooling that spans the repository.
+
+`just ci` is the gate. CI runs it and nothing else, so run it before you
+commit.
+
+`just review` runs vuoro's review on the commits the branch adds
+(`origin/main...HEAD` unless you pass a range) and never posts anything. Run
+it after committing and before pushing, because vuoro reviews commits, not
+the working tree. Exit 1 means findings. Fix each one, or say in the pull
+request description why it stands. Exit 3 means the review itself failed, and
+does not count as a pass.
+
 <!-- git-ticket:begin -->
 
 ## Tickets
