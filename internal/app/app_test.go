@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/bridge/bridgetest"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/protocol"
@@ -22,7 +24,7 @@ func TestAppendixExchange(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -84,7 +86,7 @@ func TestControlAPI(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -144,5 +146,82 @@ func waitFor(t *testing.T, cond func() bool) {
 			t.Fatal("condition never held")
 		}
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// TestAuditRecordsTheExchange checks the audit log has what is needed to
+// reason about a session afterwards: the frames both ways, in order, the
+// plugin's traces, and the controller's decisions.
+func TestAuditRecordsTheExchange(t *testing.T) {
+	dir := t.TempDir()
+	trail, err := audit.Open(dir, 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(trail.Handler(slog.LevelDebug))
+	cfg := config.Default()
+	cfg.Owners = []string{"Sothr"}
+	cfg.Token = "sekrit"
+	a := New(cfg, nil, log, trail)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(ctx, ln) }()
+
+	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Tas"})
+	p.Send(&protocol.Chat{From: protocol.ChatSender{Name: "Sothr", Owner: true}, Channel: protocol.ChannelShout,
+		Text: "tas follow me"})
+	follow := p.NextTask()
+	p.NextTask() // the say
+	p.Send(&protocol.Trace{Task: follow.ID, Source: "walker", Msg: "stuck, trying Jump",
+		Data: map[string]any{"attempt": 1}})
+	p.Report(follow.ID, protocol.StatusFailed, protocol.ReasonStuck)
+	p.NextTask() // "I'm stuck"
+	p.Close()
+	cancel()
+	<-done
+	trail.Close()
+
+	files := audit.Files(dir)
+	if len(files) != 1 {
+		t.Fatalf("files %v", files)
+	}
+	data, err := os.ReadFile(files[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen []string
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		var r audit.Record
+		if err := json.Unmarshal([]byte(line), &r); err != nil {
+			t.Fatalf("line %q: %v", line, err)
+		}
+		switch r.Kind {
+		case audit.KindFrame:
+			var env struct{ Type, Task, Re string }
+			json.Unmarshal(r.Frame, &env)
+			seen = append(seen, r.Dir+" "+env.Type)
+			if strings.Contains(string(r.Frame), "sekrit") {
+				t.Errorf("the token is in the audit log: %s", r.Frame)
+			}
+		case audit.KindLog:
+			seen = append(seen, "log "+r.Msg)
+		}
+	}
+	got := strings.Join(seen, "\n")
+	// In order, though other lines may come between.
+	want := []string{"in hello", "out welcome", "log plugin connected", "in state", "in chat",
+		"log command", "out task", "in trace", "in task", "out task", "log plugin disconnected"}
+	at := 0
+	for _, w := range want {
+		i := strings.Index(got[at:], w)
+		if i < 0 {
+			t.Fatalf("missing %q after position %d in:\n%s", w, at, got)
+		}
+		at += i + len(w)
 	}
 }

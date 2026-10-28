@@ -37,6 +37,18 @@ type Config struct {
 	// LLM configures the in-character replies. Absent means the bot answers
 	// only the command grammar.
 	LLM *LLM `json:"llm,omitempty"`
+
+	// Audit is where the audit log goes (internal/audit).
+	Audit Audit `json:"audit"`
+}
+
+// Audit configures the audit log.
+type Audit struct {
+	// Dir holds the daily files, relative to the working directory. Empty
+	// turns the audit log off.
+	Dir string `json:"dir"`
+	// KeepDays is how many days of files to keep; 0 keeps them all.
+	KeepDays int `json:"keepDays"`
 }
 
 // LLM configures how the controller reaches terva.
@@ -65,6 +77,7 @@ func Default() Config {
 		Rates:        protocol.Rates{StateHz: 5, PerceptionHz: 1},
 		Perception:   protocol.PerceptionConfig{Radius: 40, MaxPerKind: 24},
 		AllowedTasks: slices.Clone(M1Tasks),
+		Audit:        Audit{Dir: "audit", KeepDays: 14},
 	}
 }
 
@@ -97,6 +110,9 @@ func (c Config) Validate() error {
 		if ip == nil || !ip.IsLoopback() {
 			return fmt.Errorf("listen %q is not loopback, so a token is required (set token or RENKI_TOKEN)", c.Listen)
 		}
+	}
+	if c.Audit.KeepDays < 0 {
+		return errors.New("audit.keepDays must not be negative")
 	}
 	if c.Rates.StateHz <= 0 {
 		return errors.New("rates.stateHz must be positive")

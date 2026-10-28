@@ -166,6 +166,8 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		s.listener.Chat(m)
 	case *protocol.Event:
 		s.listener.Event(m)
+	case *protocol.Trace:
+		// For the audit log, which has it from the bridge already.
 	case *protocol.Error:
 		s.log.Warn("plugin reported an error", "re", m.Re, "code", m.Code, "detail", m.Detail)
 	default:

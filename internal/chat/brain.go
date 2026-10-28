@@ -176,16 +176,19 @@ type origin struct {
 func (b *Brain) Chat(c *protocol.Chat) {
 	b.remember(Line{From: c.From.Name, Text: c.Text})
 	if !b.addressed(c) {
+		b.opts.Logger.Debug("not addressed", "from", c.From.Name, "name", b.agentName())
 		return
 	}
 	from := origin{player: c.From.Name, channel: replyChannel(c.Channel)}
 	owner := slices.Contains(b.opts.Owners, c.From.Name)
 	cmd, ok := parse(b.strip(c.Text))
 	if !ok {
+		b.opts.Logger.Debug("not a command", "from", c.From.Name, "voice", b.opts.Voice != nil)
 		b.converse(c, from, owner)
 		return
 	}
 	if !owner {
+		b.opts.Logger.Info("refused: not an owner", "from", c.From.Name, "command", cmd, "owners", b.opts.Owners)
 		b.say(from, fmt.Sprintf("Sorry, %s, I only take orders from %s.", c.From.Name, joinNames(b.opts.Owners)))
 		return
 	}

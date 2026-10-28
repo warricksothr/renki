@@ -77,6 +77,7 @@ var registry = map[Sender]map[string]func() Message{
 		TypePong:       func() Message { return &Pong{} },
 		TypeBye:        func() Message { return &Bye{} },
 		TypeError:      func() Message { return &Error{} },
+		TypeTrace:      func() Message { return &Trace{} },
 	},
 	FromController: {
 		TypeWelcome: func() Message { return &Welcome{} },

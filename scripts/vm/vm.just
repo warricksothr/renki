@@ -81,6 +81,23 @@ deploy: need-target
     {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
     just --justfile "{{justfile()}}" vm start
 
+# Takes renki-audit flags after the day count: `just vm audit 1 -task t-6`,
+# `just vm audit 2 -last 30m -state 1s`. DAYS counts today as 1.
+[doc("Fetch the VM's audit log and print it as a timeline.")]
+audit DAYS="1" *ARGS: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    local="{{justfile_directory()}}/scripts/vm/logs/audit"
+    mkdir -p "$local"
+    files=$({{ssh}} "Get-ChildItem '{{dir}}/audit' -Filter 'audit-*.jsonl' -ErrorAction SilentlyContinue | Where-Object { \$_.LastWriteTime -ge (Get-Date).Date.AddDays(1 - {{DAYS}}) } | ForEach-Object { \$_.Name }" | tr -d '\r')
+    [ -n "$files" ] || { echo "no audit files on the VM in the last {{DAYS}} day(s) ({{dir}}/audit)" >&2; exit 1; }
+    for f in $files; do
+        scp -q -o BatchMode=yes "{{target}}:/{{dir}}/audit/$f" "$local/$f"
+    done
+    echo "fetched: $files" >&2
+    cd "{{justfile_directory()}}"
+    just controller audit {{ARGS}} $(for f in $files; do printf '%s ' "$local/$f"; done)
+
 # An interactive PowerShell on the VM.
 shell: need-target
     ssh {{target}}

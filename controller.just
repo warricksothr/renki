@@ -42,6 +42,12 @@ run *ARGS:
 fake *ARGS:
     go run {{buildvcs}} ./cmd/fakeplugin {{ARGS}}
 
+# Takes files or directories (default ./audit) and flags: `just controller
+# audit -task t-6`, `-last 10m`, `-since 16:40 -state 1s`, `-json`.
+[doc("Print the audit log as a timeline (internal/audit).")]
+audit *ARGS:
+    go run {{buildvcs}} ./cmd/audit {{ARGS}}
+
 # Run the tests.
 test *ARGS:
     go test ./... {{ARGS}}

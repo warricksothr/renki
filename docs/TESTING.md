@@ -96,3 +96,6 @@ need tuning:
   (TKT-01M61T36CC).
 
 When a check fails, note it on the ticket it names, with the log lines.
+`just vm audit 1 -task t-6` (docs/AUDIT.md) prints everything about one
+task, from the chat that started it to how it ended, including the plugin's
+own decisions along the way.

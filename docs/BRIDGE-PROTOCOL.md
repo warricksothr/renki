@@ -275,7 +275,25 @@ into a problem.
 | `stopped` | `stop`, the dead-man rule, or a logout. |
 | `died` | — |
 
-### 6.7 Housekeeping
+### 6.7 `trace` (when the plugin decides something itself)
+
+The plugin's own decisions inside a task, which no other message shows: a
+change of gait while following, a new path, a stuck recovery. The controller
+writes them to its audit log (docs/AUDIT.md) and acts on none of them.
+
+```json
+{
+  "v": 1, "type": "trace", "seq": 1043, "t": 18234.60,
+  "task": "t-17", "source": "walker", "msg": "stuck, trying Strafe",
+  "data": { "attempt": 2, "pos": [123.45, 31.02, -88.1], "center": [123.1, 31.0, -88.3] }
+}
+```
+
+`task` is the running task, if any. `source` names what decided (`follow`,
+`walker`). `data` holds the numbers behind the decision, and its keys depend
+on the message.
+
+### 6.8 Housekeeping
 
 `pong` (reply to `ping`), and `error`, which looks like
 `{"re":"…","code":"bad_message","detail":"…"}`.

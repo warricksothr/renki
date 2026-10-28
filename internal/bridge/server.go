@@ -66,6 +66,9 @@ type Options struct {
 	// Fallback serves every path but Path, such as the controller's control
 	// API. Nil answers them with 404.
 	Fallback http.Handler
+	// Tap sees every frame as it went over the wire, received ("in") or
+	// sent ("out"), such as for the audit log. It must not keep frame.
+	Tap func(conn uint64, dir string, frame []byte)
 }
 
 func (o *Options) defaults() {
@@ -93,6 +96,8 @@ type Server struct {
 	mu      sync.Mutex
 	current *Conn
 	nextID  atomic.Uint64
+	// conns counts connections being served, so Serve can let them finish.
+	conns sync.WaitGroup
 }
 
 // NewServer returns a server that reports to h.
@@ -111,17 +116,21 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	s.conns.Add(1)
+	defer s.conns.Done()
 	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		s.opts.Logger.Warn("websocket accept failed", "remote", r.RemoteAddr, "err", err)
 		return
 	}
 	ws.SetReadLimit(1 << 20)
+	id := s.nextID.Add(1)
 	c := &Conn{
-		id:     s.nextID.Add(1),
+		id:     id,
 		ws:     ws,
 		remote: r.RemoteAddr,
-		log:    s.opts.Logger.With("conn", s.nextID.Load(), "remote", r.RemoteAddr),
+		log:    s.opts.Logger.With("conn", id, "remote", r.RemoteAddr),
+		tap:    s.opts.Tap,
 	}
 	s.serve(r.Context(), c)
 }
@@ -155,6 +164,17 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	}()
 	s.opts.Logger.Info("bridge listening", "addr", ln.Addr().String(), "path", Path)
 	err := srv.Serve(ln)
+	// Let the connections finish, so their last words reach the logs.
+	finished := make(chan struct{})
+	go func() {
+		s.conns.Wait()
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case <-time.After(3 * time.Second):
+		s.opts.Logger.Warn("connections still open at shutdown")
+	}
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
@@ -206,6 +226,7 @@ func (s *Server) handshake(ctx context.Context, c *Conn) (*protocol.Hello, error
 		c.ws.CloseNow()
 		return nil, fmt.Errorf("waiting for hello: %w", err)
 	}
+	c.observeFrame("in", data)
 	msg, err := protocol.Decode(data, protocol.FromPlugin)
 	var verr *protocol.VersionError
 	if errors.As(err, &verr) {
@@ -247,6 +268,7 @@ func (s *Server) readLoop(ctx context.Context, c *Conn) error {
 			}
 			return err
 		}
+		c.observeFrame("in", data)
 		msg, err := protocol.Decode(data, protocol.FromPlugin)
 		if err != nil {
 			c.log.Warn("bad message from plugin", "err", err, "frame", truncate(data, 200))
@@ -292,6 +314,7 @@ type Conn struct {
 	Hello   *protocol.Hello
 	Welcome *protocol.Welcome
 
+	tap       func(conn uint64, dir string, frame []byte)
 	seq       atomic.Uint64
 	lastT     atomic.Uint64 // math.Float64bits of the newest `t` the plugin sent
 	closeOnce sync.Once
@@ -312,7 +335,18 @@ func (c *Conn) Send(ctx context.Context, msg protocol.Message) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	return c.ws.Write(ctx, websocket.MessageText, data)
+	if err := c.ws.Write(ctx, websocket.MessageText, data); err != nil {
+		return err
+	}
+	c.observeFrame("out", data)
+	return nil
+}
+
+// observeFrame hands a frame to the tap, if there is one.
+func (c *Conn) observeFrame(dir string, data []byte) {
+	if c.tap != nil {
+		c.tap(c.id, dir, data)
+	}
 }
 
 // Bye tells the plugin the controller is leaving, then closes.

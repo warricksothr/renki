@@ -16,6 +16,7 @@ const (
 	TypeLogout     = "logout"
 	TypeBye        = "bye"
 	TypeError      = "error"
+	TypeTrace      = "trace"
 )
 
 // Phase values the plugin reports (section 5).
@@ -28,7 +29,7 @@ const (
 )
 
 // CodeBadMessage is the `error` code for a frame the receiver cannot use
-// (section 6.7).
+// (section 6.8).
 const CodeBadMessage = "bad_message"
 
 // ---- Session (section 5) ----
@@ -86,7 +87,7 @@ type Bye struct {
 
 func (*Bye) MessageType() string { return TypeBye }
 
-// ---- Housekeeping (sections 6.7 and 7.4) ----
+// ---- Housekeeping (sections 6.8 and 7.4) ----
 
 // Ping is sent by the controller; the plugin answers with Pong.
 type Ping struct{ Envelope }
@@ -290,6 +291,22 @@ type Event struct {
 }
 
 func (*Event) MessageType() string { return TypeEvent }
+
+// Trace is a decision the plugin made on its own, such as a change of
+// gait or a stuck recovery: plugin to controller (6.7). The controller
+// writes it to the audit log and acts on none of it.
+type Trace struct {
+	Envelope
+	// Task is the running task's id, when there is one.
+	Task string `json:"task,omitempty"`
+	// Source names what decided: "follow", "walker", "runner".
+	Source string `json:"source"`
+	Msg    string `json:"msg"`
+	// Data holds the numbers behind the decision.
+	Data map[string]any `json:"data,omitempty"`
+}
+
+func (*Trace) MessageType() string { return TypeTrace }
 
 // Event names (6.5).
 const (

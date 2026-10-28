@@ -14,7 +14,7 @@ namespace Renki.Protocol
 
         public const string Hello = "hello", Welcome = "welcome", State = "state", Perception = "perception",
             Inventory = "inventory", Chat = "chat", Event = "event", Task = "task", Ping = "ping", Pong = "pong",
-            Config = "config", Logout = "logout", Bye = "bye", Error = "error";
+            Config = "config", Logout = "logout", Bye = "bye", Error = "error", Trace = "trace";
 
         public const string PhaseMenu = "menu", PhaseConnecting = "connecting", PhaseInWorld = "in_world",
             PhaseDead = "dead", PhaseLoggingOut = "logging_out";
@@ -255,6 +255,17 @@ namespace Renki.Protocol
         [JsonProperty("playerId", NullValueHandling = NullValueHandling.Ignore)] public string PlayerId;
         [JsonProperty("biome", NullValueHandling = NullValueHandling.Ignore)] public string Biome;
         [JsonProperty("hpFrac", NullValueHandling = NullValueHandling.Ignore)] public double? HpFrac;
+    }
+
+    /// <summary>A decision the plugin made on its own, for the controller's
+    /// audit log (6.7). Nothing acts on it.</summary>
+    public sealed class Trace : Message
+    {
+        public override string MessageType => Wire.Trace;
+        [JsonProperty("task", NullValueHandling = NullValueHandling.Ignore)] public string Task;
+        [JsonProperty("source")] public string Source = "";
+        [JsonProperty("msg")] public string Msg = "";
+        [JsonProperty("data", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<string, object> Data;
     }
 
     /// <summary>A status report on a task, with <c>re</c> set to its id (6.6).</summary>

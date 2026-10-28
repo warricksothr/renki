@@ -47,6 +47,9 @@ namespace Renki.Movement
             return Sequence[step++ % Sequence.Length];
         }
 
+        /// <summary>The middle of the circle the bot has to leave.</summary>
+        public V3 Center => center;
+
         /// <summary>How many recoveries have been tried since the last progress.</summary>
         public int Attempts => step;
     }

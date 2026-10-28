@@ -67,6 +67,11 @@ namespace Renki.Plugin
                 "The debug `controls` task.").Value;
 
             Log = Logger;
+            Tracer.Sink = t =>
+            {
+                t.Task = runner?.Current?.Id;
+                if (client != null && client.Connected) Send(t);
+            };
             runner = new TaskRunner(safety, TaskNames.M1, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);

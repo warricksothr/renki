@@ -1,6 +1,8 @@
 # Go
 /controller
 /dist/
+# The controller's audit log, when it runs from the repository root
+/audit/
 
 # C# plugin build output
 bin/

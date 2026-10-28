@@ -45,8 +45,13 @@ namespace Renki.Plugin
                 scratch.Add(goal);
             }
             path.Set(scratch.Select(Convert.ToV3));
-            RenkiPlugin.Log?.LogInfo($"walker: path {From(from)} -> {From(goal)}: " +
-                                     (StraightLine ? "no navmesh path, straight line" : $"{scratch.Count} waypoints"));
+            Tracer.Emit("walker", StraightLine ? "no navmesh path; straight line" : "path",
+                new Dictionary<string, object>
+                {
+                    ["from"] = Convert.ToArray(from),
+                    ["to"] = Convert.ToArray(goal),
+                    ["waypoints"] = scratch.Count,
+                });
         }
 
         public void ResetStuck(Vector3 pos) => stuck.Reset(Convert.ToV3(pos), Time.time);
@@ -57,7 +62,14 @@ namespace Renki.Plugin
             if (!hasGoal) return true;
             var recovery = stuck.Update(Convert.ToV3(pos), Time.time);
             if (recovery != Recovery.None)
-                RenkiPlugin.Log?.LogInfo($"walker: stuck at {From(pos)}, trying {recovery} (attempt {stuck.Attempts})");
+                Tracer.Emit("walker", recovery == Recovery.GiveUp ? "stuck; giving up" : $"stuck; trying {recovery}",
+                    new Dictionary<string, object>
+                    {
+                        ["attempt"] = stuck.Attempts,
+                        ["pos"] = Convert.ToArray(pos),
+                        ["center"] = stuck.Center.ToArray(),
+                        ["goal"] = Convert.ToArray(goal),
+                    });
             switch (recovery)
             {
                 case Recovery.Jump:
@@ -87,8 +99,6 @@ namespace Renki.Plugin
         }
 
         public int RecoveryAttempts => stuck.Attempts;
-
-        internal static string From(Vector3 v) => $"({v.x:F1}, {v.y:F1}, {v.z:F1})";
     }
 
     /// <summary>move_to: walk to a point or an entity and stop within stopDistance.</summary>
@@ -157,7 +167,9 @@ namespace Renki.Plugin
         bool moving;
         Vector3 leaderLast;
         float leaderSpeed;
-        Gait lastGait = (Gait)(-1);
+        // lastGait is the gait last traced, or Lost or Unset.
+        const Gait Unset = (Gait)(-1), Lost = (Gait)(-2);
+        Gait lastGait = Unset;
 
         /// <summary>Faster than a jog (4 m/s) means the leader is sprinting.</summary>
         const float RunningSpeed = 5.5f;
@@ -176,6 +188,11 @@ namespace Renki.Plugin
             var leader = Players.Find(args.Player);
             if (leader == null || leader.IsDead())
             {
+                if (lastGait != Lost)
+                {
+                    Tracer.Emit("follow", leader == null ? $"{args.Player} out of sight" : $"{args.Player} is dead");
+                    lastGait = Lost;
+                }
                 Driver.Stand();
                 return Time.time - lastSeen > LoseAfter
                     ? Outcome.Failed(Wire.ReasonTargetLost, $"{args.Player} is gone")
@@ -197,8 +214,14 @@ namespace Renki.Plugin
             var gait = pace.Decide(gap, args.Distance, args.Run, leaderSpeed > RunningSpeed);
             if (gait != lastGait)
             {
-                RenkiPlugin.Log?.LogInfo($"follow: {lastGait} -> {gait}, gap {gap:F1} m, me {Walker.From(pos)}, " +
-                                         $"{args.Player} {Walker.From(lead)}");
+                Tracer.Emit("follow", gait.ToString().ToLowerInvariant(), new Dictionary<string, object>
+                {
+                    ["gap"] = System.Math.Round(gap, 2),
+                    ["distance"] = args.Distance,
+                    ["pos"] = Convert.ToArray(pos),
+                    ["leader"] = Convert.ToArray(lead),
+                    ["leaderSpeed"] = System.Math.Round(leaderSpeed, 2),
+                });
                 lastGait = gait;
             }
             if (gait == Gait.Stop)

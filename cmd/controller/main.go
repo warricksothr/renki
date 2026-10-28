@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/warricksothr/renki/internal/app"
+	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 )
@@ -41,7 +42,8 @@ func run() int {
 	if *debug {
 		level = slog.LevelDebug
 	}
-	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	console := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	log := slog.New(console)
 	slog.SetDefault(log)
 
 	cfg, err := config.Load(*configPath)
@@ -52,6 +54,22 @@ func run() int {
 	if err != nil {
 		log.Error("configuration", "err", err)
 		return 2
+	}
+
+	// The audit log takes every record at debug level, whatever the
+	// console shows.
+	var trail *audit.Log
+	if cfg.Audit.Dir != "" {
+		trail, err = audit.Open(cfg.Audit.Dir, cfg.Audit.KeepDays, nil)
+		if err != nil {
+			log.Error("audit log", "dir", cfg.Audit.Dir, "err", err)
+			return 2
+		}
+		defer trail.Close()
+		log = slog.New(slog.NewMultiHandler(console, trail.Handler(slog.LevelDebug)))
+		slog.SetDefault(log)
+		trail.Write(audit.Record{Kind: audit.KindStart, Msg: "renki controller " + version,
+			Attrs: map[string]any{"config": redacted(cfg), "pid": os.Getpid()}})
 	}
 
 	var voice chat.Voice
@@ -72,10 +90,26 @@ func run() int {
 		return 1
 	}
 	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
-		"owners", cfg.Owners, "llm", voice != nil)
-	if err := app.New(cfg, voice, log).Serve(ctx, ln); err != nil {
+		"owners", cfg.Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
+	if err := app.New(cfg, voice, log, trail).Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)
 		return 1
 	}
 	return 0
+}
+
+// redacted is cfg without the secrets it may hold: the bridge token, and
+// the terva block, which can carry provider keys.
+func redacted(cfg config.Config) config.Config {
+	if cfg.Token != "" {
+		cfg.Token = "[redacted]"
+	}
+	if cfg.LLM != nil {
+		llm := *cfg.LLM
+		if len(llm.Terva) > 0 {
+			llm.Terva = []byte(`"[redacted]"`)
+		}
+		cfg.LLM = &llm
+	}
+	return cfg
 }

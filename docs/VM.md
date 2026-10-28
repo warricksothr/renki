@@ -63,6 +63,7 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
     just vm start                            # waits until the bot is in the world
     just vm status
     just vm logs                             # the renki lines of the BepInEx log, and the controller's
+    just vm audit 1 -last 10m                # what happened, from the audit log (docs/AUDIT.md)
     just vm stop
     just vm deploy                           # package, stop, copy, install the plugin, start
 

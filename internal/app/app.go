@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/bridge"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
@@ -26,7 +27,8 @@ type App struct {
 
 // New builds a controller from cfg. voice may be nil, which leaves the bot
 // with the command grammar only.
-func New(cfg config.Config, voice chat.Voice, log *slog.Logger) *App {
+// audit may be nil, which records nothing.
+func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log) *App {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -46,6 +48,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger) *App {
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg) },
 		Logger:   log.With("part", "bridge"),
 		Fallback: a.control(log.With("part", "control")),
+		Tap:      audit.Frame,
 	}, s)
 	return a
 }
