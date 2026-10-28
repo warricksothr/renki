@@ -29,6 +29,12 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
 
        powershell -ExecutionPolicy Bypass -File C:\renki\setup-remote.ps1
 
+   Installing OpenSSH goes through Windows Update and can take a long time,
+   or hang if Windows Update is off. If it does, stop the script, install
+   `OpenSSH-Win64-v*.msi` from
+   [Win32-OpenSSH releases](https://github.com/PowerShell/Win32-OpenSSH/releases),
+   and run the script again: it skips the install when `sshd` already exists.
+
    Add `-AllowFrom 192.168.1.0/24` (your LAN) to limit who may reach SSH. It
    ends by printing the account and the addresses; keep them.
 5. **Fill in the settings.**

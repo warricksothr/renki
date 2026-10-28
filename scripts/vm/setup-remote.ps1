@@ -51,13 +51,19 @@ function Step($text) { Write-Host "`n== $text" -ForegroundColor Cyan }
 
 # 1. OpenSSH Server
 Step 'OpenSSH Server'
-$cap = Get-WindowsCapability -Online -Name 'OpenSSH.Server*' | Select-Object -First 1
-if ($cap.State -ne 'Installed') {
-    Write-Host "installing $($cap.Name) (this can take a few minutes)"
+# Any OpenSSH Server will do: the Windows capability, or the MSI from
+# github.com/PowerShell/Win32-OpenSSH/releases, which needs no Windows Update.
+if (Get-Service sshd -ErrorAction SilentlyContinue) {
+    Write-Host 'sshd is already installed'
+} else {
+    $cap = Get-WindowsCapability -Online -Name 'OpenSSH.Server*' | Select-Object -First 1
+    Write-Host "installing $($cap.Name) through Windows Update; this can take a long time."
+    Write-Host 'If it hangs, stop it (Ctrl+C), install the OpenSSH MSI instead, and run this again.'
     Add-WindowsCapability -Online -Name $cap.Name | Out-Null
 }
 Set-Service -Name sshd -StartupType Automatic
 Start-Service sshd
+New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force -ErrorAction SilentlyContinue | Out-Null
 New-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Force -PropertyType String `
     -Value "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" | Out-Null
 
