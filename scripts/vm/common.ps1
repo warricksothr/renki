@@ -2,6 +2,18 @@
 
 $ErrorActionPreference = 'Stop'
 
+# The controller's secrets from secrets.local.json (set-secret.ps1), as a
+# hashtable of environment variable names to values.
+function Read-Secrets {
+    $file = Join-Path $PSScriptRoot 'secrets.local.json'
+    $out = @{}
+    if (Test-Path $file) {
+        $json = Get-Content $file -Raw | ConvertFrom-Json
+        foreach ($p in $json.PSObject.Properties) { $out[$p.Name] = [string]$p.Value }
+    }
+    return $out
+}
+
 function Read-BotSettings {
     $path = Join-Path $PSScriptRoot 'bot.local.psd1'
     if (-not (Test-Path $path)) {

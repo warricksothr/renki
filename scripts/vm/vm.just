@@ -108,6 +108,17 @@ panel-setup PORT="8780": need-target
 panel-token: need-target
     @{{ssh}} "\$c = Get-Content '{{dir}}/controller.local.json' -Raw | ConvertFrom-Json; if (-not \$c.panel.listen) { 'The panel is off: run just vm panel-setup'; exit 1 }; 'address: http://' + \$c.panel.listen + '/'; 'token:   ' + \$c.panel.token"
 
+# Prompts here without echoing, and sends the value over SSH's standard
+# input, so it is in no command line, log or chat. `just vm secret CPA_API_KEY`.
+[doc("Store a secret for the controller on the VM, such as an LLM key.")]
+secret NAME: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "{{NAME}}" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "NAME must look like CPA_API_KEY" >&2; exit 2; }
+    read -rsp "{{NAME}} (not shown): " value; echo
+    [ -n "$value" ] || { echo "empty; nothing changed" >&2; exit 1; }
+    printf '%s' "$value" | {{ssh}} "{{ps}} -File {{dir}}/set-secret.ps1 -Name {{NAME}}"
+
 # An interactive PowerShell on the VM.
 shell: need-target
     ssh {{target}}

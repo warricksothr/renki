@@ -28,6 +28,11 @@ if ($s.ControllerExe) {
     } else {
         $ctlArgs = @()
         if ($s.ControllerConfig -and (Test-Path $s.ControllerConfig)) { $ctlArgs += @('-config', $s.ControllerConfig) }
+        # The controller inherits this environment: hand it its secrets,
+        # such as the LLM key its configuration names.
+        $secrets = Read-Secrets
+        foreach ($k in $secrets.Keys) { Set-Item -Path "env:$k" -Value $secrets[$k] }
+        if ($secrets.Count) { Write-Host "controller: secrets $($secrets.Keys -join ', ')" }
         Start-Process -FilePath $s.ControllerExe -ArgumentList $ctlArgs -WorkingDirectory $PSScriptRoot `
             -WindowStyle Hidden -RedirectStandardError (Join-Path $logs 'controller.log') `
             -RedirectStandardOutput (Join-Path $logs 'controller.out.log') | Out-Null
