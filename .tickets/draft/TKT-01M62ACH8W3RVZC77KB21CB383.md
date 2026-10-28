@@ -14,14 +14,15 @@ assignees: []
 milestone: null
 parent: null
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M62BMD18K3SE1WXJ7FDN8EPT
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T22:34:11Z
-updated_at: 2026-10-28T22:34:11Z
+updated_at: 2026-10-28T22:55:58Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
