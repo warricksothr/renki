@@ -126,3 +126,43 @@ func TestNilLogDiscards(t *testing.T) {
 		t.Error("a nil log should do nothing")
 	}
 }
+
+func TestSubscribersAndRecentRecords(t *testing.T) {
+	l, err := Open("", 0, nil) // no files: memory and subscribers only
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, cancel := l.Subscribe()
+	for i := 0; i < Recent+10; i++ {
+		l.Write(Record{Kind: KindLog, Msg: "line"})
+	}
+	l.Frame(1, In, []byte(`{"v":1,"type":"state","seq":1,"t":0,"phase":"menu"}`))
+	l.Frame(1, In, []byte(`{"v":1,"type":"state","seq":2,"t":0,"phase":"in_world"}`))
+
+	recent := l.RecentRecords()
+	// Both states fell in one second, so the trail holds the first and
+	// the newest is kept beside it.
+	if len(recent) != Recent+2 {
+		t.Fatalf("recent: %d records", len(recent))
+	}
+	if last := recent[len(recent)-1]; !strings.Contains(string(last.Frame), "in_world") {
+		t.Errorf("newest state not kept: %s", last.Frame)
+	}
+	// The channel holds 256; the rest were missed, not waited for.
+	got := 0
+	for len(ch) > 0 {
+		<-ch
+		got++
+	}
+	if got != 256 || l.Missed() != Recent+12-256 {
+		t.Errorf("got %d, missed %d", got, l.Missed())
+	}
+	cancel()
+	l.Write(Record{Kind: KindLog, Msg: "after"})
+	if len(ch) != 0 {
+		t.Error("a cancelled subscriber still gets records")
+	}
+	if files := Files("."); len(files) != 0 {
+		t.Errorf("a log with no dir wrote %v", files)
+	}
+}

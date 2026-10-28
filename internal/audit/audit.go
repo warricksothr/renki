@@ -13,6 +13,10 @@
 //     connections opened and closed.
 //
 // The plugin's own decisions arrive as `trace` frames.
+//
+// The log also keeps its recent records in memory and hands every new one
+// to subscribers, which is how the control panel watches the bot live. With
+// no directory it does only that.
 package audit
 
 import (
@@ -70,7 +74,23 @@ type Log struct {
 	f    *os.File
 	day  string
 	errs int
+
+	// recent holds the newest records but state and perception, which
+	// come too often to keep many of; last holds the newest of each, and
+	// trail one state a second for a few minutes, for the panel's map.
+	recent []Record
+	last   map[string]Record
+	trail  []Record
+	subs   map[chan Record]struct{}
+	missed int
 }
+
+// Recent is how many records RecentRecords keeps, beside the newest state
+// and perception and the trail.
+const Recent = 500
+
+// Trail is how many states RecentRecords keeps, one a second at most.
+const Trail = 300
 
 // Prefix and Suffix frame a day's file name.
 const (
@@ -79,22 +99,96 @@ const (
 )
 
 // Open starts an audit log in dir, creating it if need be. keepDays is how
-// many days of files to keep, today included; 0 keeps everything. now may
-// be nil.
+// many days of files to keep, today included; 0 keeps everything. An empty
+// dir writes no files but still keeps recent records and feeds
+// subscribers. now may be nil.
 func Open(dir string, keepDays int, now func() time.Time) (*Log, error) {
 	if now == nil {
 		now = time.Now
 	}
+	l := &Log{dir: dir, keep: keepDays, now: now, last: map[string]Record{}, subs: map[chan Record]struct{}{}}
+	if dir == "" {
+		return l, nil
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
-	l := &Log{dir: dir, keep: keepDays, now: now}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if err := l.rotate(now()); err != nil {
 		return nil, err
 	}
 	return l, nil
+}
+
+// Subscribe returns a channel that gets every record written from now on,
+// and a function that ends the subscription. A subscriber that falls
+// behind misses records rather than holding up the log.
+func (l *Log) Subscribe() (<-chan Record, func()) {
+	ch := make(chan Record, 256)
+	l.mu.Lock()
+	l.subs[ch] = struct{}{}
+	l.mu.Unlock()
+	var once sync.Once
+	return ch, func() {
+		once.Do(func() {
+			l.mu.Lock()
+			delete(l.subs, ch)
+			l.mu.Unlock()
+		})
+	}
+}
+
+// RecentRecords returns the newest records, oldest first, with the newest
+// state and perception among them.
+func (l *Log) RecentRecords() []Record {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	out := make([]Record, 0, len(l.recent)+len(l.last)+len(l.trail))
+	out = append(out, l.recent...)
+	out = append(out, l.trail...)
+	for typ, r := range l.last {
+		if typ == "state" && len(l.trail) > 0 && l.trail[len(l.trail)-1].At.Equal(r.At) {
+			continue
+		}
+		out = append(out, r)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].At.Before(out[j].At) })
+	return out
+}
+
+// Missed is how many records subscribers have missed by falling behind.
+func (l *Log) Missed() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.missed
+}
+
+// remember keeps r among the recent records and hands it to subscribers.
+// l.mu is held.
+func (l *Log) remember(r Record) {
+	switch typ := frameType(r); typ {
+	case "state", "perception":
+		l.last[typ] = r
+		if typ == "state" && (len(l.trail) == 0 || r.At.Sub(l.trail[len(l.trail)-1].At) >= time.Second) {
+			l.trail = append(l.trail, r)
+			if len(l.trail) > Trail {
+				l.trail = append(l.trail[:0], l.trail[len(l.trail)-Trail:]...)
+			}
+		}
+	default:
+		l.recent = append(l.recent, r)
+		if len(l.recent) > Recent {
+			l.recent = append(l.recent[:0], l.recent[len(l.recent)-Recent:]...)
+		}
+	}
+	for ch := range l.subs {
+		select {
+		case ch <- r:
+		default:
+			l.missed++
+		}
+	}
 }
 
 // Close closes the current file.
@@ -127,6 +221,10 @@ func (l *Log) Write(r Record) {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.remember(r)
+	if l.dir == "" {
+		return
+	}
 	if err := l.rotate(r.At); err == nil {
 		_, err = l.f.Write(line)
 		if err == nil {

@@ -47,6 +47,18 @@ type Config struct {
 
 	// Home says when the bot goes home by itself.
 	Home HomeRules `json:"home"`
+
+	// Panel is the web control panel (docs/PANEL.md).
+	Panel Panel `json:"panel"`
+}
+
+// Panel configures the web control panel.
+type Panel struct {
+	// Listen is the panel's address, such as the VM's Tailscale address
+	// and a port. Empty turns the panel off.
+	Listen string `json:"listen"`
+	// Token is what the login form wants. RENKI_PANEL_TOKEN overrides it.
+	Token string `json:"token"`
 }
 
 // HomeRules say when the bot goes home without being told.
@@ -118,6 +130,9 @@ func Load(path string) (Config, error) {
 	if tok := os.Getenv("RENKI_TOKEN"); tok != "" {
 		c.Token = tok
 	}
+	if tok := os.Getenv("RENKI_PANEL_TOKEN"); tok != "" {
+		c.Panel.Token = tok
+	}
 	return c, c.Validate()
 }
 
@@ -131,6 +146,14 @@ func (c Config) Validate() error {
 		ip := net.ParseIP(host)
 		if ip == nil || !ip.IsLoopback() {
 			return fmt.Errorf("listen %q is not loopback, so a token is required (set token or RENKI_TOKEN)", c.Listen)
+		}
+	}
+	if c.Panel.Listen != "" {
+		if _, _, err := net.SplitHostPort(c.Panel.Listen); err != nil {
+			return fmt.Errorf("panel.listen %q: %w", c.Panel.Listen, err)
+		}
+		if len(c.Panel.Token) < 16 {
+			return errors.New("panel.token must be at least 16 characters (or set RENKI_PANEL_TOKEN)")
 		}
 	}
 	if c.DataDir == "" {

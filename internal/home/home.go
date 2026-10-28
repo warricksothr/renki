@@ -92,6 +92,19 @@ func (k *Keeper) SetHome(pos protocol.Vec3, by string) (string, error) {
 	return world, nil
 }
 
+// Current returns the home in the bot's current world.
+func (k *Keeper) Current() (world string, h Home, ok bool) {
+	world = k.World()
+	if world == "" {
+		return "", Home{}, false
+	}
+	h, ok = k.store.Home(world)
+	return world, h, ok
+}
+
+// Rules are the rules Keeper follows.
+func (k *Keeper) Rules() config.HomeRules { return k.rules }
+
 // HomeDistance is how far the bot is from home, flat, and false when
 // either is unknown.
 func (k *Keeper) HomeDistance() (float64, bool) {

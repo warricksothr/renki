@@ -98,6 +98,16 @@ audit DAYS="1" *ARGS: need-target
     cd "{{justfile_directory()}}"
     just controller audit {{ARGS}} $(for f in $files; do printf '%s ' "$local/$f"; done)
 
+# Run once, and again after the Tailscale address changes. Then `just vm restart`.
+[doc("Turn the control panel on: Tailscale address, firewall, token.")]
+panel-setup PORT="8780": need-target
+    {{ssh}} "{{ps}} -File {{dir}}/setup-panel.ps1 -Port {{PORT}}"
+
+# Prints to this terminal only; it is the panel's login.
+[doc("Print the control panel's address and login token.")]
+panel-token: need-target
+    @{{ssh}} "\$c = Get-Content '{{dir}}/controller.local.json' -Raw | ConvertFrom-Json; if (-not \$c.panel.listen) { 'The panel is off: run just vm panel-setup'; exit 1 }; 'address: http://' + \$c.panel.listen + '/'; 'token:   ' + \$c.panel.token"
+
 # An interactive PowerShell on the VM.
 shell: need-target
     ssh {{target}}

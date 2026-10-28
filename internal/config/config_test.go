@@ -53,3 +53,19 @@ func TestUnknownTaskRefused(t *testing.T) {
 		t.Fatal("want an error for a task the controller does not know")
 	}
 }
+
+func TestPanelNeedsALongToken(t *testing.T) {
+	c := Default()
+	c.Panel.Listen = "100.64.0.1:8780"
+	if c.Validate() == nil {
+		t.Error("a panel with no token was accepted")
+	}
+	c.Panel.Token = "short"
+	if c.Validate() == nil {
+		t.Error("a short panel token was accepted")
+	}
+	c.Panel.Token = "0123456789abcdef"
+	if err := c.Validate(); err != nil {
+		t.Error(err)
+	}
+}

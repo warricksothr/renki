@@ -59,20 +59,18 @@ func run() int {
 	}
 
 	// The audit log takes every record at debug level, whatever the
-	// console shows.
-	var trail *audit.Log
-	if cfg.Audit.Dir != "" {
-		trail, err = audit.Open(cfg.Audit.Dir, cfg.Audit.KeepDays, nil)
-		if err != nil {
-			log.Error("audit log", "dir", cfg.Audit.Dir, "err", err)
-			return 2
-		}
-		defer trail.Close()
-		log = slog.New(slog.NewMultiHandler(console, trail.Handler(slog.LevelDebug)))
-		slog.SetDefault(log)
-		trail.Write(audit.Record{Kind: audit.KindStart, Msg: "renki controller " + version,
-			Attrs: map[string]any{"config": redacted(cfg), "pid": os.Getpid()}})
+	// console shows. With no directory it writes no files but still feeds
+	// the panel.
+	trail, err := audit.Open(cfg.Audit.Dir, cfg.Audit.KeepDays, nil)
+	if err != nil {
+		log.Error("audit log", "dir", cfg.Audit.Dir, "err", err)
+		return 2
 	}
+	defer trail.Close()
+	log = slog.New(slog.NewMultiHandler(console, trail.Handler(slog.LevelDebug)))
+	slog.SetDefault(log)
+	trail.Write(audit.Record{Kind: audit.KindStart, Msg: "renki controller " + version,
+		Attrs: map[string]any{"config": redacted(cfg), "pid": os.Getpid()}})
 
 	var voice chat.Voice
 	if cfg.LLM != nil {
@@ -98,7 +96,9 @@ func run() int {
 		log.Error("memory", "dir", cfg.DataDir, "err", err)
 		return 2
 	}
-	if err := app.New(cfg, voice, log, trail, homes).Serve(ctx, ln); err != nil {
+	a := app.New(cfg, voice, log, trail, homes)
+	go a.ServePanel(ctx, trail, version, log.With("part", "panel"))
+	if err := a.Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)
 		return 1
 	}
@@ -110,6 +110,9 @@ func run() int {
 func redacted(cfg config.Config) config.Config {
 	if cfg.Token != "" {
 		cfg.Token = "[redacted]"
+	}
+	if cfg.Panel.Token != "" {
+		cfg.Panel.Token = "[redacted]"
 	}
 	if cfg.LLM != nil {
 		llm := *cfg.LLM

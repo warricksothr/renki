@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>renki</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>renki</h1>
+    <span id="link" class="chip off">connecting…</span>
+    <span id="who" class="chip"></span>
+    <span id="phase" class="chip"></span>
+    <span id="task" class="chip"></span>
+    <span id="hp" class="chip"></span>
+    <span id="home" class="chip"></span>
+    <form method="post" action="/logout"><button>Log out</button></form>
+  </header>
+  <main>
+    <section id="map-pane">
+      <canvas id="map" aria-label="Top-down map around the bot"></canvas>
+      <div class="map-bar">
+        <span id="pos"></span>
+        <label><input type="checkbox" id="follow-bot" checked> Centre on the bot</label>
+        <button id="zoom-in" title="Zoom in">+</button>
+        <button id="zoom-out" title="Zoom out">−</button>
+      </div>
+      <ul class="legend">
+        <li><i class="bot"></i>bot and its trail</li>
+        <li><i class="player"></i>player</li>
+        <li><i class="other"></i>creature</li>
+        <li><i class="home"></i>home</li>
+        <li><i class="stuck"></i>stuck recovery</li>
+        <li><i class="path"></i>planned path</li>
+      </ul>
+    </section>
+    <section id="feed-pane">
+      <div class="filters">
+        <label><input type="checkbox" data-cat="chat" checked> Chat</label>
+        <label><input type="checkbox" data-cat="task" checked> Tasks</label>
+        <label><input type="checkbox" data-cat="trace" checked> Plugin decisions</label>
+        <label><input type="checkbox" data-cat="decision" checked> Controller</label>
+        <label><input type="checkbox" data-cat="other"> Other</label>
+        <label><input type="checkbox" data-cat="state"> State</label>
+        <label class="push"><input type="checkbox" id="pause"> Pause</label>
+      </div>
+      <ol id="feed"></ol>
+    </section>
+  </main>
+</body>
+</html>
