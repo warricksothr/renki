@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T19:55:31Z
-updated_at: 2026-10-28T19:55:31Z
+updated_at: 2026-10-28T20:07:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -54,3 +54,7 @@ So the tooling on the dev box can deploy, start, stop and inspect the bot on the
 **agent:claude-code/renki-groom** at 2026-10-28T19:55:31Z
 
 All scripts parse under Windows PowerShell 5.1, and the just recipes list and refuse cleanly without a VM. Nothing has run against the VM yet; criterion 4 waits on the owner finishing docs/VM.md. Untested assumptions: scp writes to Windows paths in the /C:/renki form, and CloseMainWindow from a scheduled task in the same desktop session closes Valheim (stop-bot.ps1 falls back to Stop-Process).
+
+**agent:claude-code/renki-groom** at 2026-10-28T20:07:02Z
+
+Defender on the VM flagged controller.exe as Trojan:Win32/Bearfoos.A!ml (an ML heuristic). Four builds scanned clean on the dev box, so it is likely a cloud reputation verdict at first run. The owner added a Defender exclusion on the VM (2026-10-28). If it returns, the options are the -tags novoice build or running the controller on Linux off the VM.
