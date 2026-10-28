@@ -1,0 +1,2 @@
+{ "v": 1, "type": "event", "seq": 777, "t": 18236.00,
+  "event": "damaged", "by": "0:5521", "amount": 6.5, "damageType": "blunt" }

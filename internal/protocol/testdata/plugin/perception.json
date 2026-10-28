@@ -1,0 +1,20 @@
+{
+  "v": 1, "type": "perception", "seq": 210, "t": 18234.60,
+  "characters": [
+    { "id": "1234:88", "kind": "player", "name": "Sothr", "pos": [120.1, 31.0, -86.0], "hpFrac": 1.0 },
+    { "id": "0:5521", "kind": "creature", "prefab": "Greydwarf", "pos": [140.2, 33.9, -70.4],
+      "hpFrac": 0.6, "stars": 1, "hostile": true, "targetingMe": true }
+  ],
+  "resources": [
+    { "id": "0:7001", "kind": "tree", "prefab": "Beech1", "pos": [130.0, 31.5, -90.0], "minTool": 0 },
+    { "id": "0:7044", "kind": "rock", "prefab": "MineRock_Copper", "pos": [150.3, 30.2, -95.8], "minTool": 2 },
+    { "id": "0:7101", "kind": "pickable", "prefab": "RaspberryBush", "pos": [118.0, 31.1, -84.9] },
+    { "id": "0:7120", "kind": "drop", "prefab": "Wood", "stack": 3, "pos": [129.6, 31.6, -89.2] }
+  ],
+  "structures": [
+    { "id": "1234:301", "kind": "container", "prefab": "piece_chest_wood", "pos": [110.0, 32.0, -80.0] },
+    { "id": "1234:302", "kind": "station", "prefab": "piece_workbench", "pos": [112.0, 32.0, -80.0] },
+    { "id": "1234:310", "kind": "bed", "prefab": "bed", "pos": [108.0, 32.0, -78.0], "mine": true },
+    { "id": "1234:320", "kind": "portal", "tag": "home", "pos": [105.0, 32.0, -75.0] }
+  ]
+}

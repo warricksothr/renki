@@ -1,0 +1,9 @@
+{
+  "v": 1, "type": "inventory", "seq": 33, "t": 18230.00,
+  "size": [8, 4],
+  "items": [
+    { "slot": [0, 0], "prefab": "AxeBronze", "stack": 1, "quality": 2,
+      "durability": 140.0, "durabilityMax": 250.0, "equipped": true },
+    { "slot": [3, 1], "prefab": "Wood", "stack": 42, "stackMax": 50 }
+  ]
+}

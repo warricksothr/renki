@@ -33,10 +33,18 @@ Mono runtime. Everything outside the game is Go.
 
 ## Status
 
-Design only. The protocol is drafted and the Valheim APIs it names were checked
-against the game's assembly. Milestone 1 is filed as tickets: the bot joins,
-follows, stops, reports status and chats. Run `git ticket list --status draft`
-to see them.
+Milestone 1 is written and waiting to be tried in the game. The bot can
+join, follow, stop, report its status and chat. `just ci` covers everything
+that runs without Valheim, including the C# bridge client talking to the real
+Go controller. [docs/TESTING.md](docs/TESTING.md) is the in-game checklist,
+and `git ticket list --status review` lists the tickets waiting on it.
+
+## Working on it
+
+Every task is a `just` recipe; `just` lists them. `just ci` is the gate,
+`just controller fake` talks to a controller with no game running, and
+`just package` builds the bundle for the Windows VM. AGENTS.md has the
+conventions and the ticket workflow.
 
 ## Prior art
 

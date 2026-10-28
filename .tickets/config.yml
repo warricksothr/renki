@@ -4,6 +4,8 @@ actors:
     name: ""
   - id: agent:claude-code/valheim-setup
     name: Claude Code
+  - id: agent:claude-code/renki-groom
+    name: Claude Code
 labels:
   - plugin
   - controller

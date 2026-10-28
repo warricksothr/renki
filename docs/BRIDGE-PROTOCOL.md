@@ -29,6 +29,13 @@ the controller but no LLM key, the command grammar in section 9 still works.
   plugin config sets `controllerUrl` and `token`. The token goes in `hello`, and
   a bad token closes the socket with code `4401`. (If the brain runs in WSL2, it
   needs mirrored networking or a port-proxy on the WSL host.)
+- Close codes beyond the standard ones: `4400` when the first message is not
+  a usable `hello` (including an unknown major version, which first gets an
+  `error` with code `unsupported_version`), `4401` for a bad token, and `4409`
+  when a newer plugin connection replaces this one. The controller holds one
+  plugin connection at a time.
+- The controller sends `ping` every 3 s, well inside the plugin's 10 s
+  dead-man limit, and gives up on a plugin that sends nothing for 15 s.
 - On disconnect the plugin reconnects with backoff (1 s, then 2, 4 … up to 30 s).
   While disconnected, the dead-man rule in section 8 applies.
 - **Threading:** the socket runs on a background thread. Inbound messages go
@@ -115,6 +122,9 @@ not send anything outside it.
 }
 ```
 
+`agentName` is the name the bot answers to in chat. It is empty when the
+controller follows the character's own name, the `character` in `state`.
+
 `allowedTasks` can only *narrow* what the plugin's own safety config allows
 (section 8). `owners` are the players whose commands the bot obeys. Everyone
 else gets conversation but no tasks.
@@ -137,7 +147,7 @@ The bot's own body. Small and sent often.
 ```json
 {
   "v": 1, "type": "state", "seq": 1042, "t": 18234.52,
-  "phase": "in_world",
+  "phase": "in_world", "character": "Tasleroch", "world": "Midgard",
   "pos": [123.45, 31.02, -88.10], "yaw": 271.5, "vel": [0.0, 0.0, 3.9],
   "hp": 47.0, "hpMax": 60.0, "stamina": 38.0, "staminaMax": 75.0,
   "eitr": 0.0, "eitrMax": 0.0,
@@ -150,6 +160,10 @@ The bot's own body. Small and sent often.
   "task": { "id": "t-17", "task": "follow", "status": "running" }
 }
 ```
+
+`character` is the bot's character name as other players see it, and
+`world` the name of the world it is in. Both are empty until the bot is in
+the world.
 
 `flags` is drawn from: `grounded`, `running`, `crouching`, `swimming`,
 `sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `in_shelter`,
@@ -262,7 +276,25 @@ into a problem.
 | `stopped` | `stop`, the dead-man rule, or a logout. |
 | `died` | — |
 
-### 6.7 Housekeeping
+### 6.7 `trace` (when the plugin decides something itself)
+
+The plugin's own decisions inside a task, which no other message shows: a
+change of gait while following, a new path, a stuck recovery. The controller
+writes them to its audit log (docs/AUDIT.md) and acts on none of them.
+
+```json
+{
+  "v": 1, "type": "trace", "seq": 1043, "t": 18234.60,
+  "task": "t-17", "source": "walker", "msg": "stuck, trying Strafe",
+  "data": { "attempt": 2, "pos": [123.45, 31.02, -88.1], "center": [123.1, 31.0, -88.3] }
+}
+```
+
+`task` is the running task, if any. `source` names what decided (`follow`,
+`walker`). `data` holds the numbers behind the decision, and its keys depend
+on the message.
+
+### 6.8 Housekeeping
 
 `pong` (reply to `ping`), and `error`, which looks like
 `{"re":"…","code":"bad_message","detail":"…"}`.
@@ -326,8 +358,11 @@ Notes:
   (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Fall back to a straight line
   when no path comes back.
 - Steering sets the move direction and look yaw every frame.
-- **Stuck detection:** less than 0.5 m of progress in 3 s triggers a jump, then
-  a strafe, then a re-path. After 3 failed rounds the task fails with `stuck`.
+- **Stuck detection:** the bot is stuck while it stays within 3 m of where it
+  was. Every 3 s inside that circle triggers the next recovery: a jump, then a
+  strafe (at a walk), then a re-path. After 3 rounds the task fails with
+  `stuck`. Only leaving the circle counts as progress, so hopping or shuffling
+  against a wall does not reset it.
 - `follow` keeps `distance` with hysteresis. It walks when the gap is under
   2× the distance, runs beyond that, and stops inside the distance.
 
@@ -385,11 +420,19 @@ chat event
                           └─► controller validates (owner? allowed? args?) ─► task
 ```
 
-- **Addressed** means a whisper to the bot, a message containing `agentName`,
-  or a reply within 20 s of the bot speaking to that player.
+- **Addressed** means a whisper to the bot, a message containing its name
+  (`agentName`, or else the character's name) or one of the controller's
+  `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
-  `stop`, `status`, `come here`, `wait here`, `go home`. Only `owners` can
-  issue tasks.
+  `stop`, `status`, `come here`, `wait here`, `set home`, `go home`. Only
+  `owners` can issue tasks.
+- **Home** is where the speaker stood when they said `set home`, one per
+  world, kept in the controller's `dataDir` across restarts. The bot also
+  goes home by itself, as the `home` config allows: when follow loses its
+  leader (`whenLost`), when stuck recovery gives up on anything but the way
+  home (`whenStuck`), when an outage cut a moving task short, including a
+  logout or a controller restart (`afterOutage`), and after `idleMinutes`
+  with no task when it is more than 5 m from home.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.

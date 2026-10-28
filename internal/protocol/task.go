@@ -1,0 +1,255 @@
+package protocol
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+)
+
+// TaskRequest asks the plugin to do something (7.1). Args is kept raw until
+// DecodeArgs, because its shape depends on Task.
+type TaskRequest struct {
+	Envelope
+	Task     string          `json:"task"`
+	Args     json.RawMessage `json:"args,omitempty"`
+	TimeoutS float64         `json:"timeoutS"`
+}
+
+func (*TaskRequest) MessageType() string { return TypeTask }
+
+// M1 task names (7.2). Later milestones add to this list.
+const (
+	TaskStop   = "stop"
+	TaskMoveTo = "move_to"
+	TaskFollow = "follow"
+	TaskLookAt = "look_at"
+	TaskSay    = "say"
+	TaskEmote  = "emote"
+)
+
+// Instant reports whether a task runs alongside the body task instead of
+// replacing it (7.1).
+func Instant(task string) bool {
+	switch task {
+	case TaskLookAt, TaskSay, TaskEmote, "equip", "unequip", "use_item":
+		return true
+	}
+	return false
+}
+
+// ErrUnknownTask is returned by DecodeArgs for a task outside the M1
+// catalogue. The plugin answers it with ReasonUnsupported.
+var ErrUnknownTask = errors.New("unknown task")
+
+// ErrBadArgs is returned by DecodeArgs for missing or malformed arguments.
+// The plugin answers it with ReasonBadArgs.
+var ErrBadArgs = errors.New("bad task arguments")
+
+// NewTask builds a request for task with args, which may be nil.
+func NewTask(id, task string, args any, timeoutS float64) (*TaskRequest, error) {
+	req := &TaskRequest{Envelope: Envelope{ID: id}, Task: task, TimeoutS: timeoutS}
+	if args != nil {
+		raw, err := json.Marshal(args)
+		if err != nil {
+			return nil, fmt.Errorf("encode %s args: %w", task, err)
+		}
+		req.Args = raw
+	}
+	return req, nil
+}
+
+// DecodeArgs returns the typed arguments for an M1 task: a *StopArgs,
+// *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs or *EmoteArgs. It checks
+// that the required ones are there and that enumerated values are known.
+func (r *TaskRequest) DecodeArgs() (any, error) {
+	var args interface{ validate() error }
+	switch r.Task {
+	case TaskStop:
+		args = &StopArgs{}
+	case TaskMoveTo:
+		args = &MoveToArgs{}
+	case TaskFollow:
+		args = &FollowArgs{}
+	case TaskLookAt:
+		args = &LookAtArgs{}
+	case TaskSay:
+		args = &SayArgs{}
+	case TaskEmote:
+		args = &EmoteArgs{}
+	default:
+		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
+	}
+	if len(r.Args) > 0 && !bytes.Equal(r.Args, []byte("null")) {
+		if err := json.Unmarshal(r.Args, args); err != nil {
+			return nil, fmt.Errorf("%w for %s: %v", ErrBadArgs, r.Task, err)
+		}
+	}
+	if err := args.validate(); err != nil {
+		return nil, fmt.Errorf("%w for %s: %v", ErrBadArgs, r.Task, err)
+	}
+	return args, nil
+}
+
+// StopArgs: `stop` takes no arguments.
+type StopArgs struct{}
+
+func (*StopArgs) validate() error { return nil }
+
+// MoveToArgs are the arguments to `move_to`. A nil pointer means the
+// plugin's default: 1.5 m, and walking.
+type MoveToArgs struct {
+	To           Target   `json:"to"`
+	StopDistance *float64 `json:"stopDistance,omitempty"`
+	Run          *bool    `json:"run,omitempty"`
+}
+
+func (a *MoveToArgs) validate() error {
+	if a.To.IsZero() {
+		return errors.New("`to` is required")
+	}
+	return nil
+}
+
+// FollowArgs are the arguments to `follow`. A nil Distance means 3.5 m.
+type FollowArgs struct {
+	Player   string   `json:"player"`
+	Distance *float64 `json:"distance,omitempty"`
+	Run      RunMode  `json:"run,omitempty"`
+}
+
+func (a *FollowArgs) validate() error {
+	if a.Player == "" {
+		return errors.New("`player` is required")
+	}
+	return nil
+}
+
+// LookAtArgs are the arguments to `look_at`.
+type LookAtArgs struct {
+	To Target `json:"to"`
+}
+
+func (a *LookAtArgs) validate() error {
+	if a.To.IsZero() {
+		return errors.New("`to` is required")
+	}
+	return nil
+}
+
+// SayArgs are the arguments to `say`. An empty Channel means normal, and To
+// names the player a whisper goes to.
+type SayArgs struct {
+	Text    string `json:"text"`
+	Channel string `json:"channel,omitempty"`
+	To      string `json:"to,omitempty"`
+}
+
+func (a *SayArgs) validate() error {
+	if a.Text == "" {
+		return errors.New("`text` is required")
+	}
+	switch a.Channel {
+	case "", ChannelNormal, ChannelShout:
+	case ChannelWhisper:
+		if a.To == "" {
+			return errors.New("a whisper needs `to`")
+		}
+	default:
+		return fmt.Errorf("unknown channel %q", a.Channel)
+	}
+	return nil
+}
+
+// EmoteArgs are the arguments to `emote`.
+type EmoteArgs struct {
+	Name string `json:"name"`
+}
+
+func (a *EmoteArgs) validate() error {
+	if a.Name == "" {
+		return errors.New("`name` is required")
+	}
+	return nil
+}
+
+// Target is a place to go or look at: either a world position or an entity
+// id, which on the wire is an `[x,y,z]` array or a string.
+type Target struct {
+	Pos    *Vec3
+	Entity string
+}
+
+// IsZero reports whether the target was never set.
+func (t Target) IsZero() bool { return t.Pos == nil && t.Entity == "" }
+
+func (t Target) MarshalJSON() ([]byte, error) {
+	switch {
+	case t.Pos != nil && t.Entity != "":
+		return nil, errors.New("target has both a position and an entity")
+	case t.Pos != nil:
+		return json.Marshal(t.Pos)
+	case t.Entity != "":
+		return json.Marshal(t.Entity)
+	}
+	return []byte("null"), nil
+}
+
+func (t *Target) UnmarshalJSON(data []byte) error {
+	*t = Target{}
+	switch {
+	case bytes.Equal(data, []byte("null")):
+		return nil
+	case len(data) > 0 && data[0] == '"':
+		return json.Unmarshal(data, &t.Entity)
+	case len(data) > 0 && data[0] == '[':
+		var p Vec3
+		if err := json.Unmarshal(data, &p); err != nil {
+			return err
+		}
+		t.Pos = &p
+		return nil
+	}
+	return fmt.Errorf("target must be an [x,y,z] position or an entity id, got %s", data)
+}
+
+// RunMode is follow's `run` argument: false walks, true runs, and "auto"
+// matches the leader. Leaving it out means auto.
+type RunMode int
+
+const (
+	RunUnset RunMode = iota
+	RunWalk
+	RunRun
+	RunAuto
+)
+
+func (m RunMode) MarshalJSON() ([]byte, error) {
+	switch m {
+	case RunWalk:
+		return []byte("false"), nil
+	case RunRun:
+		return []byte("true"), nil
+	case RunAuto:
+		return []byte(`"auto"`), nil
+	case RunUnset:
+		return []byte("null"), nil
+	}
+	return nil, fmt.Errorf("unknown RunMode %d", int(m))
+}
+
+func (m *RunMode) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "false":
+		*m = RunWalk
+	case "true":
+		*m = RunRun
+	case `"auto"`:
+		*m = RunAuto
+	case "null":
+		*m = RunUnset
+	default:
+		return fmt.Errorf(`run must be true, false or "auto", got %s`, data)
+	}
+	return nil
+}

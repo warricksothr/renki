@@ -1,0 +1,9 @@
+{
+  "v": 1, "type": "welcome", "seq": 1, "t": 0,
+  "agentName": "Bjorn",
+  "owners": ["Sothr"],
+  "rates": { "stateHz": 5, "perceptionHz": 1, "inventoryHz": 0.2 },
+  "perception": { "radius": 40, "maxPerKind": 24 },
+  "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote"],
+  "motd": "hello from the future"
+}

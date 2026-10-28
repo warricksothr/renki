@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "id": "t-26", "seq": 103, "t": 18242.7,
+  "task": "emote", "args": { "name": "wave" }, "timeoutS": 0 }

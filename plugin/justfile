@@ -1,0 +1,71 @@
+# The C# plugin's recipes, loaded by the root justfile as the `plugin`
+# module: `just plugin build`. They run in plugin/. The root verbs route
+# here; see AGENTS.md, "Tasks".
+#
+# Renki.Core and the tests build anywhere. The plugin DLL needs Valheim's own
+# assemblies: set VALHEIM_DIR, or ValheimDir in plugin/game.local.props (see
+# Directory.Build.props). Without either, the recipes say they skipped it.
+
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+# Where `deploy` copies the plugin: BEPINEX_PLUGINS, else the game's own
+# BepInEx/plugins folder.
+plugins_dir := env("BEPINEX_PLUGINS", "")
+
+# List the plugin's recipes.
+default:
+    @just --list plugin
+
+# "yes" when the plugin DLL can be built here.
+has_game := if env("VALHEIM_DIR", "") != "" { "yes" } else if path_exists(source_directory() / "game.local.props") == "true" { "yes" } else { "" }
+skip_note := "-- plugin DLL skipped: set VALHEIM_DIR or create plugin/game.local.props"
+
+# Build Renki.Core and the tests, and the plugin DLL when the game path is set.
+build:
+    dotnet build Renki.Tests -c Release --nologo -v quiet
+    {{ if has_game == "yes" { "dotnet build Renki.Plugin -c Release --nologo -v quiet" } else { "echo '" + skip_note + "' >&2" } }}
+
+# Run the tests, including the interop tests against the Go controller.
+test *ARGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    bin="$(mktemp -d)/controller"
+    (cd .. && go build -buildvcs=false -o "$bin" ./cmd/controller)
+    RENKI_CONTROLLER_BIN="$bin" dotnet test Renki.Tests -c Release --nologo {{ARGS}}
+    rm -rf "$(dirname "$bin")"
+
+# Check formatting.
+lint:
+    dotnet format whitespace Renki.Core/Renki.Core.csproj --verify-no-changes
+    dotnet format whitespace Renki.Tests/Renki.Tests.csproj --verify-no-changes
+    dotnet format whitespace Renki.Plugin --folder --verify-no-changes
+
+# Format the C# sources.
+fmt:
+    dotnet format whitespace Renki.Core/Renki.Core.csproj
+    dotnet format whitespace Renki.Tests/Renki.Tests.csproj
+    dotnet format whitespace Renki.Plugin --folder
+
+# Everything CI runs for the plugin. CI has no game install, so the plugin DLL
+# is built only where the game path is set.
+ci: lint build test
+
+# Remove build output.
+clean:
+    rm -rf */bin */obj
+
+# Build the plugin and copy it into BepInEx/plugins/renki.
+deploy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ "{{has_game}}" = yes ] || { echo "{{skip_note}}" >&2; exit 1; }
+    dotnet build Renki.Plugin -c Release --nologo -v quiet
+    dest="{{plugins_dir}}"
+    if [ -z "$dest" ]; then
+        game="${VALHEIM_DIR:-$(sed -n 's:.*<ValheimDir>\(.*\)</ValheimDir>.*:\1:p' game.local.props 2>/dev/null)}"
+        dest="$game/BepInEx/plugins"
+    fi
+    [ -d "$dest" ] || { echo "deploy: $dest does not exist; install BepInEx there or set BEPINEX_PLUGINS" >&2; exit 1; }
+    mkdir -p "$dest/renki"
+    cp Renki.Plugin/bin/Release/netstandard2.1/Renki.Plugin.dll Renki.Plugin/bin/Release/netstandard2.1/Renki.Core.dll "$dest/renki/"
+    echo "deployed to $dest/renki"

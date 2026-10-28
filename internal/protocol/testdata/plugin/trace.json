@@ -1,0 +1,5 @@
+{
+  "v": 1, "type": "trace", "seq": 1043, "t": 18234.60,
+  "task": "t-17", "source": "walker", "msg": "stuck, trying Strafe",
+  "data": { "attempt": 2, "pos": [123.45, 31.02, -88.1], "center": [123.1, 31.0, -88.3] }
+}
