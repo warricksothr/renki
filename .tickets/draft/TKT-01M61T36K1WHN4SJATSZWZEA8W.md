@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T17:49:28Z
+updated_at: 2026-10-28T18:04:08Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
 updated_by:
-  id: agent:claude-code/valheim-setup
+  id: agent:claude-code/renki-groom
   name: Claude Code
 extensions: {}
 ---
@@ -45,3 +45,4 @@ connection healthy.
 - [ ] A bad token closes with code 4401; an unknown major version is refused
 - [ ] `welcome` is built from configuration: agentName, owners, rates, allowedTasks
 - [ ] `ping` and `pong` work, and a dead connection is noticed and logged
+- [ ] An unknown `type` gets an `error` reply with code `bad_message`, and the connection stays open

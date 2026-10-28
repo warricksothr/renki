@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T17:49:28Z
+updated_at: 2026-10-28T18:04:08Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
 updated_by:
-  id: agent:claude-code/valheim-setup
+  id: agent:claude-code/renki-groom
   name: Claude Code
 extensions: {}
 ---
@@ -46,3 +46,9 @@ BepInEx will do.
 - [ ] A test plugin in a running game exchanges messages both ways with a test server
 - [ ] It reconnects after the server restarts
 - [ ] The choice of library and the reason are recorded in a note
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-28T18:04:08Z
+
+Grooming, 2026-10-28. The dev box Valheim install (/mnt/e/SteamLibrary/steamapps/common/Valheim) has no BepInEx folder, only a ValheimPlus directory, so the spike needs BepInExPack_Valheim installed there first (or into an r2modman profile), or it waits on the VM. It does not need the plugin scaffold: a throwaway project is fine, and its findings should feed the scaffold ticket.

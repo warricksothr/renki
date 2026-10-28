@@ -24,12 +24,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T17:49:28Z
+updated_at: 2026-10-28T18:04:08Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
 updated_by:
-  id: agent:claude-code/valheim-setup
+  id: agent:claude-code/renki-groom
   name: Claude Code
 extensions: {}
 ---
@@ -46,3 +46,4 @@ so game APIs are only ever called from Unity's main thread.
 - [ ] Reconnects with backoff from 1 s up to 30 s
 - [ ] No game API is called from the socket thread
 - [ ] The C# message types pass against the shared Go fixtures
+- [ ] An unknown `type` gets an `error` reply with code `bad_message`, and the connection stays open
