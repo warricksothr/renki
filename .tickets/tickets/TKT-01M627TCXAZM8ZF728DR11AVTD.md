@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M627TCXAZM8ZF728DR11AVTD
 title: Audit log of everything the bot saw, decided and did
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T21:49:20Z
-updated_at: 2026-10-28T21:58:50Z
+updated_at: 2026-10-28T22:01:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -63,11 +63,11 @@ and nothing at all for the plugin's internal choices.
 
 ## Acceptance criteria
 
-- [ ] The controller writes every bridge frame both ways, connects, disconnects and its own log records to a daily JSON Lines file, with the hello token redacted
+- [x] The controller writes every bridge frame both ways, connects, disconnects and its own log records to a daily JSON Lines file, with the hello token redacted
 - [ ] The plugin sends trace messages for follow gait changes, new paths and stuck recoveries, tagged with the current task
-- [ ] renki-audit prints a timeline of the files, filtered by task and time window
-- [ ] just vm audit fetches the VM's audit files and runs renki-audit on them
-- [ ] The protocol doc, fixtures and docs describe trace and the audit log
+- [x] renki-audit prints a timeline of the files, filtered by task and time window
+- [x] just vm audit fetches the VM's audit files and runs renki-audit on them
+- [x] The protocol doc, fixtures and docs describe trace and the audit log
 
 ## Implementation plan
 
@@ -83,3 +83,9 @@ and nothing at all for the plugin's internal choices.
   recoveries, stamped with the running task.
 - cmd/audit (renki-audit), `just controller audit`, `just vm audit`.
 - docs/AUDIT.md, plus links from TESTING.md, VM.md and the protocol doc.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-28T22:01:14Z
+
+Deployed as 5e97c84. just vm audit fetched the VM's file and showed the restart, handshake and state. Criterion 2 is implemented and covered by the trace fixture on both sides, but no in-game follow has produced a trace yet; tick it once one shows up in just vm audit.
