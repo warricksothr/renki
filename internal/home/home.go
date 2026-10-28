@@ -55,6 +55,8 @@ type Keeper struct {
 	checked bool
 	// active is the last time the bot had a task or was given an order.
 	active time.Time
+	// respawned is set by Respawned and cleared once Tick has acted on it.
+	respawned bool
 }
 
 // New returns a keeper over store. now may be nil.
@@ -170,6 +172,14 @@ func (k *Keeper) ReturnOn(reason string) bool {
 	return false
 }
 
+// Respawned notes that the bot came back from death. Tick sends it home
+// once it is in the world with nothing to do, if the rules allow.
+func (k *Keeper) Respawned() {
+	k.mu.Lock()
+	k.respawned = true
+	k.mu.Unlock()
+}
+
 // Touch counts as activity: a player gave an order.
 func (k *Keeper) Touch() {
 	k.mu.Lock()
@@ -221,6 +231,17 @@ func (k *Keeper) Tick(ctx context.Context) {
 			k.announce(ctx, "after an outage", "Something cut me off. Heading home.")
 			return
 		}
+	}
+
+	k.mu.Lock()
+	respawned := k.respawned && st.Task == nil
+	if respawned {
+		k.respawned = false
+	}
+	k.mu.Unlock()
+	if respawned && k.rules.AfterDeath {
+		k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+		return
 	}
 
 	busy := st.Task != nil && body(st.Task.Task)

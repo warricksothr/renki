@@ -431,8 +431,9 @@ chat event
   goes home by itself, as the `home` config allows: when follow loses its
   leader (`whenLost`), when stuck recovery gives up on anything but the way
   home (`whenStuck`), when an outage cut a moving task short, including a
-  logout or a controller restart (`afterOutage`), and after `idleMinutes`
-  with no task when it is more than 5 m from home.
+  logout or a controller restart (`afterOutage`), once it is back after a
+  respawn (`afterDeath`), and after `idleMinutes` with no task when it is
+  more than 5 m from home.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.

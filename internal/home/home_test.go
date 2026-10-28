@@ -81,7 +81,7 @@ func (c *clock) advance(d time.Duration) {
 	c.mu.Unlock()
 }
 
-var rules = config.HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10}
+var rules = config.HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: true}
 
 func inWorld(pos protocol.Vec3, task *protocol.TaskRef) *protocol.State {
 	return &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", Pos: pos, Task: task}
@@ -253,5 +253,36 @@ func TestReturnOnFollowsTheRules(t *testing.T) {
 	k.rules.WhenStuck = false
 	if k.ReturnOn(protocol.ReasonStuck) {
 		t.Error("whenStuck off")
+	}
+}
+
+func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	k.Respawned()
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Fatalf("sent %v while dead", f.sent())
+	}
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[0] != "move_to" || got[1] != "say: I'm back. Heading home." {
+		t.Errorf("after the respawn: %v", got)
+	}
+	k.Tick(ctx)
+	if len(f.sent()) != 2 {
+		t.Errorf("went home twice: %v", f.sent())
+	}
+
+	k.rules.AfterDeath = false
+	k.Respawned()
+	k.Tick(ctx)
+	if len(f.sent()) != 2 {
+		t.Errorf("afterDeath off still went home: %v", f.sent())
 	}
 }

@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T22:34:11Z
-updated_at: 2026-10-28T22:55:58Z
+updated_at: 2026-10-28T23:42:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -75,3 +75,9 @@ known about them.
 - [ ] Audit traces from at least three real stuck cases say whether the navmesh failed or its path ran into something
 - [ ] Doors are ruled in or out as the main blocker inside buildings
 - [ ] A design note: cell size, what fills and decays cells, probe cost, and where the grid lives
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:42:00Z
+
+Real case, 2026-10-28 18:39: told to come to a player 184 m away, the bot ran a straight line into a lake, swam until its stamina ran out and drowned (it was on 0.2 health). Whatever fills the grid should mark water (terrain below the water level) as costly or blocked, and the straight-line fallback should not cross it.

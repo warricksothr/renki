@@ -72,6 +72,8 @@ type HomeRules struct {
 	AfterOutage bool `json:"afterOutage"`
 	// IdleMinutes: this long with no task, away from home. 0 never.
 	IdleMinutes float64 `json:"idleMinutes"`
+	// AfterDeath: the bot respawned, usually far from home.
+	AfterDeath bool `json:"afterDeath"`
 }
 
 // Audit configures the audit log.
@@ -111,7 +113,7 @@ func Default() Config {
 		AllowedTasks: slices.Clone(M1Tasks),
 		Audit:        Audit{Dir: "audit", KeepDays: 14},
 		DataDir:      "data",
-		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10},
+		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: true},
 	}
 }
 

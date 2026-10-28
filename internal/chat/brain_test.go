@@ -390,11 +390,12 @@ func TestVoiceCooldownPerPlayer(t *testing.T) {
 }
 
 type fakeHome struct {
-	world    string
-	home     *protocol.Vec3
-	homeward map[string]bool
-	trips    []string
-	touched  int
+	world     string
+	home      *protocol.Vec3
+	homeward  map[string]bool
+	trips     []string
+	touched   int
+	respawned int
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -421,6 +422,7 @@ func (h *fakeHome) ReturnOn(reason string) bool {
 }
 func (h *fakeHome) HomeDistance() (float64, bool) { return 42, h.home != nil }
 func (h *fakeHome) Touch()                        { h.touched++ }
+func (h *fakeHome) Respawned()                    { h.respawned++ }
 
 func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	b, f, _ := newBrain(nil)
