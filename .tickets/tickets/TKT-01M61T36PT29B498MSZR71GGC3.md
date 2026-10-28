@@ -17,6 +17,7 @@ origin: null
 dependencies:
   - TKT-01M61T36CTW15EXM47J8JQ3SJ6
   - TKT-01M61T36P84513FQAPKTN76YN4
+  - TKT-01M621A0DZ49KWQC3J43440RYX
 blocks_on: none
 references: []
 moved_to: null
@@ -30,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T18:55:50Z
+updated_at: 2026-10-28T19:55:31Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code

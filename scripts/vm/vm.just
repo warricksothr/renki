@@ -1,0 +1,86 @@
+# Driving the bot VM over SSH, loaded by the root justfile as the `vm`
+# module: `just vm deploy`. Not a component, so the root verbs do not route
+# here. scripts/vm/setup-remote.ps1 prepares the VM; docs/VM.md walks it.
+#
+# The VM is RENKI_VM (user@host), or the first line of vm.local at the
+# repository root (gitignored). RENKI_VM_DIR is where renki lives there.
+
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+target := env("RENKI_VM", if path_exists(justfile_directory() / "vm.local") == "true" { trim(read(justfile_directory() / "vm.local")) } else { "" })
+dir := env("RENKI_VM_DIR", "C:/renki")
+ssh := "ssh -o BatchMode=yes -o ConnectTimeout=10 " + target
+ps := "powershell -NoProfile -ExecutionPolicy Bypass"
+
+# List the VM recipes.
+default:
+    @just --list vm
+
+[private]
+need-target:
+    @[ -n "{{target}}" ] || { echo "no VM: set RENKI_VM=user@host or write it to vm.local" >&2; exit 1; }
+
+# Check the connection, the account and the scheduled tasks.
+check: need-target
+    {{ssh}} "whoami; hostname; Get-ScheduledTask -TaskName Renki* | Format-Table TaskName,State -AutoSize | Out-String -Width 120"
+
+# Show the game, the controller and the bot; LINES > 0 adds the log tails.
+status LINES="0": need-target
+    {{ssh}} "{{ps}} -File {{dir}}/status.ps1 -Lines {{LINES}}"
+
+# The tail of the plugin's and the controller's logs.
+logs LINES="60": (status LINES)
+
+# Start the bot in the VM's desktop session and wait for it to be in the world.
+start MINUTES="5": need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {{ssh}} "Start-ScheduledTask -TaskName RenkiStart"
+    echo "started; waiting up to {{MINUTES}} min for the bot to be in the world"
+    deadline=$(( $(date +%s) + {{MINUTES}} * 60 ))
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+        out="$({{ssh}} "{{ps}} -File {{dir}}/status.ps1" 2>&1 || true)"
+        if grep -q '"phase":"in_world"' <<<"$out"; then echo "$out"; exit 0; fi
+        sleep 10
+    done
+    echo "$out"
+    echo "not in the world after {{MINUTES}} min; try: just vm logs" >&2
+    exit 1
+
+# Log the bot out, close the game and stop the controller.
+stop: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    {{ssh}} "Start-ScheduledTask -TaskName RenkiStop"
+    for _ in $(seq 1 30); do
+        if ! {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 1 }" >/dev/null 2>&1; then
+            sleep 5
+            continue
+        fi
+        echo "stopped"
+        exit 0
+    done
+    echo "the game is still running after 150 s" >&2
+    exit 1
+
+# Stop, then start.
+restart: stop start
+
+# Build the package, stop the bot, copy it over, install the plugin, start again.
+deploy: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just --justfile "{{justfile()}}" package
+    if {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 1 }" >/dev/null 2>&1; then
+        echo "the game is not running"
+    else
+        just --justfile "{{justfile()}}" vm stop
+    fi
+    {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}' | Out-Null"
+    scp -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/{{dir}}/"
+    {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
+    just --justfile "{{justfile()}}" vm start
+
+# An interactive PowerShell on the VM.
+shell: need-target
+    ssh {{target}}

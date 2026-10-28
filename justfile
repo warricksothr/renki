@@ -18,6 +18,9 @@ mod controller 'controller.just'
 # The C# BepInEx plugin. Optional until plugin/justfile exists.
 mod? plugin
 
+# Driving the bot VM over SSH (not a component; see docs/VM.md).
+mod vm 'scripts/vm/vm.just'
+
 # The components the verbs route to, in order. Adding a component means a
 # `mod` line above and its name here.
 components := "controller plugin"
@@ -44,8 +47,8 @@ clean: (route "clean")
 # Everything CI runs: each component's ci, then the ticket store.
 ci: (route "ci") tickets-check
 
-# Assemble dist/renki-vm/: everything the Windows VM needs, ready to copy over.
 # The plugin goes in BepInEx/plugins/renki there; the rest in one folder.
+[doc("Assemble dist/renki-vm/: everything the Windows VM needs.")]
 package:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -56,7 +59,9 @@ package:
     (cd plugin && dotnet build Renki.Plugin -c Release --nologo -v quiet)
     cp plugin/Renki.Plugin/bin/Release/netstandard2.1/Renki.{Plugin,Core}.dll "$out/plugin/"
     cp scripts/vm/*.ps1 scripts/vm/bot.example.psd1 controller.example.json "$out/"
-    cp docs/TESTING.md "$out/"
+    cp docs/TESTING.md docs/VM.md "$out/"
+    # The key the VM authorises for this machine's tooling (setup-remote.ps1).
+    for k in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do [ -f "$k" ] && { cp "$k" "$out/renki-agent.pub"; break; }; done
     echo "packaged $out ($(git describe --tags --always --dirty 2>/dev/null || echo devel)):"
     (cd "$out" && find . -type f | sort | sed 's/^/  /')
 

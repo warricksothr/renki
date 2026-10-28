@@ -14,3 +14,4 @@ obj/
 *.local.props
 scripts/vm/bot.local.psd1
 scripts/vm/logs/
+vm.local
