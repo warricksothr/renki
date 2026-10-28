@@ -122,7 +122,7 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 		Reasoning:    v.opts.Terva.Reasoning,
 		APIKey:       v.apiKey,
 		CWD:          v.cwd,
-		SystemPrompt: v.persona(req.AgentName),
+		SystemPrompt: v.persona(req.AgentName, req.Nicknames),
 		NoTools:      true,
 		ExtraTools:   menu(req.Tasks, rec),
 		// One step to speak and maybe propose, one to finish speaking after
@@ -164,7 +164,7 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 	return reply, nil
 }
 
-func (v *Voice) persona(agent string) string {
+func (v *Voice) persona(agent string, nicknames []string) string {
 	persona := v.opts.Persona
 	if persona == "" {
 		persona = "You are a Viking farmhand in Valheim who follows the players around and helps out. " +
@@ -172,6 +172,9 @@ func (v *Voice) persona(agent string) string {
 	}
 	if agent == "" {
 		return persona
+	}
+	if len(nicknames) > 0 {
+		return fmt.Sprintf("Your name is %s; players also call you %s. %s", agent, strings.Join(nicknames, ", "), persona)
 	}
 	return fmt.Sprintf("Your name is %s. %s", agent, persona)
 }

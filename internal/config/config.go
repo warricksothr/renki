@@ -25,7 +25,10 @@ type Config struct {
 
 	// AgentName is the name the bot answers to in chat. Empty, the default,
 	// means the bot's character name in the game.
-	AgentName    string                    `json:"agentName"`
+	AgentName string `json:"agentName"`
+	// Nicknames are other names the bot answers to, such as "Tas" for
+	// Tasleroch. Whole words, any case.
+	Nicknames    []string                  `json:"nicknames"`
 	Owners       []string                  `json:"owners"`
 	Rates        protocol.Rates            `json:"rates"`
 	Perception   protocol.PerceptionConfig `json:"perception"`

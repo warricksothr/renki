@@ -33,6 +33,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger) *App {
 	s := session.New(nil, log.With("part", "session"))
 	brain := chat.New(chat.Options{
 		AgentName: cfg.AgentName,
+		Nicknames: cfg.Nicknames,
 		Owners:    cfg.Owners,
 		Voice:     voice,
 		Cooldown:  cooldown(cfg),

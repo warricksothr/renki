@@ -399,8 +399,8 @@ chat event
 ```
 
 - **Addressed** means a whisper to the bot, a message containing its name
-  (`agentName`, or else the character's name), or a reply within 20 s of the
-  bot speaking to that player.
+  (`agentName`, or else the character's name) or one of the controller's
+  `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
   `stop`, `status`, `come here`, `wait here`, `go home`. Only `owners` can
   issue tasks.

@@ -168,6 +168,20 @@ func TestNameFollowsTheCharacterUnlessConfigured(t *testing.T) {
 	}
 }
 
+func TestNicknames(t *testing.T) {
+	b, f, c := newBrain(nil)
+	b.opts.AgentName = ""
+	b.opts.Nicknames = []string{"Tas", " "}
+	f.state = &protocol.State{Character: "Tasleroch"}
+	b.Chat(line("Sothr", "tasty stew"))
+	b.Chat(line("Sothr", "TAS follow me"))
+	c.advance(time.Minute) // past the reply window
+	b.Chat(line("Sothr", "Tasleroch, follow"))
+	if got := f.tasks(); !slices.Equal(got, []string{protocol.TaskFollow, protocol.TaskFollow}) {
+		t.Errorf("tasks %v; want follow twice, by nickname and by name", got)
+	}
+}
+
 func TestWhisperIsAddressedAndAnsweredByWhisper(t *testing.T) {
 	b, f, _ := newBrain(nil)
 	c := line("Sothr", "stop")

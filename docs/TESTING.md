@@ -90,7 +90,7 @@ need tuning:
 - Whether `Pathfinding.GetPath` fails on the first call while the navmesh
   tiles build. The bot falls back to a straight line and re-paths when stuck.
 - Chat range: a `normal` line only reaches the bot when you are close, so
-  command it from afar with `/s` (shout).
+  command it from afar with `/s` (shout): `/s Tas follow me`.
 - Under Unity's Mono, the WebSocket client is the one unknown. If check 2 or 3
   fails, the plugin log will say so, and websocket-sharp is the fallback
   (TKT-01M61T36CC).

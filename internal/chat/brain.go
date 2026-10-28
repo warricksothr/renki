@@ -36,6 +36,7 @@ type Voice interface {
 // Request is everything the Voice sees: a summary, never the raw streams.
 type Request struct {
 	AgentName string
+	Nicknames []string
 	Speaker   string
 	Owner     bool
 	Text      string
@@ -71,6 +72,8 @@ type Options struct {
 	// AgentName is the name the bot answers to. Empty means the in-game
 	// character's name, from the latest state.
 	AgentName string
+	// Nicknames are other names the bot answers to, beside its own.
+	Nicknames []string
 	Owners    []string
 	// Voice answers lines the grammar does not match. Nil means the bot
 	// only knows the grammar.
@@ -142,16 +145,22 @@ func (b *Brain) agentName() string {
 // nothing never matches.
 var nothing = regexp.MustCompile(`[^\s\S]`)
 
-// nameRE matches the bot's name as a word, or nothing while it has none. It
-// is rebuilt only when the name changes.
+// nameRE matches the bot's name or a nickname as a word, or nothing while
+// it has none. It is rebuilt only when the name changes.
 func (b *Brain) nameRE() *regexp.Regexp {
 	name := b.agentName()
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.name == nil || b.nameFor != name {
 		b.name, b.nameFor = nothing, name
-		if name != "" {
-			b.name = regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(name) + `\b`)
+		var alts []string
+		for _, n := range append([]string{name}, b.opts.Nicknames...) {
+			if n = strings.TrimSpace(n); n != "" {
+				alts = append(alts, regexp.QuoteMeta(n))
+			}
+		}
+		if len(alts) > 0 {
+			b.name = regexp.MustCompile(`(?i)\b(?:` + strings.Join(alts, "|") + `)\b`)
 		}
 	}
 	return b.name
@@ -314,6 +323,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 
 	req := Request{
 		AgentName: b.agentName(),
+		Nicknames: b.opts.Nicknames,
 		Speaker:   c.From.Name,
 		Owner:     owner,
 		Text:      c.Text,

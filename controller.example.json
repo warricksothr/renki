@@ -1,5 +1,6 @@
 {
   "listen": "127.0.0.1:8765",
+  "nicknames": [],
   "owners": ["Sothr"],
   "rates": { "stateHz": 5, "perceptionHz": 1 },
   "perception": { "radius": 40, "maxPerKind": 24 },
