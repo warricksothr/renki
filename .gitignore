@@ -1,0 +1,11 @@
+# Go
+/controller
+/dist/
+
+# C# plugin build output
+bin/
+obj/
+
+# Local settings, which hold the controller token and server password
+*.local.json
+.env

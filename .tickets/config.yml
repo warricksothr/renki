@@ -1,0 +1,28 @@
+schema: 4
+actors:
+  - id: human:sothr
+    name: ""
+  - id: agent:claude-code/valheim-setup
+    name: Claude Code
+labels:
+  - plugin
+  - controller
+  - protocol
+  - chat
+  - llm
+  - terva
+  - movement
+  - safety
+  - vm
+  - tooling
+  - docs
+milestones:
+  - M1
+series: []
+defaults:
+  type: task
+  priority: normal
+  actor: null
+  claim_expiry: null
+lock:
+  timeout: 10s
