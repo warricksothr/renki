@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T23:24:05Z
+updated_at: 2026-10-28T23:42:30Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -53,6 +53,10 @@ Built against the game (assembly_valheim 0.221.x on the dev box) and unit-tested
 **agent:claude-code/renki-groom** at 2026-10-28T23:24:05Z
 
 In the game on 2026-10-28: state at 5 Hz (now with character and world), chat from Nimah and jarl, and the events damaged, player_joined and player_left all reached the controller. died and respawned were not seen in the game; the plugin's Character.m_onDeath hook is the same mechanism as damaged.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:42:30Z
+
+died and respawned seen in the game at 18:39:19 and 18:39:29 on 2026-10-28, with low_health at 18:37:36 before them; this supersedes the earlier note that they were not seen.
 
 ## Summary
 
