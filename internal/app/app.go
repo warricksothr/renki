@@ -39,12 +39,14 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger) *App {
 		Logger:    log.With("part", "chat"),
 	}, s)
 	s.SetListener(brain)
-	srv := bridge.NewServer(bridge.Options{
-		Token:   cfg.Token,
-		Welcome: func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg) },
-		Logger:  log.With("part", "bridge"),
+	a := &App{Config: cfg, Session: s, Brain: brain}
+	a.Bridge = bridge.NewServer(bridge.Options{
+		Token:    cfg.Token,
+		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg) },
+		Logger:   log.With("part", "bridge"),
+		Fallback: a.control(log.With("part", "control")),
 	}, s)
-	return &App{Config: cfg, Session: s, Brain: brain, Bridge: srv}
+	return a
 }
 
 // Welcome is the reply to every hello, built from configuration.

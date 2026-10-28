@@ -129,6 +129,7 @@ namespace Renki.Plugin
                     Logger.LogInfo("controller asked to log out");
                     EndSession("logout");
                     loggingOut = true;
+                    AutoJoinPatch.Suppress = true;
                     Game.instance?.Logout(true, true);
                     break;
                 case Bye b:

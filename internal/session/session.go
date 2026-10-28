@@ -223,6 +223,21 @@ func (s *Session) AllowedTasks() []string {
 	return slices.Clone(s.allowed)
 }
 
+// Logout asks the plugin to save and return to the main menu. Whatever is
+// running stops with it.
+func (s *Session) Logout(ctx context.Context) error {
+	s.mu.Lock()
+	conn := s.conn
+	s.nextTask++
+	id := fmt.Sprintf("l-%d", s.nextTask)
+	s.mu.Unlock()
+	if conn == nil {
+		return ErrNotConnected
+	}
+	s.log.Info("asking the plugin to log out", "id", id)
+	return conn.Send(ctx, &protocol.Logout{Envelope: protocol.Envelope{ID: id}})
+}
+
 // Dispatch checks o and sends it. It refuses a task outside capabilities ∩
 // allowedTasks, and arguments that DecodeArgs rejects, before anything
 // reaches the plugin.

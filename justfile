@@ -44,6 +44,22 @@ clean: (route "clean")
 # Everything CI runs: each component's ci, then the ticket store.
 ci: (route "ci") tickets-check
 
+# Assemble dist/renki-vm/: everything the Windows VM needs, ready to copy over.
+# The plugin goes in BepInEx/plugins/renki there; the rest in one folder.
+package:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out=dist/renki-vm
+    rm -rf "$out" && mkdir -p "$out/plugin"
+    just --justfile "{{justfile()}}" controller build-windows
+    cp dist/controller.exe "$out/"
+    (cd plugin && dotnet build Renki.Plugin -c Release --nologo -v quiet)
+    cp plugin/Renki.Plugin/bin/Release/netstandard2.1/Renki.{Plugin,Core}.dll "$out/plugin/"
+    cp scripts/vm/*.ps1 scripts/vm/bot.example.psd1 controller.example.json "$out/"
+    cp docs/TESTING.md "$out/"
+    echo "packaged $out ($(git describe --tags --always --dirty 2>/dev/null || echo devel)):"
+    (cd "$out" && find . -type f | sort | sed 's/^/  /')
+
 # Validate the ticket store, as CI will.
 tickets-check:
     git ticket check --strict

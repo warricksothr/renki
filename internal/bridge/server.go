@@ -63,6 +63,9 @@ type Options struct {
 	// gives up on the connection.
 	DeadAfter time.Duration
 	Logger    *slog.Logger
+	// Fallback serves every path but Path, such as the controller's control
+	// API. Nil answers them with 404.
+	Fallback http.Handler
 }
 
 func (o *Options) defaults() {
@@ -101,6 +104,10 @@ func NewServer(opts Options, h Handler) *Server {
 // ServeHTTP accepts the plugin's WebSocket on Path.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != Path {
+		if s.opts.Fallback != nil {
+			s.opts.Fallback.ServeHTTP(w, r)
+			return
+		}
 		http.NotFound(w, r)
 		return
 	}

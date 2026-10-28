@@ -12,3 +12,5 @@ obj/
 
 # Local game paths for the plugin build
 *.local.props
+scripts/vm/bot.local.psd1
+scripts/vm/logs/

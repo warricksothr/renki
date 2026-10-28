@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -75,4 +77,71 @@ func TestAppendixExchange(t *testing.T) {
 func connect(t *testing.T, url, token string) *bridgetest.Plugin {
 	t.Helper()
 	return bridgetest.ConnectWithToken(t, url, token, nil)
+}
+
+func TestControlAPI(t *testing.T) {
+	cfg := config.Default()
+	cfg.Owners = []string{"Sothr"}
+	cfg.Token = "sekrit"
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(ctx, ln) }()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+	base := "http://" + ln.Addr().String()
+	call := func(method, path, token string) (int, Status) {
+		req, _ := http.NewRequest(method, base+path, nil)
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		var st Status
+		_ = json.NewDecoder(res.Body).Decode(&st)
+		return res.StatusCode, st
+	}
+
+	if code, _ := call("GET", "/control/status", ""); code != http.StatusUnauthorized {
+		t.Errorf("no token: %d", code)
+	}
+	if code, st := call("GET", "/control/status", "sekrit"); code != 200 || st.Connected {
+		t.Errorf("before the plugin: %d %+v", code, st)
+	}
+	if code, _ := call("POST", "/control/logout", "sekrit"); code != http.StatusConflict {
+		t.Errorf("logout with no plugin: %d", code)
+	}
+
+	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld})
+	waitFor(t, func() bool {
+		_, st := call("GET", "/control/status", "sekrit")
+		return st.Phase == protocol.PhaseInWorld
+	})
+	if code, st := call("POST", "/control/logout", "sekrit"); code != http.StatusAccepted || !st.Connected || st.Character != "Bjorn" {
+		t.Errorf("logout: %d %+v", code, st)
+	}
+	if _, ok := p.Next().(*protocol.Logout); !ok {
+		t.Error("the plugin got no logout")
+	}
+}
+
+func waitFor(t *testing.T, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatal("condition never held")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
