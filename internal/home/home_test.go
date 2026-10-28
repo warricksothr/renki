@@ -140,8 +140,15 @@ func TestGoHomeWalksThereAndRunsWhenFar(t *testing.T) {
 	if !k.Homeward(task.ID) {
 		t.Error("the trip home is not marked homeward")
 	}
-	// Still marked once it has ended: the brain asks from TaskDone, after
-	// the task's Done channel has closed.
+}
+
+// TestATripHomeStaysHomewardAfterItEnds: the brain asks Homeward from
+// TaskDone, after the task's Done channel has closed, so the mark must
+// outlive the task.
+func TestATripHomeStaysHomewardAfterItEnds(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{100, 0, 0}, "Nimah")
 	f.final = true
 	ended, err := k.GoHome(context.Background(), nil, "test")
 	if err != nil {
