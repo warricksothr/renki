@@ -140,16 +140,14 @@ func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.T
 		return nil, err
 	}
 	k.mu.Lock()
+	// Kept for the life of the controller: the brain asks Homeward from
+	// TaskDone, which runs after the task's Done channel has closed, so
+	// forgetting the id when it closes would race that question. Ids are
+	// unique per run and there is one per trip home.
 	k.homeward[t.ID] = true
 	k.active = k.now()
 	k.mu.Unlock()
 	k.log.Info("going home", "why", why, "id", t.ID, "world", world, "home", h.Pos)
-	go func() {
-		<-t.Done()
-		k.mu.Lock()
-		delete(k.homeward, t.ID)
-		k.mu.Unlock()
-	}()
 	return t, nil
 }
 

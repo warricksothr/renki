@@ -15,6 +15,8 @@ import (
 )
 
 type fakeSession struct {
+	// final makes Dispatch return tasks that have already failed.
+	final  bool
 	mu     sync.Mutex
 	hello  *protocol.Hello
 	state  *protocol.State
@@ -28,6 +30,9 @@ func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Tas
 		return nil, session.ErrNotConnected
 	}
 	f.orders = append(f.orders, o)
+	if f.final {
+		return session.Finished(o.Task, o.Origin, protocol.StatusFailed, protocol.ReasonStuck), nil
+	}
 	return session.Finished(o.Task, o.Origin, protocol.StatusRunning, ""), nil
 }
 
@@ -134,6 +139,18 @@ func TestGoHomeWalksThereAndRunsWhenFar(t *testing.T) {
 	}
 	if !k.Homeward(task.ID) {
 		t.Error("the trip home is not marked homeward")
+	}
+	// Still marked once it has ended: the brain asks from TaskDone, after
+	// the task's Done channel has closed.
+	f.final = true
+	ended, err := k.GoHome(context.Background(), nil, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-ended.Done()
+	time.Sleep(20 * time.Millisecond)
+	if !k.Homeward(ended.ID) {
+		t.Error("a finished trip home lost its homeward mark")
 	}
 	if d, ok := k.HomeDistance(); !ok || d != 100 {
 		t.Errorf("distance %v %v", d, ok)
