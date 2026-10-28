@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M628X112PXEDXM3ZGDBJWXPQ
 title: Set a home and go back to it when follow fails or the bot idles
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-28T22:12:45Z
+updated_at: 2026-10-28T22:15:09Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -85,3 +85,9 @@ Homes and the interrupted flag live in a data file the controller owns
   a follow or move_to fails with target_lost or stuck, the brain sends it
   home on the same channel, unless the failed task was itself the way home.
 - state gains `world`; config gains dataDir and home rules.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-28T22:15:09Z
+
+Deployed as 83c9e81; the VM's state now carries world DizzysHellheim. Criteria 1-5 are covered by tests in internal/home and internal/chat; criterion 6 waits on checks 17-20 in docs/TESTING.md.
