@@ -374,8 +374,11 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool) {
 
 func (b *Brain) say(to origin, text string) {
 	args := &protocol.SayArgs{Text: text}
-	if to.channel == protocol.ChannelWhisper {
+	switch to.channel {
+	case protocol.ChannelWhisper:
 		args.Channel, args.To = protocol.ChannelWhisper, to.player
+	case protocol.ChannelShout:
+		args.Channel = protocol.ChannelShout
 	}
 	if _, err := b.d.Dispatch(context.Background(), session.Order{Task: protocol.TaskSay, Args: args}); err != nil {
 		b.opts.Logger.Warn("could not speak", "text", text, "err", err)
@@ -396,9 +399,12 @@ func (b *Brain) remember(l Line) {
 	}
 }
 
+// replyChannel answers in kind: a whisper with a whisper, and a shout with a
+// shout, since whoever shouted may be too far off to hear normal chat.
 func replyChannel(heard string) string {
-	if heard == protocol.ChannelWhisper {
-		return protocol.ChannelWhisper
+	switch heard {
+	case protocol.ChannelWhisper, protocol.ChannelShout:
+		return heard
 	}
 	return protocol.ChannelNormal
 }

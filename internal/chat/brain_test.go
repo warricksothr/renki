@@ -257,6 +257,29 @@ func TestFailedTaskIsExplainedToWhoAsked(t *testing.T) {
 	}
 }
 
+func TestShoutIsAnsweredByShoutEvenWhenStuck(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	c := line("Sothr", "bjorn follow me")
+	c.Channel = protocol.ChannelShout
+	b.Chat(c)
+	follow := f.sent()[0]
+	b.TaskDone(doneTask(follow, protocol.StatusFailed, protocol.ReasonStuck))
+	var says []*protocol.SayArgs
+	for _, o := range f.sent() {
+		if o.Task == protocol.TaskSay {
+			says = append(says, o.Args.(*protocol.SayArgs))
+		}
+	}
+	if len(says) != 2 || says[1].Text != "I'm stuck. Can you come back for me?" {
+		t.Fatalf("said %+v", says)
+	}
+	for _, s := range says {
+		if s.Channel != protocol.ChannelShout || s.To != "" {
+			t.Errorf("%q went to %q; want a shout", s.Text, s.Channel)
+		}
+	}
+}
+
 // doneTask makes a finished task through a real session, since its status
 // is only settable from inside that package.
 func doneTask(o session.Order, status, reason string) *session.Task {
