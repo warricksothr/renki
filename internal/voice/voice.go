@@ -275,10 +275,11 @@ func text(s string, isErr bool) core.ToolResult {
 	return core.ToolResult{Content: []provider.Content{provider.TextBlock{Text: s}}, IsError: isErr}
 }
 
-// Emotes are the names the model may pick; the plugin checks them against
-// the game's own list.
+// Emotes are the names the model may pick: Valheim's Emotes enum, lower
+// case, as Emote.DoEmote uses them. The plugin checks them again.
 var Emotes = []string{"wave", "sit", "challenge", "cheer", "nonono", "thumbsup", "point", "blowkiss", "bow",
-	"cower", "cry", "despair", "flex", "comehere", "headbang", "kneel", "laugh", "roar", "shrug", "dance", "rest"}
+	"cower", "cry", "despair", "flex", "comehere", "headbang", "kneel", "laugh", "roar", "shrug", "dance",
+	"relax", "toast", "rest", "vibe", "loveyou"}
 
 var catalogue = map[string]struct {
 	desc   string

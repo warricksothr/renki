@@ -9,3 +9,6 @@ obj/
 # Local settings, which hold the controller token and server password
 *.local.json
 .env
+
+# Local game paths for the plugin build
+*.local.props

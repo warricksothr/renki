@@ -1,0 +1,273 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json.Linq;
+using Renki.Movement;
+using Renki.Protocol;
+using Renki.Tasks;
+using Xunit;
+
+namespace Renki.Tests
+{
+    sealed class FakeBody : IBodyTask
+    {
+        public Outcome Next;
+        public bool Cancelled;
+        public int Ticks;
+
+        public Outcome Tick(double dt)
+        {
+            Ticks++;
+            return Next;
+        }
+
+        public void Cancel() => Cancelled = true;
+    }
+
+    sealed class FakeHost : ITaskHost
+    {
+        public readonly List<FakeBody> Bodies = new List<FakeBody>();
+        public readonly List<string> Instants = new List<string>();
+        public int Idles;
+        public TaskRefused Refuse;
+
+        public IBodyTask StartBody(TaskRequest req, object args)
+        {
+            if (Refuse != null) throw Refuse;
+            var b = new FakeBody();
+            Bodies.Add(b);
+            return b;
+        }
+
+        public Outcome RunInstant(TaskRequest req, object args)
+        {
+            Instants.Add(req.Task + (args is SayArgs s ? ":" + s.Text : ""));
+            return Outcome.Succeeded();
+        }
+
+        public void Idle() => Idles++;
+    }
+
+    public class TaskRunnerTests
+    {
+        readonly List<TaskStatus> reports = new List<TaskStatus>();
+        readonly FakeHost host = new FakeHost();
+        double clock;
+        readonly SafetyConfig safety = new SafetyConfig();
+        readonly TaskRunner runner;
+
+        public TaskRunnerTests()
+        {
+            runner = new TaskRunner(safety, TaskNames.M1, host, reports.Add, () => clock);
+        }
+
+        static TaskRequest Req(string id, string task, string args = null, double timeout = 0) =>
+            new TaskRequest { Id = id, Task = task, Args = args == null ? null : JObject.Parse(args), TimeoutS = timeout };
+
+        string Log() => string.Join(" ", reports.Select(r => $"{r.Re}:{r.Status}{(r.Reason != null ? "/" + r.Reason : "")}"));
+
+        [Fact]
+        public void NothingRunsBeforeWelcome()
+        {
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            Assert.Equal("t-1:rejected/not_allowed", Log());
+        }
+
+        [Fact]
+        public void BodyLifecycle()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.FixedTick(0.02);
+            Assert.Equal("t-1", runner.Current.Id);
+            host.Bodies[0].Next = Outcome.Failed(Wire.ReasonTargetLost);
+            runner.FixedTick(0.02);
+            Assert.Equal("t-1:accepted t-1:running t-1:failed/target_lost", Log());
+            Assert.Null(runner.Current);
+        }
+
+        [Fact]
+        public void NewBodyTaskSupersedes()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.Handle(Req("t-2", "move_to", "{\"to\":[1,2,3]}"));
+            Assert.True(host.Bodies[0].Cancelled);
+            Assert.Equal("t-1:accepted t-1:running t-1:cancelled/superseded t-2:accepted t-2:running", Log());
+        }
+
+        [Fact]
+        public void InstantTasksRunAlongside()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.Handle(Req("t-2", "emote", "{\"name\":\"wave\"}"));
+            Assert.False(host.Bodies[0].Cancelled);
+            Assert.Equal("t-1", runner.Current.Id);
+            Assert.Contains("t-2:succeeded", Log());
+        }
+
+        [Fact]
+        public void StopCancelsEverything()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.Handle(Req("t-2", "stop"));
+            Assert.True(host.Bodies[0].Cancelled);
+            Assert.EndsWith("t-1:cancelled/stopped t-2:succeeded", Log());
+        }
+
+        [Fact]
+        public void Timeout()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "move_to", "{\"to\":\"0:1\"}", timeout: 1));
+            for (var i = 0; i < 60; i++) runner.FixedTick(0.02);
+            Assert.EndsWith("t-1:failed/timeout", Log());
+            Assert.True(host.Bodies[0].Cancelled);
+        }
+
+        [Fact]
+        public void RejectionReasons()
+        {
+            safety.AllowChat = false;
+            runner.Welcome(new[] { "stop", "follow", "say", "emote", "harvest" });
+            runner.Handle(Req("t-1", "harvest", "{\"entity\":\"0:1\"}"));
+            runner.Handle(Req("t-2", "say", "{\"text\":\"hi\"}"));
+            runner.Handle(Req("t-3", "move_to", "{\"to\":[0,0,0]}"));
+            runner.Handle(Req("t-4", "follow", "{}"));
+            host.Refuse = new TaskRefused(Wire.ReasonInvalidTarget, "no such player");
+            runner.Handle(Req("t-5", "follow", "{\"player\":\"Nobody\"}"));
+            Assert.Equal("t-1:rejected/unsupported t-2:rejected/not_allowed t-3:rejected/not_allowed " +
+                         "t-4:rejected/bad_args t-5:rejected/invalid_target", Log());
+        }
+
+        [Fact]
+        public void WelcomeOnlyNarrows()
+        {
+            safety.AllowMovement = false;
+            runner.Welcome(TaskNames.M1);
+            Assert.DoesNotContain("follow", runner.Allowed);
+            Assert.Contains("stop", runner.Allowed);
+        }
+
+        [Fact]
+        public void DeadManStopsAndNothingResumes()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.EndSession("no controller message for 10 s");
+            Assert.True(host.Bodies[0].Cancelled);
+            Assert.Null(runner.Current);
+            Assert.False(runner.InSession);
+            runner.FixedTick(0.02);
+            Assert.Equal(0, host.Bodies[0].Ticks);
+            runner.Handle(Req("t-2", "say", "{\"text\":\"hi\"}"));
+            Assert.EndsWith("t-2:rejected/not_allowed", Log());
+            runner.Welcome(TaskNames.M1);
+            Assert.Null(runner.Current);
+        }
+
+        [Fact]
+        public void SayIsCleanedAndRateLimited()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "say", "{\"text\":\"/kill all\\nnow\"}"));
+            Assert.Equal("say:kill all now", host.Instants[0]);
+            runner.Handle(Req("t-2", "say", "{\"text\":\"two\"}"));
+            runner.Handle(Req("t-3", "say", "{\"text\":\"three\"}"));
+            runner.Handle(Req("t-4", "say", "{\"text\":\"four\"}"));
+            Assert.EndsWith("t-4:rejected/not_allowed", Log());
+            clock = 2.1;
+            runner.Handle(Req("t-5", "say", "{\"text\":\"five\"}"));
+            Assert.EndsWith("t-5:succeeded", Log());
+            runner.Handle(Req("t-6", "say", "{\"text\":\"///\"}"));
+            Assert.EndsWith("t-6:rejected/bad_args", Log());
+        }
+
+        [Fact]
+        public void DyingFailsTheBodyTask()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.Died();
+            Assert.EndsWith("t-1:failed/died", Log());
+        }
+    }
+
+    public class MovementTests
+    {
+        [Fact]
+        public void StuckSequenceThenGiveUp()
+        {
+            var d = new StuckDetector();
+            var pos = new V3(0, 0, 0);
+            var seen = new List<Recovery>();
+            for (var t = 0.0; t < 40 && !seen.Contains(Recovery.GiveUp); t += 0.1)
+            {
+                var r = d.Update(pos, t);
+                if (r != Recovery.None) seen.Add(r);
+            }
+            Assert.Equal(new[]
+            {
+                Recovery.Jump, Recovery.Strafe, Recovery.Repath, Recovery.Jump, Recovery.Strafe, Recovery.Repath,
+                Recovery.Jump, Recovery.Strafe, Recovery.Repath, Recovery.GiveUp,
+            }, seen);
+        }
+
+        [Fact]
+        public void ProgressResetsStuck()
+        {
+            var d = new StuckDetector();
+            var x = 0.0;
+            for (var t = 0.0; t < 30; t += 0.1)
+            {
+                x += 0.05; // 0.5 m/s, enough progress
+                Assert.Equal(Recovery.None, d.Update(new V3(x, 0, 0), t));
+            }
+        }
+
+        [Fact]
+        public void PathFollowerAdvances()
+        {
+            var p = new PathFollower();
+            p.Set(new[] { new V3(0, 0, 5), new V3(5, 0, 5), new V3(5, 0, 10) });
+            Assert.Equal(new V3(0, 0, 5), p.Next(new V3(0, 0, 0)));
+            Assert.Equal(new V3(5, 0, 5), p.Next(new V3(0, 0, 4.5)));
+            Assert.Equal(new V3(5, 0, 10), p.Next(new V3(4.8, 0, 5.1)));
+            Assert.Null(p.Next(new V3(5, 0, 9.8)));
+        }
+
+        [Fact]
+        public void FollowPaceHysteresis()
+        {
+            var f = new FollowPace();
+            Assert.Equal(Gait.Stop, f.Decide(3, 3.5, RunMode.Auto, false));
+            Assert.Equal(Gait.Stop, f.Decide(4.2, 3.5, RunMode.Auto, false)); // inside the slack while stopped
+            Assert.Equal(Gait.Walk, f.Decide(5, 3.5, RunMode.Auto, false));
+            Assert.Equal(Gait.Walk, f.Decide(4.0, 3.5, RunMode.Auto, false)); // moving: walks until inside the distance
+            Assert.Equal(Gait.Run, f.Decide(8, 3.5, RunMode.Auto, false));
+            Assert.Equal(Gait.Run, f.Decide(5, 3.5, RunMode.Auto, true));
+            Assert.Equal(Gait.Walk, f.Decide(8, 3.5, RunMode.Walk, true));
+            Assert.Equal(Gait.Stop, f.Decide(3.4, 3.5, RunMode.Auto, false));
+        }
+
+        [Fact]
+        public void LocalControls()
+        {
+            // Looking north, moving east is pure right.
+            var l = Controls.ToLocal(new V3(1, 0, 0), new V3(0, 0, 1));
+            Assert.Equal(1, l.X, 6);
+            Assert.Equal(0, l.Z, 6);
+            // Looking east, moving east is pure forward.
+            l = Controls.ToLocal(new V3(1, 0, 0), new V3(1, 0, 0));
+            Assert.Equal(0, l.X, 6);
+            Assert.Equal(1, l.Z, 6);
+            // Looking east, moving north is left.
+            l = Controls.ToLocal(new V3(0, 0, 1), new V3(1, 0, 0));
+            Assert.Equal(-1, l.X, 6);
+            Assert.Equal(90, Controls.Yaw(new V3(1, 0, 0)), 6);
+            Assert.Equal(270, Controls.Yaw(new V3(-1, 0, 0)), 6);
+        }
+    }
+}

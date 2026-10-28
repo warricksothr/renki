@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    The plugin builds against the game's own assemblies, which cannot be
+    committed or redistributed. Point ValheimDir at a Valheim install, either
+    with the VALHEIM_DIR environment variable or in game.local.props beside
+    this file (gitignored):
+
+      <Project><PropertyGroup>
+        <ValheimDir>/mnt/e/SteamLibrary/steamapps/common/Valheim</ValheimDir>
+      </PropertyGroup></Project>
+  -->
+  <Import Project="game.local.props" Condition="Exists('$(MSBuildThisFileDirectory)game.local.props')" />
+  <PropertyGroup>
+    <ValheimDir Condition="'$(ValheimDir)' == ''">$(VALHEIM_DIR)</ValheimDir>
+    <ValheimManaged>$(ValheimDir)/valheim_Data/Managed</ValheimManaged>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

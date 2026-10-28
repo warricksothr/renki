@@ -1,0 +1,191 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using BepInEx;
+using BepInEx.Configuration;
+using HarmonyLib;
+using Renki.Bridge;
+using Renki.Protocol;
+using Renki.Tasks;
+using UnityEngine;
+
+namespace Renki.Plugin
+{
+    /// <summary>
+    /// renki's body inside Valheim. It dials the controller, reports what the
+    /// bot sees and hears, and carries out the tasks it is sent, within the
+    /// safety switches in its own config. With no controller it does nothing
+    /// and the game plays as normal.
+    /// </summary>
+    [BepInPlugin(Guid, Name, Version)]
+    public sealed class RenkiPlugin : BaseUnityPlugin
+    {
+        public const string Guid = "com.warricksothr.renki", Name = "renki", Version = "0.1.0";
+
+        /// <summary>No controller message for this long stops the bot (section 8).</summary>
+        public const double DeadManSeconds = 10;
+
+        internal static RenkiPlugin Instance;
+
+        ConfigEntry<string> controllerUrl;
+        ConfigEntry<string> token;
+        readonly SafetyConfig safety = new SafetyConfig();
+
+        BridgeClient client;
+        TaskRunner runner;
+        Reporter reporter;
+        Harmony harmony;
+
+        Welcome welcome;
+        double stateHz = 5;
+        float nextState;
+        float nextHello;
+        bool loggingOut;
+
+        internal IReadOnlyCollection<string> Owners => welcome?.Owners ?? (IReadOnlyCollection<string>)Array.Empty<string>();
+
+        void Awake()
+        {
+            Instance = this;
+            controllerUrl = Config.Bind("Bridge", "ControllerUrl", "ws://127.0.0.1:8765/ws/",
+                "Where the controller listens (docs/BRIDGE-PROTOCOL.md section 2).");
+            token = Config.Bind("Bridge", "Token", "",
+                "Sent in hello. Required when the controller listens on anything but loopback.");
+            safety.Enabled = Config.Bind("Safety", "Enabled", true,
+                "Master switch. Off, the plugin accepts no task at all.").Value;
+            safety.AllowMovement = Config.Bind("Safety", "AllowMovement", true, "move_to, follow, look_at.").Value;
+            safety.AllowChat = Config.Bind("Safety", "AllowChat", true, "say and emote.").Value;
+            safety.AllowGather = Config.Bind("Safety", "AllowGather", false, "harvest, pickup (M2).").Value;
+            safety.AllowCombat = Config.Bind("Safety", "AllowCombat", false, "attack, guard, flee (M3).").Value;
+            safety.AllowSailing = Config.Bind("Safety", "AllowSailing", false, "Steering ships (later).").Value;
+            safety.AllowBossSummoning = Config.Bind("Safety", "AllowBossSummoning", false,
+                "Using offering bowls (M2).").Value;
+            safety.AllowRawControls = Config.Bind("Safety", "AllowRawControls", false,
+                "The debug `controls` task.").Value;
+
+            runner = new TaskRunner(safety, TaskNames.M1, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
+            Driver.OnFixedStep = dt => runner.FixedTick(dt);
+            reporter = new Reporter(this);
+
+            harmony = new Harmony(Guid);
+            harmony.PatchAll(typeof(RenkiPlugin).Assembly);
+
+            client = new BridgeClient(new Uri(controllerUrl.Value), new BepLog(Logger));
+            client.SetHello(BuildHello());
+            client.Start();
+            Logger.LogInfo($"{Name} {Version} loaded; dialling {controllerUrl.Value}; " +
+                           $"tasks allowed by config: {string.Join(", ", TaskNames.M1.Where(safety.Permits))}");
+        }
+
+        void Update()
+        {
+            var now = Time.unscaledTime;
+            client.GameTime = ZNet.instance != null ? ZNet.instance.GetTimeSeconds() : 0;
+            if (now >= nextHello)
+            {
+                client.SetHello(BuildHello());
+                nextHello = now + 1f;
+            }
+
+            while (client.TryReceive(out var msg)) Handle(msg);
+
+            // The dead-man rule: a silent controller stops everything, and
+            // nothing resumes until it says welcome again.
+            if (runner.InSession && client.SecondsSinceController > DeadManSeconds)
+            {
+                Logger.LogWarning($"no controller message for {DeadManSeconds} s; stopping");
+                EndSession("dead-man");
+            }
+
+            reporter.Update(runner.InSession);
+            if (runner.InSession && now >= nextState)
+            {
+                var state = reporter.State(Phase(), runner.Current);
+                if (state != null) Send(state);
+                nextState = now + (float)(1 / Math.Max(0.2, stateHz));
+            }
+        }
+
+        void Handle(Message msg)
+        {
+            switch (msg)
+            {
+                case Welcome w:
+                    welcome = w;
+                    stateHz = w.Rates.StateHz > 0 ? w.Rates.StateHz : 5;
+                    runner.Welcome(w.AllowedTasks);
+                    loggingOut = false;
+                    Driver.Active = true;
+                    Logger.LogInfo($"session started as {w.AgentName}; owners {string.Join(", ", w.Owners)}; " +
+                                   $"allowed {string.Join(", ", runner.Allowed)}");
+                    break;
+                case TaskRequest t:
+                    runner.Handle(t);
+                    break;
+                case Config c:
+                    if (c.Rates != null && c.Rates.StateHz > 0) stateHz = c.Rates.StateHz;
+                    break;
+                case Logout _:
+                    Logger.LogInfo("controller asked to log out");
+                    EndSession("logout");
+                    loggingOut = true;
+                    Game.instance?.Logout(true, true);
+                    break;
+                case Bye b:
+                    Logger.LogInfo($"controller said bye ({b.Reason})");
+                    EndSession("controller left");
+                    break;
+                case Protocol.Error e:
+                    Logger.LogWarning($"controller error {e.Code} (re {e.Re}): {e.Detail}");
+                    break;
+            }
+        }
+
+        void EndSession(string why)
+        {
+            runner.EndSession(why);
+            Driver.Active = false;
+            Driver.Stand();
+            Driver.LookAt = null;
+        }
+
+        /// <summary>Called by the reporter when the bot dies.</summary>
+        internal void BotDied() => runner.Died();
+
+        internal void Send(Message m) => client.Send(m);
+
+        internal string Phase()
+        {
+            if (loggingOut) return Wire.PhaseLoggingOut;
+            var p = Player.m_localPlayer;
+            if (p == null) return ZNet.instance != null ? Wire.PhaseConnecting : Wire.PhaseMenu;
+            return p.IsDead() ? Wire.PhaseDead : Wire.PhaseInWorld;
+        }
+
+        Hello BuildHello() => new Hello
+        {
+            Token = token.Value,
+            Plugin = Version,
+            Game = global::Version.GetVersionString(),
+            Phase = Phase(),
+            Character = Game.instance?.GetPlayerProfile()?.GetName() ?? "",
+            World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "",
+            Capabilities = runner.Capabilities.ToList(),
+        };
+
+        void OnDestroy()
+        {
+            harmony?.UnpatchSelf();
+            client?.Dispose();
+        }
+    }
+
+    sealed class BepLog : ILog
+    {
+        readonly BepInEx.Logging.ManualLogSource log;
+        public BepLog(BepInEx.Logging.ManualLogSource log) => this.log = log;
+        public void Info(string message) => log.LogInfo(message);
+        public void Warn(string message) => log.LogWarning(message);
+        public void Debug(string message) => log.LogDebug(message);
+    }
+}
