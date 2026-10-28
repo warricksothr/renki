@@ -1,6 +1,7 @@
-# valheim-agent
+# renki
 
-A machine player for Valheim. It runs as a second Valheim client, on its own
+*Renki* is Finnish for a farmhand: someone who does the chores and follows the
+boss around. This one is a machine player for Valheim. It runs as a second Valheim client, on its own
 Steam account, on a Windows VM. It joins your server like anyone else and
 takes commands and conversation through in-game chat.
 

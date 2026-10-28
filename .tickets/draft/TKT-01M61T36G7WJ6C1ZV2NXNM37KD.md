@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T17:49:28Z
+updated_at: 2026-10-28T17:56:38Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -35,12 +35,14 @@ extensions: {}
 
 Lay out the Go side the way the organisation's other Go repos do:
 `cmd/controller`, packages beside it, `go 1.25.0`, and a justfile whose
-recipes match what CI runs. The module path depends on where the repository
-will be hosted, which hasn't been decided.
+recipes match what CI runs.
+
+The module path is `github.com/warricksothr/renki`. The project is personal,
+and its public mirror will live under github.com/warricksothr.
 
 ## Acceptance criteria
 
-- [ ] The hosting location and module path are decided and recorded
 - [ ] `go.mod` and `cmd/controller` exist, and `just build` produces the binary
 - [ ] `just build-windows` cross-compiles for the VM
 - [ ] `just test` and `just vet` run clean
+- [ ] `go.mod` declares module `github.com/warricksothr/renki`
