@@ -43,3 +43,10 @@ The architecture follows
 [Dahuchsi/ValheimAI](https://github.com/Dahuchsi/ValheimAI): a plugin inside a
 real client, dialling a separate controller over a localhost WebSocket. That
 repository has no license, so no code from it is used here.
+
+## License
+
+GPL-3.0-or-later; see [LICENSE](LICENSE). Dependencies keep their own licenses,
+all compatible with the GPL: terva and Harmony are MIT, and BepInEx is
+LGPL-2.1. Valheim's own assemblies are only referenced at build time and are
+never distributed with this project.
