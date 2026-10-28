@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-28T22:08:15Z
+updated_at: 2026-10-28T22:12:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -66,9 +66,22 @@ Homes and the interrupted flag live in a data file the controller owns
 
 ## Acceptance criteria
 
-- [ ] `set home` stores the speaker's position for the current world, and it survives a controller restart
-- [ ] `go home` walks the bot there, and says so when no home is set
-- [ ] The bot goes home when follow fails with target_lost or stuck, each switchable
-- [ ] The bot goes home after an outage interrupted a body task, switchable
-- [ ] The bot goes home after idleMinutes with no task, when away from home
+- [x] `set home` stores the speaker's position for the current world, and it survives a controller restart
+- [x] `go home` walks the bot there, and says so when no home is set
+- [x] The bot goes home when follow fails with target_lost or stuck, each switchable
+- [x] The bot goes home after an outage interrupted a body task, switchable
+- [x] The bot goes home after idleMinutes with no task, when away from home
 - [ ] Verified in the game
+
+## Implementation plan
+
+- internal/home: Store (homes per world and the interrupted flag in
+  dataDir/memory.json, replaced atomically) and Keeper (set, go, homeward
+  tasks, ReturnOn rules, and a one-second Tick for outages and idling).
+- Outage: Tick sets the flag while a follow or move_to runs and clears it
+  when the task ends on the same connection; still set on the first in-world
+  tick of a new connection means an outage, so the bot goes home.
+- Chat: `set home` (speaker's position) and `go home` in the grammar; after
+  a follow or move_to fails with target_lost or stuck, the brain sends it
+  home on the same channel, unless the failed task was itself the way home.
+- state gains `world`; config gains dataDir and home rules.

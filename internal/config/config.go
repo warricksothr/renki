@@ -40,6 +40,26 @@ type Config struct {
 
 	// Audit is where the audit log goes (internal/audit).
 	Audit Audit `json:"audit"`
+
+	// DataDir holds what the controller remembers between runs, such as
+	// the bot's homes, relative to the working directory.
+	DataDir string `json:"dataDir"`
+
+	// Home says when the bot goes home by itself.
+	Home HomeRules `json:"home"`
+}
+
+// HomeRules say when the bot goes home without being told.
+type HomeRules struct {
+	// WhenLost: follow lost its leader.
+	WhenLost bool `json:"whenLost"`
+	// WhenStuck: stuck recovery gave up, on anything but the way home.
+	WhenStuck bool `json:"whenStuck"`
+	// AfterOutage: a body task was running when the controller or the
+	// connection went away.
+	AfterOutage bool `json:"afterOutage"`
+	// IdleMinutes: this long with no task, away from home. 0 never.
+	IdleMinutes float64 `json:"idleMinutes"`
 }
 
 // Audit configures the audit log.
@@ -78,6 +98,8 @@ func Default() Config {
 		Perception:   protocol.PerceptionConfig{Radius: 40, MaxPerKind: 24},
 		AllowedTasks: slices.Clone(M1Tasks),
 		Audit:        Audit{Dir: "audit", KeepDays: 14},
+		DataDir:      "data",
+		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10},
 	}
 }
 
@@ -110,6 +132,12 @@ func (c Config) Validate() error {
 		if ip == nil || !ip.IsLoopback() {
 			return fmt.Errorf("listen %q is not loopback, so a token is required (set token or RENKI_TOKEN)", c.Listen)
 		}
+	}
+	if c.DataDir == "" {
+		return errors.New("dataDir is empty")
+	}
+	if c.Home.IdleMinutes < 0 {
+		return errors.New("home.idleMinutes must not be negative")
 	}
 	if c.Audit.KeepDays < 0 {
 		return errors.New("audit.keepDays must not be negative")

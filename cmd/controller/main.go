@@ -11,12 +11,14 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/warricksothr/renki/internal/app"
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/home"
 )
 
 // version is stamped at build time with -ldflags "-X main.version=...".
@@ -91,7 +93,12 @@ func run() int {
 	}
 	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
 		"owners", cfg.Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
-	if err := app.New(cfg, voice, log, trail).Serve(ctx, ln); err != nil {
+	homes, err := home.Open(filepath.Join(cfg.DataDir, "memory.json"))
+	if err != nil {
+		log.Error("memory", "dir", cfg.DataDir, "err", err)
+		return 2
+	}
+	if err := app.New(cfg, voice, log, trail, homes).Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)
 		return 1
 	}

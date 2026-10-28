@@ -13,6 +13,7 @@ import (
 	"github.com/warricksothr/renki/internal/bridge"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -22,18 +23,25 @@ type App struct {
 	Config  config.Config
 	Session *session.Session
 	Brain   *chat.Brain
+	Home    *home.Keeper
 	Bridge  *bridge.Server
 }
 
 // New builds a controller from cfg. voice may be nil, which leaves the bot
 // with the command grammar only.
-// audit may be nil, which records nothing.
-func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log) *App {
+// audit may be nil, which records nothing, and homes nil, which remembers
+// homes only until the controller stops.
+func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log, homes *home.Store) *App {
 	if log == nil {
 		log = slog.Default()
 	}
+	if homes == nil {
+		homes = home.Memory()
+	}
 	s := session.New(nil, log.With("part", "session"))
+	keeper := home.New(homes, cfg.Home, s, log.With("part", "home"), nil)
 	brain := chat.New(chat.Options{
+		Home:      keeper,
 		AgentName: cfg.AgentName,
 		Nicknames: cfg.Nicknames,
 		Owners:    cfg.Owners,
@@ -42,7 +50,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Logger:    log.With("part", "chat"),
 	}, s)
 	s.SetListener(brain)
-	a := &App{Config: cfg, Session: s, Brain: brain}
+	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper}
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg) },
@@ -66,6 +74,9 @@ func Welcome(cfg config.Config) *protocol.Welcome {
 
 // Serve runs the controller on ln until ctx ends.
 func (a *App) Serve(ctx context.Context, ln net.Listener) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go a.Home.Run(ctx)
 	return a.Bridge.Serve(ctx, ln)
 }
 

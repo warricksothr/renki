@@ -34,6 +34,13 @@ func (b *Brain) status() string {
 	} else {
 		s.WriteString(" Idle.")
 	}
+	if b.opts.Home != nil {
+		if d, ok := b.opts.Home.HomeDistance(); ok {
+			fmt.Fprintf(&s, " Home is %.0f m away.", d)
+		} else {
+			s.WriteString(" No home here yet.")
+		}
+	}
 	return s.String()
 }
 

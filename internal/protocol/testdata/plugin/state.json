@@ -1,6 +1,6 @@
 {
   "v": 1, "type": "state", "seq": 1042, "t": 18234.52,
-  "phase": "in_world", "character": "Tasleroch",
+  "phase": "in_world", "character": "Tasleroch", "world": "Midgard",
   "pos": [123.45, 31.02, -88.10], "yaw": 271.5, "vel": [0.0, 0.0, 3.9],
   "hp": 47.0, "hpMax": 60.0, "stamina": 38.0, "staminaMax": 75.0,
   "eitr": 0.0, "eitrMax": 0.0,

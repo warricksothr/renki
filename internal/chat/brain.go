@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -67,6 +68,22 @@ type Line struct {
 	Bot  bool
 }
 
+// Home is the bot's home, kept by internal/home.
+type Home interface {
+	// SetHome makes pos home in the current world and returns the world.
+	SetHome(pos protocol.Vec3, by string) (world string, err error)
+	// GoHome sends the bot home; why is for the log.
+	GoHome(ctx context.Context, origin any, why string) (*session.Task, error)
+	// Homeward reports whether a task was sent to take the bot home.
+	Homeward(id string) bool
+	// ReturnOn reports whether a body task failing for reason sends the bot home.
+	ReturnOn(reason string) bool
+	// HomeDistance is how far the bot is from home.
+	HomeDistance() (float64, bool)
+	// Touch counts as activity, for the idle rule.
+	Touch()
+}
+
 // Options configure a Brain.
 type Options struct {
 	// AgentName is the name the bot answers to. Empty means the in-game
@@ -78,6 +95,8 @@ type Options struct {
 	// Voice answers lines the grammar does not match. Nil means the bot
 	// only knows the grammar.
 	Voice Voice
+	// Home keeps the bot's home. Nil means it has none.
+	Home Home
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -193,6 +212,9 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		return
 	}
 	b.opts.Logger.Info("command", "from", c.From.Name, "command", cmd)
+	if b.opts.Home != nil {
+		b.opts.Home.Touch()
+	}
 	b.run(cmd, c, from)
 }
 
@@ -212,9 +234,36 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if status != protocol.StatusFailed && status != protocol.StatusRejected {
 		return
 	}
-	if msg := explain(t.Name, reason, o.player); msg != "" {
+	msg := explain(t.Name, reason, o.player)
+	if b.returnHome(t, reason, o) {
+		switch reason {
+		case protocol.ReasonStuck:
+			msg = "I'm stuck. I'll try to make it home."
+		default:
+			msg += " Heading home."
+		}
+	}
+	if msg != "" {
 		b.say(o, msg)
 	}
+}
+
+// returnHome sends the bot home after a body task failed, when the home
+// rules say so, and reports whether it did. A failed trip home does not
+// start another.
+func (b *Brain) returnHome(t *session.Task, reason string, o origin) bool {
+	h := b.opts.Home
+	if h == nil || (t.Name != protocol.TaskFollow && t.Name != protocol.TaskMoveTo) || h.Homeward(t.ID) ||
+		!h.ReturnOn(reason) {
+		return false
+	}
+	if _, err := h.GoHome(context.Background(), o, "after "+t.Name+" failed: "+reason); err != nil {
+		if !errors.Is(err, home.ErrNoHome) {
+			b.opts.Logger.Warn("could not go home", "err", err)
+		}
+		return false
+	}
+	return true
 }
 
 func (b *Brain) addressed(c *protocol.Chat) bool {
@@ -252,10 +301,12 @@ const (
 	cmdStatus
 	cmdCome
 	cmdWait
+	cmdSetHome
+	cmdGoHome
 )
 
 func (c command) String() string {
-	return [...]string{"", "follow", "stop", "status", "come here", "wait here"}[c]
+	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home"}[c]
 }
 
 var grammar = map[string]command{
@@ -264,6 +315,10 @@ var grammar = map[string]command{
 	"status": cmdStatus, "report": cmdStatus,
 	"come": cmdCome, "come here": cmdCome, "come to me": cmdCome,
 	"wait": cmdWait, "wait here": cmdWait, "stay": cmdWait, "stay here": cmdWait,
+	"set home": cmdSetHome, "set home here": cmdSetHome, "home is here": cmdSetHome, "this is home": cmdSetHome,
+	"make this home": cmdSetHome,
+	"go home":        cmdGoHome, "home": cmdGoHome, "head home": cmdGoHome, "return home": cmdGoHome,
+	"go back home": cmdGoHome,
 }
 
 func parse(stripped string) (command, bool) {
@@ -279,6 +334,12 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	switch cmd {
 	case cmdStatus:
 		b.say(from, b.status())
+		return
+	case cmdSetHome:
+		b.setHome(c, from)
+		return
+	case cmdGoHome:
+		b.goHome(from)
 		return
 	case cmdFollow:
 		order = session.Order{Task: protocol.TaskFollow, Args: &protocol.FollowArgs{Player: c.From.Name, Run: protocol.RunAuto}}
@@ -306,6 +367,43 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		return
 	}
 	b.say(from, ack)
+}
+
+func (b *Brain) setHome(c *protocol.Chat, from origin) {
+	if b.opts.Home == nil {
+		b.say(from, "I can't keep a home.")
+		return
+	}
+	if _, err := b.opts.Home.SetHome(c.Pos, c.From.Name); err != nil {
+		b.opts.Logger.Warn("home not set", "err", err)
+		if errors.Is(err, home.ErrNoWorld) {
+			b.say(from, "I don't know which world this is yet.")
+		} else {
+			b.say(from, "I couldn't remember that.")
+		}
+		return
+	}
+	b.say(from, "This is home now.")
+}
+
+func (b *Brain) goHome(from origin) {
+	if b.opts.Home == nil {
+		b.say(from, "I don't have a home.")
+		return
+	}
+	if _, err := b.opts.Home.GoHome(context.Background(), from, "told to"); err != nil {
+		b.opts.Logger.Warn("not going home", "err", err)
+		switch {
+		case errors.Is(err, home.ErrNoHome):
+			b.say(from, `I don't have a home here yet. Say "set home" where you want it.`)
+		case errors.Is(err, session.ErrNotAllowed):
+			b.say(from, "I'm not allowed to do that.")
+		default:
+			b.say(from, "I can't go home right now.")
+		}
+		return
+	}
+	b.say(from, "Heading home.")
 }
 
 func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {

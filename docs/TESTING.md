@@ -77,6 +77,10 @@ Work down the list. The first failure usually explains the ones after it.
 | 14 | Someone joins and leaves | `player_joined`, `player_left` | TKT-01M61T36M4 criterion 3 |
 | 15 | Run `stop-bot.ps1`, or `POST /control/logout` | The character saves and returns to the menu, and does not rejoin | TKT-01M61T36P8 criterion 3, TKT-01M61T36PT criterion 3 |
 | 16 | Unfocus, minimise, and disconnect RDP while it follows | It keeps following in all three cases | TKT-01M61T36D |
+| 17 | `tas set home`, walk 30 m away, `tas go home` | "This is home now."; it walks back to where you stood | TKT-01M628X11 |
+| 18 | `tas follow me`, then log off | "I lost track of you. Heading home.", and it walks home | TKT-01M628X11 |
+| 19 | `just vm restart` while it follows | Back in the world: "Something cut me off. Heading home." | TKT-01M628X11 |
+| 20 | Leave it away from home with nothing to do for 10 minutes | "Nothing to do. Heading home." | TKT-01M628X11 |
 
 ## Things worth watching
 

@@ -147,7 +147,7 @@ The bot's own body. Small and sent often.
 ```json
 {
   "v": 1, "type": "state", "seq": 1042, "t": 18234.52,
-  "phase": "in_world", "character": "Tasleroch",
+  "phase": "in_world", "character": "Tasleroch", "world": "Midgard",
   "pos": [123.45, 31.02, -88.10], "yaw": 271.5, "vel": [0.0, 0.0, 3.9],
   "hp": 47.0, "hpMax": 60.0, "stamina": 38.0, "staminaMax": 75.0,
   "eitr": 0.0, "eitrMax": 0.0,
@@ -161,8 +161,9 @@ The bot's own body. Small and sent often.
 }
 ```
 
-`character` is the bot's character name as other players see it, empty
-until the bot is in the world.
+`character` is the bot's character name as other players see it, and
+`world` the name of the world it is in. Both are empty until the bot is in
+the world.
 
 `flags` is drawn from: `grounded`, `running`, `crouching`, `swimming`,
 `sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `in_shelter`,
@@ -423,8 +424,15 @@ chat event
   (`agentName`, or else the character's name) or one of the controller's
   `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
-  `stop`, `status`, `come here`, `wait here`, `go home`. Only `owners` can
-  issue tasks.
+  `stop`, `status`, `come here`, `wait here`, `set home`, `go home`. Only
+  `owners` can issue tasks.
+- **Home** is where the speaker stood when they said `set home`, one per
+  world, kept in the controller's `dataDir` across restarts. The bot also
+  goes home by itself, as the `home` config allows: when follow loses its
+  leader (`whenLost`), when stuck recovery gives up on anything but the way
+  home (`whenStuck`), when an outage cut a moving task short, including a
+  logout or a controller restart (`afterOutage`), and after `idleMinutes`
+  with no task when it is more than 5 m from home.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -385,5 +386,85 @@ func TestVoiceCooldownPerPlayer(t *testing.T) {
 	waitSaid(t, f, 2)
 	if len(v.got) != 1 { // Ada's; Sothr's second is still cooling down
 		t.Errorf("voice called %d more times; want 1 (Ada only)", len(v.got))
+	}
+}
+
+type fakeHome struct {
+	world    string
+	home     *protocol.Vec3
+	homeward map[string]bool
+	trips    []string
+	touched  int
+}
+
+func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
+	if h.world == "" {
+		return "", home.ErrNoWorld
+	}
+	h.home = &pos
+	return h.world, nil
+}
+
+func (h *fakeHome) GoHome(_ context.Context, origin any, why string) (*session.Task, error) {
+	if h.home == nil {
+		return nil, home.ErrNoHome
+	}
+	h.trips = append(h.trips, why)
+	t := session.Finished(protocol.TaskMoveTo, origin, protocol.StatusRunning, "")
+	h.homeward[t.ID] = true
+	return t, nil
+}
+
+func (h *fakeHome) Homeward(id string) bool { return h.homeward[id] }
+func (h *fakeHome) ReturnOn(reason string) bool {
+	return reason == protocol.ReasonTargetLost || reason == protocol.ReasonStuck
+}
+func (h *fakeHome) HomeDistance() (float64, bool) { return 42, h.home != nil }
+func (h *fakeHome) Touch()                        { h.touched++ }
+
+func homeBrain() (*Brain, *fakeSession, *fakeHome) {
+	b, f, _ := newBrain(nil)
+	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
+	b.opts.Home = h
+	return b, f, h
+}
+
+func TestSetAndGoHome(t *testing.T) {
+	b, f, h := homeBrain()
+	b.Chat(line("Sothr", "bjorn go home"))
+	c := line("Sothr", "Bjorn, set home here")
+	c.Pos = protocol.Vec3{7, 8, 9}
+	b.Chat(c)
+	b.Chat(line("Sothr", "bjorn home"))
+	want := []string{`I don't have a home here yet. Say "set home" where you want it.`, "This is home now.", "Heading home."}
+	if got := f.said(); !slices.Equal(got, want) {
+		t.Errorf("said %q", got)
+	}
+	if *h.home != (protocol.Vec3{7, 8, 9}) || len(h.trips) != 1 || h.trips[0] != "told to" || h.touched != 3 {
+		t.Errorf("home %+v", h)
+	}
+	b.Chat(line("Mallory", "bjorn set home"))
+	if *h.home != (protocol.Vec3{7, 8, 9}) {
+		t.Error("a non-owner moved home")
+	}
+}
+
+func TestFailedFollowGoesHomeButAFailedTripHomeDoesNot(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home = &protocol.Vec3{1, 0, 1}
+	b.Chat(line("Sothr", "bjorn follow me"))
+	follow := f.sent()[0]
+	b.TaskDone(doneTask(follow, protocol.StatusFailed, protocol.ReasonTargetLost))
+	if got := f.said(); got[len(got)-1] != "I lost track of you, Sothr. Heading home." || len(h.trips) != 1 {
+		t.Fatalf("said %q, trips %v", got, h.trips)
+	}
+
+	// The trip home itself gets stuck: say so, and do not try again.
+	trip := session.Finished(protocol.TaskMoveTo, origin{player: "Sothr", channel: protocol.ChannelNormal},
+		protocol.StatusFailed, protocol.ReasonStuck)
+	h.homeward[trip.ID] = true
+	b.TaskDone(trip)
+	if got := f.said(); got[len(got)-1] != "I'm stuck. Can you come back for me?" || len(h.trips) != 1 {
+		t.Errorf("said %q, trips %v", got, h.trips)
 	}
 }

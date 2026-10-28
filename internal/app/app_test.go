@@ -24,7 +24,7 @@ func TestAppendixExchange(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -86,7 +86,7 @@ func TestControlAPI(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -162,7 +162,7 @@ func TestAuditRecordsTheExchange(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, log, trail)
+	a := New(cfg, nil, log, trail, nil)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
