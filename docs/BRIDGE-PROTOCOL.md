@@ -339,8 +339,11 @@ Notes:
   (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Fall back to a straight line
   when no path comes back.
 - Steering sets the move direction and look yaw every frame.
-- **Stuck detection:** less than 0.5 m of progress in 3 s triggers a jump, then
-  a strafe, then a re-path. After 3 failed rounds the task fails with `stuck`.
+- **Stuck detection:** the bot is stuck while it stays within 3 m of where it
+  was. Every 3 s inside that circle triggers the next recovery: a jump, then a
+  strafe (at a walk), then a re-path. After 3 rounds the task fails with
+  `stuck`. Only leaving the circle counts as progress, so hopping or shuffling
+  against a wall does not reset it.
 - `follow` keeps `distance` with hysteresis. It walks when the gap is under
   2× the distance, runs beyond that, and stops inside the distance.
 

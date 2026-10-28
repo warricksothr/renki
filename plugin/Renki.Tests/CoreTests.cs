@@ -222,9 +222,37 @@ namespace Renki.Tests
             var x = 0.0;
             for (var t = 0.0; t < 30; t += 0.1)
             {
-                x += 0.05; // 0.5 m/s, enough progress
+                x += 0.15; // 1.5 m/s, a slow walk
                 Assert.Equal(Recovery.None, d.Update(new V3(x, 0, 0), t));
             }
+        }
+
+        [Fact]
+        public void ShufflingAgainstAWallIsStillStuck()
+        {
+            // Pressed on a wall, strafing up to 2 m either way and back: lots
+            // of movement, but never out of the circle.
+            var d = new StuckDetector();
+            var seen = new List<Recovery>();
+            for (var t = 0.0; t < 40 && !seen.Contains(Recovery.GiveUp); t += 0.1)
+            {
+                var r = d.Update(new V3(2 * Math.Sin(t), 0, 0), t);
+                if (r != Recovery.None) seen.Add(r);
+            }
+            Assert.Equal(10, seen.Count);
+            Assert.Equal(Recovery.GiveUp, seen[9]);
+        }
+
+        [Fact]
+        public void LeavingTheCircleStartsAgain()
+        {
+            var d = new StuckDetector();
+            var t = 0.0;
+            for (; t < 3.05; t += 0.1) d.Update(new V3(0, 0, 0), t);
+            Assert.Equal(Recovery.Strafe, d.Update(new V3(0, 0, 0), 6.0));
+            Assert.Equal(Recovery.None, d.Update(new V3(3.5, 0, 0), 6.1)); // out: a new circle
+            Assert.Equal(Recovery.None, d.Update(new V3(3.5, 0, 0), 8.9));
+            Assert.Equal(Recovery.Jump, d.Update(new V3(3.5, 0, 0), 9.2));
         }
 
         [Fact]

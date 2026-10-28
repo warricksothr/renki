@@ -8,46 +8,41 @@ namespace Renki.Movement
     public enum Recovery { None, Jump, Strafe, Repath, GiveUp }
 
     /// <summary>
-    /// Stuck detection (docs/BRIDGE-PROTOCOL.md 7.3): less than MinProgress
-    /// metres in Window seconds triggers a jump, then a strafe, then a re-path.
-    /// That is one round; after Rounds failed rounds the task gives up. Any
-    /// real progress starts the count again.
+    /// Stuck detection (docs/BRIDGE-PROTOCOL.md 7.3): the bot is stuck while
+    /// it stays within Radius metres of where it was. Each Window seconds
+    /// inside that circle triggers the next recovery: a jump, then a strafe,
+    /// then a re-path. That is one round; after Rounds rounds the task gives
+    /// up. Only leaving the circle counts as progress, so hopping or
+    /// shuffling against a wall does not start the count again.
     /// </summary>
     public sealed class StuckDetector
     {
         public double Window = 3;
-        public double MinProgress = 0.5;
+        public double Radius = 3;
         public int Rounds = 3;
 
         static readonly Recovery[] Sequence = { Recovery.Jump, Recovery.Strafe, Recovery.Repath };
 
-        V3 anchor;
-        double anchorTime = double.NaN;
+        V3 center;
+        double since = double.NaN;
         int step;
 
         public void Reset(V3 pos, double now)
         {
-            anchor = pos;
-            anchorTime = now;
+            center = pos;
+            since = now;
             step = 0;
         }
 
         /// <summary>Call every tick while the bot is trying to move.</summary>
         public Recovery Update(V3 pos, double now)
         {
-            if (double.IsNaN(anchorTime))
+            if (double.IsNaN(since) || V3.FlatDistance(pos, center) > Radius)
             {
                 Reset(pos, now);
                 return Recovery.None;
             }
-            if (V3.FlatDistance(pos, anchor) >= MinProgress)
-            {
-                Reset(pos, now);
-                return Recovery.None;
-            }
-            if (now - anchorTime < Window) return Recovery.None;
-            anchor = pos;
-            anchorTime = now;
+            if (now - since < Window * (step + 1)) return Recovery.None;
             if (step >= Sequence.Length * Rounds) return Recovery.GiveUp;
             return Sequence[step++ % Sequence.Length];
         }

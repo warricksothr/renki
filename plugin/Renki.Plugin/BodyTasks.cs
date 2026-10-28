@@ -75,7 +75,9 @@ namespace Renki.Plugin
             if (Time.time < strafeUntil)
                 dir = Vector3.Cross(Vector3.up, dir.normalized) * strafeSign + dir.normalized * 0.3f;
             Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
-            Driver.Run = run;
+            // A strafe walks, so it cannot carry the bot out of the stuck
+            // circle on its own and pass for progress.
+            Driver.Run = run && Time.time >= strafeUntil;
             return true;
         }
 
