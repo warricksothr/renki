@@ -20,6 +20,9 @@ namespace Renki.Plugin
     [BepInPlugin(Guid, Name, Version)]
     public sealed class RenkiPlugin : BaseUnityPlugin
     {
+        /// <summary>The plugin's log, for code that is not the plugin itself.</summary>
+        internal static BepInEx.Logging.ManualLogSource Log;
+
         public const string Guid = "com.warricksothr.renki", Name = "renki", Version = "0.1.0";
 
         /// <summary>No controller message for this long stops the bot (section 8).</summary>
@@ -63,6 +66,7 @@ namespace Renki.Plugin
             safety.AllowRawControls = Config.Bind("Safety", "AllowRawControls", false,
                 "The debug `controls` task.").Value;
 
+            Log = Logger;
             runner = new TaskRunner(safety, TaskNames.M1, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);
