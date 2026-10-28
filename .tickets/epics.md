@@ -7,3 +7,4 @@ tickets, and the next fix pass overwrites it.
 | Epic | Title | Status |
 |---|---|---|
 | [TKT-01M61T36B839WT7KEZ14TDMB8B](tickets/TKT-01M61T36B839WT7KEZ14TDMB8B.md) | M1: bot joins, follows, stops, reports status and chats | ready |
+| [TKT-01M628X106RD9FFR8YBXV7K5HT](draft/TKT-01M628X106RD9FFR8YBXV7K5HT.md) | Web control panel to watch and steer the bot | draft |
