@@ -357,6 +357,12 @@ func (k *Keeper) Tick(ctx context.Context) {
 	busy := st.Task != nil && body(st.Task.Task)
 	k.setInterrupted(busy)
 	k.mu.Lock()
+	// Seen elsewhere, or in another world: the next idle may try again
+	// from anywhere, the old spot included.
+	if k.cutOff != nil && (k.cutOffWorld != k.World() ||
+		flat(*k.cutOff, st.Pos) >= awayFrom || math.Abs(k.cutOff[1]-st.Pos[1]) > level) {
+		k.cutOff = nil
+	}
 	if st.Task != nil {
 		k.active = now
 	}
@@ -370,11 +376,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.mu.Lock()
-	cut := k.cutOff != nil && k.cutOffWorld == k.World() &&
-		flat(*k.cutOff, st.Pos) < awayFrom && math.Abs(k.cutOff[1]-st.Pos[1]) <= level
-	if !cut {
-		k.cutOff = nil // moved on, or another world: try again from anywhere
-	}
+	cut := k.cutOff != nil
 	k.mu.Unlock()
 	if cut {
 		return
