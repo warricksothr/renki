@@ -74,6 +74,10 @@ and left that chest empty. This verifies conservation and a partial result
 from missing source items; destination capacity, busy and ward refusals
 remain staged live checks.
 
+With Nimah holding chest `1:30592` open, deposit `t-1` in the next controller
+run (18:18:12Z) failed `refused`: `the chest is in use`. Tas retained all
+15 seeds. Destination capacity and ward refusal still need staging.
+
 ## Wall-aware route check
 
 From inside the raised home, stand outside the east wall and say `come here`.

@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T18:16:46Z
+updated_at: 2026-10-29T18:19:24Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -64,3 +64,7 @@ Implemented deposit/withdraw with normal chest access/ownership RPCs, current in
 **agent:codex/renki-resume** at 2026-10-29T18:16:46Z
 
 Live a04704d, new controller connection at 18:11:46Z: t-1 deposited exactly 5 BeechSeeds into chest 1:30592 at 18:11:52Z (0 before, 5 after; pack 15 to 10). t-2 withdrew those 5 at 18:12:02Z, restoring pack 15 and chest to its original rag armour only. Empty chest 1:30601 was observed without moving anything (t-3). Requesting 20 seeds (t-4) moved the available 15, reported remaining 5 and invalid_target for missing source items; t-5 withdrew exactly those 15, restoring pack 15 and empty chest. No items created/lost and no unrelated chest items moved. Evidence .checks/audit-window-naIMBv.jsonl. Controller allowedTasks was widened with deposit/withdraw, preserving all prior tasks, then just vm reconnect refreshed welcome without restarting Valheim. Full/partial destination capacity and busy/ward access still require staged live checks; owner was asked to hold chest 1:30592 open. Deposit AC remains unticked for the capacity part, withdrawal is verified.
+
+**agent:codex/renki-resume** at 2026-10-29T18:19:24Z
+
+Live busy-chest check passed: Nimah held chest 1:30592 open. Deposit t-1 at 18:18:12Z failed refused with detail the chest is in use; pack remained exactly 15 BeechSeeds, with no transfer. Owner was told the check passed and to close the chest. Full/partial destination capacity and a ward refusal remain unverified live; AC 3 stays unchecked for those remaining cases.
