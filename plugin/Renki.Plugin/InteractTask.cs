@@ -188,13 +188,14 @@ namespace Renki.Plugin
             {
                 var bed = target as Bed;
                 var wasSpawn = bed != null && SpawnsAt(bed);
+                var wasAttached = p.IsAttached();
                 var ok = target.Interact(p, hold, args.Alt);
                 // A bed answers false whatever it did: what changed says.
                 // Claimed, it is now the bot's spawn point (read from the
                 // profile, set at once, where the owner the bed records
                 // comes back later from whoever holds it); its own already,
                 // the bot lies down in it.
-                if (bed != null) ok = p.IsAttached() || (!wasSpawn && SpawnsAt(bed));
+                if (bed != null) ok = (!wasAttached && p.IsAttached()) || (!wasSpawn && SpawnsAt(bed));
                 if (ok) p.DoInteractAnimation(obj);
                 return ok;
             }
