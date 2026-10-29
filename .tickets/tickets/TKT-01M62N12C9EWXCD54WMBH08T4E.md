@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T18:07:33Z
+updated_at: 2026-10-29T18:16:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -45,7 +45,7 @@ extensions: {}
 ## Acceptance criteria
 
 - [ ] deposit moves the named items into a chest by id and reports what it moved and what did not fit
-- [ ] withdraw takes named items out
+- [x] withdraw takes named items out
 - [ ] A chest that is full, in use or warded fails with a reason, not silently
 
 ## Implementation plan
@@ -60,3 +60,7 @@ Add deposit/withdraw protocol arguments with named counts or all, structured mov
 **agent:codex/renki-resume** at 2026-10-29T18:07:33Z
 
 Implemented deposit/withdraw with normal chest access/ownership RPCs, current inventory load, metadata-aware game stack moves, exact moved/remaining snapshots and immediate pack reports. Equipped items stay protected; withdrawal respects weight. Locks release on completion/cancel/death; weak pending requests consume late RPCs without opening UI, and a missing response quarantines that chest until its reply or unload. Added authenticated exact POST /api/task plus just vm task for reproducible live checks through normal permissions and direct-order semantics. Shared Go/C# fixtures, malformed-count validation, conservation/partial/protection tests, connection/world cache tests and API authorization checks pass; plugin builds against installed game. Gathering is already true on VM. Next: full CI/review, deploy, round-trip only Tas test seeds, partial/full/in-use/ward checks as available. AC boxes remain unchecked pending live evidence.
+
+**agent:codex/renki-resume** at 2026-10-29T18:16:46Z
+
+Live a04704d, new controller connection at 18:11:46Z: t-1 deposited exactly 5 BeechSeeds into chest 1:30592 at 18:11:52Z (0 before, 5 after; pack 15 to 10). t-2 withdrew those 5 at 18:12:02Z, restoring pack 15 and chest to its original rag armour only. Empty chest 1:30601 was observed without moving anything (t-3). Requesting 20 seeds (t-4) moved the available 15, reported remaining 5 and invalid_target for missing source items; t-5 withdrew exactly those 15, restoring pack 15 and empty chest. No items created/lost and no unrelated chest items moved. Evidence .checks/audit-window-naIMBv.jsonl. Controller allowedTasks was widened with deposit/withdraw, preserving all prior tasks, then just vm reconnect refreshed welcome without restarting Valheim. Full/partial destination capacity and busy/ward access still require staged live checks; owner was asked to hold chest 1:30592 open. Deposit AC remains unticked for the capacity part, withdrawal is verified.

@@ -59,6 +59,21 @@ use lock remains. `just vm gather` reads the plugin safety switch;
 `just vm gather true` enables gathering after the next restart when that
 work is authorized. It does not bypass controller allowedTasks.
 
+### Live seed-transfer verification, 2026-10-29
+
+On `a04704d`, deposit `t-1` moved five BeechSeeds into chest `1:30592`
+at 18:11:52Z, changing the pack from 15 to 10. Withdraw `t-2` took those
+five back at 18:12:02Z, restoring pack 15 and the chest's original contents
+(one rag chest armour). No unrelated items moved.
+
+Empty chest `1:30601` was observed with a request to move all of an absent
+test prefab (`t-3`, no mutation). Requesting 20 seeds (`t-4`) moved the
+available 15 and reported exactly five remaining, failing `invalid_target`
+for the missing source items. Withdraw `t-5` restored all 15 to the pack
+and left that chest empty. This verifies conservation and a partial result
+from missing source items; destination capacity, busy and ward refusals
+remain staged live checks.
+
 ## Wall-aware route check
 
 From inside the raised home, stand outside the east wall and say `come here`.
@@ -95,6 +110,14 @@ and a second short local plan, task `t-2` succeeded at 18:03:59Z, ending
 at `(-36.5, 36.09, 8.26)`, 25/25 HP. During local planning, recheck once
 per second for newly built usable navmesh paths without resetting the
 search's existing budget when no safe path is available.
+
+On `a04704d`, exact east-side walk `t-6` (18:14:37Z–18:15:08Z) again
+left through the west doorway. After recovery at the door, the trace at
+18:14:52Z recorded `navmesh became usable during local search`, exercising
+the asynchronous recheck. Return home `t-7` (18:15:31Z–18:15:44Z) succeeded
+at `(-37.03, 36.09, 7.92)`. Tas finished at 25/25 HP, with all 15 seeds.
+Close-follow waiting across a wall, cancellation during planning and changed
+or blocked walls/doorways still need separate live checks.
 
 ## Raised-goal recovery check
 
