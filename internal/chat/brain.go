@@ -105,6 +105,9 @@ type Options struct {
 	// Voice answers lines the grammar does not match. Nil means the bot
 	// only knows the grammar.
 	Voice Voice
+	// Live, when set, gives the owners, the nicknames and whether the
+	// voice is on, read fresh each time, in place of the fields above.
+	Live func() Live
 	// Home keeps the bot's home. Nil means it has none.
 	Home Home
 	// ReplyWindow is how long after the bot speaks to a player that
@@ -116,6 +119,29 @@ type Options struct {
 	VoiceTimeout time.Duration
 	Logger       *slog.Logger
 	Now          func() time.Time
+}
+
+// Live are the brain's settings that can change while it runs.
+type Live struct {
+	Owners    []string
+	Nicknames []string
+	// Voice off leaves the bot to the command grammar.
+	Voice bool
+}
+
+func (b *Brain) live() Live {
+	if b.opts.Live != nil {
+		return b.opts.Live()
+	}
+	return Live{Owners: b.opts.Owners, Nicknames: b.opts.Nicknames, Voice: true}
+}
+
+// voice is the Voice, or nil while there is none or it is switched off.
+func (b *Brain) voice() Voice {
+	if b.opts.Voice == nil || !b.live().Voice {
+		return nil
+	}
+	return b.opts.Voice
 }
 
 // Brain is the session's listener for chat, events and finished tasks.
@@ -175,15 +201,17 @@ func (b *Brain) agentName() string {
 var nothing = regexp.MustCompile(`[^\s\S]`)
 
 // nameRE matches the bot's name or a nickname as a word, or nothing while
-// it has none. It is rebuilt only when the name changes.
+// it has none. It is rebuilt only when the name or the nicknames change.
 func (b *Brain) nameRE() *regexp.Regexp {
 	name := b.agentName()
+	nicknames := b.live().Nicknames
+	key := name + "\x00" + strings.Join(nicknames, "\x00")
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.name == nil || b.nameFor != name {
-		b.name, b.nameFor = nothing, name
+	if b.name == nil || b.nameFor != key {
+		b.name, b.nameFor = nothing, key
 		var alts []string
-		for _, n := range append([]string{name}, b.opts.Nicknames...) {
+		for _, n := range append([]string{name}, nicknames...) {
 			if n = strings.TrimSpace(n); n != "" {
 				alts = append(alts, regexp.QuoteMeta(n))
 			}
@@ -212,16 +240,17 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		return
 	}
 	from := origin{player: c.From.Name, channel: replyChannel(c.Channel)}
-	owner := slices.Contains(b.opts.Owners, c.From.Name)
+	owners := b.live().Owners
+	owner := slices.Contains(owners, c.From.Name)
 	cmd, ok := parse(b.strip(c.Text))
 	if !ok {
-		b.opts.Logger.Debug("not a command", "from", c.From.Name, "voice", b.opts.Voice != nil)
+		b.opts.Logger.Debug("not a command", "from", c.From.Name, "voice", b.voice() != nil)
 		b.converse(c, from, owner)
 		return
 	}
 	if !owner {
-		b.opts.Logger.Info("refused: not an owner", "from", c.From.Name, "command", cmd, "owners", b.opts.Owners)
-		b.say(from, fmt.Sprintf("Sorry, %s, I only take orders from %s.", c.From.Name, joinNames(b.opts.Owners)))
+		b.opts.Logger.Info("refused: not an owner", "from", c.From.Name, "command", cmd, "owners", owners)
+		b.say(from, fmt.Sprintf("Sorry, %s, I only take orders from %s.", c.From.Name, joinNames(owners)))
 		return
 	}
 	b.opts.Logger.Info("command", "from", c.From.Name, "command", cmd)
@@ -507,7 +536,8 @@ func (b *Brain) goHome(from origin) {
 }
 
 func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
-	if b.opts.Voice == nil {
+	voice := b.voice()
+	if voice == nil {
 		b.say(from, "Hm?")
 		return
 	}
@@ -524,7 +554,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 
 	req := Request{
 		AgentName: b.agentName(),
-		Nicknames: b.opts.Nicknames,
+		Nicknames: b.live().Nicknames,
 		Speaker:   c.From.Name,
 		Owner:     owner,
 		Text:      c.Text,
@@ -537,7 +567,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), b.opts.VoiceTimeout)
 		defer cancel()
-		reply, err := b.opts.Voice.Reply(ctx, req)
+		reply, err := voice.Reply(ctx, req)
 		if err != nil || strings.TrimSpace(reply.Say) == "" && reply.Task == nil {
 			b.opts.Logger.Warn("voice failed", "player", c.From.Name, "err", err)
 			b.say(from, "Hm?")

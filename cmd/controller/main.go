@@ -19,6 +19,7 @@ import (
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 // version is stamped at build time with -ldflags "-X main.version=...".
@@ -100,7 +101,12 @@ func run() int {
 		log.Error("memory", "dir", cfg.DataDir, "err", err)
 		return 2
 	}
-	a := app.New(cfg, voice, log, trail, homes)
+	set, err := settings.Open(filepath.Join(cfg.DataDir, "settings.json"), cfg, log.With("part", "settings"), nil)
+	if err != nil {
+		log.Error("settings", "dir", cfg.DataDir, "err", err)
+		return 2
+	}
+	a := app.New(cfg, voice, log, trail, homes, set)
 	go a.ServePanel(ctx, trail, version, log.With("part", "panel"))
 	if err := a.Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)

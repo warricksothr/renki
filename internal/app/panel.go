@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
@@ -51,8 +50,8 @@ type PanelHome struct {
 func (a *App) PanelStatus(version string) PanelStatus {
 	st := a.status()
 	ps := PanelStatus{Version: version, Connected: st.Connected, Character: st.Character, Phase: st.Phase, Task: st.Task,
-		AgentName: a.Config.AgentName, Nicknames: slices.Clone(a.Config.Nicknames),
-		Owners: slices.Clone(a.Config.Owners), Rules: a.Home.Rules()}
+		AgentName: a.Config.AgentName, Nicknames: a.Settings.Values().Nicknames,
+		Owners: a.Settings.Values().Owners, Rules: a.Home.Rules()}
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		if s.Phase == protocol.PhaseInWorld {

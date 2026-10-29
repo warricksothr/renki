@@ -523,6 +523,16 @@ chat event
   `overload.drop` (on by default) turns the dropping off; the plugin's
   `allowDrop` does too. It needs `drop` in `allowedTasks`, and the controller
   warns at start when `overload.drop` is on without it.
+- **Runtime settings.** `owners`, `nicknames`, `allowedTasks`, the voice on
+  or off, the `home` rules and `overload.drop` can change while the bot runs.
+  The config file is the base. Changes are kept in `dataDir/settings.json`,
+  each with who made it (`owner:<name>`, `panel`, `agent`) and when, and
+  are written to the audit log as "setting changed". A reset returns a
+  setting to the config's value. An owner or the panel can pin a setting,
+  and the agent cannot change a pinned one. A change applies at once, with
+  one exception: a task added to `allowedTasks` is only offered to the
+  plugin in the next `welcome`, so it works from the next connection.
+  Taking a task off the list works at once.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.

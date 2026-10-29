@@ -147,7 +147,7 @@ func unloader(on bool) (*Unloader, *fake, *home.Store, *clock) {
 	f := &fake{inv: pack(), hello: &protocol.Hello{}}
 	store := home.Memory()
 	c := &clock{t: time.Date(2026, 10, 28, 23, 0, 0, 0, time.UTC)}
-	return New(on, f, store, slog.New(slog.NewTextHandler(io.Discard, nil)), c.now), f, store, c
+	return New(func() bool { return on }, f, store, slog.New(slog.NewTextHandler(io.Discard, nil)), c.now), f, store, c
 }
 
 func TestOverloadedBotDropsSaysAndRemembers(t *testing.T) {

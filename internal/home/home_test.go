@@ -319,7 +319,7 @@ func TestReturnOnFollowsTheRules(t *testing.T) {
 	if !k.ReturnOn(protocol.ReasonTargetLost) || !k.ReturnOn(protocol.ReasonStuck) || k.ReturnOn(protocol.ReasonStopped) {
 		t.Error("default rules")
 	}
-	k.rules.WhenStuck = false
+	change(k, func(r *config.HomeRules) { r.WhenStuck = false })
 	if k.ReturnOn(protocol.ReasonStuck) {
 		t.Error("whenStuck off")
 	}
@@ -357,7 +357,7 @@ func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
 		t.Errorf("went home twice: %v", f.sent())
 	}
 
-	k.rules.AfterDeath = config.AfterDeathStay
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathStay })
 	dead(f)
 	k.Tick(ctx)
 	back(f, nil)
@@ -430,7 +430,7 @@ func TestAnOrderAfterTheDeathWins(t *testing.T) {
 func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
 	k, f, _ := keeper(t, Memory())
 	ctx := context.Background()
-	k.rules.AfterDeath = config.AfterDeathResume
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathResume })
 	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
 	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
 	k.Tick(ctx)
@@ -468,4 +468,11 @@ func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
 	if resumed != 1 || len(f.sent()) != 6 {
 		t.Errorf("a dropped resume ran: resumed %d, sent %v", resumed, f.sent())
 	}
+}
+
+// change alters the keeper's rules in place, as a runtime setting does.
+func change(k *Keeper, f func(*config.HomeRules)) {
+	r := k.Rules()
+	f(&r)
+	k.rules = func() config.HomeRules { return r }
 }
