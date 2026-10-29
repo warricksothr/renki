@@ -24,7 +24,7 @@ func TestAppendixExchange(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -86,7 +86,7 @@ func TestControlAPI(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -162,7 +162,7 @@ func TestAuditRecordsTheExchange(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, log, trail, nil)
+	a := New(cfg, nil, log, trail, nil, nil)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -223,5 +223,44 @@ func TestAuditRecordsTheExchange(t *testing.T) {
 			t.Fatalf("missing %q after position %d in:\n%s", w, at, got)
 		}
 		at += i + len(w)
+	}
+}
+
+// TestSettingsApplyAtOnce changes owners and allowedTasks while the plugin
+// is connected: a new owner is obeyed, and a task taken off the list is
+// refused, with no restart and no reconnect.
+func TestSettingsApplyAtOnce(t *testing.T) {
+	cfg := config.Default()
+	cfg.Owners = []string{"Sothr"}
+	cfg.Token = "sekrit"
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(ctx, ln) }()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Bjorn"})
+
+	if err := a.Settings.Set("owners", json.RawMessage(`["Sothr", "Nimah"]`), "owner:Sothr"); err != nil {
+		t.Fatal(err)
+	}
+	p.Send(&protocol.Chat{From: protocol.ChatSender{Name: "Nimah"}, Channel: protocol.ChannelNormal, Text: "bjorn, follow me"})
+	if task := p.NextTask(); task.Task != "follow" {
+		t.Fatalf("a new owner's order gave %+v", task)
+	}
+	p.NextTask() // "Right behind you."
+
+	if err := a.Settings.Set("allowedTasks", json.RawMessage(`["stop", "say"]`), "panel"); err != nil {
+		t.Fatal(err)
+	}
+	if a.Session.Allowed("follow") || !a.Session.Allowed("say") {
+		t.Errorf("allowed now %v", a.Session.AllowedTasks())
 	}
 }

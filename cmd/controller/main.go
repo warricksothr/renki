@@ -19,6 +19,7 @@ import (
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 // version is stamped at build time with -ldflags "-X main.version=...".
@@ -90,17 +91,26 @@ func run() int {
 		log.Error("listen", "err", err)
 		return 1
 	}
-	for _, w := range cfg.Warnings() {
-		log.Warn("config", "warning", w)
-	}
-	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
-		"owners", cfg.Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
 	homes, err := home.Open(filepath.Join(cfg.DataDir, "memory.json"))
 	if err != nil {
 		log.Error("memory", "dir", cfg.DataDir, "err", err)
 		return 2
 	}
-	a := app.New(cfg, voice, log, trail, homes)
+	set, err := settings.Open(filepath.Join(cfg.DataDir, "settings.json"), cfg, log.With("part", "settings"), nil)
+	if err != nil {
+		log.Error("settings", "dir", cfg.DataDir, "err", err)
+		return 2
+	}
+	warn := func() {
+		for _, w := range set.Warnings() {
+			log.Warn("settings", "warning", w)
+		}
+	}
+	warn()
+	set.OnChange(func(settings.Values) { warn() })
+	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
+		"owners", set.Values().Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
+	a := app.New(cfg, voice, log, trail, homes, set)
 	go a.ServePanel(ctx, trail, version, log.With("part", "panel"))
 	if err := a.Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)

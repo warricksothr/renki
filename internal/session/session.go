@@ -104,6 +104,7 @@ type Session struct {
 	seen     *protocol.Perception
 	carried  *protocol.Inventory
 	allowed  []string
+	permit   func(task string) bool
 	tasks    map[string]*Task
 	nextTask uint64
 }
@@ -118,6 +119,20 @@ func New(l Listener, log *slog.Logger) *Session {
 
 // SetListener replaces the listener. Call it before the bridge starts.
 func (s *Session) SetListener(l Listener) { s.listener = l }
+
+// SetPermit narrows what may be sent, read on every Dispatch: a task must
+// also pass permit, such as the runtime settings' allowedTasks. What the
+// plugin agreed to in welcome still bounds it.
+func (s *Session) SetPermit(permit func(task string) bool) {
+	s.mu.Lock()
+	s.permit = permit
+	s.mu.Unlock()
+}
+
+// permitted reports whether task may be sent. s.mu is held.
+func (s *Session) permitted(task string) bool {
+	return slices.Contains(s.allowed, task) && (s.permit == nil || s.permit(task))
+}
 
 // Connected implements bridge.Handler.
 func (s *Session) Connected(c *bridge.Conn) {
@@ -244,18 +259,18 @@ func (s *Session) Handshake() (hello *protocol.Hello, welcome *protocol.Welcome,
 }
 
 // Allowed reports whether task may be sent now: it is in both the plugin's
-// capabilities and welcome.allowedTasks.
+// capabilities and welcome.allowedTasks, and passes the permit.
 func (s *Session) Allowed(task string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return slices.Contains(s.allowed, task)
+	return s.permitted(task)
 }
 
 // AllowedTasks lists what may be sent now.
 func (s *Session) AllowedTasks() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return slices.Clone(s.allowed)
+	return slices.DeleteFunc(slices.Clone(s.allowed), func(t string) bool { return !s.permitted(t) })
 }
 
 // Logout asks the plugin to save and return to the main menu. Whatever is
@@ -283,7 +298,7 @@ func (s *Session) Dispatch(ctx context.Context, o Order) (*Task, error) {
 		s.mu.Unlock()
 		return nil, ErrNotConnected
 	}
-	if !slices.Contains(s.allowed, o.Task) {
+	if !s.permitted(o.Task) {
 		s.mu.Unlock()
 		return nil, fmt.Errorf("%w: %q", ErrNotAllowed, o.Task)
 	}

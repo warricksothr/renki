@@ -43,7 +43,7 @@ type Session interface {
 // Keeper owns the bot's homes and the rules for going back to them.
 type Keeper struct {
 	store *Store
-	rules config.HomeRules
+	rules func() config.HomeRules
 	s     Session
 	log   *slog.Logger
 	now   func() time.Time
@@ -66,8 +66,13 @@ type Keeper struct {
 	resume func(context.Context) bool
 }
 
-// New returns a keeper over store. now may be nil.
+// New returns a keeper over store with fixed rules. now may be nil.
 func New(store *Store, rules config.HomeRules, s Session, log *slog.Logger, now func() time.Time) *Keeper {
+	return NewLive(store, func() config.HomeRules { return rules }, s, log, now)
+}
+
+// NewLive is New with rules read fresh each time, so a change applies at once.
+func NewLive(store *Store, rules func() config.HomeRules, s Session, log *slog.Logger, now func() time.Time) *Keeper {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -112,7 +117,7 @@ func (k *Keeper) Current() (world string, h Home, ok bool) {
 }
 
 // Rules are the rules Keeper follows.
-func (k *Keeper) Rules() config.HomeRules { return k.rules }
+func (k *Keeper) Rules() config.HomeRules { return k.rules() }
 
 // HomeDistance is how far the bot is from home, flat, and false when
 // either is unknown.
@@ -185,9 +190,9 @@ func (k *Keeper) Homeward(id string) bool {
 func (k *Keeper) ReturnOn(reason string) bool {
 	switch reason {
 	case protocol.ReasonTargetLost:
-		return k.rules.WhenLost
+		return k.Rules().WhenLost
 	case protocol.ReasonStuck:
-		return k.rules.WhenStuck
+		return k.Rules().WhenStuck
 	}
 	return false
 }
@@ -295,7 +300,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Unlock()
 	if first && k.store.Interrupted() {
 		k.setInterrupted(false)
-		if k.rules.AfterOutage && st.Task == nil {
+		if k.Rules().AfterOutage && st.Task == nil {
 			k.announce(ctx, "after an outage", "Something cut me off. Heading home.")
 			return
 		}
@@ -311,7 +316,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 	}
 	k.mu.Unlock()
 	if respawned {
-		switch k.rules.AfterDeath {
+		switch k.Rules().AfterDeath {
 		case config.AfterDeathResume:
 			if resume != nil && resume(ctx) {
 				k.log.Info("resumed after a respawn")
@@ -332,7 +337,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 	}
 	idle := now.Sub(k.active)
 	k.mu.Unlock()
-	if k.rules.IdleMinutes <= 0 || st.Task != nil || idle < time.Duration(k.rules.IdleMinutes*float64(time.Minute)) {
+	if k.Rules().IdleMinutes <= 0 || st.Task != nil || idle < time.Duration(k.Rules().IdleMinutes*float64(time.Minute)) {
 		return
 	}
 	k.Touch() // whatever happens, wait another spell before trying again

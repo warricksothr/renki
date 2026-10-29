@@ -52,7 +52,7 @@ type Session interface {
 // Unloader drops things when the bot carries too much, and keeps track of
 // what it left until perception shows it gone.
 type Unloader struct {
-	on    bool
+	on    func() bool
 	s     Session
 	store *home.Store
 	log   *slog.Logger
@@ -74,9 +74,9 @@ type Unloader struct {
 	missing map[string]time.Time
 }
 
-// New returns an unloader. on false leaves an overloaded bot as it is
-// (config.Overload.Drop), but what it left is still tracked.
-func New(on bool, s Session, store *home.Store, log *slog.Logger, now func() time.Time) *Unloader {
+// New returns an unloader. on, read each time, false leaves an overloaded
+// bot as it is (config.Overload.Drop), but what it left is still tracked.
+func New(on func() bool, s Session, store *home.Store, log *slog.Logger, now func() time.Time) *Unloader {
 	if now == nil {
 		now = time.Now
 	}
@@ -125,7 +125,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 		return
 	}
 	inv := u.s.Inventory()
-	if !u.on || inv == nil || u.now().Before(u.next) {
+	if !u.on() || inv == nil || u.now().Before(u.next) {
 		return
 	}
 	u.next = u.now().Add(Settle)
