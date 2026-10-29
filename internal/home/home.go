@@ -80,6 +80,9 @@ type Keeper struct {
 	resume func(context.Context) bool
 	// diedAt is where the bot last died.
 	diedAt *protocol.Vec3
+	// shunned is set when the bot died near home: nothing sends it back
+	// there by itself until someone gives it an order.
+	shunned bool
 }
 
 // New returns a keeper over store with fixed rules. now may be nil.
@@ -245,7 +248,7 @@ func (k *Keeper) Ordered() {
 	// second, and an order in that gap still comes after the death.
 	st := k.s.State()
 	k.mu.Lock()
-	k.respawned, k.resume = false, nil
+	k.respawned, k.resume, k.shunned = false, nil, false
 	if st != nil && st.Phase == protocol.PhaseDead {
 		k.dead = true
 	}
@@ -362,6 +365,9 @@ func (k *Keeper) Tick(ctx context.Context) {
 			// Whatever killed it there may be there still: going home is
 			// going back to it. It waits to be told.
 			k.log.Info("died near home; not going back", "died", *diedAt)
+			k.mu.Lock()
+			k.shunned = true
+			k.mu.Unlock()
 			k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
 			return
 		}
@@ -400,7 +406,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.mu.Lock()
-	cut := k.cutOff != nil
+	cut := k.cutOff != nil || k.shunned
 	k.mu.Unlock()
 	if cut {
 		return

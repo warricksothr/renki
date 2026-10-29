@@ -452,8 +452,20 @@ func TestNoGoingBackToWhatKilledItAtHome(t *testing.T) {
 	if got := f.sent(); !slices.Equal(got, want) {
 		t.Fatalf("after dying at home: %q", got)
 	}
+	// Nor does idling take it back, until someone says something.
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 1 {
+		t.Fatalf("idled home to what killed it: %q", got)
+	}
+	k.Ordered()
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 3 || got[1] != "move_to" {
+		t.Fatalf("told, still kept away: %q", got)
+	}
 	g, ok := k.Grave()
-	if !ok || g.Pos != (protocol.Vec3{8, 0, 2}) || !g.At.Equal(c.now()) {
+	if !ok || g.Pos != (protocol.Vec3{8, 0, 2}) || !g.At.Equal(c.now().Add(-22*time.Minute)) {
 		t.Fatalf("grave %+v, %v", g, ok)
 	}
 	k.ForgetGrave(protocol.Vec3{9, 0, 2}, 3)
