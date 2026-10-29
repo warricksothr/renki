@@ -38,4 +38,54 @@ namespace Renki.Perception
             return nearest;
         }
     }
+
+    /// <summary>
+    /// Nearest per kind: each kind (tree, rock, drop...) keeps its own
+    /// nearest Cap, so a forest cannot crowd out the wood lying on the
+    /// ground. Take merges them, nearest first.
+    /// </summary>
+    public sealed class NearestByKind<T>
+    {
+        readonly Dictionary<string, Nearest<KeyValuePair<double, T>>> kinds = new Dictionary<string, Nearest<KeyValuePair<double, T>>>();
+        static readonly IComparer<KeyValuePair<double, T>> ByDistance =
+            Comparer<KeyValuePair<double, T>>.Create((a, b) => a.Key.CompareTo(b.Key));
+
+        public int Cap;
+
+        public NearestByKind(int cap)
+        {
+            Cap = cap;
+        }
+
+        /// <summary>How many went in since the last Clear, before the caps.</summary>
+        public int Seen { get; private set; }
+
+        public void Clear()
+        {
+            foreach (var k in kinds.Values) k.Clear();
+            Seen = 0;
+        }
+
+        public void Add(string kind, T item, double distance)
+        {
+            if (!kinds.TryGetValue(kind, out var k)) kinds[kind] = k = new Nearest<KeyValuePair<double, T>>(Cap);
+            k.Add(new KeyValuePair<double, T>(distance, item), distance);
+            Seen++;
+        }
+
+        /// <summary>The nearest Cap of each kind, nearest first overall.</summary>
+        public List<T> Take()
+        {
+            var all = new List<KeyValuePair<double, T>>();
+            foreach (var k in kinds.Values)
+            {
+                k.Cap = Cap;
+                all.AddRange(k.Take());
+            }
+            all.Sort(ByDistance);
+            var nearest = new List<T>(all.Count);
+            foreach (var kv in all) nearest.Add(kv.Value);
+            return nearest;
+        }
+    }
 }

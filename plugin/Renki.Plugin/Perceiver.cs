@@ -9,7 +9,7 @@ namespace Renki.Plugin
     /// <summary>
     /// What is near the bot (docs/BRIDGE-PROTOCOL.md 6.2): characters,
     /// the structures it might use, and things it could harvest, within
-    /// Radius, nearest first, at most MaxPerKind of each. Runs from Update
+    /// Radius, nearest first, at most MaxPerKind of each kind. Runs from Update
     /// at perceptionHz, never per physics step, and times every scan.
     /// </summary>
     sealed class Perceiver
@@ -28,9 +28,9 @@ namespace Renki.Plugin
         readonly List<Piece> pieceBuffer = new List<Piece>();
         readonly Collider[] colliders = new Collider[2048];
         readonly HashSet<ZNetView> seen = new HashSet<ZNetView>();
-        readonly Nearest<PerceivedCharacter> characters = new Nearest<PerceivedCharacter>(24);
-        readonly Nearest<PerceivedStructure> structures = new Nearest<PerceivedStructure>(24);
-        readonly Nearest<PerceivedResource> resources = new Nearest<PerceivedResource>(24);
+        readonly NearestByKind<PerceivedCharacter> characters = new NearestByKind<PerceivedCharacter>(24);
+        readonly NearestByKind<PerceivedStructure> structures = new NearestByKind<PerceivedStructure>(24);
+        readonly NearestByKind<PerceivedResource> resources = new NearestByKind<PerceivedResource>(24);
 
         readonly Stopwatch watch = new Stopwatch();
         int scans;
@@ -51,7 +51,8 @@ namespace Renki.Plugin
             foreach (var c in characterBuffer)
             {
                 if (c == me || c.IsDead()) continue;
-                characters.Add(Describe(c, me), Vector3.Distance(at, c.transform.position));
+                var pc = Describe(c, me);
+                characters.Add(pc.Kind, pc, Vector3.Distance(at, c.transform.position));
             }
 
             structures.Clear();
@@ -60,7 +61,7 @@ namespace Renki.Plugin
             foreach (var p in pieceBuffer)
             {
                 var s = Describe(p);
-                if (s != null) structures.Add(s, Vector3.Distance(at, p.transform.position));
+                if (s != null) structures.Add(s.Kind, s, Vector3.Distance(at, p.transform.position));
             }
 
             resources.Clear();
@@ -70,7 +71,7 @@ namespace Renki.Plugin
             for (var i = 0; i < hits; i++)
             {
                 var res = Describe(colliders[i], out var pos);
-                if (res != null) resources.Add(res, Vector3.Distance(at, pos));
+                if (res != null) resources.Add(res.Kind, res, Vector3.Distance(at, pos));
             }
 
             var snapshot = new Protocol.Perception
@@ -99,7 +100,7 @@ namespace Renki.Plugin
                 return pc;
             }
             pc.Kind = c.IsTamed() ? Wire.PerceivedTamed : Wire.PerceivedCreature;
-            pc.Prefab = PrefabName(c.gameObject);
+            pc.Prefab = PrefabName(c.m_nview, c.gameObject);
             if (c.GetLevel() > 1) pc.Stars = c.GetLevel() - 1;
             if (BaseAI.IsEnemy(c, me)) pc.Hostile = true;
             var ai = c.GetBaseAI();
@@ -166,7 +167,7 @@ namespace Renki.Plugin
             else if (p.TryGetComponent<Fireplace>(out var fire)) (kind, part) = (Wire.StructureFire, fire);
             else if (p.TryGetComponent<Container>(out var chest)) (kind, part) = (Wire.StructureContainer, chest);
             else return null;
-            return new Known { Kind = kind, Part = part, Prefab = PrefabName(p.gameObject) };
+            return new Known { Kind = kind, Part = part, Prefab = PrefabName(p.m_nview, p.gameObject) };
         }
 
         /// <summary>What a collider belongs to, if the bot could harvest or
@@ -183,7 +184,7 @@ namespace Renki.Plugin
             if (!objects.TryGetValue(nview, out var k))
             {
                 if (objects.Count >= CacheMax) objects.Clear();
-                objects[nview] = k = Classify(nview.gameObject);
+                objects[nview] = k = Classify(nview);
             }
             if (k == null) return null;
             var r = new PerceivedResource { Kind = k.Kind, Prefab = k.Prefab, MinTool = k.MinTool };
@@ -201,9 +202,10 @@ namespace Renki.Plugin
             return r;
         }
 
-        static Known Classify(GameObject go)
+        static Known Classify(ZNetView nview)
         {
-            var k = new Known { Prefab = PrefabName(go) };
+            var go = nview.gameObject;
+            var k = new Known { Prefab = PrefabName(nview, go) };
             if (go.TryGetComponent<TreeBase>(out var tree)) (k.Kind, k.MinTool) = (Wire.ResourceTree, tree.m_minToolTier);
             else if (go.TryGetComponent<TreeLog>(out var log)) (k.Kind, k.MinTool) = (Wire.ResourceLog, log.m_minToolTier);
             else if (go.TryGetComponent<MineRock>(out var rock)) (k.Kind, k.MinTool) = (Wire.ResourceRock, rock.m_minToolTier);
@@ -220,8 +222,14 @@ namespace Renki.Plugin
             return zdo != null ? zdo.m_uid.ToString() : "";
         }
 
-        static string PrefabName(GameObject go)
+        /// <summary>The prefab, from the network object's prefab hash where it
+        /// has one: some objects rename their GameObject (MineRock5 to
+        /// "___MineRock5 m_meshFilter").</summary>
+        static string PrefabName(ZNetView nview, GameObject go)
         {
+            var zdo = nview != null ? nview.GetZDO() : null;
+            var prefab = zdo != null && ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(zdo.GetPrefab()) : null;
+            if (prefab != null) return prefab.name;
             var name = go.name;
             var clone = name.IndexOf("(Clone)", System.StringComparison.Ordinal);
             return (clone >= 0 ? name.Substring(0, clone) : name).Trim();

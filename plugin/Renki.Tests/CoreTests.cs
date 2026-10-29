@@ -303,6 +303,19 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void EachKindKeepsItsOwnNearest()
+        {
+            var n = new NearestByKind<string>(1);
+            n.Add("tree", "near tree", 1);
+            n.Add("tree", "far tree", 3);
+            n.Add("drop", "wood", 20);
+            Assert.Equal(new[] { "near tree", "wood" }, n.Take());
+            Assert.Equal(3, n.Seen);
+            n.Clear();
+            Assert.Empty(n.Take());
+        }
+
+        [Fact]
         public void PathFollowerAdvances()
         {
             var p = new PathFollower();
