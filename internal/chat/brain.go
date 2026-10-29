@@ -363,7 +363,9 @@ func (b *Brain) TaskDone(t *session.Task) {
 		}
 		return
 	}
-	if o.grave != nil && b.corpseRun(t, o, status, reason) {
+	// A trip home after a failed walk to the grave carries the run's
+	// origin, but it is no part of the run.
+	if o.grave != nil && (b.opts.Home == nil || !b.opts.Home.Homeward(t.ID)) && b.corpseRun(t, o, status, reason) {
 		return
 	}
 	if t.Name == protocol.TaskInteract {

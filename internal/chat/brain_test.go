@@ -922,6 +922,20 @@ func TestCorpseRun(t *testing.T) {
 		{ID: "9:2", Kind: protocol.StructureTombstone, Pos: protocol.Vec3{-42, 36, 7}, Mine: true},
 	}
 
+	// A walk that fails and sends the bot home: home is not the grave.
+	h.graves = []home.Grave{{Pos: protocol.Vec3{-400, 36, 8}}}
+	b.Chat(line("Sothr", "bjorn get your things"))
+	walk = last(protocol.TaskMoveTo)
+	h.homeward["t-home"] = true
+	trip := session.Finished(protocol.TaskMoveTo, walk.Origin, protocol.StatusSucceeded, "")
+	trip.ID = "t-home"
+	count()
+	b.TaskDone(trip)
+	if got := f.sent()[n:]; len(got) != 0 || len(h.graves) != 1 {
+		t.Errorf("took home for the grave: sent %+v, graves %v", got, h.graves)
+	}
+	h.graves = nil
+
 	// In sight already: straight to it.
 	count()
 	b.Chat(line("Sothr", "bjorn fetch your things"))
