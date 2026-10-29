@@ -13,7 +13,7 @@ namespace Renki.Protocol
         public const int Version = 1;
 
         public const string Hello = "hello", Welcome = "welcome", State = "state", Perception = "perception",
-            Inventory = "inventory", Chat = "chat", Event = "event", Task = "task", Ping = "ping", Pong = "pong",
+            Inventory = "inventory", Layout = "layout", Chat = "chat", Event = "event", Task = "task", Ping = "ping", Pong = "pong",
             Config = "config", Logout = "logout", Bye = "bye", Error = "error", Trace = "trace";
 
         public const string PhaseMenu = "menu", PhaseConnecting = "connecting", PhaseInWorld = "in_world",
@@ -212,6 +212,21 @@ namespace Renki.Protocol
         [JsonProperty("characters")] public List<PerceivedCharacter> Characters = new List<PerceivedCharacter>();
         [JsonProperty("resources")] public List<PerceivedResource> Resources = new List<PerceivedResource>();
         [JsonProperty("structures")] public List<PerceivedStructure> Structures = new List<PerceivedStructure>();
+    }
+
+    /// <summary>Section 6.9: the walls near the bot, sent when they change.</summary>
+    public sealed class Layout : Message
+    {
+        public override string MessageType => Wire.Layout;
+        [JsonProperty("walls")] public List<Wall> Walls = new List<Wall>();
+    }
+
+    /// <summary>One wall: the line along its foot, from A to B, and how tall it is.</summary>
+    public sealed class Wall
+    {
+        [JsonProperty("a")] public double[] A = new double[3];
+        [JsonProperty("b")] public double[] B = new double[3];
+        [JsonProperty("h")] public double H;
     }
 
     public sealed class InventoryItem

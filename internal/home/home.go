@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 
@@ -33,6 +34,10 @@ const Arrive = 2.0
 // back, so it does not shuffle on the spot.
 const awayFrom = 5.0
 
+// level is how far above or below home still counts as on its level, as
+// the plugin's arrival does (7.3): under a raised floor is not home.
+const level = 1.75
+
 // Session is what Keeper needs of the session.
 type Session interface {
 	Dispatch(ctx context.Context, o session.Order) (*session.Task, error)
@@ -51,6 +56,11 @@ type Keeper struct {
 	mu sync.Mutex
 	// homeward holds the ids of tasks sent to take the bot home.
 	homeward map[string]bool
+	// cutOff is where, and in which world, an idle trip home last failed
+	// unreachable: idling does not try again from there, only once the
+	// bot has moved.
+	cutOff      *protocol.Vec3
+	cutOffWorld string
 	// conn is the hello of the connection Tick last saw, to notice a new one.
 	conn *protocol.Hello
 	// checked is set once the outage check has run for conn.
@@ -102,6 +112,9 @@ func (k *Keeper) SetHome(pos protocol.Vec3, by string) (string, error) {
 	if err := k.store.SetHome(world, Home{Pos: pos, SetBy: by, At: k.now()}); err != nil {
 		return world, err
 	}
+	k.mu.Lock()
+	k.cutOff = nil
+	k.mu.Unlock()
 	k.log.Info("home set", "world", world, "pos", pos, "by", by)
 	return world, nil
 }
@@ -119,18 +132,30 @@ func (k *Keeper) Current() (world string, h Home, ok bool) {
 // Rules are the rules Keeper follows.
 func (k *Keeper) Rules() config.HomeRules { return k.rules() }
 
-// HomeDistance is how far the bot is from home, flat, and false when
-// either is unknown.
+// HomeDistance is how far the bot is from home in a straight line, and
+// false when either is unknown.
 func (k *Keeper) HomeDistance() (float64, bool) {
-	st := k.s.State()
-	if st == nil || st.Phase != protocol.PhaseInWorld {
-		return 0, false
-	}
-	h, ok := k.store.Home(k.World())
+	st, h, ok := k.where()
 	if !ok {
 		return 0, false
 	}
-	return flat(st.Pos, h.Pos), true
+	return math.Sqrt(math.Pow(flat(st.Pos, h.Pos), 2) + math.Pow(st.Pos[1]-h.Pos[1], 2)), true
+}
+
+// away is whether the bot is far enough from home, or off its level, for
+// idling to send it back.
+func (k *Keeper) away() bool {
+	st, h, ok := k.where()
+	return ok && (flat(st.Pos, h.Pos) > awayFrom || math.Abs(st.Pos[1]-h.Pos[1]) > level)
+}
+
+func (k *Keeper) where() (*protocol.State, Home, bool) {
+	st := k.s.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld {
+		return nil, Home{}, false
+	}
+	h, ok := k.store.Home(k.World())
+	return st, h, ok
 }
 
 // LeftBehind is what the bot left on the ground in the current world and
@@ -332,6 +357,12 @@ func (k *Keeper) Tick(ctx context.Context) {
 	busy := st.Task != nil && body(st.Task.Task)
 	k.setInterrupted(busy)
 	k.mu.Lock()
+	// Seen elsewhere, or in another world: the next idle may try again
+	// from anywhere, the old spot included.
+	if k.cutOff != nil && (k.cutOffWorld != k.World() ||
+		flat(*k.cutOff, st.Pos) >= awayFrom || math.Abs(k.cutOff[1]-st.Pos[1]) > level) {
+		k.cutOff = nil
+	}
 	if st.Task != nil {
 		k.active = now
 	}
@@ -341,24 +372,56 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.Touch() // whatever happens, wait another spell before trying again
-	if d, ok := k.HomeDistance(); ok && d > awayFrom {
-		k.announce(ctx, "idle", "Nothing to do. Heading home.")
+	if !k.away() {
+		return
+	}
+	k.mu.Lock()
+	cut := k.cutOff != nil
+	k.mu.Unlock()
+	if cut {
+		return
+	}
+	if t := k.announce(ctx, "idle", "Nothing to do. Heading home."); t != nil {
+		go k.watchIdle(ctx, t)
 	}
 }
 
-// announce sends the bot home and says so, for trips nobody asked for.
-func (k *Keeper) announce(ctx context.Context, why, line string) {
-	if _, err := k.GoHome(ctx, nil, why); err != nil {
+// watchIdle notes where an idle trip home found no way there, so idling
+// does not set off from the same spot every spell.
+func (k *Keeper) watchIdle(ctx context.Context, t *session.Task) {
+	select {
+	case <-t.Done():
+	case <-ctx.Done():
+		return
+	}
+	if _, reason, _ := t.Status(); reason != protocol.ReasonUnreachable {
+		return
+	}
+	if st := k.s.State(); st != nil {
+		pos, world := st.Pos, k.World()
+		k.mu.Lock()
+		k.cutOff, k.cutOffWorld = &pos, world
+		k.mu.Unlock()
+		k.log.Info("home is out of reach from here; idling will not try again until the bot moves", "pos", pos)
+	}
+}
+
+// announce sends the bot home and says so, for trips nobody asked for,
+// and returns the trip, or nil if it did not set off.
+func (k *Keeper) announce(ctx context.Context, why, line string) *session.Task {
+	t, err := k.GoHome(ctx, nil, why)
+	if err != nil {
 		if errors.Is(err, ErrStranded) {
 			k.log.Info("not going home", "why", why, "err", err)
 		} else if !errors.Is(err, ErrNoHome) {
 			k.log.Warn("could not go home", "why", why, "err", err)
 		}
-		return
+		return nil
 	}
 	if _, err := k.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}}); err != nil {
 		k.log.Warn("could not say", "text", line, "err", err)
 	}
+	return t
 }
 
 func (k *Keeper) setInterrupted(v bool) {

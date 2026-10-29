@@ -217,6 +217,37 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void ArrivalIsOnTheGoalsLevel()
+        {
+            var home = new V3(-35.9, 36.09, 6.53);
+            Assert.True(Arrival.Reached(new V3(-37.0, 36.09, 6.5), home, 2));
+            // Seen on the VM: under the raised floor, 1.9 m across and 2 m down.
+            Assert.False(Arrival.Reached(new V3(-37.76, 34.0, 6.36), home, 2));
+            // A storey up is not there either; a step up is.
+            Assert.False(Arrival.Reached(new V3(-35.9, 38.09, 6.53), home, 2));
+            Assert.True(Arrival.Reached(new V3(-35.9, 37.0, 6.53), home, 2));
+        }
+
+        [Fact]
+        public void WallsAreTallThinAndLong()
+        {
+            // wood_wall: 2 long, 0.2 thick, 2 tall, centred on its origin.
+            var w = WallShape.Of(new V3(-1, 0, -0.1), new V3(1, 2, 0.1));
+            Assert.NotNull(w);
+            Assert.Equal(new V3(-1, 0, 0), w.Value.A);
+            Assert.Equal(new V3(1, 0, 0), w.Value.B);
+            Assert.Equal(2, w.Value.H);
+            // Running along z.
+            Assert.Equal(new V3(0, 0, 1), WallShape.Of(new V3(-0.1, 0, -1), new V3(0.1, 1.5, 1)).Value.B);
+            Assert.NotNull(WallShape.Of(new V3(-2, 0, -0.5), new V3(2, 2, 0.5)));  // stone, 1 thick
+            Assert.Null(WallShape.Of(new V3(-1, 0, -1), new V3(1, 0.2, 1)));     // a floor
+            Assert.Null(WallShape.Of(new V3(-1, 0, -0.1), new V3(1, 1, 0.1)));   // a half wall
+            Assert.Null(WallShape.Of(new V3(-1, 0, -0.5), new V3(0.5, 2, 0.5))); // a stone block
+            Assert.Null(WallShape.Of(new V3(-0.1, 0, -0.1), new V3(0.1, 2, 0.1))); // a post
+            Assert.Null(WallShape.Of(new V3(-1, 0, -1), new V3(1, 2, 1)));       // a roof, or a block
+        }
+
+        [Fact]
         public void HoldKeepsTheCountWhileARecoveryTakesItsTime()
         {
             var d = new StuckDetector();

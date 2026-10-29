@@ -37,15 +37,22 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Header:** connection, character and world, phase, the running task,
   health, a warning when the bot carries more than it can (and whether it
   can still move), and how far home is.
-- **Map:** top-down, north up, a grid every 10 m. The bot with its facing and
-  its trail over the last few minutes; from perception, players, creatures
-  (red when hostile, ringed when after the bot), structures (doors hollow
-  when open) and, zoomed in, trees, rocks, pickables and drops; home, a
+- **Map:** top-down, north up, a grid every 10 m, opening zoomed to the
+  perception radius. The bot with its facing and its trail over the last
+  few minutes; from perception, players, creatures (red when hostile,
+  ringed when after the bot), structures and resources, each kind with its
+  own shape and colour (see the legend; doors hollow when open); walls
+  as grey lines under everything, from the plugin's layout (faint for
+  upper storeys, so doorways show); home, a
   diamond for each place the bot had to leave things because it carried too
-  much (with what it left), the
-  walker's latest path (dashed when it had no navmesh
-  path and went straight), and a circle for each stuck recovery. Scroll or
-  use + and − to zoom; drag to pan, which stops it following the bot.
+  much, the walker's latest path (dashed when it had no navmesh path and
+  went straight), and a circle for each stuck recovery. Things of one kind
+  close together on screen draw as one marker with a count ("6 chests").
+  Labels go on in order of importance and are left off where they would
+  overlap; single trees, rocks and the like have none. Hover any marker for
+  what it is, its distance from the bot and its details, every item of a
+  group. Scroll or use + and − to zoom; drag to pan, which stops it
+  following the bot.
 - **Inventory:** what the bot carries, laid out as in the game, with stacks,
   a wear bar on items that wear (red below a quarter), equipped items
   outlined, and free slots and weight above. Hover a slot for the detail.

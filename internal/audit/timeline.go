@@ -241,6 +241,8 @@ func frame(r Record) string {
 			line += "; after the bot: " + strings.Join(after, ", ")
 		}
 		return line
+	case *protocol.Layout:
+		return fmt.Sprintf("layout    %d walls", len(m.Walls))
 	case *protocol.Inventory:
 		var held []string
 		for _, it := range m.Items {

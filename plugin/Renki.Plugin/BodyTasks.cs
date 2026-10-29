@@ -27,6 +27,34 @@ namespace Renki.Plugin
 
         public bool StraightLine { get; private set; }
 
+        /// <summary>The navmesh path ends above or below the goal's level:
+        /// under a raised floor, at the foot of a rock. The bot can stand
+        /// under the goal but not reach it.</summary>
+        public bool OffLevel { get; private set; }
+
+        Vector3 end;
+
+        /// <summary>How near the end of an off-level path counts as there.</summary>
+        const double AtEnd = 1.0;
+
+        /// <summary>How near the goal, across the ground, a path's end must
+        /// be for an end off the goal's level to mean the goal is out of
+        /// reach: under it, or at the foot of the rock it is on.</summary>
+        const double NearGoal = 4.0;
+
+        /// <summary>The failure for a bot that has gone as far toward a goal
+        /// as the navmesh reaches, under or beside it but off its level, or
+        /// null while it can still get there.</summary>
+        public Outcome Unreachable(Vector3 pos, double within)
+        {
+            var here = Convert.ToV3(pos);
+            if (!OffLevel || (V3.FlatDistance(here, Convert.ToV3(goal)) > within &&
+                              V3.FlatDistance(here, Convert.ToV3(end)) > AtEnd)) return null;
+            var dy = goal.y - pos.y;
+            return Outcome.Failed(Wire.ReasonUnreachable,
+                $"the goal is {System.Math.Abs(dy):0.0} m {(dy > 0 ? "above" : "below")} and the navmesh does not reach it");
+        }
+
         public void SetGoal(Vector3 from, Vector3 to)
         {
             goal = to;
@@ -47,13 +75,24 @@ namespace Renki.Plugin
                 scratch.Add(goal);
             }
             path.Set(scratch.Select(Convert.ToV3));
-            Tracer.Emit("walker", StraightLine ? "no navmesh path; straight line" : "path",
-                new Dictionary<string, object>
-                {
-                    ["from"] = Convert.ToArray(from),
-                    ["to"] = Convert.ToArray(goal),
-                    ["waypoints"] = scratch.Count,
-                });
+            // The navmesh gives the way to the nearest point it can reach,
+            // which may be under a floor or behind a shut door.
+            end = scratch[scratch.Count - 1];
+            var shortBy = Vector3.Distance(end, goal);
+            // Off level only when the end is near the goal across the ground:
+            // a path that stops short farther off may yet go on, through a
+            // door or after a re-path.
+            OffLevel = !StraightLine && System.Math.Abs(end.y - goal.y) > Arrival.Level &&
+                       V3.FlatDistance(Convert.ToV3(end), Convert.ToV3(goal)) <= NearGoal;
+            var data = new Dictionary<string, object>
+            {
+                ["from"] = Convert.ToArray(from),
+                ["to"] = Convert.ToArray(goal),
+                ["waypoints"] = scratch.Count,
+            };
+            if (shortBy > 1) data["end"] = Convert.ToArray(end);
+            Tracer.Emit("walker", StraightLine ? "no navmesh path; straight line"
+                : shortBy > 1 ? $"path stops {shortBy:0.0} m short" : "path", data);
         }
 
         public void ResetStuck(Vector3 pos)
@@ -219,10 +258,15 @@ namespace Renki.Plugin
                 }
             }
             var pos = p.transform.position;
-            if (V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= args.StopDistance)
+            if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), args.StopDistance))
             {
                 Driver.Stand();
                 return Outcome.Succeeded();
+            }
+            if (walker.Unreachable(pos, args.StopDistance) is Outcome under)
+            {
+                Driver.Stand();
+                return under;
             }
             if (Walker.Stranded(p) is Outcome stranded)
             {
@@ -313,7 +357,7 @@ namespace Renki.Plugin
                 walker.SetGoal(p.transform.position, goal);
             }
             var pos = p.transform.position;
-            if (V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= Close)
+            if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), Close))
             {
                 Driver.Stand();
                 // Standing still on purpose is not being stuck.
@@ -344,6 +388,12 @@ namespace Renki.Plugin
                 return null;
             }
             arrivedAt = -1;
+            // Within the game's auto-pickup range it may yet pull the drop in.
+            if (Vector3.Distance(pos, goal) > p.m_autoPickupRange && walker.Unreachable(pos, Close) is Outcome under)
+            {
+                Driver.Stand();
+                return took > 0 ? Outcome.Succeeded($"took {took} {prefab}; the other {drop.m_itemData.m_stack} is out of reach") : under;
+            }
             if (Walker.Stranded(p) is Outcome stranded)
             {
                 Driver.Stand();

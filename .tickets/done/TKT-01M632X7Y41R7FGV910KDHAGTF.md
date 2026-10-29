@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M632X7Y41R7FGV910KDHAGTF
 title: "Panel: make the map readable without zooming in"
 type: task
-status: ready
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T05:42:44Z
-updated_at: 2026-10-29T05:42:44Z
+updated_at: 2026-10-29T06:41:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -60,7 +60,17 @@ before anything on it means something:
 
 ## Acceptance criteria
 
-- [ ] Each kind of structure, resource and character has its own shape or colour, and the legend shows them
-- [ ] Labels never overlap; nearby things of one kind group under one marker with a count
-- [ ] Hovering a marker shows what it is: kind, prefab, distance from the bot, and its details
-- [ ] The map opens zoomed to the perception radius, and the base is readable at that zoom
+- [x] Each kind of structure, resource and character has its own shape or colour, and the legend shows them
+- [x] Labels never overlap; nearby things of one kind group under one marker with a count
+- [x] Hovering a marker shows what it is: kind, prefab, distance from the bot, and its details
+- [x] The map opens zoomed to the perception radius, and the base is readable at that zoom
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T06:05:49Z
+
+2026-10-29: built and checked on a local controller fed with real perception from the VM's audit log: chests at home group as '6 chests', hover lists each with its distance, labels do not overlap, and the view fits the 40 m radius. Deployed to the VM.
+
+## Summary
+
+Map rewritten: a shape and colour per kind, chain clustering with counts, collision-free labels, hover tooltips, opens fitted to the perception radius. Seen in use on the VM during navigation and return home, 2026-10-29.

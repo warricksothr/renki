@@ -216,7 +216,8 @@ into a problem.
   level less one. `hostile` means the creature would fight the bot, and
   `targetingMe` that it has picked the bot as its target.
 - `structures`: only pieces of the kinds above. Walls, floors and the like
-  are left out, so a base cannot fill the cap with them. `mine` is set on
+  are left out, so a base cannot fill the cap with them. Walls come in
+  `layout` (6.9). `mine` is set on
   the bot's own bed, `tag` is a portal's name, and `open` is set on doors
   only.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
@@ -267,7 +268,10 @@ picking up a pile, is one message.
 }
 ```
 
-`channel` is one of `normal`, `shout`, `whisper`, `ping`.
+`channel` is one of `normal`, `shout`, `whisper`, `ping`. `pos` is where
+the speaker stands: the game sends their head, about 1.6 m higher, so the
+plugin takes their character's position when it is loaded near the bot and
+otherwise the ground under the head. For a `ping` it is the pinged point.
 
 ### 6.5 `event` (as it happens)
 
@@ -338,6 +342,28 @@ on the message.
 `pong` (reply to `ping`), and `error`, which looks like
 `{"re":"…","code":"bad_message","detail":"…"}`.
 
+### 6.9 `layout` (when the walls in range change, and once after `welcome`)
+
+```json
+{
+  "v": 1, "type": "layout", "seq": 34, "t": 18230.50,
+  "walls": [
+    { "a": [-40.0, 36.1, 1.0], "b": [-38.0, 36.1, 1.8], "h": 2.0 },
+    { "a": [-38.0, 36.1, 1.8], "b": [-38.0, 36.1, 3.8], "h": 1.0 }
+  ]
+}
+```
+
+The walls within the perception radius, nearest first, at most 512. Each is
+the line along its foot, from `a` to `b`, and `h` is its height in metres.
+A wall is any building piece that is not a structure (6.2), whose solid
+colliders fill a box at least 1.2 m tall and at least twice as long as it is
+thick, and no more than about a metre thick: wooden and stone walls,
+palisades and fences. Floors, roofs, stairs, posts and half walls are not
+walls. Walls do not move, so a new `layout` goes out only when the set
+within range changes, usually as the bot walks, and each one replaces the
+last. It comes after the `perception` of the same scan.
+
 ## 7. Controller → plugin
 
 ### 7.1 Task model
@@ -383,6 +409,14 @@ on the message.
 
 Notes:
 
+- `move_to` and `pickup` arrive within `stopDistance` across the ground and
+  within 1.75 m up or down, so a bot under a raised floor has not reached a
+  point on it. When the navmesh reaches only part of the way, the walker's
+  path trace says how far short it stops; if that is within 4 m of the goal
+  across the ground but off its level (under the floor, at the foot of a
+  rock), the task fails `unreachable`
+  once the bot is under or over the goal or at the end of the path, rather
+  than going through stuck recovery.
 - `pickup` walks to the drop and lets the game's auto-pickup take it, as it
   does for any player within about 2 m, picking it up directly if it is still
   there once the bot stands on it. A drop the game merges into a nearby stack
@@ -394,7 +428,8 @@ Notes:
   `invalid_target` when the game will not hand it over after a few tries,
   or `stuck` or `encumbered` as `move_to` does. A pickup that got some of the
   stack succeeds, and its detail says how many stayed behind and why, ending
-  in one of `no room for the other N`, `the other N is too heavy to carry` or
+  in one of `no room for the other N`, `the other N is too heavy to carry`,
+  `the other N is out of reach` or
   `the game kept the other N`. The controller reads these phrases to tell the
   owner what happened, so they are part of the protocol. It needs `allowGather` and `allowMovement`, since it
   walks.

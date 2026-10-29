@@ -1,6 +1,7 @@
 package home
 
 import (
+	"cmp"
 	"context"
 	"io"
 	"log/slog"
@@ -15,8 +16,10 @@ import (
 )
 
 type fakeSession struct {
-	// final makes Dispatch return tasks that have already failed.
+	// final makes Dispatch return tasks that have already failed, for
+	// reason, or stuck when that is empty.
 	final  bool
+	reason string
 	mu     sync.Mutex
 	hello  *protocol.Hello
 	state  *protocol.State
@@ -31,7 +34,7 @@ func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Tas
 	}
 	f.orders = append(f.orders, o)
 	if f.final {
-		return session.Finished(o.Task, o.Origin, protocol.StatusFailed, protocol.ReasonStuck), nil
+		return session.Finished(o.Task, o.Origin, protocol.StatusFailed, cmp.Or(f.reason, protocol.ReasonStuck)), nil
 	}
 	return session.Finished(o.Task, o.Origin, protocol.StatusRunning, ""), nil
 }
@@ -292,6 +295,62 @@ func TestIdleAwayFromHomeGoesHome(t *testing.T) {
 	}
 }
 
+// TestIdleUnderTheFloorGoesHome: seen on the VM, the bot under a raised
+// floor, 1.9 m across and 3.7 m below home, is not home.
+func TestIdleUnderTheFloorGoesHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
+	k.SetHome(protocol.Vec3{-35.9, 37.66, 6.53}, "Nimah")
+	if d, _ := k.HomeDistance(); d < 4 {
+		t.Errorf("home distance %.1f; want the straight line, over 4", d)
+	}
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[1] != "say: Nothing to do. Heading home." {
+		t.Errorf("idle under the floor: %v", got)
+	}
+}
+
+// TestIdleDoesNotRetryAnUnreachableHome: once a trip home finds no way
+// there, idling waits for the bot to move rather than shouting every spell.
+func TestIdleDoesNotRetryAnUnreachableHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	f.final, f.reason = true, protocol.ReasonUnreachable
+	hello := &protocol.Hello{}
+	f.set(hello, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
+	k.SetHome(protocol.Vec3{-35.9, 36.09, 6.53}, "Nimah")
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if n := len(f.sent()); n != 2 {
+		t.Fatalf("first idle: %v", f.sent())
+	}
+	waitFor(t, func() bool { k.mu.Lock(); defer k.mu.Unlock(); return k.cutOff != nil })
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if n := len(f.sent()); n != 2 {
+		t.Fatalf("idled home again from the same spot: %v", f.sent())
+	}
+	f.set(hello, inWorld(protocol.Vec3{-20, 33, 6}, nil))
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if n := len(f.sent()); n != 4 {
+		t.Errorf("moved away, did not try again: %v", f.sent())
+	}
+	// That trip failed too, from over there; back at the first spot, the
+	// bot has moved since, so idling tries again.
+	waitFor(t, func() bool { k.mu.Lock(); defer k.mu.Unlock(); return k.cutOff != nil && k.cutOff[0] == -20 })
+	f.set(hello, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if n := len(f.sent()); n < 6 {
+		t.Errorf("back at the old spot after moving away, did not try: %v", f.sent())
+	}
+}
+
 func TestStrandedBotDoesNotSetOffHome(t *testing.T) {
 	k, f, c := keeper(t, Memory())
 	ctx := context.Background()
@@ -475,4 +534,15 @@ func change(k *Keeper, f func(*config.HomeRules)) {
 	r := k.Rules()
 	f(&r)
 	k.rules = func() config.HomeRules { return r }
+}
+
+func waitFor(t *testing.T, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatal("condition never held")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }

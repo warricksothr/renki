@@ -193,7 +193,7 @@ func category(r audit.Record) string {
 			return CatTrace
 		case protocol.TypeState:
 			return CatState
-		case protocol.TypePerception:
+		case protocol.TypePerception, protocol.TypeLayout:
 			return CatPerception
 		}
 	}
