@@ -162,6 +162,7 @@ const (
 	FlagAttacking  = "attacking"
 	FlagBlocking   = "blocking"
 	FlagEncumbered = "encumbered"
+	FlagStranded   = "stranded"
 	FlagInShelter  = "in_shelter"
 	FlagNearFire   = "near_fire"
 )
@@ -170,8 +171,9 @@ const (
 func (s *State) Encumbered() bool { return slices.Contains(s.Flags, FlagEncumbered) }
 
 // Stranded reports that the game will not move the bot: encumbered with no
-// stamina left, which does not come back until it carries less (6.1).
-func (s *State) Stranded() bool { return s.Encumbered() && s.Stamina <= 0 }
+// stamina left, which does not come back until it carries less. The plugin
+// decides it, as it decides when a body task fails for it (6.1).
+func (s *State) Stranded() bool { return slices.Contains(s.Flags, FlagStranded) }
 
 // GameTime is the in-game calendar.
 type GameTime struct {

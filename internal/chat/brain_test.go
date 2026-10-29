@@ -264,7 +264,7 @@ func TestStatus(t *testing.T) {
 	}{
 		{140, 38, nil, " Weight 140/300."},
 		{305, 12, []string{protocol.FlagEncumbered}, " Overloaded, 305/300: I can only walk, and not for long."},
-		{305, 0, []string{protocol.FlagEncumbered}, " Overloaded, 305/300: I can't move until I carry less."},
+		{305, 0, []string{protocol.FlagEncumbered, protocol.FlagStranded}, " Overloaded, 305/300: I can't move until I carry less."},
 	} {
 		st := *f.state
 		st.Weight, st.WeightMax, st.Stamina, st.Flags = c.weight, 300, c.stamina, c.flags

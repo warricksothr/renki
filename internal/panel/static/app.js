@@ -79,9 +79,10 @@ function onRecord(ev) {
       }
       $("pos").textContent = `x ${f.pos[0].toFixed(1)}  z ${f.pos[2].toFixed(1)}  y ${f.pos[1].toFixed(1)}`;
       // Over weightMax the bot only walks; with no stamina left it cannot move (6.1).
-      if (!(f.flags || []).includes("encumbered")) chip("load", "");
-      else if (f.stamina > 0) chip("load", "overloaded", "off");
-      else chip("load", "overloaded: can't move", "off");
+      const flags = f.flags || [];
+      if (flags.includes("stranded")) chip("load", "overloaded: can't move", "off");
+      else if (flags.includes("encumbered")) chip("load", "overloaded", "off");
+      else chip("load", "");
       if (f.weightMax && (f.weight !== weight[0] || f.weightMax !== weight[1])) {
         weight = [f.weight, f.weightMax];
         drawInventory();

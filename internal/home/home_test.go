@@ -212,7 +212,7 @@ func TestOutageWaitsUntilTheBotCanMove(t *testing.T) {
 
 	// Back on a new connection, carrying too much to move.
 	st := inWorld(protocol.Vec3{20, 0, 0}, nil)
-	st.Flags = []string{protocol.FlagEncumbered}
+	st.Flags = []string{protocol.FlagEncumbered, protocol.FlagStranded}
 	f.set(&protocol.Hello{}, st)
 	k.Tick(ctx)
 	if len(f.sent()) != 0 || !store.Interrupted() {
@@ -221,7 +221,7 @@ func TestOutageWaitsUntilTheBotCanMove(t *testing.T) {
 	if _, err := k.GoHome(ctx, nil, "test"); err != ErrStranded {
 		t.Errorf("GoHome while stranded: %v", err)
 	}
-	st.Stamina = 5
+	st.Flags = []string{protocol.FlagEncumbered}
 	k.Tick(ctx)
 	if got := f.sent(); len(got) != 2 || got[1] != "say: Something cut me off. Heading home." {
 		t.Errorf("once it can move: %v", got)
@@ -240,7 +240,7 @@ func TestAFollowThatEndsStrandedIsNoOutage(t *testing.T) {
 	}
 	// The follow fails with encumbered: a normal end, not an outage.
 	st := inWorld(protocol.Vec3{20, 0, 0}, nil)
-	st.Flags = []string{protocol.FlagEncumbered}
+	st.Flags = []string{protocol.FlagEncumbered, protocol.FlagStranded}
 	f.set(f.hello, st)
 	k.Tick(ctx)
 	if store.Interrupted() {
@@ -296,7 +296,7 @@ func TestStrandedBotDoesNotSetOffHome(t *testing.T) {
 	k, f, c := keeper(t, Memory())
 	ctx := context.Background()
 	st := inWorld(protocol.Vec3{0, 0, 0}, nil)
-	st.Flags, st.Weight, st.WeightMax = []string{protocol.FlagEncumbered}, 305, 300
+	st.Flags, st.Weight, st.WeightMax = []string{protocol.FlagEncumbered, protocol.FlagStranded}, 305, 300
 	f.set(&protocol.Hello{}, st)
 	k.SetHome(protocol.Vec3{80, 0, 0}, "Nimah")
 	k.Tick(ctx)
@@ -306,7 +306,7 @@ func TestStrandedBotDoesNotSetOffHome(t *testing.T) {
 		t.Fatalf("set off home with no stamina, overloaded: %v", f.sent())
 	}
 	// With stamina it can still walk, slowly.
-	st.Stamina = 20
+	st.Flags = []string{protocol.FlagEncumbered}
 	c.advance(11 * time.Minute)
 	k.Tick(ctx)
 	if got := f.sent(); len(got) != 2 {

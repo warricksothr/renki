@@ -166,14 +166,14 @@ The bot's own body. Small and sent often.
 the world.
 
 `flags` is drawn from: `grounded`, `running`, `crouching`, `swimming`,
-`sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `in_shelter`,
-`near_fire`.
+`sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `stranded`,
+`in_shelter`, `near_fire`.
 
 `encumbered` means `weight` is over `weightMax`. The game then lets the bot
 walk but not run, stops its stamina coming back, and drains stamina while it
-moves. With no stamina left it cannot move at all until it carries less, so
-body tasks fail with `encumbered` (6.6) rather than going through stuck
-recovery. The game's auto-pickup never takes what would cross `weightMax`,
+moves. With no stamina left it cannot move at all until it carries less:
+that is `stranded`, and body tasks then fail with `encumbered` (6.6) rather
+than going through stuck recovery. The game's auto-pickup never takes what would cross `weightMax`,
 and neither does `pickup` (`too_heavy`).
 
 ### 6.2 `perception` (at `perceptionHz`, default 1)
@@ -383,8 +383,11 @@ Notes:
   `too_heavy` when the stack would carry the bot past `weightMax`,
   `target_lost` when the drop is gone and the bot did not get it,
   `invalid_target` when the game will not hand it over after a few tries,
-  or `stuck` or `encumbered` as `move_to` does. A pickup that got some of the stack succeeds,
-  and its detail says how many stayed behind. It needs `allowGather` and `allowMovement`, since it
+  or `stuck` or `encumbered` as `move_to` does. A pickup that got some of the
+  stack succeeds, and its detail says how many stayed behind and why, ending
+  in one of `no room for the other N`, `the other N is too heavy to carry` or
+  `the game kept the other N`. The controller reads these phrases to tell the
+  owner what happened, so they are part of the protocol. It needs `allowGather` and `allowMovement`, since it
   walks.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
