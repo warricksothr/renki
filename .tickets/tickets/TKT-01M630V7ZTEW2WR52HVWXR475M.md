@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M630V7ZTEW2WR52HVWXR475M
 title: "Panel: choose the voice's model at runtime, to compare them"
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T05:06:42Z
-updated_at: 2026-10-29T05:06:42Z
+updated_at: 2026-10-29T05:26:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

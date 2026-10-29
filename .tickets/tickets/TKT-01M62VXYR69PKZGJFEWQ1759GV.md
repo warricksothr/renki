@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62VXYR69PKZGJFEWQ1759GV
 title: "Controller: one store for settings and instances, with who changed them"
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-10-29T05:26:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
