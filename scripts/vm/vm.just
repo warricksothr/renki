@@ -124,6 +124,14 @@ audit-window SINCE UNTIL: need-target
     {{ssh}} "{{ps}} -File {{dir}}/audit-window.ps1 -Since '$1' -Until '$2'" | tr -d '\r' > "$out"
     echo "$out"
 
+# Print bounded task, routing and inventory evidence; full frames stay in .checks/.
+[positional-arguments]
+audit-summary SINCE UNTIL:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    saved=$(just --justfile "{{justfile()}}" vm audit-window "$1" "$2")
+    python3 "{{justfile_directory()}}/scripts/vm/audit-summary.py" "$saved"
+
 # Run once, and again after the Tailscale address changes. Then `just vm restart`.
 [doc("Turn the control panel on: Tailscale address, firewall, token.")]
 panel-setup PORT="8780": need-target

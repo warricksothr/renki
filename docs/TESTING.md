@@ -34,7 +34,11 @@ suites while waiting for the game. The complete gate is still required.
 
 For a short incident that needs state and perception as well as decisions,
 `just vm audit-window <since> <until>` saves only that ISO timestamp window
-to `.checks/` and prints its path. Inspect selected fields locally instead
+to `.checks/` and prints its path. `just vm audit-summary <since> <until>`
+prints bounded task statuses, movement/harvest traces, minimum health and the
+last pack/chest counts from that same retained evidence. It keeps only the
+last 20 task events and 10 traces in its output; narrow the time window when
+those are insufficient. Inspect selected fields locally instead
 of downloading or displaying a whole day. `just plugin game-source <Type>`
 saves the installed game's decompiled API under `.checks/game-source/` for
 local inspection; do not commit or redistribute those files.
@@ -415,7 +419,7 @@ for intermediate/final waypoints and replans when standing below one.
 `just check plugin test-core LocalRouteTests` covers stacked-floor arrival.
 Repeated unattended routes, full/warded and multi-chest overflow checks,
 deliberate-drop detection, and leader/site
-resumption remain open. Tree cutting, mining and crafting are not implemented.
+resumption remain open. Tree cutting and mining primitives are described below; crafting remains unimplemented.
 Exact receipts, audit-window paths and remaining checks are on the stow,
 hauling and navigation tickets; keep full logs outside this document.
 
@@ -470,3 +474,21 @@ recorded trails through the west doorway without fallback (45/48 samples,
 1.61/1.84 ms total validation, HP 25). A separate steep exterior start stalled
 and safely fell back to normal planning. That slope and real geometry
 mutations remain open; exact receipts and costs are on the navigation ticket.
+
+### Supplied-tool harvesting
+
+Use `just check plugin test-core HarvestTests` for resource-specific tool
+selection, unavailable/broken tools, destruction correlation, permission
+requirements and task cancellation. Protocol checks cover default collection
+and explicit `collect: false`. These do not prove Unity attack hitboxes,
+network attribution or falling-log safety.
+
+First verify no-tool refusal on a loaded mineable rock while Tas has an axe
+and no pickaxe. Then use a small isolated tree away from the home/players,
+check actual swings and tool wear, measured wood gain and unchanged test
+seeds, deposit only that gain and return. Use an isolated full tree for the
+separate fell/escape/settle/log-split benchmark. Observe each descendant by its
+new entity id; never infer an arbitrary neighbouring tree as a descendant.
+Capture exact windows with `just vm audit-summary`. Stop on health loss or
+new threats, and record unverified falling/rock/controller-chain checks on
+the harvest ticket. No default harvest behaviour is installed by this task.

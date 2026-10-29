@@ -36,6 +36,7 @@ const (
 	TaskUnequip  = "unequip"
 	TaskDeposit  = "deposit"
 	TaskWithdraw = "withdraw"
+	TaskHarvest  = "harvest"
 )
 
 // Slots are the equipment slots `unequip` empties; "hands" is both.
@@ -106,6 +107,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &UnequipArgs{}
 	case TaskDeposit, TaskWithdraw:
 		args = &TransferArgs{}
+	case TaskHarvest:
+		args = &HarvestArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -177,6 +180,20 @@ func (a *TransferArgs) validate() error {
 type StopArgs struct{}
 
 func (*StopArgs) validate() error { return nil }
+
+// HarvestArgs operates on one resource; descendants remain separate targets.
+// Nil Collect means true, matching the plugin default.
+type HarvestArgs struct {
+	Entity  string `json:"entity"`
+	Collect *bool  `json:"collect,omitempty"`
+}
+
+func (a *HarvestArgs) validate() error {
+	if a.Entity == "" {
+		return errors.New("`entity` is required")
+	}
+	return nil
+}
 
 // MoveToArgs are the arguments to `move_to`. A nil pointer means the
 // plugin's default: 1.5 m, and walking.

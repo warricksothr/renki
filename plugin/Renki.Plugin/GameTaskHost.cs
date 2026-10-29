@@ -28,6 +28,8 @@ namespace Renki.Plugin
                 throw new TaskRefused(stranded.Reason, stranded.Detail);
             switch (args)
             {
+                case HarvestArgs harvest:
+                    return new HarvestTask(harvest, FindEntity(harvest.Entity));
                 case TransferArgs transfer:
                     {
                         var obj = FindEntity(transfer.Container);

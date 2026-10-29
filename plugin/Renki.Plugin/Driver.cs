@@ -21,6 +21,10 @@ namespace Renki.Plugin
 
         public static bool Run;
 
+        // Harvest is the only task that holds normal primary attack input.
+        // Stand/cancel clears it; no queued click survives task replacement.
+        internal static bool HarvestAttack;
+
         /// <summary>Jump on the next physics step; cleared once used.</summary>
         public static bool Jump;
 
@@ -40,6 +44,7 @@ namespace Renki.Plugin
             Move = Vector3.zero;
             Run = false;
             Jump = false;
+            HarvestAttack = false;
         }
 
         internal static void Step(Player player, float dt)
@@ -62,7 +67,7 @@ namespace Renki.Plugin
 
             var local = Controls.ToLocal(Convert.ToV3(Move), Convert.ToV3(player.m_lookDir));
             player.SetControls(new Vector3((float)local.X, 0, (float)local.Z),
-                attack: false, attackHold: false, secondaryAttack: false, secondaryAttackHold: false,
+                attack: false, attackHold: HarvestAttack, secondaryAttack: false, secondaryAttackHold: false,
                 block: false, blockHold: false, jump: Jump, crouch: false, run: Run, autoRun: false, dodge: false);
             Jump = false;
         }

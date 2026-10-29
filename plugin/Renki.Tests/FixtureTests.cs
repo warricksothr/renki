@@ -129,6 +129,8 @@ namespace Renki.Tests
         [InlineData("say", "{\"text\":\"hi\",\"channel\":\"whisper\"}")]
         [InlineData("say", "{\"text\":\"hi\",\"channel\":\"ping\"}")]
         [InlineData("emote", "{}")]
+        [InlineData("harvest", "{}")]
+        [InlineData("harvest", "{\"entity\":\"0:1\",\"collect\":\"yes\"}")]
         [InlineData("pickup", "{}")]
         [InlineData("pickup", "{\"entity\":7}")]
         [InlineData("drop", "{\"count\":3}")]
@@ -170,7 +172,8 @@ namespace Renki.Tests
             Assert.Equal("AxeStone", ((EquipArgs)TaskArgs.Parse(Req("equip", "{\"item\":\"AxeStone\"}"))).Item);
             Assert.Equal("hands", ((UnequipArgs)TaskArgs.Parse(Req("unequip", "{\"slot\":\"hands\"}"))).Slot);
             Assert.True(TaskNames.IsInstant("equip") && TaskNames.IsInstant("unequip"));
-            Assert.Null(TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}")));
+            Assert.True(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}"))).Collect);
+            Assert.False(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\",\"collect\":false}"))).Collect);
         }
     }
 }

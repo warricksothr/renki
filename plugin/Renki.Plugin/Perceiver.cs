@@ -425,7 +425,7 @@ namespace Renki.Plugin
         /// <summary>The prefab, from the network object's prefab hash where it
         /// has one: some objects rename their GameObject (MineRock5 to
         /// "___MineRock5 m_meshFilter").</summary>
-        static string PrefabName(ZNetView nview, GameObject go)
+        internal static string PrefabName(ZNetView nview, GameObject go)
         {
             var zdo = nview != null ? nview.GetZDO() : null;
             var prefab = zdo != null && ZNetScene.instance != null ? ZNetScene.instance.GetPrefab(zdo.GetPrefab()) : null;
