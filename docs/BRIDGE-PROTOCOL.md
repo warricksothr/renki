@@ -515,8 +515,10 @@ chat event
   armour, shields, torches, ammunition). It shouts what it left, and keeps
   where and what per world in `dataDir`, shown by `status` and on the panel
   map, until perception, from within 15 m, has seen none of it there for
-  5 s. `overload.drop` (on by default) turns the dropping off; the plugin's
-  `allowDrop` does too.
+  5 s; a place where it sees fewer than it left now remembers that many.
+  `overload.drop` (on by default) turns the dropping off; the plugin's
+  `allowDrop` does too. It needs `drop` in `allowedTasks`, and the controller
+  warns at start when `overload.drop` is on without it.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.

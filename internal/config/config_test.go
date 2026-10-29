@@ -81,3 +81,18 @@ func TestAfterDeathMustBeKnown(t *testing.T) {
 		t.Error("afterDeath dance was accepted")
 	}
 }
+
+func TestWarnsWhenOverloadCannotDrop(t *testing.T) {
+	c := Default()
+	if w := c.Warnings(); len(w) != 0 {
+		t.Errorf("defaults: %q", w)
+	}
+	c.AllowedTasks = []string{"stop", "follow"}
+	if w := c.Warnings(); len(w) != 1 {
+		t.Errorf("without drop: %q", w)
+	}
+	c.Overload.Drop = false
+	if w := c.Warnings(); len(w) != 0 {
+		t.Errorf("with dropping off: %q", w)
+	}
+}

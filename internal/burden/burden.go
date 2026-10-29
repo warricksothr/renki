@@ -60,6 +60,9 @@ type Unloader struct {
 
 	conn *protocol.Hello
 	next time.Time
+	// unsaid is what it left and could not announce because the link
+	// went; it is said on the next connection.
+	unsaid string
 	// told is set once the bot has said why it is still carrying too
 	// much (all gear, or it may not drop), so it says so once per overload.
 	told bool
@@ -102,6 +105,11 @@ func (u *Unloader) Tick(ctx context.Context) {
 	if hello != u.conn {
 		// A new connection: try at once, and say again what is wrong.
 		u.conn, u.next, u.told = hello, time.Time{}, false
+		if u.unsaid != "" {
+			line := fmt.Sprintf("I was carrying too much, so I left %s back there. I'll remember where.", u.unsaid)
+			u.unsaid = ""
+			u.say(ctx, line)
+		}
 	}
 	var seen protocol.PerceptionConfig
 	if welcome != nil {
@@ -145,6 +153,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.remember(st.World, pos, left)
 	}
 	if u.next.IsZero() {
+		if len(left) > 0 {
+			u.unsaid = list(left)
+		}
 		return
 	}
 	if len(left) == 0 {
@@ -158,7 +169,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 	if short {
 		line = fmt.Sprintf("I was carrying too much, so I left %s here. It's still too much, but the rest is gear.", list(left))
 	}
-	u.say(ctx, line)
+	if errors.Is(u.say(ctx, line), session.ErrNotConnected) {
+		u.unsaid = list(left)
+	}
 }
 
 // drop sends one drop task and returns how many it dropped, with the error
@@ -172,6 +185,10 @@ func (u *Unloader) drop(ctx context.Context, d Drop) (int, error) {
 	wait, cancel := context.WithTimeout(ctx, waitFor)
 	defer cancel()
 	status, reason, err := t.Wait(wait)
+	if ctx.Err() != nil {
+		// Shutting down: nothing to say it went out.
+		return 0, ctx.Err()
+	}
 	if err != nil || status == protocol.StatusCancelled {
 		// No answer, or the link went before one came: drop is instant, so
 		// the things may well be on the ground. Count them as left, and
@@ -248,11 +265,17 @@ func (u *Unloader) forgetGone(st *protocol.State, seen protocol.PerceptionConfig
 			}
 			continue
 		}
-		for prefab := range c.Items {
+		for prefab, count := range c.Items {
 			key := missingKey(st.World, c.Pos, prefab)
-			if slices.ContainsFunc(drops, func(r protocol.PerceivedResource) bool {
-				return r.Prefab == prefab && r.Pos.FlatDistance(c.Pos) <= Spread
-			}) {
+			// How many lie there now. Someone else's pile of the same thing
+			// nearby counts too: the place is only ever forgotten too late.
+			there := 0
+			for _, r := range drops {
+				if r.Prefab == prefab && r.Pos.FlatDistance(c.Pos) <= Spread {
+					there += max(r.Stack, 1)
+				}
+			}
+			if there >= count {
 				delete(u.missing, key)
 				continue
 			}
@@ -263,9 +286,13 @@ func (u *Unloader) forgetGone(st *protocol.State, seen protocol.PerceptionConfig
 			}
 			if u.now().Sub(since) >= GoneAfter {
 				delete(u.missing, key)
-				delete(caches[i].Items, prefab)
+				if there == 0 {
+					delete(caches[i].Items, prefab)
+				} else {
+					caches[i].Items[prefab] = there
+				}
 				changed = true
-				u.log.Info("what was left is gone", "prefab", prefab, "pos", c.Pos)
+				u.log.Info("some of what was left is gone", "prefab", prefab, "was", count, "now", there, "pos", c.Pos)
 			}
 		}
 	}
@@ -293,11 +320,13 @@ func (u *Unloader) tell(ctx context.Context, text string) {
 	}
 }
 
-func (u *Unloader) say(ctx context.Context, text string) {
-	if _, err := u.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay,
-		Args: &protocol.SayArgs{Text: text, Channel: protocol.ChannelShout}}); err != nil {
+func (u *Unloader) say(ctx context.Context, text string) error {
+	_, err := u.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay,
+		Args: &protocol.SayArgs{Text: text, Channel: protocol.ChannelShout}})
+	if err != nil {
 		u.log.Warn("could not say", "text", text, "err", err)
 	}
+	return err
 }
 
 // list names what was left, most first: "6 Wood and 2 Stone".

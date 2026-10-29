@@ -211,6 +211,15 @@ func (c Config) Validate() error {
 	return nil
 }
 
+// Warnings are settings that work but likely not as meant.
+func (c Config) Warnings() []string {
+	var w []string
+	if c.Overload.Drop && !slices.Contains(c.AllowedTasks, protocol.TaskDrop) {
+		w = append(w, "overload.drop is on but allowedTasks leaves out drop, so an overloaded bot cannot put anything down")
+	}
+	return w
+}
+
 // IsOwner reports whether name is one of the owners, compared exactly as
 // the game shows player names.
 func (c Config) IsOwner(name string) bool { return slices.Contains(c.Owners, name) }

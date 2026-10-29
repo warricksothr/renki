@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -67,6 +68,7 @@ type fake struct {
 	sent  []string
 	drops map[string]int  // prefab → how many the plugin drops; absent drops all asked
 	hello *protocol.Hello // nil is disconnected
+	cut   int             // drops to let through before the link goes; 0 never
 }
 
 func (f *fake) Handshake() (*protocol.Hello, *protocol.Welcome, bool) {
@@ -95,6 +97,11 @@ func (f *fake) Dispatch(_ context.Context, o session.Order) (*session.Task, erro
 	switch a := o.Args.(type) {
 	case *protocol.DropArgs:
 		f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
+		if f.cut > 0 {
+			if f.cut--; f.cut == 0 {
+				f.hello = nil
+			}
+		}
 		n := a.Count
 		if m, ok := f.drops[a.Prefab]; ok {
 			n = m
@@ -223,6 +230,47 @@ func TestDisconnectedWaitsForTheNextConnection(t *testing.T) {
 	u.Tick(context.Background())
 	if got := f.said(); len(got) != 2 || got[0] != "drop 5 Wood" {
 		t.Errorf("after the reconnect: %q", got)
+	}
+}
+
+func TestFewerSeenIsRememberedAsFewer(t *testing.T) {
+	u, f, store, c := unloader(true)
+	store.UpdateLeftBehind("Midgard", func([]home.Cache) []home.Cache {
+		return []home.Cache{{Pos: protocol.Vec3{0, 0, 0}, Items: map[string]int{"Wood": 50}}}
+	})
+	f.st = &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", Pos: protocol.Vec3{5, 0, 0}, WeightMax: 300}
+	f.seen = &protocol.Perception{Resources: []protocol.PerceivedResource{
+		{Kind: protocol.ResourceDrop, Prefab: "Wood", Pos: protocol.Vec3{1, 0, 0}, Stack: 12}}}
+	u.Tick(context.Background())
+	c.t = c.t.Add(GoneAfter)
+	u.Tick(context.Background())
+	if left := store.LeftBehind("Midgard"); len(left) != 1 || left[0].Items["Wood"] != 12 {
+		t.Errorf("remembered %+v; want the 12 still there", left)
+	}
+}
+
+func TestWhatWasLeftOverADisconnectIsSaidOnReturn(t *testing.T) {
+	// The link goes between two drops (560: Wood, then Stone), or after
+	// the only drop and before it could say so (310).
+	for _, c := range []struct {
+		weight float64
+		want   string
+	}{{560, "left 124 Wood back there"}, {310, "left 5 Wood back there"}} {
+		u, f, store, clk := unloader(true)
+		f.st = overloaded(c.weight)
+		f.cut = 1
+		u.Tick(context.Background())
+		if left := store.LeftBehind("Midgard"); len(left) != 1 || len(left[0].Items) != 1 {
+			t.Fatalf("at %v remembered %+v", c.weight, left)
+		}
+		f.hello = &protocol.Hello{}
+		clk.t = clk.t.Add(time.Second)
+		f.st = &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", WeightMax: 300}
+		u.Tick(context.Background())
+		got := f.said()
+		if last := got[len(got)-1]; !strings.Contains(last, c.want) {
+			t.Errorf("at %v said %q", c.weight, got)
+		}
 	}
 }
 
