@@ -1,11 +1,14 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,10 +20,53 @@ import (
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
-func TestContainerMemoryAPIIsAuthenticatedAndReportsAge(t *testing.T) {
+func TestServeWaitsForFinalLandmarkBatch(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "memory.json")
+	store, err := home.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := New(config.Default(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, nil)
+	c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+	a.Session.Connected(c)
+	a.Session.Message(c, &protocol.State{Phase: protocol.PhaseInWorld, World: "world", HP: 25})
+	a.Session.Message(c, &protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: "chest", Kind: protocol.StructureContainer}}})
+	a.Landmarks.Tick()
+	if len(store.Landmarks("world")) != 0 {
+		t.Fatal("batch committed early")
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := a.Serve(ctx, ln); err != nil {
+		t.Fatal(err)
+	}
+	// No polling: Serve must not return before durable persistence finishes.
+	reopened, err := home.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reopened.Landmarks("world"); len(got) != 1 || got[0].Entity != "chest" {
+		t.Fatal(got)
+	}
+}
+
+func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	store := home.Memory()
 	now := time.Now().Add(-time.Minute)
 	if err := store.RememberContainers("world", []home.RememberedContainer{{Entity: "chest", Size: [2]int{2, 2}, At: now, Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 10}}}}, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	place := home.Landmark{Entity: "portal", Kind: protocol.StructurePortal, Tag: "mine", At: now}
+	if err := store.RememberLandmarks("world", []home.Landmark{place}, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	place.Entity = "other-world"
+	if err := store.RememberLandmarks("other", []home.Landmark{place}, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	a := New(config.Default(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, nil)
@@ -34,9 +80,9 @@ func TestContainerMemoryAPIIsAuthenticatedAndReportsAge(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-	handler := panel.Handler(panel.Options{Token: "test", Status: func() any { return nil }, ContainerMemory: a.ContainerMemory})
-	get := func(auth bool) *httptest.ResponseRecorder {
-		r := httptest.NewRequest(http.MethodGet, "/api/memory/containers", nil)
+	handler := panel.Handler(panel.Options{Token: "test", Status: func() any { return nil }, ContainerMemory: a.ContainerMemory, LandmarkMemory: a.LandmarkMemory})
+	get := func(path string, auth bool) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, path, nil)
 		if auth {
 			r.Header.Set("Authorization", "Bearer test")
 		}
@@ -44,10 +90,12 @@ func TestContainerMemoryAPIIsAuthenticatedAndReportsAge(t *testing.T) {
 		handler.ServeHTTP(w, r)
 		return w
 	}
-	if w := get(false); w.Code != http.StatusUnauthorized {
-		t.Fatal(w.Code)
+	for _, path := range []string{"/api/memory/containers", "/api/memory/landmarks"} {
+		if w := get(path, false); w.Code != http.StatusUnauthorized {
+			t.Fatal(path, w.Code)
+		}
 	}
-	w := get(true)
+	w := get("/api/memory/containers", true)
 	if w.Code != http.StatusOK {
 		t.Fatal(w.Code)
 	}
@@ -57,5 +105,16 @@ func TestContainerMemoryAPIIsAuthenticatedAndReportsAge(t *testing.T) {
 	}
 	if result.World != "world" || len(result.Containers) != 1 || result.Containers[0].AgeS < 60 || result.Containers[0].Inventory().Count("Wood") != 10 {
 		t.Fatal(result)
+	}
+	w = get("/api/memory/landmarks", true)
+	var landmarks LandmarkMemoryStatus
+	if w.Code != http.StatusOK {
+		t.Fatal(w.Code)
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &landmarks); err != nil {
+		t.Fatal(err)
+	}
+	if landmarks.World != "world" || len(landmarks.Landmarks) != 1 || landmarks.Landmarks[0].Entity != "portal" || landmarks.Landmarks[0].AgeS < 60 || landmarks.Landmarks[0].Tag != "mine" {
+		t.Fatal(landmarks)
 	}
 }

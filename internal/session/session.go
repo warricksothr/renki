@@ -107,6 +107,8 @@ type Session struct {
 	conn        *bridge.Conn
 	state       *protocol.State
 	seen        *protocol.Perception
+	seenAt      time.Time
+	seenWorld   string
 	carried     *protocol.Inventory
 	containers  map[string]*protocol.Container
 	containerAt map[string]time.Time
@@ -158,6 +160,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 		delete(s.tasks, id)
 	}
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
+	s.seenAt, s.seenWorld = time.Time{}, ""
 	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
 	s.containerAt = make(map[string]time.Time)
@@ -208,6 +211,9 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
 				s.automation = nil
 			}
+			if m.Phase != protocol.PhaseInWorld {
+				s.seenWorld = ""
+			}
 			s.state = m
 		}
 		s.mu.Unlock()
@@ -221,6 +227,10 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		s.mu.Lock()
 		if s.conn == c && (s.seen == nil || m.Seq > s.seen.Seq) {
 			s.seen = m
+			s.seenAt, s.seenWorld = time.Now().UTC(), ""
+			if s.state != nil && s.state.Phase == protocol.PhaseInWorld {
+				s.seenWorld = s.state.World
+			}
 		}
 		s.mu.Unlock()
 	case *protocol.Inventory:

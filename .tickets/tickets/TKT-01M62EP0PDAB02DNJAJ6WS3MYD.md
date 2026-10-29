@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-10-29T20:18:38Z
+updated_at: 2026-10-29T21:20:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -68,18 +68,18 @@ can say what is near ("there's a chest by the workbench").
 
 ## Acceptance criteria
 
-- [ ] Structures and notable resources from perception are kept per world across restarts, with when each was last seen
+- [x] Structures and notable resources from perception are kept per world across restarts, with when each was last seen
 - [ ] A remembered thing in view that perception no longer reports is marked missing
 - [ ] Each death is recorded with place, cause and time, and makes a danger zone that decays
 - [ ] The panel map draws remembered things and danger zones
 
 ## Implementation plan
 
-Continue the memory step already selected in the owner's M2 roadmap, beginning with the exact chest observations needed by stow. The deployed perception and container interfaces already exist; their remaining live visual/capacity/ward checks remain open and are not prerequisites for implementing persistence against those interfaces.
+The chest slice is landed and deployed. Continue M2 with persistent last-seen landmarks: useful structures, pickables and known ore deposits. Keep static prefab/kind/tool metadata once in a per-world catalogue; each entity retains its reference, position rounded to 0.5 m, last-seen wall time and portal tag. Do not persist door state, drops, characters or individual scenery trees/ordinary rocks. Bound records and catalogue by age/count; rollback failed saves and return independent expanded reads.
 
-Add bounded per-world remembered containers to memory.json beside homes/graves, retaining entity, position, observed prefab/kind when known, size, exact items and wall-clock observation time. Replace whole observations, reuse Inventory.Room, return independent copies with explicit age/freshness and roll back failed saves. Batch current-session chest observations from an atomic session/world snapshot once per second, without sending game commands, and retry failed persistence without stamping old data as newly observed.
+Capture perception arrival time and world atomically in Session, then batch newly seen landmarks for up to 30 seconds, flushing at shutdown. Preserve original timestamps across failures and connection/world changes and never reuse menu or previous-world frames. Expose authenticated read-only GET /api/memory/landmarks for future hauling consumers. Test restart, world separation, metadata sharing, replacement/movement, retention, rollback, recorder scope/retries and API authentication.
 
-Feed fresh remembered stock into behaviour conditions after controller restarts, with current live observations taking precedence, and expose remembered contents/age through an authenticated read-only API. Test world isolation, restart, replacement, room, ages, rollback, reconnection and live-over-memory precedence. Run focused just checks, just check ci and committed just check review before landing and controller-only deployment. Keep the broader memory ticket in progress: notable resources, missing-object inference, death/danger zones and map rendering are outside this chest slice. Live route and combat checks stay deferred.
+The current perception wire has per-kind truncation and no complete-coverage guarantee (resources also have a collider cap). Omission therefore cannot safely prove missing; leave missing inference unticked until explicit scan coverage exists. Death/danger and map rendering remain later slices. Run focused just checks, just check ci and committed just check review before landing and controller-only deployment. Live route/combat checks stay deferred.
 
 ## Notes
 
@@ -112,3 +112,13 @@ Behaviour stock conditions can use remembered contents after restart, retaining 
 Focused just check controller test-packages checks and just check ci passed, including the race suite, Linux/Windows builds, plugin build and 158 C# tests. New regressions cover restart, whole-snapshot replacement, input/output isolation, room, age/future dates, world separation, bounded retention, failed-save rollback, recorder retries preserving arrival time, stale-world exclusion, live-over-memory stock precedence and read-only API authentication/age output.
 
 The owner previously selected the M2 roadmap and requested autonomous continuation; this promotes its memory step. Perception and transfer interfaces are already deployed, so their outstanding visual/capacity/ward live checks do not prevent developing this persistence slice. Those checks remain open. The larger ticket is intentionally in progress with its acceptance boxes unchanged: notable resources, missing-object inference, death causes/danger zones and map rendering remain unimplemented. The chest-memory ticket TKT-01M62VXYWJHB5BC9VGCBM0PVXD (Remember what each chest holds, its size and when it was seen) remains draft and is not declared complete from this narrower slice. Live route/combat checks stay deferred. Committed review, landing and controller deployment follow.
+
+**agent:codex/renki-resume** at 2026-10-29T21:20:17Z
+
+Second M2 memory slice implements durable last-seen landmarks on t3/landmark-memory. Useful structures, pickables and recognized vanilla ore deposits are recorded by entity per world, with half-metre positions, wall-clock last-seen time and portal tags. Kind/prefab/tool metadata is shared in a per-world catalogue; transient door state, characters, drops, graves and individual scenery trees/ordinary rocks are excluded. Records and unused metadata are bounded to 16384 entries/world and 30 days, pruned on updates. Store reads are independent and failed saves roll back.
+
+Session captures perception world and arrival time atomically, excluding pre-state/menu, previous-world and replaced-connection frames. The recorder samples once per second and batches writes for 30 seconds, retaining earlier seen entities between frames. Save failures preserve pending observations/timestamps; an old-world batch must save before collecting the new world. Graceful App shutdown waits for the final landmark batch. Authenticated read-only GET /api/memory/landmarks expands metadata and reports ageS. No game actions are requested.
+
+Focused checks and just check ci passed, including controller race tests, both platform builds, plugin build and 158 C# tests. Regressions cover shared metadata and input/output isolation, restart, world separation, replacement/movement/tag changes, stale frames, bounds and catalogue compaction, failed-save rollback, batch retries/world transitions, reconnect/menu scoping, authenticated API ages and final shutdown persistence. AC 1 is now satisfied; the larger ticket remains in progress. Committed review, landing and controller deployment follow.
+
+Missing-object inference remains deliberately unimplemented: per-kind truncation and resource collider saturation make omission ambiguous until explicit scan coverage is available. Death/danger and panel map rendering are still open. Unknown/modded ore prefabs are excluded by conservative recognition. A crash can lose the pending 30-second batch. New-world collection waits during an old-world save failure. Live route/combat checks remain deferred while the owner is away.
