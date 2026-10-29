@@ -226,6 +226,8 @@ namespace Renki.Plugin
                     break;
                 case Bed bed:
                     if (bed.IsMine()) s.Mine = true;
+                    // A missing ZDO is unknown, never an unclaimed bed.
+                    if (bed.m_nview != null && bed.m_nview.GetZDO() != null) s.Owned = bed.GetOwner() != 0;
                     break;
                 case TeleportWorld portal:
                     var tag = portal.GetText();

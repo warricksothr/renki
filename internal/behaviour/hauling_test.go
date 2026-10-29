@@ -411,3 +411,47 @@ func TestStowFallsBackFromRejectedMissingChestWithoutAReceipt(t *testing.T) {
 		t.Fatal("permission failure must stop")
 	}
 }
+
+func TestStowTriesConfiguredHomeOnceForAnUnreachableHomeChest(t *testing.T) {
+	v := haulView()
+	home := protocol.Vec3{20, 4, 0}
+	v.Home = &home
+	v.Containers = []*protocol.Container{{Entity: "a", Pos: protocol.Vec3{21, 4, 0}}}
+	r := &stowRun{p: stowParams()}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	failed := &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable}
+	o := nextTask(t, r, v, failed, protocol.TaskMoveTo)
+	if pos := o.Args.(*protocol.MoveToArgs).To.Pos; pos == nil || *pos != home {
+		t.Fatal(o)
+	}
+	// Even if state lags home arrival, do not start another approach cycle.
+	o = nextTask(t, r, v, success("home"), protocol.TaskDeposit)
+	if o.Args.(*protocol.TransferArgs).Container != "a" {
+		t.Fatal(o)
+	}
+
+	r = &stowRun{p: stowParams()}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	nextTask(t, r, v, failed, protocol.TaskMoveTo)
+	// A failed home fallback advances once to the next chest, not forever.
+	o = nextTask(t, r, v, failed, protocol.TaskDeposit)
+	if o.Args.(*protocol.TransferArgs).Container != "b" {
+		t.Fatal(o)
+	}
+}
+
+func TestStowDoesNotUseHomeForAnUnrelatedChestOrUnsafeApproach(t *testing.T) {
+	v := haulView()
+	home := protocol.Vec3{0, 0, 0}
+	v.Home = &home
+	v.Containers = []*protocol.Container{{Entity: "a", Pos: protocol.Vec3{40, 0, 0}}}
+	r := &stowRun{p: stowParams()}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	o := nextTask(t, r, v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable}, protocol.TaskDeposit)
+	if o.Args.(*protocol.TransferArgs).Container != "b" {
+		t.Fatal(o)
+	}
+	if r.Recover(Result{Status: protocol.StatusFailed, Reason: protocol.ReasonDeepWater}) {
+		t.Fatal("deep water is not a reason to send another route")
+	}
+}

@@ -33,7 +33,11 @@ func (b *Brain) status() string {
 	}
 	where = append(where, fmt.Sprintf("day %d, %s", st.Time.Day, partOfDay(st.Time.DayFraction, st.Time.Night)))
 	fmt.Fprintf(&s, " %s.", strings.Join(where, ", "))
-	if st.Task != nil && st.Task.Status == protocol.StatusRunning {
+	if slices.Contains(st.Flags, "sleeping") {
+		s.WriteString(" Sleeping.")
+	} else if slices.Contains(st.Flags, "in_bed") {
+		s.WriteString(" In bed, waiting for everyone to sleep.")
+	} else if st.Task != nil && st.Task.Status == protocol.StatusRunning {
 		fmt.Fprintf(&s, " %s.", doing(st.Task.Task))
 	} else {
 		s.WriteString(" Idle.")

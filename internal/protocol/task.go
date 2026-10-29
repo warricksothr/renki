@@ -290,11 +290,15 @@ type InteractArgs struct {
 	Entity string `json:"entity"`
 	Alt    bool   `json:"alt,omitempty"`
 	Hold   bool   `json:"hold,omitempty"`
+	Sleep  bool   `json:"sleep,omitempty"`
 }
 
 func (a *InteractArgs) validate() error {
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
+	}
+	if a.Sleep && (a.Alt || a.Hold) {
+		return errors.New("`sleep` cannot be combined with `alt` or `hold`")
 	}
 	return nil
 }

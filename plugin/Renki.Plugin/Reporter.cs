@@ -133,6 +133,7 @@ namespace Renki.Plugin
             if (p.IsSwimming()) s.Flags.Add("swimming");
             if (p.IsSitting()) s.Flags.Add("sitting");
             if (p.IsSleeping()) s.Flags.Add("sleeping");
+            if (p.InBed()) s.Flags.Add("in_bed");
             if (p.InAttack()) s.Flags.Add("attacking");
             if (p.IsBlocking()) s.Flags.Add("blocking");
             if (p.IsEncumbered()) s.Flags.Add("encumbered");

@@ -567,6 +567,7 @@ var grammar = map[string]command{
 	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
 	"go to bed": cmdBed, "use your bed": cmdBed, "use the bed": cmdBed,
+	"sleep": cmdBed, "go to sleep": cmdBed, "get some sleep": cmdBed,
 	"claim the bed": cmdClaimBed, "claim a bed": cmdClaimBed, "claim that bed": cmdClaimBed,
 	"claim this bed":  cmdClaimBed,
 	"get your things": cmdFetch, "get your stuff": cmdFetch, "fetch your things": cmdFetch,
@@ -703,10 +704,10 @@ func (b *Brain) myGrave(near *protocol.Vec3, skip []string) *protocol.PerceivedS
 // of sight, a bed or door may be for "use the bed" or "get the door".
 const useReach = 10.0
 
-// use chooses the bed or door to interact with. Going to bed is to the
-// bot's own bed only, wherever it is in sight, since using any other claims
-// it. Claiming a bed, or getting a door, takes the one nearest the speaker,
-// or the bot when it cannot see the speaker. It says why when there is none.
+// use chooses the bed or door to interact with. Sleep prefers the bot's
+// own visible bed; otherwise it can claim an explicitly free nearby one.
+// Claiming or getting a door takes the nearest to the speaker, or the bot
+// when the speaker is out of sight. Unknown bed ownership is never free.
 func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, string, bool) {
 	kind, what, ack := protocol.StructureDoor, "door", "Getting the door."
 	switch cmd {
@@ -714,14 +715,15 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 		if seen := b.d.Perception(); seen != nil {
 			for _, s := range seen.Structures {
 				if s.Kind == protocol.StructureBed && s.Mine {
-					return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: s.ID}}, "Heading to bed.", true
+					return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: s.ID, Sleep: true}}, "Heading to bed.", true
 				}
 			}
 		}
-		b.say(from, "I don't see my bed. Tell me to claim one.")
-		return session.Order{}, "", false
+		// Without one of its own, only an explicitly unclaimed nearby bed
+		// is eligible. Older plugin data with unknown ownership is not free.
+		kind, what, ack = protocol.StructureBed, "free bed", "I'll claim a free bed and try to sleep."
 	case cmdClaimBed:
-		kind, what, ack = protocol.StructureBed, "bed", "I'll take that bed."
+		kind, what, ack = protocol.StructureBed, "free bed", "I'll take that bed."
 	case cmdOpenDoor:
 		ack = "Opening the door."
 	case cmdCloseDoor:
@@ -757,6 +759,9 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 				already = true
 				continue
 			}
+			if kind == protocol.StructureBed && (s.Owned == nil || *s.Owned) {
+				continue
+			}
 			best, dist = &seen.Structures[i], d
 		}
 	}
@@ -775,7 +780,7 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 		b.say(from, fmt.Sprintf("I don't see a %s nearby.", what))
 		return session.Order{}, "", false
 	}
-	return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: best.ID}}, ack, true
+	return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: best.ID, Sleep: cmd == cmdBed}}, ack, true
 }
 
 // pickupReach is how far from the speaker a drop may lie for "pick that up".

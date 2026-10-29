@@ -33,6 +33,7 @@ namespace Renki.Plugin
         readonly GameObject obj;
         readonly string name;
         readonly Walker walker = new Walker();
+        readonly BedSleep sleep = new BedSleep();
         Vector3 goal;
         float holdUntil = -1, nextRepeat;
         bool used;
@@ -92,6 +93,19 @@ namespace Renki.Plugin
             // Used up by the first press of a hold is still used.
             if (holdUntil >= 0) return obj == null ? Answer(used) : Holding(p);
             if (obj == null) return Outcome.Failed(Wire.ReasonTargetLost, $"the {name} is gone");
+            if (args.Sleep && target is Bed sleepingBed)
+            {
+                var step = sleep.Next(Time.time, sleepingBed.GetOwner() != 0, sleepingBed.IsMine(),
+                    p.InBed() && p.GetAttachPoint() == sleepingBed.m_spawnPoint);
+                if (step != BedStep.Use)
+                {
+                    Driver.Stand();
+                    if (step == BedStep.Wait) return null;
+                    if (step == BedStep.Sleeping) return Outcome.Succeeded($"used the {name}: I'm in bed.");
+                    return Outcome.Failed(Wire.ReasonRefused, step == BedStep.Taken
+                        ? "that bed belongs to someone else" : "the bed claim was not confirmed");
+                }
+            }
             var pos = p.transform.position;
             if (Near(p))
             {
@@ -104,7 +118,20 @@ namespace Renki.Plugin
                 // would open the grave as a chest.
                 if (target is TombStone && Kind(target) != InteractRule.Grave)
                     return Outcome.Failed(Wire.ReasonInventoryFull, $"not all of the {name} fits in the pack");
+                // Access may have changed while walking or waiting for a claim.
+                if (!PrivateArea.CheckAccess(obj.transform.position, 0f, false, false))
+                    return Outcome.Failed(Wire.ReasonNotAllowed, $"the {name} is behind a ward");
                 var ok = Use(p, false);
+                if (args.Sleep && target is Bed bed)
+                {
+                    if (!ok) return Answer(false);
+                    if (p.InBed() && p.GetAttachPoint() == bed.m_spawnPoint)
+                        return Outcome.Succeeded($"used the {name}: I'm in bed.");
+                    if (!bed.IsMine()) sleep.Claimed(Time.time);
+                    // Claiming/setting spawn is a distinct first press; it
+                    // never counts as sleep. The next tick uses it again.
+                    return null;
+                }
                 if (!args.Hold) return Answer(ok);
                 used = ok;
                 holdUntil = Time.time + HoldFor;
@@ -161,7 +188,9 @@ namespace Renki.Plugin
             var any = false;
             foreach (var c in obj.GetComponentsInChildren<Collider>())
             {
-                if (!c.enabled) continue;
+                // Beds include a broad PlayerBase effect-area trigger.
+                // Being inside that radius is not being beside the bed.
+                if (!c.enabled || c.isTrigger) continue;
                 any = true;
                 // Unity answers a concave mesh's ClosestPoint with the point
                 // itself, so it is aimed at by its middle only.
@@ -181,7 +210,7 @@ namespace Renki.Plugin
             if (d < 0.05f) return true;
             // Like Player.FindHoverObject: the player's body is not an
             // obstruction, but the nearest other collider still is.
-            var hits = Physics.RaycastAll(eye, dir / d, Reach, p.m_interactMask);
+            var hits = Physics.RaycastAll(eye, dir / d, Reach, p.m_interactMask, QueryTriggerInteraction.Ignore);
             bool Self(RaycastHit hit) => hit.collider.attachedRigidbody != null &&
                                          hit.collider.attachedRigidbody.gameObject == p.gameObject;
             var visible = InteractionSight.Visible(hits.Select(hit => new SightHit(hit.distance,
@@ -225,6 +254,7 @@ namespace Renki.Plugin
             {
                 var bed = target as Bed;
                 var wasSpawn = bed != null && SpawnsAt(bed);
+                var wasMine = bed != null && bed.IsMine();
                 var wasAttached = p.IsAttached();
                 var ok = target.Interact(p, hold, args.Alt);
                 // A bed answers false whatever it did: what changed says.
@@ -232,8 +262,10 @@ namespace Renki.Plugin
                 // profile, set at once, where the owner the bed records
                 // comes back later from whoever holds it); its own already,
                 // the bot lies down in it.
-                if (bed != null) ok = (!wasAttached && p.IsAttached()) || (!wasSpawn && SpawnsAt(bed));
-                if (ok) p.DoInteractAnimation(obj);
+                if (bed != null) ok = (!wasAttached && p.IsAttached()) || (!wasSpawn && SpawnsAt(bed)) || (!wasMine && bed.IsMine());
+                // Bed.Interact normally returns false even on success;
+                // AttachStart already plays its bed animation.
+                if (ok && bed == null) p.DoInteractAnimation(obj);
                 return ok;
             }
             finally

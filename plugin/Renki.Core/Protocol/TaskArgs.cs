@@ -103,6 +103,9 @@ namespace Renki.Protocol
 
         /// <summary>Hold the use key, as some things need.</summary>
         public bool Hold;
+
+        /// <summary>Beds only: claim/set spawn if needed, then lie down.</summary>
+        public bool Sleep;
     }
 
     public sealed class FleeArgs
@@ -229,7 +232,9 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        return new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false) };
+                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false) };
+                        if (args.Sleep && (args.Alt || args.Hold)) throw new BadArgsException("`sleep` cannot be combined with `alt` or `hold`");
+                        return args;
                     }
                 case TaskNames.Flee:
                     {

@@ -76,6 +76,8 @@ namespace Renki.Plugin
                             if (parts.Length == 1) it = parts[0];
                         }
                         if (it == null) throw new TaskRefused(Wire.ReasonInvalidTarget, $"nothing to use at {ia.Entity} in range");
+                        if (ia.Sleep && !(it is Bed))
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, "sleep requires a bed");
                         if (InteractRule.Check(InteractTask.Kind(it), safety) is Outcome no)
                             throw new TaskRefused(no.Reason, no.Detail);
                         // Section 8: nothing behind a ward the bot has no access to.

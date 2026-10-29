@@ -233,6 +233,18 @@ namespace Renki.Plugin
             {
                 nextWallCheck = Time.unscaledTime + .25f;
                 var next = path.Next(Convert.ToV3(pos));
+                if (next is V3 above && V3.FlatDistance(Convert.ToV3(pos), above) <= path.Reach &&
+                    System.Math.Abs(pos.y - above.Y) > Arrival.Level)
+                {
+                    Tracer.Emit("walker", "waypoint on another floor; replanning", new Dictionary<string, object>
+                    {
+                        ["pos"] = Convert.ToArray(pos),
+                        ["waypoint"] = above.ToArray(),
+                    });
+                    Repath(pos, true);
+                    Driver.Stand();
+                    return true;
+                }
                 if (next is V3 waypoint && !WallRoute.Clear(Convert.ToV3(pos), waypoint, WorldNavigation.Walls))
                 {
                     Repath(pos, true);
