@@ -304,13 +304,14 @@ func (k *Keeper) Tick(ctx context.Context) {
 	case st.Phase == protocol.PhaseDead && !k.dead:
 		k.dead, k.ordered = true, false
 		pos := st.Pos
-		k.diedAt, k.shunned = &pos, ""
+		k.diedAt = &pos
 		if w := st.World; w != "" {
 			if err := k.store.AddGrave(w, Grave{Pos: st.Pos, At: now}); err != nil {
 				k.log.Warn("could not remember the grave", "err", err)
 			}
 			// Whatever killed it near home may be there still: going home
-			// is going back to it.
+			// is going back to it. A later death elsewhere does not make
+			// home safe; only an order ends it.
 			if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
 				k.shunned = w
 			}
@@ -346,7 +347,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Unlock()
 	if first && k.store.Interrupted() {
 		k.setInterrupted(false)
-		if k.Rules().AfterOutage && st.Task == nil {
+		if k.Rules().AfterOutage && st.Task == nil && !k.shuns() {
 			k.announce(ctx, "after an outage", "Something cut me off. Heading home.")
 			return
 		}
@@ -408,8 +409,9 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.mu.Lock()
-	cut := k.cutOff != nil || (k.shunned != "" && k.shunned == k.World())
+	cut := k.cutOff != nil
 	k.mu.Unlock()
+	cut = cut || k.shuns()
 	if cut {
 		return
 	}
@@ -486,6 +488,15 @@ func (k *Keeper) ForgetGrave(pos protocol.Vec3, r float64) {
 	if err := k.store.ForgetGrave(w, pos, r); err != nil {
 		k.log.Warn("could not forget the grave", "err", err)
 	}
+}
+
+// shuns reports whether the bot died near home in this world and has had
+// no order since.
+func (k *Keeper) shuns() bool {
+	w := k.World()
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	return k.shunned != "" && k.shunned == w
 }
 
 func (k *Keeper) setInterrupted(v bool) {

@@ -475,6 +475,23 @@ func TestNoGoingBackToWhatKilledItAtHome(t *testing.T) {
 	if got := f.sent(); len(got) != 3 {
 		t.Fatalf("with stay, went home to what killed it: %q", got)
 	}
+	// A later death far from home does not make home safe.
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathHome })
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{300, 0, 0}})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 4 || got[3] != `say: Something killed me at home, so I'll wait here. Say "get your things" when it's safe.` {
+		t.Fatalf("after a later death far off: %q", got)
+	}
+	// Nor does an outage.
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.setInterrupted(true)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 4 {
+		t.Fatalf("an outage sent it home to what killed it: %q", got)
+	}
+	k.ForgetGrave(protocol.Vec3{300, 0, 0}, 1)
 	g, ok := k.Grave()
 	if !ok || g.Pos != (protocol.Vec3{12, 0, 0}) {
 		t.Fatalf("newest grave %+v, %v", g, ok)

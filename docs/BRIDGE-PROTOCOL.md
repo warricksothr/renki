@@ -611,8 +611,8 @@ chat event
   the player has gone (the follow then fails with `target_lost`); `stay`
   stays at the spawn point. A death within 30 m of home keeps it from going
   back there, whatever the rule, since what killed it may be there still: it
-  says so, and neither the respawn nor idling sends it home until someone
-  gives it an order. Every death is remembered per world (the
+  says so, and neither the respawn, idling nor an outage sends it home in
+  that world until someone gives it an order, however it dies meanwhile. Every death is remembered per world (the
   last 5) as a grave to fetch from, until it is emptied or found gone. Any
   order given after the death wins, except
   `set home` and `status`. The controller reads the death and the respawn
