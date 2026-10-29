@@ -255,7 +255,8 @@ func (k *Keeper) Ordered() {
 		k.ordered = true
 	}
 	k.mu.Unlock()
-	if err := k.store.Unshun(); err != nil {
+	// An order in this world: another world's home is no safer for it.
+	if err := k.store.Unshun(k.World()); err != nil {
 		k.log.Warn("could not save the end of the shun", "err", err)
 	}
 }

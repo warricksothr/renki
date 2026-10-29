@@ -174,14 +174,14 @@ func (s *Store) Shun(world string) error {
 	return s.save()
 }
 
-// Unshun ends every shun, writing only when there was one.
-func (s *Store) Unshun() error {
+// Unshun ends the shun in world, writing only when there was one.
+func (s *Store) Unshun(world string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if len(s.mem.Shunned) == 0 {
+	if !slices.Contains(s.mem.Shunned, world) {
 		return nil
 	}
-	s.mem.Shunned = nil
+	s.mem.Shunned = slices.DeleteFunc(s.mem.Shunned, func(w string) bool { return w == world })
 	return s.save()
 }
 
