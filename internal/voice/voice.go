@@ -146,12 +146,15 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 		Yolo: true,
 	})
 	if err != nil {
+		v.opts.Logger.Warn("voice failed", "player", req.Speaker, "err", err, "model", m.Name)
 		return chat.Reply{}, fmt.Errorf("terva: %w", err)
 	}
 	defer rt.Close()
 
 	events, err := rt.Prompt(ctx, prompt(req), nil)
 	if err != nil {
+		v.opts.Logger.Warn("voice failed", "player", req.Speaker, "err", err, "model", m.Name,
+			"ms", v.opts.Now().Sub(start).Milliseconds())
 		return chat.Reply{}, fmt.Errorf("terva: %w", err)
 	}
 	var text strings.Builder
@@ -197,6 +200,8 @@ func (v *Voice) Models(ctx context.Context) ([]string, error) {
 	m := v.model()
 	base := m.BaseURL
 	switch {
+	case m.Provider == "":
+		return nil, errors.New("llm.terva names no provider, so terva's own configuration picks it, and that cannot be listed from here")
 	case m.Provider != "openai-compatible" && m.Provider != "openai":
 		return nil, fmt.Errorf("listing models needs an OpenAI-compatible backend, and this one is %q", m.Provider)
 	case base == "" && m.Provider == "openai":
