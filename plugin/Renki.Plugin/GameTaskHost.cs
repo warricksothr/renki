@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Renki.Protocol;
 using Renki.Tasks;
 using UnityEngine;
@@ -112,7 +113,7 @@ namespace Renki.Plugin
         public Outcome RunInstant(TaskRequest req, object args)
         {
             var player = Player.m_localPlayer;
-            if (player == null) return Outcome.Failed(Wire.ReasonStopped, "not in the world");
+            if (player == null || player.IsDead()) return Outcome.Failed(Wire.ReasonStopped, "not in the world");
             switch (args)
             {
                 case LookAtArgs l:
@@ -136,6 +137,8 @@ namespace Renki.Plugin
                     return Outcome.Succeeded();
                 case DropArgs d:
                     return Drop(player, d);
+                case UseItemArgs food:
+                    return Eat(player, food);
                 case EquipArgs eq:
                     return Equip(player, eq);
                 case UnequipArgs uq:
@@ -174,6 +177,30 @@ namespace Renki.Plugin
             var dropped = d.Count - left;
             if (dropped == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"the game would not drop the {d.Prefab}");
             return Outcome.Succeeded($"dropped {dropped} {d.Prefab}");
+        }
+
+        /// <summary>Use the same consumption path as the inventory UI. The
+        /// flag prevents offering food to a hovered world interactable.</summary>
+        static Outcome Eat(Player player, UseItemArgs args)
+        {
+            var inventory = player.GetInventory();
+            var item = inventory.GetAllItems().FirstOrDefault(i => Prefab(i) == args.Item && i.m_stack > 0);
+            if (item == null) return Outcome.Failed(Wire.ReasonInvalidTarget, $"no {args.Item} to eat");
+            if (item.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Consumable || item.m_shared.m_food <= 0)
+                return Outcome.Failed(Wire.ReasonInvalidTarget, $"{args.Item} is not food");
+            var heard = new System.Collections.Generic.List<string>();
+            var before = inventory.GetAllItems().Where(i => Prefab(i) == args.Item).Sum(i => i.m_stack);
+            using (InteractTask.Listen(heard))
+            {
+                if (!player.CanConsumeItem(item, true))
+                    return Outcome.Failed(Wire.ReasonRefused, heard.Count > 0 ? string.Join("; ", heard) : "the game would not allow this food yet");
+                player.UseItem(inventory, item, true);
+            }
+            var after = inventory.GetAllItems().Where(i => Prefab(i) == args.Item).Sum(i => i.m_stack);
+            var active = player.m_foods.Any(f => f.m_item.m_shared.m_name == item.m_shared.m_name);
+            if (before - after != 1 || !active)
+                return Outcome.Failed(Wire.ReasonRefused, heard.Count > 0 ? string.Join("; ", heard) : "food consumption was not confirmed");
+            return Outcome.Succeeded($"ate 1 {args.Item}; active food confirmed, {after} carried");
         }
 
         /// <summary>Equips the item by prefab: of its stacks, the one in

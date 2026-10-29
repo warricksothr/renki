@@ -452,7 +452,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (bool, beds only) | M2 |
 | `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
-| `use_item` | instant | `item` (eat, drink) | M2 |
+| `use_item` | instant | `item` (carried food prefab; eat one) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
 | `withdraw` | body | `container`; `items` | M2 |
 | `craft` | body | `recipe` (prefab); `count`; walks to the needed station | M2 |
@@ -543,6 +543,13 @@ Notes:
     it sits the bot down, harnesses it, carries it off or takes from its pack.
   - It needs `allowMovement`, and nothing behind a ward the bot has no access
     to.
+- `use_item` eats one carried food by prefab through the normal inventory
+  use action. It preserves world-level, duplicate-food and full-food restrictions,
+  and confirms both the one-item decrease and the matching active food. Missing
+  items and non-food consumables are `invalid_target`; game refusal is `refused`.
+  Health regenerates normally from active food; the task does not heal directly.
+  It needs the plugin enabled and welcome permission, with no gather/movement
+  requirement. Automatic food-slot maintenance and owner food requests are pending.
 - `equip` holds or wears an item by prefab: of its stacks, the one in best
   repair, then of highest quality. One already equipped succeeds as it is.
   A broken item, or one that is not equipment, is `invalid_target`; the game

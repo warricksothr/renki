@@ -141,6 +141,8 @@ namespace Renki.Tests
         [InlineData("interact", "{\"entity\":\"0:1\",\"sleep\":true,\"hold\":true}")]
         [InlineData("interact", "{\"entity\":\"0:1\",\"sleep\":true,\"alt\":true}")]
         [InlineData("flee", "{\"distance\":20}")]
+        [InlineData("use_item", "{}")]
+        [InlineData("use_item", "{\"item\":7}")]
         [InlineData("equip", "{}")]
         [InlineData("unequip", "{\"slot\":\"tail\"}")]
         [InlineData("flee", "{\"from\":\"0:1\",\"distance\":0}")]
@@ -171,6 +173,8 @@ namespace Renki.Tests
             Assert.Null(fl.Toward);
             Assert.Equal("AxeStone", ((EquipArgs)TaskArgs.Parse(Req("equip", "{\"item\":\"AxeStone\"}"))).Item);
             Assert.Equal("hands", ((UnequipArgs)TaskArgs.Parse(Req("unequip", "{\"slot\":\"hands\"}"))).Slot);
+            Assert.Equal("Raspberry", ((UseItemArgs)TaskArgs.Parse(Req("use_item", "{\"item\":\"Raspberry\"}"))).Item);
+            Assert.True(TaskNames.IsInstant("use_item"));
             Assert.True(TaskNames.IsInstant("equip") && TaskNames.IsInstant("unequip"));
             Assert.True(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}"))).Collect);
             Assert.False(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\",\"collect\":false}"))).Collect);

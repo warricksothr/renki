@@ -34,7 +34,7 @@ namespace Renki.Plugin
         float nextThreatCheck;
         ItemDrop.ItemData tool;
         Vector3 origin, walkGoal, retreat;
-        bool walking, retreatReady, retreated, broken, cancelled;
+        bool walking, retreatReady, retreated, broken, cancelled, injured;
         float brokeAt, quietSince = -1, nextCollect, swingSince = -1;
         int hitsAtSwingStart, collected;
         PickupTask pickup;
@@ -112,13 +112,22 @@ namespace Renki.Plugin
             item => (!item.m_shared.m_useDurability || item.m_durability > 0) &&
                 (item.m_shared.m_attack.m_attackType == Attack.AttackType.Horizontal || item.m_shared.m_attack.m_attackType == Attack.AttackType.Vertical));
 
+        // Latch actual damage so food regeneration cannot conceal a hit by
+        // restoring health above the value observed at task start.
+        internal void Damaged(float amount)
+        {
+            if (amount <= 0) return;
+            injured = true;
+            Driver.HarvestAttack = false;
+        }
+
         public Outcome Tick(double dt)
         {
             Driver.Stand();
             var p = Player.m_localPlayer;
             if (cancelled || p == null || p.IsDead()) return Finish(Outcome.Failed(Wire.ReasonStopped, "not in the world"));
             if (Time.unscaledTime - startedAt > 180) return Finish(Outcome.Failed(Wire.ReasonTimeout, "harvest reached its 180 s work limit"));
-            if (HarvestHealth.Hurt(initialHealth, p.GetHealth())) return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
+            if (injured || HarvestHealth.Hurt(initialHealth, p.GetHealth())) return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
             if (Time.unscaledTime >= nextThreatCheck)
             {
                 nextThreatCheck = Time.unscaledTime + .25f;
