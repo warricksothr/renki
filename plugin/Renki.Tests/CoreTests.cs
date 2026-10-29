@@ -469,7 +469,7 @@ namespace Renki.Tests
             Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Pickable, s).Reason);
             s.AllowBossSummoning = s.AllowSailing = s.AllowGather = true;
             Assert.Null(InteractRule.Check(InteractRule.Boss, s));
-            Assert.Null(InteractRule.Check(InteractRule.Ship, s));
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ship, s).Reason); // not until it sails
             Assert.Null(InteractRule.Check(InteractRule.Pickable, s));
             // These have their own tasks, or a window the bot cannot use.
             foreach (var k in new[] { InteractRule.Drop, InteractRule.Container, InteractRule.Station, InteractRule.Text })

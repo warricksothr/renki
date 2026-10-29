@@ -448,13 +448,15 @@ Notes:
   game does. It succeeds when the game says it did something, with what the
   game said on screen in `detail`, and fails with `refused` when it did not.
   - What it may use goes by what the thing is, and only what is named here:
-    beds and doors; offering bowls with `allowBossSummoning`; ship controls
-    with `allowSailing`; pickables, beehives and sap collectors with
-    `allowGather`.
+    beds and doors; offering bowls with `allowBossSummoning`; pickables,
+    beehives and sap collectors with `allowGather`. A ship's helm is
+    `not_allowed` even with `allowSailing`, until the plugin sails: taking it
+    holds the bot there.
   - A bed answers the game's call with false whatever it did, so for a bed
     success is what changed: it became the bot's spawn point, or the bot lay
     down in it (its own bed already, at night). A ship is named by its hull,
-    and what is used is its helm.
+    and what would be used is its helm. Most offering bowls take an item
+    rather than a use, so `interact` on one mostly comes back `refused`.
   - A tombstone is the bot's own grave when all of it fits in the pack, and
     using it takes everything; otherwise it counts as a chest. If the pack
     has filled by the time the bot gets there, it fails `inventory_full`.

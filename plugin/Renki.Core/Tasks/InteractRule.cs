@@ -29,9 +29,10 @@ namespace Renki.Tasks
                 case Boss:
                     return safety.AllowBossSummoning ? null
                         : Outcome.Failed(Wire.ReasonNotAllowed, "summoning a boss needs AllowBossSummoning");
+                // Taking the helm holds the bot there, and nothing in the
+                // plugin sails yet, so not even AllowSailing lets it.
                 case Ship:
-                    return safety.AllowSailing ? null
-                        : Outcome.Failed(Wire.ReasonNotAllowed, "taking the helm needs AllowSailing");
+                    return Outcome.Failed(Wire.ReasonNotAllowed, "the bot does not sail yet");
                 case Pickable:
                     return safety.AllowGather ? null
                         : Outcome.Failed(Wire.ReasonNotAllowed, "picking needs AllowGather");
