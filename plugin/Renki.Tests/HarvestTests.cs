@@ -10,6 +10,30 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void OutdoorApproachDoesNotInheritRaisedStartingFloor()
+        {
+            var resource = new V3(-25.49, 32.57, 32.54);
+            var contact = new V3(-25.8, 33.17, 32.2);
+            var fromHouse = new V3(-37.45, 36.09, 7.59);
+            var goal = HarvestReach.StandAt(resource, contact, fromHouse, .65);
+            Assert.Equal(resource.Y, goal.Y);
+            Assert.InRange(V3.FlatDistance(goal, contact), .649, .651);
+            Assert.False(HarvestReach.InRange(fromHouse, contact, .6, 1));
+            Assert.True(HarvestReach.InRange(goal, contact, .6, 1));
+        }
+
+        [Fact]
+        public void BroadBoundsAreNotStrikeContactAndCloserPositionIsInReach()
+        {
+            var missed = new V3(-27.5, 32.57, 30.86);
+            var trunkContact = new V3(-25.8, 33.17, 32.2);
+            Assert.False(HarvestReach.InRange(missed, trunkContact, .6, 1));
+            var closer = HarvestReach.StandAt(new V3(-25.49, 32.57, 32.54), trunkContact, missed, .65);
+            Assert.True(HarvestReach.InRange(closer, trunkContact, .6, 1));
+            Assert.False(HarvestReach.InRange(closer + new V3(0, 3.5, 0), trunkContact, .6, 1));
+        }
+
+        [Fact]
         public void FoodMaximumDecayIsNotDamage()
         {
             Assert.False(HarvestHealth.Hurt(115, 114.7, 114.7));

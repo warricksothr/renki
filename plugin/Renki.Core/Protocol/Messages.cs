@@ -144,6 +144,24 @@ namespace Renki.Protocol
         [JsonProperty("status")] public string Status = "";
     }
 
+    public sealed class FoodStatus
+    {
+        [JsonProperty("active")] public List<ActiveFood> Active = new List<ActiveFood>();
+        [JsonProperty("carried")] public List<CarriedFood> Carried = new List<CarriedFood>();
+    }
+    public sealed class ActiveFood
+    {
+        [JsonProperty("prefab")] public string Prefab;
+        [JsonProperty("remainingS")] public double RemainingS;
+    }
+    public sealed class CarriedFood
+    {
+        [JsonProperty("prefab")] public string Prefab;
+        [JsonProperty("health")] public double Health;
+        [JsonProperty("regen")] public double Regen;
+        [JsonProperty("canEat")] public bool CanEat;
+    }
+
     public sealed class State : Message
     {
         public override string MessageType => Wire.State;
@@ -155,6 +173,7 @@ namespace Renki.Protocol
         [JsonProperty("vel")] public double[] Vel = new double[3];
         [JsonProperty("hp")] public double Hp;
         [JsonProperty("hpMax")] public double HpMax;
+        [JsonProperty("food", NullValueHandling = NullValueHandling.Ignore)] public FoodStatus Food;
         [JsonProperty("stamina")] public double Stamina;
         [JsonProperty("staminaMax")] public double StaminaMax;
         [JsonProperty("eitr")] public double Eitr;

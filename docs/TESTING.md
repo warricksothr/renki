@@ -88,7 +88,16 @@ by exactly one and health rises through normal regeneration. Retry the same
 food immediately: it must refuse without another inventory decrease. Check a
 missing prefab and a carried non-food item refuse, then verify full food slots
 refuse a fourth fresh food. Do not resume harvesting below 80% current maximum
-health. Automatic food upkeep is separate work.
+health.
+
+Use `just check controller test-packages ./internal/food ./internal/app
+./internal/protocol` for automatic upkeep policy, action sequencing, stale
+state/connection guards, permission checks and owner-request rate limiting.
+With eligible spare meals carried at home, observe automatic `use_item`
+success, one-item consumption and updated `food.active`/`food.carried` in
+`just vm panel GET /api/status`. Let health regenerate to at least 80% of its
+new maximum before work. Verify an existing movement task is preserved. Owner
+requests need an injured, foodless live case; do not injure Tas to stage it.
 
 ## Chest-transfer check
 
@@ -502,6 +511,14 @@ selection, unavailable/broken tools, destruction correlation, permission
 requirements and task cancellation. Protocol checks cover default collection
 and explicit `collect: false`. These do not prove Unity attack hitboxes,
 network attribution or falling-log safety.
+
+The reach regressions use the recorded raised-house and failed small-tree
+stances. In game, start inside the raised home and issue `just vm task-check
+harvest '{"entity":"<current-live-id>","collect":true}' 90` without an outside
+waypoint or manual closer move. Confirm the approach uses outdoor support and
+physical collider contact, then measure new products, deposit only those gains
+and return home. Missed swings permit one closer supported approach before
+failure; this needs real collider verification as well as the offline checks.
 
 First verify no-tool refusal on a loaded mineable rock while Tas has an axe
 and no pickaxe. Then use a small isolated tree away from the home/players,

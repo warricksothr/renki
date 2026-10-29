@@ -35,9 +35,9 @@ namespace Renki.Plugin
         float nextThreatCheck;
         ItemDrop.ItemData tool;
         Vector3 origin, walkGoal, retreat;
-        bool walking, retreatReady, retreated, broken, cancelled, injured;
+        bool walking, retreatReady, retreated, broken, cancelled, injured, forceApproach;
         float brokeAt, quietSince = -1, nextCollect, swingSince = -1;
-        int hitsAtSwingStart, collected;
+        int hitsAtSwingStart, collected, contactRetries;
         PickupTask pickup;
 
         public HarvestTask(HarvestArgs args, GameObject target)
@@ -157,20 +157,23 @@ namespace Renki.Plugin
                 if (!p.EquipItem(tool, true)) return Finish(Outcome.Failed(Wire.ReasonNoTool, "the selected tool could not be equipped"));
                 return null;
             }
-            var eye = p.transform.position + Vector3.up * .6f;
-            var surface = targetColliders.Where(Alive).Select(c => c is MeshCollider mesh && !mesh.convex ? c.bounds.ClosestPoint(eye) : c.ClosestPoint(eye))
-                .OrderBy(at => (at - eye).sqrMagnitude).First();
-            var reach = Mathf.Min(1.3f, tool.m_shared.m_attack.m_attackRange * .8f);
-            if (Vector3.Distance(surface, eye) > reach || !UseReach.Near(p, target, 2.5f))
+            var attackHeight = tool.m_shared.m_attack.m_attackHeight;
+            var eye = p.transform.position + Vector3.up * attackHeight;
+            if (!HarvestApproach.Contact(targetColliders, origin, p.transform.position, attackHeight, out var surface))
+                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
+            var reach = Mathf.Min(1f, tool.m_shared.m_attack.m_attackRange * .65f);
+            if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
+            if (forceApproach || !HarvestReach.InRange(Convert.ToV3(p.transform.position), Convert.ToV3(surface), attackHeight, reach) || !UseReach.Near(p, target, 2.5f))
             {
-                var goal = surface - Vector3.up * .6f;
-                if (!walking || Vector3.Distance(walkGoal, goal) > .75f)
+                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position, contactRetries == 0 ? .65f : .5f, out var goal))
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported, water-safe position beside the resource"));
+                if (!walking || Vector3.Distance(walkGoal, goal) > .45f)
                 {
-                    walker.SetGoal(p.transform.position, goal, reach);
+                    walker.SetGoal(p.transform.position, goal, .15f);
                     walker.ResetStuck(p.transform.position);
                     walkGoal = goal; walking = true; retreatReady = false;
                 }
-                if (walker.Unreachable(p.transform.position, reach) is Outcome no) return Finish(no);
+                if (walker.Unreachable(p.transform.position, .15f) is Outcome no) return Finish(no);
                 if (walker.Refused() is Outcome refused) return Finish(refused);
                 if (!walker.Steer(p.transform.position, false)) return Finish(Outcome.Failed(Wire.ReasonStuck, "cannot approach the resource"));
                 swingSince = -1;
@@ -207,7 +210,18 @@ namespace Renki.Plugin
             {
                 swingSince = Time.unscaledTime; hitsAtSwingStart = evidence.LocalHits;
             }
-            if (Time.unscaledTime - swingSince > 8) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "swings did not reach or damage the resource"));
+            if (Time.unscaledTime - swingSince > 8)
+            {
+                if (contactRetries++ > 0) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "swings did not reach or damage the resource after repositioning"));
+                // One bounded closer approach, with fresh support/clearance
+                // validation. Never keep swinging indefinitely without a hit.
+                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position, .5f, out var closer))
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no closer supported strike position"));
+                walker.SetGoal(p.transform.position, closer, .1f);
+                walker.ResetStuck(p.transform.position);
+                walkGoal = closer; walking = true; forceApproach = true; swingSince = -1;
+                return null;
+            }
             Driver.HarvestAttack = true;
             return null;
         }

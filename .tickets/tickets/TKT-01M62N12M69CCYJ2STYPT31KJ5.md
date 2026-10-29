@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:33:13Z
+updated_at: 2026-10-29T23:58:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -51,7 +51,7 @@ The game heals only from food, and the bot never eats: after the fights on 2026-
 
 ## Implementation plan
 
-Implement a food-only instant use_item task with required item prefab in both protocol decoders and supported/allowed task lists. Find one carried ordinary food, preserve the game's world-level/full/duplicate restrictions, and call normal UseItem with inventory-GUI semantics so a hovered chest cannot consume the item. Report success only after exactly one item is removed and a matching active food exists. Do not synthesize health or food state. Verify argument and task-runner behavior offline, then install while logged out, retrieve a small amount of chest food, eat and observe natural recovery before another harvest. Automatic food-slot maintenance and owner requests remain subsequent criteria.
+Report optional food status in state: active meals and remaining time, plus unique usable carried foods with health/regen and game CanEat eligibility. Add a controller food keeper that fills empty slots before refreshing eligible meals through instant use_item, respects capabilities/current permissions, waits for post-action observations, backs off failures, avoids stale/disconnected/menu/dead/sleep/attack/flee states and never replaces a body task. Ask configured owners once per bounded cooldown only when injured with no active or usable carried food. Keep consumption entirely in the normal game path; add protocol fixtures and controller policy/lifecycle tests, then observe live automatic recovery alongside a from-home harvesting loop.
 
 ## Notes
 
@@ -62,3 +62,7 @@ Food-only use_item is implemented with matching Go/C# argument validation, suppo
 **agent:codex/renki-resume** at 2026-10-29T23:33:13Z
 
 Landed primitive in PR #32, main 11c0e8d; final just check ci (193 plugin tests) and committed just check review passed. just check vm install verified package and installed plugin hashes while offline. On rejoin, t-1 returned safely home, 2.7 HP preserved. Food chest 1:30600 at [-37.09,36.09,3.42] held CookedDeerMeat11, NeckTailGrilled9, CookedMeat4 plus fish. Withdrew two of each cooked food, then t-8/t-9/t-10 each consumed exactly one and confirmed active food. Immediate duplicate t-11 refused without consumption; seeds t-12 and absent Raspberry t-13 refused invalid_target. Pack retains one spare of each, AxeFlint1, BeechSeeds15 and Wood2. Chest totals remain 9/7/2 cooked foods and original fish. Tas regenerated naturally from 2.7 to full (113.4/113.4 as food maximum slowly decayed), without fabricated healing or damage. Evidence .checks/audit-window-MUTQbj.jsonl and .checks/audit-window-8SwOKK.jsonl. AC1 is earned. Automatic upkeep/owner requests and live fourth-food refusal remain open.
+
+**agent:codex/renki-resume** at 2026-10-29T23:58:14Z
+
+Implemented optional game-reported active/carried food status, exposed it through panel status, and wired automatic upkeep through normal use_item. Empty slots take precedence over refresh; current game eligibility governs consumption. One action waits for new state; failure cooldown, stale state/connection/world guards, permissions and sleep/attack/flee guards are covered. Owner say requests are bounded to five minutes and require low health with no active or usable carried food. just check ci passed (20261029T235737Z-Wj8non.log). Live automatic consumption and naturally occurring foodless low-health request remain unverified; AC2/3 stay open until evidence.

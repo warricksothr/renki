@@ -125,6 +125,23 @@ func (*Config) MessageType() string { return TypeConfig }
 
 // ---- Plugin to controller (section 6) ----
 
+// FoodStatus is observed from game food slots and carried ordinary foods.
+// CanEat is the game's current duplicate/full-food eligibility, not an estimate.
+type FoodStatus struct {
+	Active  []ActiveFood  `json:"active"`
+	Carried []CarriedFood `json:"carried"`
+}
+type ActiveFood struct {
+	Prefab     string  `json:"prefab"`
+	RemainingS float64 `json:"remainingS"`
+}
+type CarriedFood struct {
+	Prefab string  `json:"prefab"`
+	Health float64 `json:"health"`
+	Regen  float64 `json:"regen"`
+	CanEat bool    `json:"canEat"`
+}
+
 // State is the bot's own body, streamed at stateHz (6.1).
 type State struct {
 	Envelope
@@ -136,6 +153,7 @@ type State struct {
 	Vel        Vec3              `json:"vel"`
 	HP         float64           `json:"hp"`
 	HPMax      float64           `json:"hpMax"`
+	Food       *FoodStatus       `json:"food,omitempty"`
 	Stamina    float64           `json:"stamina"`
 	StaminaMax float64           `json:"staminaMax"`
 	Eitr       float64           `json:"eitr"`
