@@ -63,7 +63,17 @@ type fake struct {
 	inv   *protocol.Inventory
 	seen  *protocol.Perception
 	sent  []string
-	drops map[string]int // prefab → how many the plugin drops; absent drops all asked
+	drops map[string]int  // prefab → how many the plugin drops; absent drops all asked
+	hello *protocol.Hello // nil is disconnected
+}
+
+func (f *fake) Handshake() (*protocol.Hello, *protocol.Welcome, bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.hello == nil {
+		return nil, nil, false
+	}
+	return f.hello, &protocol.Welcome{Perception: protocol.PerceptionConfig{Radius: 40, MaxPerKind: 3}}, true
 }
 
 func (f *fake) State() *protocol.State {
@@ -77,6 +87,9 @@ func (f *fake) Perception() *protocol.Perception { return f.seen }
 func (f *fake) Dispatch(_ context.Context, o session.Order) (*session.Task, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.hello == nil {
+		return nil, session.ErrNotConnected
+	}
 	switch a := o.Args.(type) {
 	case *protocol.DropArgs:
 		f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
@@ -110,7 +123,7 @@ func overloaded(weight float64) *protocol.State {
 }
 
 func unloader(on bool) (*Unloader, *fake, *home.Store, *clock) {
-	f := &fake{inv: pack()}
+	f := &fake{inv: pack(), hello: &protocol.Hello{}}
 	store := home.Memory()
 	c := &clock{t: time.Date(2026, 10, 28, 23, 0, 0, 0, time.UTC)}
 	return New(on, f, store, slog.New(slog.NewTextHandler(io.Discard, nil)), c.now), f, store, c
@@ -194,6 +207,23 @@ func TestGearIsNeverDropped(t *testing.T) {
 	}
 }
 
+func TestDisconnectedWaitsForTheNextConnection(t *testing.T) {
+	u, f, _, c := unloader(true)
+	f.st = overloaded(310)
+	f.hello = nil
+	u.Tick(context.Background())
+	if len(f.said()) != 0 {
+		t.Fatalf("sent %q while disconnected", f.said())
+	}
+	// Back, a moment later: it drops at once and says so.
+	f.hello = &protocol.Hello{}
+	c.t = c.t.Add(time.Second)
+	u.Tick(context.Background())
+	if got := f.said(); len(got) != 2 || got[0] != "drop 5 Wood" {
+		t.Errorf("after the reconnect: %q", got)
+	}
+}
+
 func TestSwitchedOffLeavesTheLoad(t *testing.T) {
 	u, f, _, _ := unloader(false)
 	f.st = overloaded(310)
@@ -230,6 +260,15 @@ func TestWhatWasLeftIsForgottenOnceGone(t *testing.T) {
 	left := store.LeftBehind("Midgard")
 	if len(left) != 1 || left[0].Items["Wood"] != 5 || left[0].Items["Stone"] != 0 {
 		t.Fatalf("after the stone was gone a while: %+v", left)
+	}
+	// A full list of nearer drops says nothing about the place.
+	nearer := protocol.PerceivedResource{Kind: protocol.ResourceDrop, Prefab: "Resin", Pos: protocol.Vec3{6, 0, 0}}
+	f.seen = &protocol.Perception{Resources: []protocol.PerceivedResource{nearer, nearer, nearer}}
+	u.Tick(context.Background())
+	c.t = c.t.Add(time.Hour)
+	u.Tick(context.Background())
+	if left := store.LeftBehind("Midgard"); len(left) != 1 {
+		t.Fatalf("forgot what a full list of nearer drops hid: %+v", left)
 	}
 	// A miss, then away and back much later: the grace starts again.
 	f.seen = &protocol.Perception{}

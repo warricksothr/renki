@@ -2,6 +2,7 @@ package burden
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -43,6 +44,7 @@ type Session interface {
 	State() *protocol.State
 	Inventory() *protocol.Inventory
 	Perception() *protocol.Perception
+	Handshake() (*protocol.Hello, *protocol.Welcome, bool)
 }
 
 // Unloader drops things when the bot carries too much, and keeps track of
@@ -54,6 +56,7 @@ type Unloader struct {
 	log   *slog.Logger
 	now   func() time.Time
 
+	conn *protocol.Hello
 	next time.Time
 	// told is set once the bot has said why it is still carrying too
 	// much (all gear, or it may not drop), so it says so once per overload.
@@ -88,11 +91,21 @@ func (u *Unloader) Run(ctx context.Context) {
 
 // Tick unloads an overloaded bot and checks on what it left behind.
 func (u *Unloader) Tick(ctx context.Context) {
+	// The state outlives a disconnect; there is nobody to drop anything.
+	hello, welcome, ok := u.s.Handshake()
 	st := u.s.State()
-	if st == nil || st.Phase != protocol.PhaseInWorld || st.World == "" {
+	if !ok || st == nil || st.Phase != protocol.PhaseInWorld || st.World == "" {
 		return
 	}
-	u.forgetGone(st)
+	if hello != u.conn {
+		// A new connection: try at once, and say again what is wrong.
+		u.conn, u.next, u.told = hello, time.Time{}, false
+	}
+	capped := 0
+	if welcome != nil {
+		capped = welcome.Perception.MaxPerKind
+	}
+	u.forgetGone(st, capped)
 	if !st.Encumbered() {
 		u.told = false
 		return
@@ -111,9 +124,21 @@ func (u *Unloader) Tick(ctx context.Context) {
 	}
 	left := map[string]int{}
 	for _, d := range drops {
-		if n := u.drop(ctx, d); n > 0 {
+		n, err := u.drop(ctx, d)
+		if errors.Is(err, session.ErrNotConnected) {
+			// Gone mid-way: start again on the next connection.
+			u.next = time.Time{}
+			break
+		}
+		if n > 0 {
 			left[d.Prefab] += n
 		}
+	}
+	if len(left) > 0 {
+		u.remember(st.World, st.Pos, left)
+	}
+	if u.next.IsZero() {
+		return
 	}
 	if len(left) == 0 {
 		// Not allowed (allowedTasks or the plugin's allowDrop), or refused:
@@ -122,7 +147,6 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.tell(ctx, "I'm carrying too much, and I can't put anything down.")
 		return
 	}
-	u.remember(st.World, st.Pos, left)
 	line := fmt.Sprintf("I was carrying too much, so I left %s here. I'll remember where.", list(left))
 	if short {
 		line = fmt.Sprintf("I was carrying too much, so I left %s here. It's still too much, but the rest is gear.", list(left))
@@ -130,19 +154,20 @@ func (u *Unloader) Tick(ctx context.Context) {
 	u.say(ctx, line)
 }
 
-// drop sends one drop task and returns how many it dropped.
-func (u *Unloader) drop(ctx context.Context, d Drop) int {
+// drop sends one drop task and returns how many it dropped, with the error
+// when it could not be sent.
+func (u *Unloader) drop(ctx context.Context, d Drop) (int, error) {
 	t, err := u.s.Dispatch(ctx, session.Order{Task: protocol.TaskDrop, Args: &protocol.DropArgs{Prefab: d.Prefab, Count: d.Count}})
 	if err != nil {
 		u.log.Warn("could not drop", "prefab", d.Prefab, "count", d.Count, "err", err)
-		return 0
+		return 0, err
 	}
 	wait, cancel := context.WithTimeout(ctx, waitFor)
 	defer cancel()
 	status, reason, err := t.Wait(wait)
 	if err != nil || status != protocol.StatusSucceeded {
 		u.log.Warn("drop failed", "prefab", d.Prefab, "count", d.Count, "status", status, "reason", reason, "err", err)
-		return 0
+		return 0, nil
 	}
 	// "dropped N PREFAB" (7.2).
 	_, _, detail := t.Status()
@@ -151,7 +176,7 @@ func (u *Unloader) drop(ctx context.Context, d Drop) int {
 		n = d.Count
 	}
 	u.log.Info("dropped to lighten the load", "prefab", d.Prefab, "count", n)
-	return n
+	return n, nil
 }
 
 // remember adds what was left at pos to the place nearest it, or to a new one.
@@ -174,8 +199,9 @@ func (u *Unloader) remember(world string, pos protocol.Vec3, items map[string]in
 }
 
 // forgetGone drops from memory what perception, looking at a place up
-// close, no longer sees there: someone picked it up.
-func (u *Unloader) forgetGone(st *protocol.State) {
+// close, no longer sees there: someone picked it up. capped is how many
+// drops perception lists at most (welcome.perception.maxPerKind).
+func (u *Unloader) forgetGone(st *protocol.State, capped int) {
 	caches := u.store.LeftBehind(st.World)
 	if len(caches) == 0 {
 		return
@@ -184,9 +210,20 @@ func (u *Unloader) forgetGone(st *protocol.State) {
 	if p == nil {
 		return
 	}
+	var drops []protocol.PerceivedResource
+	farthest := 0.0
+	for _, r := range p.Resources {
+		if r.Kind == protocol.ResourceDrop {
+			drops = append(drops, r)
+			farthest = max(farthest, r.Pos.FlatDistance(st.Pos))
+		}
+	}
 	changed := false
 	for i, c := range caches {
-		if c.Pos.FlatDistance(st.Pos) > Look {
+		// Perception lists only the nearest drops. A full list that stops
+		// short of the place says nothing about what is there.
+		blind := capped > 0 && len(drops) >= capped && farthest < c.Pos.FlatDistance(st.Pos)+Spread
+		if c.Pos.FlatDistance(st.Pos) > Look || blind {
 			// Out of sight: a miss from an earlier visit does not count later.
 			for prefab := range c.Items {
 				delete(u.missing, missingKey(st.World, c.Pos, prefab))
@@ -195,8 +232,8 @@ func (u *Unloader) forgetGone(st *protocol.State) {
 		}
 		for prefab := range c.Items {
 			key := missingKey(st.World, c.Pos, prefab)
-			if slices.ContainsFunc(p.Resources, func(r protocol.PerceivedResource) bool {
-				return r.Kind == protocol.ResourceDrop && r.Prefab == prefab && r.Pos.FlatDistance(c.Pos) <= Spread
+			if slices.ContainsFunc(drops, func(r protocol.PerceivedResource) bool {
+				return r.Prefab == prefab && r.Pos.FlatDistance(c.Pos) <= Spread
 			}) {
 				delete(u.missing, key)
 				continue
