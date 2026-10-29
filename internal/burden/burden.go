@@ -107,7 +107,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.conn, u.next, u.told = hello, time.Time{}, false
 		if len(u.unsaid) > 0 {
 			line := fmt.Sprintf("I was carrying too much, so I left %s back there. I'll remember where.", list(u.unsaid))
-			if u.say(ctx, line) == nil {
+			if !linkGone(u.say(ctx, line)) {
 				u.unsaid = nil
 			}
 		}
@@ -146,7 +146,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 		if n > 0 {
 			left[d.Prefab] += n
 		}
-		if errors.Is(err, session.ErrNotConnected) || ctx.Err() != nil {
+		if linkGone(err) || ctx.Err() != nil {
 			// The link went, or the controller is stopping: what went out is
 			// still remembered, and the rest waits for the next connection.
 			lost = true
@@ -173,8 +173,8 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.tell(ctx, "I'm carrying too much, and I can't put anything down.")
 		return
 	}
-	// Any failure to send: the link is going, and the next one hears it.
-	if u.say(ctx, fmt.Sprintf("I was carrying too much, so I left %s here. I'll remember where.", list(left))) != nil {
+	// The link is going: the next one hears it.
+	if linkGone(u.say(ctx, fmt.Sprintf("I was carrying too much, so I left %s here. I'll remember where.", list(left)))) {
 		u.owe(left)
 	}
 }
@@ -317,6 +317,13 @@ func distance(a, b protocol.Vec3) float64 {
 
 func missingKey(world string, pos protocol.Vec3, prefab string) string {
 	return fmt.Sprintf("%s|%.1f|%.1f|%s", world, pos[0], pos[2], prefab)
+}
+
+// linkGone reports whether a Dispatch failed for want of a link, rather
+// than being refused: not connected, or the send itself failed.
+func linkGone(err error) bool {
+	return err != nil && !errors.Is(err, session.ErrNotAllowed) &&
+		!errors.Is(err, protocol.ErrBadArgs) && !errors.Is(err, protocol.ErrUnknownTask)
 }
 
 // owe adds what it left to what it has yet to announce.
