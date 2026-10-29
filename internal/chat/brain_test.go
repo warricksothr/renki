@@ -685,6 +685,12 @@ func TestFromThePanel(t *testing.T) {
 	}
 	f.perception = &protocol.Perception{Characters: []protocol.PerceivedCharacter{
 		{Kind: protocol.CharacterPlayer, Name: "Sothr", Pos: protocol.Vec3{5, 0, 7}}}}
+	f.state.T = 100 // the sighting is stale
+	b.FromPanel("Sothr", "come here")
+	if got := f.tasks(); len(got) != 1 {
+		t.Errorf("came on a stale sighting: %v", got)
+	}
+	f.perception.T = 99
 	b.FromPanel("Sothr", "come here")
 	orders := f.sent()
 	if a, ok := orders[len(orders)-1].Args.(*protocol.MoveToArgs); !ok || *a.To.Pos != (protocol.Vec3{5, 0, 7}) {

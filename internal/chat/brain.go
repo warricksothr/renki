@@ -257,7 +257,9 @@ func (b *Brain) FromPanel(speaker, text string) error {
 		return ErrNoBot
 	}
 	c := &protocol.Chat{From: protocol.ChatSender{Name: speaker, Owner: true}, Channel: channelPanel, Text: text, Dist: -1}
-	if seen := b.d.Perception(); seen != nil {
+	// A sighting counts only from a perception as new as the state, give
+	// or take a few scans: none comes while the bot is dead or loading.
+	if seen := b.d.Perception(); seen != nil && st.T-seen.T <= panelSightFor {
 		for _, p := range seen.Characters {
 			if p.Kind == protocol.CharacterPlayer && p.Name == speaker {
 				c.Pos, c.Dist = p.Pos, st.Pos.FlatDistance(p.Pos)
@@ -267,6 +269,10 @@ func (b *Brain) FromPanel(speaker, text string) error {
 	b.Chat(c)
 	return nil
 }
+
+// panelSightFor is how old, in game seconds, a perception may be for the
+// panel's owner seen in it to count as seen now.
+const panelSightFor = 5.0
 
 // located reports whether the bot knows where the speaker of c stands.
 func located(c *protocol.Chat) bool { return c.Channel != channelPanel || c.Dist >= 0 }
