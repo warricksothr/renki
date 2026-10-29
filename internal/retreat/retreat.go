@@ -1,5 +1,5 @@
-// Package retreat gets the bot out of fights it is losing: on low health,
-// with a hostile creature after it, it flees toward its owner or home, and
+// Package retreat gets the bot out of fights: after a confirmed hostile hit,
+// or on low health with a hostile creature after it, it flees toward safety and
 // says so (docs/BRIDGE-PROTOCOL.md 7.2, flee).
 package retreat
 
@@ -66,6 +66,7 @@ type Retreat struct {
 
 type injury struct {
 	world string
+	at    time.Time
 	until time.Time
 }
 
@@ -88,7 +89,8 @@ func (r *Retreat) Event(e *protocol.Event) {
 	if r.hurt == nil {
 		r.hurt = make(map[string]injury)
 	}
-	r.hurt[e.By] = injury{world: st.World, until: r.now().Add(HurtFor)}
+	now := r.now()
+	r.hurt[e.By] = injury{world: st.World, at: now, until: now.Add(HurtFor)}
 }
 
 // New returns a retreat. owners and home, where the bot lives in the
@@ -114,21 +116,25 @@ func (r *Retreat) Run(ctx context.Context) {
 	}
 }
 
-// Tick sends the bot running when it is low on health with a threat near,
-// unless it is already running.
+// Tick reacts to a confirmed hostile attacker at any health. An AI target
+// alone still requires low health. A fresh hit can bypass the retry cooldown,
+// but never replaces an active flee with another one.
 func (r *Retreat) Tick(ctx context.Context) {
 	st, seen := r.s.State(), r.s.Perception()
 	if st == nil || seen == nil || st.Phase != protocol.PhaseInWorld || st.HP <= 0 || st.HPMax <= 0 {
 		return
 	}
-	if st.HP/st.HPMax >= Low || r.now().Sub(r.last) < Again {
-		return
-	}
 	if st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning {
 		return
 	}
-	threat := r.threat(st, seen)
+	threat := r.threat(st, seen, st.HP/st.HPMax >= Low)
 	if threat == nil {
+		return
+	}
+	r.mu.Lock()
+	hit, hurt := r.hurt[threat.ID]
+	r.mu.Unlock()
+	if r.now().Sub(r.last) < Again && (!hurt || !hit.at.After(r.last)) {
 		return
 	}
 	toward, to := r.safety(st.Pos, threat.Pos, seen)
@@ -184,7 +190,7 @@ func PastThreat(pos, threat, place protocol.Vec3) bool {
 
 // threat is the nearest hostile within Near that targets or recently hurt
 // the bot. Neither an unrelated hostile nor an old attack causes a retreat.
-func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception) *protocol.PerceivedCharacter {
+func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception, damagedOnly bool) *protocol.PerceivedCharacter {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for id, hit := range r.hurt {
@@ -199,6 +205,9 @@ func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception) *protoco
 	for i, c := range seen.Characters {
 		_, hurt := r.hurt[c.ID]
 		if c.Kind != protocol.CharacterCreature || !c.Hostile || (!c.TargetingMe && !hurt) {
+			continue
+		}
+		if damagedOnly && !hurt {
 			continue
 		}
 		if d := st.Pos.FlatDistance(c.Pos); d <= dist {

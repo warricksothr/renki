@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-29T17:34:37Z
+updated_at: 2026-10-29T23:18:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -77,3 +77,9 @@ claim taken from agent:claude-code/renki-groom by agent:codex/renki-resume
 Fixed the missing-target trigger: Valheim's AI target is local to the creature's simulation peer, and BaseAI's replicated target information only says whether some target exists. The controller now also recognizes damage from a still-perceived hostile for 30 seconds, scoped to the world and cleared on death/respawn. Unrelated creatures, players, environmental damage, expired evidence and out-of-range/gone attackers do not trigger it. An owner nearby no longer suppresses retreat; reaching the owner with the threat still close continues the escape.
 
 Verification: the regression reproduces the fatal 5.4/25 HP scene with the two real Greyling IDs and no targetingMe flags. A bridge integration test confirms that an actual damage frame reaches the retreat watcher and dispatches flee. just check controller test-packages ./internal/retreat ./internal/app, just check plugin build and just check ci passed. Live criteria remain open pending a controlled fight on the new build.
+
+**agent:codex/renki-resume** at 2026-10-29T23:18:25Z
+
+Live harvesting interruption 2026-10-29 23:09–23:10Z exposed the low-health-only trigger and retry cooldown: confirmed Greyling damage arrived while HP was still above 40%; automatic escape waited until health became critical. Escapes physically ran away but did not bring Tas into shelter; another Greyling on return reduced him to 2.7/25. Logged out and stopped both processes without an observed death; all seeds, axe and two wood retained. Owner subsequently cleared the route. Evidence .checks/audit-window-a69Odi.jsonl.
+
+Changed trigger: a recent, currently perceived hostile attacker within 15 m now causes escape at any health. Targeting alone still requires the existing low-health threshold. A genuinely fresh hit can bypass the ten-second retry cooldown after a completed escape, while an active flee is never replaced by another flee. Added regression for healthy remote attacker without targetingMe, nearest unrelated AI targeting, stored-hit deduplication, new-hit retry, and in-flight escape preservation. Focused just check controller test-packages ./internal/retreat passed. Live post-fix safety/arrival still open; do not close this ticket from policy tests. Straight retreat's eventual return to shelter remains unproven.

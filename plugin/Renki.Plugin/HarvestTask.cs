@@ -23,12 +23,15 @@ namespace Renki.Plugin
         readonly HashSet<ZDOID> oldDrops = new HashSet<ZDOID>();
         readonly Dictionary<string, int> before = new Dictionary<string, int>();
         readonly Collider[] hits = new Collider[256];
+        readonly Dictionary<TreeLog, HarvestStillness> logPoses = new Dictionary<TreeLog, HarvestStillness>();
         readonly HarvestEvidence evidence = new HarvestEvidence();
         readonly Walker walker = new Walker();
         readonly int minimum;
         readonly bool rock, tallTree, rolling;
         readonly string prefab;
         readonly float startedAt = Time.unscaledTime;
+        readonly float initialHealth;
+        float nextThreatCheck;
         ItemDrop.ItemData tool;
         Vector3 origin, walkGoal, retreat;
         bool walking, retreatReady, retreated, broken, cancelled;
@@ -77,6 +80,10 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             tool = Best(p);
             if (tool == null) throw new TaskRefused(Wire.ReasonNoTool, $"need a usable {(rock ? "pickaxe" : "axe")} of tier {minimum}");
+            initialHealth = p.GetHealth();
+            if (!HarvestHealth.Ready(initialHealth, p.GetMaxHealth()))
+                throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before harvesting");
+            if (ThreatNear(p)) throw new TaskRefused(Wire.ReasonRefused, "an enemy is within 15 m; clear the work site before harvesting");
             if (args.Collect)
             {
                 foreach (var item in p.GetInventory().GetAllItems())
@@ -111,6 +118,12 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             if (cancelled || p == null || p.IsDead()) return Finish(Outcome.Failed(Wire.ReasonStopped, "not in the world"));
             if (Time.unscaledTime - startedAt > 180) return Finish(Outcome.Failed(Wire.ReasonTimeout, "harvest reached its 180 s work limit"));
+            if (HarvestHealth.Hurt(initialHealth, p.GetHealth())) return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
+            if (Time.unscaledTime >= nextThreatCheck)
+            {
+                nextThreatCheck = Time.unscaledTime + .25f;
+                if (ThreatNear(p)) return Finish(Outcome.Failed(Wire.ReasonRefused, "an enemy approached within 15 m; harvesting cancelled"));
+            }
             if (Walker.Stranded(p) is Outcome stranded) return Finish(stranded);
             if (broken) return AfterBreak(p, dt);
             if (target == null || view == null || !view.IsValid() || !target.activeInHierarchy || !targetColliders.Any(Alive))
@@ -189,6 +202,18 @@ namespace Renki.Plugin
             return null;
         }
 
+        bool ThreatNear(Player p)
+        {
+            var count = Physics.OverlapSphereNonAlloc(p.transform.position, 15, hits, ~0, QueryTriggerInteraction.Ignore);
+            if (count == hits.Length) return true;
+            for (var i = 0; i < count; i++)
+            {
+                var c = hits[i].GetComponentInParent<Character>();
+                if (c != null && c != p && !(c is Player) && !c.IsDead() && BaseAI.IsEnemy(p, c)) return true;
+            }
+            return false;
+        }
+
         bool Protected(Player p, float fallRadius)
         {
             var radius = Math.Max(fallRadius, tool.m_shared.m_attack.m_attackRange + 1.5f);
@@ -208,14 +233,25 @@ namespace Renki.Plugin
         {
             var count = Physics.OverlapSphereNonAlloc(center, radius, hits, ~0, QueryTriggerInteraction.Ignore);
             if (count == hits.Length) return false;
+            var quiet = true;
             for (var i = 0; i < count; i++)
             {
                 var log = hits[i].GetComponentInParent<TreeLog>();
                 if (log == null) continue;
                 var body = log.GetComponent<Rigidbody>();
-                if (body != null && (body.linearVelocity.sqrMagnitude > .09f || body.angularVelocity.sqrMagnitude > .09f)) return false;
+                if (!logPoses.TryGetValue(log, out var pose))
+                {
+                    if (logPoses.Count == 128) return false;
+                    pose = new HarvestStillness();
+                    logPoses.Add(log, pose);
+                }
+                // A remotely simulated rigidbody can have zero local velocity
+                // while network updates still move it. Watch its actual pose too.
+                var moving = body != null && (body.linearVelocity.sqrMagnitude > .09f || body.angularVelocity.sqrMagnitude > .09f);
+                if (!pose.Observe(Convert.ToV3(log.transform.position), Convert.ToV3(log.transform.up),
+                    Convert.ToV3(log.transform.forward), moving, Time.unscaledTime)) quiet = false;
             }
-            return true;
+            return quiet;
         }
 
         Outcome AfterBreak(Player p, double dt)
@@ -265,7 +301,7 @@ namespace Renki.Plugin
             if (count == hits.Length) return null;
             // Materialize before another bounded scan reuses the buffer.
             return hits.Take(count).Select(c => c.GetComponentInParent<ItemDrop>()).Where(d => d != null && d.m_itemData != null &&
-                d.m_nview != null && d.m_nview.IsValid()).Distinct().ToArray();
+                d.m_nview != null && d.m_nview.IsValid() && Vector3.Distance(d.transform.position, origin) <= 4).Distinct().ToArray();
         }
 
         Outcome Complete(Player p)

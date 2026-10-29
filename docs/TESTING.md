@@ -492,3 +492,12 @@ new entity id; never infer an arbitrary neighbouring tree as a descendant.
 Capture exact windows with `just vm audit-summary`. Stop on health loss or
 new threats, and record unverified falling/rock/controller-chain checks on
 the harvest ticket. No default harvest behaviour is installed by this task.
+
+The first supplied-axe small-tree trial on 2026-10-29 produced two wood and
+used one durability, but an approaching Greyling interrupted task completion
+and the return encountered another attacker. It does **not** pass the full
+benchmark. Tas was logged out and stopped at 2.7/25 with AxeFlint 1,
+BeechSeeds 15 and Wood 2 preserved. The owner subsequently cleared the route.
+Post-incident health/proximity guards and first-hit retreat still need live
+validation. Recover with normal food before another harvest; task success,
+delivery/return, full-tree escape, log splits and mining remain open.

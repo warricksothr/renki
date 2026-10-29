@@ -2,12 +2,43 @@ using Renki.Tasks;
 using Renki.Protocol;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using Renki.Movement;
 using Xunit;
 
 namespace Renki.Tests
 {
     public sealed class HarvestTests
     {
+        [Fact]
+        public void HarvestWaitsForRecoveryAndCancelsOnTheFirstHealthLoss()
+        {
+            Assert.True(HarvestHealth.Ready(25, 25));
+            Assert.True(HarvestHealth.Ready(20, 25));
+            Assert.False(HarvestHealth.Ready(19.9, 25));
+            Assert.False(HarvestHealth.Ready(25, 0));
+            Assert.False(HarvestHealth.Hurt(25, 25));
+            Assert.True(HarvestHealth.Hurt(25, 24.9));
+            Assert.True(HarvestHealth.Hurt(25, 20.4));
+        }
+
+        [Fact]
+        public void RemoteLogsNeedQuietPosesEvenWhenLocalVelocityIsZero()
+        {
+            var quiet = new HarvestStillness();
+            var up = new V3(0, 1, 0); var forward = new V3(0, 0, 1);
+            Assert.False(quiet.Observe(V3.Zero, up, forward, false, 0));
+            Assert.False(quiet.Observe(V3.Zero, up, forward, false, 1));
+            Assert.True(quiet.Observe(V3.Zero, up, forward, false, 2));
+            // Individually small network movements accumulate relative to
+            // the quiet anchor; resetting the anchor every frame misses them.
+            quiet.Observe(new V3(.01, 0, 0), up, forward, false, 2.1);
+            Assert.False(quiet.Observe(new V3(.03, 0, 0), up, forward, false, 2.2));
+            Assert.False(quiet.Observe(new V3(.03, 0, 0), up, forward, false, 4));
+            Assert.True(quiet.Observe(new V3(.03, 0, 0), up, forward, false, 4.3));
+            Assert.False(quiet.Observe(new V3(.03, 0, 0), up, new V3(.02, 0, .9998), false, 4.4));
+            Assert.False(quiet.Observe(new V3(.03, 0, 0), up, new V3(.02, 0, .9998), true, 7));
+        }
+
         sealed class Tool
         {
             public int Tier;

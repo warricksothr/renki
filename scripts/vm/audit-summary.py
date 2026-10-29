@@ -23,7 +23,7 @@ def main(path):
         frame = record.get("frame", {})
         kind = frame.get("type", record.get("kind")) or "unknown"
         counts[kind] += 1
-        if kind == "state":
+        if kind == "state" and frame.get("phase") == "in_world":
             first = first or frame
             last = frame
             hp = frame.get("hp")

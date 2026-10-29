@@ -71,8 +71,8 @@ reconnect: need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/reconnect.ps1" "{{target}}:/{{dir}}/reconnect.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/reconnect.ps1"
 
-# Build the package, stop the bot, copy it over, install the plugin, start again.
-deploy: need-target
+# Build, stop and install with checksum verification; leave Tas offline.
+install: need-target
     #!/usr/bin/env bash
     set -euo pipefail
     just --justfile "{{justfile()}}" package
@@ -84,6 +84,9 @@ deploy: need-target
     {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}' | Out-Null"
     scp -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/{{dir}}/"
     {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
+
+# Install the package, then start and wait for Tas to join.
+deploy: install
     just --justfile "{{justfile()}}" vm start
 
 # Deploy a controller-only change and refresh the bridge without restarting Valheim.

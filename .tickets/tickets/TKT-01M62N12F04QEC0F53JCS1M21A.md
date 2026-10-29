@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T22:56:16Z
+updated_at: 2026-10-29T23:18:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -61,3 +61,13 @@ Start with the explicitly approved supplied-axe benchmark, using the AxeFlint wi
 Track real local hit/destruction evidence so an absent target does not silently become a successful harvest. Back away on felling and wait for falling logs to settle before any collection. Collect only new nearby item drops through existing pickup behavior with weight/slot checks and finite work. Keep harvest of a tree/log/stump/rock distinct from controller chaining of its descendants; establish the primitive first, then complete the supplied-tool chop/split/collect/deliver/return benchmark. Preserve seeds, rag gear and unrelated chest stock. Record unresolved live physics and multi-part rock coverage honestly.
 
 Run focused policy/protocol checks, just check ci, committed just check review, then land/deploy and live-check a controlled target away from the home and players. Full/busy/warded/multi-destination storage checks remain separately tracked; the first extra home chest approach (1:30595) failed unreachable without moving a seed and needs a suitable approach point before retrying.
+
+## Notes
+
+**agent:codex/renki-resume** at 2026-10-29T23:18:25Z
+
+Live supplied-tool trial on 4831c63, 2026-10-29 23:07–23:10Z: mineable rock 1:31313 correctly rejected no_tool (no carried pickaxe). Reached Beech_small1 1:39689; normal axe input physically broke it, durability 100→99, actual pack gain Wood 2 with BeechSeeds 15 and AxeFlint 1 retained. A Greyling approached during the trial; harvest t-4 refused when its near-character check fired before normal attack animation completed. Therefore this is physical swing/drop evidence, NOT a successful harvest task or completed delivery benchmark. Do not check acceptance boxes from it. Evidence .checks/audit-window-DYfedw.jsonl and .checks/audit-window-a69Odi.jsonl.
+
+Tas lost health during this encounter and another Greyling on return. Sent escapes and return routing; last observed 2.7/25 HP at (-32.46,33.58,-5.33). Requested logout, then just vm stop completed and just vm status confirmed game/controller stopped. Axe 99/100, seeds 15 and wood 2 saved; no death observed. Owner has since confirmed the route/site are safe and food is available in chests. Recovery/eating is needed before another cut.
+
+Source hardening: refuse harvest below 80% HP or with an enemy within 15 m, recheck enemies every .25 s before approach/collection, cancel held attack/pickup immediately on health loss. Moving-log checks also require two seconds of quiet observed pose, including remotely simulated motion and accumulated slow drift; do not trust zero local rigidbody velocity alone. Escape is a one-time phase so later collection can approach settled drops. These fixes still require live validation. No full tree/log/stump/mining success, inventory-full branch, controller descendant chain or completed chop/deliver/return benchmark is claimed.
