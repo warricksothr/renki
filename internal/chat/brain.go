@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"regexp"
 	"slices"
 	"strings"
@@ -259,7 +260,7 @@ func (b *Brain) FromPanel(speaker, text string) error {
 	c := &protocol.Chat{From: protocol.ChatSender{Name: speaker, Owner: true}, Channel: channelPanel, Text: text, Dist: -1}
 	// A sighting counts only from a perception as new as the state, give
 	// or take a few scans: none comes while the bot is dead or loading.
-	if seen := b.d.Perception(); seen != nil && st.T-seen.T <= panelSightFor {
+	if seen := b.d.Perception(); seen != nil && math.Abs(st.T-seen.T) <= panelSightFor {
 		for _, p := range seen.Characters {
 			if p.Kind == protocol.CharacterPlayer && p.Name == speaker {
 				c.Pos, c.Dist = p.Pos, st.Pos.FlatDistance(p.Pos)
