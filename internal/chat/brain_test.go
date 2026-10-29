@@ -691,3 +691,27 @@ func TestFromThePanel(t *testing.T) {
 		t.Errorf("come: %+v", orders[len(orders)-1])
 	}
 }
+
+// TestNoFollowForAnUnseenPanelOwner: the voice is not offered follow for an
+// owner on the panel the bot cannot see, and a follow it proposes anyway
+// is not carried out.
+func TestNoFollowForAnUnseenPanelOwner(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "Coming.",
+		Task: &Proposal{Task: "follow", Args: json.RawMessage(`{"player":"Sothr"}`)}}}
+	b, f, _ := newBrain(v)
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld}
+	if err := b.FromPanel("Sothr", "could you keep me company"); err != nil {
+		t.Fatal(err)
+	}
+	req := <-v.got
+	if slices.Contains(req.Tasks, protocol.TaskFollow) {
+		t.Errorf("offered follow for an unseen owner: %v", req.Tasks)
+	}
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) && len(f.tasks()) == 0 {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got := f.tasks(); len(got) != 0 {
+		t.Errorf("carried out %v", got)
+	}
+}
