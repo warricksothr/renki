@@ -26,7 +26,7 @@ namespace Renki.Plugin
         LocalRoute localRoute;
         Outcome navigationFailure;
         string localWaterBlocked;
-        float localStarted, nextWallCheck;
+        float localStarted, nextWallCheck, nextNavmeshCheck;
         double localMs, localWorstMs;
         float strafeUntil;
         float strafeSign = 1;
@@ -300,6 +300,7 @@ namespace Renki.Plugin
             Blocked = null;
             localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), WorldNavigation.Probe);
             localStarted = Time.unscaledTime;
+            nextNavmeshCheck = localStarted + 1;
             localMs = localWorstMs = 0;
             path.Set(new V3[0]);
         }
@@ -308,6 +309,28 @@ namespace Renki.Plugin
         {
             Driver.Stand();
             stuck.Hold(Time.time);
+            // GetPath requests tiles asynchronously. A first query after
+            // joining may fail while the usable navmesh is still building.
+            // Keep the ongoing search if a retry offers no safe progress.
+            if (Time.unscaledTime >= nextNavmeshCheck && Pathfinding.instance != null)
+            {
+                nextNavmeshCheck = Time.unscaledTime + 1;
+                scratch.Clear();
+                if (Pathfinding.instance.GetPath(pos, goal, scratch, Pathfinding.AgentType.Humanoid, false, true, false) && scratch.Count > 0)
+                {
+                    var points = scratch.Select(Convert.ToV3).ToArray();
+                    var from = Convert.ToV3(pos);
+                    var target = Convert.ToV3(goal);
+                    var complete = Arrival.Reached(points[points.Length - 1], target, 1.5) && WallRoute.Clear(from, points, WorldNavigation.Walls);
+                    if (complete || WallRoute.Prefix(from, target, points, WorldNavigation.Walls).Count > 0)
+                    {
+                        Tracer.Emit("walker", "navmesh became usable during local search");
+                        ResetStuck(pos);
+                        Repath(pos);
+                        return true;
+                    }
+                }
+            }
             var watch = System.Diagnostics.Stopwatch.StartNew();
             // At most eight expansions and roughly 2 ms per physics step.
             for (var i = 0; i < 8 && watch.Elapsed.TotalMilliseconds < 2 && localRoute.Status == RouteStatus.Searching; i++)

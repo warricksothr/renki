@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T17:59:52Z
+updated_at: 2026-10-29T18:05:10Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -73,3 +73,7 @@ Six regressions pass, including all 71 measured house walls, stacked floors, cle
 **agent:codex/renki-resume** at 2026-10-29T17:59:52Z
 
 Live fe9384a: come-here t-1 left via west doorway and reached Nimah east of house in 16 s (17:57:37Z–17:57:53Z), 1121 expansions, 238.69 ms CPU, 12.95 ms worst planning frame. Return-home t-2 failed after eight seconds of searching from 35 m away despite a wall-safe partial navmesh route to within 2 m horizontally, under the floor. Evidence: .checks/audit-window-qfLEXg.jsonl. Preserve useful wall-safe prefixes and stop/replan near their endpoint so local search can spend its bounded budget on the missing final leg. Live return verification remains outstanding.
+
+**agent:codex/renki-resume** at 2026-10-29T18:05:10Z
+
+Live dd9ef44 return-home t-2 succeeded at 18:03:59Z after a safe navmesh prefix, an off-level reposition and short local searches (434 expansions / 84 ms and 364 / 68.18 ms). Ended at (-36.5,36.09,8.26), 25/25 HP. First order immediately after restart still found no usable navmesh and exhausted local search; GetPath builds tiles asynchronously and unused tiles expire after 30 s. Recheck for newly usable complete paths or useful safe prefixes once per second during planning, preserving the existing search and deadline when no path is usable. Close-follower waiting and cold-start retry remain live checks; implementation tests and just check ci pass.
