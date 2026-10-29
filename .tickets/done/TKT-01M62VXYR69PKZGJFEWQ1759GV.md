@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62VXYR69PKZGJFEWQ1759GV
 title: "Controller: one store for settings and instances, with who changed them"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -17,23 +17,16 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/settings
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 310e173cf9da2511451f7c043d5faca63dd952dd
-  session: null
-  claimed_at: 2026-10-29T05:26:46Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T05:38:29Z
+updated_at: 2026-10-29T18:12:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:codex/renki-resume
+  name: ""
 extensions: {}
 ---
 
@@ -55,7 +48,7 @@ ticket enforces that).
 
 ## Acceptance criteria
 
-- [ ] Runtime settings and instances are kept in dataDir and survive a restart
+- [x] Runtime settings and instances are kept in dataDir and survive a restart
 - [x] Every change records its source and time and is written to the audit log
 - [x] A pinned setting refuses changes from the agent
 - [x] Values from the config file apply until changed at runtime, and a reset returns to them
@@ -87,8 +80,19 @@ ticket enforces that).
   This ticket gives the store the hook (a key namespace) but no instances.
 - No UI here: chat and panel controls are TKT-01M628X13X.
 
+### Completing instance persistence
+Add named JSON object definitions to the existing settings.json with the same source/time envelope and audit records as runtime settings. The behaviour engine owns template/schema validation; the store owns safe copies, atomic persistence, deletion and rollback after a failed write. Keep old files compatible and preserve instances through unrelated setting changes. Verify restart, author/time, reader isolation, deletion and failed-save rollback. This makes the storage prerequisite concrete; engine execution and its acceptance criteria remain separate work.
+
 ## Notes
 
 **agent:claude-code/renki-groom** at 2026-10-29T05:38:29Z
 
 2026-10-29: the store is in internal/settings, backed by dataDir/settings.json. Settings survive a restart, but criterion 1 also names behaviour instances, which wait for the engine (TKT-01M62VXYSN4), so it stays unticked. The agent can never change owners or allowedTasks, pinned or not. Nothing changes settings yet except code and tests; chat and panel controls are TKT-01M628X13X.
+
+**agent:codex/renki-resume** at 2026-10-29T18:10:10Z
+
+claim taken from agent:claude-code/renki-groom by agent:codex/renki-resume
+
+## Summary
+
+The shared settings.json now stores named behaviour definitions with source and time alongside runtime overrides and pins. SetInstance/Instances/DeleteInstance preserve definitions through restart and unrelated settings changes, return independent copies, audit mutations and roll back failed saves. Existing files remain compatible. Template schemas and runtime operations belong to the behaviour engine; this completes its durable storage prerequisite. Focused restart, audit, reader-isolation, deletion and failure-rollback tests pass.

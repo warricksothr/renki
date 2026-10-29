@@ -66,6 +66,11 @@ stop: need-target
 # Stop, then start.
 restart: stop start
 
+# Restart only the controller, refreshing welcome/allowedTasks without reloading Valheim.
+reconnect: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/reconnect.ps1" "{{target}}:/{{dir}}/reconnect.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/reconnect.ps1"
+
 # Build the package, stop the bot, copy it over, install the plugin, start again.
 deploy: need-target
     #!/usr/bin/env bash
