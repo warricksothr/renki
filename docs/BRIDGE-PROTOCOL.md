@@ -571,6 +571,19 @@ Notes:
 
 ### 7.3 Movement inside the plugin
 
+- **Successful route hints:** completed point `move_to` tasks can retain
+  and reuse their actual grounded trail (up to 256 points, 24 trails per game session).
+  Failed/cancelled tasks and planned-but-unwalked routes are not retained.
+  Floor-aware joins within 3 m of the start and 4 m of the destination allow
+  the same entrance to serve nearby home chests, in either direction. Before
+  reuse, every joined leg is resampled at most 0.5 m apart through current
+  support, water, wall and capsule checks. Validation is limited to 512
+  samples, eight per physics step with a 2 ms target budget. The immediate
+  short leg is checked again while walking. Failed validation, changed
+  geometry or lack of progress invalidates the hint and resumes ordinary
+  planning. World/session reset clears hints; no route is persisted to disk.
+  Reuse/rejection traces report sample counts and total/worst-frame costs.
+  Follow, fleeing and other tasks retain their existing planning policy.
 - Get a path from the game's own navmesh
   (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Check every segment against
   the measured wall layout, with body clearance and wall height. Never steer
@@ -578,8 +591,10 @@ Notes:
 - **Local routing:** when the navmesh has no path, ends more than 1.5 m short
   across the ground, crosses a known wall, or stuck recovery asks for another
   route, run local A* on 0.75 m cells. Ground probes preserve floors and
-  enforce a 0.6 m maximum step; capsule probes check clearance. Closed doors
-  remain usable through the normal door handler. Unknown support and water
+  enforce a 0.6 m maximum step; capsule probes check clearance.
+  Point movement accepts a supported arrival inside the task's requested
+  stopping distance, rather than requiring an occupied target's exact centre.
+  Closed doors remain usable through the normal door handler. Unknown support and water
   more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
   48 m from its start on each axis, and 8 s. It advances at most eight nodes
   per physics step, with a 2 ms target budget, holding movement and the stuck

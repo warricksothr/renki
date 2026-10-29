@@ -24,6 +24,7 @@ namespace Renki.Movement
         }
 
         readonly V3 start, goal;
+        readonly double within;
         readonly Func<V3, V3, V3?> probe;
         readonly Dictionary<(int, int, int), double> costs = new Dictionary<(int, int, int), double>();
         readonly SortedSet<Node> open = new SortedSet<Node>(Comparer<Node>.Create((a, b) =>
@@ -37,11 +38,12 @@ namespace Renki.Movement
         public int Expanded { get; private set; }
         public int Probes { get; private set; }
 
-        public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe)
+        public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25)
         {
             this.start = start;
             this.goal = goal;
             this.probe = probe;
+            this.within = within;
             Add(new Node { Pos = start });
             if (Math.Abs(goal.X - start.X) > Range || Math.Abs(goal.Z - start.Z) > Range)
                 Status = RouteStatus.NoRoute;
@@ -56,17 +58,22 @@ namespace Renki.Movement
                 open.Remove(node);
                 if (costs[Key(node)] < node.Cost) { i--; continue; }
                 Expanded++;
-                if (V3.FlatDistance(node.Pos, goal) <= Cell * 1.5 && Math.Abs(node.Pos.Y - goal.Y) <= Arrival.Level)
+                if (Arrival.Reached(node.Pos, goal, within))
+                {
+                    Complete(node, node.Pos);
+                    break;
+                }
+                if (V3.FlatDistance(node.Pos, goal) <= within + Cell * 1.5 && Math.Abs(node.Pos.Y - goal.Y) <= Arrival.Level)
                 {
                     Probes++;
-                    var end = probe(node.Pos, new V3(goal.X, node.Pos.Y, goal.Z));
-                    if (end is V3 at && Arrival.Reached(at, goal, .25))
+                    // Grid cells can straddle the narrow space beside a
+                    // solid goal. Probe a reachable arrival point, not the
+                    // occupied centre of a chest/tree/other target.
+                    var offset = (node.Pos - goal).Flat.Normalized * (within * .95);
+                    var end = probe(node.Pos, new V3(goal.X + offset.X, node.Pos.Y, goal.Z + offset.Z));
+                    if (end is V3 at && Arrival.Reached(at, goal, within))
                     {
-                        var path = new List<V3> { at };
-                        for (var p = node; p != null; p = p.Parent) path.Add(p.Pos);
-                        path.Reverse();
-                        Path = path;
-                        Status = RouteStatus.Found;
+                        Complete(node, at);
                         break;
                     }
                 }
@@ -91,6 +98,15 @@ namespace Renki.Movement
         }
 
         static (int, int, int) Key(Node n) => (n.X, n.Z, (int)Math.Round(n.Pos.Y * 4));
+
+        void Complete(Node node, V3 at)
+        {
+            var path = new List<V3> { at };
+            for (var p = node; p != null; p = p.Parent) path.Add(p.Pos);
+            path.Reverse();
+            Path = path;
+            Status = RouteStatus.Found;
+        }
 
         void Add(Node node)
         {

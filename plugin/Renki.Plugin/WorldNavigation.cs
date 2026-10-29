@@ -12,6 +12,7 @@ namespace Renki.Plugin
     static class WorldNavigation
     {
         internal static IReadOnlyList<Wall> Walls = Array.Empty<Wall>();
+        internal static readonly RouteMemory Routes = new RouteMemory();
         static readonly int Mask = LayerMask.GetMask("Default", "Default_small", "static_solid", "piece", "terrain");
         static readonly NavigationObstacles obstacles = new NavigationObstacles(Mask);
         static readonly RaycastHit[] supportHits = new RaycastHit[64];
@@ -25,7 +26,7 @@ namespace Renki.Plugin
         internal static void Focus(Vector3 target) => focus = target;
         internal static void Reset()
         {
-            Walls = Array.Empty<Wall>(); obstacles.Clear(); focus = null; world = null;
+            Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null;
             Array.Clear(supportHits, 0, supportHits.Length);
             Array.Clear(castHits, 0, castHits.Length);
             Array.Clear(overlaps, 0, overlaps.Length);
