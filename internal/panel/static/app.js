@@ -22,6 +22,7 @@ const world = {
   stuck: [], // {pos, attempt}
   tiles: new Map(),
   landmarks: [],
+  containers: new Map(),
 };
 
 const layers = { terrain: true, elevation: true, memory: true, resources: false };
@@ -36,7 +37,7 @@ let mapWorld = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, map
 function resetMap() {
   mapGeneration++;
   Object.assign(world, { bot: null, trail: [], characters: [], structures: [], resources: [], walls: [],
-    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [] });
+    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [], containers: new Map() });
   mapFetchedAt = 0;
   $("terrain-status").textContent = "Waiting for terrain";
 }
@@ -52,6 +53,7 @@ async function loadMap() {
     if (generation !== mapGeneration || data.world !== mapWorld || data.connection !== mapConnection) return;
     world.tiles = new Map((data.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]));
     world.landmarks = data.landmarks || [];
+    world.containers = new Map((data.containers || []).map((c) => [c.entity, c]));
     if (data.perception) {
       world.structures = data.perception.structures || [];
       world.resources = data.perception.resources || [];
@@ -887,9 +889,14 @@ function hover(x, y) {
 function describe(m) {
   const far = (p) => (world.bot ? Math.hypot(p[0] - world.bot[0], p[2] - world.bot[2]) : null);
   const items = [...m.items].sort((a, b) => (far(a.pos) ?? 0) - (far(b.pos) ?? 0));
-  const lines = items.slice(0, 12).map((i) => {
+  const chests = items.every((i) => i.kind === "container");
+  const limit = chests && items.length > 1 ? 3 : 12;
+  const lines = items.slice(0, limit).flatMap((i) => {
     const parts = [i.kind === "player" ? i.name : i.what];
-    if (i.prefab) parts.push(plain(i.prefab));
+    if (i.kind === "container") {
+      parts.push(i.id || i.entity);
+      parts.push(`x ${i.pos[0].toFixed(1)}, z ${i.pos[2].toFixed(1)}`);
+    } else if (i.prefab) parts.push(plain(i.prefab));
     if (i.detail) parts.push(i.detail);
     if (i.stack > 1) parts.push(`×${i.stack}`);
     if (i.kind === "door" && !i.remembered) parts.push(i.open ? "open" : "shut");
@@ -902,9 +909,19 @@ function describe(m) {
     if (i.targetingMe) parts.push("after the bot");
     const d = far(i.pos);
     if (d != null) parts.push(`${Math.round(d)} m`);
-    return parts.join(" · ");
+    if (i.kind !== "container") return [parts.join(" · ")];
+    const chest = world.containers.get(i.id || i.entity);
+    if (!chest) return [parts.join(" · "), "Contents unknown · Tas has not opened this chest"];
+    const seen = new Date(chest.at).toLocaleString();
+    const totals = new Map();
+    for (const item of chest.items || []) totals.set(item.prefab, (totals.get(item.prefab) || 0) + item.stack);
+    const contents = [...totals].sort(([a], [b]) => a.localeCompare(b));
+    const details = contents.slice(0, items.length > 1 ? 4 : 12).map(([prefab, count]) => `${count} × ${plain(prefab)}`);
+    const extra = contents.length - details.length;
+    if (extra) details.push(`+${extra} more item types`);
+    return [parts.join(" · "), `Last opened ${seen}`, details.length ? details.join(" · ") : "Empty when last opened"];
   });
-  if (items.length > 12) lines.push(`and ${items.length - 12} more`);
+  if (items.length > limit) lines.push(`and ${items.length - limit} more${chests ? " chests · zoom in for individual contents" : ""}`);
   return lines;
 }
 window.addEventListener("resize", draw);

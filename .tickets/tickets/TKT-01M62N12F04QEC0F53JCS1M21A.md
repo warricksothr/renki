@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:18:25Z
+updated_at: 2026-10-29T23:34:20Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -71,3 +71,7 @@ Live supplied-tool trial on 4831c63, 2026-10-29 23:07–23:10Z: mineable rock 1:
 Tas lost health during this encounter and another Greyling on return. Sent escapes and return routing; last observed 2.7/25 HP at (-32.46,33.58,-5.33). Requested logout, then just vm stop completed and just vm status confirmed game/controller stopped. Axe 99/100, seeds 15 and wood 2 saved; no death observed. Owner has since confirmed the route/site are safe and food is available in chests. Recovery/eating is needed before another cut.
 
 Source hardening: refuse harvest below 80% HP or with an enemy within 15 m, recheck enemies every .25 s before approach/collection, cancel held attack/pickup immediately on health loss. Moving-log checks also require two seconds of quiet observed pose, including remotely simulated motion and accumulated slow drift; do not trust zero local rigidbody velocity alone. Escape is a one-time phase so later collection can approach settled drops. These fixes still require live validation. No full tree/log/stump/mining success, inventory-full branch, controller descendant chain or completed chop/deliver/return benchmark is claimed.
+
+**agent:codex/renki-resume** at 2026-10-29T23:34:20Z
+
+On installed PR #32, Tas recovered naturally to full health from the shared food chest. Harvest t-14 inside and t-17 on the west terrace both refused the 15 m threat guard while current character perception showed no hostiles. Code inspection found that the all-layer overlap returns the same enemy result when its 256-collider buffer saturates; dense house geometry can therefore masquerade as a threat. Replace that scan with the same Character.GetCharactersInRange registry already used by perception, retaining all enemy/distance checks and 0.25 s cadence. No threat safety is bypassed. Full supplied-tool task/collection/delivery, log/falling-tree safety and post-fix live retreat remain unverified. Current pack still contains the original axe, 15 seeds, two wood and one spare of each of three meals.

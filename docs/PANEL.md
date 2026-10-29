@@ -147,3 +147,10 @@ an `X-Renki-Act` header: a page on
 another site cannot add one without the browser asking this server first,
 which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a
 bearer token: `curl -H "Authorization: Bearer $TOKEN" http://…/api/status`.
+
+Chest markers show last-known contents on hover, using the same per-world
+container memory as Tas. Quantities and the last-opened time describe that
+observation; another player may since have changed the chest. An unopened
+chest shows “Contents unknown”, while an observed empty chest is labelled
+“Empty when last opened”. Groups show a bounded preview; zoom in to inspect
+individual chests. Seeing a chest again does not refresh its contents.

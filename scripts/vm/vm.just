@@ -169,6 +169,11 @@ task TASK ARGS='{}' TIMEOUT='60':
     body=$(python3 -c 'import json,sys; print(json.dumps(dict(task=sys.argv[1],args=json.loads(sys.argv[2]),timeoutS=float(sys.argv[3]))))' "$1" "$2" "$3")
     just --justfile "{{justfile()}}" vm panel POST /api/task "$body"
 
+# Send once, wait for the terminal outcome, retain full task evidence locally.
+[positional-arguments]
+task-check TASK ARGS='{}' TIMEOUT='60':
+    python3 "{{justfile_directory()}}/scripts/vm/task-check.py" "$1" "$2" "$3"
+
 # Read AllowGather, or set true/false before restarting the game.
 [positional-arguments]
 gather VALUE='': need-target
