@@ -10,6 +10,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/warricksothr/renki/internal/protocol"
@@ -31,6 +32,9 @@ const (
 	HomeClear = 15.0
 	// Again is how long after one retreat before another may start.
 	Again = 10 * time.Second
+	// HurtFor bridges AI targets that are not replicated to this client.
+	// A recent attacker must still be perceived as hostile and within Near.
+	HurtFor = 30 * time.Second
 	// There is how near safety the bot must be to be at it already.
 	There = 6.0
 	// HomeReach is how far home may be to run to: farther, the run itself
@@ -56,6 +60,35 @@ type Retreat struct {
 	now    func() time.Time
 
 	last time.Time
+	mu   sync.Mutex
+	hurt map[string]injury
+}
+
+type injury struct {
+	world string
+	until time.Time
+}
+
+// Event remembers actual attackers, since remotely owned AI does not expose
+// its current target on this client. Environment damage has no attacker.
+func (r *Retreat) Event(e *protocol.Event) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if e.Event == protocol.EventDied || e.Event == protocol.EventRespawned {
+		r.hurt = nil
+		return
+	}
+	if e.Event != protocol.EventDamaged || e.By == "" || e.Amount <= 0 {
+		return
+	}
+	st := r.s.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld {
+		return
+	}
+	if r.hurt == nil {
+		r.hurt = make(map[string]injury)
+	}
+	r.hurt[e.By] = injury{world: st.World, until: r.now().Add(HurtFor)}
 }
 
 // New returns a retreat. owners and home, where the bot lives in the
@@ -85,7 +118,7 @@ func (r *Retreat) Run(ctx context.Context) {
 // unless it is already running.
 func (r *Retreat) Tick(ctx context.Context) {
 	st, seen := r.s.State(), r.s.Perception()
-	if st == nil || seen == nil || st.Phase != protocol.PhaseInWorld || st.HPMax <= 0 {
+	if st == nil || seen == nil || st.Phase != protocol.PhaseInWorld || st.HP <= 0 || st.HPMax <= 0 {
 		return
 	}
 	if st.HP/st.HPMax >= Low || r.now().Sub(r.last) < Again {
@@ -94,16 +127,16 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning {
 		return
 	}
-	threat := Threat(st.Pos, seen)
+	threat := r.threat(st, seen)
 	if threat == nil {
 		return
 	}
 	toward, to := r.safety(st.Pos, threat.Pos, seen)
 	switch {
 	case to != "" && toward.Pos != nil && st.Pos.FlatDistance(*toward.Pos) <= There:
-		// At its owner's side already: the fight is theirs together, and
-		// running on would leave them.
-		return
+		// An owner's presence is not protection while a threat is close.
+		// Keep moving away instead of waiting beside them to be killed.
+		toward, to = protocol.Target{}, ""
 	case to == "" && toward.Pos != nil && st.Pos.FlatDistance(*toward.Pos) <= There:
 		// Home, and the creature followed it there: away it is.
 		toward = protocol.Target{}
@@ -149,18 +182,26 @@ func PastThreat(pos, threat, place protocol.Vec3) bool {
 	return (tx*px+tz*pz)/(tl*pl) > pastThreatCos
 }
 
-// Threat is the nearest hostile creature within Near that has picked the
-// bot, or nil.
-func Threat(pos protocol.Vec3, seen *protocol.Perception) *protocol.PerceivedCharacter {
+// threat is the nearest hostile within Near that targets or recently hurt
+// the bot. Neither an unrelated hostile nor an old attack causes a retreat.
+func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception) *protocol.PerceivedCharacter {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for id, hit := range r.hurt {
+		if hit.world != st.World || !r.now().Before(hit.until) {
+			delete(r.hurt, id)
+		}
+	}
 	var (
 		best *protocol.PerceivedCharacter
 		dist = Near
 	)
 	for i, c := range seen.Characters {
-		if c.Kind != protocol.CharacterCreature || !c.Hostile || !c.TargetingMe {
+		_, hurt := r.hurt[c.ID]
+		if c.Kind != protocol.CharacterCreature || !c.Hostile || (!c.TargetingMe && !hurt) {
 			continue
 		}
-		if d := pos.FlatDistance(c.Pos); d <= dist {
+		if d := st.Pos.FlatDistance(c.Pos); d <= dist {
 			best, dist = &seen.Characters[i], d
 		}
 	}

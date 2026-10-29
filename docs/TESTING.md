@@ -32,6 +32,13 @@ on the ticket so a resumed session can read those instead of old transcripts.
 Rerun checks after changes or new evidence, rather than repeating passing
 suites while waiting for the game. The complete gate is still required.
 
+For a short incident that needs state and perception as well as decisions,
+`just vm audit-window <since> <until>` saves only that ISO timestamp window
+to `.checks/` and prints its path. Inspect selected fields locally instead
+of downloading or displaying a whole day. `just plugin game-source <Type>`
+saves the installed game's decompiled API under `.checks/game-source/` for
+local inspection; do not commit or redistribute those files.
+
 ## Raised-goal recovery check
 
 For TKT-01M647SMRM3XXAQS7Y9CW2TKZ9 (Retry raised goals from other approaches

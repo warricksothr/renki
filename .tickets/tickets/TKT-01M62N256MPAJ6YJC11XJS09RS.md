@@ -20,22 +20,22 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/m2
+  actor: agent:codex/renki-resume
+  branch: t3/retreat-hauling
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 0726cab49205ebf014eefe292d668e7c793c8c95
+  commit: b75db8a8da95c954ca7dcef7e8b7a8db7ea02658
   session: null
-  claimed_at: 2026-10-29T15:09:07Z
+  claimed_at: 2026-10-29T17:30:39Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-29T15:34:30Z
+updated_at: 2026-10-29T17:34:37Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:codex/renki-resume
+  name: ""
 extensions: {}
 ---
 
@@ -50,20 +50,10 @@ extensions: {}
 
 ## Implementation plan
 
-Moved ahead of the M2 order: on 2026-10-29 a Greyling at home killed the bot over and over (respawn, home after death, killed again).
+### Evidence and approach
+The 2026-10-29T17:14:40Z–17:15:15Z audit window contains 31 perception frames and 68 creature observations, none with targetingMe, although the two perceived hostile Greylings repeatedly appear as damage attackers. At 17:15:00Z Tas had 5.4/25 HP and continued move_to until death. Retreat currently requires targetingMe and silently skips every tick without it.
 
-### Plugin
-- `flee` takes `from` (an entity or a position), `distance` (default 20) and an optional `toward` (an entity or a position).
-- Core `Flee.Goal` picks where to run. That is `toward`, unless it lies past the threat (within 60° of the threat's bearing), in which case the bot runs straight away to `distance` + 5.
-- The task runs there and re-aims every 0.5 s as the threat moves. It succeeds once the threat is `distance` away. A lost entity counts as escaped, and it fails `stuck` or `deep_water` like the walk does.
-- Safety: flee needs AllowMovement, not AllowCombat.
-
-### Controller
-- New unit `internal/retreat`. Every second: if HP is below 40% and a hostile is targeting the bot within 15 m, it sends `flee` from the nearest such hostile.
-- `toward` is the nearest owner in sight within 60 m, else home, unless home lies within 15 m of the threat. It says which: "Falling back to you, X", "Heading home", or "Getting away". It waits 10 s between retreats and does not supersede a flee already running.
-- `TaskFlee` goes into KnownTasks, and home's body().
-
-Docs: 7.2 and 9.
+Verify how Valheim exposes remotely owned AI targets. Add a bounded recent-damage fallback using the actual attacker, keeping environmental damage separate and excluding stale/world-crossing threats. Fix the nearby-owner stop rule so critical health does not leave Tas standing in melee range. Add focused regressions with the recorded scene and check retry/preemption behavior. Run just check controller test-packages for affected packages, just check plugin test-core if policy changes there, then just check ci and just check review before landing/deploying. Keep live criteria open until a real retreat is observed. Use just vm audit-window to retain only the relevant full-fidelity frames locally.
 
 ## Notes
 
@@ -77,3 +67,13 @@ Landed on t3/m2 and deployed on 2026-10-29. `flee` is now in the VM's allowedTas
 **Not seen in the game yet:** after the deploy the bot walked home unharmed, and the Greylings that killed it this morning had gone. Both criteria are in the code and tested (CoreTests and retreat_test), but stay unticked until a fight shows them.
 
 **Why this was moved ahead of M2:** at 10:05–10:08 the bot died three times at home to a Greyling. I stopped it from the panel, and turned home.idleMinutes to 0 until the retreat was in, then back to 10.
+
+**agent:codex/renki-resume** at 2026-10-29T17:30:39Z
+
+claim taken from agent:claude-code/renki-groom by agent:codex/renki-resume
+
+**agent:codex/renki-resume** at 2026-10-29T17:34:37Z
+
+Fixed the missing-target trigger: Valheim's AI target is local to the creature's simulation peer, and BaseAI's replicated target information only says whether some target exists. The controller now also recognizes damage from a still-perceived hostile for 30 seconds, scoped to the world and cleared on death/respawn. Unrelated creatures, players, environmental damage, expired evidence and out-of-range/gone attackers do not trigger it. An owner nearby no longer suppresses retreat; reaching the owner with the threat still close continues the escape.
+
+Verification: the regression reproduces the fatal 5.4/25 HP scene with the two real Greyling IDs and no targetingMe flags. A bridge integration test confirms that an actual damage frame reaches the retreat watcher and dispatches flee. just check controller test-packages ./internal/retreat ./internal/app, just check plugin build and just check ci passed. Live criteria remain open pending a controlled fight on the new build.

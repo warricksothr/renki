@@ -150,6 +150,38 @@ func waitFor(t *testing.T, cond func() bool) {
 	}
 }
 
+func TestDamageFromRemoteHostileTriggersRetreatThroughBridge(t *testing.T) {
+	cfg := config.Default()
+	cfg.AllowedTasks = append(cfg.AllowedTasks, protocol.TaskFlee)
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(ctx, ln) }()
+	t.Cleanup(func() { cancel(); <-done })
+	p := bridgetest.Connect(t, "ws://"+ln.Addr().String()+"/ws/", append(bridgetest.Capabilities, protocol.TaskFlee))
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 5.4, HPMax: 25})
+	p.Send(&protocol.Perception{Characters: []protocol.PerceivedCharacter{
+		{ID: "1:2", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{3, 0, 0}, HPFrac: 1, Hostile: true},
+	}})
+	p.Send(&protocol.Event{Event: protocol.EventDamaged, By: "1:2", Amount: 5})
+	msg := p.Next()
+	task, ok := msg.(*protocol.TaskRequest)
+	if !ok || task.Task != protocol.TaskFlee {
+		t.Fatalf("wanted flee, got %+v", msg)
+	}
+	var args protocol.FleeArgs
+	if err := json.Unmarshal(task.Args, &args); err != nil {
+		t.Fatal(err)
+	}
+	if args.From.Entity != "1:2" {
+		t.Fatalf("wrong attacker: %+v", args)
+	}
+}
+
 // TestAuditRecordsTheExchange checks the audit log has what is needed to
 // reason about a session afterwards: the frames both ways, in order, the
 // plugin's traces, and the controller's decisions.

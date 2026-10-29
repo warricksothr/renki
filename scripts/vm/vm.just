@@ -98,6 +98,18 @@ audit DAYS="1" *ARGS: need-target
     cd "{{justfile_directory()}}"
     just controller audit {{ARGS}} $(for f in $files; do printf '%s ' "$local/$f"; done)
 
+# Save an exact audit window locally, including state/perception, without a full-day download.
+[positional-arguments]
+audit-window SINCE UNTIL: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "$1" =~ ^[0-9T:.Z+-]+$ && "$2" =~ ^[0-9T:.Z+-]+$ ]] || { echo 'Use ISO timestamps' >&2; exit 2; }
+    mkdir -p "{{justfile_directory()}}/.checks"
+    out=$(mktemp "{{justfile_directory()}}/.checks/audit-window-XXXXXX.jsonl")
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/audit-window.ps1" "{{target}}:/{{dir}}/audit-window.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/audit-window.ps1 -Since '$1' -Until '$2'" | tr -d '\r' > "$out"
+    echo "$out"
+
 # Run once, and again after the Tailscale address changes. Then `just vm restart`.
 [doc("Turn the control panel on: Tailscale address, firewall, token.")]
 panel-setup PORT="8780": need-target

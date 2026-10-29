@@ -70,13 +70,13 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Cooldown: cooldown(cfg),
 		Logger:   log.With("part", "chat"),
 	}, s)
-	s.SetListener(brain)
 	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice,
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
 	a.Retreat = retreat.New(s, func() []string { return set.Values().Owners }, func() (protocol.Vec3, bool) {
 		_, h, ok := keeper.Current()
 		return h.Pos, ok
 	}, log.With("part", "retreat"), nil)
+	s.SetListener(&listeners{brain: brain, retreat: a.Retreat})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -85,6 +85,19 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Tap:      audit.Frame,
 	}, s)
 	return a
+}
+
+// listeners fan out session events without doing blocking work on the bridge.
+type listeners struct {
+	brain   *chat.Brain
+	retreat *retreat.Retreat
+}
+
+func (l *listeners) Chat(c *protocol.Chat)    { l.brain.Chat(c) }
+func (l *listeners) TaskDone(t *session.Task) { l.brain.TaskDone(t) }
+func (l *listeners) Event(e *protocol.Event) {
+	l.retreat.Event(e)
+	l.brain.Event(e)
 }
 
 // Welcome is the reply to every hello, built from the configuration and
