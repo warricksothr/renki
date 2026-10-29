@@ -215,7 +215,12 @@ namespace Renki.Plugin
                 if (arrivedAt < 0) arrivedAt = Time.time;
                 if (Time.time - arrivedAt < AutoFor) return null;
                 if (!p.GetInventory().CanAddItem(drop.m_itemData, 1))
+                {
+                    // Full: what it took is still a pickup, the rest stays.
+                    if (took > 0)
+                        return Outcome.Succeeded($"took {took} {prefab}; no room for the other {drop.m_itemData.m_stack}");
                     return Outcome.Failed(Wire.ReasonInventoryFull, $"no room for {prefab}");
+                }
                 p.Pickup(drop.gameObject, false, false);
                 arrivedAt = Time.time; // give it a moment to land before trying again
                 return null;
