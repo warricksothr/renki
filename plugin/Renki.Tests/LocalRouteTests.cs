@@ -97,6 +97,19 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void ApproachUsesTheTasksStoppingDistanceInsteadOfTheSolidGoalCentre()
+        {
+            var goal = new V3(10, 0, 0);
+            V3? Probe(V3 a, V3 b) => b.X >= 9 ? (V3?)null : b;
+            var route = new LocalRoute(V3.Zero, goal, Probe, within: 1.5);
+            Assert.Equal(RouteStatus.Found, Finish(route));
+            Assert.True(Arrival.Reached(route.Path.Last(), goal, 1.5));
+            Assert.True(route.Path.Last().X < 9);
+            var wrongFloor = new LocalRoute(V3.Zero, new V3(10, 3, 0), Probe, within: 1.5);
+            Assert.Equal(RouteStatus.NoRoute, Finish(wrongFloor));
+        }
+
+        [Fact]
         public void FollowingWaypointsKeepsTheFloorHeightUntilActuallyReached()
         {
             var above = new V3(1, 3, 1);

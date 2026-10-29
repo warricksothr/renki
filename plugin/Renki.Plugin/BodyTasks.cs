@@ -21,7 +21,15 @@ namespace Renki.Plugin
         readonly Climber climb = new Climber();
         readonly ApproachRecovery approach = new ApproachRecovery();
         readonly List<Vector3> scratch = new List<Vector3>();
+        readonly RouteTrail trail = new RouteTrail();
+        RouteValidation replay;
+        WorldNavigation.PlanningProbe replayProbe;
+        long replayID;
+        V3? replayWaypoint;
+        bool replaying, skipReuse, trailStarted, reuseRoutes;
+        double replayMs, replayWorstMs;
         Vector3 goal;
+        double arrivalWithin = .5;
         bool hasGoal;
         LocalRoute localRoute;
         WorldNavigation.PlanningProbe localProbe;
@@ -71,7 +79,7 @@ namespace Renki.Plugin
         /// <summary>Try other approaches before failing an off-level goal.</summary>
         public Outcome Unreachable(Vector3 pos, double within)
         {
-            if (localRoute != null) return null;
+            if (localRoute != null || replay != null) return null;
             var here = Convert.ToV3(pos);
             var atEnd = OffLevel && (V3.FlatDistance(here, Convert.ToV3(goal)) <= within ||
                                     V3.FlatDistance(here, Convert.ToV3(end)) <= AtEnd);
@@ -113,22 +121,63 @@ namespace Renki.Plugin
             ApproachRecovery.SafePath(Convert.ToV3(from), candidate, scratch.Select(Convert.ToV3).ToArray(),
                 (a, b) => DeepWater.Crossing(a, b, Ground, WaterLevel) != null);
 
-        public void SetGoal(Vector3 from, Vector3 to)
+        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false)
         {
             approach.Reset();
             goal = to;
+            arrivalWithin = within;
+            this.reuseRoutes = reuseRoutes;
             WorldNavigation.Focus(to);
             hasGoal = true;
+            skipReuse = false;
+            trailStarted = false;
+            RecordGrounded(from);
             Repath(from);
+        }
+
+        void RecordGrounded(Vector3 pos)
+        {
+            if (!reuseRoutes || Player.m_localPlayer?.IsOnGround() != true) return;
+            if (!trailStarted) { trail.Reset(Convert.ToV3(pos)); trailStarted = true; }
+            else trail.Record(Convert.ToV3(pos));
+        }
+
+        /// <summary>Only a completed point move makes its actual trail reusable.</summary>
+        public void Arrived(Vector3 pos)
+        {
+            if (!trailStarted || Player.m_localPlayer?.IsOnGround() != true) return;
+            trail.Record(Convert.ToV3(pos), final: true);
+            if (WorldNavigation.Routes.Remember(trail) is long id)
+                Tracer.Emit("walker", "recorded successful route", new Dictionary<string, object>
+                {
+                    ["route"] = id,
+                    ["points"] = trail.Points.Count,
+                    ["stored"] = WorldNavigation.Routes.Count,
+                });
         }
 
         void Repath(Vector3 from, bool forceLocal = false)
         {
             navigationFailure = null;
             localRoute = null;
+            replay = null;
+            replaying = false;
+            replayWaypoint = null;
             path.Reach = 1;
             var target = approach.Target is V3 via
                 ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : goal;
+            if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&
+                WorldNavigation.Routes.Find(Convert.ToV3(from), Convert.ToV3(target)) is RouteHint hint)
+            {
+                replayProbe = new WorldNavigation.PlanningProbe();
+                replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, arrivalWithin);
+                replayID = hint.ID;
+                replayMs = replayWorstMs = 0;
+                path.Set(new V3[0]);
+                OffLevel = StraightLine = false;
+                Blocked = null;
+                return;
+            }
             scratch.Clear();
             var pf = Pathfinding.instance;
             StraightLine = !(pf != null &&
@@ -226,9 +275,31 @@ namespace Renki.Plugin
         public bool Steer(Vector3 pos, bool run)
         {
             if (!hasGoal) return true;
+            RecordGrounded(pos);
             if (Swim(pos, ref run)) return true;
+            if (replay != null) return PlanReplay(pos);
             if (localRoute != null) return PlanLocal(pos);
             if (navigationFailure != null) { Driver.Stand(); return true; }
+            if (replaying && path.Next(Convert.ToV3(pos)) is V3 replayNext)
+            {
+                // Validation is a planning hint, not a lease on unchanged
+                // geometry. Recheck the immediate short leg every step.
+                // Short replay legs can turn around a doorway without
+                // covering the stuck detector's 3 m circle. Consuming a
+                // validated waypoint is progress on this finite path.
+                if (!(replayWaypoint is V3 previous) || (replayNext - previous).Length > .01)
+                {
+                    ResetStuck(pos);
+                    replayWaypoint = replayNext;
+                }
+                replayProbe.BeginSlice();
+                var supported = replayProbe.Probe(Convert.ToV3(pos), replayNext);
+                if (!(supported is V3 at) || (at - replayNext).Length > .65)
+                {
+                    RejectReplay(pos, "next leg changed");
+                    return true;
+                }
+            }
             if (Time.unscaledTime >= nextWallCheck)
             {
                 nextWallCheck = Time.unscaledTime + .25f;
@@ -263,6 +334,11 @@ namespace Renki.Plugin
             if (approach.Target != null) stuck.Hold(Time.time);
             if (climb.Active && Climb(pos)) return true;
             var recovery = stuck.Update(Convert.ToV3(pos), Time.time);
+            if (replaying && recovery != Recovery.None)
+            {
+                RejectReplay(pos, "no progress on recorded route");
+                return true;
+            }
             if (recovery != Recovery.None)
                 Tracer.Emit("walker", recovery == Recovery.GiveUp ? "stuck; giving up" : $"stuck; trying {recovery}",
                     new Dictionary<string, object>
@@ -308,12 +384,64 @@ namespace Renki.Plugin
             return true;
         }
 
+        void RejectReplay(Vector3 pos, string why)
+        {
+            WorldNavigation.Routes.Remove(replayID);
+            skipReuse = true;
+            Tracer.Emit("walker", "recorded route rejected", new Dictionary<string, object>
+            {
+                ["why"] = why,
+                ["route"] = replayID,
+                ["pos"] = Convert.ToArray(pos),
+                ["checking"] = replay?.Checking?.ToArray(),
+                ["samples"] = replay?.Samples,
+                ["ms"] = System.Math.Round(replayMs, 2),
+                ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
+            });
+            Repath(pos, true);
+            Driver.Stand();
+        }
+
+        bool PlanReplay(Vector3 pos)
+        {
+            Driver.Stand();
+            stuck.Hold(Time.time);
+            replayProbe.BeginSlice();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            for (var i = 0; i < 8 && watch.Elapsed.TotalMilliseconds < 2 && replay.Status == RouteStatus.Searching; i++)
+                replay.Advance(1);
+            watch.Stop();
+            replayMs += watch.Elapsed.TotalMilliseconds;
+            replayWorstMs = System.Math.Max(replayWorstMs, watch.Elapsed.TotalMilliseconds);
+            if (replay.Status == RouteStatus.Searching) return true;
+            if (replay.Status != RouteStatus.Found)
+            {
+                RejectReplay(pos, "live route validation failed");
+                return true;
+            }
+            path.Set(replay.Path);
+            path.Reach = .15;
+            replaying = true;
+            Tracer.Emit("walker", "reusing recorded route", new Dictionary<string, object>
+            {
+                ["route"] = replayID,
+                ["samples"] = replay.Samples,
+                ["waypoints"] = replay.Path.Count,
+                ["ms"] = System.Math.Round(replayMs, 2),
+                ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
+                ["physicsCasts"] = replayProbe.PhysicsCasts,
+            });
+            replay = null;
+            ResetStuck(pos);
+            return true;
+        }
+
         void BeginLocal(Vector3 from, Vector3 target)
         {
             localWaterBlocked = Blocked;
             Blocked = null;
             localProbe = new WorldNavigation.PlanningProbe();
-            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe);
+            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, arrivalWithin);
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
             localMs = localWorstMs = 0;
@@ -559,7 +687,7 @@ namespace Renki.Plugin
             this.goal = goal;
             this.entity = entity;
             var p = Player.m_localPlayer;
-            walker.SetGoal(p.transform.position, goal);
+            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null);
             walker.ResetStuck(p.transform.position);
         }
 
@@ -573,13 +701,14 @@ namespace Renki.Plugin
                 if ((entity.transform.position - goal).sqrMagnitude > 4)
                 {
                     goal = entity.transform.position;
-                    walker.SetGoal(p.transform.position, goal);
+                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false);
                 }
             }
             var pos = p.transform.position;
             if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), args.StopDistance))
             {
                 Driver.Stand();
+                if (args.To.Entity == null) walker.Arrived(pos);
                 return Outcome.Succeeded();
             }
             if (walker.Unreachable(pos, args.StopDistance) is Outcome under)

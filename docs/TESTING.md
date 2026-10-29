@@ -413,8 +413,8 @@ Tas still approached the underside before using home. The path planner
 retains floor heights; the follower now also requires level-aware arrival
 for intermediate/final waypoints and replans when standing below one.
 `just check plugin test-core LocalRouteTests` covers stacked-floor arrival.
-Successful entrance/path reuse, repeated unattended routes, full/warded and
-multi-chest overflow checks, deliberate-drop detection, and leader/site
+Repeated unattended routes, full/warded and multi-chest overflow checks,
+deliberate-drop detection, and leader/site
 resumption remain open. Tree cutting, mining and crafting are not implemented.
 Exact receipts, audit-window paths and remaining checks are on the stow,
 hauling and navigation tickets; keep full logs outside this document.
@@ -442,5 +442,31 @@ the bed's broad effect-area trigger counted as a nearby collider. Interact
 now excludes triggers from reach and sight. At 22:28:17Z–22:28:19Z, the final
 build walked Tas from (-36.53,36.09,7.96) to (-32.03,36.09,11.97), beside the
 physical bed collider, then relayed the same daytime refusal. HP stayed 25.
-Nighttime sleep, automatic home/join/respawn claiming,
-persistent bed status and actual respawn-at-bed remain staged work.
+Nighttime bed entry passed on 2026-10-29 at 22:40:47Z with bed
+`1:38548`; Tas entered `in_bed` at full health. Shared time-skip, automatic
+home/join/respawn claiming, persistent bed status and actual respawn-at-bed
+remain staged work.
+
+### Successful route reuse
+
+`just check plugin test-core RouteMemoryTests` covers reversible entrance
+trails, joins to nearby home/chest goals, stacked floors, blocked/new joins,
+demolished support, one-way drops, bounded work/storage and backtracking.
+These are deterministic policy/probe checks, not Unity physics proof.
+
+Live: with threats clear and Tas healthy, move from inside home to nearby
+open ground and back, then repeat. Capture `recorded successful route`,
+`reusing recorded route` and rejection traces with exact task receipts and
+HP. Verify a reusable route crosses the actual doorway and avoids repeating
+the underside approach. Compare validation samples/CPU with local-search
+expansions and total/worst-frame cost. A one-way fall may legitimately reject
+reverse reuse; normal planning must still work. Stop/death/reconnect must
+discard the active task, and reconnect starts without saved route hints.
+Do not remove a player's wall/floor or change ward access merely to stage an
+invalidation test; keep those live mutations explicitly unverified.
+
+On 2026-10-29, level-terrace outgoing and reverse chest routes both reused
+recorded trails through the west doorway without fallback (45/48 samples,
+1.61/1.84 ms total validation, HP 25). A separate steep exterior start stalled
+and safely fell back to normal planning. That slope and real geometry
+mutations remain open; exact receipts and costs are on the navigation ticket.

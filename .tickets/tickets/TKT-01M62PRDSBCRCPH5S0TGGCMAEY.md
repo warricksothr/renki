@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-10-29T22:29:16Z
+updated_at: 2026-10-29T22:41:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -79,3 +79,7 @@ Live at 22:22:51–22:22:52Z: sleep selected explicitly free bed 1:38548, set sp
 Fixed interaction reach to ignore trigger colliders and trigger ray hits. After full deployment, go to sleep at 22:28:17–22:28:19Z actually walked Tas from (-36.53,36.09,7.96) to (-32.03,36.09,11.97), close enough to the physical bed collider, and relayed only "You can't sleep at this time" as a refused task. HP25 throughout. Evidence .checks/audit-window-GuhIsv.jsonl. Sent him back to configured home afterward. No player's bed was reset and no death/time-of-day was staged.
 
 Only acceptance criterion 1 is complete. Criterion 2 includes actual respawn at the bed, which has not been tested. Automatic claiming on home/join/respawn, persistent bed status and automatic no-free-bed notices remain unimplemented; nighttime positive sleep and roof/fire/wet/enemy/ward staging remain live checks. Owner stop/death/reconnect uses the existing task cancellation; there is no scheduled continuation after cancellation. Do not call the entire bed ticket or M2 complete.
+
+**agent:codex/renki-resume** at 2026-10-29T22:41:17Z
+
+Nighttime manual sleep passed on deployed 3232dad at 22:40Z–22:41Z: Tas approached his claimed bed, interact succeeded with actual bed attachment, and current state reported in_bed at (-31.08,36.55,15.22), HP25. He was waiting for the other player, so actual shared time-skip sleeping is not claimed. Evidence .checks/audit-window-RxI1SV.jsonl. Sent him home after recording this to continue the approved route-memory deployment/checks. Actual respawn-at-bed, automatic claiming triggers and persistent bed status remain open.

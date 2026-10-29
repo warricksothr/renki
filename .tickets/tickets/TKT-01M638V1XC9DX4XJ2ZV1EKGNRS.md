@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T22:26:17Z
+updated_at: 2026-10-29T22:55:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -52,16 +52,12 @@ Follow should also not count it as stuck when it is already within its distance 
 
 ## Implementation plan
 
-### Evidence
-The 17:39:47Z come-here attempt first had no navmesh path and drove a straight fallback toward the east wall. Later paths ended 21.9 m short on the house floor. GetPath currently allows partial paths, and Walker.Toward falls through to the original goal when the waypoint list ends, driving past the valid partial path and into a wall. This is distinct from raised-goal arrival.
+### Current slice: reuse successful entrance routes
+Keep a bounded, session/world-scoped memory of actual grounded movement from completed point move_to tasks. Do not memorize failed/cancelled attempts or planned-but-unwalked paths. Retain at most 24 routes and 256 points per trail; prune short backtracking loops and discard oversized trails. Match start/goal with floor-aware bounded joins, support reversal, and select the shortest matching hint.
 
-### Approach
-Validate every candidate path against the already measured, height-aware wall segments, including the final segment. Reject a route that crosses a known wall or stops far short instead of driving past its end. Use a bounded local A* fallback with 0.75 m cells, ground support, step-height limits, capsule clearance, water rejection and normal door handling. Budget search over physics frames; keep different floor levels separate. No stale collision map is persisted: current walls and physical probes validate each local plan. Keep navmesh for ordinary travel and preserve raised-goal recovery.
+Before replay, validate the complete joined route against current support, water, measured walls and physical clearance in small physics-frame slices. Resample at sub-metre intervals rather than trusting long old segments. Closed accessible doors still use the normal doorman. Recheck the immediate replay leg while walking; invalidate a blocked hint and return to ordinary bounded planning instead of repeatedly trying it. Clear memory on world/session reset. Never persist geometry as authority or bypass owner stop, survival cancellation, wards or water checks.
 
-Add deterministic tests for the real house layout, doors/openings, stacked floors, enclosed/no-route goals, clearance and bounded search, and for stopping at partial path ends. Capture bounded path and probe-cost traces. Live-test walking out and returning before resuming the staged retreat and hauling work. just check ci and just check review gate landing/deployment.
-
-### Cached navigation geometry
-The owner authorized cached obstacle boxes/circles with mark-and-sweep refresh, nearer-first and travel-corridor priority. Keep the cache in the plugin and bounded in space/count/work per frame. Discover nearby/ahead/far colliders at different cadences; cache static upright box/capsule primitives, leave meshes, moving objects and doors to live physics. Transform/shape/enabled changes dirty records, destroyed objects are swept, and session/world changes clear the cache. Primitive bounds are conservative early blockers only; live support, water and capsule queries remain authoritative for uncached space. Use a spatial hash rather than testing every obstacle. Memoize exact repeated support samples within each planning physics step without merging floors; resample next step because floors and meshes can change independently of indexed solids. Revalidate candidate cached blockers against live collider stamps before rejecting a leg, so a delayed sweep cannot preserve a demolished wall. Spread discovery over frames, with the oldest due near/ahead/far pass selected to avoid starvation. Remove allocating All physics calls in the planner in favour of bounded nonallocating queries that fail closed on saturation. Log cache hits, actual physics calls, bounds rejections, cache maintenance and planning CPU; compare the same exact house exit/return. Verify geometry corners/height/backing out, mutations/removal, update priority and bounded caches in Core tests. Preserve normal navmesh and all existing movement safety.
+Add deterministic regressions for reverse entrance reuse, stacked floors, changed/removed support and blockers, oversized trails, bounded storage/work and safe fallback. Emit bounded reuse/rejection/cost traces. Run focused just checks, just check ci, committed just check review, then land/deploy. Live-check an open-ground trip out and back, repeat it to show reuse, and compare task results/probe work while monitoring HP. Leave destructive geometry/ward staging as explicit remaining checks rather than modifying the owner's house for a test. After routing, proceed to storage checks and the supplied-axe harvesting slice from the owner's approved list.
 
 ## Notes
 
@@ -115,3 +111,17 @@ Code inspection found PathFollower.Next advances every waypoint using flat dista
 Fresh one-target flint loop passed on the height-aware waypoint build with the bounded stow home fallback: 22:23:51–22:25:01Z, t-2 moved from home to (-28.15,30.43,42.11), t-3 used pickable 1:39745, t-4 took exactly Flint1, t-5's direct chest approach failed unreachable, t-6 went to configured home through the west door, and t-7 deposited Flint1. Task-matched receipt and newer pack observation confirmed chest Stone1/Flint3/ArmorRagsChest1 and pack BeechSeeds15. Every recorded state was 25/25 HP. No manual door staging occurred in this loop. Both temporary test definitions were deleted afterward. Evidence: .checks/audit-window-IM0XXq.jsonl.
 
 This is a full bounded collection/delivery pass. It is not efficient/reliable direct chest routing: the direct approach still searched the underside and failed before the home fallback. Height-aware following prevents consuming waypoints from another floor; it does not add route memory. A reusable, live-validated entrance/successful-path hint is still needed, along with repeated unattended route checks. Tree cutting, mining, crafting, default loot, deliberate-drop detection, leader/work-site resumption and live multi-chest/full/ward checks remain open.
+
+**agent:codex/renki-resume** at 2026-10-29T22:50:55Z
+
+Implemented bounded, session-local memory of successful point-movement trails, floor-aware forward/reverse joins, live support/water/wall/capsule validation and immediate-leg revalidation. Point moves honor stopping reach beside solid goals. Follow/flee policies remain unchanged.
+
+Live 2026-10-29 22:47:15–22:50:19Z, HP 25 throughout: outgoing t-1 succeeded (36 recorded points); home t-2 succeeded through doorway with normal planning; repeated outgoing t-3 reused route 1 and succeeded in 5.5 s (68 validation samples, 4.25 ms total, 1.85 ms worst slice). Chest t-4 validated reverse reuse (63 samples, 2.38 ms total, .39 ms worst slice) and succeeded, but first deployed version prematurely invalidated near a tight doorway turn and used a short local fallback. Source fix now counts consumed validated waypoints as progress on replay; stationary legs still trigger recovery. Retest final build before claiming uninterrupted reverse reuse. Initial local search: 98 expansions, 778 probes, 47.85 ms total; one 19.76 ms slice exceeds the 2 ms target, so do not claim a hard per-frame bound.
+
+Evidence: .checks/audit-window-11vJwZ.jsonl, .checks/audit-window-lrLJ3u.jsonl, .checks/route-t3-events.json, .checks/route-t4-events.json. Real geometry mutations and longer unattended/reconnect/cancel checks remain staged. Navigation ticket AC2 remains open.
+
+Owner supplied new flint axe in rag chest 1:30592; t-5 withdrew exactly one AxeFlint successfully at 22:50:19Z. Chest retains Stone 1, Flint 3 and ArmorRagsChest 1; other contents preserved.
+
+**agent:codex/renki-resume** at 2026-10-29T22:55:14Z
+
+Final waypoint-progress build live check 2026-10-29 22:54:47–22:55:03Z: level terrace (-46,33.9,16) outgoing t-5 reused route 3, succeeded in 3.7 s, 45 samples/1.61 ms total/.34 ms worst slice. Reverse chest t-6 reused route 5, crossed west doorway, closed door behind, succeeded in 4.1 s, 48 samples/1.84 ms total/.37 ms worst slice. Neither required fallback; HP stayed 25. Evidence .checks/route-level-out.json and .checks/route-level-return.json. Earlier steep exterior start t-4 legitimately stalled its replay and reverted to normal planning, which completed; .checks/route-corrected-return.json. Do not claim replay handles that slope or a hard 2 ms bound. Final source gate .checks/20261029T225019Z-McEZIK.log; committed review .checks/20261029T225100Z-67FUwU.log: no findings. Route hints still clear on reconnect.
