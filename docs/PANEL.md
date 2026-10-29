@@ -81,9 +81,8 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Say:** words typed above the feed reach the bot as if the owner
   picked beside them had said them in the game, with no need for its
   name. It answers in the feed (`said to the panel`), not in the game.
-  "Come here", "set home" and "pick that up" use where that owner's
-  character stands when the bot can see it, and are refused when it
-  cannot.
+  "Come here", "set home", "pick that up" and "follow me" need that
+  owner's character in the bot's sight, and are refused when it is not.
 - **Feed:** the audit log's records as they are written (docs/AUDIT.md), in
   the same lines `just vm audit` prints. Filters: chat, tasks, the plugin's
   decisions (`trace`), the controller's decisions, other frames, and state

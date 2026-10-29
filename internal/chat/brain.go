@@ -460,7 +460,9 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		ack   string
 	)
 	switch cmd {
-	case cmdCome, cmdSetHome, cmdPickup:
+	// Follow too: from the panel the owner may not be in the world at all,
+	// and a follow that loses its leader sends the bot home.
+	case cmdCome, cmdSetHome, cmdPickup, cmdFollow:
 		if !located(c) {
 			b.say(from, fmt.Sprintf("I can't see you, %s, so I don't know where you mean.", c.From.Name))
 			return
