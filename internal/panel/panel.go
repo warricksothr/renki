@@ -213,9 +213,11 @@ func (p *panel) act(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"text": text})
 }
 
-// set changes one setting from {"key": …, "value": …}, recorded as the
-// panel's change, and answers {"text": …}: 200, or 400 for a bad value, 404
-// for an unknown key, 409 for a pinned one.
+// set changes one setting as the panel: {"key": …, "value": …} sets it,
+// {"key": …, "reset": true} returns it to the config's value, and
+// {"key": …, "pin": true|false} pins it against the agent or lets it go.
+// It answers {"text": …}: 200, or 400 for a bad value, 404 for an unknown
+// key, 409 for a pinned one.
 func (p *panel) set(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get(ActHeader) == "" {
 		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
@@ -224,11 +226,13 @@ func (p *panel) set(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Key   string          `json:"key"`
 		Value json.RawMessage `json:"value"`
+		Reset bool            `json:"reset"`
+		Pin   *bool           `json:"pin"`
 	}
 	code, text := http.StatusOK, ""
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		code, text = http.StatusBadRequest, "not a setting: "+err.Error()
-	} else if err := p.o.Settings.Set(req.Key, req.Value, settings.ByPanel); err != nil {
+	} else if err := p.change(req.Key, req.Value, req.Reset, req.Pin); err != nil {
 		code, text = http.StatusBadRequest, err.Error()
 		switch {
 		case errors.Is(err, settings.ErrUnknownKey):
@@ -237,12 +241,33 @@ func (p *panel) set(w http.ResponseWriter, r *http.Request) {
 			code = http.StatusConflict
 		}
 	} else {
-		text = req.Key + " is now " + string(req.Value)
+		switch {
+		case req.Reset:
+			text = req.Key + " is back to the config's value"
+		case req.Pin != nil && *req.Pin:
+			text = req.Key + " is pinned"
+		case req.Pin != nil:
+			text = req.Key + " is no longer pinned"
+		default:
+			text = req.Key + " is now " + string(req.Value)
+		}
 	}
 	p.o.Logger.Info("panel setting", "key", req.Key, "value", string(req.Value), "remote", r.RemoteAddr, "status", code)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"text": text})
+}
+
+func (p *panel) change(key string, value json.RawMessage, reset bool, pin *bool) error {
+	switch {
+	case reset:
+		return p.o.Settings.Reset(key, settings.ByPanel)
+	case pin != nil && *pin:
+		return p.o.Settings.Pin(key, settings.ByPanel)
+	case pin != nil:
+		return p.o.Settings.Unpin(key, settings.ByPanel)
+	}
+	return p.o.Settings.Set(key, value, settings.ByPanel)
 }
 
 // models answers {"models": [...]} or {"error": …}, always with 200: a

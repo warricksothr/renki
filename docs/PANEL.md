@@ -68,6 +68,13 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   reply uses it, with no restart. Each reply's audit line (`voice`) names
   the model, its latency in `ms` and its `tokensIn` and `tokensOut`, so
   models can be compared from the log.
+- **Settings:** every runtime setting (docs/BRIDGE-PROTOCOL.md, Runtime
+  settings), with its value, whether it is the config's or a change and
+  who made it, and a pin. A change applies as soon as the box loses focus
+  or the switch flips, recorded as the panel's; **Reset** returns a setting
+  to the config's value, and **Pin** keeps the agent from changing it.
+  Lists are comma-separated. Changes from chat or another page show while
+  the section is open.
 - **Inventory:** what the bot carries, laid out as in the game, with stacks,
   a wear bar on items that wear (red below a quarter), equipped items
   outlined, and free slots and weight above. Hover a slot for the detail.

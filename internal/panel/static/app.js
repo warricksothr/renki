@@ -70,6 +70,8 @@ function addLine(ev) {
 
 function onRecord(ev) {
   addLine(ev);
+  // A change from chat or another page shows here too.
+  if (ev.kind === "log" && ev.msg === "setting changed" && $("settings").open) loadSettings();
   const f = ev.frame;
   if (!f) return;
   switch (f.type) {
@@ -767,6 +769,138 @@ $("model-select").addEventListener("change", () => (picked = true));
 $("model-use").addEventListener("click", useModel);
 $("model-refresh").addEventListener("click", loadModels);
 $("voice").addEventListener("toggle", () => $("voice").open && loadModels());
+
+// ---- settings ----
+
+// What each runtime setting is, for the page (internal/settings Keys).
+const SETTING = {
+  owners: "Owners, who give orders (comma-separated)",
+  nicknames: "Nicknames it also answers to",
+  allowedTasks: "Tasks the bot may be sent",
+  voice: "LLM replies in chat",
+  "model.provider": "Voice: terva provider",
+  "model.name": "Voice: model",
+  "model.baseURL": "Voice: backend URL",
+  "home.whenLost": "Go home when it loses its leader",
+  "home.whenStuck": "Go home when stuck",
+  "home.afterOutage": "Go home after an outage",
+  "home.idleMinutes": "Go home after idling this many minutes (0: never)",
+  "home.afterDeath": "After a death",
+  "overload.drop": "Drop things when carrying too much",
+};
+const AFTER_DEATH = ["home", "resume", "stay"];
+
+async function loadSettings() {
+  const res = await fetch("/api/settings").catch(() => null);
+  if (!res || !res.ok) return;
+  const entries = await res.json();
+  const rows = entries.map(settingRow);
+  $("settings-table").replaceChildren(...rows);
+  const changed = entries.filter((e) => e.set).length;
+  $("settings-summary").textContent = changed ? `${changed} changed from the config` : "as the config has them";
+}
+
+function settingRow(e) {
+  const tr = document.createElement("tr");
+  if (e.set) tr.className = "changed";
+  const key = document.createElement("td");
+  key.className = "key";
+  key.textContent = SETTING[e.key] || e.key;
+  key.title = e.key;
+  const cell = document.createElement("td");
+  cell.append(settingInput(e));
+  const src = document.createElement("td");
+  src.className = "src";
+  src.textContent = e.set ? `${e.set.by}, ${new Date(e.set.at).toLocaleString()}` : "config";
+  if (e.pin) src.textContent += " · pinned";
+  src.title = `config: ${JSON.stringify(e.config)}`;
+  const acts = document.createElement("td");
+  if (e.set) acts.append(button("Reset", "Back to the config's value", () => changeSetting({ key: e.key, reset: true })));
+  acts.append(
+    button(e.pin ? "Unpin" : "Pin", e.pin ? "Let the agent change it" : "Keep the agent from changing it", () =>
+      changeSetting({ key: e.key, pin: !e.pin }),
+    ),
+  );
+  tr.append(key, cell, src, acts);
+  return tr;
+}
+
+function button(text, title, onClick) {
+  const b = document.createElement("button");
+  b.textContent = text;
+  b.title = title;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function settingInput(e) {
+  const v = e.value;
+  const send = (value) => changeSetting({ key: e.key, value });
+  let el;
+  if (typeof v === "boolean") {
+    el = document.createElement("input");
+    el.type = "checkbox";
+    el.checked = v;
+    el.addEventListener("change", () => send(el.checked));
+  } else if (typeof v === "number") {
+    el = document.createElement("input");
+    el.type = "number";
+    el.min = "0";
+    el.step = "any";
+    el.value = v;
+    el.addEventListener("change", () => {
+      // An empty or unreadable box is not zero, which would turn a rule off.
+      if (el.value.trim() === "" || !Number.isFinite(Number(el.value))) {
+        el.value = v;
+        settingResult(false, "That is not a number.");
+        return;
+      }
+      send(Number(el.value));
+    });
+  } else if (e.key === "home.afterDeath") {
+    el = document.createElement("select");
+    el.append(...AFTER_DEATH.map((o) => new Option(o, o)));
+    el.value = v;
+    el.addEventListener("change", () => send(el.value));
+  } else if (Array.isArray(v)) {
+    el = document.createElement("input");
+    el.type = "text";
+    el.value = v.join(", ");
+    el.addEventListener("change", () =>
+      send(el.value.split(",").map((x) => x.trim()).filter(Boolean)),
+    );
+  } else {
+    el = document.createElement("input");
+    el.type = "text";
+    el.value = v ?? "";
+    el.addEventListener("change", () => send(el.value.trim()));
+  }
+  el.setAttribute("aria-label", SETTING[e.key] || e.key);
+  return el;
+}
+
+let settingsTimer = 0;
+
+async function changeSetting(body) {
+  const res = await fetch("/api/setting", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+    body: JSON.stringify(body),
+  }).catch(() => null);
+  const answer = res ? await res.json().catch(() => ({})) : {};
+  settingResult(!!res?.ok, answer.text || "the controller did not answer");
+  loadSettings(); // the value now, which a refused change leaves as it was
+}
+
+function settingResult(ok, text) {
+  const out = $("settings-result");
+  out.className = ok ? "" : "error";
+  out.textContent = text;
+  clearTimeout(settingsTimer);
+  settingsTimer = setTimeout(() => (out.textContent = ""), 8000);
+}
+
+$("settings").addEventListener("toggle", () => $("settings").open && loadSettings());
 
 // ---- the stream ----
 

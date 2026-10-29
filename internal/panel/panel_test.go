@@ -247,6 +247,10 @@ func TestSettingsFromThePage(t *testing.T) {
 		{`{"key":"home.idleMinutes","value":"soon"}`, 400},
 		{`{"key":"colour","value":"red"}`, 404},
 		{`{"key":"model.name"`, 400},
+		{`{"key":"overload.drop","value":false}`, 200},
+		{`{"key":"overload.drop","pin":true}`, 200},
+		{`{"key":"overload.drop","reset":true}`, 200},
+		{`{"key":"overload.drop","pin":false}`, 200},
 	} {
 		if code, body := do("POST", "/api/setting", c.body); code != c.code {
 			t.Errorf("%s: %d %s; want %d", c.body, code, body, c.code)
@@ -254,6 +258,9 @@ func TestSettingsFromThePage(t *testing.T) {
 	}
 	if m := store.Values().Model; m.Name != "claude-haiku-5-5" {
 		t.Errorf("model %+v", m)
+	}
+	if !store.Values().Overload.Drop {
+		t.Error("reset did not return overload.drop to the config's value")
 	}
 	if _, body := do("GET", "/api/settings", ""); !strings.Contains(body, `"by":"panel"`) {
 		t.Errorf("settings do not say the panel changed one: %s", body)
