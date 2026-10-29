@@ -171,12 +171,17 @@ namespace Renki.Plugin
         /// <summary>How long to leave auto-pickup to it before picking up by hand.</summary>
         const float AutoFor = 1.0f;
 
+        /// <summary>How many times to pick it up by hand before giving up on
+        /// a drop the game will not hand over (someone else holds it).</summary>
+        const int Tries = 3;
+
         readonly ItemDrop drop;
         readonly string prefab;
         readonly int before;
         readonly Walker walker = new Walker();
         Vector3 goal;
         float arrivedAt = -1;
+        int tries;
 
         public PickupTask(ItemDrop drop)
         {
@@ -221,6 +226,8 @@ namespace Renki.Plugin
                         return Outcome.Succeeded($"took {took} {prefab}; no room for the other {drop.m_itemData.m_stack}");
                     return Outcome.Failed(Wire.ReasonInventoryFull, $"no room for {prefab}");
                 }
+                if (tries++ >= Tries)
+                    return Outcome.Failed(Wire.ReasonInvalidTarget, $"the game will not hand over the {prefab}");
                 p.Pickup(drop.gameObject, false, false);
                 arrivedAt = Time.time; // give it a moment to land before trying again
                 return null;
