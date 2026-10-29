@@ -576,14 +576,17 @@ func TestPickThatUp(t *testing.T) {
 	}
 	b.TaskDone(doneTask(sent[0], protocol.StatusSucceeded, ""))
 	b.TaskDone(doneTask(sent[0], protocol.StatusFailed, protocol.ReasonTargetLost))
-	if got := f.said(); got[2] != "Got it." || got[3] != "It's gone. Someone got to it first." {
+	b.TaskDone(session.FinishedWith(sent[0].Task, sent[0].Origin, protocol.StatusSucceeded, "",
+		"took 30 Wood; no room for the other 12"))
+	if got := f.said(); got[2] != "Got it." || got[3] != "It's gone. Someone got to it first." ||
+		got[4] != "I got some of it, but I'm out of room." {
 		t.Errorf("results %q", got[2:])
 	}
 
 	// No slot free and no stack of it to add to.
 	f.inventory = &protocol.Inventory{Size: [2]int{1, 1}, Items: []protocol.InventoryItem{{Prefab: "Stone", Stack: 50, StackMax: 50}}}
 	b.Chat(line("Sothr", "bjorn grab that"))
-	if got := f.said(); got[4] != "I've no room for that." || len(pickups()) != 1 {
-		t.Errorf("when full: %q, sent %d", got[4], len(pickups()))
+	if got := f.said(); got[5] != "I've no room for that." || len(pickups()) != 1 {
+		t.Errorf("when full: %q, sent %d", got[5], len(pickups()))
 	}
 }

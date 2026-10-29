@@ -245,9 +245,14 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if !ok {
 		return
 	}
-	status, reason, _ := t.Status()
+	status, reason, detail := t.Status()
 	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
-		b.say(o, "Got it.")
+		// The plugin says "no room for the other N" when it filled up first.
+		if strings.Contains(detail, "no room") {
+			b.say(o, "I got some of it, but I'm out of room.")
+		} else {
+			b.say(o, "Got it.")
+		}
 		return
 	}
 	if status != protocol.StatusFailed && status != protocol.StatusRejected {
