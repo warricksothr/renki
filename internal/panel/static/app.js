@@ -219,7 +219,9 @@ function render() {
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
-  if (!view.zoomed && view.radius > 0) view.scale = Math.min(w, h) / (2 * view.radius * 1.1);
+  // A hidden or collapsed map has no size to fit; keep the scale in range.
+  if (!view.zoomed && view.radius > 0 && w > 0 && h > 0)
+    view.scale = Math.min(40, Math.max(0.25, Math.min(w, h) / (2 * view.radius * 1.1)));
   if (view.followBot && world.bot) view.centre = [world.bot[0], world.bot[2]];
   // North (+z) is up, east (+x) is right.
   const sx = (x) => w / 2 + (x - view.centre[0]) * view.scale;
