@@ -777,6 +777,16 @@ func TestUseTheBedAndDoor(t *testing.T) {
 		t.Errorf("used %v; want its own bed 1:4", got)
 	}
 
+	// From the panel, with the owner out of sight: nearest the bot, at 29, 10.
+	f.perception.Structures = f.perception.Structures[:3]
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{29, 0, 10}}
+	if err := b.FromPanel("Sothr", "get the door"); err != nil {
+		t.Fatal(err)
+	}
+	if got := uses(); got[len(got)-1] != "1:2" {
+		t.Errorf("used %v; want the door nearest the bot, 1:2", got)
+	}
+
 	sent := slices.DeleteFunc(f.sent(), func(o session.Order) bool { return o.Task != protocol.TaskInteract })
 	n := len(f.said())
 	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusSucceeded, "", "used the Bed: Spawn point set"))
