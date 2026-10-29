@@ -142,6 +142,7 @@ type State struct {
 	EitrMax    float64           `json:"eitrMax"`
 	Flags      []string          `json:"flags"`
 	Biome      string            `json:"biome"`
+	Location   *Location         `json:"location,omitempty"`
 	Env        string            `json:"env"`
 	Time       GameTime          `json:"time"`
 	Equipped   map[string]string `json:"equipped"`

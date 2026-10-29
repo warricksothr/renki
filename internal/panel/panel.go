@@ -72,6 +72,7 @@ type Options struct {
 	Behaviours      http.Handler
 	ContainerMemory func() any
 	LandmarkMemory  func() any
+	Map             func() any
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -121,6 +122,13 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	if o.Map != nil {
+		authed.HandleFunc("GET /api/map", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "no-store")
+			_ = json.NewEncoder(w).Encode(o.Map())
+		})
+	}
 	if o.ContainerMemory != nil {
 		authed.HandleFunc("GET /api/memory/containers", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -560,6 +568,7 @@ const (
 	CatChat       = "chat"
 	CatTask       = "task"
 	CatTrace      = "trace"
+	CatDiagnostic = "diagnostic"
 	CatDecision   = "decision"
 	CatState      = "state"
 	CatPerception = "perception"
@@ -589,10 +598,15 @@ func category(r audit.Record) string {
 		case protocol.TypeTask:
 			return CatTask
 		case protocol.TypeTrace:
+			var trace protocol.Trace
+			if json.Unmarshal(r.Frame, &trace) == nil && ((trace.Source == "perception" && trace.Msg == "scan") ||
+				(trace.Source == "navigation" && trace.Msg == "obstacle cache") || (trace.Source == "terrain" && trace.Msg == "cache")) {
+				return CatDiagnostic
+			}
 			return CatTrace
 		case protocol.TypeState:
 			return CatState
-		case protocol.TypePerception, protocol.TypeLayout:
+		case protocol.TypePerception, protocol.TypeLayout, protocol.TypeTerrain:
 			return CatPerception
 		}
 	}

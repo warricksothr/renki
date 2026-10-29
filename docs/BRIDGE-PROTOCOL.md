@@ -384,6 +384,32 @@ success before a failure. The bot's pack is also reported immediately.
 Session snapshots reset on a new connection or world; they are observations,
 not a claim that an unseen chest still has those contents.
 
+### 6.11 `terrain` (changed loaded-heightmap tiles, at most once a second)
+
+`terrain` carries `world` and `tiles`. Each tile has signed integer `x` and
+`z` indices in a 16 m grid (use floor division for negative positions),
+`waterLevel`, and 25-element `heights` and `biomes` arrays. Samples are
+corners 4 m apart, row-major with +x inside each row and rows towards +z:
+index `iz * 5 + ix` is at `(x * 16 + ix * 4, z * 16 + iz * 4)`.
+Unknown heights/biomes are JSON null. See `testdata/plugin/terrain.json`.
+
+Tiles replace the same indices in the current connection/world cache.
+One plugin update samples at most one tile (25 loaded-heightmap lookups).
+The bounded cache prioritizes nearby/ahead tiles, refreshes known samples
+after 30 s and missing samples after 5 s, and invalidates affected tiles
+after heightmap regeneration. Unloading a heightmap preserves previous
+measurements. Identical tiles are not sent again until `welcome` requests
+a resend. The plugin/controller each retain at most 256 tiles; this is a
+session cache, not persistent exploration or evidence of a safe route.
+
+`state.location` is optional for older plugins. It includes optional
+`groundHeight` (terrain below the character), `support` (`terrain`,
+`structure`, `ship`, `other`, `swimming`, `airborne`, `liquid`, `unknown`),
+`inWater`, and `waterDepth` (water above the character's feet, metres).
+It distinguishes a raised supporting floor from the ground underneath.
+Character elevation remains `state.pos[1]`; the existing `swimming` and
+`in_shelter` flags retain their meaning. See `state_location.json`.
+
 ## 7. Controller → plugin
 
 ### 7.1 Task model

@@ -20,17 +20,21 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
-	Version   string            `json:"version"`
-	Connected bool              `json:"connected"`
-	Character string            `json:"character,omitempty"`
-	World     string            `json:"world,omitempty"`
-	Phase     string            `json:"phase,omitempty"`
-	Task      *protocol.TaskRef `json:"task,omitempty"`
-	HP        float64           `json:"hp,omitempty"`
-	HPMax     float64           `json:"hpMax,omitempty"`
-	Pos       *protocol.Vec3    `json:"pos,omitempty"`
-	Biome     string            `json:"biome,omitempty"`
-	Home      *PanelHome        `json:"home,omitempty"`
+	Version    string             `json:"version"`
+	Connected  bool               `json:"connected"`
+	Character  string             `json:"character,omitempty"`
+	World      string             `json:"world,omitempty"`
+	Phase      string             `json:"phase,omitempty"`
+	Task       *protocol.TaskRef  `json:"task,omitempty"`
+	HP         float64            `json:"hp,omitempty"`
+	HPMax      float64            `json:"hpMax,omitempty"`
+	Pos        *protocol.Vec3     `json:"pos,omitempty"`
+	Biome      string             `json:"biome,omitempty"`
+	Location   *protocol.Location `json:"location,omitempty"`
+	Flags      []string           `json:"flags,omitempty"`
+	Yaw        float64            `json:"yaw"`
+	Connection uint64             `json:"connection"`
+	Home       *PanelHome         `json:"home,omitempty"`
 	// PerceptionRadius is how far perception reaches, for the map's first view.
 	PerceptionRadius float64 `json:"perceptionRadius"`
 	// LeftBehind is what the bot had to leave on the ground in this world.
@@ -65,6 +69,8 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		Voice:            a.Voice != nil && a.Settings.Values().Voice, Model: a.Settings.Values().Model}
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
+		ps.Location, ps.Flags, ps.Yaw = s.Location, s.Flags, s.Yaw
+		ps.Connection = a.Session.ConnectionID()
 		if s.Phase == protocol.PhaseInWorld {
 			pos := s.Pos
 			ps.Pos = &pos
@@ -195,6 +201,7 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Behaviours:      a.BehaviourHandler(),
 			ContainerMemory: a.ContainerMemory,
 			LandmarkMemory:  a.LandmarkMemory,
+			Map:             a.MapSnapshot,
 			Logger:          log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

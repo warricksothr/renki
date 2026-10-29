@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>renki</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/terrain.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -27,15 +28,28 @@
   </header>
   <main>
     <section id="map-pane">
+      <div class="map-heading">
+        <div><strong id="map-name">Location</strong><span id="map-world"></span></div>
+        <div class="location-chips"><span id="biome" class="chip"></span><span id="surface" class="chip"></span><span id="shelter" class="chip"></span></div>
+      </div>
+      <div class="map-layers" aria-label="Map layers">
+        <button data-layer="terrain" aria-pressed="true">Terrain</button>
+        <button data-layer="elevation" aria-pressed="true">Elevation</button>
+        <button data-layer="memory" aria-pressed="true">Remembered</button>
+        <button data-layer="resources" aria-pressed="false">Resources</button>
+        <span id="terrain-status">Waiting for terrain</span>
+      </div>
       <canvas id="map" aria-label="Top-down map around the bot"></canvas>
       <div id="map-tip" hidden></div>
+      <div class="location-details"><span id="height">Height unknown</span><span id="depth"></span></div>
       <div class="map-bar">
         <span id="pos"></span>
         <label><input type="checkbox" id="follow-bot" checked> Centre on the bot</label>
         <button id="zoom-in" title="Zoom in">+</button>
         <button id="zoom-out" title="Zoom out">−</button>
       </div>
-      <ul class="legend">
+      <div class="terrain-legend"><span class="meadows">Meadows</span><span class="forest">Black Forest</span><span class="water">Water</span><span class="unknown">Unknown terrain</span><span class="memory">Faint = last seen</span></div>
+      <details class="map-key"><summary>Map key</summary><ul class="legend">
         <li><i class="bot"></i>bot and its trail</li>
         <li><i class="player"></i>player</li>
         <li><i class="other"></i>creature</li>
@@ -59,7 +73,7 @@
         <li><i class="left"></i>what the bot had to leave behind</li>
         <li><i class="stuck"></i>stuck recovery</li>
         <li><i class="path"></i>planned path</li>
-      </ul>
+      </ul></details>
     </section>
     <section id="feed-pane">
       <details id="voice">
@@ -91,6 +105,7 @@
         <label><input type="checkbox" data-cat="chat" checked> Chat</label>
         <label><input type="checkbox" data-cat="task" checked> Tasks</label>
         <label><input type="checkbox" data-cat="trace" checked> Plugin decisions</label>
+        <label><input type="checkbox" data-cat="diagnostic"> Diagnostics</label>
         <label><input type="checkbox" data-cat="decision" checked> Controller</label>
         <label><input type="checkbox" data-cat="other"> Other</label>
         <label><input type="checkbox" data-cat="state"> State</label>

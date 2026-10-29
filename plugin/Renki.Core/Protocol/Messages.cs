@@ -13,7 +13,7 @@ namespace Renki.Protocol
         public const int Version = 1;
 
         public const string Hello = "hello", Welcome = "welcome", State = "state", Perception = "perception",
-            Inventory = "inventory", Container = "container", Layout = "layout", Chat = "chat", Event = "event", Task = "task", Ping = "ping", Pong = "pong",
+            Inventory = "inventory", Container = "container", Layout = "layout", Terrain = "terrain", Chat = "chat", Event = "event", Task = "task", Ping = "ping", Pong = "pong",
             Config = "config", Logout = "logout", Bye = "bye", Error = "error", Trace = "trace";
 
         public const string PhaseMenu = "menu", PhaseConnecting = "connecting", PhaseInWorld = "in_world",
@@ -168,6 +168,7 @@ namespace Renki.Protocol
         [JsonProperty("weight")] public double Weight;
         [JsonProperty("weightMax")] public double WeightMax;
         [JsonProperty("task", NullValueHandling = NullValueHandling.Ignore)] public TaskRef Task;
+        [JsonProperty("location", NullValueHandling = NullValueHandling.Ignore)] public Location Location;
     }
 
     public sealed class PerceivedCharacter

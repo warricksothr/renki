@@ -112,6 +112,9 @@ type Session struct {
 	carried     *protocol.Inventory
 	containers  map[string]*protocol.Container
 	containerAt map[string]time.Time
+	terrain     map[[2]int]protocol.TerrainTile
+	terrainSeq  uint64
+	layout      *protocol.Layout
 	allowed     []string
 	permit      func(task string) bool
 	tasks       map[string]*Task
@@ -161,6 +164,8 @@ func (s *Session) Connected(c *bridge.Conn) {
 	}
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.seenAt, s.seenWorld = time.Time{}, ""
+	s.terrain, s.terrainSeq = nil, 0
+	s.layout = nil
 	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
 	s.containerAt = make(map[string]time.Time)
@@ -207,12 +212,16 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 				s.containers = make(map[string]*protocol.Container)
 				s.containerAt = make(map[string]time.Time)
 				s.seen, s.carried, s.automation = nil, nil, nil
+				s.terrain, s.terrainSeq = nil, 0
+				s.layout = nil
 			}
 			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
 				s.automation = nil
 			}
 			if m.Phase != protocol.PhaseInWorld {
 				s.seenWorld = ""
+				s.terrain, s.terrainSeq = nil, 0
+				s.layout = nil
 			}
 			s.state = m
 		}
@@ -246,7 +255,15 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			s.containerAt[m.Entity] = time.Now().UTC()
 		}
 		s.mu.Unlock()
-	case *protocol.Trace, *protocol.Layout:
+	case *protocol.Terrain:
+		s.rememberTerrain(c, m)
+	case *protocol.Layout:
+		s.mu.Lock()
+		if s.conn == c && s.state != nil && s.state.Phase == protocol.PhaseInWorld && (s.layout == nil || m.Seq > s.layout.Seq) {
+			s.layout = m
+		}
+		s.mu.Unlock()
+	case *protocol.Trace:
 		// For the audit log and the panel, which have them from the
 		// bridge already.
 	case *protocol.Error:

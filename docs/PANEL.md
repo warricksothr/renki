@@ -62,6 +62,25 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   what it is, its distance from the bot and its details, every item of a
   group. Scroll or use + and − to zoom; drag to pan, which stops it
   following the bot.
+- **Terrain and location:** biome colors, water shading with interpolated
+  shorelines, and 5 m height contours from loaded terrain sampled every 4 m.
+  Unsampled areas stay dark/unknown. The header names the biome, supporting
+  surface and shelter; character and terrain heights are separate. Water
+  above feet appears when immersed; hovering terrain reports seabed depth
+  instead. Floors, bridges, waves, caves and obstacles need their own live
+  checks: this backdrop does not establish walkability.
+  Terrain, Elevation, Remembered and Resources buttons control layers;
+  resources start hidden to keep the view readable. Faint remembered markers
+  show last-seen time on hover and never duplicate an entity in current
+  perception. The north arrow, scale bar, facing marker and perception range
+  ring help with orientation. The range ring is not a guarantee that every
+  object inside it was reported.
+  Authenticated `GET /api/map` supplies current-world/connection terrain and
+  up to 512 nearest remembered landmarks; the page refreshes it every 5 s.
+  Terrain is bounded to 256 cached tiles, resets on controller/plugin
+  reconnect or world/menu changes, and repopulates from the plugin. Persistent
+  exploration is separate work. A map request failure retains the last
+  scoped view until a later successful refresh.
 - **Voice:** the model the bot's chat replies use, who chose it and when,
   and a list of what the backend offers (its `/models`, for an
   OpenAI-compatible backend such as cpa-api). **Use** switches to the one
@@ -91,6 +110,8 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   reads a past day's audit file instead (its newest 2000 records, with
   **Load earlier** for more; state and perception left out), and **Live**
   goes back.
+  Routine perception scans and navigation/terrain cache statistics are under
+  the unchecked Diagnostics filter; navigation decisions remain visible.
 - **Task view:** any line about a task starts with its id; click it for
   everything about that task in the controller run it belongs to (ids
   start again with each run): the chat that led to it, the request, its

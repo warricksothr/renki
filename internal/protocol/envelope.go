@@ -74,6 +74,7 @@ var registry = map[Sender]map[string]func() Message{
 		TypeInventory:  func() Message { return &Inventory{} },
 		TypeContainer:  func() Message { return &Container{} },
 		TypeLayout:     func() Message { return &Layout{} },
+		TypeTerrain:    func() Message { return &Terrain{} },
 		TypeChat:       func() Message { return &Chat{} },
 		TypeEvent:      func() Message { return &Event{} },
 		TypeTask:       func() Message { return &TaskStatus{} },
