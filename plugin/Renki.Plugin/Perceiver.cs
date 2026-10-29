@@ -210,8 +210,11 @@ namespace Renki.Plugin
             else if (go.TryGetComponent<TreeLog>(out var log)) (k.Kind, k.MinTool) = (Wire.ResourceLog, log.m_minToolTier);
             else if (go.TryGetComponent<MineRock>(out var rock)) (k.Kind, k.MinTool) = (Wire.ResourceRock, rock.m_minToolTier);
             else if (go.TryGetComponent<MineRock5>(out var rock5)) (k.Kind, k.MinTool) = (Wire.ResourceRock, rock5.m_minToolTier);
-            else if (go.TryGetComponent<Destructible>(out var stump) && stump.m_destructibleType == DestructibleType.Tree)
-                (k.Kind, k.MinTool) = (Wire.ResourceStump, stump.m_minToolTier);
+            // The game counts both stumps and small trees (Beech_small1) as
+            // destructible trees; only the stumps are named for it.
+            else if (go.TryGetComponent<Destructible>(out var wood) && wood.m_destructibleType == DestructibleType.Tree)
+                (k.Kind, k.MinTool) = (k.Prefab.IndexOf("stub", System.StringComparison.OrdinalIgnoreCase) >= 0
+                    ? Wire.ResourceStump : Wire.ResourceTree, wood.m_minToolTier);
             else if (go.TryGetComponent<Pickable>(out var pick)) (k.Kind, k.Part) = (Wire.ResourcePickable, pick);
             else if (go.TryGetComponent<ItemDrop>(out var drop)) (k.Kind, k.Part) = (Wire.ResourceDrop, drop);
             else return null;

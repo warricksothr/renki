@@ -18,9 +18,15 @@ namespace Renki.Plugin
         /// <summary>How long a door that refused is left alone.</summary>
         const float RefusedFor = 10f;
 
+        /// <summary>How long a door the bot just opened or shut is left
+        /// alone. Interact asks the door's owner to toggle it, and its state
+        /// takes a moment to come back: asking again before then toggles it
+        /// a second time.</summary>
+        const float SettleFor = 1.5f;
+
         readonly List<Piece> near = new List<Piece>();
         readonly List<Door> opened = new List<Door>();
-        readonly Dictionary<Door, float> refused = new Dictionary<Door, float>();
+        readonly Dictionary<Door, float> leave = new Dictionary<Door, float>();
         float nextLook;
 
         /// <summary>Each step while walking: shuts doors left behind, and a few
@@ -56,7 +62,7 @@ namespace Renki.Plugin
             foreach (var p in near)
             {
                 if (!p.TryGetComponent<Door>(out var door) || IsOpen(door)) continue;
-                if (refused.TryGetValue(door, out var until) && Time.time < until) continue;
+                if (leave.TryGetValue(door, out var until) && Time.time < until) continue;
                 var at = door.transform.position;
                 if (!wanted(at)) continue;
                 var d = Vector3.Distance(pos, at);
@@ -73,11 +79,12 @@ namespace Renki.Plugin
             // The door itself turns the bot away for a ward or a missing key.
             if (best.Interact(me, false, false))
             {
-                opened.Add(best);
+                if (!opened.Contains(best)) opened.Add(best);
+                leave[best] = Time.time + SettleFor;
                 Tracer.Emit("door", "opening", data);
                 return true;
             }
-            refused[best] = Time.time + RefusedFor;
+            leave[best] = Time.time + RefusedFor;
             Tracer.Emit("door", "will not open", data);
             return false;
         }
@@ -93,9 +100,11 @@ namespace Renki.Plugin
                     continue;
                 }
                 if (!DoorRules.Past(Convert.ToV3(pos), Convert.ToV3(door.transform.position))) continue;
+                if (leave.TryGetValue(door, out var settling) && Time.time < settling) continue;
                 opened.RemoveAt(i);
                 if (!IsOpen(door) || door.m_canNotBeClosed) continue;
                 door.Interact(me, false, false);
+                leave[door] = Time.time + SettleFor;
                 Tracer.Emit("door", "shutting behind", new Dictionary<string, object>
                 {
                     ["door"] = Convert.ToArray(door.transform.position),
