@@ -37,6 +37,11 @@ namespace Renki.Plugin
         /// <summary>How near the end of an off-level path counts as there.</summary>
         const double AtEnd = 1.0;
 
+        /// <summary>How near the goal, across the ground, a path's end must
+        /// be for an end off the goal's level to mean the goal is out of
+        /// reach: under it, or at the foot of the rock it is on.</summary>
+        const double NearGoal = 4.0;
+
         /// <summary>The failure for a bot that has gone as far toward a goal
         /// as the navmesh reaches, under or beside it but off its level, or
         /// null while it can still get there.</summary>
@@ -74,7 +79,11 @@ namespace Renki.Plugin
             // which may be under a floor or behind a shut door.
             end = scratch[scratch.Count - 1];
             var shortBy = Vector3.Distance(end, goal);
-            OffLevel = !StraightLine && System.Math.Abs(end.y - goal.y) > Arrival.Level;
+            // Off level only when the end is near the goal across the ground:
+            // a path that stops short farther off may yet go on, through a
+            // door or after a re-path.
+            OffLevel = !StraightLine && System.Math.Abs(end.y - goal.y) > Arrival.Level &&
+                       V3.FlatDistance(Convert.ToV3(end), Convert.ToV3(goal)) <= NearGoal;
             var data = new Dictionary<string, object>
             {
                 ["from"] = Convert.ToArray(from),
