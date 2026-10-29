@@ -266,8 +266,16 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	// Nothing here can move a bot that carries too much to move. Wait,
-	// rather than spend the outage check or the idle spell on it.
+	// rather than spend the outage check or the idle spell on it, but keep
+	// the interrupted flag current once this connection has been checked,
+	// so a task that ended while stranded is not later taken for an outage.
 	if st.Stranded() {
+		k.mu.Lock()
+		checked := k.checked
+		k.mu.Unlock()
+		if checked {
+			k.setInterrupted(st.Task != nil && body(st.Task.Task))
+		}
 		return
 	}
 

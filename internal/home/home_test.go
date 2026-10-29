@@ -228,6 +228,26 @@ func TestOutageWaitsUntilTheBotCanMove(t *testing.T) {
 	}
 }
 
+func TestAFollowThatEndsStrandedIsNoOutage(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, &protocol.TaskRef{ID: "t-1", Task: "follow", Status: "running"}))
+	k.SetHome(protocol.Vec3{50, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	if !store.Interrupted() {
+		t.Fatal("a running follow did not set the interrupted flag")
+	}
+	// The follow fails with encumbered: a normal end, not an outage.
+	st := inWorld(protocol.Vec3{20, 0, 0}, nil)
+	st.Flags = []string{protocol.FlagEncumbered}
+	f.set(f.hello, st)
+	k.Tick(ctx)
+	if store.Interrupted() {
+		t.Error("the flag outlived a follow that ended while stranded")
+	}
+}
+
 func TestATaskThatEndsNormallyIsNoOutage(t *testing.T) {
 	store := Memory()
 	k, f, _ := keeper(t, store)
