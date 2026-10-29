@@ -460,7 +460,10 @@ namespace Renki.Tests
         {
             var s = new SafetyConfig();
             Assert.True(s.Permits("interact"));
-            Assert.Null(InteractRule.Check(InteractRule.Other, s));
+            foreach (var k in new[] { InteractRule.Bed, InteractRule.Door, InteractRule.Grave })
+                Assert.Null(InteractRule.Check(k, s));
+            // Chairs, carts, fires, dungeon doors: not until named.
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Other, s).Reason);
             Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Boss, s).Reason);
             Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ship, s).Reason);
             Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Pickable, s).Reason);

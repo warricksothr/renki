@@ -58,7 +58,9 @@ namespace Renki.Plugin
                 // Its own grave it empties into the pack when all of it
                 // fits; otherwise the game opens it as a chest.
                 case TombStone t:
-                    return t.IsOwner() && t.EasyFitInInventory(Player.m_localPlayer) ? InteractRule.Other : InteractRule.Container;
+                    return t.IsOwner() && t.EasyFitInInventory(Player.m_localPlayer) ? InteractRule.Grave : InteractRule.Container;
+                case Bed _: return InteractRule.Bed;
+                case Door _: return InteractRule.Door;
                 case OfferingBowl _: return InteractRule.Boss;
                 case ShipControlls _: return InteractRule.Ship;
                 // Everything that hands over what grows or gathers there.
@@ -97,7 +99,7 @@ namespace Renki.Plugin
                 if (p.InAttack() || p.InDodge()) return null;
                 // The pack may have filled on the way, and then the game
                 // would open the grave as a chest.
-                if (target is TombStone && Kind(target) != InteractRule.Other)
+                if (target is TombStone && Kind(target) != InteractRule.Grave)
                     return Outcome.Failed(Wire.ReasonInventoryFull, $"not all of the {name} fits in the pack");
                 var ok = Use(p, false);
                 if (!args.Hold) return Answer(ok);

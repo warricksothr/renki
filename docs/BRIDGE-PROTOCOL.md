@@ -442,22 +442,27 @@ Notes:
   does not take it straight back. It needs `allowDrop`, which is on by
   default and needs no movement.
 - `interact` walks to the entity until a ray from the bot's eye meets it
-  within 2.5 m, as the game's own hover finds things, faces it, and uses it through its `Interactable` as a player pressing the use key
-  would; `alt` is the modifier key, and `hold` keeps the key down for 1 s,
-  repeating as the game does. It succeeds when the game says it did
-  something, with what the game said on screen in `detail`, and fails with
-  `refused` when it did not. What it may use goes by what the thing is:
-  offering bowls need `allowBossSummoning`, ship controls `allowSailing`, and
-  pickables, beehives and sap collectors `allowGather`. Drops (`pickup`), chests (`deposit`, `withdraw`),
-  crafting stations, portals and signs are `invalid_target`, since they have
-  their own tasks or open a window the bot cannot use, and so is a thing
-  with several parts to use and none named (a smelter's ore, fuel and
-  output). Wards are `not_allowed`: switching one, or joining it, is its
-  owner's to do. A tombstone counts as a chest unless it is the bot's own
-  and all of it fits in the pack, when using it takes everything; if the
-  pack has filled by the time the bot gets there, it fails `inventory_full`.
-  It needs
-  `allowMovement`, and nothing behind a ward the bot has no access to.
+  within 2.5 m, as the game's own hover finds things, faces it, and uses it
+  through its `Interactable` as a player pressing the use key would; `alt` is
+  the modifier key, and `hold` keeps the key down for 1 s, repeating as the
+  game does. It succeeds when the game says it did something, with what the
+  game said on screen in `detail`, and fails with `refused` when it did not.
+  - What it may use goes by what the thing is, and only what is named here:
+    beds and doors; offering bowls with `allowBossSummoning`; ship controls
+    with `allowSailing`; pickables, beehives and sap collectors with
+    `allowGather`.
+  - A tombstone is the bot's own grave when all of it fits in the pack, and
+    using it takes everything; otherwise it counts as a chest. If the pack
+    has filled by the time the bot gets there, it fails `inventory_full`.
+  - Drops (`pickup`), chests (`deposit`, `withdraw`), crafting stations,
+    portals and signs are `invalid_target`, since they have their own tasks
+    or open a window the bot cannot use. So is a thing with several parts to
+    use and none named, such as a smelter's ore, fuel and output.
+  - Wards are `not_allowed`: switching one, or joining it, is its owner's to
+    do. So is anything else (chairs, carts, fires, dungeon entrances), since
+    it sits the bot down, harnesses it, carries it off or takes from its pack.
+  - It needs `allowMovement`, and nothing behind a ward the bot has no access
+    to.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
