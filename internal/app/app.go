@@ -11,6 +11,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/bridge"
+	"github.com/warricksothr/renki/internal/burden"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
@@ -24,6 +25,7 @@ type App struct {
 	Session *session.Session
 	Brain   *chat.Brain
 	Home    *home.Keeper
+	Burden  *burden.Unloader
 	Bridge  *bridge.Server
 }
 
@@ -50,7 +52,8 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Logger:    log.With("part", "chat"),
 	}, s)
 	s.SetListener(brain)
-	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper}
+	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper,
+		Burden: burden.New(cfg.Overload.Drop, s, homes, log.With("part", "burden"), nil)}
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg) },
@@ -77,6 +80,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go a.Home.Run(ctx)
+	go a.Burden.Run(ctx)
 	return a.Bridge.Serve(ctx, ln)
 }
 

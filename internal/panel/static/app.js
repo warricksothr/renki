@@ -16,6 +16,7 @@ const world = {
   structures: [],
   resources: [],
   home: null,
+  left: [], // what the bot left on the ground: {pos, items}
   path: null, // {from, to}
   stuck: [], // {pos, attempt}
 };
@@ -78,6 +79,19 @@ function onRecord(ev) {
         if (world.trail.length > TRAIL_MAX) world.trail.shift();
       }
       $("pos").textContent = `x ${f.pos[0].toFixed(1)}  z ${f.pos[2].toFixed(1)}  y ${f.pos[1].toFixed(1)}`;
+      // Over weightMax the bot only walks; with no stamina left it cannot move (6.1).
+      const flags = f.flags || [];
+      if (flags.includes("stranded")) chip("load", "overloaded: can't move", "off");
+      else if (flags.includes("encumbered")) chip("load", "overloaded", "off");
+      else chip("load", "");
+      if (f.weightMax && (f.weight !== weight[0] || f.weightMax !== weight[1])) {
+        weight = [f.weight, f.weightMax];
+        drawInventory();
+      }
+      break;
+    case "inventory":
+      inventory = f;
+      drawInventory();
       break;
     case "perception":
       world.characters = f.characters || [];
@@ -96,6 +110,62 @@ function onRecord(ev) {
   draw();
 }
 
+// ---- inventory ----
+
+let inventory = null; // the newest inventory frame (6.3)
+let weight = [0, 0]; // from state
+
+// A prefab as a person would say it: AxeBronze to "Axe Bronze".
+const plain = (prefab) => prefab.replace(/^\$item_/, "").replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+
+function drawInventory() {
+  if (!inventory) return;
+  const [w, h] = inventory.size;
+  const items = inventory.items || [];
+  const free = w * h - items.length;
+  let summary = `${free} of ${w * h} slots free`;
+  if (weight[1]) summary += ` · weight ${Math.round(weight[0])}/${Math.round(weight[1])}`;
+  $("inv-summary").textContent = summary;
+
+  const grid = $("inv-grid");
+  grid.style.gridTemplateColumns = `repeat(${w}, minmax(0, 1fr))`;
+  const at = new Map(items.map((it) => [`${it.slot[0]},${it.slot[1]}`, it]));
+  grid.replaceChildren();
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const cell = document.createElement("div");
+      cell.className = "slot";
+      const it = at.get(`${x},${y}`);
+      if (it) {
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = plain(it.prefab);
+        cell.append(name);
+        if (it.stack > 1 || it.stackMax) {
+          const stack = document.createElement("span");
+          stack.className = "stack";
+          stack.textContent = it.stackMax ? `${it.stack}/${it.stackMax}` : `${it.stack}`;
+          cell.append(stack);
+        }
+        if (it.durabilityMax) {
+          const wear = document.createElement("span");
+          const frac = Math.max(0, Math.min(1, it.durability / it.durabilityMax));
+          wear.className = "wear" + (frac < 0.25 ? " low" : "");
+          wear.style.width = `${frac * 100}%`;
+          cell.append(wear);
+        }
+        if (it.equipped) cell.classList.add("equipped");
+        let title = `${plain(it.prefab)} ×${it.stack}`;
+        if (it.quality) title += `, quality ${it.quality}`;
+        if (it.durabilityMax) title += `, durability ${Math.round(it.durability)}/${Math.round(it.durabilityMax)}`;
+        if (it.equipped) title += ", equipped";
+        cell.title = title;
+      }
+      grid.append(cell);
+    }
+  }
+}
+
 // ---- status into the header ----
 
 function chip(id, text, cls) {
@@ -110,6 +180,7 @@ function onStatus(s) {
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
   chip("hp", s.hpMax ? `hp ${Math.round(s.hp)}/${Math.round(s.hpMax)}` : "");
+  world.left = s.leftBehind || [];
   if (s.home) {
     world.home = s.home.pos;
     chip("home", s.home.distance != null ? `home ${Math.round(s.home.distance)} m` : "home set");
@@ -185,6 +256,21 @@ function render() {
     const x = sx(world.home[0]), y = sy(world.home[2]);
     ctx.fillRect(x - 6, y - 6, 12, 12);
     label("home", x + 9, y + 4);
+  }
+
+  for (const c of world.left) {
+    ctx.strokeStyle = colour("home");
+    ctx.lineWidth = 2;
+    const x = sx(c.pos[0]), y = sy(c.pos[2]);
+    ctx.beginPath();
+    ctx.moveTo(x, y - 6);
+    ctx.lineTo(x + 6, y);
+    ctx.lineTo(x, y + 6);
+    ctx.lineTo(x - 6, y);
+    ctx.closePath();
+    ctx.stroke();
+    const what = Object.entries(c.items).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${n} ${plain(p)}`).join(", ");
+    label(`left: ${what}`, x + 9, y + 4);
   }
 
   // Resources only once zoomed in enough to tell them apart.

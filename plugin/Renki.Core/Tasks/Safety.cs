@@ -16,6 +16,7 @@ namespace Renki.Tasks
         public bool AllowMovement = true;
         public bool AllowChat = true;
         public bool AllowGather;
+        public bool AllowDrop = true;
         public bool AllowCombat;
         public bool AllowSailing;
         public bool AllowBossSummoning;
@@ -32,8 +33,11 @@ namespace Renki.Tasks
                 case "look_at": return AllowMovement;
                 case "say":
                 case "emote": return AllowChat;
+                // They walk to what they gather, so movement must be allowed too.
                 case "pickup":
-                case "harvest": return AllowGather;
+                case "harvest": return AllowGather && AllowMovement;
+                // Drops at the bot's feet, never what it has equipped.
+                case "drop": return AllowDrop;
                 case "attack":
                 case "guard":
                 case "flee": return AllowCombat;

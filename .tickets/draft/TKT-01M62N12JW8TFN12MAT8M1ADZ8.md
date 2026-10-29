@@ -19,13 +19,14 @@ dependencies:
   - TKT-01M62N12DNF3RFVWAQMK1R9X4J
   - TKT-01M62N12HJW32JJTD2M3PEAEA4
   - TKT-01M62N12G98VW2CYW94FG5RCTB
+  - TKT-01M62VXYSN4RQV75HTA3BSD162
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T01:40:23Z
+updated_at: 2026-10-29T03:40:56Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -46,3 +47,9 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 - [ ] Told to chop wood, the bot goes to the last work site, or else the nearest trees it knows
 - [ ] It fells, splits and collects, and hauls home when full
 - [ ] It says why it cannot (no axe, no trees known) and stops when told
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T03:40:56Z
+
+2026-10-28: build this as a gather template on the behaviour engine (TKT-01M62VXYSN4, 'Controller: behaviour engine: templates, instances, triggers, repeat'), so 'go chop wood' starts an instance with an until condition, and stock targets (TKT-01M62VXZF8N7) or the agent can start it too.

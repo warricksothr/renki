@@ -25,6 +25,7 @@ import (
 type Dispatcher interface {
 	Dispatch(ctx context.Context, o session.Order) (*session.Task, error)
 	State() *protocol.State
+	Perception() *protocol.Perception
 	Inventory() *protocol.Inventory
 	AllowedTasks() []string
 }
@@ -81,6 +82,8 @@ type Home interface {
 	ReturnOn(reason string) bool
 	// HomeDistance is how far the bot is from home.
 	HomeDistance() (float64, bool)
+	// LeftBehind is what the bot had to leave on the ground in this world.
+	LeftBehind() []home.Cache
 	// Touch counts as activity, for the idle rule.
 	Touch()
 	// ResumeAfterDeath leaves what to start again after a respawn, when
@@ -244,7 +247,23 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if !ok {
 		return
 	}
-	status, reason, _ := t.Status()
+	status, reason, detail := t.Status()
+	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
+		// The plugin says "the other N" when some of the stack stayed behind:
+		// "no room for the other N" when it filled up first, "the other N
+		// is too heavy" when it would have overloaded the bot.
+		switch {
+		case strings.Contains(detail, "no room"):
+			b.say(o, "I got some of it, but I'm out of room.")
+		case strings.Contains(detail, "too heavy"):
+			b.say(o, "I got some of it, but the rest is too heavy.")
+		case strings.Contains(detail, "the other"):
+			b.say(o, "I got some of it.")
+		default:
+			b.say(o, "Got it.")
+		}
+		return
+	}
 	if status != protocol.StatusFailed && status != protocol.StatusRejected {
 		return
 	}
@@ -296,7 +315,7 @@ func (b *Brain) returnHome(t *session.Task, reason string, o origin) bool {
 		return false
 	}
 	if _, err := h.GoHome(context.Background(), o, "after "+t.Name+" failed: "+reason); err != nil {
-		if !errors.Is(err, home.ErrNoHome) {
+		if !errors.Is(err, home.ErrNoHome) && !errors.Is(err, home.ErrStranded) {
 			b.opts.Logger.Warn("could not go home", "err", err)
 		}
 		return false
@@ -341,10 +360,11 @@ const (
 	cmdWait
 	cmdSetHome
 	cmdGoHome
+	cmdPickup
 )
 
 func (c command) String() string {
-	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home"}[c]
+	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up"}[c]
 }
 
 var grammar = map[string]command{
@@ -357,6 +377,8 @@ var grammar = map[string]command{
 	"make this home": cmdSetHome,
 	"go home":        cmdGoHome, "home": cmdGoHome, "head home": cmdGoHome, "return home": cmdGoHome,
 	"go back home": cmdGoHome,
+	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
+	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
 }
 
 func parse(stripped string) (command, bool) {
@@ -379,6 +401,11 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdGoHome:
 		b.goHome(from)
 		return
+	case cmdPickup:
+		var ok bool
+		if order, ack, ok = b.pickup(c, from); !ok {
+			return
+		}
 	case cmdFollow:
 		order = session.Order{Task: protocol.TaskFollow, Args: &protocol.FollowArgs{Player: c.From.Name, Run: protocol.RunAuto}}
 		ack = "Right behind you."
@@ -408,6 +435,38 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	b.say(from, ack)
 }
 
+// pickupReach is how far from the speaker a drop may lie for "pick that up".
+const pickupReach = 10.0
+
+// pickup chooses the drop nearest the speaker, from perception, and checks
+// there is room for it. It says why when there is nothing to send.
+func (b *Brain) pickup(c *protocol.Chat, from origin) (session.Order, string, bool) {
+	var (
+		best *protocol.PerceivedResource
+		dist = pickupReach
+	)
+	if seen := b.d.Perception(); seen != nil {
+		for i, r := range seen.Resources {
+			if r.Kind != protocol.ResourceDrop {
+				continue
+			}
+			if d := c.Pos.FlatDistance(r.Pos); d <= dist {
+				best, dist = &seen.Resources[i], d
+			}
+		}
+	}
+	if best == nil {
+		b.say(from, "I don't see anything to pick up near you.")
+		return session.Order{}, "", false
+	}
+	if inv := b.d.Inventory(); inv != nil && inv.Room(best.Prefab, 0) < 1 {
+		b.say(from, "I've no room for that.")
+		return session.Order{}, "", false
+	}
+	order := session.Order{Task: protocol.TaskPickup, Args: &protocol.PickupArgs{Entity: best.ID}}
+	return order, fmt.Sprintf("Getting the %s.", strings.ToLower(words(best.Prefab))), true
+}
+
 func (b *Brain) setHome(c *protocol.Chat, from origin) {
 	if b.opts.Home == nil {
 		b.say(from, "I can't keep a home.")
@@ -435,6 +494,8 @@ func (b *Brain) goHome(from origin) {
 		switch {
 		case errors.Is(err, home.ErrNoHome):
 			b.say(from, `I don't have a home here yet. Say "set home" where you want it.`)
+		case errors.Is(err, home.ErrStranded):
+			b.say(from, explain(protocol.TaskMoveTo, protocol.ReasonEncumbered, from.player))
 		case errors.Is(err, session.ErrNotAllowed):
 			b.say(from, "I'm not allowed to do that.")
 		default:
@@ -574,7 +635,21 @@ func joinNames(names []string) string {
 
 // explain turns a failed task into something to say, or "" for nothing.
 func explain(task, reason, player string) string {
+	if task == protocol.TaskPickup {
+		switch reason {
+		case protocol.ReasonTargetLost:
+			return "It's gone. Someone got to it first."
+		case protocol.ReasonInvalidTarget:
+			return "I can't get that one."
+		}
+	}
 	switch reason {
+	case protocol.ReasonInventoryFull:
+		return "I've no room for that."
+	case protocol.ReasonTooHeavy:
+		return "That's more than I can carry."
+	case protocol.ReasonEncumbered:
+		return "I'm carrying too much to move. I need to put something down."
 	case protocol.ReasonTargetLost:
 		return fmt.Sprintf("I lost track of you, %s.", player)
 	case protocol.ReasonStuck:

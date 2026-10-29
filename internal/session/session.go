@@ -320,7 +320,12 @@ func (s *Session) Dispatch(ctx context.Context, o Order) (*Task, error) {
 
 // Finished returns a task that has already ended, for tests of listeners.
 func Finished(name string, origin any, status, reason string) *Task {
+	return FinishedWith(name, origin, status, reason, "")
+}
+
+// FinishedWith is Finished with the plugin's detail, for tests.
+func FinishedWith(name string, origin any, status, reason, detail string) *Task {
 	t := &Task{ID: "t-test", Name: name, Origin: origin, done: make(chan struct{})}
-	t.update(status, reason, "")
+	t.update(status, reason, detail)
 	return t
 }

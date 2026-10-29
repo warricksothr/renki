@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Renki.Plugin
 {
-    /// <summary>The M1 tasks, carried out in the game. Everything here runs on
+    /// <summary>The tasks, carried out in the game. Everything here runs on
     /// Unity's main thread.</summary>
     sealed class GameTaskHost : ITaskHost
     {
@@ -16,12 +16,30 @@ namespace Renki.Plugin
         {
             if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead())
                 throw new TaskRefused(Wire.ReasonStopped, "not in the world");
+            // Every body task walks.
+            if (Walker.Stranded(Player.m_localPlayer) is Outcome stranded)
+                throw new TaskRefused(stranded.Reason, stranded.Detail);
             switch (args)
             {
                 case MoveToArgs m:
                     {
                         var (pos, obj) = Resolve(m.To);
                         return new MoveToTask(m, pos, obj);
+                    }
+                case PickupArgs pk:
+                    {
+                        var obj = FindEntity(pk.Entity);
+                        if (obj == null || !obj.TryGetComponent<ItemDrop>(out var drop) || drop.m_itemData == null)
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, $"no drop {pk.Entity} in range");
+                        // Without a prefab its arrival in the pack cannot be told.
+                        if (drop.m_itemData.m_dropPrefab == null)
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, $"{pk.Entity} has no prefab to count");
+                        // Not even one fits: the game would leave it lying there.
+                        if (!Player.m_localPlayer.GetInventory().CanAddItem(drop.m_itemData, 1))
+                            throw new TaskRefused(Wire.ReasonInventoryFull, $"no room for {drop.m_itemData.m_shared.m_name}");
+                        if (PickupTask.TooHeavy(Player.m_localPlayer, drop.m_itemData))
+                            throw new TaskRefused(Wire.ReasonTooHeavy, $"{drop.m_itemData.m_shared.m_name} would take it past its carry weight");
+                        return new PickupTask(drop);
                     }
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)
@@ -56,11 +74,43 @@ namespace Renki.Plugin
                         return Outcome.Failed(Wire.ReasonBadArgs, $"no emote \"{e.Name}\"");
                     Emote.DoEmote(emote);
                     return Outcome.Succeeded();
+                case DropArgs d:
+                    return Drop(player, d);
             }
             return Outcome.Failed(Wire.ReasonUnsupported, req.Task);
         }
 
         public void Idle() => Driver.Stand();
+
+        /// <summary>Drops up to Count of a prefab at the bot's feet, from
+        /// stacks it does not have equipped, as a player would. The game
+        /// marks a player's own drop so its auto-pickup leaves it there.</summary>
+        static Outcome Drop(Player player, DropArgs d)
+        {
+            var inv = player.GetInventory();
+            var stacks = new System.Collections.Generic.List<ItemDrop.ItemData>();
+            var worn = false;
+            foreach (var item in inv.GetAllItems())
+            {
+                if (item.m_dropPrefab == null || item.m_dropPrefab.name != d.Prefab) continue;
+                if (item.m_equipped) worn = true;
+                else stacks.Add(item);
+            }
+            if (stacks.Count == 0)
+                return Outcome.Failed(Wire.ReasonInvalidTarget, worn ? $"only an equipped {d.Prefab}" : $"no {d.Prefab} to drop");
+            var left = d.Count;
+            // Smallest stacks first, so the fewest are split.
+            stacks.Sort((a, b) => a.m_stack.CompareTo(b.m_stack));
+            foreach (var item in stacks)
+            {
+                if (left == 0) break;
+                var n = System.Math.Min(left, item.m_stack);
+                if (player.DropItem(inv, item, n)) left -= n;
+            }
+            var dropped = d.Count - left;
+            if (dropped == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"the game would not drop the {d.Prefab}");
+            return Outcome.Succeeded($"dropped {dropped} {d.Prefab}");
+        }
 
         /// <summary>A target as a position, plus the object when it is an entity.</summary>
         static (Vector3, GameObject) Resolve(Target t)

@@ -90,6 +90,9 @@ func run() int {
 		log.Error("listen", "err", err)
 		return 1
 	}
+	for _, w := range cfg.Warnings() {
+		log.Warn("config", "warning", w)
+	}
 	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
 		"owners", cfg.Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
 	homes, err := home.Open(filepath.Join(cfg.DataDir, "memory.json"))

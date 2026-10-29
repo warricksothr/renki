@@ -48,6 +48,9 @@ type Config struct {
 	// Home says when the bot goes home by itself.
 	Home HomeRules `json:"home"`
 
+	// Overload says what the bot does when it carries more than it can.
+	Overload Overload `json:"overload"`
+
 	// Panel is the web control panel (docs/PANEL.md).
 	Panel Panel `json:"panel"`
 }
@@ -75,6 +78,15 @@ type HomeRules struct {
 	// AfterDeath is what the bot does once it is back after a respawn:
 	// AfterDeathHome, AfterDeathResume or AfterDeathStay.
 	AfterDeath string `json:"afterDeath"`
+}
+
+// Overload is what the bot does when it carries more than it can, which
+// leaves it unable to run and, once its stamina is gone, to move.
+type Overload struct {
+	// Drop puts down the least valuable, heaviest things it carries,
+	// never its gear, until it is back under its carry weight, says so,
+	// and remembers where (internal/burden).
+	Drop bool `json:"drop"`
 }
 
 // What the bot does after a respawn (HomeRules.AfterDeath).
@@ -109,10 +121,14 @@ type LLM struct {
 	Terva json.RawMessage `json:"terva,omitempty"`
 }
 
-// M1Tasks is the M1 task catalogue (docs/BRIDGE-PROTOCOL.md 7.2).
-var M1Tasks = []string{
+// KnownTasks are the tasks this controller can send (docs/BRIDGE-PROTOCOL.md
+// 7.2): M1's, and what M2 has added so far. The plugin's safety switches
+// still decide which of them it offers; pickup needs AllowGather, and drop
+// AllowDrop.
+var KnownTasks = []string{
 	protocol.TaskStop, protocol.TaskMoveTo, protocol.TaskFollow,
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
+	protocol.TaskPickup, protocol.TaskDrop,
 }
 
 // Default returns the configuration used for anything a file leaves out.
@@ -121,10 +137,11 @@ func Default() Config {
 		Listen:       "127.0.0.1:8765",
 		Rates:        protocol.Rates{StateHz: 5, PerceptionHz: 1},
 		Perception:   protocol.PerceptionConfig{Radius: 40, MaxPerKind: 24},
-		AllowedTasks: slices.Clone(M1Tasks),
+		AllowedTasks: slices.Clone(KnownTasks),
 		Audit:        Audit{Dir: "audit", KeepDays: 14},
 		DataDir:      "data",
 		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: AfterDeathHome},
+		Overload:     Overload{Drop: true},
 	}
 }
 
@@ -187,11 +204,20 @@ func (c Config) Validate() error {
 		return errors.New("rates.stateHz must be positive")
 	}
 	for _, t := range c.AllowedTasks {
-		if !slices.Contains(M1Tasks, t) {
+		if !slices.Contains(KnownTasks, t) {
 			return fmt.Errorf("allowedTasks: %q is not a task this controller knows", t)
 		}
 	}
 	return nil
+}
+
+// Warnings are settings that work but likely not as meant.
+func (c Config) Warnings() []string {
+	var w []string
+	if c.Overload.Drop && !slices.Contains(c.AllowedTasks, protocol.TaskDrop) {
+		w = append(w, "overload.drop is on but allowedTasks leaves out drop, so an overloaded bot cannot put anything down")
+	}
+	return w
 }
 
 // IsOwner reports whether name is one of the owners, compared exactly as

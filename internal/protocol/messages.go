@@ -1,5 +1,7 @@
 package protocol
 
+import "slices"
+
 // Message types, as they appear in `type`.
 const (
 	TypeHello      = "hello"
@@ -160,9 +162,18 @@ const (
 	FlagAttacking  = "attacking"
 	FlagBlocking   = "blocking"
 	FlagEncumbered = "encumbered"
+	FlagStranded   = "stranded"
 	FlagInShelter  = "in_shelter"
 	FlagNearFire   = "near_fire"
 )
+
+// Encumbered reports that the bot carries more than weightMax (6.1).
+func (s *State) Encumbered() bool { return slices.Contains(s.Flags, FlagEncumbered) }
+
+// Stranded reports that the game will not move the bot: encumbered with no
+// stamina left, which does not come back until it carries less. The plugin
+// decides it, as it decides when a body task fails for it (6.1).
+func (s *State) Stranded() bool { return slices.Contains(s.Flags, FlagStranded) }
 
 // GameTime is the in-game calendar.
 type GameTime struct {
@@ -201,6 +212,29 @@ type PerceivedCharacter struct {
 	Hostile     bool    `json:"hostile,omitempty"`
 	TargetingMe bool    `json:"targetingMe,omitempty"`
 }
+
+// Perceived kinds (6.2).
+const (
+	CharacterPlayer   = "player"
+	CharacterCreature = "creature"
+	CharacterTamed    = "tamed"
+
+	ResourceTree     = "tree"
+	ResourceLog      = "log"
+	ResourceStump    = "stump"
+	ResourceRock     = "rock"
+	ResourcePickable = "pickable"
+	ResourceDrop     = "drop"
+
+	StructureContainer = "container"
+	StructureStation   = "station"
+	StructureBed       = "bed"
+	StructurePortal    = "portal"
+	StructureDoor      = "door"
+	StructureFire      = "fire"
+	StructureSmelter   = "smelter"
+	StructureOther     = "other"
+)
 
 // PerceivedResource is something the bot could harvest or pick up. MinTool
 // is a pointer because tier 0 is a real value and absent means "no tool".
@@ -245,6 +279,12 @@ type InventoryItem struct {
 	Durability    float64 `json:"durability,omitempty"`
 	DurabilityMax float64 `json:"durabilityMax,omitempty"`
 	Equipped      bool    `json:"equipped,omitempty"`
+	// Weight is one of the stack's, Type the game's item type (Material,
+	// Consumable, OneHandedWeapon...), and Value what a trader gives, set
+	// only on valuables.
+	Weight float64 `json:"weight"`
+	Type   string  `json:"type"`
+	Value  int     `json:"value,omitempty"`
 }
 
 // Chat is every chat line except the bot's own (6.4).
@@ -367,6 +407,8 @@ const (
 	ReasonTimeout          = "timeout"
 	ReasonNoTool           = "no_tool"
 	ReasonInventoryFull    = "inventory_full"
+	ReasonTooHeavy         = "too_heavy"
+	ReasonEncumbered       = "encumbered"
 	ReasonMissingMaterials = "missing_materials"
 	ReasonSuperseded       = "superseded"
 	ReasonStopped          = "stopped"

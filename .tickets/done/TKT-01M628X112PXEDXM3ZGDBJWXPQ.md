@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M628X112PXEDXM3ZGDBJWXPQ
 title: Set a home and go back to it when follow fails or the bot idles
 type: task
-status: review
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 1c80f224a850be6f5ad8b36431596e5a0c94be0c
-  session: null
-  claimed_at: 2026-10-28T22:08:15Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-29T00:16:18Z
+updated_at: 2026-10-29T05:26:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -71,7 +64,7 @@ Homes and the interrupted flag live in a data file the controller owns
 - [x] The bot goes home when follow fails with target_lost or stuck, each switchable
 - [x] The bot goes home after an outage interrupted a body task, switchable
 - [x] The bot goes home after idleMinutes with no task, when away from home
-- [ ] Verified in the game
+- [x] Verified in the game
 
 ## Implementation plan
 
@@ -103,3 +96,11 @@ Outage trip verified in the game on 2026-10-28: after the controller was killed 
 **agent:claude-code/renki-groom** at 2026-10-29T00:16:18Z
 
 Verified in the game on 2026-10-28: the stuck give-up trip (19:13:36: why 'after move_to failed: stuck', with 'I'm stuck. I'll try to make it home.'), and afterDeath=home twice (19:03:59 and 19:14:53, each with 'I'm back. Heading home.'; the trip at 19:14:53 reached home at 19:15:26). Of the triggers, only idling is still unverified. The trip home after the give-up drowned on the way; see TKT-01M62G71Q (Bot swims into deep water on a straight-line path and drowns).
+
+**agent:claude-code/renki-groom** at 2026-10-29T05:26:34Z
+
+2026-10-28: seen in the game. The idle rule fired twice in the audit log (22:58:37 and 23:09:08, why=idle, 'Nothing to do. Heading home.'), after the outage rule at 00:05:34 on the 29th, and go home by chat at 22:48:07. The walks themselves stuck on the slope below the base, which is the walker, not the home rules (stuck recovery now climbs).
+
+## Summary
+
+Homes per world in dataDir; set home and go home by chat; trips home after follow fails, after an outage, after a respawn and when idle, each switchable, all seen in the game.

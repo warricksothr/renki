@@ -201,6 +201,53 @@ func TestOutageSendsTheBotHome(t *testing.T) {
 	}
 }
 
+func TestOutageWaitsUntilTheBotCanMove(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{50, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	store.SetInterrupted(true)
+
+	// Back on a new connection, carrying too much to move.
+	st := inWorld(protocol.Vec3{20, 0, 0}, nil)
+	st.Flags = []string{protocol.FlagEncumbered, protocol.FlagStranded}
+	f.set(&protocol.Hello{}, st)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 || !store.Interrupted() {
+		t.Fatalf("sent %v, interrupted %v, while stranded", f.sent(), store.Interrupted())
+	}
+	if _, err := k.GoHome(ctx, nil, "test"); err != ErrStranded {
+		t.Errorf("GoHome while stranded: %v", err)
+	}
+	st.Flags = []string{protocol.FlagEncumbered}
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[1] != "say: Something cut me off. Heading home." {
+		t.Errorf("once it can move: %v", got)
+	}
+}
+
+func TestAFollowThatEndsStrandedIsNoOutage(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, &protocol.TaskRef{ID: "t-1", Task: "follow", Status: "running"}))
+	k.SetHome(protocol.Vec3{50, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	if !store.Interrupted() {
+		t.Fatal("a running follow did not set the interrupted flag")
+	}
+	// The follow fails with encumbered: a normal end, not an outage.
+	st := inWorld(protocol.Vec3{20, 0, 0}, nil)
+	st.Flags = []string{protocol.FlagEncumbered, protocol.FlagStranded}
+	f.set(f.hello, st)
+	k.Tick(ctx)
+	if store.Interrupted() {
+		t.Error("the flag outlived a follow that ended while stranded")
+	}
+}
+
 func TestATaskThatEndsNormallyIsNoOutage(t *testing.T) {
 	store := Memory()
 	k, f, _ := keeper(t, store)
@@ -242,6 +289,28 @@ func TestIdleAwayFromHomeGoesHome(t *testing.T) {
 	k.Tick(ctx)
 	if got := f.sent(); len(got) != 2 || got[1] != "say: Nothing to do. Heading home." {
 		t.Errorf("idle: %v", got)
+	}
+}
+
+func TestStrandedBotDoesNotSetOffHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	st := inWorld(protocol.Vec3{0, 0, 0}, nil)
+	st.Flags, st.Weight, st.WeightMax = []string{protocol.FlagEncumbered, protocol.FlagStranded}, 305, 300
+	f.set(&protocol.Hello{}, st)
+	k.SetHome(protocol.Vec3{80, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Fatalf("set off home with no stamina, overloaded: %v", f.sent())
+	}
+	// With stamina it can still walk, slowly.
+	st.Flags = []string{protocol.FlagEncumbered}
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 {
+		t.Errorf("overloaded but able to walk: %v", got)
 	}
 }
 

@@ -136,6 +136,8 @@ namespace Renki.Plugin
             if (p.InAttack()) s.Flags.Add("attacking");
             if (p.IsBlocking()) s.Flags.Add("blocking");
             if (p.IsEncumbered()) s.Flags.Add("encumbered");
+            // The same test the walker fails a body task on.
+            if (p.IsEncumbered() && !p.HaveStamina()) s.Flags.Add("stranded");
             if (p.InShelter()) s.Flags.Add("in_shelter");
             s.Biome = Heightmap.FindBiome(p.transform.position).ToString();
             var env = EnvMan.instance;

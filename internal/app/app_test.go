@@ -40,7 +40,7 @@ func TestAppendixExchange(t *testing.T) {
 
 	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
 	// No agentName configured: the bot answers to its character's name.
-	if w := p.Welcome; w.AgentName != "" || w.Owners[0] != "Sothr" || len(w.AllowedTasks) != 6 || w.Rates.StateHz != 5 {
+	if w := p.Welcome; w.AgentName != "" || w.Owners[0] != "Sothr" || len(w.AllowedTasks) != len(config.KnownTasks) || w.Rates.StateHz != 5 {
 		t.Fatalf("welcome %+v", w)
 	}
 	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Bjorn", HP: 47, HPMax: 60, Biome: "BlackForest", Env: "Rain"})

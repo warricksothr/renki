@@ -63,6 +63,8 @@ namespace Renki.Plugin
             safety.AllowMovement = Config.Bind("Safety", "AllowMovement", true, "move_to, follow, look_at.").Value;
             safety.AllowChat = Config.Bind("Safety", "AllowChat", true, "say and emote.").Value;
             safety.AllowGather = Config.Bind("Safety", "AllowGather", false, "harvest, pickup (M2).").Value;
+            safety.AllowDrop = Config.Bind("Safety", "AllowDrop", true,
+                "drop: put items down at the bot's feet, never what it has equipped. The controller drops to free a bot that carries too much to move.").Value;
             safety.AllowCombat = Config.Bind("Safety", "AllowCombat", false, "attack, guard, flee (M3).").Value;
             safety.AllowSailing = Config.Bind("Safety", "AllowSailing", false, "Steering ships (later).").Value;
             safety.AllowBossSummoning = Config.Bind("Safety", "AllowBossSummoning", false,
@@ -78,7 +80,7 @@ namespace Renki.Plugin
                 t.Task = runner?.Current?.Id;
                 if (client != null && client.Connected) Send(t);
             };
-            runner = new TaskRunner(safety, TaskNames.M1, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
+            runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);
             inventory = new InventoryReporter(this);
@@ -90,7 +92,7 @@ namespace Renki.Plugin
             client.SetHello(BuildHello());
             client.Start();
             Logger.LogInfo($"{Name} {Version} loaded; dialling {controllerUrl.Value}; " +
-                           $"tasks allowed by config: {string.Join(", ", TaskNames.M1.Where(safety.Permits))}");
+                           $"tasks allowed by config: {string.Join(", ", TaskNames.Supported.Where(safety.Permits))}");
         }
 
         void Update()

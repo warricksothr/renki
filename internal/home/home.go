@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"math"
 	"sync"
 	"time"
 
@@ -22,6 +21,9 @@ import (
 var (
 	ErrNoWorld = errors.New("the bot is not in a world")
 	ErrNoHome  = errors.New("no home is set in this world")
+	// ErrStranded is a trip the bot cannot make: it carries more than it
+	// can and has no stamina left, so the game will not move it (6.1).
+	ErrStranded = errors.New("carrying too much to move")
 )
 
 // Arrive is how close to home counts as being there.
@@ -126,6 +128,16 @@ func (k *Keeper) HomeDistance() (float64, bool) {
 	return flat(st.Pos, h.Pos), true
 }
 
+// LeftBehind is what the bot left on the ground in the current world and
+// has not seen picked up (internal/burden).
+func (k *Keeper) LeftBehind() []Cache {
+	world := k.World()
+	if world == "" {
+		return nil
+	}
+	return k.store.LeftBehind(world)
+}
+
 // GoHome sends the bot home. origin rides on the task as with any order.
 func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.Task, error) {
 	world := k.World()
@@ -135,6 +147,9 @@ func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.T
 	h, ok := k.store.Home(world)
 	if !ok {
 		return nil, ErrNoHome
+	}
+	if st := k.s.State(); st != nil && st.Stranded() {
+		return nil, ErrStranded
 	}
 	stop := Arrive
 	run := true
@@ -260,6 +275,19 @@ func (k *Keeper) Tick(ctx context.Context) {
 	if st.Phase != protocol.PhaseInWorld {
 		return
 	}
+	// Nothing here can move a bot that carries too much to move. Wait,
+	// rather than spend the outage check or the idle spell on it, but keep
+	// the interrupted flag current once this connection has been checked,
+	// so a task that ended while stranded is not later taken for an outage.
+	if st.Stranded() {
+		k.mu.Lock()
+		checked := k.checked
+		k.mu.Unlock()
+		if checked {
+			k.setInterrupted(st.Task != nil && body(st.Task.Task))
+		}
+		return
+	}
 
 	k.mu.Lock()
 	first := !k.checked
@@ -316,7 +344,9 @@ func (k *Keeper) Tick(ctx context.Context) {
 // announce sends the bot home and says so, for trips nobody asked for.
 func (k *Keeper) announce(ctx context.Context, why, line string) {
 	if _, err := k.GoHome(ctx, nil, why); err != nil {
-		if !errors.Is(err, ErrNoHome) {
+		if errors.Is(err, ErrStranded) {
+			k.log.Info("not going home", "why", why, "err", err)
+		} else if !errors.Is(err, ErrNoHome) {
 			k.log.Warn("could not go home", "why", why, "err", err)
 		}
 		return
@@ -335,7 +365,7 @@ func (k *Keeper) setInterrupted(v bool) {
 // body reports whether task moves the bot, so an outage could leave it
 // somewhere odd.
 func body(task string) bool {
-	return task == protocol.TaskFollow || task == protocol.TaskMoveTo
+	return task == protocol.TaskFollow || task == protocol.TaskMoveTo || task == protocol.TaskPickup
 }
 
-func flat(a, b protocol.Vec3) float64 { return math.Hypot(a[0]-b[0], a[2]-b[2]) }
+func flat(a, b protocol.Vec3) float64 { return a.FlatDistance(b) }

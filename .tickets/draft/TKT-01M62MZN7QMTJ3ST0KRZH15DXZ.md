@@ -14,14 +14,15 @@ assignees: []
 milestone: M2
 parent: null
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M62VXYQB6ZDBQE4E6ERGN83C
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-10-29T01:39:24Z
+updated_at: 2026-10-29T03:40:56Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -51,3 +52,9 @@ No-chop zones (places the owner wants left alone) come later, as do combat (M3) 
 - [ ] While the owner chops at a spot, the bot picks up the drops near them, carries them home when full and stores them in a chest, then comes back
 - [ ] Told "go chop wood", the bot goes to where it saw the owner working, or else to the nearest trees it knows, and fells, splits and collects
 - [ ] The bot keeps hauling across trips without drowning or getting lost, and says when it cannot (no chest, chest full, no axe)
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T03:40:56Z
+
+2026-10-28: hauling and gathering are now instances on the behaviour engine. The behaviours epic TKT-01M62VXYQB6 ('Behaviours: templates and instances the bot runs on its own') carries the engine, settings store, chest memory and stow. Base upkeep (TKT-01M62VXZ2FWD) and the agent's tools and events (TKT-01M62VXZA33E) are filed for after M2.

@@ -15,8 +15,9 @@ namespace Renki.Plugin
         /// <summary>The least time between two messages, so a burst is one.</summary>
         const float Gap = 0.25f;
 
-        /// <summary>How often worn items are checked: wear does not fire
-        /// m_onChanged, so a swinging axe would otherwise go stale.</summary>
+        /// <summary>How often worn and equipped items are checked: wear, and
+        /// perhaps equipping, do not fire m_onChanged, so a swinging axe or
+        /// a newly drawn one would otherwise go stale.</summary>
         const float WearEvery = 2f;
 
         readonly RenkiPlugin plugin;
@@ -25,6 +26,7 @@ namespace Renki.Plugin
         float next;
         float nextWear;
         double sentWear;
+        int sentEquipped;
 
         public InventoryReporter(RenkiPlugin plugin)
         {
@@ -50,16 +52,26 @@ namespace Renki.Plugin
             {
                 nextWear = Time.unscaledTime + WearEvery;
                 // Against what was last sent, so slow wear adds up.
-                if (System.Math.Abs(Wear(inv) - sentWear) >= 1) dirty = true;
+                if (System.Math.Abs(Wear(inv) - sentWear) >= 1 || Equipped(inv) != sentEquipped) dirty = true;
             }
             if (!inSession || inv == null || !dirty || Time.unscaledTime < next) return;
             dirty = false;
             next = Time.unscaledTime + Gap;
             sentWear = Wear(inv);
+            sentEquipped = Equipped(inv);
             plugin.Send(Describe(inv));
         }
 
         void Changed() => dirty = true;
+
+        /// <summary>Which slots hold equipped items, as one number.</summary>
+        static int Equipped(global::Inventory inv)
+        {
+            var key = 17;
+            foreach (var item in inv.GetAllItems())
+                if (item.m_equipped) key = key * 31 + item.m_gridPos.x * 64 + item.m_gridPos.y;
+            return key;
+        }
 
         static double Wear(global::Inventory inv)
         {
@@ -81,7 +93,11 @@ namespace Renki.Plugin
                     // The few items with no prefab go by their name token (6.3).
                     Prefab = item.m_dropPrefab != null ? item.m_dropPrefab.name : shared.m_name,
                     Stack = item.m_stack,
+                    // One of the stack, so the controller can weigh what to drop.
+                    Weight = System.Math.Round(shared.m_weight, 2),
+                    Type = shared.m_itemType.ToString(),
                 };
+                if (shared.m_value > 0) seen.Value = shared.m_value;
                 if (shared.m_maxStackSize > 1) seen.StackMax = shared.m_maxStackSize;
                 if (shared.m_maxQuality > 1) seen.Quality = item.m_quality;
                 if (shared.m_useDurability)

@@ -19,11 +19,12 @@ import (
 
 // fakeSession records orders, checking them the way Session.Dispatch does.
 type fakeSession struct {
-	mu        sync.Mutex
-	orders    []session.Order
-	allowed   []string
-	state     *protocol.State
-	inventory *protocol.Inventory
+	mu         sync.Mutex
+	orders     []session.Order
+	allowed    []string
+	state      *protocol.State
+	inventory  *protocol.Inventory
+	perception *protocol.Perception
 }
 
 func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Task, error) {
@@ -43,9 +44,10 @@ func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Tas
 	return &session.Task{ID: "t", Name: o.Task, Origin: o.Origin}, nil
 }
 
-func (f *fakeSession) State() *protocol.State         { return f.state }
-func (f *fakeSession) Inventory() *protocol.Inventory { return f.inventory }
-func (f *fakeSession) AllowedTasks() []string         { return f.allowed }
+func (f *fakeSession) State() *protocol.State           { return f.state }
+func (f *fakeSession) Inventory() *protocol.Inventory   { return f.inventory }
+func (f *fakeSession) Perception() *protocol.Perception { return f.perception }
+func (f *fakeSession) AllowedTasks() []string           { return f.allowed }
 
 func (f *fakeSession) sent() []session.Order {
 	f.mu.Lock()
@@ -253,6 +255,37 @@ func TestStatus(t *testing.T) {
 	if got := f.said()[2]; got != want {
 		t.Errorf("status %q\nwant   %q", got, want)
 	}
+
+	// The weight, and what being over it means.
+	for i, c := range []struct {
+		weight, stamina float64
+		flags           []string
+		want            string
+	}{
+		{140, 38, nil, " Weight 140/300."},
+		{305, 12, []string{protocol.FlagEncumbered}, " Overloaded, 305/300: I can only walk, and not for long."},
+		{305, 0, []string{protocol.FlagEncumbered, protocol.FlagStranded}, " Overloaded, 305/300: I can't move until I carry less."},
+	} {
+		st := *f.state
+		st.Weight, st.WeightMax, st.Stamina, st.Flags = c.weight, 300, c.stamina, c.flags
+		f.state = &st
+		b.Chat(line("Sothr", "bjorn status"))
+		if got := f.said()[3+i]; !strings.HasSuffix(got, "free."+c.want) {
+			t.Errorf("weight %v, stamina %v: %q\nwant it to end %q", c.weight, c.stamina, got, c.want)
+		}
+	}
+}
+
+func TestOverloadIsExplained(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn follow me"))
+	b.TaskDone(doneTask(f.sent()[0], protocol.StatusFailed, protocol.ReasonEncumbered))
+	if got := f.said(); len(got) != 2 || got[1] != "I'm carrying too much to move. I need to put something down." {
+		t.Errorf("said %q", got)
+	}
+	if explain(protocol.TaskPickup, protocol.ReasonTooHeavy, "Sothr") != "That's more than I can carry." {
+		t.Error("too_heavy")
+	}
 }
 
 func TestFailedTaskIsExplainedToWhoAsked(t *testing.T) {
@@ -410,6 +443,8 @@ type fakeHome struct {
 	touched  int
 	ordered  int
 	resume   func(context.Context) bool
+	stranded bool
+	left     []home.Cache
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -424,6 +459,9 @@ func (h *fakeHome) GoHome(_ context.Context, origin any, why string) (*session.T
 	if h.home == nil {
 		return nil, home.ErrNoHome
 	}
+	if h.stranded {
+		return nil, home.ErrStranded
+	}
 	h.trips = append(h.trips, why)
 	t := session.Finished(protocol.TaskMoveTo, origin, protocol.StatusRunning, "")
 	h.homeward[t.ID] = true
@@ -435,6 +473,7 @@ func (h *fakeHome) ReturnOn(reason string) bool {
 	return reason == protocol.ReasonTargetLost || reason == protocol.ReasonStuck
 }
 func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h.home != nil }
+func (h *fakeHome) LeftBehind() []home.Cache                      { return h.left }
 func (h *fakeHome) Touch()                                        { h.touched++ }
 func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
 func (h *fakeHome) Ordered()                                      { h.resume = nil; h.ordered++ }
@@ -444,6 +483,36 @@ func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
 	b.opts.Home = h
 	return b, f, h
+}
+
+func TestStatusSaysWhatWasLeftBehind(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home = &protocol.Vec3{}
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{0, 0, 0}}
+	h.left = []home.Cache{
+		{Pos: protocol.Vec3{30, 0, 40}, Items: map[string]int{"Wood": 6, "Stone": 2}},
+		{Pos: protocol.Vec3{300, 0, 0}, Items: map[string]int{"Flint": 1}},
+	}
+	b.Chat(line("Sothr", "bjorn status"))
+	want := " Home is 42 m away. I left 6 Wood, 2 Stone 50 m from here, and things in one other place."
+	if got := f.said(); len(got) != 1 || !strings.HasSuffix(got[0], want) {
+		t.Errorf("said %q\nwant it to end %q", got, want)
+	}
+}
+
+func TestStrandedBotSaysWhyItCannotGoHome(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home, h.stranded = &protocol.Vec3{}, true
+	b.Chat(line("Sothr", "bjorn go home"))
+	if got := f.said(); len(got) != 1 || got[0] != "I'm carrying too much to move. I need to put something down." {
+		t.Errorf("go home: %q", got)
+	}
+	// A failure that would send it home says only what went wrong.
+	b.Chat(line("Sothr", "bjorn follow me"))
+	b.TaskDone(doneTask(f.sent()[1], protocol.StatusFailed, protocol.ReasonTargetLost))
+	if got := f.said(); len(got) != 3 || got[2] != "I lost track of you, Sothr." || len(h.trips) != 0 {
+		t.Errorf("said %q, trips %v", got, h.trips)
+	}
 }
 
 func TestSetAndGoHome(t *testing.T) {
@@ -542,5 +611,49 @@ func TestADeadFollowLeavesAResumeForTheSamePlayer(t *testing.T) {
 	b.TaskDone(doneTask(come, protocol.StatusFailed, protocol.ReasonDied))
 	if h.resume != nil {
 		t.Error("a come-here left a resume")
+	}
+}
+
+func TestPickThatUp(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.allowed = append(f.allowed, protocol.TaskPickup)
+
+	b.Chat(line("Sothr", "bjorn pick that up"))
+	if got := f.said(); got[0] != "I don't see anything to pick up near you." {
+		t.Errorf("with nothing seen: %q", got)
+	}
+
+	// Nearest the speaker (at 10, 10), not the bot, and within reach.
+	f.perception = &protocol.Perception{Resources: []protocol.PerceivedResource{
+		{ID: "0:1", Kind: protocol.ResourceDrop, Prefab: "Stone", Pos: protocol.Vec3{16, 0, 10}},
+		{ID: "0:2", Kind: protocol.ResourceDrop, Prefab: "Wood", Pos: protocol.Vec3{11, 0, 11}},
+		{ID: "0:3", Kind: protocol.ResourceTree, Prefab: "Beech1", Pos: protocol.Vec3{10, 0, 10}},
+		{ID: "0:4", Kind: protocol.ResourceDrop, Prefab: "Resin", Pos: protocol.Vec3{40, 0, 40}},
+	}}
+	pickups := func() []session.Order {
+		return slices.DeleteFunc(f.sent(), func(o session.Order) bool { return o.Task != protocol.TaskPickup })
+	}
+	b.Chat(line("Sothr", "bjorn pick that up"))
+	sent := pickups()
+	if len(sent) != 1 || sent[0].Args.(*protocol.PickupArgs).Entity != "0:2" {
+		t.Fatalf("sent %+v; want pickup of 0:2", sent)
+	}
+	if got := f.said(); got[1] != "Getting the wood." {
+		t.Errorf("ack %q", got[1])
+	}
+	b.TaskDone(doneTask(sent[0], protocol.StatusSucceeded, ""))
+	b.TaskDone(doneTask(sent[0], protocol.StatusFailed, protocol.ReasonTargetLost))
+	b.TaskDone(session.FinishedWith(sent[0].Task, sent[0].Origin, protocol.StatusSucceeded, "",
+		"took 30 Wood; no room for the other 12"))
+	if got := f.said(); got[2] != "Got it." || got[3] != "It's gone. Someone got to it first." ||
+		got[4] != "I got some of it, but I'm out of room." {
+		t.Errorf("results %q", got[2:])
+	}
+
+	// No slot free and no stack of it to add to.
+	f.inventory = &protocol.Inventory{Size: [2]int{1, 1}, Items: []protocol.InventoryItem{{Prefab: "Stone", Stack: 50, StackMax: 50}}}
+	b.Chat(line("Sothr", "bjorn grab that"))
+	if got := f.said(); got[5] != "I've no room for that." || len(pickups()) != 1 {
+		t.Errorf("when full: %q, sent %d", got[5], len(pickups()))
 	}
 }

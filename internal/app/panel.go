@@ -11,6 +11,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
 )
@@ -28,6 +29,8 @@ type PanelStatus struct {
 	Pos       *protocol.Vec3    `json:"pos,omitempty"`
 	Biome     string            `json:"biome,omitempty"`
 	Home      *PanelHome        `json:"home,omitempty"`
+	// LeftBehind is what the bot had to leave on the ground in this world.
+	LeftBehind []home.Cache `json:"leftBehind,omitempty"`
 
 	AgentName string           `json:"agentName"`
 	Nicknames []string         `json:"nicknames"`
@@ -57,6 +60,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 			ps.Pos = &pos
 		}
 	}
+	ps.LeftBehind = a.Home.LeftBehind()
 	if world, h, ok := a.Home.Current(); ok {
 		ps.Home = &PanelHome{World: world, Pos: h.Pos, SetBy: h.SetBy, At: h.At}
 		if d, ok := a.Home.HomeDistance(); ok {

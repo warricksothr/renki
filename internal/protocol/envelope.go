@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 )
 
 // Version is the protocol major version this package speaks (section 3).
@@ -127,6 +128,9 @@ func Encode(msg Message) ([]byte, error) {
 
 // Vec3 is a Unity world-space position in metres, y up (section 4).
 type Vec3 [3]float64
+
+// FlatDistance is the distance from v to w on the ground, ignoring height.
+func (v Vec3) FlatDistance(w Vec3) float64 { return math.Hypot(v[0]-w[0], v[2]-w[2]) }
 
 // EnvelopeOf returns the envelope inside m, for code that stamps `seq` and
 // `t` or reads `id` and `re` without knowing the message type.

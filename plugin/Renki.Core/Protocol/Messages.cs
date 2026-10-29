@@ -30,8 +30,8 @@ namespace Renki.Protocol
         public const string ReasonUnsupported = "unsupported", ReasonNotAllowed = "not_allowed",
             ReasonBadArgs = "bad_args", ReasonInvalidTarget = "invalid_target", ReasonTargetLost = "target_lost",
             ReasonUnreachable = "unreachable", ReasonStuck = "stuck", ReasonTimeout = "timeout",
-            ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full",
-            ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
+            ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full", ReasonTooHeavy = "too_heavy",
+            ReasonEncumbered = "encumbered", ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
             ReasonStopped = "stopped", ReasonDied = "died";
 
         public const string EventDamaged = "damaged", EventDied = "died", EventRespawned = "respawned",
@@ -224,6 +224,9 @@ namespace Renki.Protocol
         [JsonProperty("durability", NullValueHandling = NullValueHandling.Ignore)] public double? Durability;
         [JsonProperty("durabilityMax", NullValueHandling = NullValueHandling.Ignore)] public double? DurabilityMax;
         [JsonProperty("equipped", NullValueHandling = NullValueHandling.Ignore)] public bool? Equipped;
+        [JsonProperty("weight")] public double Weight;
+        [JsonProperty("type")] public string Type = "";
+        [JsonProperty("value", NullValueHandling = NullValueHandling.Ignore)] public int? Value;
     }
 
     /// <summary>Section 6.3; streamed from M2.</summary>

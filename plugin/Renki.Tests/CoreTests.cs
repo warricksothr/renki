@@ -211,9 +211,52 @@ namespace Renki.Tests
             }
             Assert.Equal(new[]
             {
-                Recovery.Jump, Recovery.Strafe, Recovery.Repath, Recovery.Jump, Recovery.Strafe, Recovery.Repath,
-                Recovery.Jump, Recovery.Strafe, Recovery.Repath, Recovery.GiveUp,
+                Recovery.Jump, Recovery.Strafe, Recovery.Repath, Recovery.Climb, Recovery.Strafe, Recovery.Repath,
+                Recovery.Climb, Recovery.Strafe, Recovery.Repath, Recovery.GiveUp,
             }, seen);
+        }
+
+        [Fact]
+        public void HoldKeepsTheCountWhileARecoveryTakesItsTime()
+        {
+            var d = new StuckDetector();
+            d.Update(new V3(0, 0, 0), 0);
+            Assert.Equal(Recovery.Jump, d.Update(new V3(0, 0, 0), 3.1));
+            for (var t = 3.2; t < 12; t += 0.1) d.Hold(t); // a climb, waiting
+            Assert.Equal(Recovery.None, d.Update(new V3(0, 0, 0), 12));
+            Assert.Equal(Recovery.Strafe, d.Update(new V3(0, 0, 0), 15.1));
+            Assert.Equal(2, d.Attempts);
+        }
+
+        [Fact]
+        public void ClimbWaitsForStaminaThenJumpsInARow()
+        {
+            var c = new Climber();
+            c.Start(0);
+            // 10 a jump: 31 needed. Waits while it comes back.
+            Assert.Equal(ClimbStep.Wait, c.Tick(0, 5, 50, 10, true));
+            Assert.Equal(ClimbStep.Wait, c.Tick(2, 20, 50, 10, true));
+            Assert.Equal(ClimbStep.Jump, c.Tick(4, 31, 50, 10, true));
+            Assert.Equal(ClimbStep.Push, c.Tick(4.5, 21, 50, 10, true));
+            Assert.Equal(ClimbStep.Jump, c.Tick(4.8, 21, 50, 10, true));
+            Assert.Equal(ClimbStep.Jump, c.Tick(5.6, 11, 50, 10, true));
+            Assert.Equal(ClimbStep.Push, c.Tick(6, 1, 50, 10, true));
+            Assert.Equal(ClimbStep.Done, c.Tick(6.4, 1, 50, 10, true));
+            Assert.False(c.Active);
+        }
+
+        [Fact]
+        public void ClimbDoesNotWaitForStaminaThatCannotComeBack()
+        {
+            var c = new Climber();
+            c.Start(0);
+            Assert.Equal(ClimbStep.Jump, c.Tick(0, 12, 50, 10, false)); // overloaded: no regen
+            Assert.Equal(ClimbStep.Done, c.Tick(0.8, 2, 50, 10, false)); // and no more to spend
+            c.Start(10);
+            Assert.Equal(ClimbStep.Wait, c.Tick(15, 5, 50, 10, true));
+            Assert.Equal(ClimbStep.Done, c.Tick(20, 5, 50, 10, true)); // waited long enough; none to jump with
+            // A small bar still waits only for what it holds.
+            Assert.Equal(19, new Climber().Needed(10, 20));
         }
 
         [Fact]
@@ -330,6 +373,28 @@ namespace Renki.Tests
             Assert.True(DoorRules.In(new V3(0, 0, 1), new V3(0, 0, 0)));
             Assert.False(DoorRules.In(new V3(0, 0, 2), new V3(0, 0, 0)));
             Assert.False(DoorRules.In(new V3(0, 3, 0.5), new V3(0, 0, 0))); // the floor above
+        }
+
+        [Fact]
+        public void GatheringNeedsItsSwitchAndMovement()
+        {
+            var s = new SafetyConfig();
+            Assert.False(s.Permits("pickup"));
+            s.AllowGather = true;
+            Assert.True(s.Permits("pickup"));
+            s.AllowMovement = false;
+            Assert.False(s.Permits("pickup"));
+            Assert.False(s.Permits("harvest"));
+        }
+
+        [Fact]
+        public void DroppingHasItsOwnSwitch()
+        {
+            var s = new SafetyConfig { AllowMovement = false };
+            Assert.True(s.Permits("drop"));
+            s.AllowDrop = false;
+            Assert.False(s.Permits("drop"));
+            Assert.True(TaskNames.IsInstant("drop"));
         }
 
         [Fact]

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -21,7 +22,7 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Listen != "127.0.0.1:8765" || c.Rates.StateHz != 5 || len(c.AllowedTasks) != 6 {
+	if c.Listen != "127.0.0.1:8765" || c.Rates.StateHz != 5 || !slices.Equal(c.AllowedTasks, KnownTasks) {
 		t.Errorf("defaults %+v", c)
 	}
 }
@@ -78,5 +79,20 @@ func TestAfterDeathMustBeKnown(t *testing.T) {
 	c.Home.AfterDeath = "dance"
 	if c.Validate() == nil {
 		t.Error("afterDeath dance was accepted")
+	}
+}
+
+func TestWarnsWhenOverloadCannotDrop(t *testing.T) {
+	c := Default()
+	if w := c.Warnings(); len(w) != 0 {
+		t.Errorf("defaults: %q", w)
+	}
+	c.AllowedTasks = []string{"stop", "follow"}
+	if w := c.Warnings(); len(w) != 1 {
+		t.Errorf("without drop: %q", w)
+	}
+	c.Overload.Drop = false
+	if w := c.Warnings(); len(w) != 0 {
+		t.Errorf("with dropping off: %q", w)
 	}
 }

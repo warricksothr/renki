@@ -129,6 +129,12 @@ namespace Renki.Tests
         [InlineData("say", "{\"text\":\"hi\",\"channel\":\"whisper\"}")]
         [InlineData("say", "{\"text\":\"hi\",\"channel\":\"ping\"}")]
         [InlineData("emote", "{}")]
+        [InlineData("pickup", "{}")]
+        [InlineData("pickup", "{\"entity\":7}")]
+        [InlineData("drop", "{\"count\":3}")]
+        [InlineData("drop", "{\"prefab\":\"Wood\"}")]
+        [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":0}")]
+        [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":2.5}")]
         public void BadArgs(string task, string args)
         {
             Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Req(task, args)));
@@ -144,6 +150,9 @@ namespace Renki.Tests
             Assert.Equal(3.5, f.Distance);
             Assert.Equal(RunMode.Auto, f.Run);
             Assert.NotNull(TaskArgs.Parse(Req("stop", null)));
+            Assert.Equal("0:7120", ((PickupArgs)TaskArgs.Parse(Req("pickup", "{\"entity\":\"0:7120\"}"))).Entity);
+            var d = (DropArgs)TaskArgs.Parse(Req("drop", "{\"prefab\":\"Wood\",\"count\":3}"));
+            Assert.Equal(("Wood", 3), (d.Prefab, d.Count));
             Assert.Null(TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}")));
         }
     }
