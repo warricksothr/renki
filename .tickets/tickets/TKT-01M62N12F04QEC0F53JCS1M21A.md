@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:48:10Z
+updated_at: 2026-10-29T23:58:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,11 +56,7 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Implementation plan
 
-Start with the explicitly approved supplied-axe benchmark, using the AxeFlint withdrawn from owner-designated rag chest 1:30592. Implement one bounded harvest body task through normal melee controls: select usable chop/pick damage and required tool tier, approach a visible resource collider on its floor, respect wards and nearby characters/buildings, face it, wait for stamina and settled logs, and stop attacks immediately when cancelled or interrupted. No fabricated HitData, inventory creation, or forced world damage.
-
-Track real local hit/destruction evidence so an absent target does not silently become a successful harvest. Back away on felling and wait for falling logs to settle before any collection. Collect only new nearby item drops through existing pickup behavior with weight/slot checks and finite work. Keep harvest of a tree/log/stump/rock distinct from controller chaining of its descendants; establish the primitive first, then complete the supplied-tool chop/split/collect/deliver/return benchmark. Preserve seeds, rag gear and unrelated chest stock. Record unresolved live physics and multi-part rock coverage honestly.
-
-Run focused policy/protocol checks, just check ci, committed just check review, then land/deploy and live-check a controlled target away from the home and players. Full/busy/warded/multi-destination storage checks remain separately tracked; the first extra home chest approach (1:30595) failed unreachable without moving a seed and needs a suitable approach point before retrying.
+Replace collider-bounds proximity with real collider contact at tool attack height. Pick a stand-off beside the actual contact, project onto measured support near the resource's own level, and pass a tight grounded goal to the existing wall/water/clearance-validated walker. Never inherit the raised starting floor as the outdoor resource's destination height. Recompute bounded approaches after missed swings, using observed hit evidence for progress and retaining injury/threat/protection/settling/escape checks. Cover the recorded raised-house and too-far small-tree cases offline, then verify a from-home harvest/collect/deliver/return with an unmodified physical target.
 
 ## Notes
 
@@ -91,3 +87,7 @@ T-7 returned to the accessible inside-floor waypoint using the learned route (16
 Evidence: .checks/task-b7osuq4j.json (raised approach), .checks/task-j6x38emt.json (reach failure), .checks/task-cwikgxlr.json (positive harvest), .checks/audit-window-vnMcd3.jsonl (hits/products/wear), .checks/task-k0drjzfs.json (deposit), .checks/audit-window-ztwBYr.jsonl (conservation/return).
 
 This is a successful staged small-tree chop/collect/deliver/return slice, not closure of the compound harvest criteria. Next: ground-supported resource approach from raised floors, reliable attack contact rather than broad collider bounds, full tree/log/stump/rock cases, collect:false, inventory-full/target-loss and live post-fix retreat. All harvest criteria remain unticked until their whole scope is verified. Automatic food upkeep and remaining storage capacity/ward/overflow cases remain on their own tickets.
+
+**agent:codex/renki-resume** at 2026-10-29T23:58:14Z
+
+Implemented physical Collider.Raycast contact at attack height, support projection anchored at resource elevation, tight stand-off approach and one bounded closer retry after missed swings. Added captured-coordinate regressions for raised home versus outdoor support and actual strike reach. just check ci passed (20261029T235737Z-Wj8non.log), including both protocol fixture suites and plugin build/tests. Not yet deployed or live verified; all compound harvest criteria remain open. Next live check must begin inside raised home without manual staging, then collect/deposit only measured gains and return.

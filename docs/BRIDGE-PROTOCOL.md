@@ -172,6 +172,20 @@ the world.
 `in_bed` means attached to a bed, including waiting for the other players;
 `sleeping` is the game's actual sleep state.
 
+Optional `food` reports actual active meals and ordinary carried foods while
+alive in the world. For example:
+
+```json
+{"active":[{"prefab":"CookedDeerMeat","remainingS":850.5}],
+ "carried":[{"prefab":"NeckTailGrilled","health":25,"regen":2,"canEat":true}]}
+```
+
+`remainingS` is the game's remaining meal time. Carried foods are unique by
+prefab and exclude unusable world-level stacks. `canEat` comes from current
+game eligibility, including duplicate/full slots and consumption effects.
+Missing `food` means unknown; empty arrays mean observed empty. The panel
+status API exposes the same observation.
+
 `encumbered` means `weight` is over `weightMax`. The game then lets the bot
 walk but not run, stops its stamina coming back, and drains stamina while it
 moves. With no stamina left it cannot move at all until it carries less:
@@ -549,7 +563,13 @@ Notes:
   items and non-food consumables are `invalid_target`; game refusal is `refused`.
   Health regenerates normally from active food; the task does not heal directly.
   It needs the plugin enabled and welcome permission, with no gather/movement
-  requirement. Automatic food-slot maintenance and owner food requests are pending.
+  requirement. The controller fills unused food slots before refreshing eligible
+  meals, preferring health and then regeneration. It waits for a new observation
+  after eating and backs off failures. It defers while attacking, sleeping or
+  fleeing and never replaces a body task. When below 80% health with no active
+  meal or usable carried food, it asks configured owners through normal `say`,
+  at most once per five minutes. Unknown/stale observations, disconnects, menus,
+  death and missing permission prevent automatic actions.
 - `equip` holds or wears an item by prefab: of its stacks, the one in best
   repair, then of highest quality. One already equipped succeeds as it is.
   A broken item, or one that is not equipment, is `invalid_target`; the game

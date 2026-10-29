@@ -184,7 +184,7 @@ namespace Renki.Plugin
         static Outcome Eat(Player player, UseItemArgs args)
         {
             var inventory = player.GetInventory();
-            var item = inventory.GetAllItems().FirstOrDefault(i => Prefab(i) == args.Item && i.m_stack > 0);
+            var item = inventory.GetAllItems().FirstOrDefault(i => Prefab(i) == args.Item && i.m_stack > 0 && (Game.m_worldLevel <= 0 || i.m_worldLevel >= Game.m_worldLevel));
             if (item == null) return Outcome.Failed(Wire.ReasonInvalidTarget, $"no {args.Item} to eat");
             if (item.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Consumable || item.m_shared.m_food <= 0)
                 return Outcome.Failed(Wire.ReasonInvalidTarget, $"{args.Item} is not food");

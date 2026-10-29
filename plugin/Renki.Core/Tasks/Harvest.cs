@@ -4,6 +4,20 @@ using Renki.Movement;
 
 namespace Renki.Tasks
 {
+    public static class HarvestReach
+    {
+        public static V3 StandAt(V3 resource, V3 contact, V3 from, double standOff)
+        {
+            var away = (from - contact).Flat.Normalized;
+            if (away.Length < .01) away = (from - resource).Flat.Normalized;
+            if (away.Length < .01) away = V3.Forward;
+            var at = contact + away * standOff;
+            return new V3(at.X, resource.Y, at.Z);
+        }
+        public static bool InRange(V3 feet, V3 contact, double height, double reach) =>
+            (contact - (feet + new V3(0, height, 0))).Length <= reach;
+    }
+
     public static class HarvestHealth
     {
         public static bool Ready(double hp, double maximum) => maximum > 0 && hp >= maximum * .8;

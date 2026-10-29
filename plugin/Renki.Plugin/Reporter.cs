@@ -124,6 +124,7 @@ namespace Renki.Plugin
             s.Vel = Convert.ToArray(p.GetVelocity());
             s.Hp = Round(p.GetHealth());
             s.HpMax = Round(p.GetMaxHealth());
+            if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Food = Food(p);
             s.Stamina = Round(p.GetStamina());
             s.StaminaMax = Round(p.GetMaxStamina());
             s.Eitr = Round(p.GetEitr());
@@ -170,6 +171,32 @@ namespace Renki.Plugin
             s.Weight = Round(p.GetInventory().GetTotalWeight());
             s.WeightMax = Round(p.GetMaxCarryWeight());
             return s;
+        }
+
+        static FoodStatus Food(Player p)
+        {
+            var status = new FoodStatus();
+            string Name(ItemDrop.ItemData item) => item.m_dropPrefab != null ? item.m_dropPrefab.name : item.m_shared.m_name;
+            foreach (var food in p.m_foods)
+                status.Active.Add(new ActiveFood { Prefab = Name(food.m_item), RemainingS = Round(food.m_time) });
+            var seen = new HashSet<string>();
+            foreach (var item in p.GetInventory().GetAllItems())
+            {
+                if (item.m_stack <= 0 || item.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Consumable || item.m_shared.m_food <= 0) continue;
+                var name = Name(item);
+                // Old-world-level stacks can coexist with a usable one.
+                if (Game.m_worldLevel > 0 && item.m_worldLevel < Game.m_worldLevel || !seen.Add(name)) continue;
+                status.Carried.Add(new CarriedFood
+                {
+                    Prefab = name,
+                    Health = Round(item.m_shared.m_food),
+                    Regen = Round(item.m_shared.m_foodRegen),
+                    CanEat = p.CanEat(item, false) &&
+                        (item.m_shared.m_consumeStatusEffect == null || !p.GetSEMan().HaveStatusEffect(item.m_shared.m_consumeStatusEffect.NameHash()) &&
+                        !p.GetSEMan().HaveStatusEffectCategory(item.m_shared.m_consumeStatusEffect.m_category))
+                });
+            }
+            return status;
         }
 
         static double Round(float f) => System.Math.Round(f, 1);

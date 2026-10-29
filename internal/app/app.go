@@ -15,6 +15,7 @@ import (
 	"github.com/warricksothr/renki/internal/burden"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/memory"
 	"github.com/warricksothr/renki/internal/protocol"
@@ -31,6 +32,7 @@ type App struct {
 	Home       *home.Keeper
 	Burden     *burden.Unloader
 	Retreat    *retreat.Retreat
+	Food       *food.Keeper
 	Behaviours *behaviour.Engine
 	Memory     *memory.Containers
 	Landmarks  *memory.Landmarks
@@ -77,6 +79,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	}, s)
 	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice,
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
+	a.Food = food.New(s, func() []string { return set.Values().Owners }, log.With("part", "food"), nil)
 	a.Retreat = retreat.New(s, func() []string { return set.Values().Owners }, func() (protocol.Vec3, bool) {
 		_, h, ok := keeper.Current()
 		return h.Pos, ok
@@ -144,6 +147,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
 	go a.Retreat.Run(ctx)
+	go a.Food.Run(ctx)
 	go a.Behaviours.Run(ctx)
 	go a.Memory.Run(ctx)
 	go func() {
