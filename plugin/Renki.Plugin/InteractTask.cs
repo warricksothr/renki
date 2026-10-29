@@ -16,9 +16,9 @@ namespace Renki.Plugin
     /// </summary>
     sealed class InteractTask : IBodyTask
     {
-        /// <summary>How near the thing's surface the bot uses it from. The
-        /// game allows 5 m; nearer, the bot is plainly at it.</summary>
-        const float Reach = 2.0f;
+        /// <summary>How far from the bot's eye it uses a thing. The game
+        /// allows 5 m; nearer, the bot is plainly at it.</summary>
+        const float Reach = 2.5f;
 
         /// <summary>How long a hold keeps the use key down.</summary>
         const float HoldFor = 1.0f;
@@ -142,21 +142,36 @@ namespace Renki.Plugin
             return null;
         }
 
-        /// <summary>Within reach of the thing's surface, on its level.</summary>
+        /// <summary>Within reach and in sight, as the game's hover finds a
+        /// thing to use: a ray from the bot's eye, aimed at the nearest point
+        /// of each of its colliders and at their middles, meets the thing
+        /// itself within Reach, not a wall or floor in between.</summary>
         bool Near(Player p)
         {
-            var chest = p.transform.position + Vector3.up;
-            var best = float.MaxValue;
+            var eye = p.m_eye != null ? p.m_eye.position : p.transform.position + Vector3.up * 1.6f;
+            var any = false;
             foreach (var c in obj.GetComponentsInChildren<Collider>())
             {
-                if (!c.enabled || c.isTrigger) continue;
-                // Unity gives a concave mesh's ClosestPoint as the point
-                // itself; its bounds are the nearest it can say.
-                var at = c is MeshCollider m && !m.convex ? c.bounds.ClosestPoint(chest) : c.ClosestPoint(chest);
-                best = Mathf.Min(best, Vector3.Distance(chest, at));
+                if (!c.enabled) continue;
+                any = true;
+                // Unity answers a concave mesh's ClosestPoint with the point
+                // itself, so it is aimed at by its middle only.
+                var concave = c is MeshCollider m && !m.convex;
+                if ((!concave && Sees(eye, c.ClosestPoint(eye), p)) || Sees(eye, c.bounds.center, p)) return true;
             }
-            if (best < float.MaxValue) return best <= Reach;
+            if (any) return false;
             return Arrival.Reached(Convert.ToV3(p.transform.position), Convert.ToV3(obj.transform.position), Reach);
+        }
+
+        bool Sees(Vector3 eye, Vector3 at, Player p)
+        {
+            var dir = at - eye;
+            var d = dir.magnitude;
+            if (d > Reach) return false;
+            // Nearer than a ray can tell: the eye is at it, or in it.
+            if (d < 0.05f) return true;
+            return Physics.Raycast(eye, dir / d, out var hit, Reach, p.m_interactMask) &&
+                   hit.collider.transform.IsChildOf(obj.transform);
         }
 
         /// <summary>One press of the use key, hearing what the game says.</summary>

@@ -441,8 +441,8 @@ Notes:
   none it may drop. The game marks a player's own drop so its auto-pickup
   does not take it straight back. It needs `allowDrop`, which is on by
   default and needs no movement.
-- `interact` walks to the entity until it is within 2 m of its surface, faces
-  it, and uses it through its `Interactable` as a player pressing the use key
+- `interact` walks to the entity until a ray from the bot's eye meets it
+  within 2.5 m, as the game's own hover finds things, faces it, and uses it through its `Interactable` as a player pressing the use key
   would; `alt` is the modifier key, and `hold` keeps the key down for 1 s,
   repeating as the game does. It succeeds when the game says it did
   something, with what the game said on screen in `detail`, and fails with
