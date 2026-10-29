@@ -23,6 +23,11 @@ namespace Renki.Plugin
         readonly List<Vector3> scratch = new List<Vector3>();
         Vector3 goal;
         bool hasGoal;
+        LocalRoute localRoute;
+        Outcome navigationFailure;
+        string localWaterBlocked;
+        float localStarted, nextWallCheck;
+        double localMs, localWorstMs;
         float strafeUntil;
         float strafeSign = 1;
 
@@ -36,8 +41,8 @@ namespace Renki.Plugin
         /// swimming bot is not left treading water: Steer takes it ashore
         /// first, and the re-plan there decides.</summary>
         public Outcome Refused() =>
-            Blocked != null && Player.m_localPlayer?.IsSwimming() != true
-                ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null;
+            Player.m_localPlayer?.IsSwimming() == true ? null : navigationFailure ?? (Blocked != null
+                ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null);
 
         /// <summary>The terrain's height at x, z, or NaN where it is not
         /// loaded.</summary>
@@ -65,6 +70,7 @@ namespace Renki.Plugin
         /// <summary>Try other approaches before failing an off-level goal.</summary>
         public Outcome Unreachable(Vector3 pos, double within)
         {
+            if (localRoute != null) return null;
             var here = Convert.ToV3(pos);
             var atEnd = OffLevel && (V3.FlatDistance(here, Convert.ToV3(goal)) <= within ||
                                     V3.FlatDistance(here, Convert.ToV3(end)) <= AtEnd);
@@ -96,9 +102,10 @@ namespace Renki.Plugin
             scratch.Clear();
             var to = new Vector3((float)candidate.X, (float)candidate.Y, (float)candidate.Z);
             if (Pathfinding.instance == null ||
-                !Pathfinding.instance.GetPath(from, to, scratch, Pathfinding.AgentType.Humanoid, false, true, false) ||
+                !Pathfinding.instance.GetPath(from, to, scratch, Pathfinding.AgentType.Humanoid, true, true, false) ||
                 scratch.Count == 0) return null;
-            return SafeDetour(from, candidate) ? Convert.ToV3(scratch[scratch.Count - 1]) : (V3?)null;
+            return SafeDetour(from, candidate) && WallRoute.Clear(Convert.ToV3(from), scratch.Select(Convert.ToV3).ToArray(), WorldNavigation.Walls)
+                ? Convert.ToV3(scratch[scratch.Count - 1]) : (V3?)null;
         }
 
         bool SafeDetour(Vector3 from, V3 candidate) =>
@@ -113,8 +120,11 @@ namespace Renki.Plugin
             Repath(from);
         }
 
-        void Repath(Vector3 from)
+        void Repath(Vector3 from, bool forceLocal = false)
         {
+            navigationFailure = null;
+            localRoute = null;
+            path.Reach = 1;
             var target = approach.Target is V3 via
                 ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : goal;
             scratch.Clear();
@@ -126,7 +136,8 @@ namespace Renki.Plugin
             // Detour validation already obtained a complete path. If a tile
             // changes before this second query, wait for the leg's retry;
             // never walk an unvalidated fallback away from the real goal.
-            if (approach.Target != null && (StraightLine || !SafeDetour(from, Convert.ToV3(target))))
+            if (approach.Target != null && (StraightLine || !SafeDetour(from, Convert.ToV3(target)) ||
+                !WallRoute.Clear(Convert.ToV3(from), scratch.Select(Convert.ToV3).ToArray(), WorldNavigation.Walls)))
             {
                 path.Set(new V3[0]);
                 return;
@@ -169,6 +180,19 @@ namespace Renki.Plugin
                 ["waypoints"] = scratch.Count,
             };
             if (shortBy > 1) data["end"] = Convert.ToArray(end);
+            var crossesWall = !WallRoute.Clear(Convert.ToV3(from), scratch.Select(Convert.ToV3).ToArray(), WorldNavigation.Walls);
+            // A complete-looking path can still cross a wall missing from
+            // its navmesh. A partial path must never turn into a straight
+            // drive from its endpoint to the original goal.
+            var shortAcrossGround = V3.FlatDistance(Convert.ToV3(end), Convert.ToV3(target)) > 1.5;
+            if (approach.Target == null && (StraightLine || crossesWall || shortAcrossGround || forceLocal))
+            {
+                data["why"] = crossesWall ? "known wall" : shortAcrossGround ? "partial navmesh path" : forceLocal ? "stuck" : "no navmesh path";
+                data["walls"] = WorldNavigation.Walls.Count;
+                Tracer.Emit("walker", "planning a local route", data);
+                BeginLocal(from, target);
+                return;
+            }
             Tracer.Emit("walker", StraightLine ? "no navmesh path; straight line"
                 : shortBy > 1 ? $"path stops {shortBy:0.0} m short" : "path", data);
         }
@@ -186,6 +210,25 @@ namespace Renki.Plugin
         {
             if (!hasGoal) return true;
             if (Swim(pos, ref run)) return true;
+            if (localRoute != null) return PlanLocal(pos);
+            if (navigationFailure != null) { Driver.Stand(); return true; }
+            if (Time.unscaledTime >= nextWallCheck)
+            {
+                nextWallCheck = Time.unscaledTime + .25f;
+                var next = path.Next(Convert.ToV3(pos));
+                if (next is V3 waypoint && !WallRoute.Clear(Convert.ToV3(pos), waypoint, WorldNavigation.Walls))
+                {
+                    Repath(pos, true);
+                    Driver.Stand();
+                    return true;
+                }
+                if (next == null && approach.Target == null && !Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), .5))
+                {
+                    Repath(pos, true);
+                    Driver.Stand();
+                    return true;
+                }
+            }
             // The detour has its own short deadline. Do not strafe or jump
             // off its validated path while waiting to retry the real goal.
             if (approach.Target != null) stuck.Hold(Time.time);
@@ -214,7 +257,8 @@ namespace Renki.Plugin
                     strafeSign = -strafeSign;
                     break;
                 case Recovery.Repath:
-                    Repath(pos);
+                    Repath(pos, true);
+                    if (localRoute != null) { Driver.Stand(); return true; }
                     break;
                 case Recovery.Climb:
                     climb.Start(Time.time);
@@ -232,6 +276,55 @@ namespace Renki.Plugin
             // A strafe walks, so it cannot carry the bot out of the stuck
             // circle on its own and pass for progress.
             Driver.Run = run && Time.time >= strafeUntil;
+            return true;
+        }
+
+        void BeginLocal(Vector3 from, Vector3 target)
+        {
+            localWaterBlocked = Blocked;
+            Blocked = null;
+            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), WorldNavigation.Probe);
+            localStarted = Time.unscaledTime;
+            localMs = localWorstMs = 0;
+            path.Set(new V3[0]);
+        }
+
+        bool PlanLocal(Vector3 pos)
+        {
+            Driver.Stand();
+            stuck.Hold(Time.time);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            // At most eight expansions and roughly 2 ms per physics step.
+            for (var i = 0; i < 8 && watch.Elapsed.TotalMilliseconds < 2 && localRoute.Status == RouteStatus.Searching; i++)
+                localRoute.Advance(1);
+            watch.Stop();
+            localMs += watch.Elapsed.TotalMilliseconds;
+            localWorstMs = System.Math.Max(localWorstMs, watch.Elapsed.TotalMilliseconds);
+            if (localRoute.Status == RouteStatus.Searching && Time.unscaledTime - localStarted < 8) return true;
+            var found = localRoute.Status == RouteStatus.Found;
+            Tracer.Emit("walker", found ? "local route found" : "no safe local route", new Dictionary<string, object>
+            {
+                ["from"] = Convert.ToArray(pos),
+                ["to"] = Convert.ToArray(goal),
+                ["expanded"] = localRoute.Expanded,
+                ["probes"] = localRoute.Probes,
+                ["ms"] = System.Math.Round(localMs, 2),
+                ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),
+                ["waypoints"] = found ? localRoute.Path.Count : 0,
+            });
+            if (found)
+            {
+                path.Set(localRoute.Path);
+                path.Reach = .15;
+                OffLevel = false;
+                Blocked = null;
+                ResetStuck(pos);
+            }
+            else if (Player.m_localPlayer?.IsSwimming() == true)
+                Blocked = "no safe route from the water; seeking shore";
+            else navigationFailure = Outcome.Failed(localWaterBlocked != null ? Wire.ReasonDeepWater : Wire.ReasonUnreachable,
+                "no supported, water-safe route around the obstacles within the local search limit");
+            localRoute = null;
             return true;
         }
 
@@ -326,13 +419,7 @@ namespace Renki.Plugin
         /// <summary>The flat direction to the next waypoint, or the goal.</summary>
         Vector3 Toward(Vector3 pos)
         {
-            if (approach.Target != null && path.Count == 0) return Vector3.zero;
-            var next = path.Next(Convert.ToV3(pos));
-            var target = next.HasValue ? Convert.ToVector3(next.Value)
-                : approach.Target is V3 via ? Convert.ToVector3(via) : goal;
-            var dir = target - pos;
-            dir.y = 0;
-            return dir;
+            return Convert.ToVector3(path.Direction(Convert.ToV3(pos)));
         }
 
         /// <summary>One step of a climb: wait for stamina, then jump a few
@@ -686,7 +773,9 @@ namespace Renki.Plugin
                 leaderSpeed = Mathf.Lerp(leaderSpeed, flat.magnitude / (float)dt, 0.1f);
             }
             leaderLast = lead;
-            var gait = pace.Decide(gap, args.Distance, args.Run, leaderSpeed > RunningSpeed);
+            var nearWall = gap <= args.Distance + pace.Slack && System.Math.Abs(pos.y - lead.y) <= Arrival.Level &&
+                           !WallRoute.Clear(Convert.ToV3(pos), Convert.ToV3(lead), WorldNavigation.Walls);
+            var gait = pace.Decide(gap, args.Distance, args.Run, leaderSpeed > RunningSpeed, nearWall);
             if (gait != lastGait)
             {
                 Tracer.Emit("follow", gait.ToString().ToLowerInvariant(), new Dictionary<string, object>

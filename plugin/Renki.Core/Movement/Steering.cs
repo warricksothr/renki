@@ -94,6 +94,9 @@ namespace Renki.Movement
 
         public int Count => points.Count;
 
+        /// <summary>Never invent a segment beyond a partial path's end.</summary>
+        public V3 Direction(V3 pos) => Next(pos) is V3 next ? (next - pos).Flat : V3.Zero;
+
         /// <summary>The waypoint to head for from pos, skipping any already
         /// reached, or null once the last is reached.</summary>
         public V3? Next(V3 pos)
@@ -127,9 +130,9 @@ namespace Renki.Movement
         public double Slack = 1.0;
         bool stopped = true;
 
-        public Gait Decide(double gap, double distance, RunMode mode, bool leaderRunning)
+        public Gait Decide(double gap, double distance, RunMode mode, bool leaderRunning, bool blocked = false)
         {
-            if (gap <= distance || (stopped && gap <= distance + Slack))
+            if (gap <= distance || ((stopped || blocked) && gap <= distance + Slack))
             {
                 stopped = true;
                 return Gait.Stop;

@@ -301,6 +301,7 @@ namespace Renki.Plugin
         void Lay()
         {
             var near = walls.Take();
+            WorldNavigation.Walls = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(near, w => w.Value));
             ulong sig = (ulong)near.Count;
             foreach (var w in near) unchecked { sig += Mix((ulong)(uint)w.Key); }
             if (wallsSent && sig == sentWalls) return;

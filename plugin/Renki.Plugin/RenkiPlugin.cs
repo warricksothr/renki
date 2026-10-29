@@ -192,6 +192,7 @@ namespace Renki.Plugin
         void EndSession(string why)
         {
             runner.EndSession(why);
+            WorldNavigation.Walls = Array.Empty<Wall>();
             Driver.Active = false;
             Driver.Stand();
             Driver.LookAt = null;
