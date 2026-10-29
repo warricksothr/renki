@@ -15,6 +15,7 @@ const world = {
   characters: [], // from perception
   structures: [],
   resources: [],
+  walls: [], // from layout: {a, b, h}
   home: null,
   left: [], // what the bot left on the ground: {pos, items}
   path: null, // {from, to}
@@ -95,6 +96,9 @@ function onRecord(ev) {
     case "inventory":
       inventory = f;
       drawInventory();
+      break;
+    case "layout":
+      world.walls = f.walls || [];
       break;
     case "perception":
       world.characters = f.characters || [];
@@ -228,6 +232,20 @@ function render() {
   const sy = (z) => h / 2 - (z - view.centre[1]) * view.scale;
 
   grid(w, h, sx, sy);
+
+  // Walls under everything else, as thick as they are, near enough.
+  if (world.walls.length) {
+    ctx.strokeStyle = colour("wall");
+    ctx.lineWidth = Math.max(2, 0.3 * view.scale);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    for (const wl of world.walls) {
+      ctx.moveTo(sx(wl.a[0]), sy(wl.a[2]));
+      ctx.lineTo(sx(wl.b[0]), sy(wl.b[2]));
+    }
+    ctx.stroke();
+    ctx.lineCap = "butt";
+  }
 
   if (world.path) {
     ctx.strokeStyle = colour("path");

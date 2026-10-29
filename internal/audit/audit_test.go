@@ -167,6 +167,24 @@ func TestSubscribersAndRecentRecords(t *testing.T) {
 	}
 }
 
+// TestOnlyTheNewestLayoutIsKept: a layout is kept for a new page, but only
+// the newest, and it does not crowd the feed.
+func TestOnlyTheNewestLayoutIsKept(t *testing.T) {
+	l, err := Open("", 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.Frame(1, In, []byte(`{"v":1,"type":"layout","seq":1,"t":0,"walls":[]}`))
+	l.Frame(1, In, []byte(`{"v":1,"type":"layout","seq":2,"t":0,"walls":[{"a":[0,0,0],"b":[2,0,0],"h":2}]}`))
+	var got []string
+	for _, r := range l.RecentRecords() {
+		got = append(got, Line(r))
+	}
+	if len(got) != 1 || !strings.Contains(got[0], "layout    1 walls") {
+		t.Errorf("recent records %q", got)
+	}
+}
+
 func TestTheNewestInventoryOutlivesTheFeed(t *testing.T) {
 	l, err := Open("", 0, nil)
 	if err != nil {

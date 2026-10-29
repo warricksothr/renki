@@ -216,7 +216,8 @@ into a problem.
   level less one. `hostile` means the creature would fight the bot, and
   `targetingMe` that it has picked the bot as its target.
 - `structures`: only pieces of the kinds above. Walls, floors and the like
-  are left out, so a base cannot fill the cap with them. `mine` is set on
+  are left out, so a base cannot fill the cap with them. Walls come in
+  `layout` (6.9). `mine` is set on
   the bot's own bed, `tag` is a portal's name, and `open` is set on doors
   only.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
@@ -337,6 +338,28 @@ on the message.
 
 `pong` (reply to `ping`), and `error`, which looks like
 `{"re":"…","code":"bad_message","detail":"…"}`.
+
+### 6.9 `layout` (when the walls in range change, and once after `welcome`)
+
+```json
+{
+  "v": 1, "type": "layout", "seq": 34, "t": 18230.50,
+  "walls": [
+    { "a": [-40.0, 36.1, 1.0], "b": [-38.0, 36.1, 1.8], "h": 2.0 },
+    { "a": [-38.0, 36.1, 1.8], "b": [-38.0, 36.1, 3.8], "h": 1.0 }
+  ]
+}
+```
+
+The walls within the perception radius, nearest first, at most 512. Each is
+the line along its foot, from `a` to `b`, and `h` is its height in metres.
+A wall is any building piece that is not a structure (6.2), whose solid
+colliders fill a box at least 1.2 m tall and at least twice as long as it is
+thick, and no more than about a metre thick: wooden and stone walls,
+palisades and fences. Floors, roofs, stairs, posts and half walls are not
+walls. Walls do not move, so a new `layout` goes out only when the set
+within range changes, usually as the bot walks, and each one replaces the
+last. It comes after the `perception` of the same scan.
 
 ## 7. Controller → plugin
 

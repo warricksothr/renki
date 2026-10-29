@@ -9,6 +9,7 @@ const (
 	TypeState      = "state"
 	TypePerception = "perception"
 	TypeInventory  = "inventory"
+	TypeLayout     = "layout"
 	TypeChat       = "chat"
 	TypeEvent      = "event"
 	TypeTask       = "task"
@@ -268,6 +269,21 @@ type Inventory struct {
 }
 
 func (*Inventory) MessageType() string { return TypeInventory }
+
+// Layout is the walls near the bot, sent when they change (6.9).
+type Layout struct {
+	Envelope
+	Walls []Wall `json:"walls"`
+}
+
+func (*Layout) MessageType() string { return TypeLayout }
+
+// Wall is the line along a wall's foot, from A to B, and its height.
+type Wall struct {
+	A Vec3    `json:"a"`
+	B Vec3    `json:"b"`
+	H float64 `json:"h"`
+}
 
 // InventoryItem is one occupied slot.
 type InventoryItem struct {

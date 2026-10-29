@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T05:42:44Z
-updated_at: 2026-10-29T05:45:19Z
+updated_at: 2026-10-29T06:05:49Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -67,7 +67,13 @@ before anything on it means something:
 
 ## Acceptance criteria
 
-- [ ] Each kind of structure, resource and character has its own shape or colour, and the legend shows them
-- [ ] Labels never overlap; nearby things of one kind group under one marker with a count
-- [ ] Hovering a marker shows what it is: kind, prefab, distance from the bot, and its details
-- [ ] The map opens zoomed to the perception radius, and the base is readable at that zoom
+- [x] Each kind of structure, resource and character has its own shape or colour, and the legend shows them
+- [x] Labels never overlap; nearby things of one kind group under one marker with a count
+- [x] Hovering a marker shows what it is: kind, prefab, distance from the bot, and its details
+- [x] The map opens zoomed to the perception radius, and the base is readable at that zoom
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T06:05:49Z
+
+2026-10-29: built and checked on a local controller fed with real perception from the VM's audit log: chests at home group as '6 chests', hover lists each with its distance, labels do not overlap, and the view fits the 40 m radius. Deployed to the VM.

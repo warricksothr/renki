@@ -32,6 +32,13 @@ namespace Renki.Plugin
         readonly NearestByKind<PerceivedStructure> structures = new NearestByKind<PerceivedStructure>(24);
         readonly NearestByKind<PerceivedResource> resources = new NearestByKind<PerceivedResource>(24);
 
+        /// <summary>Past this many, only the nearest walls go in a layout.</summary>
+        const int MaxWalls = 512;
+        readonly Nearest<KeyValuePair<int, Wall>> walls = new Nearest<KeyValuePair<int, Wall>>(MaxWalls);
+        ulong sentWalls;
+        bool wallsSent;
+        Layout layout;
+
         readonly Stopwatch watch = new Stopwatch();
         int scans;
         double totalMs, worstMs;
@@ -56,13 +63,16 @@ namespace Renki.Plugin
             }
 
             structures.Clear();
+            walls.Clear();
             pieceBuffer.Clear();
             Piece.GetAllPiecesInRadius(at, r, pieceBuffer);
             foreach (var p in pieceBuffer)
             {
-                var s = Describe(p);
+                var s = Describe(p, out var wall);
                 if (s != null) structures.Add(s.Kind, s, Vector3.Distance(at, p.transform.position));
+                else if (wall != null) walls.Add(new KeyValuePair<int, Wall>(p.GetInstanceID(), wall), Vector3.Distance(at, p.transform.position));
             }
+            Lay();
 
             resources.Clear();
             seen.Clear();
@@ -117,6 +127,9 @@ namespace Renki.Plugin
             public string Kind, Prefab;
             public Component Part;
             public int? MinTool;
+            /// <summary>For a wall, its foot line and height in the piece's
+            /// own frame; Kind is then null.</summary>
+            public (V3 A, V3 B, double H)? Wall;
         }
 
         /// <summary>Past this many, the caches start again, so destroyed
@@ -128,15 +141,28 @@ namespace Renki.Plugin
         readonly Dictionary<ZNetView, Known> objects = new Dictionary<ZNetView, Known>();
 
         /// <summary>The piece as 6.2 names it, or null for the walls, floors
-        /// and everything else the bot has no use for.</summary>
-        PerceivedStructure Describe(Piece p)
+        /// and everything else the bot has no use for; a wall comes back in
+        /// wall instead, in world space (6.9).</summary>
+        PerceivedStructure Describe(Piece p, out Wall wall)
         {
+            wall = null;
             if (!pieces.TryGetValue(p, out var k))
             {
                 if (pieces.Count >= CacheMax) pieces.Clear();
                 pieces[p] = k = Classify(p);
             }
             if (k == null) return null;
+            if (k.Wall is (V3 a, V3 b, double h))
+            {
+                var t = p.transform;
+                wall = new Wall
+                {
+                    A = Convert.ToArray(t.TransformPoint(Convert.ToVector3(a))),
+                    B = Convert.ToArray(t.TransformPoint(Convert.ToVector3(b))),
+                    H = System.Math.Round(h, 2),
+                };
+                return null;
+            }
             var s = new PerceivedStructure { Kind = k.Kind, Prefab = k.Prefab, Pos = Convert.ToArray(p.transform.position), Id = Id(p.m_nview) };
             switch (k.Part)
             {
@@ -166,9 +192,65 @@ namespace Renki.Plugin
             else if (p.TryGetComponent<Smelter>(out var smelter)) (kind, part) = (Wire.StructureSmelter, smelter);
             else if (p.TryGetComponent<Fireplace>(out var fire)) (kind, part) = (Wire.StructureFire, fire);
             else if (p.TryGetComponent<Container>(out var chest)) (kind, part) = (Wire.StructureContainer, chest);
-            else return null;
+            else return WallOf(p) is (V3, V3, double) wall ? new Known { Wall = wall } : null;
             return new Known { Kind = kind, Part = part, Prefab = PrefabName(p.m_nview, p.gameObject) };
         }
+
+        static readonly List<Collider> pieceColliders = new List<Collider>();
+
+        /// <summary>Whether the piece is a wall, from the box its solid
+        /// colliders fill in its own frame.</summary>
+        static (V3, V3, double)? WallOf(Piece p)
+        {
+            var root = p.transform;
+            Vector3 min = Vector3.positiveInfinity, max = Vector3.negativeInfinity;
+            pieceColliders.Clear();
+            p.GetComponentsInChildren(pieceColliders);
+            foreach (var col in pieceColliders)
+            {
+                if (col.isTrigger) continue;
+                Bounds box;
+                if (col is BoxCollider bc) box = new Bounds(bc.center, bc.size);
+                else if (col is MeshCollider mc && mc.sharedMesh != null) box = mc.sharedMesh.bounds;
+                else continue;
+                for (var i = 0; i < 8; i++)
+                {
+                    var corner = box.center + Vector3.Scale(box.extents,
+                        new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var local = root.InverseTransformPoint(col.transform.TransformPoint(corner));
+                    min = Vector3.Min(min, local);
+                    max = Vector3.Max(max, local);
+                }
+            }
+            if (min.x > max.x) return null;
+            return WallShape.Of(Convert.ToV3(min), Convert.ToV3(max));
+        }
+
+        /// <summary>The nearest walls, as a layout to send when they are not
+        /// the ones last sent: walls stay put, so which pieces they are is
+        /// enough to tell.</summary>
+        void Lay()
+        {
+            var near = walls.Take();
+            ulong sig = (ulong)near.Count;
+            foreach (var w in near) unchecked { sig += (ulong)(uint)w.Key * 0x9E3779B97F4A7C15UL; }
+            if (wallsSent && sig == sentWalls) return;
+            layout = new Layout();
+            foreach (var w in near) layout.Walls.Add(w.Value);
+            sentWalls = sig;
+            wallsSent = true;
+        }
+
+        /// <summary>The layout, once, after the scan that found it changed.</summary>
+        public Layout TakeLayout()
+        {
+            var l = layout;
+            layout = null;
+            return l;
+        }
+
+        /// <summary>Send the layout again after the next scan, as after welcome.</summary>
+        public void Resend() => wallsSent = false;
 
         /// <summary>What a collider belongs to, if the bot could harvest or
         /// pick it up; each object once, however many colliders it has.</summary>

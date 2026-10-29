@@ -14,6 +14,7 @@
   --tamed: #5fd4c8;
   --structure: #a7b4c2;
   --resource: #5f8f62;
+  --wall: #6b7480;
   color-scheme: dark;
 }
 
@@ -133,6 +134,7 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
 .legend .stump { background: #8a6a45; width: 6px; height: 6px; }
 .legend .pickable { background: #e07bb5; width: 6px; height: 6px; }
 .legend .drop { background: #e8e2a0; border-radius: 0; transform: rotate(45deg); width: 7px; height: 7px; }
+.legend .wall { background: var(--wall); height: 4px; width: 14px; border-radius: 0; vertical-align: 2px; }
 .legend .path { background: var(--path); height: 3px; border-radius: 0; vertical-align: 2px; }
 
 #inventory { border-bottom: 1px solid var(--line); padding: 4px 10px 8px; }

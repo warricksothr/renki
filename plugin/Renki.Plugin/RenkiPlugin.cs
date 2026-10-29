@@ -127,7 +127,12 @@ namespace Renki.Plugin
             if (runner.InSession && now >= nextPerception)
             {
                 var p = Player.m_localPlayer;
-                if (p != null && !p.IsDead()) Send(perceiver.Scan(p));
+                if (p != null && !p.IsDead())
+                {
+                    Send(perceiver.Scan(p));
+                    var layout = perceiver.TakeLayout();
+                    if (layout != null) Send(layout);
+                }
                 nextPerception = now + (float)(1 / Math.Max(0.1, perceptionHz));
             }
         }
@@ -143,6 +148,7 @@ namespace Renki.Plugin
                     Perceive(w.Perception);
                     runner.Welcome(w.AllowedTasks);
                     inventory.Resend();
+                    perceiver.Resend();
                     loggingOut = false;
                     Driver.Active = true;
                     var name = w.AgentName != "" ? w.AgentName : "the character's name";

@@ -141,7 +141,7 @@ func (l *Log) Subscribe() (<-chan Record, func()) {
 }
 
 // RecentRecords returns the newest records, oldest first, with the newest
-// state, perception and inventory among them.
+// state, perception, layout and inventory among them.
 func (l *Log) RecentRecords() []Record {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -187,7 +187,9 @@ func (l *Log) remember(r Record) {
 		// for a new page once it has scrolled out of recent.
 		l.last[typ] = r
 		l.addRecent(r)
-	case "state", "perception":
+	case "state", "perception", "layout":
+		// A layout can carry hundreds of walls and only the newest
+		// matters, so like perception it is kept but not in the feed.
 		l.last[typ] = r
 		if typ == "state" && (len(l.trail) == 0 || r.At.Sub(l.trail[len(l.trail)-1].At) >= time.Second) {
 			l.trail = append(l.trail, r)
@@ -398,7 +400,9 @@ func (h *handler) Handle(_ context.Context, r slog.Record) error {
 		put(attrs, h.group, a)
 		return true
 	})
-	rec := Record{At: r.Time, Kind: KindLog, Level: r.Level.String(), Msg: r.Message}
+	// Stamped by the log's own clock, as frames are, so one clock decides
+	// both the time and the day's file.
+	rec := Record{Kind: KindLog, Level: r.Level.String(), Msg: r.Message}
 	// The bridge tags its records with the connection; lift it out so a
 	// log record and the frames around it share a key.
 	if c, ok := attrs["conn"].(uint64); ok {
