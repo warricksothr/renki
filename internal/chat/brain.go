@@ -521,6 +521,12 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool) {
 	}
 	if _, err := b.d.Dispatch(context.Background(), session.Order{Task: p.Task, Args: args, Origin: from}); err != nil {
 		b.opts.Logger.Warn("voice proposal refused", "task", p.Task, "args", string(p.Args), "err", err)
+		return
+	}
+	if b.opts.Home != nil {
+		// An order in the owner's own words is an order like any other.
+		b.opts.Home.Touch()
+		b.opts.Home.Ordered()
 	}
 }
 

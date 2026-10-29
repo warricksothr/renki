@@ -304,6 +304,17 @@ func TestAnOrderAfterTheRespawnWins(t *testing.T) {
 		t.Errorf("went home after a newer order ended: %v", f.sent())
 	}
 
+	// The same, with the died event missed: the state says dead.
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
+	k.Tick(ctx)
+	k.Ordered()
+	k.Respawned()
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after an order given while dead, died missed: %v", f.sent())
+	}
+
 	// "wait here" while the bot is dead: over before it is back.
 	k.Died()
 	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})

@@ -252,6 +252,10 @@ func (k *Keeper) Tick(ctx context.Context) {
 		// clock starts again.
 		k.conn, k.checked, k.active = hello, false, now
 	}
+	if st.Phase == protocol.PhaseDead && !k.dead {
+		// The died event can be missed, across a reconnect for one.
+		k.dead, k.ordered = true, false
+	}
 	k.mu.Unlock()
 	if st.Phase != protocol.PhaseInWorld {
 		return

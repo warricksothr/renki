@@ -23,8 +23,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if ($Name -notmatch '^[A-Z_][A-Z0-9_]*$') { throw "Name must look like CPA_API_KEY, not $Name" }
-# start-bot.ps1 sets each secret and then removes it: not one Windows owns.
-if (-not $Remove -and ([Environment]::GetEnvironmentVariable($Name, 'Machine') -or [Environment]::GetEnvironmentVariable($Name, 'User'))) {
+# start-bot.ps1 sets each secret and then removes it: not one Windows owns,
+# whether in the registry or set for each logon (USERPROFILE, APPDATA, ...).
+# This SSH session has them all, and never a stored secret.
+if (-not $Remove -and (Test-Path "env:$Name")) {
     throw "$Name is already a Windows environment variable; pick another name"
 }
 . (Join-Path $PSScriptRoot 'common.ps1')

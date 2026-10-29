@@ -396,6 +396,8 @@ type fakeHome struct {
 	trips     []string
 	touched   int
 	respawned int
+	died      int
+	ordered   int
 	resume    func(context.Context) bool
 }
 
@@ -423,10 +425,10 @@ func (h *fakeHome) ReturnOn(reason string) bool {
 }
 func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h.home != nil }
 func (h *fakeHome) Touch()                                        { h.touched++ }
-func (h *fakeHome) Died()                                         {}
+func (h *fakeHome) Died()                                         { h.died++ }
 func (h *fakeHome) Respawned()                                    { h.respawned++ }
 func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
-func (h *fakeHome) Ordered()                                      { h.resume = nil }
+func (h *fakeHome) Ordered()                                      { h.resume = nil; h.ordered++ }
 
 func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	b, f, _ := newBrain(nil)
@@ -472,6 +474,21 @@ func TestFailedFollowGoesHomeButAFailedTripHomeDoesNot(t *testing.T) {
 	b.TaskDone(trip)
 	if got := f.said(); got[len(got)-1] != "I'm stuck. Can you come back for me?" || len(h.trips) != 1 {
 		t.Errorf("said %q, trips %v", got, h.trips)
+	}
+}
+
+func TestAnOrderInTheVoiceCountsAsAnOrder(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "Right behind you.",
+		Task: &Proposal{Task: "follow", Args: json.RawMessage(`{"player":"Sothr"}`)}}}
+	b, f, _ := newBrain(v)
+	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
+	b.opts.Home = h
+	b.Event(&protocol.Event{Event: protocol.EventDied})
+	b.Chat(line("Sothr", "bjorn wait for me where you wake up and then tag along"))
+	<-v.got
+	waitSaid(t, f, 1)
+	if h.died != 1 || h.ordered != 1 || h.touched != 1 {
+		t.Errorf("died %d, ordered %d, touched %d; want 1 each", h.died, h.ordered, h.touched)
 	}
 }
 
