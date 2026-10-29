@@ -100,7 +100,9 @@ func carrying(inv *protocol.Inventory) string {
 			parts = append(parts, "and more")
 			break
 		}
-		parts = append(parts, fmt.Sprintf("%d %s", k.n, words(k.prefab)))
+		// An item with no prefab goes by its name token (6.3): $item_coins.
+		name := strings.ReplaceAll(strings.TrimPrefix(strings.TrimPrefix(k.prefab, "$item_"), "$"), "_", " ")
+		parts = append(parts, fmt.Sprintf("%d %s", k.n, words(name)))
 	}
 	free := inv.Free()
 	slots := "slots"
