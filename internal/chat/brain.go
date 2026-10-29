@@ -49,6 +49,9 @@ type Request struct {
 	// Tasks are the tasks the bot may be asked to do. Empty for a
 	// non-owner, who gets conversation but no tasks.
 	Tasks []string
+	// Gear is the prefabs of what the bot carries that it could equip, for
+	// the equip task's choices.
+	Gear []string
 }
 
 // Reply is what the Voice says, and the task it proposes, if any.
@@ -731,6 +734,13 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 		Text:      c.Text,
 		Summary:   b.status(),
 		Recent:    recent,
+	}
+	if inv := b.d.Inventory(); inv != nil {
+		for _, it := range inv.Items {
+			if it.Gear() && !slices.Contains(req.Gear, it.Prefab) {
+				req.Gear = append(req.Gear, it.Prefab)
+			}
+		}
 	}
 	if owner {
 		req.Tasks = b.d.AllowedTasks()

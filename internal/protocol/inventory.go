@@ -45,3 +45,16 @@ func (inv *Inventory) Room(prefab string, stackMax int) int {
 	}
 	return n + inv.Free()*stackMax
 }
+
+// gear are the item types the bot fights, works and dresses with (6.3).
+var gear = map[string]bool{
+	"OneHandedWeapon": true, "TwoHandedWeapon": true, "TwoHandedWeaponLeft": true, "Bow": true,
+	"Shield": true, "Helmet": true, "Chest": true, "Legs": true, "Hands": true, "Shoulder": true,
+	"Utility": true, "Trinket": true, "Tool": true, "Torch": true, "Ammo": true, "AmmoNonEquipable": true,
+	"Attach_Atgeir": true, "Customization": true,
+}
+
+// Gear reports whether the item is something the bot fights, works or
+// dresses with, as its type says: slow to replace, never dropped, and what
+// `equip` takes.
+func (it InventoryItem) Gear() bool { return gear[it.Type] }

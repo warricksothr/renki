@@ -475,7 +475,8 @@ Notes:
   saying no (swimming, mid-swing) is `refused` with what it said. `unequip`
   empties a slot, and `hands` both hands; an empty slot is
   `invalid_target`. Both need `allowMovement`: they move nothing, but the
-  gear is the body's.
+  gear is the body's. The voice is offered `equip` with the gear the bot
+  carries to choose from, and `unequip` with the slots.
 - `flee` runs from `from` until it is `distance` away across the ground, and
   succeeds then, or when an entity it ran from is gone or dead. With
   `toward` (the owner, or home) it runs there instead, however far, unless

@@ -215,10 +215,12 @@ namespace Renki.Plugin
                 default: return Outcome.Failed(Wire.ReasonBadArgs, $"unknown slot {u.Slot}");
             }
             var names = new System.Collections.Generic.List<string>();
+            var done = new System.Collections.Generic.List<ItemDrop.ItemData>();
             foreach (var item in items)
             {
-                if (item == null || names.Contains(Prefab(item))) continue; // a two-handed item fills both
+                if (item == null || done.Contains(item)) continue; // a two-handed item fills both
                 player.UnequipItem(item, true);
+                done.Add(item);
                 names.Add(Prefab(item));
             }
             if (names.Count == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"nothing in {u.Slot}");
