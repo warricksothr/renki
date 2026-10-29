@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
+	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/bridge"
 	"github.com/warricksothr/renki/internal/burden"
 	"github.com/warricksothr/renki/internal/chat"
@@ -23,13 +24,14 @@ import (
 
 // App is a configured controller.
 type App struct {
-	Config  config.Config
-	Session *session.Session
-	Brain   *chat.Brain
-	Home    *home.Keeper
-	Burden  *burden.Unloader
-	Retreat *retreat.Retreat
-	Bridge  *bridge.Server
+	Config     config.Config
+	Session    *session.Session
+	Brain      *chat.Brain
+	Home       *home.Keeper
+	Burden     *burden.Unloader
+	Retreat    *retreat.Retreat
+	Behaviours *behaviour.Engine
+	Bridge     *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
 	Settings *settings.Store
@@ -76,7 +78,11 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		_, h, ok := keeper.Current()
 		return h.Pos, ok
 	}, log.With("part", "retreat"), nil)
-	s.SetListener(&listeners{brain: brain, retreat: a.Retreat})
+	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set,
+		Owners: func() []string { return set.Values().Owners },
+		Home:   func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
+		Logger: log.With("part", "behaviour")})
+	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -89,14 +95,16 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 
 // listeners fan out session events without doing blocking work on the bridge.
 type listeners struct {
-	brain   *chat.Brain
-	retreat *retreat.Retreat
+	brain      *chat.Brain
+	retreat    *retreat.Retreat
+	behaviours *behaviour.Engine
 }
 
 func (l *listeners) Chat(c *protocol.Chat)    { l.brain.Chat(c) }
 func (l *listeners) TaskDone(t *session.Task) { l.brain.TaskDone(t) }
 func (l *listeners) Event(e *protocol.Event) {
 	l.retreat.Event(e)
+	l.behaviours.Event(e.Event)
 	l.brain.Event(e)
 }
 
@@ -119,6 +127,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
 	go a.Retreat.Run(ctx)
+	go a.Behaviours.Run(ctx)
 	return a.Bridge.Serve(ctx, ln)
 }
 

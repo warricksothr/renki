@@ -3,7 +3,8 @@
 A web page, served by the controller, for watching the bot live: where it
 is, what it is doing, and why, with buttons to stop it, send it home or
 log it out. TKT-01M628X106 (Web control panel to watch and steer the bot)
-tracks what is still to come: behaviour instances, once the engine is in.
+tracks the remaining page controls for behaviour instances. The engine
+already exposes authenticated controls described in [BEHAVIOURS.md](BEHAVIOURS.md).
 
 ## Turning it on
 

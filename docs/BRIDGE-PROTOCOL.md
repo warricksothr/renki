@@ -708,7 +708,9 @@ chat event
   `instances`, each as `{value, by, at}`. The settings store saves/deletes
   JSON objects atomically, audits changes and returns independent copies.
   The behaviour engine owns template/parameter validation and execution;
-  saving a definition alone does not run a task.
+  disabled or manual definitions do not run merely because they were saved.
+  Enabled event/timer definitions are scheduled by the controller. See
+  [BEHAVIOURS.md](BEHAVIOURS.md) for policies, ownership and controls.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.
