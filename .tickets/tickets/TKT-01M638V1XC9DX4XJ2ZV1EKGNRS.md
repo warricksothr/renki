@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T22:50:55Z
+updated_at: 2026-10-29T22:55:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -121,3 +121,7 @@ Live 2026-10-29 22:47:15–22:50:19Z, HP 25 throughout: outgoing t-1 succeeded (
 Evidence: .checks/audit-window-11vJwZ.jsonl, .checks/audit-window-lrLJ3u.jsonl, .checks/route-t3-events.json, .checks/route-t4-events.json. Real geometry mutations and longer unattended/reconnect/cancel checks remain staged. Navigation ticket AC2 remains open.
 
 Owner supplied new flint axe in rag chest 1:30592; t-5 withdrew exactly one AxeFlint successfully at 22:50:19Z. Chest retains Stone 1, Flint 3 and ArmorRagsChest 1; other contents preserved.
+
+**agent:codex/renki-resume** at 2026-10-29T22:55:14Z
+
+Final waypoint-progress build live check 2026-10-29 22:54:47–22:55:03Z: level terrace (-46,33.9,16) outgoing t-5 reused route 3, succeeded in 3.7 s, 45 samples/1.61 ms total/.34 ms worst slice. Reverse chest t-6 reused route 5, crossed west doorway, closed door behind, succeeded in 4.1 s, 48 samples/1.84 ms total/.37 ms worst slice. Neither required fallback; HP stayed 25. Evidence .checks/route-level-out.json and .checks/route-level-return.json. Earlier steep exterior start t-4 legitimately stalled its replay and reverted to normal planning, which completed; .checks/route-corrected-return.json. Do not claim replay handles that slope or a hard 2 ms bound. Final source gate .checks/20261029T225019Z-McEZIK.log; committed review .checks/20261029T225100Z-67FUwU.log: no findings. Route hints still clear on reconnect.

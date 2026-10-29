@@ -464,3 +464,9 @@ reverse reuse; normal planning must still work. Stop/death/reconnect must
 discard the active task, and reconnect starts without saved route hints.
 Do not remove a player's wall/floor or change ward access merely to stage an
 invalidation test; keep those live mutations explicitly unverified.
+
+On 2026-10-29, level-terrace outgoing and reverse chest routes both reused
+recorded trails through the west doorway without fallback (45/48 samples,
+1.61/1.84 ms total validation, HP 25). A separate steep exterior start stalled
+and safely fell back to normal planning. That slope and real geometry
+mutations remain open; exact receipts and costs are on the navigation ticket.
