@@ -503,6 +503,10 @@ func event(r audit.Record) Event {
 func category(r audit.Record) string {
 	switch r.Kind {
 	case audit.KindLog:
+		// The panel's words and the bot's answers to them are chat.
+		if r.Msg == "panel said" || r.Msg == "panel said: refused" || r.Msg == "said to the panel" {
+			return CatChat
+		}
 		return CatDecision
 	case audit.KindFrame:
 		var env struct {
