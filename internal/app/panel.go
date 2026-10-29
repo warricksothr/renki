@@ -77,6 +77,12 @@ func (a *App) PanelStatus(version string) PanelStatus {
 // Errors are worded for the page.
 func (a *App) PanelAct(ctx context.Context, action string) (string, error) {
 	var err error
+	if action == "stop" || action == "home" {
+		// An order, as from chat: it resets the idle clock and wins over
+		// whatever a death left pending (internal/home).
+		a.Home.Touch()
+		a.Home.Ordered()
+	}
 	switch action {
 	case "stop":
 		if _, err = a.Session.Dispatch(ctx, session.Order{Task: protocol.TaskStop}); err == nil {
