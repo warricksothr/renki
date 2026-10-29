@@ -56,9 +56,11 @@ type Keeper struct {
 	mu sync.Mutex
 	// homeward holds the ids of tasks sent to take the bot home.
 	homeward map[string]bool
-	// cutOff is where an idle trip home last failed unreachable: idling
-	// does not try again from there, only once the bot has moved.
-	cutOff *protocol.Vec3
+	// cutOff is where, and in which world, an idle trip home last failed
+	// unreachable: idling does not try again from there, only once the
+	// bot has moved.
+	cutOff      *protocol.Vec3
+	cutOffWorld string
 	// conn is the hello of the connection Tick last saw, to notice a new one.
 	conn *protocol.Hello
 	// checked is set once the outage check has run for conn.
@@ -368,7 +370,8 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.mu.Lock()
-	cut := k.cutOff != nil && flat(*k.cutOff, st.Pos) < awayFrom && math.Abs(k.cutOff[1]-st.Pos[1]) <= level
+	cut := k.cutOff != nil && k.cutOffWorld == k.World() &&
+		flat(*k.cutOff, st.Pos) < awayFrom && math.Abs(k.cutOff[1]-st.Pos[1]) <= level
 	k.mu.Unlock()
 	if cut {
 		return
@@ -390,9 +393,9 @@ func (k *Keeper) watchIdle(ctx context.Context, t *session.Task) {
 		return
 	}
 	if st := k.s.State(); st != nil {
-		pos := st.Pos
+		pos, world := st.Pos, k.World()
 		k.mu.Lock()
-		k.cutOff = &pos
+		k.cutOff, k.cutOffWorld = &pos, world
 		k.mu.Unlock()
 		k.log.Info("home is out of reach from here; idling will not try again until the bot moves", "pos", pos)
 	}

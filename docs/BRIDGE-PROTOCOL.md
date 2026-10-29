@@ -427,7 +427,8 @@ Notes:
   `invalid_target` when the game will not hand it over after a few tries,
   or `stuck` or `encumbered` as `move_to` does. A pickup that got some of the
   stack succeeds, and its detail says how many stayed behind and why, ending
-  in one of `no room for the other N`, `the other N is too heavy to carry` or
+  in one of `no room for the other N`, `the other N is too heavy to carry`,
+  `the other N is out of reach` or
   `the game kept the other N`. The controller reads these phrases to tell the
   owner what happened, so they are part of the protocol. It needs `allowGather` and `allowMovement`, since it
   walks.

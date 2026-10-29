@@ -383,7 +383,7 @@ namespace Renki.Plugin
             if (Vector3.Distance(pos, goal) > p.m_autoPickupRange && walker.Unreachable(pos, Close) is Outcome under)
             {
                 Driver.Stand();
-                return took > 0 ? Outcome.Succeeded($"took {took} {prefab}; the rest is out of reach") : under;
+                return took > 0 ? Outcome.Succeeded($"took {took} {prefab}; the other {drop.m_itemData.m_stack} is out of reach") : under;
             }
             if (Walker.Stranded(p) is Outcome stranded)
             {
