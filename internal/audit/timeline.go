@@ -83,6 +83,9 @@ func ReadDay(path string, f Filter) ([]Record, error) {
 	if err := s.Err(); err != nil {
 		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
 	}
+	// Writers stamp a record before they take the log's lock, so the file
+	// is nearly but not always in time order.
+	sort.SliceStable(recs, func(i, j int) bool { return recs[i].At.Before(recs[j].At) })
 	return f.Apply(recs), nil
 }
 

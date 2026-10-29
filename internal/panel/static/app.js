@@ -103,24 +103,24 @@ async function showDay(day, before, skip) {
   const live = day === "";
   feed.hidden = !live;
   hist.hidden = live;
-  if (live) return;
+  if (live) return true;
   if (!before) hist.replaceChildren(Object.assign(document.createElement("li"), { textContent: "Reading…" }));
   const q = new URLSearchParams({ day });
   if (before) q.set("before", before);
   if (skip) q.set("skip", skip);
   const res = await fetch(`/api/timeline?${q}`).catch(() => null);
-  if (read !== dayRead) return;
+  if (read !== dayRead) return false;
   if (!res || !res.ok) {
     const err = Object.assign(document.createElement("li"), {
       textContent: res ? await res.text() : "the controller did not answer",
       className: "error",
     });
-    // A failed page back keeps what is shown.
+    // A failed page back keeps what is shown, and its button to try again.
     before ? hist.prepend(err) : hist.replaceChildren(err);
-    return;
+    return false;
   }
   const tl = await res.json();
-  if (read !== dayRead) return;
+  if (read !== dayRead) return false;
   const items = tl.events.filter((ev) => ev.cat !== "perception").map((ev) => {
     const li = lineItem(ev);
     if (!shown.has(ev.cat)) li.classList.add("hidden");
@@ -135,9 +135,10 @@ async function showDay(day, before, skip) {
     // How many records of the oldest instant are shown, with any shown
     // from it before.
     const atOldest = tl.events.filter((ev) => ev.at === oldest).length + (before === oldest ? skip || 0 : 0);
-    b.addEventListener("click", () => {
-      more.remove();
-      showDay(day, oldest, atOldest);
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      if (await showDay(day, oldest, atOldest)) more.remove();
+      else b.disabled = false;
     });
     more.append(b);
     items.unshift(more);
@@ -148,6 +149,7 @@ async function showDay(day, before, skip) {
     hist.replaceChildren(...items);
     hist.scrollTop = hist.scrollHeight;
   }
+  return true;
 }
 
 let taskRead = 0;
