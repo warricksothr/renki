@@ -292,6 +292,16 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		b.say(from, fmt.Sprintf("Sorry, %s, I only take orders from %s.", c.From.Name, joinNames(owners)))
 		return
 	}
+	switch cmd {
+	// Follow too: from the panel the owner may not be in the world at all,
+	// and a follow that loses its leader sends the bot home. Refused
+	// before it counts as an order, so it cancels nothing.
+	case cmdCome, cmdSetHome, cmdPickup, cmdFollow:
+		if !located(c) {
+			b.say(from, fmt.Sprintf("I can't see you, %s, so I don't know where you mean.", c.From.Name))
+			return
+		}
+	}
 	b.opts.Logger.Info("command", "from", c.From.Name, "command", cmd)
 	if b.opts.Home != nil {
 		b.opts.Home.Touch()
@@ -460,15 +470,6 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		ack   string
 	)
 	switch cmd {
-	// Follow too: from the panel the owner may not be in the world at all,
-	// and a follow that loses its leader sends the bot home.
-	case cmdCome, cmdSetHome, cmdPickup, cmdFollow:
-		if !located(c) {
-			b.say(from, fmt.Sprintf("I can't see you, %s, so I don't know where you mean.", c.From.Name))
-			return
-		}
-	}
-	switch cmd {
 	case cmdStatus:
 		b.say(from, b.status())
 		return
@@ -616,6 +617,10 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 	}
 	if owner {
 		req.Tasks = b.d.AllowedTasks()
+		if !located(c) {
+			// As the grammar does: no following an owner out of sight.
+			req.Tasks = slices.DeleteFunc(slices.Clone(req.Tasks), func(t string) bool { return t == protocol.TaskFollow })
+		}
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), b.opts.VoiceTimeout)
