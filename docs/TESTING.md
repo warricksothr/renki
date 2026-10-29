@@ -70,6 +70,18 @@ reload the page; cached terrain should repopulate while remembered landmarks
 remain. A menu/world change must clear old-world tiles, paths and markers.
 Inspect the terrain cache diagnostic for maintenance time and worst frame.
 
+## Food recovery check
+
+With Tas safe at home, withdraw a small amount of ordinary food from an
+owner-authorized chest, preserving unrelated items. Use `just vm task use_item
+'{"item":"Raspberry"}'` (replace the prefab with the actual food).
+Confirm success reports one consumed and matching active food, inventory falls
+by exactly one and health rises through normal regeneration. Retry the same
+food immediately: it must refuse without another inventory decrease. Check a
+missing prefab and a carried non-food item refuse, then verify full food slots
+refuse a fourth fresh food. Do not resume harvesting below 80% current maximum
+health. Automatic food upkeep is separate work.
+
 ## Chest-transfer check
 
 Use a storage chest visible in perception and only Tas's test items.

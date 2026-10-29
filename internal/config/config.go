@@ -129,7 +129,7 @@ var KnownTasks = []string{
 	protocol.TaskStop, protocol.TaskMoveTo, protocol.TaskFollow,
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
 	protocol.TaskPickup, protocol.TaskDrop, protocol.TaskInteract, protocol.TaskFlee,
-	protocol.TaskEquip, protocol.TaskUnequip,
+	protocol.TaskEquip, protocol.TaskUnequip, protocol.TaskUseItem,
 	protocol.TaskDeposit, protocol.TaskWithdraw, protocol.TaskHarvest,
 }
 

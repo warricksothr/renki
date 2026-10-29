@@ -95,6 +95,7 @@ namespace Renki.Plugin
 
         void OnDamaged(float amount, Character attacker)
         {
+            HarvestTask.Active?.Damaged(amount);
             lastAttacker = attacker != null ? attacker.GetZDOID().ToString() : null;
             plugin.Send(new Protocol.Event
             {

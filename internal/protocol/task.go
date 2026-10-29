@@ -37,6 +37,7 @@ const (
 	TaskDeposit  = "deposit"
 	TaskWithdraw = "withdraw"
 	TaskHarvest  = "harvest"
+	TaskUseItem  = "use_item"
 )
 
 // Slots are the equipment slots `unequip` empties; "hands" is both.
@@ -46,7 +47,7 @@ var Slots = []string{"right", "left", "hands", "head", "chest", "legs", "shoulde
 // replacing it (7.1).
 func Instant(task string) bool {
 	switch task {
-	case TaskLookAt, TaskSay, TaskEmote, TaskDrop, TaskEquip, TaskUnequip, "use_item":
+	case TaskLookAt, TaskSay, TaskEmote, TaskDrop, TaskEquip, TaskUnequip, TaskUseItem:
 		return true
 	}
 	return false
@@ -103,6 +104,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &FleeArgs{}
 	case TaskEquip:
 		args = &EquipArgs{}
+	case TaskUseItem:
+		args = &UseItemArgs{}
 	case TaskUnequip:
 		args = &UnequipArgs{}
 	case TaskDeposit, TaskWithdraw:
@@ -348,6 +351,18 @@ type EquipArgs struct {
 }
 
 func (a *EquipArgs) validate() error {
+	if a.Item == "" {
+		return errors.New("`item` is required")
+	}
+	return nil
+}
+
+// UseItemArgs eats one carried food by prefab through normal game consumption.
+type UseItemArgs struct {
+	Item string `json:"item"`
+}
+
+func (a *UseItemArgs) validate() error {
 	if a.Item == "" {
 		return errors.New("`item` is required")
 	}

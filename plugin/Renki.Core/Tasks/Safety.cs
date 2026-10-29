@@ -28,6 +28,8 @@ namespace Renki.Tasks
             switch (task)
             {
                 case "stop": return true;
+                // Eating carried food does not move or gather.
+                case "use_item": return true;
                 case "move_to":
                 case "follow":
                 // It walks there; what it may use is InteractRule's call.

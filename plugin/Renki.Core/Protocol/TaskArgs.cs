@@ -18,13 +18,13 @@ namespace Renki.Protocol
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public const string Harvest = "harvest";
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest };
+        public const string Harvest = "harvest", UseItem = "use_item";
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest, UseItem };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
             task == LookAt || task == Say || task == Emote || task == Drop || task == Equip ||
-            task == Unequip || task == "use_item";
+            task == Unequip || task == UseItem;
     }
 
     /// <summary>Missing or malformed arguments; answered with bad_args.</summary>
@@ -131,6 +131,11 @@ namespace Renki.Protocol
     public sealed class EquipArgs
     {
         /// <summary>The item, by prefab as the inventory names it (6.3).</summary>
+        public string Item;
+    }
+
+    public sealed class UseItemArgs
+    {
         public string Item;
     }
 
@@ -267,6 +272,12 @@ namespace Renki.Protocol
                         var item = Str(a, "item");
                         if (string.IsNullOrEmpty(item)) throw new BadArgsException("`item` is required");
                         return new EquipArgs { Item = item };
+                    }
+                case TaskNames.UseItem:
+                    {
+                        var item = Str(a, "item");
+                        if (string.IsNullOrEmpty(item)) throw new BadArgsException("`item` is required");
+                        return new UseItemArgs { Item = item };
                     }
                 case TaskNames.Unequip:
                     {
