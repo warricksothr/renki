@@ -106,7 +106,9 @@ namespace Renki.Plugin
                 if (o == null) opened.Add(o = new Opened { Door = best });
                 o.At = Time.time;
                 o.Through = o.SeenOpen = false;
-                leave[best] = Time.time + SettleFor;
+                // A little past SettleFor, so Tick judges a refusal before
+                // stuck recovery, every 3 s, can ask again.
+                leave[best] = Time.time + SettleFor + 0.5f;
                 Tracer.Emit("door", "opening", data);
                 return true;
             }
