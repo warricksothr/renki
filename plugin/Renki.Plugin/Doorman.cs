@@ -124,8 +124,10 @@ namespace Renki.Plugin
         /// someone else, and there is nothing to shut.</summary>
         public static void Tick(Player me)
         {
-            if (opened.Count == 0) return;
-            if (!Enabled || me == null)
+            // No player between a death and the respawn, or during a load:
+            // keep the doors for when it is back.
+            if (opened.Count == 0 || me == null) return;
+            if (!Enabled)
             {
                 opened.Clear();
                 return;
