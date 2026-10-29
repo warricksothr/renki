@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-29T15:09:07Z
+updated_at: 2026-10-29T15:34:30Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -64,3 +64,16 @@ Moved ahead of the M2 order: on 2026-10-29 a Greyling at home killed the bot ove
 - `TaskFlee` goes into KnownTasks, and home's body().
 
 Docs: 7.2 and 9.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T15:34:30Z
+
+Landed on t3/m2 and deployed on 2026-10-29. `flee` is now in the VM's allowedTasks, added through the panel settings.
+
+- **Plugin:** FleeTask, which aims with Core Flee.Goal. It runs to the owner or home unless that lies past the threat, carries on to safety however far it is, stops at the owner's side, and runs on from home if the threat followed. Otherwise it runs straight away. It needs only AllowMovement.
+- **Controller:** `internal/retreat`. Below 40% HP, with a hostile targeting the bot within 15 m, it flees toward an owner in sight (60 m) or home (150 m, and clear of the threat by 15 m), with 60 s per flee. It stays put at an owner's side, and says where it is going.
+
+**Not seen in the game yet:** after the deploy the bot walked home unharmed, and the Greylings that killed it this morning had gone. Both criteria are in the code and tested (CoreTests and retreat_test), but stay unticked until a fight shows them.
+
+**Why this was moved ahead of M2:** at 10:05–10:08 the bot died three times at home to a Greyling. I stopped it from the panel, and turned home.idleMinutes to 0 until the retreat was in, then back to 10.
