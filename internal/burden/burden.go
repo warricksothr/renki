@@ -30,6 +30,9 @@ const (
 	// GoneAfter is how long things must be missing from a place it is
 	// looking at before they count as picked up.
 	GoneAfter = 5 * time.Second
+	// Retry is how long it waits after nothing could be dropped (not
+	// allowed, or the plugin refused) before trying again.
+	Retry = time.Minute
 	// waitFor bounds the wait for one drop task's answer.
 	waitFor = 5 * time.Second
 )
@@ -52,9 +55,9 @@ type Unloader struct {
 	now   func() time.Time
 
 	next time.Time
-	// gearOnly is set once the bot has said it carries too much and has
-	// nothing but gear to drop, so it says so once per overload.
-	gearOnly bool
+	// told is set once the bot has said why it is still carrying too
+	// much (all gear, or it may not drop), so it says so once per overload.
+	told bool
 	// missing is when each remembered place's things were first missed,
 	// keyed by world and position.
 	missing map[string]time.Time
@@ -91,7 +94,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 	}
 	u.forgetGone(st)
 	if !st.Encumbered() {
-		u.gearOnly = false
+		u.told = false
 		return
 	}
 	inv := u.s.Inventory()
@@ -103,10 +106,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 	// needs one thing dropped.
 	drops, short := Plan(inv, max(st.Weight, st.WeightMax+0.01), st.WeightMax)
 	if len(drops) == 0 {
-		if !u.gearOnly {
-			u.gearOnly = true
-			u.say(ctx, "I'm carrying too much, and all of it is gear I won't leave behind.")
-		}
+		u.tell(ctx, "I'm carrying too much, and all of it is gear I won't leave behind.")
 		return
 	}
 	left := map[string]int{}
@@ -116,6 +116,10 @@ func (u *Unloader) Tick(ctx context.Context) {
 		}
 	}
 	if len(left) == 0 {
+		// Not allowed (allowedTasks or the plugin's allowDrop), or refused:
+		// say so once, and do not ask again every few seconds.
+		u.next = u.now().Add(Retry)
+		u.tell(ctx, "I'm carrying too much, and I can't put anything down.")
 		return
 	}
 	u.remember(st.World, st.Pos, left)
@@ -183,10 +187,14 @@ func (u *Unloader) forgetGone(st *protocol.State) {
 	changed := false
 	for i, c := range caches {
 		if c.Pos.FlatDistance(st.Pos) > Look {
+			// Out of sight: a miss from an earlier visit does not count later.
+			for prefab := range c.Items {
+				delete(u.missing, missingKey(st.World, c.Pos, prefab))
+			}
 			continue
 		}
 		for prefab := range c.Items {
-			key := fmt.Sprintf("%s|%.1f|%.1f|%s", st.World, c.Pos[0], c.Pos[2], prefab)
+			key := missingKey(st.World, c.Pos, prefab)
 			if slices.ContainsFunc(p.Resources, func(r protocol.PerceivedResource) bool {
 				return r.Kind == protocol.ResourceDrop && r.Prefab == prefab && r.Pos.FlatDistance(c.Pos) <= Spread
 			}) {
@@ -211,6 +219,18 @@ func (u *Unloader) forgetGone(st *protocol.State) {
 	}
 	if err := u.store.UpdateLeftBehind(st.World, func([]home.Cache) []home.Cache { return caches }); err != nil {
 		u.log.Warn("could not forget what was picked up", "err", err)
+	}
+}
+
+func missingKey(world string, pos protocol.Vec3, prefab string) string {
+	return fmt.Sprintf("%s|%.1f|%.1f|%s", world, pos[0], pos[2], prefab)
+}
+
+// tell says text once per overload.
+func (u *Unloader) tell(ctx context.Context, text string) {
+	if !u.told {
+		u.told = true
+		u.say(ctx, text)
 	}
 }
 

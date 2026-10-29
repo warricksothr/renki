@@ -162,6 +162,24 @@ func TestOnlyWhatTheGameDroppedIsRemembered(t *testing.T) {
 	}
 }
 
+func TestNotAllowedToDropSaysSoOnce(t *testing.T) {
+	u, f, store, c := unloader(true)
+	f.drops = map[string]int{"Wood": 0}
+	f.st = overloaded(310)
+	u.Tick(context.Background())
+	c.t = c.t.Add(Settle)
+	u.Tick(context.Background())
+	want := []string{"drop 5 Wood", "say: I'm carrying too much, and I can't put anything down."}
+	if got := f.said(); !reflect.DeepEqual(got, want) || len(store.LeftBehind("Midgard")) != 0 {
+		t.Fatalf("sent %q\nwant %q", got, want)
+	}
+	c.t = c.t.Add(Retry)
+	u.Tick(context.Background())
+	if got := f.said(); len(got) != 3 || got[2] != "drop 5 Wood" {
+		t.Errorf("after Retry: %q", got)
+	}
+}
+
 func TestGearIsNeverDropped(t *testing.T) {
 	u, f, store, c := unloader(true)
 	axe := item("AxeStone", "TwoHandedWeapon", 1, 3)
@@ -213,8 +231,17 @@ func TestWhatWasLeftIsForgottenOnceGone(t *testing.T) {
 	if len(left) != 1 || left[0].Items["Wood"] != 5 || left[0].Items["Stone"] != 0 {
 		t.Fatalf("after the stone was gone a while: %+v", left)
 	}
+	// A miss, then away and back much later: the grace starts again.
 	f.seen = &protocol.Perception{}
 	u.Tick(context.Background())
+	f.st.Pos = protocol.Vec3{60, 0, 0}
+	u.Tick(context.Background())
+	c.t = c.t.Add(time.Hour)
+	f.st.Pos = protocol.Vec3{5, 0, 0}
+	u.Tick(context.Background())
+	if left := store.LeftBehind("Midgard"); len(left) != 1 {
+		t.Fatalf("forgot at the first look after coming back: %+v", left)
+	}
 	c.t = c.t.Add(GoneAfter)
 	u.Tick(context.Background())
 	if left := store.LeftBehind("Midgard"); len(left) != 0 {
