@@ -193,7 +193,8 @@ into a problem.
     { "id": "1234:301", "kind": "container", "prefab": "piece_chest_wood", "pos": [110.0, 32.0, -80.0] },
     { "id": "1234:302", "kind": "station", "prefab": "piece_workbench", "pos": [112.0, 32.0, -80.0] },
     { "id": "1234:310", "kind": "bed", "prefab": "bed", "pos": [108.0, 32.0, -78.0], "mine": true },
-    { "id": "1234:320", "kind": "portal", "tag": "home", "pos": [105.0, 32.0, -75.0] }
+    { "id": "1234:320", "kind": "portal", "tag": "home", "pos": [105.0, 32.0, -75.0] },
+    { "id": "1234:330", "kind": "door", "prefab": "wood_door", "pos": [111.0, 32.0, -82.0], "open": false }
   ]
 }
 ```
@@ -203,6 +204,17 @@ into a problem.
 | `characters.kind` | `player`, `creature`, `tamed` |
 | `resources.kind` | `tree`, `log`, `rock`, `pickable`, `drop` |
 | `structures.kind` | `container`, `station`, `bed`, `portal`, `door`, `fire`, `smelter`, `other` |
+
+- `characters`: the bot itself is left out. `stars` is the creature's
+  level less one. `hostile` means the creature would fight the bot, and
+  `targetingMe` that it has picked the bot as its target.
+- `structures`: only pieces of the kinds above. Walls, floors and the like
+  are left out, so a base cannot fill the cap with them. `mine` is set on
+  the bot's own bed, `tag` is a portal's name, and `open` is set on doors
+  only.
+- `resources`: `minTool` is the lowest tool tier that can harvest it.
+  Pickables already picked are left out.
+- The v1 plugin does not send `other`.
 
 ### 6.3 `inventory` (on change, and once after `welcome`)
 

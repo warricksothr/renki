@@ -38,6 +38,15 @@ namespace Renki.Protocol
             EventItemAdded = "item_added", EventSkillRaised = "skill_raised", EventPlayerJoined = "player_joined",
             EventPlayerLeft = "player_left", EventEnteredBiome = "entered_biome", EventLowHealth = "low_health";
 
+        public const string PerceivedPlayer = "player", PerceivedCreature = "creature", PerceivedTamed = "tamed";
+
+        public const string ResourceTree = "tree", ResourceLog = "log", ResourceRock = "rock",
+            ResourcePickable = "pickable", ResourceDrop = "drop";
+
+        public const string StructureContainer = "container", StructureStation = "station", StructureBed = "bed",
+            StructurePortal = "portal", StructureDoor = "door", StructureFire = "fire", StructureSmelter = "smelter",
+            StructureOther = "other";
+
         public static bool IsFinal(string status) =>
             status == StatusRejected || status == StatusSucceeded || status == StatusFailed ||
             status == StatusCancelled;
@@ -192,6 +201,8 @@ namespace Renki.Protocol
         [JsonProperty("tag", NullValueHandling = NullValueHandling.Ignore)] public string Tag;
         [JsonProperty("pos")] public double[] Pos = new double[3];
         [JsonProperty("mine", NullValueHandling = NullValueHandling.Ignore)] public bool? Mine;
+        /// <summary>Doors only.</summary>
+        [JsonProperty("open", NullValueHandling = NullValueHandling.Ignore)] public bool? Open;
     }
 
     /// <summary>Section 6.2; streamed from M2.</summary>

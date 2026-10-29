@@ -15,6 +15,7 @@
     { "id": "1234:301", "kind": "container", "prefab": "piece_chest_wood", "pos": [110.0, 32.0, -80.0] },
     { "id": "1234:302", "kind": "station", "prefab": "piece_workbench", "pos": [112.0, 32.0, -80.0] },
     { "id": "1234:310", "kind": "bed", "prefab": "bed", "pos": [108.0, 32.0, -78.0], "mine": true },
-    { "id": "1234:320", "kind": "portal", "tag": "home", "pos": [105.0, 32.0, -75.0] }
+    { "id": "1234:320", "kind": "portal", "tag": "home", "pos": [105.0, 32.0, -75.0] },
+    { "id": "1234:330", "kind": "door", "prefab": "wood_door", "pos": [111.0, 32.0, -82.0], "open": false }
   ]
 }

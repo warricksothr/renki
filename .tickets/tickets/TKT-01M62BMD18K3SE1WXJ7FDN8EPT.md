@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62BMD18K3SE1WXJ7FDN8EPT
 title: "Plugin: send perception of characters, structures and resources"
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/perception
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 256aac72646759b8fd99fe016739557d7e7be88a
+  session: null
+  claimed_at: 2026-10-29T00:56:54Z
+  expires_at: null
 archive: null
 created_at: 2026-10-28T22:55:57Z
-updated_at: 2026-10-28T22:55:57Z
+updated_at: 2026-10-29T00:56:55Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -70,3 +77,15 @@ matter, and the scan should not run every physics frame.
 - [ ] Doors report whether they are open; 6.2 and the fixtures on both sides say so
 - [ ] The panel's map shows players, creatures and structures from the real game
 - [ ] A perception scan in a built-up base takes under 2 ms, measured in the game
+
+## Implementation plan
+
+- **Protocol:** structures gain `open` (doors only) in 6.2, the Go and C# types, and the shared fixture.
+- **Renki.Core:** `Nearest<T>` keeps the nearest N items of a kind, tested without the game.
+- **Plugin, Perceiver.cs:** scans from Update (not physics) at perceptionHz from welcome or config, while in a session and in the world.
+  - **Characters:** `Character.GetCharactersInRange`, excluding the bot itself. Kind is player, tamed or creature. Players carry their name; creatures carry prefab, stars (`GetLevel()-1`), hostile (`BaseAI.IsEnemy` against the bot) and targetingMe (`GetBaseAI().GetTargetCreature()`).
+  - **Structures:** `Piece.GetAllPiecesInRadius`, keeping only these components: Door (open from the ZDO's `s_state`), Bed (`mine` from `IsMine`), TeleportWorld (tag from `GetText`), CraftingStation, Smelter, Fireplace and Container. Walls and floors are left out, so they cannot fill the cap.
+  - **Resources:** `Physics.OverlapSphereNonAlloc` on the layers that hold trees, rocks, pickables and drops, de-duplicated by ZNetView. Components: TreeBase (tree), TreeLog (log), MineRock and MineRock5 (rock, with `minTool`), Pickable not yet picked (pickable), ItemDrop (drop, with stack).
+  - **IDs:** the ZDOID, the same `user:id` form the events already use.
+  - **Timing:** a Stopwatch around each scan, with a trace every 30 s carrying the counts and the average and worst ms, so the 2 ms budget can be read from the audit log.
+- **Controller:** the session keeps the newest perception (for the panel status and, later, memory). The panel map draws structures by kind and creatures coloured by hostility, and shows door state.

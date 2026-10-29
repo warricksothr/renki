@@ -101,6 +101,7 @@ type Session struct {
 	mu       sync.Mutex
 	conn     *bridge.Conn
 	state    *protocol.State
+	seen     *protocol.Perception
 	allowed  []string
 	tasks    map[string]*Task
 	nextTask uint64
@@ -166,7 +167,13 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		s.listener.Chat(m)
 	case *protocol.Event:
 		s.listener.Event(m)
-	case *protocol.Trace, *protocol.Perception, *protocol.Inventory:
+	case *protocol.Perception:
+		s.mu.Lock()
+		if s.conn == c && (s.seen == nil || m.Seq > s.seen.Seq) {
+			s.seen = m
+		}
+		s.mu.Unlock()
+	case *protocol.Trace, *protocol.Inventory:
 		// For the audit log and the panel, which have them from the
 		// bridge already.
 	case *protocol.Error:
@@ -198,6 +205,15 @@ func (s *Session) State() *protocol.State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.state
+}
+
+// Perception returns the newest perception snapshot, or nil before the
+// first. Like State, it outlives a disconnect and resets on a new
+// connection.
+func (s *Session) Perception() *protocol.Perception {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.seen
 }
 
 // Handshake returns the current connection's hello and welcome, and false

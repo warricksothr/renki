@@ -221,6 +221,8 @@ type PerceivedStructure struct {
 	Tag    string `json:"tag,omitempty"`
 	Pos    Vec3   `json:"pos"`
 	Mine   bool   `json:"mine,omitempty"`
+	// Open is set for doors only.
+	Open *bool `json:"open,omitempty"`
 }
 
 // Inventory is sent on change and once after Welcome (6.3). It is streamed

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Renki.Movement;
+using Renki.Perception;
 using Renki.Protocol;
 using Renki.Tasks;
 using Xunit;
@@ -283,6 +284,22 @@ namespace Renki.Tests
             }
             Assert.Equal(Recovery.GiveUp, seen[seen.Count - 1]);
             Assert.Contains(Recovery.Repath, seen);
+        }
+
+        [Fact]
+        public void NearestKeepsTheClosestFirst()
+        {
+            var n = new Nearest<string>(2);
+            n.Add("far", 30);
+            n.Add("near", 2);
+            n.Add("middle", 10);
+            Assert.Equal(3, n.Seen);
+            Assert.Equal(new[] { "near", "middle" }, n.Take());
+            n.Clear();
+            Assert.Empty(n.Take());
+            n.Cap = 0;
+            n.Add("any", 1);
+            Assert.Empty(n.Take());
         }
 
         [Fact]
