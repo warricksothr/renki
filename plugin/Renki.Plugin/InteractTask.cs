@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using Renki.Movement;
 using Renki.Protocol;
@@ -35,6 +36,7 @@ namespace Renki.Plugin
         Vector3 goal;
         float holdUntil = -1, nextRepeat;
         bool used;
+        float sightTraceAt;
         readonly List<string> heard = new List<string>();
 
         public InteractTask(InteractArgs args, Interactable target)
@@ -80,7 +82,8 @@ namespace Renki.Plugin
         }
 
         public static string Name(Interactable it) =>
-            it is Hoverable h ? Localize(h.GetHoverName()) : ((MonoBehaviour)it).gameObject.name;
+            it is TombStone t ? Localize("$piece_tombstone") + " (" + t.GetOwnerName() + ")"
+                : it is Hoverable h ? Localize(h.GetHoverName()) : ((MonoBehaviour)it).gameObject.name;
 
         public Outcome Tick(double dt)
         {
@@ -176,8 +179,29 @@ namespace Renki.Plugin
             if (d > Reach) return false;
             // Nearer than a ray can tell: the eye is at it, or in it.
             if (d < 0.05f) return true;
-            return Physics.Raycast(eye, dir / d, out var hit, Reach, p.m_interactMask) &&
-                   hit.collider.transform.IsChildOf(obj.transform);
+            // Like Player.FindHoverObject: the player's body is not an
+            // obstruction, but the nearest other collider still is.
+            var hits = Physics.RaycastAll(eye, dir / d, Reach, p.m_interactMask);
+            bool Self(RaycastHit hit) => hit.collider.attachedRigidbody != null &&
+                                         hit.collider.attachedRigidbody.gameObject == p.gameObject;
+            var visible = InteractionSight.Visible(hits.Select(hit => new SightHit(hit.distance,
+                Self(hit), hit.collider.transform.IsChildOf(obj.transform))));
+            if (Time.time >= sightTraceAt && Vector3.Distance(p.transform.position, obj.transform.position) < Reach)
+            {
+                sightTraceAt = Time.time + 3;
+                Tracer.Emit("interact", visible ? "target in sight" : "target sight blocked",
+                    new Dictionary<string, object>
+                    {
+                        ["target"] = name,
+                        ["hits"] = hits.OrderBy(hit => hit.distance).Take(4).Select(hit => new Dictionary<string, object>
+                        {
+                            ["name"] = hit.collider.name,
+                            ["distance"] = System.Math.Round(hit.distance, 2),
+                            ["self"] = Self(hit),
+                        }).ToArray(),
+                    });
+            }
+            return visible;
         }
 
         /// <summary>Collects what the game says to the bot into lines until

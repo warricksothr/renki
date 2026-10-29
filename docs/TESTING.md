@@ -67,11 +67,24 @@ and Tas rejoined DizzysHellheim at 25/25 health.
   grave was gone. Its items had already been recovered and stored by the
   owner. A later `get your things` with no remembered grave sent no body
   task and explained that there was nothing to fetch.
+- Tas subsequently died to a Greyling at about `(-27.67, 30.51, 40.38)`
+  (`16:59:35Z`), roughly 35 m from home and outside the 30 m home-shun
+  radius. He respawned about ten seconds later. With `afterDeath=home`,
+  task `t-11` took him home and succeeded at `17:00:20.712Z`. He ended idle
+  at 22/25 health. His inventory was empty before this death, so it did not
+  provide a populated tombstone for a positive retrieval check.
 
 A positive retrieval and return from Tas's own populated tombstone, and
 resuming a follow through an actual death, still need live verification.
 TKT-01M62N12MX (Controller: corpse run after a death) remains in review with
 its retrieval acceptance criterion unchecked.
+
+The next staged death carried 15 BeechSeeds. Interact task `t-18` reached
+the populated grave at `(-16.34, 31.76, 33.26)` but never used it and ran
+through stuck recovery instead. The interaction sight check now follows
+Valheim's hover rule: ignore the player's own rigidbody and use the nearest
+other ray hit, retaining wall and floor blocking. Regression tests cover
+that rule; live retrieval of the untouched seed grave is the next check.
 
 ## 1. Set up a game with BepInEx
 
