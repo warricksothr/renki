@@ -471,7 +471,12 @@ func (h *fakeHome) Grave() (home.Grave, bool) {
 }
 
 func (h *fakeHome) ForgetGrave(pos protocol.Vec3, r float64) {
-	h.graves = slices.DeleteFunc(h.graves, func(g home.Grave) bool { return g.Pos.FlatDistance(pos) <= r })
+	for i, g := range h.graves {
+		if g.Pos.FlatDistance(pos) <= r {
+			h.graves = slices.Delete(h.graves, i, i+1)
+			return
+		}
+	}
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -890,6 +895,31 @@ func TestCorpseRun(t *testing.T) {
 	b.TaskDone(doneTask(open, protocol.StatusSucceeded, ""))
 	if got := f.said(); got[len(got)-1] != "Got my things back." || len(h.graves) != 0 {
 		t.Errorf("after emptying: %q, graves %v", got[len(got)-1], h.graves)
+	}
+
+	// Killed three times in one place: three graves, emptied in turn.
+	h.graves = []home.Grave{{Pos: protocol.Vec3{-40, 36, 8}}, {Pos: protocol.Vec3{-40, 36, 9}}}
+	f.perception.Structures = []protocol.PerceivedStructure{
+		{ID: "9:3", Kind: protocol.StructureTombstone, Pos: protocol.Vec3{-40, 36, 8}, Mine: true},
+		{ID: "9:4", Kind: protocol.StructureTombstone, Pos: protocol.Vec3{-41, 36, 9}, Mine: true},
+	}
+	b.Chat(line("Sothr", "bjorn get your things"))
+	first := last(protocol.TaskInteract)
+	b.TaskDone(doneTask(first, protocol.StatusSucceeded, ""))
+	second := last(protocol.TaskInteract)
+	if second.Args.(*protocol.InteractArgs).Entity == first.Args.(*protocol.InteractArgs).Entity {
+		t.Fatalf("emptied %s twice", first.Args.(*protocol.InteractArgs).Entity)
+	}
+	if len(h.graves) != 1 {
+		t.Errorf("after one of two: graves %v", h.graves)
+	}
+	// The second one is gone by the time it gets to it.
+	b.TaskDone(doneTask(second, protocol.StatusFailed, protocol.ReasonTargetLost))
+	if got := f.said(); got[len(got)-1] != "My grave's gone. Someone must have emptied it." || len(h.graves) != 0 {
+		t.Errorf("after both: %q, graves %v", got[len(got)-1], h.graves)
+	}
+	f.perception.Structures = []protocol.PerceivedStructure{
+		{ID: "9:2", Kind: protocol.StructureTombstone, Pos: protocol.Vec3{-42, 36, 7}, Mine: true},
 	}
 
 	// In sight already: straight to it.

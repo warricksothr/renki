@@ -99,7 +99,8 @@ type Home interface {
 	// Grave is where the bot last died in this world, its things not yet
 	// fetched.
 	Grave() (home.Grave, bool)
-	// ForgetGrave forgets the graves within r of pos: fetched, or gone.
+	// ForgetGrave forgets the grave nearest pos, if within r: fetched, or
+	// gone.
 	ForgetGrave(pos protocol.Vec3, r float64)
 }
 
@@ -240,8 +241,10 @@ type origin struct {
 	// resume it.
 	follow string
 	// grave is set on a corpse run: the walk to the grave, then the
-	// emptying of it.
-	grave *protocol.Vec3
+	// emptying of it. emptied are the graves already emptied on this run:
+	// a bot killed over and over in one place has several there.
+	grave   *protocol.Vec3
+	emptied []string
 }
 
 // channelPanel is the channel of words typed into the control panel: always
@@ -406,7 +409,7 @@ func (b *Brain) TaskDone(t *session.Task) {
 func (b *Brain) corpseRun(t *session.Task, o origin, status, reason string) bool {
 	switch {
 	case t.Name == protocol.TaskMoveTo && status == protocol.StatusSucceeded:
-		g := b.myGrave(o.grave)
+		g := b.myGrave(o.grave, nil)
 		if g == nil {
 			// Only a fresh look from beside the place says it is gone.
 			st, seen := b.d.State(), b.d.Perception()
@@ -420,25 +423,40 @@ func (b *Brain) corpseRun(t *session.Task, o origin, status, reason string) bool
 			b.say(o, "My grave's not here. Someone must have emptied it.")
 			return true
 		}
-		pos := g.Pos
-		o.grave = &pos
-		order := session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}, Origin: o}
-		if _, err := b.d.Dispatch(context.Background(), order); err != nil {
-			b.opts.Logger.Warn("could not empty the grave", "err", err)
-			b.say(o, "I found my grave, but I can't open it.")
-		}
+		b.empty(o, g)
 		return true
-	case t.Name == protocol.TaskInteract && status == protocol.StatusSucceeded:
+	case t.Name == protocol.TaskInteract && (status == protocol.StatusSucceeded || reason == protocol.ReasonTargetLost):
+		// Emptied, or gone meanwhile: forget it, and go on to the next
+		// grave there, if it died more than once in one place.
 		if b.opts.Home != nil {
 			b.opts.Home.ForgetGrave(*o.grave, graveReach)
 		}
-		b.say(o, "Got my things back.")
+		if next := b.myGrave(o.grave, o.emptied); next != nil {
+			b.empty(o, next)
+			return true
+		}
+		if status == protocol.StatusSucceeded {
+			b.say(o, "Got my things back.")
+		} else {
+			b.say(o, "My grave's gone. Someone must have emptied it.")
+		}
 		return true
 	case t.Name == protocol.TaskInteract && reason == protocol.ReasonInventoryFull:
 		b.say(o, "My grave holds more than I can carry. Make some room and I'll try again.")
 		return true
 	}
 	return false
+}
+
+// empty sends the bot to empty grave g, noting it on the run.
+func (b *Brain) empty(o origin, g *protocol.PerceivedStructure) {
+	pos := g.Pos
+	o.grave, o.emptied = &pos, append(slices.Clone(o.emptied), g.ID)
+	order := session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}, Origin: o}
+	if _, err := b.d.Dispatch(context.Background(), order); err != nil {
+		b.opts.Logger.Warn("could not empty the grave", "err", err)
+		b.say(o, "I found my grave, but I can't open it.")
+	}
 }
 
 // leaveResume tells the home keeper what a death cut short: a follow
@@ -624,9 +642,9 @@ const graveReach = 10.0
 // emptied at once, else a walk to where it last died, after which TaskDone
 // looks for the grave there. It says why when there is nothing to fetch.
 func (b *Brain) fetch(from *origin) (session.Order, string, bool) {
-	if g := b.myGrave(nil); g != nil {
+	if g := b.myGrave(nil, nil); g != nil {
 		pos := g.Pos
-		from.grave = &pos
+		from.grave, from.emptied = &pos, []string{g.ID}
 		return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}}, "Getting my things.", true
 	}
 	if b.opts.Home == nil {
@@ -645,8 +663,9 @@ func (b *Brain) fetch(from *origin) (session.Order, string, bool) {
 		Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Run: &run}}, "Going back for my things.", true
 }
 
-// myGrave is the bot's own grave in sight, the one nearest near if set.
-func (b *Brain) myGrave(near *protocol.Vec3) *protocol.PerceivedStructure {
+// myGrave is the bot's own grave in sight, the one nearest near if set,
+// leaving out those in skip.
+func (b *Brain) myGrave(near *protocol.Vec3, skip []string) *protocol.PerceivedStructure {
 	seen := b.d.Perception()
 	if seen == nil {
 		return nil
@@ -656,7 +675,7 @@ func (b *Brain) myGrave(near *protocol.Vec3) *protocol.PerceivedStructure {
 		dist = math.Inf(1)
 	)
 	for i, s := range seen.Structures {
-		if s.Kind != protocol.StructureTombstone || !s.Mine {
+		if s.Kind != protocol.StructureTombstone || !s.Mine || slices.Contains(skip, s.ID) {
 			continue
 		}
 		d := 0.0

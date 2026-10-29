@@ -595,7 +595,9 @@ chat event
   nearest open one, since using a door swings it either way), and `get your
   things` (`fetch your things`, `corpse run`: the bot's own grave if it is
   in sight, emptied at once, else a walk back to where it last died and the
-  grave there emptied; one gone is forgotten). These send `interact`, and the bot answers
+  grave there emptied, then any other of its graves there, since a bot
+  killed over and over in one place leaves one each time; one gone is
+  forgotten). These send `interact`, and the bot answers
   with what the game said: "Spawn point set", or "It won't: You need a roof".
   Only `owners` can issue tasks.
 - **Home** is where the speaker stood when they said `set home`, one per
@@ -613,7 +615,7 @@ chat event
   back there, whatever the rule, since what killed it may be there still: it
   says so, and neither the respawn, idling nor an outage sends it home in
   that world until someone gives it an order, however it dies meanwhile;
-  this is kept in `dataDir` across restarts. Every death is remembered per world (the
+  this is kept per world in `dataDir` across restarts, and any order ends it. Every death is remembered per world (the
   last 5) as a grave to fetch from, until it is emptied or found gone. Any
   order given after the death wins, except
   `set home` and `status`. The controller reads the death and the respawn

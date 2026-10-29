@@ -55,9 +55,9 @@ type memory struct {
 	// Graves are where the bot died and has not yet fetched its things
 	// from, by world name, oldest first.
 	Graves map[string][]Grave `json:"graves,omitempty"`
-	// Shunned is the world where the bot last died near home and has had
-	// no order since: nothing sends it home there by itself.
-	Shunned string `json:"shunned,omitempty"`
+	// Shunned are the worlds where the bot died near home and has had no
+	// order since: nothing sends it home there by itself.
+	Shunned []string `json:"shunned,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file
@@ -156,21 +156,32 @@ func (s *Store) UpdateLeftBehind(world string, f func([]Cache) []Cache) error {
 	return s.save()
 }
 
-// Shunned is the world whose home the bot keeps away from, or "".
-func (s *Store) Shunned() string {
+// Shunned reports whether the bot keeps away from home in world.
+func (s *Store) Shunned(world string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.mem.Shunned
+	return slices.Contains(s.mem.Shunned, world)
 }
 
-// SetShunned sets it, writing only when it changes.
-func (s *Store) SetShunned(world string) error {
+// Shun adds world to those shunned, writing only when it changes.
+func (s *Store) Shun(world string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.mem.Shunned == world {
+	if slices.Contains(s.mem.Shunned, world) {
 		return nil
 	}
-	s.mem.Shunned = world
+	s.mem.Shunned = append(s.mem.Shunned, world)
+	return s.save()
+}
+
+// Unshun ends every shun, writing only when there was one.
+func (s *Store) Unshun() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.mem.Shunned) == 0 {
+		return nil
+	}
+	s.mem.Shunned = nil
 	return s.save()
 }
 
@@ -197,14 +208,22 @@ func (s *Store) AddGrave(world string, g Grave) error {
 	return s.save()
 }
 
-// ForgetGrave forgets the graves in world within r of pos.
+// ForgetGrave forgets the grave in world nearest pos, if within r: one
+// emptied, while others beside it may still be full.
 func (s *Store) ForgetGrave(world string, pos protocol.Vec3, r float64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	gs := slices.DeleteFunc(slices.Clone(s.mem.Graves[world]), func(g Grave) bool { return g.Pos.FlatDistance(pos) <= r })
-	if len(gs) == len(s.mem.Graves[world]) {
+	gs := slices.Clone(s.mem.Graves[world])
+	near := -1
+	for i, g := range gs {
+		if d := g.Pos.FlatDistance(pos); d <= r && (near < 0 || d < gs[near].Pos.FlatDistance(pos)) {
+			near = i
+		}
+	}
+	if near < 0 {
 		return nil
 	}
+	gs = slices.Delete(gs, near, near+1)
 	if len(gs) == 0 {
 		delete(s.mem.Graves, world)
 	} else {

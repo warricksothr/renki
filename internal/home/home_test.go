@@ -656,7 +656,7 @@ func TestTheShunSurvivesARestart(t *testing.T) {
 		t.Fatalf("after a restart, idled home to what killed it: %q", got)
 	}
 	k2.Ordered()
-	if again.Shunned() != "" {
+	if again.Shunned("Midgard") {
 		t.Error("an order did not end the shun")
 	}
 

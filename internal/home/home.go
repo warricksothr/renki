@@ -255,7 +255,9 @@ func (k *Keeper) Ordered() {
 		k.ordered = true
 	}
 	k.mu.Unlock()
-	k.shun("")
+	if err := k.store.Unshun(); err != nil {
+		k.log.Warn("could not save the end of the shun", "err", err)
+	}
 }
 
 // died notes a death seen in st: where, and the grave there. A death near
@@ -274,7 +276,9 @@ func (k *Keeper) died(st *protocol.State) {
 		k.log.Warn("could not remember the grave", "err", err)
 	}
 	if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
-		k.shun(w)
+		if err := k.store.Shun(w); err != nil {
+			k.log.Warn("could not save the shun", "err", err)
+		}
 	}
 }
 
@@ -486,8 +490,8 @@ func (k *Keeper) Grave() (Grave, bool) {
 	return gs[len(gs)-1], true
 }
 
-// ForgetGrave forgets the graves within r of pos in the current world:
-// fetched, or found gone.
+// ForgetGrave forgets the grave nearest pos, if within r, in the current
+// world: fetched, or found gone.
 func (k *Keeper) ForgetGrave(pos protocol.Vec3, r float64) {
 	w := k.World()
 	if w == "" {
@@ -501,16 +505,8 @@ func (k *Keeper) ForgetGrave(pos protocol.Vec3, r float64) {
 // shuns reports whether the bot died near home in this world and has had
 // no order since.
 func (k *Keeper) shuns() bool {
-	w := k.store.Shunned()
-	return w != "" && w == k.World()
-}
-
-// shun keeps the bot from going home by itself in world, kept across
-// restarts; "" ends it.
-func (k *Keeper) shun(world string) {
-	if err := k.store.SetShunned(world); err != nil {
-		k.log.Warn("could not save the shun", "err", err)
-	}
+	w := k.World()
+	return w != "" && k.store.Shunned(w)
 }
 
 func (k *Keeper) setInterrupted(v bool) {
