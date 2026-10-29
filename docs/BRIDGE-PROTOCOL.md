@@ -460,7 +460,7 @@ Notes:
   water the line starts in does not count, so a bot already swimming may
   head out, and ground in a zone not loaded counts as unknown, not as water.
 - **Swimming:** a swimming bot walks, never runs. Below 30% stamina it makes
-  for the nearest point it can stand on (searched in rings out to 60 m),
+  for the nearest point it can stand on (searched in rings out to 60 m, the lowest on the nearest ring),
   whatever its goal, and the stuck count holds meanwhile. A point it gets no
   nearer to for 4 s, or reaches still swimming, it gives up, and searches
   again passing over points within 8 m of it. Out of the water it plans its

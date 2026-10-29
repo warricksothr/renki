@@ -243,6 +243,10 @@ namespace Renki.Tests
             Assert.NotNull(shore);
             Assert.True(shore.Value.X <= 20, $"shore at {shore.Value.X}");
             Assert.Null(DeepWater.Shore(new V3(0, 30, 0), (x, z) => 0, 30));
+            // A beach before a cliff on the same ring.
+            var beach = DeepWater.Shore(new V3(0, 30, 0), (x, z) => x < -3 ? 30.1 : x > 3 ? 45 : 25, 30);
+            Assert.NotNull(beach);
+            Assert.True(beach.Value.X < 0, $"shore at {beach.Value.X}");
             // A shore it could not get onto is passed over for the next one.
             var next = DeepWater.Shore(new V3(40, 30, 0), Ground, 30, tried: new[] { shore.Value });
             Assert.NotNull(next);

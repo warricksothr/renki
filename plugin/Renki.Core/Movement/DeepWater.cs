@@ -56,15 +56,17 @@ namespace Renki.Movement
             for (var r = 4.0; r <= reach; r += 4)
             {
                 V3? best = null;
-                var bestDepth = double.MaxValue;
+                var bestDepth = double.MinValue;
                 for (var i = 0; i < directions; i++)
                 {
                     var a = 2 * Math.PI * i / directions;
                     double x = pos.X + r * Math.Cos(a), z = pos.Z + r * Math.Sin(a);
                     if (tried != null && tried.Any(t => V3.FlatDistance(t, new V3(x, 0, z)) < Tried)) continue;
                     var depth = level - ground(x, z); // NaN where unknown, and never dry
-                    // Of the dry points on the nearest ring, the highest.
-                    if (depth < 0.3 && depth < bestDepth)
+                    // Of the dry points on the nearest ring, the lowest: a
+                    // beach a swimmer can walk up, where the highest is
+                    // likelier a bank too steep to climb.
+                    if (depth < 0.3 && depth > bestDepth)
                     {
                         best = new V3(x, ground(x, z), z);
                         bestDepth = depth;
