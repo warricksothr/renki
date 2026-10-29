@@ -21,6 +21,7 @@ import (
 var (
 	ErrNotConnected = errors.New("the plugin is not connected")
 	ErrNotAllowed   = errors.New("task is not allowed in this session")
+	ErrBodyBusy     = errors.New("the body is busy or automation was interrupted")
 )
 
 // Listener hears what the session does not handle itself. Calls arrive on
@@ -99,6 +100,9 @@ type Session struct {
 	listener Listener
 
 	mu         sync.Mutex
+	dispatchMu sync.Mutex // serialize wire order and automation ownership
+	automation *Automation
+	orders     uint64
 	conn       *bridge.Conn
 	state      *protocol.State
 	seen       *protocol.Perception
@@ -142,6 +146,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	})
 	s.mu.Lock()
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
+	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
 	s.mu.Unlock()
 	s.log.Info("session started", "allowed", allowed)
@@ -157,6 +162,7 @@ func (s *Session) Disconnected(c *bridge.Conn, err error) {
 		return
 	}
 	s.conn, s.allowed = nil, nil
+	s.automation = nil
 	var ended []*Task
 	for id, t := range s.tasks {
 		if t.update(protocol.StatusCancelled, protocol.ReasonStopped, "disconnected") {
@@ -178,6 +184,10 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		if s.conn == c && (s.state == nil || m.Seq > s.state.Seq) {
 			if s.state != nil && s.state.World != m.World {
 				s.containers = make(map[string]*protocol.Container)
+				s.seen, s.carried, s.automation = nil, nil, nil
+			}
+			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
+				s.automation = nil
 			}
 			s.state = m
 		}
@@ -298,7 +308,11 @@ func (s *Session) AllowedTasks() []string {
 // Logout asks the plugin to save and return to the main menu. Whatever is
 // running stops with it.
 func (s *Session) Logout(ctx context.Context) error {
+	s.dispatchMu.Lock()
+	defer s.dispatchMu.Unlock()
 	s.mu.Lock()
+	s.automation = nil
+	s.orders++
 	conn := s.conn
 	s.nextTask++
 	id := fmt.Sprintf("l-%d", s.nextTask)
@@ -314,6 +328,12 @@ func (s *Session) Logout(ctx context.Context) error {
 // allowedTasks, and arguments that DecodeArgs rejects, before anything
 // reaches the plugin.
 func (s *Session) Dispatch(ctx context.Context, o Order) (*Task, error) {
+	s.dispatchMu.Lock()
+	defer s.dispatchMu.Unlock()
+	return s.dispatch(ctx, o, nil)
+}
+
+func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation) (*Task, error) {
 	s.mu.Lock()
 	conn := s.conn
 	if conn == nil {
@@ -341,6 +361,14 @@ func (s *Session) Dispatch(ctx context.Context, o Order) (*Task, error) {
 	if s.conn != conn {
 		s.mu.Unlock()
 		return nil, ErrNotConnected
+	}
+	if automation != nil && s.automation != automation {
+		s.mu.Unlock()
+		return nil, ErrBodyBusy
+	}
+	if automation == nil && !protocol.Instant(o.Task) {
+		s.automation = nil
+		s.orders++
 	}
 	s.tasks[id] = t
 	s.mu.Unlock()

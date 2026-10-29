@@ -68,6 +68,8 @@ type Options struct {
 	Say func(as, text string) error
 	// Dispatch sends an explicit task through normal capability/safety checks.
 	Dispatch func(context.Context, TaskCommand) (string, error)
+	// Behaviours serves engine controls behind the panel's authentication.
+	Behaviours http.Handler
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -117,6 +119,10 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	if o.Behaviours != nil {
+		authed.Handle("GET /api/behaviours", o.Behaviours)
+		authed.Handle("POST /api/behaviours", o.Behaviours)
+	}
 	if o.Act != nil {
 		authed.HandleFunc("POST /api/act/{action}", p.act)
 	}
