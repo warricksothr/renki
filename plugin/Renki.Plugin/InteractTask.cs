@@ -150,7 +150,10 @@ namespace Renki.Plugin
             foreach (var c in obj.GetComponentsInChildren<Collider>())
             {
                 if (!c.enabled || c.isTrigger) continue;
-                best = Mathf.Min(best, Vector3.Distance(chest, c.ClosestPoint(chest)));
+                // Unity gives a concave mesh's ClosestPoint as the point
+                // itself; its bounds are the nearest it can say.
+                var at = c is MeshCollider m && !m.convex ? c.bounds.ClosestPoint(chest) : c.ClosestPoint(chest);
+                best = Mathf.Min(best, Vector3.Distance(chest, at));
             }
             if (best < float.MaxValue) return best <= Reach;
             return Arrival.Reached(Convert.ToV3(p.transform.position), Convert.ToV3(obj.transform.position), Reach);
