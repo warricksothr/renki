@@ -461,7 +461,10 @@ type fakeHome struct {
 	stranded bool
 	left     []home.Cache
 	graves   []home.Grave
+	told     int
 }
+
+func (h *fakeHome) Told() { h.told++ }
 
 func (h *fakeHome) Grave() (home.Grave, bool) {
 	if len(h.graves) == 0 {
@@ -515,6 +518,34 @@ func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
 	b.opts.Home = h
 	return b, f, h
+}
+
+func TestOnlyACarriedOutOrderEndsTheHomeShun(t *testing.T) {
+	for _, tc := range []struct {
+		name, text string
+		setup      func(*fakeSession, *fakeHome)
+		want       int
+	}{
+		{"status", "status", nil, 0},
+		{"refused task", "follow me", func(f *fakeSession, _ *fakeHome) { f.allowed = []string{"say"} }, 0},
+		{"missing home", "go home", nil, 0},
+		{"missing grave", "get your things", nil, 0},
+		{"stop", "stop", nil, 1},
+		{"follow", "follow me", nil, 1},
+		{"set home", "set home", nil, 1},
+		{"go home", "go home", func(_ *fakeSession, h *fakeHome) { h.home = &protocol.Vec3{} }, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b, f, h := homeBrain()
+			if tc.setup != nil {
+				tc.setup(f, h)
+			}
+			b.Chat(line("Sothr", "bjorn "+tc.text))
+			if h.told != tc.want {
+				t.Errorf("ended shun %d times, want %d", h.told, tc.want)
+			}
+		})
+	}
 }
 
 func TestStatusSaysWhatWasLeftBehind(t *testing.T) {

@@ -102,6 +102,9 @@ type Home interface {
 	// ForgetGrave forgets the grave nearest pos, if within r: fetched, or
 	// gone.
 	ForgetGrave(pos protocol.Vec3, r float64)
+	// Told says an order was carried out: whatever kept the bot from going
+	// home by itself after a death there is over.
+	Told()
 }
 
 // Options configure a Brain.
@@ -632,6 +635,9 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		}
 		return
 	}
+	if b.opts.Home != nil {
+		b.opts.Home.Told()
+	}
 	b.say(from, ack)
 }
 
@@ -818,6 +824,7 @@ func (b *Brain) setHome(c *protocol.Chat, from origin) {
 		}
 		return
 	}
+	b.opts.Home.Told()
 	b.say(from, "This is home now.")
 }
 
@@ -840,6 +847,7 @@ func (b *Brain) goHome(from origin) {
 		}
 		return
 	}
+	b.opts.Home.Told()
 	b.say(from, "Heading home.")
 }
 
@@ -937,6 +945,7 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool, offered []string) 
 		// An order in the owner's own words is an order like any other.
 		b.opts.Home.Touch()
 		b.opts.Home.Ordered()
+		b.opts.Home.Told()
 	}
 }
 

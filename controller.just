@@ -52,6 +52,11 @@ audit *ARGS:
 test *ARGS:
     go test ./... {{ARGS}}
 
+# Run only the named packages during development; test/ci still cover all.
+[positional-arguments]
+test-packages +PACKAGES:
+    go test "$@"
+
 # Run the tests under the race detector.
 test-race *ARGS:
     go test -race ./... {{ARGS}}

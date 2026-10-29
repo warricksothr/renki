@@ -4,6 +4,7 @@
 # The controller's audit log and memory, when it runs from the repository root
 /audit/
 /data/
+/.checks/
 
 # C# plugin build output
 bin/

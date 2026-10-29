@@ -108,6 +108,22 @@ panel-setup PORT="8780": need-target
 panel-token: need-target
     @{{ssh}} "\$c = Get-Content '{{dir}}/controller.local.json' -Raw | ConvertFrom-Json; if (-not \$c.panel.listen) { 'The panel is off: run just vm panel-setup'; exit 1 }; 'address: http://' + \$c.panel.listen + '/'; 'token:   ' + \$c.panel.token"
 
+# Call an API endpoint; credentials stay on the VM. The script is synced so
+# the recipe also works before the next full deployment.
+[positional-arguments]
+panel METHOD PATH BODY='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    method=$1
+    endpoint=$2
+    [[ "$method" = GET || "$method" = POST ]] || { echo 'METHOD must be GET or POST' >&2; exit 2; }
+    [[ "$endpoint" =~ ^/api/[a-zA-Z0-9_/?=\&.%:-]+$ ]] || { echo 'Use an /api/ path without shell metacharacters' >&2; exit 2; }
+    encoded=$(printf '%s' "${3:-}" | base64 -w0)
+    bodyarg=()
+    [ -z "$encoded" ] || bodyarg=(-BodyBase64 "$encoded")
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/panel-request.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/panel-request.ps1 -Method '$method' -ApiPath '$endpoint' ${bodyarg[*]}"
+
 # Prompts here without echoing, and sends the value over SSH's standard
 # input, so it is in no command line, log or chat. `just vm secret CPA_API_KEY`.
 [doc("Store a secret for the controller on the VM, such as an LLM key.")]

@@ -34,6 +34,12 @@ test *ARGS:
     RENKI_CONTROLLER_BIN="$bin" dotnet test Renki.Tests -c Release --nologo {{ARGS}}
     rm -rf "$(dirname "$bin")"
 
+# Core-only development checks skip the controller build and interop suite.
+# Pass a class or test name to narrow further.
+[positional-arguments]
+test-core filter='Renki.Tests':
+    dotnet test Renki.Tests -c Release --nologo --filter "FullyQualifiedName~$1&FullyQualifiedName!~Renki.Tests.InteropTests"
+
 # Check formatting.
 lint:
     dotnet format whitespace Renki.Core/Renki.Core.csproj --verify-no-changes

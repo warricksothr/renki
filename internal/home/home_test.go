@@ -452,13 +452,14 @@ func TestNoGoingBackToWhatKilledItAtHome(t *testing.T) {
 	if got := f.sent(); !slices.Equal(got, want) {
 		t.Fatalf("after dying at home: %q", got)
 	}
-	// Nor does idling take it back, until someone says something.
+	// Nor does idling take it back, until an order is carried out.
 	c.advance(11 * time.Minute)
 	k.Tick(ctx)
 	if got := f.sent(); len(got) != 1 {
 		t.Fatalf("idled home to what killed it: %q", got)
 	}
 	k.Ordered()
+	k.Told()
 	c.advance(11 * time.Minute)
 	k.Tick(ctx)
 	if got := f.sent(); len(got) != 3 || got[1] != "move_to" {
@@ -656,6 +657,10 @@ func TestTheShunSurvivesARestart(t *testing.T) {
 		t.Fatalf("after a restart, idled home to what killed it: %q", got)
 	}
 	k2.Ordered()
+	if !again.Shunned("Midgard") {
+		t.Fatal("an attempted order ended the shun before it was carried out")
+	}
+	k2.Told()
 	if again.Shunned("Midgard") {
 		t.Error("an order did not end the shun")
 	}
@@ -665,5 +670,40 @@ func TestTheShunSurvivesARestart(t *testing.T) {
 	k2.Ordered()
 	if g, ok := k2.Grave(); !ok || g.Pos != (protocol.Vec3{50, 0, 50}) {
 		t.Errorf("grave %+v, %v", g, ok)
+	}
+}
+
+func TestAShunnedHomeDoesNotPreventResumingAFollow(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathResume })
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{}, nil))
+	k.SetHome(protocol.Vec3{}, "Nimah")
+	k.Tick(ctx)
+	resumed := false
+	k.ResumeAfterDeath(func(context.Context) bool { resumed = true; return true })
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if !resumed || !store.Shunned("Midgard") || len(f.sent()) != 0 {
+		t.Fatalf("resumed %v, shunned %v, sent %v", resumed, store.Shunned("Midgard"), f.sent())
+	}
+}
+
+func TestACarriedOutOrderUnshunsOnlyItsWorld(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	for _, world := range []string{"Midgard", "Other"} {
+		f.set(&protocol.Hello{}, &protocol.State{Phase: protocol.PhaseInWorld, World: world})
+		k.SetHome(protocol.Vec3{}, "Nimah")
+		if err := store.Shun(world); err != nil {
+			t.Fatal(err)
+		}
+	}
+	k.Told()
+	if !store.Shunned("Midgard") || store.Shunned("Other") {
+		t.Fatalf("shunned Midgard=%v Other=%v", store.Shunned("Midgard"), store.Shunned("Other"))
 	}
 }

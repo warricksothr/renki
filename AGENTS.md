@@ -26,6 +26,15 @@ and tooling that spans the repository.
 `just ci` is the gate. CI runs it and nothing else, so run it before you
 commit.
 
+During development, use `just check <recipe> [arguments...]` to retain full
+output in `.checks/` and print a short result or bounded failure tail. Prefer
+`just check controller test-packages <packages...>` for focused Go checks and
+`just check plugin test-core [class-or-test-name]` for plugin maths and policy
+checks without interop setup. Run the complete gate as `just check ci`.
+Read relevant diagnostics from the saved log before rerunning; do not dump
+whole logs or repeat passing suites without a change or unresolved concern.
+Keep decisions and remaining game checks on tickets. See docs/TESTING.md.
+
 `just review` runs vuoro's review on the commits the branch adds
 (`origin/main...HEAD` unless you pass a range) and never posts anything. Run
 it after committing and before pushing, because vuoro reviews commits, not

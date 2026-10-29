@@ -112,10 +112,12 @@ func (a *App) PanelAct(ctx context.Context, action string) (string, error) {
 	switch action {
 	case "stop":
 		if _, err = a.Session.Dispatch(ctx, session.Order{Task: protocol.TaskStop}); err == nil {
+			a.Home.Told()
 			return "Stopped.", nil
 		}
 	case "home":
 		if _, err = a.Home.GoHome(ctx, nil, "the panel"); err == nil {
+			a.Home.Told()
 			return "Heading home.", nil
 		}
 	case "logout":

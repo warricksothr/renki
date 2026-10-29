@@ -248,14 +248,19 @@ func (k *Keeper) Ordered() {
 	k.respawned, k.resume = false, nil
 	if st != nil && st.Phase == protocol.PhaseDead && !k.dead {
 		// The death is seen here first: its grave still counts. The
-		// order itself ends any shun below.
+		// order ends the shun only if it is carried out (Told).
 		k.died(st)
 	}
 	if k.dead {
 		k.ordered = true
 	}
 	k.mu.Unlock()
-	// An order in this world: another world's home is no safer for it.
+}
+
+// Told ends the shun in this world: an order was carried out, so whoever
+// gave it is about and has the bot in hand. Another world's home is no
+// safer for it.
+func (k *Keeper) Told() {
 	if err := k.store.Unshun(k.World()); err != nil {
 		k.log.Warn("could not save the end of the shun", "err", err)
 	}
@@ -379,24 +384,22 @@ func (k *Keeper) Tick(ctx context.Context) {
 		k.mu.Lock()
 		diedAt := k.diedAt
 		k.mu.Unlock()
+		rule := k.Rules().AfterDeath
+		// Following a player again is no trip home: a shun does not stop it.
+		if rule == config.AfterDeathResume && resume != nil && resume(ctx) {
+			k.log.Info("resumed after a respawn")
+			return
+		}
+		if rule == config.AfterDeathStay {
+			return
+		}
 		if k.shuns() {
 			// It waits to be told.
 			k.log.Info("died near home; not going back", "died", diedAt)
-			if k.Rules().AfterDeath != config.AfterDeathStay {
-				k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
-			}
+			k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
 			return
 		}
-		switch k.Rules().AfterDeath {
-		case config.AfterDeathResume:
-			if resume != nil && resume(ctx) {
-				k.log.Info("resumed after a respawn")
-				return
-			}
-			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
-		case config.AfterDeathHome:
-			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
-		}
+		k.announce(ctx, "after a respawn", "I'm back. Heading home.")
 		return
 	}
 

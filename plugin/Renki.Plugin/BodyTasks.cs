@@ -19,6 +19,7 @@ namespace Renki.Plugin
         readonly StuckDetector stuck = new StuckDetector();
         readonly Doorman doors = new Doorman();
         readonly Climber climb = new Climber();
+        readonly ApproachRecovery approach = new ApproachRecovery();
         readonly List<Vector3> scratch = new List<Vector3>();
         Vector3 goal;
         bool hasGoal;
@@ -61,21 +62,52 @@ namespace Renki.Plugin
         /// reach: under it, or at the foot of the rock it is on.</summary>
         const double NearGoal = 4.0;
 
-        /// <summary>The failure for a bot that has gone as far toward a goal
-        /// as the navmesh reaches, under or beside it but off its level, or
-        /// null while it can still get there.</summary>
+        /// <summary>Try other approaches before failing an off-level goal.</summary>
         public Outcome Unreachable(Vector3 pos, double within)
         {
             var here = Convert.ToV3(pos);
-            if (!OffLevel || (V3.FlatDistance(here, Convert.ToV3(goal)) > within &&
-                              V3.FlatDistance(here, Convert.ToV3(end)) > AtEnd)) return null;
+            var atEnd = OffLevel && (V3.FlatDistance(here, Convert.ToV3(goal)) <= within ||
+                                    V3.FlatDistance(here, Convert.ToV3(end)) <= AtEnd);
+            var step = approach.Update(here, Convert.ToV3(goal), atEnd, Time.time,
+                candidate => Detour(pos, candidate));
+            if (step == ApproachStep.None) return null;
+            Tracer.Emit("walker", step == ApproachStep.Detour ? "off-level goal; repositioning"
+                : step == ApproachStep.Retry ? "off-level goal; retrying path" : "off-level goal; approaches exhausted",
+                new Dictionary<string, object>
+                {
+                    ["attempt"] = approach.Attempts,
+                    ["pos"] = Convert.ToArray(pos),
+                    ["goal"] = Convert.ToArray(goal),
+                    ["detour"] = approach.Target?.ToArray(),
+                });
+            if (step != ApproachStep.GiveUp)
+            {
+                ResetStuck(pos);
+                Repath(pos);
+                return null;
+            }
             var dy = goal.y - pos.y;
             return Outcome.Failed(Wire.ReasonUnreachable,
-                $"the goal is {System.Math.Abs(dy):0.0} m {(dy > 0 ? "above" : "below")} and the navmesh does not reach it");
+                $"the goal is {System.Math.Abs(dy):0.0} m {(dy > 0 ? "above" : "below")} and the navmesh does not reach it after {approach.Attempts} approach attempts");
         }
+
+        V3? Detour(Vector3 from, V3 candidate)
+        {
+            scratch.Clear();
+            var to = new Vector3((float)candidate.X, (float)candidate.Y, (float)candidate.Z);
+            if (Pathfinding.instance == null ||
+                !Pathfinding.instance.GetPath(from, to, scratch, Pathfinding.AgentType.Humanoid, false, true, false) ||
+                scratch.Count == 0) return null;
+            return SafeDetour(from, candidate) ? Convert.ToV3(scratch[scratch.Count - 1]) : (V3?)null;
+        }
+
+        bool SafeDetour(Vector3 from, V3 candidate) =>
+            ApproachRecovery.SafePath(Convert.ToV3(from), candidate, scratch.Select(Convert.ToV3).ToArray(),
+                (a, b) => DeepWater.Crossing(a, b, Ground, WaterLevel) != null);
 
         public void SetGoal(Vector3 from, Vector3 to)
         {
+            approach.Reset();
             goal = to;
             hasGoal = true;
             Repath(from);
@@ -83,12 +115,22 @@ namespace Renki.Plugin
 
         void Repath(Vector3 from)
         {
+            var target = approach.Target is V3 via
+                ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : goal;
             scratch.Clear();
             var pf = Pathfinding.instance;
             StraightLine = !(pf != null &&
-                             pf.GetPath(from, goal, scratch, Pathfinding.AgentType.Humanoid, false, true, false) &&
+                             pf.GetPath(from, target, scratch, Pathfinding.AgentType.Humanoid, false, true, false) &&
                              scratch.Count > 0);
             Blocked = null;
+            // Detour validation already obtained a complete path. If a tile
+            // changes before this second query, wait for the leg's retry;
+            // never walk an unvalidated fallback away from the real goal.
+            if (approach.Target != null && (StraightLine || !SafeDetour(from, Convert.ToV3(target))))
+            {
+                path.Set(new V3[0]);
+                return;
+            }
             if (StraightLine)
             {
                 scratch.Clear();
@@ -110,16 +152,20 @@ namespace Renki.Plugin
             // The navmesh gives the way to the nearest point it can reach,
             // which may be under a floor or behind a shut door.
             end = scratch[scratch.Count - 1];
-            var shortBy = Vector3.Distance(end, goal);
+            var shortBy = Vector3.Distance(end, target);
             // Off level only when the end is near the goal across the ground:
             // a path that stops short farther off may yet go on, through a
             // door or after a re-path.
-            OffLevel = !StraightLine && System.Math.Abs(end.y - goal.y) > Arrival.Level &&
-                       V3.FlatDistance(Convert.ToV3(end), Convert.ToV3(goal)) <= NearGoal;
+            if (approach.Target == null)
+            {
+                OffLevel = !StraightLine && System.Math.Abs(end.y - goal.y) > Arrival.Level &&
+                           V3.FlatDistance(Convert.ToV3(end), Convert.ToV3(goal)) <= NearGoal;
+                if (!OffLevel) approach.Reset();
+            }
             var data = new Dictionary<string, object>
             {
                 ["from"] = Convert.ToArray(from),
-                ["to"] = Convert.ToArray(goal),
+                ["to"] = Convert.ToArray(target),
                 ["waypoints"] = scratch.Count,
             };
             if (shortBy > 1) data["end"] = Convert.ToArray(end);
@@ -130,6 +176,7 @@ namespace Renki.Plugin
         public void ResetStuck(Vector3 pos)
         {
             stuck.Reset(Convert.ToV3(pos), Time.time);
+            strafeUntil = 0;
             climb.Stop();
             climbWaiting = false;
         }
@@ -139,6 +186,9 @@ namespace Renki.Plugin
         {
             if (!hasGoal) return true;
             if (Swim(pos, ref run)) return true;
+            // The detour has its own short deadline. Do not strafe or jump
+            // off its validated path while waiting to retry the real goal.
+            if (approach.Target != null) stuck.Hold(Time.time);
             if (climb.Active && Climb(pos)) return true;
             var recovery = stuck.Update(Convert.ToV3(pos), Time.time);
             if (recovery != Recovery.None)
@@ -276,8 +326,10 @@ namespace Renki.Plugin
         /// <summary>The flat direction to the next waypoint, or the goal.</summary>
         Vector3 Toward(Vector3 pos)
         {
+            if (approach.Target != null && path.Count == 0) return Vector3.zero;
             var next = path.Next(Convert.ToV3(pos));
-            var target = next.HasValue ? Convert.ToVector3(next.Value) : goal;
+            var target = next.HasValue ? Convert.ToVector3(next.Value)
+                : approach.Target is V3 via ? Convert.ToVector3(via) : goal;
             var dir = target - pos;
             dir.y = 0;
             return dir;
