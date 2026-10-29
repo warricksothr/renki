@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -29,6 +31,7 @@ type Options struct {
 	Containers func(world string) []home.RememberedContainer
 	Logger     *slog.Logger
 	Now        func() time.Time
+	Notify     func(context.Context, string)
 }
 type Engine struct {
 	mu                  sync.Mutex
@@ -54,16 +57,21 @@ type instance struct {
 	result                *Result
 	step                  int
 	last                  string
+	waitingSince          time.Time
+	storage               *StorageNeed
+	notice                string
+	noticeAt              time.Time
 	requestConn           *protocol.Hello
 	requestWorld          string
 }
 type Status struct {
-	Name       string     `json:"name"`
-	Definition Definition `json:"definition"`
-	Runs       int        `json:"runs"`
-	Pending    bool       `json:"pending"`
-	Running    bool       `json:"running"`
-	Last       string     `json:"last,omitempty"`
+	Name          string       `json:"name"`
+	Definition    Definition   `json:"definition"`
+	Runs          int          `json:"runs"`
+	Pending       bool         `json:"pending"`
+	Running       bool         `json:"running"`
+	Last          string       `json:"last,omitempty"`
+	StorageNeeded *StorageNeed `json:"storageNeeded,omitempty"`
 }
 type Origin struct {
 	Instance string
@@ -80,7 +88,7 @@ func New(o Options) *Engine {
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -125,7 +133,14 @@ func (e *Engine) List() []Status {
 	defer e.mu.Unlock()
 	out := make([]Status, 0, len(e.instances))
 	for name, i := range e.instances {
-		out = append(out, Status{name, i.definition, i.completed, i.pending, e.active == name, i.last})
+		var storage *StorageNeed
+		if i.storage != nil {
+			copy := *i.storage
+			copy.Items = maps.Clone(copy.Items)
+			copy.Chests = slices.Clone(copy.Chests)
+			storage = &copy
+		}
+		out = append(out, Status{Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	// Neither callers nor templates can mutate the engine's definitions.
@@ -301,7 +316,7 @@ func (e *Engine) Run(ctx context.Context) {
 	}
 }
 func (e *Engine) view() View {
-	v := View{State: e.o.Session.State(), Inventory: e.o.Session.Inventory(), Perception: e.o.Session.Perception(), Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	v := View{Now: e.o.Now(), State: e.o.Session.State(), Inventory: e.o.Session.Inventory(), Perception: e.o.Session.Perception(), Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
 	if e.o.Containers != nil && v.State != nil {
 		// Live contents supersede the entire old observation, including an
 		// empty chest. Never satisfy a condition from an older duplicate.
@@ -424,6 +439,10 @@ func (e *Engine) finish(success bool, detail string, v View) {
 	i := e.instances[e.active]
 	i.completed++
 	i.last = detail
+	if success {
+		i.storage = nil
+		i.notice = ""
+	}
 	cooldown := duration(i.definition.Repeat.CooldownS)
 	if cooldown < time.Second {
 		cooldown = time.Second
@@ -440,6 +459,20 @@ func (e *Engine) finish(success bool, detail string, v View) {
 	e.lease.Release()
 	e.lease = nil
 	e.active = ""
+}
+
+func (e *Engine) fail(ctx context.Context, err error, v View) {
+	i := e.instances[e.active]
+	var need *StorageNeed
+	if errors.As(err, &need) {
+		i.storage = need
+		line := need.Error()
+		if e.o.Notify != nil && !need.Quiet && (line != i.notice || e.o.Now().Sub(i.noticeAt) >= 5*time.Minute) {
+			i.notice, i.noticeAt = line, e.o.Now()
+			e.o.Notify(ctx, line)
+		}
+	}
+	e.finish(false, err.Error(), v)
 }
 func (e *Engine) Tick(ctx context.Context) {
 	e.mu.Lock()
@@ -512,6 +545,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		i.pending = false
 		i.step = 0
 		i.result = nil
+		i.waitingSince = time.Time{}
 		raw := append(json.RawMessage(nil), i.definition.Params...)
 		i.runner, err = e.o.Templates[i.definition.Template].Start(raw)
 		e.o.Logger.Info("behaviour started", "instance", best, "template", i.definition.Template)
@@ -525,12 +559,18 @@ func (e *Engine) Tick(ctx context.Context) {
 		select {
 		case <-i.task.Done():
 			status, reason, detail := i.task.Status()
-			i.result = &Result{status, reason, detail}
+			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID}
 			i.task = nil
 			if status != protocol.StatusSucceeded {
-				e.finish(false, reason+": "+detail, v)
-				return
+				recovery, ok := i.runner.(FailureAware)
+				if !ok || !recovery.Recover(*i.result) {
+					e.finish(false, reason+": "+detail, v)
+					return
+				}
 			}
+			// Completion can arrive while view() is reading. Refresh after
+			// Done closes so the preceding inventory/receipt frames are visible.
+			v = e.view()
 		default:
 			if now.After(i.deadline) {
 				name := e.active
@@ -545,10 +585,20 @@ func (e *Engine) Tick(ctx context.Context) {
 		}
 	}
 	order, err := i.runner.Next(v, i.result)
-	if err != nil {
-		e.finish(false, err.Error(), v)
+	if errors.Is(err, ErrWait) {
+		if i.waitingSince.IsZero() {
+			i.waitingSince = now
+		}
+		if now.Sub(i.waitingSince) >= 5*time.Second {
+			e.finish(false, "fresh observation did not arrive within five seconds", v)
+		}
 		return
 	}
+	if err != nil {
+		e.fail(ctx, err, v)
+		return
+	}
+	i.waitingSince = time.Time{}
 	if order == nil {
 		e.finish(true, "completed", v)
 		return
@@ -558,6 +608,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		return
 	}
 	i.step++
+	i.result = nil
 	order.Origin = Origin{e.active, i.step}
 	i.task, err = e.lease.Dispatch(ctx, *order)
 	if err != nil {

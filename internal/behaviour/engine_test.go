@@ -56,9 +56,9 @@ func setup(t *testing.T) *fixture {
 	}
 	f.s = session.New(listener{}, quiet)
 	url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome {
-		return &protocol.Welcome{AllowedTasks: []string{"stop", "move_to", "flee"}}
+		return &protocol.Welcome{AllowedTasks: []string{"stop", "move_to", "flee", "deposit", "pickup", "interact", "say"}}
 	}}, f.s)
-	f.p = bridgetest.Connect(t, url, []string{"stop", "move_to", "flee"})
+	f.p = bridgetest.Connect(t, url, []string{"stop", "move_to", "flee", "deposit", "pickup", "interact", "say"})
 	f.p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25, HPMax: 25, WeightMax: 300})
 	wait(t, func() bool { return f.s.State() != nil })
 	f.e = New(Options{Session: f.s, Store: f.store, Now: func() time.Time { return f.now }, Owners: func() []string { return []string{"Nimah"} }, Templates: map[string]Template{"two_steps": twoSteps{}}, Logger: slog.New(slog.NewJSONHandler(&f.log, nil))})

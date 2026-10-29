@@ -221,6 +221,11 @@ into a problem.
   is set on the bot's own bed and its own graves, `tag` is a portal's name, and `open` is set on doors
   only.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
+  Optional `yield` describes a drop/simple pickable's primary output:
+  `{prefab, count, stackMax, weight}`. Count is a capacity upper bound
+  including possible skill bonuses; weight is per item. Unknown, extra-drop
+  or theft-provoking pickables omit it. PickableItem objects are included
+  as pickables. This metadata does not prove pickup or navigability.
   Pickables already picked are left out. A tree felled with an axe becomes
   a `log` that falls, and a `stump` left where it stood; a log splits into
   halves, each a new `log` with a new id, and those break into wood drops.

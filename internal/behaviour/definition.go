@@ -64,7 +64,15 @@ type Stock struct {
 }
 
 // Result is the last completed step, or nil at the start of a run.
-type Result struct{ Status, Reason, Detail string }
+type Result struct{ Status, Reason, Detail, TaskID string }
+
+// ErrWait keeps a runner alive for a fresh observation, for at most five
+// seconds. It does not send a task or release body ownership.
+var ErrWait = errors.New("waiting for an observation")
+
+// FailureAware is opt-in. Ordinary templates still fail on every failed
+// task; a bounded multi-chest runner can handle expected partial/refusal results.
+type FailureAware interface{ Recover(Result) bool }
 type Runner interface {
 	Next(View, *Result) (*session.Order, error)
 }

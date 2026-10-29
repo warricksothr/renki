@@ -192,6 +192,15 @@ namespace Renki.Protocol
         [JsonProperty("pos")] public double[] Pos = new double[3];
         [JsonProperty("minTool", NullValueHandling = NullValueHandling.Ignore)] public int? MinTool;
         [JsonProperty("stack", NullValueHandling = NullValueHandling.Ignore)] public int? Stack;
+        [JsonProperty("yield", NullValueHandling = NullValueHandling.Ignore)] public ResourceYield Yield;
+    }
+
+    public sealed class ResourceYield
+    {
+        [JsonProperty("prefab")] public string Prefab = "";
+        [JsonProperty("count")] public int Count;
+        [JsonProperty("stackMax")] public int StackMax;
+        [JsonProperty("weight")] public double Weight;
     }
 
     public sealed class PerceivedStructure

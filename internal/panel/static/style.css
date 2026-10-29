@@ -261,3 +261,5 @@ body.login form {
 body.login h1 { margin: 0; font-size: 20px; }
 body.login input { width: 100%; margin-top: 4px; padding: 6px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
 .error { color: var(--stuck); margin: 0; }
+/* Storage shortfalls remain visible while a job waits for another run. */
+#storage-needed { margin: 8px 12px; padding: 8px; border: 1px solid #8b743e; color: #e6c88c; overflow-wrap: anywhere; }

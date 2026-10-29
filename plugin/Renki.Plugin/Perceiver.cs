@@ -357,8 +357,27 @@ namespace Renki.Plugin
             {
                 case Pickable pick when pick.GetPicked():
                     return null;
+                case Pickable pick:
+                    // Extra/random products and theft-provoking pickables
+                    // remain observable, but are not automatic work targets.
+                    if (pick.m_itemPrefab != null && pick.m_extraDrops.IsEmpty() && pick.m_aggravateRange <= 0)
+                    {
+                        var amount = pick.m_dontScale ? pick.m_amount : System.Math.Max(pick.m_minAmountScaled,
+                            Game.instance.ScaleDrops(pick.m_itemPrefab, pick.m_amount));
+                        if (pick.m_pickRaiseSkill != Skills.SkillType.None) amount += System.Math.Max(0, pick.m_bonusYieldAmount);
+                        r.Yield = Yield(pick.m_itemPrefab.GetComponent<ItemDrop>()?.m_itemData, pick.m_itemPrefab.name, amount);
+                    }
+                    break;
+                case PickableItem item when item.m_itemPrefab != null:
+                    // PickableItem's private GetStackSize uses these public
+                    // fields, including the world's resource multiplier.
+                    var data = item.m_itemPrefab.m_itemData;
+                    r.Yield = Yield(data, item.m_itemPrefab.gameObject.name, Mathf.Clamp(item.m_stack > 0 ? item.m_stack : data.m_stack, 1,
+                        (int)System.Math.Round(data.m_shared.m_maxStackSize * Game.m_resourceRate)));
+                    break;
                 case ItemDrop drop when drop.m_itemData != null:
                     r.Stack = drop.m_itemData.m_stack;
+                    r.Yield = Yield(drop.m_itemData, r.Prefab, drop.m_itemData.m_stack);
                     break;
             }
             pos = nview.transform.position;
@@ -366,6 +385,14 @@ namespace Renki.Plugin
             r.Id = Id(nview);
             return r;
         }
+
+        static ResourceYield Yield(ItemDrop.ItemData item, string prefab, int count) => item == null || string.IsNullOrEmpty(prefab) || count <= 0 ? null : new ResourceYield
+        {
+            Prefab = prefab,
+            Count = count,
+            StackMax = item.m_shared.m_maxStackSize,
+            Weight = item.GetWeight() / System.Math.Max(1, item.m_stack),
+        };
 
         static Known Classify(ZNetView nview)
         {
@@ -381,6 +408,7 @@ namespace Renki.Plugin
                 (k.Kind, k.MinTool) = (k.Prefab.IndexOf("stub", System.StringComparison.OrdinalIgnoreCase) >= 0
                     ? Wire.ResourceStump : Wire.ResourceTree, wood.m_minToolTier);
             else if (go.TryGetComponent<Pickable>(out var pick)) (k.Kind, k.Part) = (Wire.ResourcePickable, pick);
+            else if (go.TryGetComponent<PickableItem>(out var item)) (k.Kind, k.Part) = (Wire.ResourcePickable, item);
             else if (go.TryGetComponent<ItemDrop>(out var drop)) (k.Kind, k.Part) = (Wire.ResourceDrop, drop);
             else return null;
             return k;

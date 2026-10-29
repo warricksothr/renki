@@ -243,12 +243,23 @@ const (
 // PerceivedResource is something the bot could harvest or pick up. MinTool
 // is a pointer because tier 0 is a real value and absent means "no tool".
 type PerceivedResource struct {
-	ID      string `json:"id"`
-	Kind    string `json:"kind"`
-	Prefab  string `json:"prefab"`
-	Pos     Vec3   `json:"pos"`
-	MinTool *int   `json:"minTool,omitempty"`
-	Stack   int    `json:"stack,omitempty"`
+	ID      string         `json:"id"`
+	Kind    string         `json:"kind"`
+	Prefab  string         `json:"prefab"`
+	Pos     Vec3           `json:"pos"`
+	MinTool *int           `json:"minTool,omitempty"`
+	Stack   int            `json:"stack,omitempty"`
+	Yield   *ResourceYield `json:"yield,omitempty"`
+}
+
+// ResourceYield describes the primary item from a drop or simple pickable.
+// Count is an upper bound including possible skill bonuses, not a receipt.
+// Missing yields are ineligible for automatic collection.
+type ResourceYield struct {
+	Prefab   string  `json:"prefab"`
+	Count    int     `json:"count"`
+	StackMax int     `json:"stackMax"`
+	Weight   float64 `json:"weight"`
 }
 
 // PerceivedStructure is a built piece the bot might use.
