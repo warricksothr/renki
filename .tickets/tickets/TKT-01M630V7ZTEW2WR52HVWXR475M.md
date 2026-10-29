@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M630V7ZTEW2WR52HVWXR475M
 title: "Panel: choose the voice's model at runtime, to compare them"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -21,10 +21,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/panel-controls
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: e72594201fb46403dcb61a5ae1aed8f8b19514d6
+  session: null
+  claimed_at: 2026-10-29T07:37:25Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T05:06:42Z
-updated_at: 2026-10-29T05:26:35Z
+updated_at: 2026-10-29T07:51:07Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -51,6 +58,16 @@ between them while the bot runs.
 
 ## Acceptance criteria
 
-- [ ] The panel lists the models the configured backends offer and switches the voice to one without a restart
-- [ ] Every reply in the audit log names the model that wrote it, with its latency and tokens
-- [ ] The choice is kept in the settings store, recorded with who made it
+- [x] The panel lists the models the configured backends offer and switches the voice to one without a restart
+- [x] Every reply in the audit log names the model that wrote it, with its latency and tokens
+- [x] The choice is kept in the settings store, recorded with who made it
+
+## Implementation plan
+
+Settings store keys model.provider/name/baseURL seeded from llm.terva; the voice reads them per reply (a runtime is built per reply anyway) and logs model, ms, tokensIn, tokensOut. Voice.Models lists GET {baseURL}/models for OpenAI-compatible backends. Panel: GET /api/settings, POST /api/setting (as the panel), GET /api/models, and a Voice section with a model list, Use and Refresh, and who chose the model.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T07:51:07Z
+
+2026-10-29: deployed. The VM's panel lists cpa-api's 31 models (GET /api/models, checked from the VM without printing the token) and shows claude-haiku-5-5 in use, seeded from llm.terva. Switching and the per-reply log line (model, ms, tokensIn, tokensOut) are tested and seen in a local preview against a stub /models; not yet seen with a real reply on the VM. The agent may change model.name but never model.provider or model.baseURL, so it cannot send the key elsewhere. The list includes image and review models the voice cannot use; it is cpa-api's whole list.

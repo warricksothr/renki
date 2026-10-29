@@ -264,3 +264,49 @@ func TestSettingsApplyAtOnce(t *testing.T) {
 		t.Errorf("allowed now %v", a.Session.AllowedTasks())
 	}
 }
+
+// TestPanelButtons runs the panel's actions against a plugin: stop and
+// logout reach it, and going home with no home says why.
+func TestPanelButtons(t *testing.T) {
+	cfg := config.Default()
+	cfg.Owners = []string{"Sothr"}
+	cfg.Token = "sekrit"
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
+	ctx := context.Background()
+	if _, err := a.PanelAct(ctx, "stop"); err == nil || err.Error() != "the bot is not connected" {
+		t.Errorf("stop before the plugin: %v", err)
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sctx, cancel := context.WithCancel(ctx)
+	done := make(chan error, 1)
+	go func() { done <- a.Serve(sctx, ln) }()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+	p := connect(t, "ws://"+ln.Addr().String()+"/ws/", "sekrit")
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Tasleroch", World: "Midgard"})
+	waitFor(t, func() bool { return a.Session.State() != nil })
+
+	if text, err := a.PanelAct(ctx, "stop"); err != nil || text != "Stopped." {
+		t.Errorf("stop: %q %v", text, err)
+	}
+	if task := p.NextTask(); task.Task != protocol.TaskStop {
+		t.Errorf("the plugin got %+v", task)
+	}
+	if _, err := a.PanelAct(ctx, "home"); err == nil || !strings.Contains(err.Error(), "no home") {
+		t.Errorf("home with none set: %v", err)
+	}
+	if _, err := a.PanelAct(ctx, "dance"); err == nil {
+		t.Error("an unknown action did something")
+	}
+	if text, err := a.PanelAct(ctx, "logout"); err != nil || text != "Logging out." {
+		t.Errorf("logout: %q %v", text, err)
+	}
+	if _, ok := p.Next().(*protocol.Logout); !ok {
+		t.Error("the plugin got no logout")
+	}
+}

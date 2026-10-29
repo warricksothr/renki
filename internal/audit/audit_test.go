@@ -210,3 +210,40 @@ func TestTheNewestInventoryOutlivesTheFeed(t *testing.T) {
 		t.Errorf("scrolled out of the feed: %d inventories; want 1", n)
 	}
 }
+
+// TestReadDaySkipsStateAndNamesTasks: a day read through a filter that
+// hides state and perception never sees them, and each record knows the
+// task it is about.
+func TestReadDaySkipsStateAndNamesTasks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "audit-2026-10-29.jsonl")
+	lines := []string{
+		`{"at":"2026-10-29T01:00:00Z","kind":"start","msg":"renki controller"}`,
+		`{"at":"2026-10-29T01:00:01Z","kind":"frame","dir":"in","frame":{"v":1,"type":"state","seq":1,"t":0}}`,
+		`{"at":"2026-10-29T01:00:02Z","kind":"frame","dir":"out","frame":{"v":1,"type":"task","id":"t-1","task":"follow","args":{}}}`,
+		`{"at":"2026-10-29T01:00:03Z","kind":"frame","dir":"in","frame":{"v":1,"type":"trace","task":"t-1","source":"walker","msg":"path"}}`,
+		`{"at":"2026-10-29T01:00:04Z","kind":"frame","dir":"in","frame":{"v":1,"type":"task","re":"t-1","status":"failed","reason":"stuck"}}`,
+		`{"at":"2026-10-29T01:00:05Z","kind":"log","level":"INFO","msg":"going home","attrs":{"id":"t-2"}}`,
+		`{"at":"2026-10-29T01:00:06Z","kind":"frame","dir":"in","frame":{"v":1,"type":"perception","seq":2,"t":0}}`,
+	}
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	recs, err := ReadDay(path, Filter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tasks []string
+	for _, r := range recs {
+		if typ := frameType(r); typ == "state" || typ == "perception" {
+			t.Errorf("read a %s frame", typ)
+		}
+		tasks = append(tasks, TaskID(r))
+	}
+	if got := strings.Join(tasks, ","); got != ",t-1,t-1,t-1,t-2" {
+		t.Errorf("tasks %q", got)
+	}
+	recs, _ = ReadDay(path, Filter{Task: "t-1"})
+	if len(recs) != 3 {
+		t.Errorf("t-1's records: %d", len(recs))
+	}
+}

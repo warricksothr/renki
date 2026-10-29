@@ -6,21 +6,33 @@
 // GET /api/status for a snapshot of the bot, and GET /api/events, a stream of
 // server-sent events carrying the audit log's records as they are written
 // (internal/audit), after the recent ones, and a status snapshot each second.
+// POST /api/act/{action} asks the bot to stop, go home or log out.
+// GET /api/settings and POST /api/setting read and change the runtime
+// settings (internal/settings), and GET /api/models lists the voice's
+// models. GET /api/days, /api/timeline and /api/task read the audit files
+// of past days.
 package panel
 
 import (
+	"context"
 	"crypto/subtle"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 //go:embed static
@@ -40,7 +52,28 @@ type Options struct {
 	Logger *slog.Logger
 	// StatusEvery is how often the event stream sends a status. Default 1 s.
 	StatusEvery time.Duration
+	// Act does one of Actions and returns what to show for it, or an
+	// error to show instead. Nil turns the buttons' endpoint off.
+	Act func(ctx context.Context, action string) (string, error)
+	// Settings is the store the page reads and changes, as the panel.
+	// Nil turns those endpoints off.
+	Settings *settings.Store
+	// Models lists the voice's models; nil when there is no voice.
+	Models func(ctx context.Context) ([]string, error)
+	// AuditDir holds the audit files the timeline reads; "" turns it off.
+	AuditDir string
 }
+
+// Actions are what the page's buttons ask for.
+var Actions = []string{"stop", "home", "logout"}
+
+// ErrUnknownAction is what Act returns for an action not in Actions.
+var ErrUnknownAction = errors.New("no such action")
+
+// ActHeader must be on every POST to /api/act/: a page on another site
+// cannot set it without the browser asking first, which this server never
+// allows, so a forged form cannot press the buttons.
+const ActHeader = "X-Renki-Act"
 
 // Handler returns the panel's HTTP handler.
 func Handler(o Options) http.Handler {
@@ -62,6 +95,22 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	if o.Act != nil {
+		authed.HandleFunc("POST /api/act/{action}", p.act)
+	}
+	if o.Settings != nil {
+		authed.HandleFunc("GET /api/settings", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(o.Settings.Entries())
+		})
+		authed.HandleFunc("POST /api/setting", p.set)
+	}
+	authed.HandleFunc("GET /api/models", p.models)
+	if o.AuditDir != "" {
+		authed.HandleFunc("GET /api/days", p.days)
+		authed.HandleFunc("GET /api/timeline", p.timeline)
+		authed.HandleFunc("GET /api/task", p.task)
+	}
 
 	mux := http.NewServeMux()
 	// The stylesheet holds nothing private, and the login page needs it.
@@ -152,12 +201,253 @@ func (p *panel) logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
+// act runs one of the buttons' actions and answers {"text": ...} with
+// 200, or with 404 for an unknown action and 409 when it could not be done.
+func (p *panel) act(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get(ActHeader) == "" {
+		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
+		return
+	}
+	action := r.PathValue("action")
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	text, err := p.o.Act(ctx, action)
+	code := http.StatusOK
+	switch {
+	case errors.Is(err, ErrUnknownAction):
+		code, text = http.StatusNotFound, err.Error()
+	case err != nil:
+		code, text = http.StatusConflict, err.Error()
+	}
+	p.o.Logger.Info("panel action", "action", action, "remote", r.RemoteAddr, "status", code, "text", text)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"text": text})
+}
+
+// set changes one setting as the panel: {"key": …, "value": …} sets it,
+// {"key": …, "reset": true} returns it to the config's value, and
+// {"key": …, "pin": true|false} pins it against the agent or lets it go.
+// It answers {"text": …}: 200, or 400 for a bad value, 404 for an unknown
+// key, 409 for a pinned one.
+func (p *panel) set(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get(ActHeader) == "" {
+		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
+		return
+	}
+	var req struct {
+		Key   string          `json:"key"`
+		Value json.RawMessage `json:"value"`
+		Reset bool            `json:"reset"`
+		Pin   *bool           `json:"pin"`
+	}
+	code, text := http.StatusOK, ""
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
+		code, text = http.StatusBadRequest, "not a setting: "+err.Error()
+	} else if err := p.change(req.Key, req.Value, req.Reset, req.Pin); err != nil {
+		code, text = http.StatusBadRequest, err.Error()
+		switch {
+		case errors.Is(err, settings.ErrUnknownKey):
+			code = http.StatusNotFound
+		case errors.Is(err, settings.ErrPinned), errors.Is(err, settings.ErrNotAllowed):
+			code = http.StatusConflict
+		}
+	} else {
+		switch {
+		case req.Reset:
+			text = req.Key + " is back to the config's value"
+		case req.Pin != nil && *req.Pin:
+			text = req.Key + " is pinned"
+		case req.Pin != nil:
+			text = req.Key + " is no longer pinned"
+		default:
+			text = req.Key + " is now " + string(req.Value)
+		}
+	}
+	p.o.Logger.Info("panel setting", "key", req.Key, "value", string(req.Value), "remote", r.RemoteAddr, "status", code)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"text": text})
+}
+
+func (p *panel) change(key string, value json.RawMessage, reset bool, pin *bool) error {
+	switch {
+	case reset:
+		return p.o.Settings.Reset(key, settings.ByPanel)
+	case pin != nil && *pin:
+		return p.o.Settings.Pin(key, settings.ByPanel)
+	case pin != nil:
+		return p.o.Settings.Unpin(key, settings.ByPanel)
+	}
+	return p.o.Settings.Set(key, value, settings.ByPanel)
+}
+
+// models answers {"models": [...]} or {"error": …}, always with 200: a
+// backend that cannot list its models leaves the page a text field.
+func (p *panel) models(w http.ResponseWriter, r *http.Request) {
+	out := map[string]any{"models": []string{}}
+	if p.o.Models == nil {
+		out["error"] = "the bot has no LLM voice"
+	} else {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		if names, err := p.o.Models(ctx); err != nil {
+			out["error"] = err.Error()
+		} else {
+			out["models"] = names
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
+// Day is one audit file, for the page's day picker.
+type Day struct {
+	Day   string `json:"day"`
+	Bytes int64  `json:"bytes"`
+}
+
+// days lists the audit files, newest first.
+func (p *panel) days(w http.ResponseWriter, r *http.Request) {
+	out := []Day{}
+	files := audit.Files(p.o.AuditDir)
+	for i := len(files) - 1; i >= 0; i-- {
+		if day := audit.Day(files[i]); day != "" {
+			var size int64
+			if st, err := os.Stat(files[i]); err == nil {
+				size = st.Size()
+			}
+			out = append(out, Day{Day: day, Bytes: size})
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// dayFile is the audit file for day, which must be a date, so a request
+// cannot name any other file.
+func (p *panel) dayFile(day string) (string, error) {
+	if _, err := time.Parse(time.DateOnly, day); err != nil {
+		return "", fmt.Errorf("not a day: %q", day)
+	}
+	return filepath.Join(p.o.AuditDir, audit.Prefix+day+audit.Suffix), nil
+}
+
+// TimelineLimit is how many records /api/timeline returns at most.
+const TimelineLimit = 2000
+
+// Timeline is a stretch of a day: its newest records before a time, oldest
+// first, and whether there are older ones.
+type Timeline struct {
+	Events []Event `json:"events"`
+	More   bool    `json:"more"`
+}
+
+// timeline answers ?day=YYYY-MM-DD[&before=RFC 3339&skip=N] with the day's
+// newest TimelineLimit records up to that time, without state or
+// perception. skip is how many records at exactly that time the page has
+// already, so a page boundary between records of one instant loses none.
+func (p *panel) timeline(w http.ResponseWriter, r *http.Request) {
+	path, err := p.dayFile(r.URL.Query().Get("day"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	f := audit.Filter{}
+	if b := r.URL.Query().Get("before"); b != "" {
+		if f.Until, err = time.Parse(time.RFC3339Nano, b); err != nil {
+			http.Error(w, "before: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	recs, err := audit.ReadDay(path, f)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if skip, _ := strconv.Atoi(r.URL.Query().Get("skip")); skip > 0 {
+		// The page has the last skip records at f.Until; they are the
+		// newest ones there, so the tail.
+		n := 0
+		for i := len(recs) - 1; i >= 0 && n < skip && recs[i].At.Equal(f.Until); i-- {
+			n++
+		}
+		recs = recs[:len(recs)-n]
+	}
+	out := Timeline{Events: []Event{}}
+	if len(recs) > TimelineLimit {
+		recs, out.More = recs[len(recs)-TimelineLimit:], true
+	}
+	for _, rec := range recs {
+		out.Events = append(out.Events, event(rec))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// task answers ?id=t-3&at=RFC 3339 with what concerns that task in the
+// controller run that was going at that time: ids start again with each
+// run, so t-3 of an earlier run is another task.
+func (p *panel) task(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	at, err := time.Parse(time.RFC3339Nano, r.URL.Query().Get("at"))
+	if id == "" || err != nil {
+		http.Error(w, "want id and at", http.StatusBadRequest)
+		return
+	}
+	path, _ := p.dayFile(at.Local().Format(time.DateOnly))
+	recs, err := audit.ReadDay(path, audit.Filter{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// A run that began before midnight began in the day before's file, and
+	// its task may have too.
+	if !slices.ContainsFunc(recs, func(r audit.Record) bool { return r.Kind == audit.KindStart && !r.At.After(at) }) {
+		prev, _ := p.dayFile(at.Local().AddDate(0, 0, -1).Format(time.DateOnly))
+		if earlier, err := audit.ReadDay(prev, audit.Filter{}); err == nil {
+			recs = append(earlier, recs...)
+		}
+	}
+	// A task that runs past midnight goes on in the next day's file.
+	next, _ := p.dayFile(at.Local().AddDate(0, 0, 1).Format(time.DateOnly))
+	if more, err := audit.ReadDay(next, audit.Filter{}); err == nil {
+		recs = append(recs, more...)
+	}
+	// The run is from the last start at or before at to the next one. It is
+	// cut out first, so the task's records in other runs cannot stretch
+	// the window the filter looks for its cause in.
+	from, to := 0, len(recs)
+	for i, rec := range recs {
+		if rec.Kind != audit.KindStart {
+			continue
+		}
+		if !rec.At.After(at) {
+			from = i
+		} else {
+			to = i
+			break
+		}
+	}
+	out := []Event{}
+	for _, rec := range (audit.Filter{Task: id}).Apply(recs[from:to]) {
+		out = append(out, event(rec))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(v)
+}
+
 // Event is a record as the page gets it: the record, the timeline's line
 // for it, and a category for the page's filters and map.
 type Event struct {
 	audit.Record
 	Line string `json:"line"`
 	Cat  string `json:"cat"`
+	// Task is the task the record is about, if any (audit.TaskID).
+	Task string `json:"task,omitempty"`
 }
 
 // Categories of Event.
@@ -172,7 +462,7 @@ const (
 )
 
 func event(r audit.Record) Event {
-	return Event{Record: r, Line: audit.Line(r), Cat: category(r)}
+	return Event{Record: r, Line: audit.Line(r), Cat: category(r), Task: audit.TaskID(r)}
 }
 
 func category(r audit.Record) string {

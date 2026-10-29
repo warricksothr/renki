@@ -73,16 +73,6 @@ func run() int {
 	trail.Write(audit.Record{Kind: audit.KindStart, Msg: "renki controller " + version,
 		Attrs: map[string]any{"config": redacted(cfg), "pid": os.Getpid()}})
 
-	// A voice that cannot be set up, such as for a key that is not set,
-	// leaves the bot on the command grammar rather than off.
-	var voice chat.Voice
-	if cfg.LLM != nil {
-		if voice, err = newVoice(cfg, log); err != nil {
-			log.Error("llm voice off; the bot answers the command grammar only", "err", err)
-			voice = nil
-		}
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -108,6 +98,16 @@ func run() int {
 	}
 	warn()
 	set.OnChange(func(settings.Values) { warn() })
+
+	// A voice that cannot be set up, such as for a key that is not set,
+	// leaves the bot on the command grammar rather than off.
+	var voice chat.Voice
+	if cfg.LLM != nil {
+		if voice, err = newVoice(cfg, func() settings.Model { return set.Values().Model }, log); err != nil {
+			log.Error("llm voice off; the bot answers the command grammar only", "err", err)
+			voice = nil
+		}
+	}
 	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
 		"owners", set.Values().Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
 	a := app.New(cfg, voice, log, trail, homes, set)

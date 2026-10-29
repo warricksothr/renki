@@ -1,9 +1,9 @@
 # The control panel
 
 A web page, served by the controller, for watching the bot live: where it
-is, what it is doing, and why. TKT-01M628X106 (Web control panel to watch
-and steer the bot) tracks what is still to come: buttons, behaviour
-switches and a per-task view.
+is, what it is doing, and why, with buttons to stop it, send it home or
+log it out. TKT-01M628X106 (Web control panel to watch and steer the bot)
+tracks what is still to come: behaviour instances, once the engine is in.
 
 ## Turning it on
 
@@ -37,6 +37,14 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Header:** connection, character and world, phase, the running task,
   health, a warning when the bot carries more than it can (and whether it
   can still move), and how far home is.
+- **Buttons**, while the plugin is connected: **Stop** ends whatever the bot
+  is doing, as "stop" in chat does. **Go home** sends it home, as "go home"
+  does, and says why not when it can't (no home in this world, too heavy
+  to move, `move_to` not allowed). **Log the bot out** asks first, then logs
+  the character out to the menu; logging back in needs the VM
+  (`just vm start`). The answer shows beside the buttons, and each press is
+  in the feed as a `panel action` line with where it came from. The page's
+  own **Log out** only ends the login.
 - **Map:** top-down, north up, a grid every 10 m, opening zoomed to the
   perception radius. The bot with its facing and its trail over the last
   few minutes; from perception, players, creatures (red when hostile,
@@ -53,22 +61,55 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   what it is, its distance from the bot and its details, every item of a
   group. Scroll or use + and − to zoom; drag to pan, which stops it
   following the bot.
+- **Voice:** the model the bot's chat replies use, who chose it and when,
+  and a list of what the backend offers (its `/models`, for an
+  OpenAI-compatible backend such as cpa-api). **Use** switches to the one
+  picked, recorded as the panel's change in the settings store; the next
+  reply uses it, with no restart. Each reply's audit line (`voice`) names
+  the model, its latency in `ms` and its `tokensIn` and `tokensOut`, so
+  models can be compared from the log.
+- **Settings:** every runtime setting (docs/BRIDGE-PROTOCOL.md, Runtime
+  settings), with its value, whether it is the config's or a change and
+  who made it, and a pin. A change applies as soon as the box loses focus
+  or the switch flips, recorded as the panel's; **Reset** returns a setting
+  to the config's value, and **Pin** keeps the agent from changing it.
+  Lists are comma-separated. Changes from chat or another page show while
+  the section is open.
 - **Inventory:** what the bot carries, laid out as in the game, with stacks,
   a wear bar on items that wear (red below a quarter), equipped items
   outlined, and free slots and weight above. Hover a slot for the detail.
 - **Feed:** the audit log's records as they are written (docs/AUDIT.md), in
   the same lines `just vm audit` prints. Filters: chat, tasks, the plugin's
   decisions (`trace`), the controller's decisions, other frames, and state
-  (once a second). **Pause** stops it scrolling.
+  (once a second). **Pause** stops it scrolling. The day picker beside it
+  reads a past day's audit file instead (its newest 2000 records, with
+  **Load earlier** for more; state and perception left out), and **Live**
+  goes back.
+- **Task view:** any line about a task starts with its id; click it for
+  everything about that task in the controller run it belongs to (ids
+  start again with each run): the chat that led to it, the request, its
+  statuses, the plugin's traces and the controller's records, with how it
+  ended and how long it took. The same cut as `just vm audit -task`.
 
 A new page starts with the last 500 records, the newest state, perception
 and inventory, and a state a second for the last five minutes for the trail.
 
 ## How it works
 
-`internal/panel` serves three embedded files and two endpoints, all behind
-the login: `GET /api/status`, a snapshot of the bot, and `GET /api/events`,
-server-sent events carrying each audit record (`record`, with the
-timeline's `line` and a category `cat`) and a status every second
-(`status`). The page has no build step. Scripts can use the token as a
+`internal/panel` serves three embedded files and these endpoints, all
+behind the login: `GET /api/status`, a snapshot of the bot,
+`GET /api/events`, server-sent events carrying each audit record (`record`,
+with the timeline's `line` and a category `cat`) and a status every second
+(`status`), and `POST /api/act/{stop,home,logout}` for the buttons, which
+answers `{"text": …}` with 200, 404 for an unknown action or 409 when it
+could not be done. `GET /api/settings` lists the runtime settings with who
+set each, `POST /api/setting` with `{"key": …, "value": …}` changes one as
+the panel (400 bad value, 404 unknown key, 409 pinned or owners-only), and
+`GET /api/models` lists the voice's models. `GET /api/days` lists the
+audit files, `GET /api/timeline?day=…[&before=…]` reads one, and
+`GET /api/task?id=…&at=…` gives a task's records from the run going at
+`at`. A press or a change must carry
+an `X-Renki-Act` header: a page on
+another site cannot add one without the browser asking this server first,
+which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a
 bearer token: `curl -H "Authorization: Bearer $TOKEN" http://…/api/status`.

@@ -13,6 +13,8 @@ import (
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
@@ -37,6 +39,10 @@ type PanelStatus struct {
 	Nicknames []string         `json:"nicknames"`
 	Owners    []string         `json:"owners"`
 	Rules     config.HomeRules `json:"homeRules"`
+	// Model is the voice's model now; Voice is false when the bot answers
+	// the command grammar only.
+	Voice bool           `json:"voice"`
+	Model settings.Model `json:"model"`
 }
 
 // PanelHome is the home in the bot's current world.
@@ -54,7 +60,8 @@ func (a *App) PanelStatus(version string) PanelStatus {
 	ps := PanelStatus{Version: version, Connected: st.Connected, Character: st.Character, Phase: st.Phase, Task: st.Task,
 		AgentName: a.Config.AgentName, Nicknames: a.Settings.Values().Nicknames,
 		Owners: a.Settings.Values().Owners, Rules: a.Home.Rules(),
-		PerceptionRadius: a.Config.Perception.Radius}
+		PerceptionRadius: a.Config.Perception.Radius,
+		Voice:            a.Voice != nil && a.Settings.Values().Voice, Model: a.Settings.Values().Model}
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		if s.Phase == protocol.PhaseInWorld {
@@ -70,6 +77,57 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		}
 	}
 	return ps
+}
+
+// models is the voice's model list, or nil when the voice cannot list them.
+func (a *App) models() func(context.Context) ([]string, error) {
+	if l, ok := a.Voice.(interface {
+		Models(context.Context) ([]string, error)
+	}); ok {
+		return l.Models
+	}
+	return nil
+}
+
+// PanelAct does what the panel's buttons ask: stop, go home or log out.
+// Errors are worded for the page.
+func (a *App) PanelAct(ctx context.Context, action string) (string, error) {
+	var err error
+	if action == "stop" || action == "home" {
+		// An order, as from chat: it resets the idle clock and wins over
+		// whatever a death left pending (internal/home).
+		a.Home.Touch()
+		a.Home.Ordered()
+	}
+	switch action {
+	case "stop":
+		if _, err = a.Session.Dispatch(ctx, session.Order{Task: protocol.TaskStop}); err == nil {
+			return "Stopped.", nil
+		}
+	case "home":
+		if _, err = a.Home.GoHome(ctx, nil, "the panel"); err == nil {
+			return "Heading home.", nil
+		}
+	case "logout":
+		if err = a.Session.Logout(ctx); err == nil {
+			return "Logging out.", nil
+		}
+	default:
+		return "", panel.ErrUnknownAction
+	}
+	switch {
+	case errors.Is(err, session.ErrNotConnected):
+		return "", errors.New("the bot is not connected")
+	case errors.Is(err, session.ErrNotAllowed):
+		return "", errors.New("that task is not in allowedTasks")
+	case errors.Is(err, home.ErrNoHome):
+		return "", errors.New(`no home in this world yet; say "set home" in the game`)
+	case errors.Is(err, home.ErrNoWorld):
+		return "", errors.New("the bot is not in a world")
+	case errors.Is(err, home.ErrStranded):
+		return "", errors.New("the bot carries too much to move")
+	}
+	return "", err
 }
 
 // panelRetry is how long ServePanel waits before trying to listen again.
@@ -98,10 +156,14 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 	}
 	srv := &http.Server{
 		Handler: panel.Handler(panel.Options{
-			Token:  a.Config.Panel.Token,
-			Log:    trail,
-			Status: func() any { return a.PanelStatus(version) },
-			Logger: log,
+			Token:    a.Config.Panel.Token,
+			Log:      trail,
+			Status:   func() any { return a.PanelStatus(version) },
+			Act:      a.PanelAct,
+			Settings: a.Settings,
+			Models:   a.models(),
+			AuditDir: a.Config.Audit.Dir,
+			Logger:   log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 		BaseContext:       func(net.Listener) context.Context { return ctx },

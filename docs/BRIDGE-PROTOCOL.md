@@ -559,7 +559,10 @@ chat event
   `allowDrop` does too. It needs `drop` in `allowedTasks`, and the controller
   warns at start when `overload.drop` is on without it.
 - **Runtime settings.** `owners`, `nicknames`, `allowedTasks`, the voice on
-  or off, the `home` rules and `overload.drop` can change while the bot runs.
+  or off, the voice's model (`model.provider`, `model.name`,
+  `model.baseURL`, seeded from `llm.terva`; the key stays in the variable
+  `apiKeyEnv` names), the `home` rules and `overload.drop` can change while
+  the bot runs.
   The config file is the base. Changes are kept in `dataDir/settings.json`,
   each with who made it (`owner:<name>`, `panel`, `agent`) and when, and
   are written to the audit log as "setting changed". A reset returns a

@@ -31,6 +31,8 @@ type App struct {
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
 	Settings *settings.Store
+	// Voice is the LLM's voice, or nil with the command grammar only.
+	Voice chat.Voice
 }
 
 // New builds a controller from cfg. voice may be nil, which leaves the bot
@@ -67,7 +69,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Logger:   log.With("part", "chat"),
 	}, s)
 	s.SetListener(brain)
-	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set,
+	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice,
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,

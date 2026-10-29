@@ -42,7 +42,8 @@ let lastStateLine = 0;
 for (const box of document.querySelectorAll(".filters input[data-cat]")) {
   box.addEventListener("change", () => {
     box.checked ? shown.add(box.dataset.cat) : shown.delete(box.dataset.cat);
-    for (const li of feed.children) li.classList.toggle("hidden", !shown.has(li.dataset.cat));
+    for (const li of [...feed.children, ...$("history").children])
+      li.classList.toggle("hidden", !!li.dataset.cat && !shown.has(li.dataset.cat));
   });
 }
 
@@ -53,12 +54,7 @@ function addLine(ev) {
     if (now - lastStateLine < 1000) return;
     lastStateLine = now;
   }
-  const li = document.createElement("li");
-  li.textContent = ev.line;
-  li.dataset.cat = ev.cat;
-  li.className = ev.cat;
-  if (ev.level === "WARN") li.classList.add("warn");
-  if (ev.level === "ERROR") li.classList.add("error");
+  const li = lineItem(ev);
   if (!shown.has(ev.cat)) li.classList.add("hidden");
   const atBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 20;
   feed.append(li);
@@ -66,10 +62,143 @@ function addLine(ev) {
   if (atBottom && !$("pause").checked) feed.scrollTop = feed.scrollHeight;
 }
 
+// lineItem is one record as a line, with a link to its task's view.
+function lineItem(ev) {
+  const li = document.createElement("li");
+  li.dataset.cat = ev.cat;
+  li.className = ev.cat;
+  if (ev.level === "WARN") li.classList.add("warn");
+  if (ev.level === "ERROR") li.classList.add("error");
+  if (ev.task) {
+    const b = document.createElement("button");
+    b.className = "task-link";
+    b.textContent = ev.task;
+    b.title = `Everything about ${ev.task}`;
+    b.addEventListener("click", () => openTask(ev.task, ev.at));
+    li.append(b);
+  }
+  li.append(ev.line);
+  return li;
+}
+
+// ---- past days and tasks ----
+
+async function loadDays() {
+  const res = await fetch("/api/days").catch(() => null);
+  if (!res || !res.ok) return;
+  const sel = $("day");
+  const keep = sel.value;
+  const days = await res.json();
+  sel.replaceChildren(new Option("Live", ""), ...days.map((d) => new Option(`${d.day} (${(d.bytes / 1e6).toFixed(0)} MB)`, d.day)));
+  sel.value = keep;
+}
+
+// showDay reads a day's records into the history list, newest last; before
+// pages back to earlier ones.
+let dayRead = 0; // which read is the newest, so a late answer is dropped
+
+async function showDay(day, before, skip) {
+  const hist = $("history");
+  const read = ++dayRead; // going back to live ends a read in flight too
+  const live = day === "";
+  feed.hidden = !live;
+  hist.hidden = live;
+  if (live) return true;
+  if (!before) hist.replaceChildren(Object.assign(document.createElement("li"), { textContent: "Reading…" }));
+  const q = new URLSearchParams({ day });
+  if (before) q.set("before", before);
+  if (skip) q.set("skip", skip);
+  const res = await fetch(`/api/timeline?${q}`).catch(() => null);
+  if (read !== dayRead) return false;
+  if (!res || !res.ok) {
+    const err = Object.assign(document.createElement("li"), {
+      textContent: res ? await res.text() : "the controller did not answer",
+      className: "error",
+    });
+    // A failed page back keeps what is shown, and its button to try again.
+    before ? hist.prepend(err) : hist.replaceChildren(err);
+    return false;
+  }
+  const tl = await res.json();
+  if (read !== dayRead) return false;
+  const items = tl.events.filter((ev) => ev.cat !== "perception").map((ev) => {
+    const li = lineItem(ev);
+    if (!shown.has(ev.cat)) li.classList.add("hidden");
+    return li;
+  });
+  if (tl.more && tl.events.length) {
+    const more = document.createElement("li");
+    const b = document.createElement("button");
+    b.className = "earlier";
+    b.textContent = "Load earlier";
+    const oldest = tl.events[0].at;
+    // How many records of the oldest instant are shown, with any shown
+    // from it before.
+    const atOldest = tl.events.filter((ev) => ev.at === oldest).length + (before === oldest ? skip || 0 : 0);
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      if (await showDay(day, oldest, atOldest)) more.remove();
+      else b.disabled = false;
+    });
+    more.append(b);
+    items.unshift(more);
+  }
+  if (before) {
+    hist.prepend(...items);
+  } else {
+    hist.replaceChildren(...items);
+    hist.scrollTop = hist.scrollHeight;
+  }
+  return true;
+}
+
+let taskRead = 0;
+
+async function openTask(id, at) {
+  const dlg = $("task-view");
+  const read = ++taskRead;
+  $("task-title").textContent = `${id}: reading…`;
+  $("task-lines").replaceChildren();
+  if (!dlg.open) dlg.showModal();
+  const res = await fetch(`/api/task?${new URLSearchParams({ id, at })}`).catch(() => null);
+  if (read !== taskRead) return;
+  if (!res || !res.ok) {
+    $("task-title").textContent = `${id}: ${res ? await res.text() : "the controller did not answer"}`;
+    return;
+  }
+  const evs = await res.json();
+  if (read !== taskRead) return;
+  $("task-lines").replaceChildren(...evs.map(lineItem));
+  $("task-title").textContent = taskTitle(id, evs);
+}
+
+// taskTitle says what the task was, how it ended and how long it took.
+function taskTitle(id, evs) {
+  let name = "", end = "", first, last;
+  for (const ev of evs) {
+    const f = ev.frame;
+    if (ev.task !== id) continue;
+    first ??= Date.parse(ev.at);
+    last = Date.parse(ev.at);
+    if (f?.type === "task" && f.id === id) name = f.task;
+    if (f?.type === "task" && f.re === id && ["succeeded", "failed", "cancelled", "rejected"].includes(f.status))
+      end = f.status + (f.reason ? ` (${f.reason})` : "");
+  }
+  const secs = first != null ? ((last - first) / 1000).toFixed(1) : "?";
+  return `${id}${name ? " " + name : ""}: ${end || "no end seen"}, ${secs} s`;
+}
+
+$("task-close").addEventListener("click", () => $("task-view").close());
+$("day").addEventListener("focus", loadDays);
+$("day").addEventListener("change", () => showDay($("day").value));
+
 // ---- records into the map ----
 
 function onRecord(ev) {
   addLine(ev);
+  // A change from chat or another page shows here too.
+  if (ev.kind === "log" && (ev.msg === "setting changed" || ev.msg === "setting pinned") && $("settings").open)
+    loadSettings();
   const f = ev.frame;
   if (!f) return;
   switch (f.type) {
@@ -183,6 +312,8 @@ function chip(id, text, cls) {
 
 function onStatus(s) {
   chip("link", s.connected ? "connected" : "no plugin", s.connected ? "on" : "off");
+  for (const b of document.querySelectorAll("button.act")) b.disabled = !s.connected || acting;
+  onModel(s);
   chip("who", s.character ? `${s.character}${s.world ? " in " + s.world : ""}` : "");
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
@@ -646,6 +777,277 @@ function describe(m) {
 }
 window.addEventListener("resize", draw);
 
+// ---- buttons ----
+
+let acting = false;
+let resultTimer = 0;
+
+const CONFIRM = {
+  logout: "Log the bot's character out of the game? It will need the VM to log back in.",
+};
+
+async function act(action) {
+  if (CONFIRM[action] && !confirm(CONFIRM[action])) return;
+  const out = $("act-result");
+  const buttons = document.querySelectorAll("button.act");
+  acting = true;
+  buttons.forEach((b) => (b.disabled = true));
+  let text, ok;
+  try {
+    const res = await fetch(`/api/act/${action}`, { method: "POST", headers: { "X-Renki-Act": "1" } });
+    if (res.status === 401) return void (location.href = "/login");
+    const body = await res.json().catch(() => ({}));
+    ok = res.ok;
+    text = body.text || res.statusText;
+  } catch (e) {
+    ok = false;
+    text = "the controller did not answer";
+  } finally {
+    acting = false;
+  }
+  // The next status re-enables the buttons if the bot is still connected.
+  out.textContent = text;
+  out.className = ok ? "" : "error";
+  clearTimeout(resultTimer);
+  resultTimer = setTimeout(() => (out.textContent = ""), 8000);
+}
+
+for (const b of document.querySelectorAll("button.act")) b.addEventListener("click", () => act(b.dataset.act));
+
+// ---- voice ----
+
+// The model the voice uses now, what the backend offers, and whether the
+// user has picked one in the list that is not yet in use.
+let model = { voice: false, name: "" };
+let offered = [];
+let picked = false;
+let modelError = "";
+let modelTimer = 0;
+
+function onModel(s) {
+  const changed = s.model?.name !== model.name;
+  model = { voice: !!s.voice, name: s.model?.name || "" };
+  $("voice-summary").textContent = model.voice ? model.name || "terva's default" : "off: commands only";
+  if (changed) {
+    picked = false;
+    fillModels();
+    loadModelNote();
+  }
+}
+
+function fillModels() {
+  const sel = $("model-select");
+  const keep = picked ? sel.value : model.name;
+  const names = [...new Set([model.name, ...offered].filter(Boolean))].sort();
+  // Rebuilt when the names or the one in use change, so the mark follows.
+  const key = model.name + "\n" + names.join("\n");
+  if (sel.dataset.names !== key) {
+    sel.dataset.names = key;
+    sel.replaceChildren(...names.map((n) => new Option(n === model.name ? `${n} (in use)` : n, n)));
+  }
+  sel.value = keep;
+  if (sel.value !== keep) {
+    picked = false; // the pick is no longer offered
+    sel.value = model.name;
+  }
+}
+
+async function loadModels() {
+  const res = await fetch("/api/models").catch(() => null);
+  const body = res && res.ok ? await res.json() : { error: "the controller did not answer" };
+  offered = body.models || [];
+  modelError = body.error ? `Cannot list the backend's models: ${body.error}` : "";
+  fillModels();
+  loadModelNote();
+}
+
+// Who chose the model in use, from the settings store.
+async function loadModelNote() {
+  const res = await fetch("/api/settings").catch(() => null);
+  const entries = res && res.ok ? await res.json() : [];
+  const e = entries.find((x) => x.key === "model.name");
+  let who = "";
+  if (e?.set) who = `Chosen by ${e.set.by}, ${new Date(e.set.at).toLocaleString()}.`;
+  else if (e) who = "As the config file has it.";
+  $("model-note").textContent = [who, modelError].filter(Boolean).join(" ");
+}
+
+async function useModel() {
+  const name = $("model-select").value;
+  const out = $("model-result");
+  if (!name || name === model.name) return;
+  const res = await fetch("/api/setting", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+    body: JSON.stringify({ key: "model.name", value: name }),
+  }).catch(() => null);
+  const body = res ? await res.json().catch(() => ({})) : {};
+  out.className = res?.ok ? "" : "error";
+  out.textContent = res?.ok ? "The next reply uses it." : body.text || "the controller did not answer";
+  if (res?.ok) {
+    picked = false;
+    model.name = ""; // the next status brings the new one and the note
+  }
+  clearTimeout(modelTimer);
+  modelTimer = setTimeout(() => (out.textContent = ""), 8000);
+}
+
+$("model-select").addEventListener("change", () => (picked = true));
+$("model-use").addEventListener("click", useModel);
+$("model-refresh").addEventListener("click", loadModels);
+$("voice").addEventListener("toggle", () => $("voice").open && loadModels());
+
+// ---- settings ----
+
+// What each runtime setting is, for the page (internal/settings Keys).
+const SETTING = {
+  owners: "Owners, who give orders (comma-separated)",
+  nicknames: "Nicknames it also answers to",
+  allowedTasks: "Tasks the bot may be sent",
+  voice: "LLM replies in chat",
+  "model.provider": "Voice: terva provider",
+  "model.name": "Voice: model",
+  "model.baseURL": "Voice: backend URL",
+  "home.whenLost": "Go home when it loses its leader",
+  "home.whenStuck": "Go home when stuck",
+  "home.afterOutage": "Go home after an outage",
+  "home.idleMinutes": "Go home after idling this many minutes (0: never)",
+  "home.afterDeath": "After a death",
+  "overload.drop": "Drop things when carrying too much",
+};
+const AFTER_DEATH = ["home", "resume", "stay"];
+// Lists, which come as null when empty.
+const LISTS = new Set(["owners", "nicknames", "allowedTasks"]);
+
+// fresh is the key just changed from this page, whose row is rebuilt
+// even while it has the focus.
+async function loadSettings(fresh) {
+  const res = await fetch("/api/settings").catch(() => null);
+  if (!res || !res.ok) return;
+  const entries = await res.json();
+  // A row being edited stays as it is, so a refresh does not throw the
+  // edit away; the rest show the values now.
+  const a = document.activeElement;
+  const typing = a?.matches?.('#settings-table input[type="text"], #settings-table input[type="number"], #settings-table select');
+  const editing = typing ? a.closest("tr") : null;
+  const table = $("settings-table");
+  const old = [...table.querySelectorAll("tr")];
+  if (!editing || old.length !== entries.length) {
+    table.replaceChildren(...entries.map(settingRow));
+  } else {
+    // Swapped one by one, so the row being typed in is never detached and
+    // keeps the focus.
+    entries.forEach((e, i) => {
+      if (old[i] !== editing || e.key === fresh) old[i].replaceWith(settingRow(e));
+    });
+  }
+  const changed = entries.filter((e) => e.set).length;
+  $("settings-summary").textContent = changed ? `${changed} changed from the config` : "as the config has them";
+}
+
+function settingRow(e) {
+  const tr = document.createElement("tr");
+  tr.dataset.key = e.key;
+  if (e.set) tr.className = "changed";
+  const key = document.createElement("td");
+  key.className = "key";
+  key.textContent = SETTING[e.key] || e.key;
+  key.title = e.key;
+  const cell = document.createElement("td");
+  cell.append(settingInput(e));
+  const src = document.createElement("td");
+  src.className = "src";
+  src.textContent = e.set ? `${e.set.by}, ${new Date(e.set.at).toLocaleString()}` : "config";
+  if (e.pin) src.textContent += " · pinned";
+  src.title = `config: ${JSON.stringify(e.config)}`;
+  const acts = document.createElement("td");
+  if (e.set) acts.append(button("Reset", "Back to the config's value", () => changeSetting({ key: e.key, reset: true })));
+  acts.append(
+    button(e.pin ? "Unpin" : "Pin", e.pin ? "Let the agent change it" : "Keep the agent from changing it", () =>
+      changeSetting({ key: e.key, pin: !e.pin }),
+    ),
+  );
+  tr.append(key, cell, src, acts);
+  return tr;
+}
+
+function button(text, title, onClick) {
+  const b = document.createElement("button");
+  b.textContent = text;
+  b.title = title;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function settingInput(e) {
+  const v = e.value;
+  const send = (value) => changeSetting({ key: e.key, value });
+  let el;
+  if (typeof v === "boolean") {
+    el = document.createElement("input");
+    el.type = "checkbox";
+    el.checked = v;
+    el.addEventListener("change", () => send(el.checked));
+  } else if (typeof v === "number") {
+    el = document.createElement("input");
+    el.type = "number";
+    el.min = "0";
+    el.step = "any";
+    el.value = v;
+    el.addEventListener("change", () => {
+      // An empty or unreadable box is not zero, which would turn a rule off.
+      if (el.value.trim() === "" || !Number.isFinite(Number(el.value))) {
+        el.value = v;
+        settingResult(false, "That is not a number.");
+        return;
+      }
+      send(Number(el.value));
+    });
+  } else if (e.key === "home.afterDeath") {
+    el = document.createElement("select");
+    el.append(...AFTER_DEATH.map((o) => new Option(o, o)));
+    el.value = v;
+    el.addEventListener("change", () => send(el.value));
+  } else if (Array.isArray(v) || LISTS.has(e.key)) {
+    el = document.createElement("input");
+    el.type = "text";
+    el.value = (v || []).join(", ");
+    el.addEventListener("change", () =>
+      send(el.value.split(",").map((x) => x.trim()).filter(Boolean)),
+    );
+  } else {
+    el = document.createElement("input");
+    el.type = "text";
+    el.value = v ?? "";
+    el.addEventListener("change", () => send(el.value.trim()));
+  }
+  el.setAttribute("aria-label", SETTING[e.key] || e.key);
+  return el;
+}
+
+let settingsTimer = 0;
+
+async function changeSetting(body) {
+  const res = await fetch("/api/setting", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+    body: JSON.stringify(body),
+  }).catch(() => null);
+  const answer = res ? await res.json().catch(() => ({})) : {};
+  settingResult(!!res?.ok, answer.text || "the controller did not answer");
+  loadSettings(body.key); // the value now, which a refused change leaves as it was
+}
+
+function settingResult(ok, text) {
+  const out = $("settings-result");
+  out.className = ok ? "" : "error";
+  out.textContent = text;
+  clearTimeout(settingsTimer);
+  settingsTimer = setTimeout(() => (out.textContent = ""), 8000);
+}
+
+$("settings").addEventListener("toggle", () => $("settings").open && loadSettings());
+
 // ---- the stream ----
 
 function connect() {
@@ -661,4 +1063,5 @@ function connect() {
 }
 
 connect();
+loadDays();
 draw();

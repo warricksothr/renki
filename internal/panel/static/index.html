@@ -17,7 +17,13 @@
     <span id="hp" class="chip"></span>
     <span id="load" class="chip"></span>
     <span id="home" class="chip"></span>
-    <form method="post" action="/logout"><button>Log out</button></form>
+    <span class="acts">
+      <button class="act" data-act="stop" disabled title="Stop whatever the bot is doing">Stop</button>
+      <button class="act" data-act="home" disabled title="Send the bot home">Go home</button>
+      <button class="act" data-act="logout" disabled title="Log the bot's character out of the game">Log the bot out</button>
+      <span id="act-result" role="status"></span>
+    </span>
+    <form method="post" action="/logout"><button title="Log this page out">Log out</button></form>
   </header>
   <main>
     <section id="map-pane">
@@ -56,6 +62,21 @@
       </ul>
     </section>
     <section id="feed-pane">
+      <details id="voice">
+        <summary>Voice <span id="voice-summary"></span></summary>
+        <div class="voice-row">
+          <label>Model <select id="model-select"></select></label>
+          <button id="model-use">Use</button>
+          <button id="model-refresh" title="Ask the backend which models it offers">Refresh</button>
+          <span id="model-result" role="status"></span>
+        </div>
+        <p id="model-note"></p>
+      </details>
+      <details id="settings">
+        <summary>Settings <span id="settings-summary"></span></summary>
+        <table id="settings-table"></table>
+        <p id="settings-result" role="status"></p>
+      </details>
       <details id="inventory" open>
         <summary>Inventory <span id="inv-summary">not yet seen</span></summary>
         <div id="inv-grid" role="grid" aria-label="The bot's inventory, as laid out in the game"></div>
@@ -68,8 +89,14 @@
         <label><input type="checkbox" data-cat="other"> Other</label>
         <label><input type="checkbox" data-cat="state"> State</label>
         <label class="push"><input type="checkbox" id="pause"> Pause</label>
+        <select id="day" title="Watch live, or read a past day's audit log"><option value="">Live</option></select>
       </div>
       <ol id="feed"></ol>
+      <ol id="history" class="feed" hidden></ol>
+      <dialog id="task-view">
+        <header><h2 id="task-title"></h2><button id="task-close" title="Close">Close</button></header>
+        <ol id="task-lines" class="feed"></ol>
+      </dialog>
     </section>
   </main>
 </body>

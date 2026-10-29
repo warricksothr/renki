@@ -17,8 +17,32 @@ import (
 func base() config.Config {
 	c := config.Default()
 	c.Owners = []string{"Sothr"}
-	c.LLM = &config.LLM{}
+	c.LLM = &config.LLM{Terva: json.RawMessage(`{"provider":"openai-compatible","model":"gemma","baseURL":"http://cpa/v1","apiKeyEnv":"K"}`)}
 	return c
+}
+
+// TestTheModelSeedsFromTervaAndSwitches: the voice's model starts as
+// llm.terva names it, and a change keeps the provider and base URL.
+func TestTheModelSeedsFromTervaAndSwitches(t *testing.T) {
+	s := open(t, "")
+	if m := s.Values().Model; m != (Model{Provider: "openai-compatible", Name: "gemma", BaseURL: "http://cpa/v1"}) {
+		t.Errorf("seeded %+v", m)
+	}
+	if err := s.Set("model.name", json.RawMessage(`"claude-haiku-5-5"`), ByPanel); err != nil {
+		t.Fatal(err)
+	}
+	if m := s.Values().Model; m.Name != "claude-haiku-5-5" || m.BaseURL != "http://cpa/v1" {
+		t.Errorf("after the switch %+v", m)
+	}
+	// The agent may pick a model, but not send the key somewhere else.
+	if err := s.Set("model.name", json.RawMessage(`"gemma"`), ByAgent); err != nil {
+		t.Errorf("agent picking a model: %v", err)
+	}
+	for _, k := range []string{"model.baseURL", "model.provider"} {
+		if err := s.Set(k, json.RawMessage(`"http://elsewhere/v1"`), ByAgent); !errors.Is(err, ErrNotAllowed) {
+			t.Errorf("agent setting %s: %v", k, err)
+		}
+	}
 }
 
 func open(t *testing.T, path string) *Store {

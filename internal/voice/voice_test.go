@@ -1,11 +1,16 @@
 package voice
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/warricksothr/renki/internal/settings"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -168,5 +173,62 @@ func TestMissingKeyEnvIsAnError(t *testing.T) {
 	t.Setenv("RENKI_TEST_KEY", "")
 	if _, err := New(Options{Terva: Config{APIKeyEnv: "RENKI_TEST_KEY"}}); err == nil {
 		t.Fatal("want an error for an unset key variable")
+	}
+}
+
+// TestEachReplyUsesTheModelNowAndLogsItsCost: a switch applies to the next
+// reply, and the log line names the model with its latency and tokens.
+func TestEachReplyUsesTheModelNowAndLogsItsCost(t *testing.T) {
+	model := settings.Model{Provider: "openai-compatible", Name: "gemma", BaseURL: "http://cpa/v1"}
+	var logged bytes.Buffer
+	at := time.Date(2026, 10, 29, 9, 0, 0, 0, time.UTC)
+	f := &fakeRuntime{text: "Aye.", usage: sdk.Usage{Input: 900, Output: 12}}
+	v, err := New(Options{
+		Model:  func() settings.Model { return model },
+		Logger: slog.New(slog.NewTextHandler(&logged, nil)),
+		Now:    func() time.Time { return at },
+		newRuntime: func(c sdk.Config) (runtime, error) {
+			f.cfg = c
+			at = at.Add(700 * time.Millisecond) // the model takes its time
+			return f, nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.Reply(context.Background(), owner)
+	model.Name = "claude-haiku-5-5"
+	v.Reply(context.Background(), owner)
+	if f.cfg.Model != "claude-haiku-5-5" || f.cfg.BaseURL != "http://cpa/v1" || f.cfg.Provider != "openai-compatible" {
+		t.Errorf("sdk config %+v", f.cfg)
+	}
+	for _, want := range []string{"model=gemma", "model=claude-haiku-5-5", "ms=700", "tokensIn=900", "tokensOut=12"} {
+		if !strings.Contains(logged.String(), want) {
+			t.Errorf("log lacks %q:\n%s", want, logged.String())
+		}
+	}
+}
+
+func TestModelsListsTheBackend(t *testing.T) {
+	t.Setenv("RENKI_TEST_KEY", "k-123")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" || r.Header.Get("Authorization") != "Bearer k-123" {
+			http.Error(w, "no", http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"object":"list","data":[{"id":"gemma"},{"id":"claude-haiku-5-5"},{"id":"gemma"}]}`))
+	}))
+	defer srv.Close()
+	v, err := New(Options{Terva: Config{Provider: "openai-compatible", BaseURL: srv.URL + "/v1/", APIKeyEnv: "RENKI_TEST_KEY"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := v.Models(context.Background())
+	if err != nil || !slices.Equal(got, []string{"claude-haiku-5-5", "gemma"}) {
+		t.Errorf("models %v, %v", got, err)
+	}
+	v, _ = New(Options{Terva: Config{Provider: "anthropic"}})
+	if _, err := v.Models(context.Background()); err == nil {
+		t.Error("listed models from a backend it cannot ask")
 	}
 }
