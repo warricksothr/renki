@@ -28,6 +28,9 @@ namespace Renki.Plugin
                         var obj = FindEntity(pk.Entity);
                         if (obj == null || !obj.TryGetComponent<ItemDrop>(out var drop) || drop.m_itemData == null)
                             throw new TaskRefused(Wire.ReasonInvalidTarget, $"no drop {pk.Entity} in range");
+                        // Without a prefab its arrival in the pack cannot be told.
+                        if (drop.m_itemData.m_dropPrefab == null)
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, $"{pk.Entity} has no prefab to count");
                         // Not even one fits: the game would leave it lying there.
                         if (!Player.m_localPlayer.GetInventory().CanAddItem(drop.m_itemData, 1))
                             throw new TaskRefused(Wire.ReasonInventoryFull, $"no room for {drop.m_itemData.m_shared.m_name}");

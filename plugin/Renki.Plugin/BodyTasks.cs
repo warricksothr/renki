@@ -175,9 +175,14 @@ namespace Renki.Plugin
         /// a drop the game will not hand over (someone else holds it).</summary>
         const int Tries = 3;
 
-        readonly ItemDrop drop;
+        /// <summary>How far from where the drop was to look for the stack the
+        /// game merged it into.</summary>
+        const float MergedWithin = 2.5f;
+
+        ItemDrop drop;
         readonly string prefab;
         readonly int before;
+        int taken;
         readonly Walker walker = new Walker();
         Vector3 goal;
         float arrivedAt = -1;
@@ -186,7 +191,7 @@ namespace Renki.Plugin
         public PickupTask(ItemDrop drop)
         {
             this.drop = drop;
-            prefab = drop.m_itemData.m_dropPrefab != null ? drop.m_itemData.m_dropPrefab.name : PrefabOf(drop.gameObject);
+            prefab = drop.m_itemData.m_dropPrefab.name;
             var p = Player.m_localPlayer;
             before = Carried(p, prefab);
             goal = drop.transform.position;
@@ -198,7 +203,16 @@ namespace Renki.Plugin
         {
             var p = Player.m_localPlayer;
             if (p == null) return Outcome.Failed(Wire.ReasonStopped, "no player");
-            var took = Carried(p, prefab) - before;
+            // The most it has gained: using some on the way does not hide it.
+            taken = System.Math.Max(taken, Carried(p, prefab) - before);
+            var took = taken;
+            if (drop == null && took == 0 && Merged() is ItemDrop merged)
+            {
+                // The game merges nearby drops of an item into one stack.
+                drop = merged;
+                goal = drop.transform.position;
+                walker.SetGoal(p.transform.position, goal);
+            }
             if (drop == null)
             {
                 // Gone: into the bot's pack, or someone else's, or despawned.
@@ -217,6 +231,8 @@ namespace Renki.Plugin
             if (V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= Close)
             {
                 Driver.Stand();
+                // Standing still on purpose is not being stuck.
+                walker.ResetStuck(pos);
                 if (arrivedAt < 0) arrivedAt = Time.time;
                 if (Time.time - arrivedAt < AutoFor) return null;
                 if (!p.GetInventory().CanAddItem(drop.m_itemData, 1))
@@ -244,19 +260,27 @@ namespace Renki.Plugin
 
         public void Cancel() => Driver.Stand();
 
+        /// <summary>A drop of the same item near where the target was, which
+        /// the game may have merged it into.</summary>
+        ItemDrop Merged()
+        {
+            ItemDrop best = null;
+            var bestDistance = MergedWithin;
+            foreach (var d in ItemDrop.s_instances)
+            {
+                if (d == null || d.m_itemData?.m_dropPrefab == null || d.m_itemData.m_dropPrefab.name != prefab) continue;
+                var dist = Vector3.Distance(d.transform.position, goal);
+                if (dist <= bestDistance) (best, bestDistance) = (d, dist);
+            }
+            return best;
+        }
+
         static int Carried(Player p, string prefab)
         {
             var n = 0;
             foreach (var item in p.GetInventory().GetAllItems())
                 if (item.m_dropPrefab != null && item.m_dropPrefab.name == prefab) n += item.m_stack;
             return n;
-        }
-
-        static string PrefabOf(GameObject go)
-        {
-            var name = go.name;
-            var clone = name.IndexOf("(Clone)", System.StringComparison.Ordinal);
-            return (clone >= 0 ? name.Substring(0, clone) : name).Trim();
         }
     }
 

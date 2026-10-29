@@ -367,8 +367,10 @@ Notes:
 
 - `pickup` walks to the drop and lets the game's auto-pickup take it, as it
   does for any player within about 2 m, picking it up directly if it is still
-  there once the bot stands on it. It succeeds when the bot carries more of
-  the item than it did, and fails with `inventory_full` when none fits,
+  there once the bot stands on it. A drop the game merges into a nearby stack
+  of the same item is followed there. It succeeds when the bot carries more
+  of the item than it did, which can also come from another stack of it that
+  auto-pickup took on the way, and fails with `inventory_full` when none fits,
   `target_lost` when the drop is gone and the bot did not get it, or `stuck`
   as `move_to` does. It needs `allowGather`.
 - `harvest` covers approaching the target, equipping the best tool that meets
