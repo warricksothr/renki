@@ -813,7 +813,6 @@ async function loadSettings(fresh) {
     // keeps the focus.
     entries.forEach((e, i) => {
       if (old[i] !== editing || e.key === fresh) old[i].replaceWith(settingRow(e));
-      else skipped = true;
     });
   }
   const changed = entries.filter((e) => e.set).length;
@@ -922,15 +921,6 @@ function settingResult(ok, text) {
 }
 
 $("settings").addEventListener("toggle", () => $("settings").open && loadSettings());
-
-// Set when a refresh left a row being typed in as it was; leaving the
-// field without a change brings it up to date.
-let skipped = false;
-$("settings-table").addEventListener("focusout", () => {
-  if (!skipped) return;
-  skipped = false;
-  setTimeout(loadSettings, 100); // after the change event's own refresh
-});
 
 // ---- the stream ----
 
