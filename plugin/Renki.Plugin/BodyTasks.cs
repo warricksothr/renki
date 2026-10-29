@@ -31,7 +31,6 @@ namespace Renki.Plugin
         /// back to crosses deep water. Null while it can.</summary>
         public string Blocked { get; private set; }
 
-        /// <summary>The failure for a walk the walker will not make, or null.</summary>
         /// <summary>The deep_water failure, once the bot is on dry land. A
         /// swimming bot is not left treading water: Steer takes it ashore
         /// first, and the re-plan there decides.</summary>
@@ -195,7 +194,7 @@ namespace Renki.Plugin
         V3? shore;
         readonly List<V3> triedShores = new List<V3>();
         double shoreBest;
-        float shoreGainAt, noShoreAt = float.MinValue;
+        float shoreGainAt, noShoreAt = float.MinValue, dryAt;
         bool swimming;
 
         /// <summary>A swimming bot walks: running drains the stamina it
@@ -211,12 +210,15 @@ namespace Renki.Plugin
             if (p == null || !p.IsSwimming())
             {
                 shore = null;
-                triedShores.Clear();
                 if (swimming && p != null)
                 {
                     swimming = false;
+                    dryAt = Time.time;
                     Repath(pos);
                 }
+                // A moment ashore at the foot of a bank it then slides off
+                // does not make the bank worth another try.
+                if (Time.time - dryAt > ShoreStall) triedShores.Clear();
                 return false;
             }
             swimming = true;
