@@ -1,6 +1,9 @@
 package protocol
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestInventoryCountsAndRoom(t *testing.T) {
 	inv := &Inventory{Size: [2]int{2, 2}, Items: []InventoryItem{
@@ -23,5 +26,21 @@ func TestInventoryCountsAndRoom(t *testing.T) {
 	}
 	if got := inv.Room("Stone", 0); got != 1 {
 		t.Errorf("Room(Stone, unknown) = %d; want 1", got)
+	}
+}
+
+func TestEquipableIsWhatEquipCanActOn(t *testing.T) {
+	inv := &Inventory{Items: []InventoryItem{
+		{Prefab: "AxeBronze", Type: "OneHandedWeapon", Equipped: true, Durability: 100, DurabilityMax: 200},
+		{Prefab: "AxeBronze", Type: "OneHandedWeapon", Durability: 200, DurabilityMax: 200}, // a spare of what it holds
+		{Prefab: "Club", Type: "OneHandedWeapon", Durability: 0, DurabilityMax: 100},        // broken
+		{Prefab: "ShieldWood", Type: "Shield", Durability: 50, DurabilityMax: 100},
+		{Prefab: "ShieldWood", Type: "Shield", Durability: 80, DurabilityMax: 100},
+		{Prefab: "ArrowWood", Type: "Ammo"},
+		{Prefab: "Wood", Type: "Material", Stack: 20},
+		{Prefab: "AtgeirAttach", Type: "Attach_Atgeir"},
+	}}
+	if got := inv.Equipable(); !slices.Equal(got, []string{"ShieldWood", "ArrowWood"}) {
+		t.Errorf("equipable %v", got)
 	}
 }

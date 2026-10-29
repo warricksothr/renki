@@ -736,13 +736,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 		Recent:    recent,
 	}
 	if inv := b.d.Inventory(); inv != nil {
-		for _, it := range inv.Items {
-			// What it holds already, or what no slot takes, is no choice.
-			if it.Gear() && !it.Equipped && it.Type != "AmmoNonEquipable" && it.Type != "Customization" &&
-				!slices.Contains(req.Gear, it.Prefab) {
-				req.Gear = append(req.Gear, it.Prefab)
-			}
-		}
+		req.Gear = inv.Equipable()
 	}
 	if owner {
 		req.Tasks = b.d.AllowedTasks()
