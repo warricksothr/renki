@@ -606,7 +606,7 @@ function describe(m) {
     if (i.kind === "door") parts.push(i.open ? "open" : "shut");
     if (i.mine) parts.push("the bot's");
     if (i.tag) parts.push(`"${i.tag}"`);
-    if (i.minTool) parts.push(`needs tool tier ${i.minTool}`);
+    if (i.minTool != null) parts.push(`needs tool tier ${i.minTool}`);
     if (i.stars) parts.push("★".repeat(i.stars));
     if (typeof i.hpFrac === "number") parts.push(`${Math.round(i.hpFrac * 100)}% health`);
     if (i.targetingMe) parts.push("after the bot");
