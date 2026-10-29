@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T00:16:03Z
-updated_at: 2026-10-29T13:58:31Z
+updated_at: 2026-10-29T14:17:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -57,10 +57,22 @@ In every case the navmesh had no path ("no navmesh path; straight line"), so the
 
 ## Acceptance criteria
 
-- [ ] The straight-line fallback does not cross deep water
-- [ ] A swimming bot walks rather than runs, and turns for shore when stamina is low
-- [ ] A stuck give-up does not start a trip home along the same blocked straight line
+- [x] The straight-line fallback does not cross deep water
+- [x] A swimming bot walks rather than runs, and turns for shore when stamina is low
+- [x] A stuck give-up does not start a trip home along the same blocked straight line
 
 ## Implementation plan
 
 Plugin: DeepWater.Crossing samples the straight-line fallback every 2 m (ZoneSystem ground height against m_waterLevel); deeper than 1.4 m, the walker refuses and move_to, pickup and follow fail deep_water. Swimming: walk, and below 30% stamina make for DeepWater.Shore, holding the stuck count. Controller: explains deep_water and does not count it as a reason to go home, so the trip home is not sent along the same water.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T14:17:45Z
+
+Landed on t3/m2 and deployed on 2026-10-29. The plugin loads, and the bot is in the world.
+
+- **Straight-line fallback:** it samples for deep water and fails `deep_water`. Deep water the line starts in does not count, so a bot that is already swimming can leave. Ground in an unloaded zone reads as unknown, not as water.
+- **Swimming:** the bot walks rather than runs. When stamina is low, or when the way on is refused, it makes for the lowest dry point on the nearest ring. It gives up a shore it gets no nearer to after 4 s and tries another, then re-plans once it is out of the water.
+- **Controller:** it explains `deep_water` and does not send the bot home after one. Idling remembers a spot where a trip home failed with `deep_water`, as it already does for `unreachable`.
+
+The criteria are met in code and unit tests (CoreTests and home_test). Nobody was online to walk the bot to the north side of the lake, so the swim itself has not been watched in the game yet. Keep this ticket open until someone has seen it: say "come to me" from z 130 with the bot at home.
