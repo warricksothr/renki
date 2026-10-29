@@ -55,11 +55,10 @@ type Keeper struct {
 	checked bool
 	// active is the last time the bot had a task or was given an order.
 	active time.Time
-	// respawned is set by Respawned and cleared once Tick has acted on it.
-	respawned bool
-	// dead runs from Died to Respawned; ordered is set by an order given in
-	// between, which cancels what the respawn would have done.
-	dead, ordered bool
+	// dead is set while the state shows the bot dead. respawned is set
+	// when it shows it back, unless ordered says an order came in between,
+	// and cleared once Tick has acted on it.
+	dead, ordered, respawned bool
 	// resume picks up what a death cut short, for AfterDeathResume. The
 	// chat brain sets it, since it knows what that was and for whom.
 	resume func(context.Context) bool
@@ -199,23 +198,6 @@ func (k *Keeper) Ordered() {
 	k.mu.Unlock()
 }
 
-// Died notes that the bot died.
-func (k *Keeper) Died() {
-	k.mu.Lock()
-	k.dead, k.ordered = true, false
-	k.mu.Unlock()
-}
-
-// Respawned notes that the bot came back from death. Once it is in the
-// world with nothing to do, Tick resumes, goes home or stays, as
-// rules.AfterDeath says, unless it was given an order while dead.
-func (k *Keeper) Respawned() {
-	k.mu.Lock()
-	k.respawned = !k.ordered
-	k.dead, k.ordered = false, false
-	k.mu.Unlock()
-}
-
 // Touch counts as activity: a player gave an order.
 func (k *Keeper) Touch() {
 	k.mu.Lock()
@@ -252,14 +234,21 @@ func (k *Keeper) Tick(ctx context.Context) {
 		// clock starts again.
 		k.conn, k.checked, k.active = hello, false, now
 	}
-	// The died and respawned events can be missed, across a reconnect for
-	// one, so the state says when the bot is dead too. Coming back keeps
-	// ordered for the respawned event, which may still be on its way.
+	// Death and the respawn come from the state rather than the died and
+	// respawned events, so they are seen in order with any order given in
+	// between, and still seen when an event was lost to a reconnect. Once
+	// it is back in the world with nothing to do, Tick resumes, goes home
+	// or stays, as rules.AfterDeath says, unless it was given an order
+	// while dead.
 	switch {
 	case st.Phase == protocol.PhaseDead && !k.dead:
 		k.dead, k.ordered = true, false
 	case st.Phase == protocol.PhaseInWorld && k.dead:
-		k.dead = false
+		k.dead, k.respawned = false, !k.ordered
+		if k.ordered {
+			k.resume = nil
+		}
+		k.ordered = false
 	}
 	k.mu.Unlock()
 	if st.Phase != protocol.PhaseInWorld {

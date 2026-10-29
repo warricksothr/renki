@@ -390,15 +390,13 @@ func TestVoiceCooldownPerPlayer(t *testing.T) {
 }
 
 type fakeHome struct {
-	world     string
-	home      *protocol.Vec3
-	homeward  map[string]bool
-	trips     []string
-	touched   int
-	respawned int
-	died      int
-	ordered   int
-	resume    func(context.Context) bool
+	world    string
+	home     *protocol.Vec3
+	homeward map[string]bool
+	trips    []string
+	touched  int
+	ordered  int
+	resume   func(context.Context) bool
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -425,8 +423,6 @@ func (h *fakeHome) ReturnOn(reason string) bool {
 }
 func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h.home != nil }
 func (h *fakeHome) Touch()                                        { h.touched++ }
-func (h *fakeHome) Died()                                         { h.died++ }
-func (h *fakeHome) Respawned()                                    { h.respawned++ }
 func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
 func (h *fakeHome) Ordered()                                      { h.resume = nil; h.ordered++ }
 
@@ -483,12 +479,11 @@ func TestAnOrderInTheVoiceCountsAsAnOrder(t *testing.T) {
 	b, f, _ := newBrain(v)
 	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
 	b.opts.Home = h
-	b.Event(&protocol.Event{Event: protocol.EventDied})
 	b.Chat(line("Sothr", "bjorn wait for me where you wake up and then tag along"))
 	<-v.got
 	waitSaid(t, f, 1)
-	if h.died != 1 || h.ordered != 1 || h.touched != 1 {
-		t.Errorf("died %d, ordered %d, touched %d; want 1 each", h.died, h.ordered, h.touched)
+	if h.ordered != 1 || h.touched != 1 {
+		t.Errorf("ordered %d, touched %d; want 1 each", h.ordered, h.touched)
 	}
 
 	// That follow dies too: it is left to resume, for the same player.

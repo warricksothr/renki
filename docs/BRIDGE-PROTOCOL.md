@@ -439,7 +439,10 @@ chat event
   back in the world: `home` (the default) walks home; `resume` picks a
   follow back up for the same player, and goes home if there was none or
   the player has gone (the follow then fails with `target_lost`); `stay`
-  stays at the spawn point. Any order given after the death wins.
+  stays at the spawn point. Any order given after the death wins, except
+  `set home` and `status`. The controller reads the death and the respawn
+  from `state.phase` rather than the `died` and `respawned` events, so a
+  lost event does not lose them.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.
