@@ -708,6 +708,7 @@ function onModel(s) {
 
 function fillModels() {
   const sel = $("model-select");
+  const keep = picked ? sel.value : model.name;
   const names = [...new Set([model.name, ...offered].filter(Boolean))].sort();
   // Rebuilt when the names or the one in use change, so the mark follows.
   const key = model.name + "\n" + names.join("\n");
@@ -715,7 +716,11 @@ function fillModels() {
     sel.dataset.names = key;
     sel.replaceChildren(...names.map((n) => new Option(n === model.name ? `${n} (in use)` : n, n)));
   }
-  if (!picked) sel.value = model.name;
+  sel.value = keep;
+  if (sel.value !== keep) {
+    picked = false; // the pick is no longer offered
+    sel.value = model.name;
+  }
 }
 
 async function loadModels() {

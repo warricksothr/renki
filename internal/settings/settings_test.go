@@ -34,6 +34,15 @@ func TestTheModelSeedsFromTervaAndSwitches(t *testing.T) {
 	if m := s.Values().Model; m.Name != "claude-haiku-5-5" || m.BaseURL != "http://cpa/v1" {
 		t.Errorf("after the switch %+v", m)
 	}
+	// The agent may pick a model, but not send the key somewhere else.
+	if err := s.Set("model.name", json.RawMessage(`"gemma"`), ByAgent); err != nil {
+		t.Errorf("agent picking a model: %v", err)
+	}
+	for _, k := range []string{"model.baseURL", "model.provider"} {
+		if err := s.Set(k, json.RawMessage(`"http://elsewhere/v1"`), ByAgent); !errors.Is(err, ErrNotAllowed) {
+			t.Errorf("agent setting %s: %v", k, err)
+		}
+	}
 }
 
 func open(t *testing.T, path string) *Store {

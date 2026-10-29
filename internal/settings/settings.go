@@ -54,8 +54,9 @@ var Keys = []string{
 }
 
 // ownersOnly are the settings the agent may never change, pinned or not:
-// who gives the orders, and what the bot may be told to do.
-var ownersOnly = []string{"owners", "allowedTasks"}
+// who gives the orders, what the bot may be told to do, and where the
+// voice sends its key.
+var ownersOnly = []string{"owners", "allowedTasks", "model.provider", "model.baseURL"}
 
 // Sources of a change. An owner's is "owner:<name>".
 const (
