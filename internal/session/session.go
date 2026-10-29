@@ -195,7 +195,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			s.carried = m
 		}
 		s.mu.Unlock()
-	case *protocol.Trace:
+	case *protocol.Trace, *protocol.Layout:
 		// For the audit log and the panel, which have them from the
 		// bridge already.
 	case *protocol.Error:

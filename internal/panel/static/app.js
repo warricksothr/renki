@@ -233,17 +233,26 @@ function render() {
 
   grid(w, h, sx, sy);
 
-  // Walls under everything else, as thick as they are, near enough.
+  // Walls under everything else, as thick as they are, near enough. Those
+  // standing on a storey above the bot are faint, so the doorways on its
+  // own show through.
   if (world.walls.length) {
     ctx.strokeStyle = colour("wall");
     ctx.lineWidth = Math.max(2, 0.3 * view.scale);
     ctx.lineCap = "round";
-    ctx.beginPath();
-    for (const wl of world.walls) {
-      ctx.moveTo(sx(wl.a[0]), sy(wl.a[2]));
-      ctx.lineTo(sx(wl.b[0]), sy(wl.b[2]));
+    const floor = world.bot ? world.bot[1] : null;
+    const level = (wl) => floor === null || wl.a[1] - floor < 1.5;
+    for (const own of [false, true]) {
+      ctx.globalAlpha = own ? 1 : 0.3;
+      ctx.beginPath();
+      for (const wl of world.walls) {
+        if (level(wl) !== own) continue;
+        ctx.moveTo(sx(wl.a[0]), sy(wl.a[2]));
+        ctx.lineTo(sx(wl.b[0]), sy(wl.b[2]));
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
+    ctx.globalAlpha = 1;
     ctx.lineCap = "butt";
   }
 
