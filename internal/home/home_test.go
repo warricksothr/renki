@@ -315,6 +315,16 @@ func TestAnOrderAfterTheDeathWins(t *testing.T) {
 		t.Errorf("went home after an order given while dead: %v", f.sent())
 	}
 
+	// The same, before Tick has seen the death.
+	dead(f)
+	k.Ordered()
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after an order given before Tick saw the death: %v", f.sent())
+	}
+
 	// "follow me" as it comes back, then "stop".
 	dead(f)
 	k.Tick(ctx)

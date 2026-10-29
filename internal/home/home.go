@@ -190,8 +190,14 @@ func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
 // even one such as stop that is over before the bot is back, and even
 // one given while it is still dead.
 func (k *Keeper) Ordered() {
+	// The newest state, not only what Tick last saw: Tick polls once a
+	// second, and an order in that gap still comes after the death.
+	st := k.s.State()
 	k.mu.Lock()
 	k.respawned, k.resume = false, nil
+	if st != nil && st.Phase == protocol.PhaseDead {
+		k.dead = true
+	}
 	if k.dead {
 		k.ordered = true
 	}

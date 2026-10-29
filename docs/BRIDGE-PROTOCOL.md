@@ -442,7 +442,8 @@ chat event
   stays at the spawn point. Any order given after the death wins, except
   `set home` and `status`. The controller reads the death and the respawn
   from `state.phase` rather than the `died` and `respawned` events, so a
-  lost event does not lose them.
+  lost event does not lose them. The plugin reports `dead` from the death
+  until the respawn wait ends, about 10 s.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.
