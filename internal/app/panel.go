@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
+	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
@@ -77,6 +78,15 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		}
 	}
 	return ps
+}
+
+// panelSay passes the panel's words to the brain while the plugin is
+// connected; the state the brain checks outlives a disconnect.
+func (a *App) panelSay(as, text string) error {
+	if _, _, ok := a.Session.Handshake(); !ok {
+		return chat.ErrNoBot
+	}
+	return a.Brain.FromPanel(as, text)
 }
 
 // models is the voice's model list, or nil when the voice cannot list them.
@@ -163,7 +173,7 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Settings: a.Settings,
 			Models:   a.models(),
 			AuditDir: a.Config.Audit.Dir,
-			Say:      a.Brain.FromPanel,
+			Say:      a.panelSay,
 			Logger:   log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
