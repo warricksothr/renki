@@ -80,9 +80,9 @@ type Keeper struct {
 	resume func(context.Context) bool
 	// diedAt is where the bot last died.
 	diedAt *protocol.Vec3
-	// shunned is set when the bot died near home: nothing sends it back
-	// there by itself until someone gives it an order.
-	shunned bool
+	// shunned is the world where the bot last died near home, if it has
+	// not been given an order since: nothing sends it back there by itself.
+	shunned string
 }
 
 // New returns a keeper over store with fixed rules. now may be nil.
@@ -248,7 +248,7 @@ func (k *Keeper) Ordered() {
 	// second, and an order in that gap still comes after the death.
 	st := k.s.State()
 	k.mu.Lock()
-	k.respawned, k.resume, k.shunned = false, nil, false
+	k.respawned, k.resume, k.shunned = false, nil, ""
 	if st != nil && st.Phase == protocol.PhaseDead {
 		k.dead = true
 	}
@@ -304,10 +304,15 @@ func (k *Keeper) Tick(ctx context.Context) {
 	case st.Phase == protocol.PhaseDead && !k.dead:
 		k.dead, k.ordered = true, false
 		pos := st.Pos
-		k.diedAt = &pos
+		k.diedAt, k.shunned = &pos, ""
 		if w := st.World; w != "" {
 			if err := k.store.AddGrave(w, Grave{Pos: st.Pos, At: now}); err != nil {
 				k.log.Warn("could not remember the grave", "err", err)
+			}
+			// Whatever killed it near home may be there still: going home
+			// is going back to it.
+			if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
+				k.shunned = w
 			}
 		}
 	case st.Phase == protocol.PhaseInWorld && k.dead:
@@ -358,17 +363,14 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Unlock()
 	if respawned {
 		k.mu.Lock()
-		diedAt := k.diedAt
+		diedAt, shunned := k.diedAt, k.shunned != ""
 		k.mu.Unlock()
-		if _, h, ok := k.Current(); ok && diedAt != nil && flat(*diedAt, h.Pos) <= DiedNearHome &&
-			k.Rules().AfterDeath != config.AfterDeathStay {
-			// Whatever killed it there may be there still: going home is
-			// going back to it. It waits to be told.
+		if shunned {
+			// It waits to be told.
 			k.log.Info("died near home; not going back", "died", *diedAt)
-			k.mu.Lock()
-			k.shunned = true
-			k.mu.Unlock()
-			k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
+			if k.Rules().AfterDeath != config.AfterDeathStay {
+				k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
+			}
 			return
 		}
 		switch k.Rules().AfterDeath {
@@ -406,7 +408,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.mu.Lock()
-	cut := k.cutOff != nil || k.shunned
+	cut := k.cutOff != nil || (k.shunned != "" && k.shunned == k.World())
 	k.mu.Unlock()
 	if cut {
 		return

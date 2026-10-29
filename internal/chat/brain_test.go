@@ -904,6 +904,13 @@ func TestCorpseRun(t *testing.T) {
 	f.perception = nil
 	b.Chat(line("Sothr", "bjorn get your stuff"))
 	b.TaskDone(doneTask(last(protocol.TaskMoveTo), protocol.StatusSucceeded, ""))
+	// With nothing fresh to look with, it does not give the grave up.
+	if got := f.said(); got[len(got)-1] != "I can't see my grave from here." || len(h.graves) != 1 {
+		t.Fatalf("no perception: %q, graves %v", got[len(got)-1], h.graves)
+	}
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{101, 30, 99}, T: 50}
+	f.perception = &protocol.Perception{Envelope: protocol.Envelope{T: 49}}
+	b.TaskDone(doneTask(last(protocol.TaskMoveTo), protocol.StatusSucceeded, ""))
 	if got := f.said(); got[len(got)-1] != "My grave's not here. Someone must have emptied it." || len(h.graves) != 0 {
 		t.Errorf("grave gone: %q, graves %v", got[len(got)-1], h.graves)
 	}

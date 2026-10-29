@@ -408,6 +408,12 @@ func (b *Brain) corpseRun(t *session.Task, o origin, status, reason string) bool
 	case t.Name == protocol.TaskMoveTo && status == protocol.StatusSucceeded:
 		g := b.myGrave(o.grave)
 		if g == nil {
+			// Only a fresh look from beside the place says it is gone.
+			st, seen := b.d.State(), b.d.Perception()
+			if st == nil || seen == nil || math.Abs(st.T-seen.T) > panelSightFor || st.Pos.FlatDistance(*o.grave) > graveReach {
+				b.say(o, "I can't see my grave from here.")
+				return true
+			}
 			if b.opts.Home != nil {
 				b.opts.Home.ForgetGrave(*o.grave, graveReach)
 			}

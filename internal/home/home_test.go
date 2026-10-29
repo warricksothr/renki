@@ -464,8 +464,24 @@ func TestNoGoingBackToWhatKilledItAtHome(t *testing.T) {
 	if got := f.sent(); len(got) != 3 || got[1] != "move_to" {
 		t.Fatalf("told, still kept away: %q", got)
 	}
+	// With afterDeath stay it says nothing, and idling still keeps away.
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathStay })
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{12, 0, 0}})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 3 {
+		t.Fatalf("with stay, went home to what killed it: %q", got)
+	}
 	g, ok := k.Grave()
-	if !ok || g.Pos != (protocol.Vec3{8, 0, 2}) || !g.At.Equal(c.now().Add(-22*time.Minute)) {
+	if !ok || g.Pos != (protocol.Vec3{12, 0, 0}) {
+		t.Fatalf("newest grave %+v, %v", g, ok)
+	}
+	k.ForgetGrave(g.Pos, 1)
+	g, ok = k.Grave()
+	if !ok || g.Pos != (protocol.Vec3{8, 0, 2}) || !g.At.Equal(c.now().Add(-33*time.Minute)) {
 		t.Fatalf("grave %+v, %v", g, ok)
 	}
 	k.ForgetGrave(protocol.Vec3{9, 0, 2}, 3)
