@@ -412,7 +412,10 @@ Notes:
 - `move_to` and `pickup` arrive within `stopDistance` across the ground and
   within 1.75 m up or down, so a bot under a raised floor has not reached a
   point on it. When the navmesh reaches only part of the way, the walker's
-  path trace says how far short it stops.
+  path trace says how far short it stops; if that is off the goal's level
+  (under the floor, at the foot of a rock), the task fails `unreachable`
+  once the bot is under or over the goal, rather than going through stuck
+  recovery.
 - `pickup` walks to the drop and lets the game's auto-pickup take it, as it
   does for any player within about 2 m, picking it up directly if it is still
   there once the bot stands on it. A drop the game merges into a nearby stack

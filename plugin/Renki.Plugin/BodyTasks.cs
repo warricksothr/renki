@@ -27,6 +27,21 @@ namespace Renki.Plugin
 
         public bool StraightLine { get; private set; }
 
+        /// <summary>The navmesh path ends above or below the goal's level:
+        /// under a raised floor, at the foot of a rock. The bot can stand
+        /// under the goal but not reach it.</summary>
+        public bool OffLevel { get; private set; }
+
+        /// <summary>The failure for a bot under or over a goal it cannot
+        /// reach, or null while it can still get there.</summary>
+        public Outcome Unreachable(Vector3 pos, double within)
+        {
+            if (!OffLevel || V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) > within) return null;
+            var dy = goal.y - pos.y;
+            return Outcome.Failed(Wire.ReasonUnreachable,
+                $"the goal is {System.Math.Abs(dy):0.0} m {(dy > 0 ? "above" : "below")} and the navmesh does not reach it");
+        }
+
         public void SetGoal(Vector3 from, Vector3 to)
         {
             goal = to;
@@ -51,6 +66,7 @@ namespace Renki.Plugin
             // which may be under a floor or behind a shut door.
             var end = scratch[scratch.Count - 1];
             var shortBy = Vector3.Distance(end, goal);
+            OffLevel = !StraightLine && System.Math.Abs(end.y - goal.y) > Arrival.Level;
             var data = new Dictionary<string, object>
             {
                 ["from"] = Convert.ToArray(from),
@@ -230,6 +246,11 @@ namespace Renki.Plugin
                 Driver.Stand();
                 return Outcome.Succeeded();
             }
+            if (walker.Unreachable(pos, args.StopDistance) is Outcome under)
+            {
+                Driver.Stand();
+                return under;
+            }
             if (Walker.Stranded(p) is Outcome stranded)
             {
                 Driver.Stand();
@@ -319,6 +340,11 @@ namespace Renki.Plugin
                 walker.SetGoal(p.transform.position, goal);
             }
             var pos = p.transform.position;
+            if (walker.Unreachable(pos, Close) is Outcome under)
+            {
+                Driver.Stand();
+                return took > 0 ? Outcome.Succeeded($"took {took} {prefab}; the rest is out of reach") : under;
+            }
             if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), Close))
             {
                 Driver.Stand();
