@@ -32,8 +32,9 @@ namespace Renki.Tasks
                 case "look_at": return AllowMovement;
                 case "say":
                 case "emote": return AllowChat;
+                // They walk to what they gather, so movement must be allowed too.
                 case "pickup":
-                case "harvest": return AllowGather;
+                case "harvest": return AllowGather && AllowMovement;
                 case "attack":
                 case "guard":
                 case "flee": return AllowCombat;

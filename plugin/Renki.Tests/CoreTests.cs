@@ -333,6 +333,18 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void GatheringNeedsItsSwitchAndMovement()
+        {
+            var s = new SafetyConfig();
+            Assert.False(s.Permits("pickup"));
+            s.AllowGather = true;
+            Assert.True(s.Permits("pickup"));
+            s.AllowMovement = false;
+            Assert.False(s.Permits("pickup"));
+            Assert.False(s.Permits("harvest"));
+        }
+
+        [Fact]
         public void PathFollowerAdvances()
         {
             var p = new PathFollower();
