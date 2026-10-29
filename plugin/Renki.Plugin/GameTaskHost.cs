@@ -12,6 +12,13 @@ namespace Renki.Plugin
         /// <summary>How long a look_at holds before the bot faces where it walks again.</summary>
         const float LookHold = 4f;
 
+        readonly SafetyConfig safety;
+
+        public GameTaskHost(SafetyConfig safety)
+        {
+            this.safety = safety;
+        }
+
         public IBodyTask StartBody(TaskRequest req, object args)
         {
             if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead())
@@ -40,6 +47,18 @@ namespace Renki.Plugin
                         if (PickupTask.TooHeavy(Player.m_localPlayer, drop.m_itemData))
                             throw new TaskRefused(Wire.ReasonTooHeavy, $"{drop.m_itemData.m_shared.m_name} would take it past its carry weight");
                         return new PickupTask(drop);
+                    }
+                case InteractArgs ia:
+                    {
+                        var obj = FindEntity(ia.Entity);
+                        var it = obj != null ? obj.GetComponentInParent<Interactable>() ?? obj.GetComponentInChildren<Interactable>() : null;
+                        if (it == null) throw new TaskRefused(Wire.ReasonInvalidTarget, $"nothing to use at {ia.Entity} in range");
+                        if (InteractRule.Check(InteractTask.Kind(it), safety) is Outcome no)
+                            throw new TaskRefused(no.Reason, no.Detail);
+                        // Section 8: nothing behind a ward the bot has no access to.
+                        if (!PrivateArea.CheckAccess(obj.transform.position, 0f, false, false))
+                            throw new TaskRefused(Wire.ReasonNotAllowed, $"the {InteractTask.Name(it)} is behind a ward");
+                        return new InteractTask(ia, it);
                     }
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)

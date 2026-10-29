@@ -176,6 +176,8 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskSay, `{"text":"hi","channel":"ping"}`, nil, ErrBadArgs},
 		{TaskSay, `{"text":""}`, nil, ErrBadArgs},
 		{TaskEmote, `{"name":"wave"}`, &EmoteArgs{Name: "wave"}, nil},
+		{TaskInteract, `{"entity":"1234:310","alt":true}`, &InteractArgs{Entity: "1234:310", Alt: true}, nil},
+		{TaskInteract, `{"hold":true}`, nil, ErrBadArgs},
 		{"harvest", `{"entity":"0:7001"}`, nil, ErrUnknownTask},
 	}
 	for _, tc := range tests {

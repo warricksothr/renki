@@ -430,4 +430,5 @@ const (
 	ReasonSuperseded       = "superseded"
 	ReasonStopped          = "stopped"
 	ReasonDied             = "died"
+	ReasonRefused          = "refused"
 )

@@ -32,7 +32,7 @@ namespace Renki.Protocol
             ReasonUnreachable = "unreachable", ReasonDeepWater = "deep_water", ReasonStuck = "stuck", ReasonTimeout = "timeout",
             ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full", ReasonTooHeavy = "too_heavy",
             ReasonEncumbered = "encumbered", ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
-            ReasonStopped = "stopped", ReasonDied = "died";
+            ReasonStopped = "stopped", ReasonDied = "died", ReasonRefused = "refused";
 
         public const string EventDamaged = "damaged", EventDied = "died", EventRespawned = "respawned",
             EventItemAdded = "item_added", EventSkillRaised = "skill_raised", EventPlayerJoined = "player_joined",

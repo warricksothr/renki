@@ -316,6 +316,7 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 | `inventory_full`, `missing_materials` | — |
 | `too_heavy` | Taking it would carry the bot past `weightMax`. |
 | `encumbered` | Over `weightMax` with no stamina left: the game will not let the bot move until it carries less. |
+| `refused` | The game would not do it: `interact` on a bed someone else owns, or with no roof over it. `detail` is what the game said, in its own words. |
 | `superseded` | A newer body task replaced it. |
 | `stopped` | `stop`, the dead-man rule, or a logout. |
 | `died` | — |
@@ -440,6 +441,17 @@ Notes:
   none it may drop. The game marks a player's own drop so its auto-pickup
   does not take it straight back. It needs `allowDrop`, which is on by
   default and needs no movement.
+- `interact` walks to the entity until it is within 2 m of its surface, faces
+  it, and uses it through its `Interactable` as a player pressing the use key
+  would; `alt` is the modifier key, and `hold` keeps the key down for 1 s,
+  repeating as the game does. It succeeds when the game says it did
+  something, with what the game said on screen in `detail`, and fails with
+  `refused` when it did not. What it may use goes by what the thing is:
+  offering bowls need `allowBossSummoning`, ship controls `allowSailing`, and
+  pickables `allowGather`. Drops (`pickup`), chests (`deposit`, `withdraw`),
+  crafting stations, portals and signs are `invalid_target`, since they have
+  their own tasks or open a window the bot cannot use. It needs
+  `allowMovement`, and nothing behind a ward the bot has no access to.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
@@ -613,7 +625,7 @@ the local Steam install on 2026-10-28. Re-check them after game updates;
 | Status effects | `Character.GetSEMan().GetStatusEffects()` → `List<StatusEffect>` |
 | Inventory | `Humanoid.GetInventory()`, `Inventory.GetAllItems()` → `List<ItemDrop.ItemData>`, `Inventory.m_onChanged` (an `Action`) |
 | Equip and use | `Humanoid.EquipItem(ItemData, bool triggerEquipEffects)` → bool; `UnequipItem(ItemData, bool)`; `UseItem(Inventory, ItemData, bool fromInventoryGui)` |
-| Interact | `Player.Interact(GameObject go, bool hold, bool alt)` |
+| Interact | `Interactable.Interact(Humanoid user, bool hold, bool alt)` → bool, as `Player.Interact` calls it (private), then `Humanoid.DoInteractAnimation(GameObject)`. What the game says comes through `Player.Message(MessageHud.MessageType, string msg, …)`, localized with `Localization.instance.Localize` (assembly_guiutils). |
 | Characters nearby | `Character.GetAllCharacters()` (static), `BaseAI.IsEnemy(Character a, Character b)` (static), `BaseAI.GetTargetCreature()` |
 | Resources and structures nearby | `Physics.OverlapSphere`, then `GetComponentInParent<TreeBase / TreeLog / MineRock / MineRock5 / Destructible / Pickable / ItemDrop / Container / CraftingStation / Bed / TeleportWorld / Door / Fireplace / Smelter>` |
 | Entity ID | `ZNetView.GetZDO().m_uid` (a `ZDOID`) |

@@ -30,6 +30,8 @@ namespace Renki.Tasks
                 case "stop": return true;
                 case "move_to":
                 case "follow":
+                // It walks there; what it may use is InteractRule's call.
+                case "interact":
                 case "look_at": return AllowMovement;
                 case "say":
                 case "emote": return AllowChat;

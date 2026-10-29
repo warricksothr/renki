@@ -456,6 +456,26 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void InteractGoesByWhatItUses()
+        {
+            var s = new SafetyConfig();
+            Assert.True(s.Permits("interact"));
+            Assert.Null(InteractRule.Check(InteractRule.Other, s));
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Boss, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ship, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Pickable, s).Reason);
+            s.AllowBossSummoning = s.AllowSailing = s.AllowGather = true;
+            Assert.Null(InteractRule.Check(InteractRule.Boss, s));
+            Assert.Null(InteractRule.Check(InteractRule.Ship, s));
+            Assert.Null(InteractRule.Check(InteractRule.Pickable, s));
+            // These have their own tasks, or a window the bot cannot use.
+            foreach (var k in new[] { InteractRule.Drop, InteractRule.Container, InteractRule.Station, InteractRule.Text })
+                Assert.Equal(Wire.ReasonInvalidTarget, InteractRule.Check(k, s).Reason);
+            s.AllowMovement = false;
+            Assert.False(s.Permits("interact"));
+        }
+
+        [Fact]
         public void DroppingHasItsOwnSwitch()
         {
             var s = new SafetyConfig { AllowMovement = false };
