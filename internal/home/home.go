@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 
@@ -32,6 +33,10 @@ const Arrive = 2.0
 // awayFrom is how far from home the bot must be before idling sends it
 // back, so it does not shuffle on the spot.
 const awayFrom = 5.0
+
+// level is how far above or below home still counts as on its level, as
+// the plugin's arrival does (7.3): under a raised floor is not home.
+const level = 1.75
 
 // Session is what Keeper needs of the session.
 type Session interface {
@@ -119,18 +124,30 @@ func (k *Keeper) Current() (world string, h Home, ok bool) {
 // Rules are the rules Keeper follows.
 func (k *Keeper) Rules() config.HomeRules { return k.rules() }
 
-// HomeDistance is how far the bot is from home, flat, and false when
-// either is unknown.
+// HomeDistance is how far the bot is from home in a straight line, and
+// false when either is unknown.
 func (k *Keeper) HomeDistance() (float64, bool) {
-	st := k.s.State()
-	if st == nil || st.Phase != protocol.PhaseInWorld {
-		return 0, false
-	}
-	h, ok := k.store.Home(k.World())
+	st, h, ok := k.where()
 	if !ok {
 		return 0, false
 	}
-	return flat(st.Pos, h.Pos), true
+	return math.Sqrt(math.Pow(flat(st.Pos, h.Pos), 2) + math.Pow(st.Pos[1]-h.Pos[1], 2)), true
+}
+
+// away is whether the bot is far enough from home, or off its level, for
+// idling to send it back.
+func (k *Keeper) away() bool {
+	st, h, ok := k.where()
+	return ok && (flat(st.Pos, h.Pos) > awayFrom || math.Abs(st.Pos[1]-h.Pos[1]) > level)
+}
+
+func (k *Keeper) where() (*protocol.State, Home, bool) {
+	st := k.s.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld {
+		return nil, Home{}, false
+	}
+	h, ok := k.store.Home(k.World())
+	return st, h, ok
 }
 
 // LeftBehind is what the bot left on the ground in the current world and
@@ -341,7 +358,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	k.Touch() // whatever happens, wait another spell before trying again
-	if d, ok := k.HomeDistance(); ok && d > awayFrom {
+	if k.away() {
 		k.announce(ctx, "idle", "Nothing to do. Heading home.")
 	}
 }

@@ -292,6 +292,24 @@ func TestIdleAwayFromHomeGoesHome(t *testing.T) {
 	}
 }
 
+// TestIdleUnderTheFloorGoesHome: seen on the VM, the bot under a raised
+// floor, 1.9 m across and 3.7 m below home, is not home.
+func TestIdleUnderTheFloorGoesHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
+	k.SetHome(protocol.Vec3{-35.9, 37.66, 6.53}, "Nimah")
+	if d, _ := k.HomeDistance(); d < 4 {
+		t.Errorf("home distance %.1f; want the straight line, over 4", d)
+	}
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[1] != "say: Nothing to do. Heading home." {
+		t.Errorf("idle under the floor: %v", got)
+	}
+}
+
 func TestStrandedBotDoesNotSetOffHome(t *testing.T) {
 	k, f, c := keeper(t, Memory())
 	ctx := context.Background()
