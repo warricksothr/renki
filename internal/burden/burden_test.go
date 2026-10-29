@@ -33,6 +33,7 @@ func pack() *protocol.Inventory {
 		item("Stone", "Material", 16, 2), item("Flint", "Material", 13, 1),
 		item("LeatherScraps", "Material", 10, 0.5), item("CookedMeat", "Consumable", 5, 1),
 		item("$item_mystery", "Material", 1, 50), // no prefab: drop cannot name it
+		item("TrophyEikthyr", "Trophy", 1, 2),
 	}}
 }
 
@@ -47,8 +48,8 @@ func TestPlanDropsCommonHeavyThingsFirst(t *testing.T) {
 		{300.5, []Drop{{"Wood", 1}}, false}, // a part of one is still one
 		{560, []Drop{{"Wood", 124}, {"Stone", 6}}, false},
 		{600, []Drop{{"Wood", 124}, {"Stone", 16}, {"Flint", 13}, {"LeatherScraps", 10}, {"CookedMeat", 2}}, false},
-		// Then valuables last, and never gear: not enough.
-		{620, []Drop{{"Wood", 124}, {"Stone", 16}, {"Flint", 13}, {"LeatherScraps", 10}, {"CookedMeat", 5}, {"Amber", 3}}, true},
+		// Then trophies, then valuables last, and never gear: not enough.
+		{620, []Drop{{"Wood", 124}, {"Stone", 16}, {"Flint", 13}, {"LeatherScraps", 10}, {"CookedMeat", 5}, {"TrophyEikthyr", 1}, {"Amber", 3}}, true},
 	}
 	for _, c := range cases {
 		got, short := Plan(pack(), c.weight, 300)

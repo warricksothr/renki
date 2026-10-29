@@ -37,16 +37,20 @@ var common = map[string]bool{
 }
 
 // tier ranks how much an item is worth keeping, lowest first: common raw
-// materials, then other materials and odds and ends, then food and
-// potions, then valuables. Gear has no tier; it is never dropped.
+// materials, then other materials, then food and potions, then trophies,
+// odds and ends and any type it does not know (a boss trophy or a key is
+// worth more than a meal), then valuables. Gear has no tier; it is never
+// dropped.
 func tier(it protocol.InventoryItem) (int, bool) {
 	switch {
 	case it.Equipped || gear[it.Type]:
 		return 0, false
 	case it.Value > 0:
-		return 3, true
+		return 4, true
 	case it.Type == "Consumable" || it.Type == "Fish":
 		return 2, true
+	case it.Type != "Material":
+		return 3, true
 	case common[it.Prefab]:
 		return 0, true
 	}

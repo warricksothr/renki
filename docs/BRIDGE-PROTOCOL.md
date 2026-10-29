@@ -510,8 +510,8 @@ chat event
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back
   under `weightMax`: common raw materials (wood, stone, flint, resin,
-  feathers), then other materials, then food and potions, then valuables
-  (`value`). It never drops anything equipped or any gear (weapons, tools,
+  feathers), then other materials, then food and potions, then trophies
+  and other odds and ends, then valuables (`value`). It never drops anything equipped or any gear (weapons, tools,
   armour, shields, torches, ammunition). It shouts what it left, and keeps
   where and what per world in `dataDir`, shown by `status` and on the panel
   map, until perception, from within 15 m, has seen none of it there for

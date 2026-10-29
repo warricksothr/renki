@@ -172,8 +172,15 @@ func (u *Unloader) drop(ctx context.Context, d Drop) (int, error) {
 	wait, cancel := context.WithTimeout(ctx, waitFor)
 	defer cancel()
 	status, reason, err := t.Wait(wait)
-	if err != nil || status != protocol.StatusSucceeded {
-		u.log.Warn("drop failed", "prefab", d.Prefab, "count", d.Count, "status", status, "reason", reason, "err", err)
+	if err != nil || status == protocol.StatusCancelled {
+		// No answer, or the link went before one came: drop is instant, so
+		// the things may well be on the ground. Count them as left, and
+		// let a later look forget them if they are not there.
+		u.log.Warn("drop unconfirmed", "prefab", d.Prefab, "count", d.Count, "status", status, "err", err)
+		return d.Count, nil
+	}
+	if status != protocol.StatusSucceeded {
+		u.log.Warn("drop failed", "prefab", d.Prefab, "count", d.Count, "status", status, "reason", reason)
 		return 0, nil
 	}
 	// "dropped N PREFAB" (7.2).
