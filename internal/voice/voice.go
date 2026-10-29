@@ -146,14 +146,14 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 		Yolo: true,
 	})
 	if err != nil {
-		v.opts.Logger.Warn("voice failed", "player", req.Speaker, "err", err, "model", m.Name)
+		v.opts.Logger.Info("voice cost", "player", req.Speaker, "model", m.Name, "failed", true)
 		return chat.Reply{}, fmt.Errorf("terva: %w", err)
 	}
 	defer rt.Close()
 
 	events, err := rt.Prompt(ctx, prompt(req), nil)
 	if err != nil {
-		v.opts.Logger.Warn("voice failed", "player", req.Speaker, "err", err, "model", m.Name,
+		v.opts.Logger.Info("voice cost", "player", req.Speaker, "model", m.Name, "failed", true,
 			"ms", v.opts.Now().Sub(start).Milliseconds())
 		return chat.Reply{}, fmt.Errorf("terva: %w", err)
 	}
@@ -178,7 +178,8 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 	took := []any{"model", m.Name, "ms", v.opts.Now().Sub(start).Milliseconds(),
 		"tokensIn", cost.Input, "tokensOut", cost.Output}
 	if failure != "" {
-		v.opts.Logger.Warn("voice failed", append([]any{"player", req.Speaker, "err", failure}, took...)...)
+		// The chat brain logs the failure; this is what it cost.
+		v.opts.Logger.Info("voice cost", append([]any{"player", req.Speaker, "failed", true}, took...)...)
 		return chat.Reply{}, fmt.Errorf("terva: %s", failure)
 	}
 	reply := chat.Reply{Say: oneLine(text.String()), Task: rec.proposal()}

@@ -71,7 +71,8 @@ function addLine(ev) {
 function onRecord(ev) {
   addLine(ev);
   // A change from chat or another page shows here too.
-  if (ev.kind === "log" && ev.msg === "setting changed" && $("settings").open) loadSettings();
+  if (ev.kind === "log" && (ev.msg === "setting changed" || ev.msg === "setting pinned") && $("settings").open)
+    loadSettings();
   const f = ev.frame;
   if (!f) return;
   switch (f.type) {
@@ -796,7 +797,10 @@ async function loadSettings() {
   const res = await fetch("/api/settings").catch(() => null);
   if (!res || !res.ok) return;
   const entries = await res.json();
-  const rows = entries.map(settingRow);
+  // A row being edited stays as it is, so a refresh does not throw the
+  // edit away; the rest show the values now.
+  const editing = document.activeElement?.closest?.("#settings-table tr");
+  const rows = entries.map((e) => (editing?.dataset.key === e.key ? editing : settingRow(e)));
   $("settings-table").replaceChildren(...rows);
   const changed = entries.filter((e) => e.set).length;
   $("settings-summary").textContent = changed ? `${changed} changed from the config` : "as the config has them";
@@ -804,6 +808,7 @@ async function loadSettings() {
 
 function settingRow(e) {
   const tr = document.createElement("tr");
+  tr.dataset.key = e.key;
   if (e.set) tr.className = "changed";
   const key = document.createElement("td");
   key.className = "key";
