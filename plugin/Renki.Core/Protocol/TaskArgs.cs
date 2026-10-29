@@ -8,7 +8,7 @@ namespace Renki.Protocol
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", LookAt = "look_at",
             Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
-            Flee = "flee", Equip = "equip", Unequip = "unequip";
+            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw";
 
         /// <summary>The slots unequip empties: "hands" is both.</summary>
         public static readonly string[] Slots =
@@ -18,7 +18,7 @@ namespace Renki.Protocol
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -137,6 +137,19 @@ namespace Renki.Protocol
         public int Count;
     }
 
+    public sealed class TransferItem
+    {
+        public string Prefab;
+        /// <summary>-1 means all; otherwise a positive count.</summary>
+        public int Count;
+    }
+
+    public sealed class TransferArgs
+    {
+        public string Container;
+        public TransferItem[] Items;
+    }
+
     public static class TaskArgs
     {
         /// <summary>The typed arguments for a task, checked as the Go side
@@ -149,6 +162,29 @@ namespace Renki.Protocol
             {
                 case TaskNames.Stop:
                     return new object();
+                case TaskNames.Deposit:
+                case TaskNames.Withdraw:
+                    {
+                        var container = Str(a, "container");
+                        if (string.IsNullOrEmpty(container)) throw new BadArgsException("`container` is required");
+                        if (!(a["items"] is JArray items) || items.Count == 0 || items.Count > 256)
+                            throw new BadArgsException("1–256 items are required");
+                        var seen = new System.Collections.Generic.HashSet<string>();
+                        var parsed = new System.Collections.Generic.List<TransferItem>();
+                        foreach (var entry in items)
+                        {
+                            if (!(entry is JObject obj)) throw new BadArgsException("each item must be an object");
+                            var prefab = Str(obj, "prefab");
+                            if (string.IsNullOrEmpty(prefab) || !seen.Add(prefab)) throw new BadArgsException("unique item prefabs are required");
+                            var token = obj["count"];
+                            int count;
+                            if (token?.Type == JTokenType.String && (string)token == "all") count = -1;
+                            else if (token?.Type == JTokenType.Integer && (long)token > 0 && (long)token <= int.MaxValue) count = (int)token;
+                            else throw new BadArgsException("count must be a positive integer or all");
+                            parsed.Add(new TransferItem { Prefab = prefab, Count = count });
+                        }
+                        return new TransferArgs { Container = container, Items = parsed.ToArray() };
+                    }
                 case TaskNames.MoveTo:
                     return new MoveToArgs
                     {

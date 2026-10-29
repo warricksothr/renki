@@ -19,10 +19,58 @@ import (
 
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/settings"
 )
 
 const token = "0123456789abcdef-test"
+
+func TestExplicitTaskEndpointValidatesBeforeDispatch(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(Handler(Options{Token: token, Status: func() any { return nil }, Dispatch: func(_ context.Context, c TaskCommand) (string, error) {
+		calls++
+		if c.Task != protocol.TaskMoveTo || string(c.Args) != `{"to":[1,2,3]}` || c.TimeoutS != 45 {
+			t.Errorf("unexpected task: %+v", c)
+		}
+		return "t-7", nil
+	}}))
+	defer srv.Close()
+	for _, c := range []struct {
+		body          string
+		login, header bool
+		code          int
+	}{
+		{`{"task":"move_to","args":{"to":[1,2,3]},"timeoutS":45}`, true, true, 202},
+		{`{"task":"move_to","args":{}}`, true, true, 400},
+		{`{"task":"move_to","args":{"to":[1,2,3]},"timeoutS":601}`, true, true, 400},
+		{`{"task":"move_to","args":{"to":[1,2,3]},"id":"caller-id"}`, true, true, 400},
+		{`{"task":"stop"}`, true, false, 403},
+		{`{"task":"stop"}`, false, true, 401},
+	} {
+		req, _ := http.NewRequest("POST", srv.URL+"/api/task", strings.NewReader(c.body))
+		if c.login {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		if c.header {
+			req.Header.Set(ActHeader, "1")
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		if res.StatusCode != c.code {
+			t.Errorf("%s: %d %s", c.body, res.StatusCode, body)
+		}
+		if c.code == 202 && !strings.Contains(string(body), `"id":"t-7"`) {
+			t.Errorf("missing task id: %s", body)
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("invalid or unauthenticated task reached dispatch: %d calls", calls)
+	}
+}
 
 func server(t *testing.T) (*httptest.Server, *audit.Log) {
 	t.Helper()

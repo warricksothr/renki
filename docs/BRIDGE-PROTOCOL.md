@@ -366,6 +366,24 @@ walls. Walls do not move, so a new `layout` goes out only when the set
 within range changes, usually as the bot walks, and each one replaces the
 last. It comes after the `perception` of the same scan.
 
+### 6.10 `container` (on access, and after a transfer)
+
+```json
+{ "v": 1, "type": "container", "seq": 35, "t": 18231,
+  "entity": "1234:301", "pos": [110, 32, -80], "size": [5, 2],
+  "items": [{ "slot": [0, 0], "prefab": "Wood", "stack": 12 }],
+  "task": "t-18", "direction": "deposit", "moved": { "Wood": 12 },
+  "remaining": { "Wood": 3 } }
+```
+
+Contents use the same item fields as `inventory`. A snapshot follows normal
+chest access/ownership, before moving items and again after the transfer.
+`task`, `direction`, `moved` and `remaining` accompany the latter; empty
+counts are omitted. Counts reflect actual game transfers, including partial
+success before a failure. The bot's pack is also reported immediately.
+Session snapshots reset on a new connection or world; they are observations,
+not a claim that an unseen chest still has those contents.
+
 ## 7. Controller → plugin
 
 ### 7.1 Task model
@@ -411,14 +429,25 @@ last. It comes after the `perception` of the same scan.
 
 Notes:
 
+- `deposit` and `withdraw` use a storage chest entity ID and 1–256 unique
+  prefab requests with a positive integer count or `"all"`. Both require
+  AllowGather and AllowMovement. The bot approaches within sight and reach,
+  requests normal access, waits for ownership and current contents, then
+  tops up compatible stacks before using empty slots. It preserves item
+  metadata, skips equipped items and respects carry weight on withdrawal.
+  Tombstones are not storage. A ward/private chest or a chest in use is
+  refused; access times out after five seconds. All endings release any
+  acquired use lock, including cancellation and death. Late access replies
+  after cancellation are consumed without opening a UI or moving items.
+  Partial transfers report exact `moved` / `remaining` counts in `container`,
+  followed by failure explaining missing/equipped items, weight or space.
 - `move_to` and `pickup` arrive within `stopDistance` across the ground and
   within 1.75 m up or down, so a bot under a raised floor has not reached a
   point on it. When the navmesh reaches only part of the way, the walker's
   path trace says how far short it stops; if that is within 4 m of the goal
   across the ground but off its level (under the floor, at the foot of a
-  rock), the task fails `unreachable`
-  once the bot is under or over the goal or at the end of the path, rather
-  than going through stuck recovery.
+  rock), the walker tries bounded alternative approaches before failing
+  `unreachable` (7.3).
 - `pickup` walks to the drop and lets the game's auto-pickup take it, as it
   does for any player within about 2 m, picking it up directly if it is still
   there once the bot stands on it. A drop the game merges into a nearby stack

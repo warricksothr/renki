@@ -16,6 +16,7 @@ import (
 	"github.com/warricksothr/renki/internal/bridge/bridgetest"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
@@ -360,6 +361,25 @@ func TestPanelButtons(t *testing.T) {
 	}
 	if _, err := a.PanelAct(ctx, "dance"); err == nil {
 		t.Error("an unknown action did something")
+	}
+	if err := homes.Shun("Midgard"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.PanelTask(ctx, panel.TaskCommand{Task: protocol.TaskDeposit, Args: json.RawMessage(`{"container":"1:2","items":[{"prefab":"Wood","count":1}]}`)}); err == nil {
+		t.Fatal("task outside plugin capabilities was sent")
+	}
+	if !homes.Shunned("Midgard") {
+		t.Fatal("refused task cleared home shun")
+	}
+	id, err := a.PanelTask(ctx, panel.TaskCommand{Task: protocol.TaskMoveTo, Args: json.RawMessage(`{"to":[1,2,3]}`), TimeoutS: 45})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if task := p.NextTask(); task.ID != id || task.Task != protocol.TaskMoveTo || task.TimeoutS != 45 {
+		t.Fatalf("wrong explicit task: %+v", task)
+	}
+	if homes.Shunned("Midgard") {
+		t.Fatal("successful direct task did not clear home shun")
 	}
 	if text, err := a.PanelAct(ctx, "logout"); err != nil || text != "Logging out." {
 		t.Errorf("logout: %q %v", text, err)

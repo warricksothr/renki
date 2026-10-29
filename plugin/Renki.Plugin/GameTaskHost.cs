@@ -28,6 +28,14 @@ namespace Renki.Plugin
                 throw new TaskRefused(stranded.Reason, stranded.Detail);
             switch (args)
             {
+                case TransferArgs transfer:
+                    {
+                        var obj = FindEntity(transfer.Container);
+                        var chest = obj != null ? obj.GetComponent<Container>() : null;
+                        if (chest == null || obj.GetComponent<TombStone>() != null)
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, "no storage chest at that entity");
+                        return new TransferTask(req, transfer, chest);
+                    }
                 case MoveToArgs m:
                     {
                         var (pos, obj) = Resolve(m.To);

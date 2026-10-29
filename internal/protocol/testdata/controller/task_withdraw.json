@@ -1,0 +1,1 @@
+{"v":1,"type":"task","seq":26,"t":11,"id":"t-withdraw","task":"withdraw","args":{"container":"1:25","items":[{"prefab":"Wood","count":5}]},"timeoutS":60}

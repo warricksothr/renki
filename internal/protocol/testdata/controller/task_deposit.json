@@ -1,0 +1,1 @@
+{"v":1,"type":"task","seq":25,"t":10,"id":"t-deposit","task":"deposit","args":{"container":"1:25","items":[{"prefab":"Wood","count":"all"},{"prefab":"Resin","count":10}]},"timeoutS":60}

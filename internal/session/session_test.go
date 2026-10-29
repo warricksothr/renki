@@ -143,6 +143,25 @@ func TestTheNewestInventoryIsKept(t *testing.T) {
 	}
 }
 
+func TestChestSnapshotsAreOrderedAndScopedToConnectionAndWorld(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.State{World: "Midgard"})
+	p.Send(&protocol.Container{Entity: "1:2", Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 5}}})
+	waitFor(t, func() bool { return len(s.Containers()) == 1 })
+	s.Message(currentConn(t, s), &protocol.Container{Envelope: protocol.Envelope{Seq: 0}, Entity: "1:2"})
+	if s.Containers()[0].Inventory().Count("Wood") != 5 {
+		t.Fatal("stale chest contents replaced the newer snapshot")
+	}
+	p.Send(&protocol.State{World: "Other"})
+	waitFor(t, func() bool { return len(s.Containers()) == 0 })
+	p.Send(&protocol.Container{Entity: "1:2"})
+	waitFor(t, func() bool { return len(s.Containers()) == 1 })
+	s.Connected(currentConn(t, s))
+	if len(s.Containers()) != 0 {
+		t.Fatal("chests outlived a new connection")
+	}
+}
+
 func TestDisconnectStopsTasksAndSendsNothingAfter(t *testing.T) {
 	s, l, p := setup(t, []string{"follow", "say"}, nil)
 	task, err := s.Dispatch(context.Background(), Order{Task: "follow", Args: &protocol.FollowArgs{Player: "Sothr"}})

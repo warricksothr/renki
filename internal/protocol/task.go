@@ -34,6 +34,8 @@ const (
 	TaskFlee     = "flee"
 	TaskEquip    = "equip"
 	TaskUnequip  = "unequip"
+	TaskDeposit  = "deposit"
+	TaskWithdraw = "withdraw"
 )
 
 // Slots are the equipment slots `unequip` empties; "hands" is both.
@@ -102,6 +104,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &EquipArgs{}
 	case TaskUnequip:
 		args = &UnequipArgs{}
+	case TaskDeposit, TaskWithdraw:
+		args = &TransferArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -114,6 +118,59 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		return nil, fmt.Errorf("%w for %s: %v", ErrBadArgs, r.Task, err)
 	}
 	return args, nil
+}
+
+// ItemCount is a positive count, or AllItems, encoded as "all".
+type ItemCount int
+
+const AllItems ItemCount = -1
+
+func (n ItemCount) MarshalJSON() ([]byte, error) {
+	if n == AllItems {
+		return []byte(`"all"`), nil
+	}
+	if n <= 0 {
+		return nil, errors.New("count must be positive or all")
+	}
+	return json.Marshal(int(n))
+}
+
+func (n *ItemCount) UnmarshalJSON(raw []byte) error {
+	if bytes.Equal(raw, []byte(`"all"`)) {
+		*n = AllItems
+		return nil
+	}
+	var v int32
+	if err := json.Unmarshal(raw, &v); err != nil || v <= 0 {
+		return errors.New("count must be a positive integer or all")
+	}
+	*n = ItemCount(v)
+	return nil
+}
+
+type TransferItem struct {
+	Prefab string    `json:"prefab"`
+	Count  ItemCount `json:"count"`
+}
+
+// TransferArgs names exactly what may move between the pack and one chest.
+type TransferArgs struct {
+	Container string         `json:"container"`
+	Items     []TransferItem `json:"items"`
+}
+
+func (a *TransferArgs) validate() error {
+	if a.Container == "" || len(a.Items) == 0 || len(a.Items) > 256 {
+		return errors.New("container and 1–256 items are required")
+	}
+	seen := map[string]bool{}
+	for _, it := range a.Items {
+		if it.Prefab == "" || it.Count == 0 || it.Count < AllItems || seen[it.Prefab] {
+			return errors.New("items need unique prefabs and positive counts or all")
+		}
+		seen[it.Prefab] = true
+	}
+	return nil
 }
 
 // StopArgs: `stop` takes no arguments.

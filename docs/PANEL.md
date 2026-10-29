@@ -114,7 +114,13 @@ the panel (400 bad value, 404 unknown key, 409 pinned or owners-only), and
 `{"as": owner, "text": …}` speaks to the bot as that owner. `GET /api/days` lists the
 audit files, `GET /api/timeline?day=…[&before=…]` reads one, and
 `GET /api/task?id=…&at=…` gives a task's records from the run going at
-`at`. A press or a change must carry
+`at`. `POST /api/task` accepts an exact `{ "task": "move_to", "args":
+{ "to": [1, 2, 3] }, "timeoutS": 60 }` and returns 202 with its session
+task ID. Invalid arguments return 400; connection/capability refusals return
+409. It uses normal direct-order semantics and all controller and plugin
+safety checks. `timeoutS` is 0 (unbounded) through 600; IDs are assigned by
+the session. `just vm task <task> '<args-json>' [timeout]` sends one without
+exposing panel credentials. A press or a change must carry
 an `X-Renki-Act` header: a page on
 another site cannot add one without the browser asking this server first,
 which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a

@@ -89,6 +89,21 @@ func (a *App) panelSay(as, text string) error {
 	return a.Brain.FromPanel(as, text)
 }
 
+// PanelTask follows the same direct-order semantics as the panel buttons.
+func (a *App) PanelTask(ctx context.Context, command panel.TaskCommand) (string, error) {
+	if err := command.Validate(); err != nil {
+		return "", err
+	}
+	a.Home.Touch()
+	a.Home.Ordered()
+	task, err := a.Session.Dispatch(ctx, session.Order{Task: command.Task, Args: command.Args, TimeoutS: command.TimeoutS, Origin: "panel"})
+	if err != nil {
+		return "", err
+	}
+	a.Home.Told()
+	return task.ID, nil
+}
+
 // models is the voice's model list, or nil when the voice cannot list them.
 func (a *App) models() func(context.Context) ([]string, error) {
 	if l, ok := a.Voice.(interface {
@@ -176,6 +191,7 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Models:   a.models(),
 			AuditDir: a.Config.Audit.Dir,
 			Say:      a.panelSay,
+			Dispatch: a.PanelTask,
 			Logger:   log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

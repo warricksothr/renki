@@ -44,6 +44,8 @@ namespace Renki.Tasks
                 case "emote": return AllowChat;
                 // They walk to what they gather, so movement must be allowed too.
                 case "pickup":
+                case "deposit":
+                case "withdraw":
                 case "harvest": return AllowGather && AllowMovement;
                 // Drops at the bot's feet, never what it has equipped.
                 case "drop": return AllowDrop;

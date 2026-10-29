@@ -39,6 +39,24 @@ of downloading or displaying a whole day. `just plugin game-source <Type>`
 saves the installed game's decompiled API under `.checks/game-source/` for
 local inspection; do not commit or redistribute those files.
 
+## Chest-transfer check
+
+Use a storage chest visible in perception and only Tas's test items.
+`just vm task deposit '{"container":"<id>","items":[{"prefab":"BeechSeeds","count":5}]}'`
+returns the task ID. Confirm a `container` snapshot reports exactly five
+moved and the pack loses five, then use `just vm task withdraw` with the
+same arguments to take those five back. Inspect task results with
+`just vm panel GET '/api/task?id=<id>&at=<ISO-time>'` or a narrow
+`just vm audit-window`. Check pack + chest counts before/after.
+
+Repeat with a chest that has only partial room, one held open by Nimah,
+and a ward Tas cannot access. Check partial counts or explicit refusal,
+no inventory UI, and that the owner can open the chest afterwards. Cancel
+while approaching or waiting for access and confirm no late transfer or
+use lock remains. `just vm gather` reads the plugin safety switch;
+`just vm gather true` enables gathering after the next restart when that
+work is authorized. It does not bypass controller allowedTasks.
+
 ## Wall-aware route check
 
 From inside the raised home, stand outside the east wall and say `come here`.

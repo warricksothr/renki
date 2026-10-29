@@ -66,6 +66,24 @@ type Options struct {
 	// Say takes words typed into the page as if the owner as had said them
 	// to the bot; nil turns the command box off.
 	Say func(as, text string) error
+	// Dispatch sends an explicit task through normal capability/safety checks.
+	Dispatch func(context.Context, TaskCommand) (string, error)
+}
+
+// TaskCommand is an explicit order for repeatable game checks. IDs and
+// protocol envelope fields belong to the session, never the caller.
+type TaskCommand struct {
+	Task     string          `json:"task"`
+	Args     json.RawMessage `json:"args,omitempty"`
+	TimeoutS float64         `json:"timeoutS,omitempty"`
+}
+
+func (c TaskCommand) Validate() error {
+	if c.TimeoutS < 0 || c.TimeoutS > 600 {
+		return fmt.Errorf("timeoutS must be between 0 and 600")
+	}
+	_, err := (&protocol.TaskRequest{Task: c.Task, Args: c.Args}).DecodeArgs()
+	return err
 }
 
 // Actions are what the page's buttons ask for.
@@ -113,6 +131,9 @@ func Handler(o Options) http.Handler {
 	if o.Say != nil {
 		authed.HandleFunc("POST /api/say", p.say)
 	}
+	if o.Dispatch != nil {
+		authed.HandleFunc("POST /api/task", p.dispatch)
+	}
 	if o.AuditDir != "" {
 		authed.HandleFunc("GET /api/days", p.days)
 		authed.HandleFunc("GET /api/timeline", p.timeline)
@@ -131,6 +152,35 @@ func Handler(o Options) http.Handler {
 
 type panel struct {
 	o Options
+}
+
+func (p *panel) dispatch(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get(ActHeader) == "" {
+		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
+		return
+	}
+	var command TaskCommand
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&command)
+	if err == nil {
+		err = command.Validate()
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	id, err := p.o.Dispatch(ctx, command)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	p.o.Logger.Info("panel task", "id", id, "task", command.Task, "remote", r.RemoteAddr)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{"id": id, "task": command.Task})
 }
 
 // headers adds the security headers every response carries.
