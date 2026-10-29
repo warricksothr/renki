@@ -68,6 +68,8 @@ namespace Renki.Plugin
                 "Using offering bowls (M2).").Value;
             safety.AllowRawControls = Config.Bind("Safety", "AllowRawControls", false,
                 "The debug `controls` task.").Value;
+            Doorman.Enabled = Config.Bind("Safety", "AllowDoors", true,
+                "Open closed doors in the bot's way, and shut them behind it.").Value;
 
             Log = Logger;
             Tracer.Sink = t =>

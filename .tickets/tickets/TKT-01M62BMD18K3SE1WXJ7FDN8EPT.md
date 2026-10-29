@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:55:57Z
-updated_at: 2026-10-29T00:56:55Z
+updated_at: 2026-10-29T01:07:49Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -73,10 +73,10 @@ matter, and the scan should not run every physics frame.
 
 ## Acceptance criteria
 
-- [ ] The plugin sends perception at perceptionHz with characters, structures and resources as 6.2 describes, capped and nearest first
-- [ ] Doors report whether they are open; 6.2 and the fixtures on both sides say so
+- [x] The plugin sends perception at perceptionHz with characters, structures and resources as 6.2 describes, capped and nearest first
+- [x] Doors report whether they are open; 6.2 and the fixtures on both sides say so
 - [ ] The panel's map shows players, creatures and structures from the real game
-- [ ] A perception scan in a built-up base takes under 2 ms, measured in the game
+- [x] A perception scan in a built-up base takes under 2 ms, measured in the game
 
 ## Implementation plan
 
@@ -89,3 +89,15 @@ matter, and the scan should not run every physics frame.
   - **IDs:** the ZDOID, the same `user:id` form the events already use.
   - **Timing:** a Stopwatch around each scan, with a trace every 30 s carrying the counts and the average and worst ms, so the 2 ms budget can be read from the audit log.
 - **Controller:** the session keeps the newest perception (for the panel status and, later, memory). The panel map draws structures by kind and creatures coloured by hostility, and shows door state.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T01:07:49Z
+
+Measured in the game on 2026-10-28 at home in DizzysHellheim, with 317 pieces, 105 colliders, 9 structures and 15 resources in range, sending at 1 Hz.
+
+- **First build:** 1.75 ms on average and 2.31 ms at worst (20:03:19), over budget at worst. Most of it went to checking seven component types on every piece, every scan.
+- **With what each piece and object is cached:** 0.73 ms on average, 0.86 ms at worst (20:06:41); then 0.80 ms and 1.02 ms (20:07:11).
+- **The first scan after a start** takes about 15 ms, while the game warms up and the caches fill. It happens once.
+
+The plugin sends this as a `perception: scan` trace every 30 s, so `just vm audit 1 | grep 'perception: scan'` shows it in any base.

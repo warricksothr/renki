@@ -41,7 +41,7 @@ namespace Renki.Protocol
         public const string PerceivedPlayer = "player", PerceivedCreature = "creature", PerceivedTamed = "tamed";
 
         public const string ResourceTree = "tree", ResourceLog = "log", ResourceRock = "rock",
-            ResourcePickable = "pickable", ResourceDrop = "drop";
+            ResourcePickable = "pickable", ResourceDrop = "drop", ResourceStump = "stump";
 
         public const string StructureContainer = "container", StructureStation = "station", StructureBed = "bed",
             StructurePortal = "portal", StructureDoor = "door", StructureFire = "fire", StructureSmelter = "smelter",

@@ -202,7 +202,7 @@ into a problem.
 | Kind | Values |
 |---|---|
 | `characters.kind` | `player`, `creature`, `tamed` |
-| `resources.kind` | `tree`, `log`, `rock`, `pickable`, `drop` |
+| `resources.kind` | `tree`, `log`, `stump`, `rock`, `pickable`, `drop` |
 | `structures.kind` | `container`, `station`, `bed`, `portal`, `door`, `fire`, `smelter`, `other` |
 
 - `characters`: the bot itself is left out. `stars` is the creature's
@@ -213,7 +213,11 @@ into a problem.
   the bot's own bed, `tag` is a portal's name, and `open` is set on doors
   only.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
-  Pickables already picked are left out.
+  Pickables already picked are left out. A tree felled with an axe becomes
+  a `log` that falls, and a `stump` left where it stood; a log splits into
+  halves, each a new `log` with a new id, and those break into wood drops.
+  A tree falling on a log breaks it too. Each step is a new object, so
+  following one through means matching place and time, not id.
 - The v1 plugin does not send `other`.
 
 ### 6.3 `inventory` (on change, and once after `welcome`)

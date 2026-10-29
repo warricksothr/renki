@@ -316,6 +316,20 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void ADoorAheadAndWithinReachIsOpened()
+        {
+            var at = new V3(0, 0, 0);
+            var north = new V3(0, 0, 1);
+            Assert.True(DoorRules.Ahead(at, north, new V3(0.5, 0, 2)));
+            Assert.False(DoorRules.Ahead(at, north, new V3(0, 0, -2)));   // behind
+            Assert.False(DoorRules.Ahead(at, north, new V3(2.4, 0, 0)));  // beside
+            Assert.False(DoorRules.Ahead(at, north, new V3(0, 0, 3)));    // out of reach
+            Assert.True(DoorRules.Ahead(at, V3.Zero, new V3(0.2, 0, 0))); // in the doorway
+            Assert.False(DoorRules.Past(new V3(0, 0, 3), new V3(0, 0, 0)));
+            Assert.True(DoorRules.Past(new V3(0, 0, 4), new V3(0, 0, 0)));
+        }
+
+        [Fact]
         public void PathFollowerAdvances()
         {
             var p = new PathFollower();
