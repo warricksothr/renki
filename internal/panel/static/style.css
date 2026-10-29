@@ -182,7 +182,7 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
 #inv-grid .wear { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--player); }
 #inv-grid .wear.low { background: var(--hostile); }
 
-#feed {
+#feed, .feed {
   flex: 1;
   overflow-y: auto;
   margin: 0;
@@ -190,7 +190,31 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
   list-style: none;
   font: 12px/1.45 ui-monospace, monospace;
 }
-#feed li { padding: 1px 10px; white-space: pre-wrap; word-break: break-word; border-left: 3px solid transparent; }
+#history[hidden] { display: none; }
+#day { background: var(--pane); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; }
+.feed li .task-link, #feed li .task-link {
+  background: none; border: 1px solid var(--line); border-radius: 3px; color: var(--bot);
+  padding: 0 4px; margin-right: 6px; font: inherit; cursor: pointer;
+}
+#history .earlier { display: block; margin: 4px 10px; }
+#task-view {
+  width: min(1000px, 92vw); max-height: 80vh; padding: 0; display: none; flex-direction: column;
+  background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+}
+#task-view[open] { display: flex; }
+#task-view::backdrop { background: rgba(0, 0, 0, 0.5); }
+#task-view header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+#task-view h2 { font-size: 14px; margin: 0; flex: 1; }
+#task-lines { overflow-y: auto; }
+#feed li, .feed li { padding: 1px 10px; white-space: pre-wrap; word-break: break-word; border-left: 3px solid transparent; }
+.feed li.chat, .feed li.task, .feed li.trace, .feed li.decision, .feed li.warn, .feed li.error { border-left: 3px solid transparent; }
+.feed li.chat { border-left-color: var(--player); }
+.feed li.task { border-left-color: var(--bot); }
+.feed li.trace { border-left-color: var(--path); }
+.feed li.decision { color: var(--dim); }
+.feed li.warn { color: var(--other); }
+.feed li.error { color: var(--stuck); }
+.feed li.hidden { display: none; }
 #feed li.chat { border-left-color: var(--player); }
 #feed li.task { border-left-color: var(--bot); }
 #feed li.trace { border-left-color: var(--path); }

@@ -11,6 +11,8 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -267,5 +269,55 @@ func TestSettingsFromThePage(t *testing.T) {
 	}
 	if _, body := do("GET", "/api/models", ""); !strings.Contains(body, `"models":["claude-haiku-5-5","gemma"]`) {
 		t.Errorf("models %s", body)
+	}
+}
+
+// TestPastDays: the day picker lists the files, a day reads without state,
+// and a task is the one of the run going at the time asked about.
+func TestPastDays(t *testing.T) {
+	dir := t.TempDir()
+	lines := []string{
+		`{"at":"2026-10-28T10:00:00Z","kind":"start","msg":"renki controller"}`,
+		`{"at":"2026-10-28T10:00:02Z","kind":"frame","dir":"out","frame":{"v":1,"type":"task","id":"t-1","task":"follow","args":{}}}`,
+		`{"at":"2026-10-28T10:00:03Z","kind":"frame","dir":"in","frame":{"v":1,"type":"state","seq":1,"t":0}}`,
+		`{"at":"2026-10-28T10:00:04Z","kind":"frame","dir":"in","frame":{"v":1,"type":"task","re":"t-1","status":"failed","reason":"stuck"}}`,
+		`{"at":"2026-10-28T11:00:00Z","kind":"start","msg":"renki controller"}`,
+		`{"at":"2026-10-28T11:00:02Z","kind":"frame","dir":"out","frame":{"v":1,"type":"task","id":"t-1","task":"move_to","args":{}}}`,
+	}
+	day := time.Date(2026, 10, 28, 11, 0, 2, 0, time.UTC).Local().Format(time.DateOnly)
+	if err := os.WriteFile(filepath.Join(dir, "audit-"+day+".jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	l, _ := audit.Open("", 0, nil)
+	srv := httptest.NewServer(Handler(Options{Token: token, Log: l, Status: func() any { return nil }, AuditDir: dir,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}))
+	defer srv.Close()
+	get := func(path string, v any) int {
+		req, _ := http.NewRequest("GET", srv.URL+path, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		json.NewDecoder(res.Body).Decode(v)
+		return res.StatusCode
+	}
+	var days []Day
+	if get("/api/days", &days); len(days) != 1 || days[0].Day != day {
+		t.Errorf("days %+v", days)
+	}
+	var tl Timeline
+	get("/api/timeline?day="+day, &tl)
+	if len(tl.Events) != 5 || tl.More {
+		t.Errorf("timeline: %d events, more %v", len(tl.Events), tl.More)
+	}
+	var evs []Event
+	get("/api/task?id=t-1&at=2026-10-28T11:00:02Z", &evs)
+	if len(evs) != 1 || !strings.Contains(evs[0].Line, "move_to") || evs[0].Task != "t-1" {
+		t.Errorf("t-1 of the second run: %+v", evs)
+	}
+	if code := get("/api/timeline?day=../../etc/passwd", &tl); code != http.StatusBadRequest {
+		t.Errorf("a path for a day: %d", code)
 	}
 }

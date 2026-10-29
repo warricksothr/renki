@@ -3,7 +3,7 @@
 A web page, served by the controller, for watching the bot live: where it
 is, what it is doing, and why, with buttons to stop it, send it home or
 log it out. TKT-01M628X106 (Web control panel to watch and steer the bot)
-tracks what is still to come: behaviour switches and a per-task view.
+tracks what is still to come: behaviour instances, once the engine is in.
 
 ## Turning it on
 
@@ -81,7 +81,15 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Feed:** the audit log's records as they are written (docs/AUDIT.md), in
   the same lines `just vm audit` prints. Filters: chat, tasks, the plugin's
   decisions (`trace`), the controller's decisions, other frames, and state
-  (once a second). **Pause** stops it scrolling.
+  (once a second). **Pause** stops it scrolling. The day picker beside it
+  reads a past day's audit file instead (its newest 2000 records, with
+  **Load earlier** for more; state and perception left out), and **Live**
+  goes back.
+- **Task view:** any line about a task starts with its id; click it for
+  everything about that task in the controller run it belongs to (ids
+  start again with each run): the chat that led to it, the request, its
+  statuses, the plugin's traces and the controller's records, with how it
+  ended and how long it took. The same cut as `just vm audit -task`.
 
 A new page starts with the last 500 records, the newest state, perception
 and inventory, and a state a second for the last five minutes for the trail.
@@ -97,7 +105,10 @@ answers `{"text": …}` with 200, 404 for an unknown action or 409 when it
 could not be done. `GET /api/settings` lists the runtime settings with who
 set each, `POST /api/setting` with `{"key": …, "value": …}` changes one as
 the panel (400 bad value, 404 unknown key, 409 pinned or owners-only), and
-`GET /api/models` lists the voice's models. A press or a change must carry
+`GET /api/models` lists the voice's models. `GET /api/days` lists the
+audit files, `GET /api/timeline?day=…[&before=…]` reads one, and
+`GET /api/task?id=…&at=…` gives a task's records from the run going at
+`at`. A press or a change must carry
 an `X-Renki-Act` header: a page on
 another site cannot add one without the browser asking this server first,
 which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a

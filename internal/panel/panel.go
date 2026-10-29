@@ -9,7 +9,8 @@
 // POST /api/act/{action} asks the bot to stop, go home or log out.
 // GET /api/settings and POST /api/setting read and change the runtime
 // settings (internal/settings), and GET /api/models lists the voice's
-// models.
+// models. GET /api/days, /api/timeline and /api/task read the audit files
+// of past days.
 package panel
 
 import (
@@ -23,6 +24,8 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
@@ -55,6 +58,8 @@ type Options struct {
 	Settings *settings.Store
 	// Models lists the voice's models; nil when there is no voice.
 	Models func(ctx context.Context) ([]string, error)
+	// AuditDir holds the audit files the timeline reads; "" turns it off.
+	AuditDir string
 }
 
 // Actions are what the page's buttons ask for.
@@ -99,6 +104,11 @@ func Handler(o Options) http.Handler {
 		authed.HandleFunc("POST /api/setting", p.set)
 	}
 	authed.HandleFunc("GET /api/models", p.models)
+	if o.AuditDir != "" {
+		authed.HandleFunc("GET /api/days", p.days)
+		authed.HandleFunc("GET /api/timeline", p.timeline)
+		authed.HandleFunc("GET /api/task", p.task)
+	}
 
 	mux := http.NewServeMux()
 	// The stylesheet holds nothing private, and the login page needs it.
@@ -289,12 +299,130 @@ func (p *panel) models(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(out)
 }
 
+// Day is one audit file, for the page's day picker.
+type Day struct {
+	Day   string `json:"day"`
+	Bytes int64  `json:"bytes"`
+}
+
+// days lists the audit files, newest first.
+func (p *panel) days(w http.ResponseWriter, r *http.Request) {
+	out := []Day{}
+	files := audit.Files(p.o.AuditDir)
+	for i := len(files) - 1; i >= 0; i-- {
+		if day := audit.Day(files[i]); day != "" {
+			var size int64
+			if st, err := os.Stat(files[i]); err == nil {
+				size = st.Size()
+			}
+			out = append(out, Day{Day: day, Bytes: size})
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// dayFile is the audit file for day, which must be a date, so a request
+// cannot name any other file.
+func (p *panel) dayFile(day string) (string, error) {
+	if _, err := time.Parse(time.DateOnly, day); err != nil {
+		return "", fmt.Errorf("not a day: %q", day)
+	}
+	return filepath.Join(p.o.AuditDir, audit.Prefix+day+audit.Suffix), nil
+}
+
+// TimelineLimit is how many records /api/timeline returns at most.
+const TimelineLimit = 2000
+
+// Timeline is a stretch of a day: its newest records before a time, oldest
+// first, and whether there are older ones.
+type Timeline struct {
+	Events []Event `json:"events"`
+	More   bool    `json:"more"`
+}
+
+// timeline answers ?day=YYYY-MM-DD[&before=RFC 3339] with the day's newest
+// TimelineLimit records before that time, without state or perception.
+func (p *panel) timeline(w http.ResponseWriter, r *http.Request) {
+	path, err := p.dayFile(r.URL.Query().Get("day"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	f := audit.Filter{}
+	if b := r.URL.Query().Get("before"); b != "" {
+		if f.Until, err = time.Parse(time.RFC3339Nano, b); err != nil {
+			http.Error(w, "before: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		f.Until = f.Until.Add(-time.Nanosecond) // strictly before
+	}
+	recs, err := audit.ReadDay(path, f)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	out := Timeline{Events: []Event{}}
+	if len(recs) > TimelineLimit {
+		recs, out.More = recs[len(recs)-TimelineLimit:], true
+	}
+	for _, rec := range recs {
+		out.Events = append(out.Events, event(rec))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// task answers ?id=t-3&at=RFC 3339 with what concerns that task in the
+// controller run that was going at that time: ids start again with each
+// run, so t-3 of an earlier run is another task.
+func (p *panel) task(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	at, err := time.Parse(time.RFC3339Nano, r.URL.Query().Get("at"))
+	if id == "" || err != nil {
+		http.Error(w, "want id and at", http.StatusBadRequest)
+		return
+	}
+	path, _ := p.dayFile(at.Local().Format(time.DateOnly))
+	recs, err := audit.ReadDay(path, audit.Filter{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// The run is from the last start at or before at to the next one. It is
+	// cut out first, so the task's records in other runs cannot stretch
+	// the window the filter looks for its cause in.
+	from, to := 0, len(recs)
+	for i, rec := range recs {
+		if rec.Kind != audit.KindStart {
+			continue
+		}
+		if !rec.At.After(at) {
+			from = i
+		} else {
+			to = i
+			break
+		}
+	}
+	out := []Event{}
+	for _, rec := range (audit.Filter{Task: id}).Apply(recs[from:to]) {
+		out = append(out, event(rec))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(v)
+}
+
 // Event is a record as the page gets it: the record, the timeline's line
 // for it, and a category for the page's filters and map.
 type Event struct {
 	audit.Record
 	Line string `json:"line"`
 	Cat  string `json:"cat"`
+	// Task is the task the record is about, if any (audit.TaskID).
+	Task string `json:"task,omitempty"`
 }
 
 // Categories of Event.
@@ -309,7 +437,7 @@ const (
 )
 
 func event(r audit.Record) Event {
-	return Event{Record: r, Line: audit.Line(r), Cat: category(r)}
+	return Event{Record: r, Line: audit.Line(r), Cat: category(r), Task: audit.TaskID(r)}
 }
 
 func category(r audit.Record) string {

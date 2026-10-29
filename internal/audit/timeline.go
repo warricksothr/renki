@@ -2,6 +2,8 @@ package audit
 
 import (
 	"bufio"
+	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -47,6 +49,72 @@ func ReadFiles(paths []string) (recs []Record, skipped int, err error) {
 	}
 	sort.SliceStable(recs, func(i, j int) bool { return recs[i].At.Before(recs[j].At) })
 	return recs, skipped, nil
+}
+
+// ReadDay reads one audit file through f. Most of a day is state and
+// perception frames; when f hides them they are passed over before they
+// are decoded, so a large day stays cheap to read.
+func ReadDay(path string, f Filter) ([]Record, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	var skip [][]byte
+	if f.State <= 0 {
+		skip = append(skip, []byte(`"type":"state"`))
+	}
+	if f.Perception <= 0 {
+		skip = append(skip, []byte(`"type":"perception"`))
+	}
+	var recs []Record
+	s := bufio.NewScanner(file)
+	s.Buffer(make([]byte, 64<<10), 4<<20)
+	for s.Scan() {
+		line := s.Bytes()
+		if slices.ContainsFunc(skip, func(b []byte) bool { return bytes.Contains(line, b) }) {
+			continue
+		}
+		var rec Record
+		if json.Unmarshal(line, &rec) == nil && rec.Kind != "" {
+			recs = append(recs, rec)
+		}
+	}
+	if err := s.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
+	}
+	return f.Apply(recs), nil
+}
+
+// TaskID is the task r is about, or "": a task request's id, a status's
+// re, a trace's task, or a controller record's id or task.
+func TaskID(r Record) string {
+	switch r.Kind {
+	case KindFrame:
+		var env struct {
+			Type string `json:"type"`
+			ID   string `json:"id"`
+			Re   string `json:"re"`
+			Task any    `json:"task"`
+		}
+		if json.Unmarshal(r.Frame, &env) != nil {
+			return ""
+		}
+		switch env.Type {
+		case protocol.TypeTask:
+			return cmp.Or(env.ID, env.Re)
+		case protocol.TypeTrace:
+			t, _ := env.Task.(string)
+			return t
+		}
+	case KindLog:
+		for _, k := range []string{"id", "task"} {
+			if t, ok := r.Attrs[k].(string); ok && strings.HasPrefix(t, "t-") {
+				return t
+			}
+		}
+	}
+	return ""
 }
 
 func readRecords(r io.Reader) (recs []Record, skipped int, err error) {

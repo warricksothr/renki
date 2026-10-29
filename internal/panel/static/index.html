@@ -89,8 +89,14 @@
         <label><input type="checkbox" data-cat="other"> Other</label>
         <label><input type="checkbox" data-cat="state"> State</label>
         <label class="push"><input type="checkbox" id="pause"> Pause</label>
+        <select id="day" title="Watch live, or read a past day's audit log"><option value="">Live</option></select>
       </div>
       <ol id="feed"></ol>
+      <ol id="history" class="feed" hidden></ol>
+      <dialog id="task-view">
+        <header><h2 id="task-title"></h2><button id="task-close" title="Close">Close</button></header>
+        <ol id="task-lines" class="feed"></ol>
+      </dialog>
     </section>
   </main>
 </body>

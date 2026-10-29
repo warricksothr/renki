@@ -42,7 +42,8 @@ let lastStateLine = 0;
 for (const box of document.querySelectorAll(".filters input[data-cat]")) {
   box.addEventListener("change", () => {
     box.checked ? shown.add(box.dataset.cat) : shown.delete(box.dataset.cat);
-    for (const li of feed.children) li.classList.toggle("hidden", !shown.has(li.dataset.cat));
+    for (const li of [...feed.children, ...$("history").children])
+      li.classList.toggle("hidden", !!li.dataset.cat && !shown.has(li.dataset.cat));
   });
 }
 
@@ -53,18 +54,121 @@ function addLine(ev) {
     if (now - lastStateLine < 1000) return;
     lastStateLine = now;
   }
-  const li = document.createElement("li");
-  li.textContent = ev.line;
-  li.dataset.cat = ev.cat;
-  li.className = ev.cat;
-  if (ev.level === "WARN") li.classList.add("warn");
-  if (ev.level === "ERROR") li.classList.add("error");
+  const li = lineItem(ev);
   if (!shown.has(ev.cat)) li.classList.add("hidden");
   const atBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 20;
   feed.append(li);
   while (feed.children.length > FEED_MAX) feed.firstChild.remove();
   if (atBottom && !$("pause").checked) feed.scrollTop = feed.scrollHeight;
 }
+
+// lineItem is one record as a line, with a link to its task's view.
+function lineItem(ev) {
+  const li = document.createElement("li");
+  li.dataset.cat = ev.cat;
+  li.className = ev.cat;
+  if (ev.level === "WARN") li.classList.add("warn");
+  if (ev.level === "ERROR") li.classList.add("error");
+  if (ev.task) {
+    const b = document.createElement("button");
+    b.className = "task-link";
+    b.textContent = ev.task;
+    b.title = `Everything about ${ev.task}`;
+    b.addEventListener("click", () => openTask(ev.task, ev.at));
+    li.append(b);
+  }
+  li.append(ev.line);
+  return li;
+}
+
+// ---- past days and tasks ----
+
+async function loadDays() {
+  const res = await fetch("/api/days").catch(() => null);
+  if (!res || !res.ok) return;
+  const sel = $("day");
+  const keep = sel.value;
+  const days = await res.json();
+  sel.replaceChildren(new Option("Live", ""), ...days.map((d) => new Option(`${d.day} (${(d.bytes / 1e6).toFixed(0)} MB)`, d.day)));
+  sel.value = keep;
+}
+
+// showDay reads a day's records into the history list, newest last; before
+// pages back to earlier ones.
+async function showDay(day, before) {
+  const hist = $("history");
+  const live = day === "";
+  feed.hidden = !live;
+  hist.hidden = live;
+  if (live) return;
+  if (!before) hist.replaceChildren(Object.assign(document.createElement("li"), { textContent: "Reading…" }));
+  const q = new URLSearchParams({ day });
+  if (before) q.set("before", before);
+  const res = await fetch(`/api/timeline?${q}`).catch(() => null);
+  if (!res || !res.ok) {
+    hist.replaceChildren(Object.assign(document.createElement("li"), { textContent: res ? await res.text() : "the controller did not answer", className: "error" }));
+    return;
+  }
+  const tl = await res.json();
+  const items = tl.events.filter((ev) => ev.cat !== "perception").map((ev) => {
+    const li = lineItem(ev);
+    if (!shown.has(ev.cat)) li.classList.add("hidden");
+    return li;
+  });
+  if (tl.more && tl.events.length) {
+    const more = document.createElement("li");
+    const b = document.createElement("button");
+    b.className = "earlier";
+    b.textContent = "Load earlier";
+    b.addEventListener("click", () => {
+      more.remove();
+      showDay(day, tl.events[0].at);
+    });
+    more.append(b);
+    items.unshift(more);
+  }
+  if (before) {
+    hist.prepend(...items);
+  } else {
+    hist.replaceChildren(...items);
+    hist.scrollTop = hist.scrollHeight;
+  }
+}
+
+async function openTask(id, at) {
+  const dlg = $("task-view");
+  $("task-title").textContent = `${id}: reading…`;
+  $("task-lines").replaceChildren();
+  if (!dlg.open) dlg.showModal();
+  const res = await fetch(`/api/task?${new URLSearchParams({ id, at })}`).catch(() => null);
+  if (!res || !res.ok) {
+    $("task-title").textContent = `${id}: ${res ? await res.text() : "the controller did not answer"}`;
+    return;
+  }
+  const evs = await res.json();
+  $("task-lines").replaceChildren(...evs.map(lineItem));
+  $("task-title").textContent = taskTitle(id, evs);
+}
+
+// taskTitle says what the task was, how it ended and how long it took.
+function taskTitle(id, evs) {
+  let name = "", end = "", first, last;
+  for (const ev of evs) {
+    const f = ev.frame;
+    if (ev.task !== id) continue;
+    first ??= Date.parse(ev.at);
+    last = Date.parse(ev.at);
+    if (f?.type === "task" && f.id === id) name = f.task;
+    if (f?.type === "task" && f.re === id && ["succeeded", "failed", "cancelled", "rejected"].includes(f.status))
+      end = f.status + (f.reason ? ` (${f.reason})` : "");
+  }
+  const secs = first != null ? ((last - first) / 1000).toFixed(1) : "?";
+  return `${id}${name ? " " + name : ""}: ${end || "no end seen"}, ${secs} s`;
+}
+
+$("task-close").addEventListener("click", () => $("task-view").close());
+$("day").addEventListener("focus", loadDays);
+$("day").addEventListener("change", () => showDay($("day").value));
 
 // ---- records into the map ----
 
@@ -937,4 +1041,5 @@ function connect() {
 }
 
 connect();
+loadDays();
 draw();
