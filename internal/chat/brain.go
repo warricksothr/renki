@@ -761,6 +761,8 @@ func explain(task, reason, player string) string {
 		return "I'm stuck. Can you come back for me?"
 	case protocol.ReasonUnreachable:
 		return "I can't find a way there."
+	case protocol.ReasonDeepWater:
+		return "There's deep water in the way, and I'd drown in it. I'll stay on dry land."
 	case protocol.ReasonTimeout:
 		return "That took too long, so I gave up."
 	case protocol.ReasonNotAllowed, protocol.ReasonUnsupported:

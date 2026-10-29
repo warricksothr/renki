@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T00:16:03Z
-updated_at: 2026-10-29T13:55:41Z
+updated_at: 2026-10-29T13:58:31Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -60,3 +60,7 @@ In every case the navmesh had no path ("no navmesh path; straight line"), so the
 - [ ] The straight-line fallback does not cross deep water
 - [ ] A swimming bot walks rather than runs, and turns for shore when stamina is low
 - [ ] A stuck give-up does not start a trip home along the same blocked straight line
+
+## Implementation plan
+
+Plugin: DeepWater.Crossing samples the straight-line fallback every 2 m (ZoneSystem ground height against m_waterLevel); deeper than 1.4 m, the walker refuses and move_to, pickup and follow fail deep_water. Swimming: walk, and below 30% stamina make for DeepWater.Shore, holding the stuck count. Controller: explains deep_water and does not count it as a reason to go home, so the trip home is not sent along the same water.

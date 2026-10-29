@@ -27,6 +27,18 @@ namespace Renki.Plugin
 
         public bool StraightLine { get; private set; }
 
+        /// <summary>Why the walker will not go on: the straight line it fell
+        /// back to crosses deep water. Null while it can.</summary>
+        public string Blocked { get; private set; }
+
+        /// <summary>The failure for a walk the walker will not make, or null.</summary>
+        public Outcome Refused() => Blocked != null ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null;
+
+        static double Ground(double x, double z) =>
+            ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(new Vector3((float)x, 0, (float)z)) : 0;
+
+        static double WaterLevel => ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000;
+
         /// <summary>The navmesh path ends above or below the goal's level:
         /// under a raised floor, at the foot of a rock. The bot can stand
         /// under the goal but not reach it.</summary>
@@ -69,10 +81,23 @@ namespace Renki.Plugin
             StraightLine = !(pf != null &&
                              pf.GetPath(from, goal, scratch, Pathfinding.AgentType.Humanoid, false, true, false) &&
                              scratch.Count > 0);
+            Blocked = null;
             if (StraightLine)
             {
                 scratch.Clear();
                 scratch.Add(goal);
+                // The straight line is the fallback that drowned the bot:
+                // it does not know about lakes.
+                if (DeepWater.Crossing(Convert.ToV3(from), Convert.ToV3(goal), Ground, WaterLevel) is V3 wet)
+                {
+                    Blocked = $"deep water in the way at ({wet.X:0}, {wet.Z:0})";
+                    Tracer.Emit("walker", "no navmesh path, and deep water on the straight line", new Dictionary<string, object>
+                    {
+                        ["from"] = Convert.ToArray(from),
+                        ["to"] = Convert.ToArray(goal),
+                        ["water"] = wet.ToArray(),
+                    });
+                }
             }
             path.Set(scratch.Select(Convert.ToV3));
             // The navmesh gives the way to the nearest point it can reach,
@@ -106,6 +131,7 @@ namespace Renki.Plugin
         public bool Steer(Vector3 pos, bool run)
         {
             if (!hasGoal) return true;
+            if (Swim(pos, ref run)) return true;
             if (climb.Active && Climb(pos)) return true;
             var recovery = stuck.Update(Convert.ToV3(pos), Time.time);
             if (recovery != Recovery.None)
@@ -149,6 +175,45 @@ namespace Renki.Plugin
             // A strafe walks, so it cannot carry the bot out of the stuck
             // circle on its own and pass for progress.
             Driver.Run = run && Time.time >= strafeUntil;
+            return true;
+        }
+
+        /// <summary>Stamina below this share, a swimming bot makes for shore.</summary>
+        const float SwimLow = 0.3f;
+
+        V3? shore;
+
+        /// <summary>A swimming bot walks: running drains the stamina it
+        /// needs to stay afloat, and none comes back in the water. With
+        /// little left it makes for the nearest shore, whatever the goal, and
+        /// holds the stuck count meanwhile. True while it is doing that.</summary>
+        bool Swim(Vector3 pos, ref bool run)
+        {
+            var p = Player.m_localPlayer;
+            if (p == null || !p.IsSwimming())
+            {
+                shore = null;
+                return false;
+            }
+            run = false;
+            if (shore == null && p.GetStamina() >= SwimLow * p.GetMaxStamina()) return false;
+            if (shore == null)
+            {
+                shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel);
+                Tracer.Emit("walker", shore != null ? "swimming, low on stamina: making for shore" : "swimming, low on stamina, and no shore in reach",
+                    new Dictionary<string, object>
+                    {
+                        ["stamina"] = System.Math.Round(p.GetStamina(), 1),
+                        ["pos"] = Convert.ToArray(pos),
+                        ["shore"] = shore?.ToArray(),
+                    });
+                if (shore == null) return false;
+            }
+            stuck.Hold(Time.time);
+            var dir = Convert.ToVector3(shore.Value) - pos;
+            dir.y = 0;
+            Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+            Driver.Run = false;
             return true;
         }
 
@@ -272,6 +337,11 @@ namespace Renki.Plugin
             {
                 Driver.Stand();
                 return stranded;
+            }
+            if (walker.Refused() is Outcome wet)
+            {
+                Driver.Stand();
+                return wet;
             }
             if (!walker.Steer(pos, args.Run))
             {
@@ -398,6 +468,11 @@ namespace Renki.Plugin
             {
                 Driver.Stand();
                 return stranded;
+            }
+            if (walker.Refused() is Outcome wet)
+            {
+                Driver.Stand();
+                return wet;
             }
             if (!walker.Steer(pos, true))
             {
@@ -536,6 +611,11 @@ namespace Renki.Plugin
             {
                 Driver.Stand();
                 return stranded;
+            }
+            if (walker.Refused() is Outcome wet)
+            {
+                Driver.Stand();
+                return wet;
             }
             if (!walker.Steer(pos, gait == Gait.Run))
             {

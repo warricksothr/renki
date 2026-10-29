@@ -217,6 +217,30 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void TheStraightLineStopsAtDeepWater()
+        {
+            // A lake between x 20 and 60, 5 m deep; the water level is 30.
+            double Ground(double x, double z) => x > 20 && x < 60 ? 25 : 34;
+            var crossing = DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), Ground, 30);
+            Assert.NotNull(crossing);
+            Assert.InRange(crossing.Value.X, 20, 24);
+            Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(18, 34, 0), Ground, 30));
+            // Wading depth is fine.
+            Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), (x, z) => 29, 30));
+        }
+
+        [Fact]
+        public void TheShoreIsTheNearestDryGround()
+        {
+            // Swimming at x 40 in the lake: the west shore (x 20) is nearer.
+            double Ground(double x, double z) => x > 20 && x < 70 ? 25 : 34;
+            var shore = DeepWater.Shore(new V3(40, 30, 0), Ground, 30);
+            Assert.NotNull(shore);
+            Assert.True(shore.Value.X <= 20, $"shore at {shore.Value.X}");
+            Assert.Null(DeepWater.Shore(new V3(0, 30, 0), (x, z) => 0, 30));
+        }
+
+        [Fact]
         public void ArrivalIsOnTheGoalsLevel()
         {
             var home = new V3(-35.9, 36.09, 6.53);

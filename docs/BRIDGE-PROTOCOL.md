@@ -309,6 +309,7 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 | `invalid_target` | ID unknown, or the wrong kind of thing. |
 | `target_lost` | Target left range or was destroyed by someone else. |
 | `unreachable` | No path. |
+| `deep_water` | No navmesh path, and the straight line crosses water too deep to wade (over 1.4 m), where the bot would drown. |
 | `stuck` | Stuck recovery gave up. |
 | `timeout` | `timeoutS` elapsed. |
 | `no_tool` | Nothing in the inventory meets `minTool`. |
@@ -452,7 +453,13 @@ Notes:
 
 - Get a path from the game's own navmesh
   (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Fall back to a straight line
-  when no path comes back.
+  when no path comes back, unless that line crosses water deeper than 1.4 m
+  (sampled every 2 m, the ground's height against the water level): then
+  `move_to`, `pickup` and `follow` fail with `deep_water`, since the bot
+  swims slowly, regains no stamina in the water and drowns at none.
+- **Swimming:** a swimming bot walks, never runs. Below 30% stamina it makes
+  for the nearest point it can stand on (searched in rings out to 60 m),
+  whatever its goal, and the stuck count holds meanwhile.
 - Steering sets the move direction and look yaw every frame.
 - **Stuck detection:** the bot is stuck while it stays within 3 m of where it
   was. Every 3 s inside that circle triggers the next recovery: a jump, then a

@@ -288,6 +288,21 @@ func TestOverloadIsExplained(t *testing.T) {
 	}
 }
 
+// TestDeepWaterIsSaidAndDoesNotSendTheBotHome: the trip home would cross
+// the same water.
+func TestDeepWaterIsSaidAndDoesNotSendTheBotHome(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home = &protocol.Vec3{}
+	b.Chat(line("Sothr", "bjorn come here"))
+	b.TaskDone(doneTask(f.sent()[0], protocol.StatusFailed, protocol.ReasonDeepWater))
+	if got := f.said(); len(got) != 2 || !strings.Contains(got[1], "deep water") {
+		t.Errorf("said %q", got)
+	}
+	if len(h.trips) != 0 {
+		t.Errorf("went home: %v", h.trips)
+	}
+}
+
 func TestFailedTaskIsExplainedToWhoAsked(t *testing.T) {
 	b, f, _ := newBrain(nil)
 	b.Chat(line("Sothr", "bjorn follow me"))

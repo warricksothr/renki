@@ -419,6 +419,7 @@ const (
 	ReasonInvalidTarget    = "invalid_target"
 	ReasonTargetLost       = "target_lost"
 	ReasonUnreachable      = "unreachable"
+	ReasonDeepWater        = "deep_water"
 	ReasonStuck            = "stuck"
 	ReasonTimeout          = "timeout"
 	ReasonNoTool           = "no_tool"
