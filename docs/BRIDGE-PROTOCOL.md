@@ -234,6 +234,12 @@ into a problem.
 }
 ```
 
+`prefab` is the item's prefab, as drops and `deposit` name it. The few items
+the game has no prefab for go by their name token instead (`$item_…`).
+`quality` is set on items that have levels, `durability` on items that wear,
+and `equipped` on what the bot holds or wears. A burst of changes, such as
+picking up a pile, is one message.
+
 ### 6.4 `chat` (every chat line except the bot's own)
 
 ```json

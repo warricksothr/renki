@@ -57,6 +57,7 @@ namespace Renki.Plugin
                 var seen = new InventoryItem
                 {
                     Slot = new[] { item.m_gridPos.x, item.m_gridPos.y },
+                    // The few items with no prefab go by their name token (6.3).
                     Prefab = item.m_dropPrefab != null ? item.m_dropPrefab.name : shared.m_name,
                     Stack = item.m_stack,
                 };
