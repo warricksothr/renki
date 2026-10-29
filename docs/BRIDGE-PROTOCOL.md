@@ -269,9 +269,9 @@ picking up a pile, is one message.
 ```
 
 `channel` is one of `normal`, `shout`, `whisper`, `ping`. `pos` is where
-the speaker stands when their character is loaded near the bot; the game
-itself sends their head, about 1.6 m higher, and that is what comes through
-otherwise. For a `ping` it is the pinged point.
+the speaker stands: the game sends their head, about 1.6 m higher, so the
+plugin takes their character's position when it is loaded near the bot and
+otherwise the ground under the head. For a `ping` it is the pinged point.
 
 ### 6.5 `event` (as it happens)
 

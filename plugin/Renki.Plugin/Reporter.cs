@@ -202,15 +202,17 @@ namespace Renki.Plugin
             });
         }
 
+        static readonly int Ground = LayerMask.GetMask("Default", "static_solid", "terrain", "piece", "vehicle");
+
         /// <summary>The game sends a speaker's head; where they stand is what
         /// "come here" and "set home" mean. Their feet, when their character
-        /// is loaded near the head, else the head.</summary>
+        /// is loaded near the head, else the ground under the head.</summary>
         static Vector3 Feet(string name, Vector3 head)
         {
             foreach (var p in Player.GetAllPlayers())
                 if (p.GetPlayerName() == name && Vector3.Distance(p.GetHeadPoint(), head) < 3)
                     return p.transform.position;
-            return head;
+            return Physics.Raycast(head, Vector3.down, out var hit, 3f, Ground) ? hit.point : head;
         }
     }
 }
