@@ -137,6 +137,10 @@ namespace Renki.Plugin
         /// objects do not pile up.</summary>
         const int CacheMax = 8192;
 
+        /// <summary>A piece that is not a structure and has yet to be
+        /// measured for a wall.</summary>
+        static readonly Known Unmeasured = new Known();
+
         /// <summary>How many new pieces one scan measures for walls.</summary>
         const int MeasurePerScan = 200;
         int measured;
@@ -153,17 +157,16 @@ namespace Renki.Plugin
             wall = null;
             if (!pieces.TryGetValue(p, out var k))
             {
-                k = Classify(p);
-                if (k == null)
-                {
-                    // Measuring a piece is the costly part: a big base is
-                    // measured over a few scans rather than in one frame.
-                    if (measured >= MeasurePerScan) return null;
-                    measured++;
-                    if (WallOf(p) is (V3, V3, double) shape) k = new Known { Wall = shape };
-                }
                 if (pieces.Count >= CacheMax) pieces.Clear();
-                pieces[p] = k;
+                pieces[p] = k = Classify(p) ?? Unmeasured;
+            }
+            if (k == Unmeasured)
+            {
+                // Measuring a piece is the costly part: a big base is
+                // measured over a few scans rather than in one frame.
+                if (measured >= MeasurePerScan) return null;
+                measured++;
+                pieces[p] = k = WallOf(p) is (V3, V3, double) shape ? new Known { Wall = shape } : null;
             }
             if (k == null) return null;
             if (k.Wall is (V3 a, V3 b, double h))
@@ -247,12 +250,25 @@ namespace Renki.Plugin
         {
             var near = walls.Take();
             ulong sig = (ulong)near.Count;
-            foreach (var w in near) unchecked { sig += (ulong)(uint)w.Key * 0x9E3779B97F4A7C15UL; }
+            foreach (var w in near) unchecked { sig += Mix((ulong)(uint)w.Key); }
             if (wallsSent && sig == sentWalls) return;
             layout = new Layout();
             foreach (var w in near) layout.Walls.Add(w.Value);
             sentWalls = sig;
             wallsSent = true;
+        }
+
+        /// <summary>The splitmix64 finaliser: spreads an id over 64 bits, so
+        /// sums of different sets of ids differ.</summary>
+        static ulong Mix(ulong x)
+        {
+            unchecked
+            {
+                x += 0x9E3779B97F4A7C15UL;
+                x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9UL;
+                x = (x ^ (x >> 27)) * 0x94D049BB133111EBUL;
+                return x ^ (x >> 31);
+            }
         }
 
         /// <summary>The layout, once, after the scan that found it changed.</summary>
