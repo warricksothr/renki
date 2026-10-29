@@ -32,15 +32,14 @@ namespace Renki.Plugin
         const float ShutFor = 10f;
 
         /// <summary>A door the bot opened but never went through is shut as
-        /// the bot walks away from it: once it is farther than LeftAt (more
-        /// than StuckReach, so a door opened while stuck is not shut at once)
-        /// and still within AbandonReach. Past that it is left as it is.</summary>
-        const double LeftAt = 4.5, AbandonReach = 6;
+        /// the bot walks away from it, once it is farther than LeftAt (more
+        /// than StuckReach). No door is shut from farther than AbandonReach.</summary>
+        const double LeftAt = 4.5, AbandonReach = 8;
 
         sealed class Opened
         {
             public Door Door;
-            public bool Through, Refused;
+            public bool Through, SeenOpen;
             public float At;
         }
 
@@ -106,7 +105,7 @@ namespace Renki.Plugin
                 var o = opened.Find(x => x.Door == best);
                 if (o == null) opened.Add(o = new Opened { Door = best });
                 o.At = Time.time;
-                o.Through = o.Refused = false;
+                o.Through = o.SeenOpen = false;
                 leave[best] = Time.time + SettleFor;
                 Tracer.Emit("door", "opening", data);
                 return true;
@@ -118,7 +117,9 @@ namespace Renki.Plugin
 
         /// <summary>Every frame in a session: notes when the bot is in the
         /// doorway of a door it opened, and shuts that door once the bot is
-        /// past it, whether or not a task is still running.</summary>
+        /// past it, whether or not a task is still running. A door still
+        /// shut once it has settled was refused (a ward, a key) or shut by
+        /// someone else, and there is nothing to shut.</summary>
         public static void Tick(Player me)
         {
             if (opened.Count == 0) return;
@@ -137,12 +138,17 @@ namespace Renki.Plugin
                     continue;
                 }
                 var at = Convert.ToV3(o.Door.transform.position);
-                if (!o.Through && !o.Refused && Time.time - o.At > SettleFor && !IsOpen(o.Door))
+                var open = IsOpen(o.Door);
+                if (open) o.SeenOpen = true;
+                // In the doorway counts only with the door open: pressed against
+                // a shut one is not through it. If the open state comes back
+                // late, the walking-away rule below still shuts it.
+                if (open && DoorRules.In(pos, at)) o.Through = true;
+                if (!open)
                 {
-                    // Asked to open and still shut: a ward, a key, or the owner
-                    // shut it again. Leave it alone for a while, but keep it,
-                    // in case it opens late and has to be shut behind.
-                    o.Refused = true;
+                    if (!o.SeenOpen && Time.time - o.At < SettleFor) continue; // its state is not back yet
+                    opened.RemoveAt(i);
+                    if (o.SeenOpen) continue; // it opened, and someone has shut it since
                     leave[o.Door] = Time.time + RefusedFor;
                     Tracer.Emit("door", "will not open", new Dictionary<string, object>
                     {
@@ -151,30 +157,20 @@ namespace Renki.Plugin
                     });
                     continue;
                 }
-                // In the doorway counts only with the door open: pressed
-                // against a shut one is not through it.
-                if (DoorRules.In(pos, at) && IsOpen(o.Door)) o.Through = true;
-                if (!DoorRules.Past(pos, at)) continue;
-                if (!o.Through)
-                {
-                    var away = V3.FlatDistance(pos, at);
-                    if (away <= LeftAt) continue;
-                    if (away > AbandonReach)
-                    {
-                        // Too far off to reach for it, as a player would not.
-                        opened.RemoveAt(i);
-                        continue;
-                    }
-                }
-                if (leave.TryGetValue(o.Door, out var settling) && Time.time < settling) continue;
+                var away = V3.FlatDistance(pos, at);
+                // Through it, shut it once past; never through it, shut it
+                // as the bot walks away, beyond the stuck reach so a door
+                // opened while stuck is not shut at once.
+                if (o.Through ? !DoorRules.Past(pos, at) : away <= LeftAt) continue;
                 opened.RemoveAt(i);
-                if (!IsOpen(o.Door) || o.Door.m_canNotBeClosed) continue;
+                // Too far off to reach for it, as a player would not.
+                if (away > AbandonReach || o.Door.m_canNotBeClosed) continue;
                 o.Door.Interact(me, false, false);
                 leave[o.Door] = Time.time + SettleFor;
                 shut[o.Door] = Time.time + ShutFor;
                 Tracer.Emit("door", o.Through ? "shutting behind" : "shutting, never went through", new Dictionary<string, object>
                 {
-                    ["door"] = Convert.ToArray(o.Door.transform.position),
+                    ["door"] = at.ToArray(),
                     ["pos"] = pos.ToArray(),
                 });
             }

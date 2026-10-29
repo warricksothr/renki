@@ -39,8 +39,13 @@ namespace Renki.Movement
             return cos >= Math.Cos(Cone * Math.PI / 180);
         }
 
-        /// <summary>The bot is in the doorway of a door it opened.</summary>
-        public static bool In(V3 pos, V3 door) => V3.FlatDistance(pos, door) <= Through;
+        /// <summary>How far above or below a door still counts as level with it.</summary>
+        public const double Level = 2;
+
+        /// <summary>The bot is in the doorway of a door it opened: close to it
+        /// and level with it, not on a floor above or below.</summary>
+        public static bool In(V3 pos, V3 door) =>
+            V3.FlatDistance(pos, door) <= Through && Math.Abs(pos.Y - door.Y) <= Level;
 
         /// <summary>The bot, having been in the doorway, is far enough past
         /// the door to shut it.</summary>

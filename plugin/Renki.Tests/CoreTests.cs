@@ -329,6 +329,7 @@ namespace Renki.Tests
             Assert.True(DoorRules.Past(new V3(0, 0, 4), new V3(0, 0, 0)));
             Assert.True(DoorRules.In(new V3(0, 0, 1), new V3(0, 0, 0)));
             Assert.False(DoorRules.In(new V3(0, 0, 2), new V3(0, 0, 0)));
+            Assert.False(DoorRules.In(new V3(0, 3, 0.5), new V3(0, 0, 0))); // the floor above
         }
 
         [Fact]
