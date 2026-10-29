@@ -21,6 +21,9 @@ import (
 var (
 	ErrNoWorld = errors.New("the bot is not in a world")
 	ErrNoHome  = errors.New("no home is set in this world")
+	// ErrStranded is a trip the bot cannot make: it carries more than it
+	// can and has no stamina left, so the game will not move it (6.1).
+	ErrStranded = errors.New("carrying too much to move")
 )
 
 // Arrive is how close to home counts as being there.
@@ -134,6 +137,9 @@ func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.T
 	h, ok := k.store.Home(world)
 	if !ok {
 		return nil, ErrNoHome
+	}
+	if st := k.s.State(); st != nil && st.Stranded() {
+		return nil, ErrStranded
 	}
 	stop := Arrive
 	run := true
@@ -259,6 +265,11 @@ func (k *Keeper) Tick(ctx context.Context) {
 	if st.Phase != protocol.PhaseInWorld {
 		return
 	}
+	// Nothing here can move a bot that carries too much to move. Wait,
+	// rather than spend the outage check or the idle spell on it.
+	if st.Stranded() {
+		return
+	}
 
 	k.mu.Lock()
 	first := !k.checked
@@ -314,14 +325,10 @@ func (k *Keeper) Tick(ctx context.Context) {
 
 // announce sends the bot home and says so, for trips nobody asked for.
 func (k *Keeper) announce(ctx context.Context, why, line string) {
-	// A trip it cannot make: the plugin would refuse it, and "heading
-	// home" would not be true.
-	if st := k.s.State(); st != nil && st.Stranded() {
-		k.log.Info("not going home: carrying too much to move", "why", why)
-		return
-	}
 	if _, err := k.GoHome(ctx, nil, why); err != nil {
-		if !errors.Is(err, ErrNoHome) {
+		if errors.Is(err, ErrStranded) {
+			k.log.Info("not going home", "why", why, "err", err)
+		} else if !errors.Is(err, ErrNoHome) {
 			k.log.Warn("could not go home", "why", why, "err", err)
 		}
 		return

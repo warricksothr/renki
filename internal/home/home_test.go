@@ -201,6 +201,33 @@ func TestOutageSendsTheBotHome(t *testing.T) {
 	}
 }
 
+func TestOutageWaitsUntilTheBotCanMove(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{50, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	store.SetInterrupted(true)
+
+	// Back on a new connection, carrying too much to move.
+	st := inWorld(protocol.Vec3{20, 0, 0}, nil)
+	st.Flags = []string{protocol.FlagEncumbered}
+	f.set(&protocol.Hello{}, st)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 || !store.Interrupted() {
+		t.Fatalf("sent %v, interrupted %v, while stranded", f.sent(), store.Interrupted())
+	}
+	if _, err := k.GoHome(ctx, nil, "test"); err != ErrStranded {
+		t.Errorf("GoHome while stranded: %v", err)
+	}
+	st.Stamina = 5
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[1] != "say: Something cut me off. Heading home." {
+		t.Errorf("once it can move: %v", got)
+	}
+}
+
 func TestATaskThatEndsNormallyIsNoOutage(t *testing.T) {
 	store := Memory()
 	k, f, _ := keeper(t, store)

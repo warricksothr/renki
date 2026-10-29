@@ -443,6 +443,7 @@ type fakeHome struct {
 	touched  int
 	ordered  int
 	resume   func(context.Context) bool
+	stranded bool
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -456,6 +457,9 @@ func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
 func (h *fakeHome) GoHome(_ context.Context, origin any, why string) (*session.Task, error) {
 	if h.home == nil {
 		return nil, home.ErrNoHome
+	}
+	if h.stranded {
+		return nil, home.ErrStranded
 	}
 	h.trips = append(h.trips, why)
 	t := session.Finished(protocol.TaskMoveTo, origin, protocol.StatusRunning, "")
@@ -477,6 +481,21 @@ func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
 	b.opts.Home = h
 	return b, f, h
+}
+
+func TestStrandedBotSaysWhyItCannotGoHome(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home, h.stranded = &protocol.Vec3{}, true
+	b.Chat(line("Sothr", "bjorn go home"))
+	if got := f.said(); len(got) != 1 || got[0] != "I'm carrying too much to move. I need to put something down." {
+		t.Errorf("go home: %q", got)
+	}
+	// A failure that would send it home says only what went wrong.
+	b.Chat(line("Sothr", "bjorn follow me"))
+	b.TaskDone(doneTask(f.sent()[1], protocol.StatusFailed, protocol.ReasonTargetLost))
+	if got := f.said(); len(got) != 3 || got[2] != "I lost track of you, Sothr." || len(h.trips) != 0 {
+		t.Errorf("said %q, trips %v", got, h.trips)
+	}
 }
 
 func TestSetAndGoHome(t *testing.T) {

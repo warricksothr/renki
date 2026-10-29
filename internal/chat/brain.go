@@ -313,7 +313,7 @@ func (b *Brain) returnHome(t *session.Task, reason string, o origin) bool {
 		return false
 	}
 	if _, err := h.GoHome(context.Background(), o, "after "+t.Name+" failed: "+reason); err != nil {
-		if !errors.Is(err, home.ErrNoHome) {
+		if !errors.Is(err, home.ErrNoHome) && !errors.Is(err, home.ErrStranded) {
 			b.opts.Logger.Warn("could not go home", "err", err)
 		}
 		return false
@@ -492,6 +492,8 @@ func (b *Brain) goHome(from origin) {
 		switch {
 		case errors.Is(err, home.ErrNoHome):
 			b.say(from, `I don't have a home here yet. Say "set home" where you want it.`)
+		case errors.Is(err, home.ErrStranded):
+			b.say(from, explain(protocol.TaskMoveTo, protocol.ReasonEncumbered, from.player))
 		case errors.Is(err, session.ErrNotAllowed):
 			b.say(from, "I'm not allowed to do that.")
 		default:
