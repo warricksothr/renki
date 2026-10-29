@@ -234,6 +234,7 @@ const (
 	StructureDoor      = "door"
 	StructureFire      = "fire"
 	StructureSmelter   = "smelter"
+	StructureTombstone = "tombstone"
 	StructureOther     = "other"
 )
 

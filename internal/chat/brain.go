@@ -96,6 +96,11 @@ type Home interface {
 	// Ordered drops whatever a death left pending, the resume and the
 	// trip after the respawn: a newer order wins.
 	Ordered()
+	// Grave is where the bot last died in this world, its things not yet
+	// fetched.
+	Grave() (home.Grave, bool)
+	// ForgetGrave forgets the graves within r of pos: fetched, or gone.
+	ForgetGrave(pos protocol.Vec3, r float64)
 }
 
 // Options configure a Brain.
@@ -234,6 +239,9 @@ type origin struct {
 	// follow is the player a follow command was for, so a death can
 	// resume it.
 	follow string
+	// grave is set on a corpse run: the walk to the grave, then the
+	// emptying of it.
+	grave *protocol.Vec3
 }
 
 // channelPanel is the channel of words typed into the control panel: always
@@ -352,6 +360,9 @@ func (b *Brain) TaskDone(t *session.Task) {
 		}
 		return
 	}
+	if o.grave != nil && b.corpseRun(t, o, status, reason) {
+		return
+	}
 	if t.Name == protocol.TaskInteract {
 		// The plugin passes on what the game said: "used the Bed: Spawn
 		// point set", or, refused, the game's words alone.
@@ -386,6 +397,42 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if msg != "" {
 		b.say(o, msg)
 	}
+}
+
+// corpseRun carries a corpse run on: at the grave's place, it empties the
+// grave if it is there, and forgets it if not; emptied, it forgets it and
+// says so. It reports whether it said or sent anything, so TaskDone says
+// nothing more.
+func (b *Brain) corpseRun(t *session.Task, o origin, status, reason string) bool {
+	switch {
+	case t.Name == protocol.TaskMoveTo && status == protocol.StatusSucceeded:
+		g := b.myGrave(o.grave)
+		if g == nil {
+			if b.opts.Home != nil {
+				b.opts.Home.ForgetGrave(*o.grave, graveReach)
+			}
+			b.say(o, "My grave's not here. Someone must have emptied it.")
+			return true
+		}
+		pos := g.Pos
+		o.grave = &pos
+		order := session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}, Origin: o}
+		if _, err := b.d.Dispatch(context.Background(), order); err != nil {
+			b.opts.Logger.Warn("could not empty the grave", "err", err)
+			b.say(o, "I found my grave, but I can't open it.")
+		}
+		return true
+	case t.Name == protocol.TaskInteract && status == protocol.StatusSucceeded:
+		if b.opts.Home != nil {
+			b.opts.Home.ForgetGrave(*o.grave, graveReach)
+		}
+		b.say(o, "Got my things back.")
+		return true
+	case t.Name == protocol.TaskInteract && reason == protocol.ReasonInventoryFull:
+		b.say(o, "My grave holds more than I can carry. Make some room and I'll try again.")
+		return true
+	}
+	return false
 }
 
 // leaveResume tells the home keeper what a death cut short: a follow
@@ -470,11 +517,12 @@ const (
 	cmdDoor
 	cmdOpenDoor
 	cmdCloseDoor
+	cmdFetch
 )
 
 func (c command) String() string {
 	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
-		"go to bed", "claim the bed", "get the door", "open the door", "close the door"}[c]
+		"go to bed", "claim the bed", "get the door", "open the door", "close the door", "get your things"}[c]
 }
 
 var grammar = map[string]command{
@@ -491,8 +539,10 @@ var grammar = map[string]command{
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
 	"go to bed": cmdBed, "use your bed": cmdBed, "use the bed": cmdBed,
 	"claim the bed": cmdClaimBed, "claim a bed": cmdClaimBed, "claim that bed": cmdClaimBed,
-	"claim this bed": cmdClaimBed,
-	"get the door":   cmdDoor, "use the door": cmdDoor, "open the door": cmdOpenDoor, "close the door": cmdCloseDoor,
+	"claim this bed":  cmdClaimBed,
+	"get your things": cmdFetch, "get your stuff": cmdFetch, "fetch your things": cmdFetch,
+	"go get your things": cmdFetch, "go get your stuff": cmdFetch, "corpse run": cmdFetch,
+	"get the door": cmdDoor, "use the door": cmdDoor, "open the door": cmdOpenDoor, "close the door": cmdCloseDoor,
 }
 
 func parse(stripped string) (command, bool) {
@@ -518,6 +568,11 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdPickup:
 		var ok bool
 		if order, ack, ok = b.pickup(c, from); !ok {
+			return
+		}
+	case cmdFetch:
+		var ok bool
+		if order, ack, ok = b.fetch(&from); !ok {
 			return
 		}
 	case cmdBed, cmdClaimBed, cmdDoor, cmdOpenDoor, cmdCloseDoor:
@@ -552,6 +607,63 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		return
 	}
 	b.say(from, ack)
+}
+
+// graveReach is how near the remembered place a grave seen in perception
+// must be to be the one: the game drops it where the bot fell, and it
+// floats or rolls.
+const graveReach = 10.0
+
+// fetch starts a corpse run: the bot's own grave if it is in sight,
+// emptied at once, else a walk to where it last died, after which TaskDone
+// looks for the grave there. It says why when there is nothing to fetch.
+func (b *Brain) fetch(from *origin) (session.Order, string, bool) {
+	if g := b.myGrave(nil); g != nil {
+		pos := g.Pos
+		from.grave = &pos
+		return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}}, "Getting my things.", true
+	}
+	if b.opts.Home == nil {
+		b.say(*from, "I don't know where I died.")
+		return session.Order{}, "", false
+	}
+	g, ok := b.opts.Home.Grave()
+	if !ok {
+		b.say(*from, "I've nothing to fetch; I haven't died anywhere I remember.")
+		return session.Order{}, "", false
+	}
+	pos := g.Pos
+	from.grave = &pos
+	stop, run := 3.0, true
+	return session.Order{Task: protocol.TaskMoveTo,
+		Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Run: &run}}, "Going back for my things.", true
+}
+
+// myGrave is the bot's own grave in sight, the one nearest near if set.
+func (b *Brain) myGrave(near *protocol.Vec3) *protocol.PerceivedStructure {
+	seen := b.d.Perception()
+	if seen == nil {
+		return nil
+	}
+	var (
+		best *protocol.PerceivedStructure
+		dist = math.Inf(1)
+	)
+	for i, s := range seen.Structures {
+		if s.Kind != protocol.StructureTombstone || !s.Mine {
+			continue
+		}
+		d := 0.0
+		if near != nil {
+			if d = near.FlatDistance(s.Pos); d > graveReach {
+				continue
+			}
+		}
+		if best == nil || d < dist {
+			best, dist = &seen.Structures[i], d
+		}
+	}
+	return best
 }
 
 // useReach is how far from the speaker, or the bot when the speaker is out

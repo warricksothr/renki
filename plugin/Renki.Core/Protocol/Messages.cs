@@ -45,7 +45,7 @@ namespace Renki.Protocol
 
         public const string StructureContainer = "container", StructureStation = "station", StructureBed = "bed",
             StructurePortal = "portal", StructureDoor = "door", StructureFire = "fire", StructureSmelter = "smelter",
-            StructureOther = "other";
+            StructureTombstone = "tombstone", StructureOther = "other";
 
         public static bool IsFinal(string status) =>
             status == StatusRejected || status == StatusSucceeded || status == StatusFailed ||

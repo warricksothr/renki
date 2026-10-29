@@ -73,6 +73,7 @@ namespace Renki.Plugin
                 if (s != null) structures.Add(s.Kind, s, Vector3.Distance(at, p.transform.position));
                 else if (wall != null) walls.Add(new KeyValuePair<int, Wall>(p.GetInstanceID(), wall), Vector3.Distance(at, p.transform.position));
             }
+            Graves.Seen(at, r, structures);
             Lay();
 
             resources.Clear();
@@ -94,6 +95,39 @@ namespace Renki.Plugin
             watch.Stop();
             Account(snapshot, hits);
             return snapshot;
+        }
+
+        /// <summary>
+        /// Graves are not pieces, so the piece scan misses them; they are
+        /// kept as the game makes them. Only those with something in them
+        /// are seen: an empty one is about to go, and holds nothing to fetch.
+        /// </summary>
+        [HarmonyLib.HarmonyPatch(typeof(TombStone), "Awake")]
+        static class Graves
+        {
+            static readonly HashSet<TombStone> all = new HashSet<TombStone>();
+
+            static void Postfix(TombStone __instance) => all.Add(__instance);
+
+            public static void Seen(Vector3 at, float r, NearestByKind<PerceivedStructure> into)
+            {
+                all.RemoveWhere(t => t == null);
+                foreach (var t in all)
+                {
+                    var d = Vector3.Distance(at, t.transform.position);
+                    if (d > r || t.m_nview == null || !t.m_nview.IsValid() || t.m_container == null ||
+                        t.m_container.GetInventory() == null || t.m_container.GetInventory().NrOfItems() == 0) continue;
+                    var s = new PerceivedStructure
+                    {
+                        Kind = Wire.StructureTombstone,
+                        Prefab = PrefabName(t.m_nview, t.gameObject),
+                        Pos = Convert.ToArray(t.transform.position),
+                        Id = Id(t.m_nview),
+                    };
+                    if (t.IsOwner()) s.Mine = true;
+                    into.Add(s.Kind, s, d);
+                }
+            }
         }
 
         static PerceivedCharacter Describe(Character c, Player me)

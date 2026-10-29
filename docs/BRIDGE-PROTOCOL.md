@@ -210,15 +210,15 @@ into a problem.
 |---|---|
 | `characters.kind` | `player`, `creature`, `tamed` |
 | `resources.kind` | `tree`, `log`, `stump`, `rock`, `pickable`, `drop` |
-| `structures.kind` | `container`, `station`, `bed`, `portal`, `door`, `fire`, `smelter`, `other` |
+| `structures.kind` | `container`, `station`, `bed`, `portal`, `door`, `fire`, `smelter`, `tombstone`, `other` |
 
 - `characters`: the bot itself is left out. `stars` is the creature's
   level less one. `hostile` means the creature would fight the bot, and
   `targetingMe` that it has picked the bot as its target.
-- `structures`: only pieces of the kinds above. Walls, floors and the like
-  are left out, so a base cannot fill the cap with them. Walls come in
-  `layout` (6.9). `mine` is set on
-  the bot's own bed, `tag` is a portal's name, and `open` is set on doors
+- `structures`: only pieces of the kinds above, and graves (`tombstone`)
+  with something in them. Walls, floors and the like are left out, so a
+  base cannot fill the cap with them. Walls come in `layout` (6.9). `mine`
+  is set on the bot's own bed and its own graves, `tag` is a portal's name, and `open` is set on doors
   only.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
   Pickables already picked are left out. A tree felled with an axe becomes
@@ -592,7 +592,10 @@ chat event
   claims it), `claim the bed` (the bed nearest the speaker within 10 m, or the
   bot when the speaker is out of sight) and `get the door` (the nearest door, likewise;
   `open the door` takes the nearest shut one and `close the door` the
-  nearest open one, since using a door swings it either way). The last two send `interact`, and the bot answers
+  nearest open one, since using a door swings it either way), and `get your
+  things` (`fetch your things`, `corpse run`: the bot's own grave if it is
+  in sight, emptied at once, else a walk back to where it last died and the
+  grave there emptied; one gone is forgotten). These send `interact`, and the bot answers
   with what the game said: "Spawn point set", or "It won't: You need a roof".
   Only `owners` can issue tasks.
 - **Home** is where the speaker stood when they said `set home`, one per
@@ -606,7 +609,11 @@ chat event
   back in the world: `home` (the default) walks home; `resume` picks a
   follow back up for the same player, and goes home if there was none or
   the player has gone (the follow then fails with `target_lost`); `stay`
-  stays at the spawn point. Any order given after the death wins, except
+  stays at the spawn point. A death within 30 m of home keeps it from going
+  back there, whatever the rule, since what killed it may be there still: it
+  says so and waits to be told. Every death is remembered per world (the
+  last 5) as a grave to fetch from, until it is emptied or found gone. Any
+  order given after the death wins, except
   `set home` and `status`. The controller reads the death and the respawn
   from `state.phase` rather than the `died` and `respawned` events, so a
   lost event does not lose them. The plugin reports `dead` from the death

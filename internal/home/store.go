@@ -31,6 +31,16 @@ type Cache struct {
 	Why   string         `json:"why"`
 }
 
+// Grave is where the bot died, and so where its things are.
+type Grave struct {
+	Pos protocol.Vec3 `json:"pos"`
+	At  time.Time     `json:"at"`
+}
+
+// keepGraves is how many graves are remembered per world; the game keeps
+// each until it is emptied, but the oldest are the least likely to be there.
+const keepGraves = 5
+
 // memory is the file's content.
 type memory struct {
 	// Homes by world name.
@@ -42,6 +52,9 @@ type memory struct {
 	// LeftBehind is what the bot dropped and has not seen picked up, by
 	// world name.
 	LeftBehind map[string][]Cache `json:"leftBehind,omitempty"`
+	// Graves are where the bot died and has not yet fetched its things
+	// from, by world name, oldest first.
+	Graves map[string][]Grave `json:"graves,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file
@@ -136,6 +149,45 @@ func (s *Store) UpdateLeftBehind(world string, f func([]Cache) []Cache) error {
 		delete(s.mem.LeftBehind, world)
 	} else {
 		s.mem.LeftBehind[world] = caches
+	}
+	return s.save()
+}
+
+// Graves returns where the bot died in world, oldest first.
+func (s *Store) Graves(world string) []Grave {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.mem.Graves[world])
+}
+
+// AddGrave remembers a death in world, forgetting the oldest past
+// keepGraves.
+func (s *Store) AddGrave(world string, g Grave) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.mem.Graves == nil {
+		s.mem.Graves = map[string][]Grave{}
+	}
+	gs := append(s.mem.Graves[world], g)
+	if len(gs) > keepGraves {
+		gs = gs[len(gs)-keepGraves:]
+	}
+	s.mem.Graves[world] = gs
+	return s.save()
+}
+
+// ForgetGrave forgets the graves in world within r of pos.
+func (s *Store) ForgetGrave(world string, pos protocol.Vec3, r float64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	gs := slices.DeleteFunc(slices.Clone(s.mem.Graves[world]), func(g Grave) bool { return g.Pos.FlatDistance(pos) <= r })
+	if len(gs) == len(s.mem.Graves[world]) {
+		return nil
+	}
+	if len(gs) == 0 {
+		delete(s.mem.Graves, world)
+	} else {
+		s.mem.Graves[world] = gs
 	}
 	return s.save()
 }

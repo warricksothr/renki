@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -429,6 +430,35 @@ func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
 	k.Tick(ctx)
 	if len(f.sent()) != 2 {
 		t.Errorf("afterDeath stay still went home: %v", f.sent())
+	}
+}
+
+// TestNoGoingBackToWhatKilledItAtHome: on 2026-10-29 a Greyling at home
+// killed the bot, which respawned, went home and was killed again, three
+// times. A death near home keeps it away, and every death is a grave to
+// fetch from.
+func TestNoGoingBackToWhatKilledItAtHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{10, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{8, 0, 2}})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	want := []string{`say: Something killed me at home, so I'll wait here. Say "get your things" when it's safe.`}
+	if got := f.sent(); !slices.Equal(got, want) {
+		t.Fatalf("after dying at home: %q", got)
+	}
+	g, ok := k.Grave()
+	if !ok || g.Pos != (protocol.Vec3{8, 0, 2}) || !g.At.Equal(c.now()) {
+		t.Fatalf("grave %+v, %v", g, ok)
+	}
+	k.ForgetGrave(protocol.Vec3{9, 0, 2}, 3)
+	if _, ok := k.Grave(); ok {
+		t.Error("the fetched grave is still remembered")
 	}
 }
 

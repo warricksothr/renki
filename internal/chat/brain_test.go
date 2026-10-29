@@ -460,6 +460,18 @@ type fakeHome struct {
 	resume   func(context.Context) bool
 	stranded bool
 	left     []home.Cache
+	graves   []home.Grave
+}
+
+func (h *fakeHome) Grave() (home.Grave, bool) {
+	if len(h.graves) == 0 {
+		return home.Grave{}, false
+	}
+	return h.graves[len(h.graves)-1], true
+}
+
+func (h *fakeHome) ForgetGrave(pos protocol.Vec3, r float64) {
+	h.graves = slices.DeleteFunc(h.graves, func(g home.Grave) bool { return g.Pos.FlatDistance(pos) <= r })
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -833,5 +845,66 @@ func TestUseTheBedAndDoor(t *testing.T) {
 	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusFailed, protocol.ReasonTargetLost, "the Bed is gone"))
 	if got := f.said()[n:]; !slices.Equal(got, []string{"Spawn point set", "It won't: You need a roof", "Done.", "It's gone."}) {
 		t.Errorf("said %q", got)
+	}
+}
+
+// TestCorpseRun: "get your things" empties the bot's own grave if it is in
+// sight, else walks to where it died and empties it there; a grave gone is
+// forgotten, and so is one emptied.
+func TestCorpseRun(t *testing.T) {
+	b, f, h := homeBrain()
+	f.allowed = append(f.allowed, protocol.TaskInteract)
+	last := func(task string) session.Order {
+		sent := f.sent()
+		for i := len(sent) - 1; i >= 0; i-- {
+			if sent[i].Task == task {
+				return sent[i]
+			}
+		}
+		t.Fatalf("no %s in %+v", task, sent)
+		return session.Order{}
+	}
+	n := 0
+	count := func() int { n = len(f.sent()); return n }
+	b.Chat(line("Sothr", "bjorn get your things"))
+	if got := f.said(); got[0] != "I've nothing to fetch; I haven't died anywhere I remember." {
+		t.Fatalf("with no grave: %q", got)
+	}
+
+	// Far off: walk there, then empty it.
+	h.graves = []home.Grave{{Pos: protocol.Vec3{-40, 36, 8}}}
+	b.Chat(line("Sothr", "bjorn get your things"))
+	walk := last(protocol.TaskMoveTo)
+	if *walk.Args.(*protocol.MoveToArgs).To.Pos != (protocol.Vec3{-40, 36, 8}) {
+		t.Fatalf("sent %+v; want a walk to the grave", walk)
+	}
+	f.perception = &protocol.Perception{Structures: []protocol.PerceivedStructure{
+		{ID: "9:1", Kind: protocol.StructureTombstone, Pos: protocol.Vec3{-41, 36, 9}},             // someone else's
+		{ID: "9:2", Kind: protocol.StructureTombstone, Pos: protocol.Vec3{-42, 36, 7}, Mine: true}, // its own
+	}}
+	b.TaskDone(doneTask(walk, protocol.StatusSucceeded, ""))
+	open := last(protocol.TaskInteract)
+	if open.Args.(*protocol.InteractArgs).Entity != "9:2" {
+		t.Fatalf("sent %+v; want its own grave 9:2 emptied", open)
+	}
+	b.TaskDone(doneTask(open, protocol.StatusSucceeded, ""))
+	if got := f.said(); got[len(got)-1] != "Got my things back." || len(h.graves) != 0 {
+		t.Errorf("after emptying: %q, graves %v", got[len(got)-1], h.graves)
+	}
+
+	// In sight already: straight to it.
+	count()
+	b.Chat(line("Sothr", "bjorn fetch your things"))
+	if got := f.sent()[n:]; len(got) == 0 || got[0].Task != protocol.TaskInteract {
+		t.Errorf("with the grave in sight: %+v", got)
+	}
+
+	// Gone by the time it gets there.
+	h.graves = []home.Grave{{Pos: protocol.Vec3{100, 30, 100}}}
+	f.perception = nil
+	b.Chat(line("Sothr", "bjorn get your stuff"))
+	b.TaskDone(doneTask(last(protocol.TaskMoveTo), protocol.StatusSucceeded, ""))
+	if got := f.said(); got[len(got)-1] != "My grave's not here. Someone must have emptied it." || len(h.graves) != 0 {
+		t.Errorf("grave gone: %q, graves %v", got[len(got)-1], h.graves)
 	}
 }

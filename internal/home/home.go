@@ -34,6 +34,10 @@ const Arrive = 2.0
 // back, so it does not shuffle on the spot.
 const awayFrom = 5.0
 
+// DiedNearHome is how near home a death keeps the bot from going back there
+// after the respawn: whatever killed it may be there still.
+const DiedNearHome = 30.0
+
 // level is how far above or below home still counts as on its level, as
 // the plugin's arrival does (7.3): under a raised floor is not home.
 const level = 1.75
@@ -74,6 +78,8 @@ type Keeper struct {
 	// resume picks up what a death cut short, for AfterDeathResume. The
 	// chat brain sets it, since it knows what that was and for whom.
 	resume func(context.Context) bool
+	// diedAt is where the bot last died.
+	diedAt *protocol.Vec3
 }
 
 // New returns a keeper over store with fixed rules. now may be nil.
@@ -294,6 +300,13 @@ func (k *Keeper) Tick(ctx context.Context) {
 	switch {
 	case st.Phase == protocol.PhaseDead && !k.dead:
 		k.dead, k.ordered = true, false
+		pos := st.Pos
+		k.diedAt = &pos
+		if w := st.World; w != "" {
+			if err := k.store.AddGrave(w, Grave{Pos: st.Pos, At: now}); err != nil {
+				k.log.Warn("could not remember the grave", "err", err)
+			}
+		}
 	case st.Phase == protocol.PhaseInWorld && k.dead:
 		k.dead, k.respawned = false, !k.ordered
 		if k.ordered {
@@ -341,6 +354,17 @@ func (k *Keeper) Tick(ctx context.Context) {
 	}
 	k.mu.Unlock()
 	if respawned {
+		k.mu.Lock()
+		diedAt := k.diedAt
+		k.mu.Unlock()
+		if _, h, ok := k.Current(); ok && diedAt != nil && flat(*diedAt, h.Pos) <= DiedNearHome &&
+			k.Rules().AfterDeath != config.AfterDeathStay {
+			// Whatever killed it there may be there still: going home is
+			// going back to it. It waits to be told.
+			k.log.Info("died near home; not going back", "died", *diedAt)
+			k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
+			return
+		}
 		switch k.Rules().AfterDeath {
 		case config.AfterDeathResume:
 			if resume != nil && resume(ctx) {
@@ -419,10 +443,41 @@ func (k *Keeper) announce(ctx context.Context, why, line string) *session.Task {
 		}
 		return nil
 	}
+	k.say(ctx, line)
+	return t
+}
+
+// say speaks a line, for things the keeper decides by itself.
+func (k *Keeper) say(ctx context.Context, line string) {
 	if _, err := k.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}}); err != nil {
 		k.log.Warn("could not say", "text", line, "err", err)
 	}
-	return t
+}
+
+// Grave is where the bot last died in the current world and has not
+// fetched its things from yet.
+func (k *Keeper) Grave() (Grave, bool) {
+	w := k.World()
+	if w == "" {
+		return Grave{}, false
+	}
+	gs := k.store.Graves(w)
+	if len(gs) == 0 {
+		return Grave{}, false
+	}
+	return gs[len(gs)-1], true
+}
+
+// ForgetGrave forgets the graves within r of pos in the current world:
+// fetched, or found gone.
+func (k *Keeper) ForgetGrave(pos protocol.Vec3, r float64) {
+	w := k.World()
+	if w == "" {
+		return
+	}
+	if err := k.store.ForgetGrave(w, pos, r); err != nil {
+		k.log.Warn("could not forget the grave", "err", err)
+	}
 }
 
 func (k *Keeper) setInterrupted(v bool) {
