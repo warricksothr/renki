@@ -24,7 +24,7 @@ namespace Renki.Plugin
         bool dirty = true;
         float next;
         float nextWear;
-        double lastWear;
+        double sentWear;
 
         public InventoryReporter(RenkiPlugin plugin)
         {
@@ -49,19 +49,25 @@ namespace Renki.Plugin
             if (inv != null && Time.unscaledTime >= nextWear)
             {
                 nextWear = Time.unscaledTime + WearEvery;
-                var wear = 0.0;
-                foreach (var item in inv.GetAllItems())
-                    if (item.m_shared.m_useDurability) wear += item.m_durability;
-                if (System.Math.Abs(wear - lastWear) >= 1) dirty = true;
-                lastWear = wear;
+                // Against what was last sent, so slow wear adds up.
+                if (System.Math.Abs(Wear(inv) - sentWear) >= 1) dirty = true;
             }
             if (!inSession || inv == null || !dirty || Time.unscaledTime < next) return;
             dirty = false;
             next = Time.unscaledTime + Gap;
+            sentWear = Wear(inv);
             plugin.Send(Describe(inv));
         }
 
         void Changed() => dirty = true;
+
+        static double Wear(global::Inventory inv)
+        {
+            var wear = 0.0;
+            foreach (var item in inv.GetAllItems())
+                if (item.m_shared.m_useDurability) wear += item.m_durability;
+            return wear;
+        }
 
         static Protocol.Inventory Describe(global::Inventory inv)
         {
