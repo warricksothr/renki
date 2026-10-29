@@ -7,7 +7,7 @@ namespace Renki.Tasks
     public static class HarvestHealth
     {
         public static bool Ready(double hp, double maximum) => maximum > 0 && hp >= maximum * .8;
-        public static bool Hurt(double started, double current) => current < started - .01;
+        public static bool Hurt(double started, double current, double maximum) => current < Math.Min(started, maximum) - .01;
     }
 
     /// <summary>Require two quiet seconds, including remotely simulated

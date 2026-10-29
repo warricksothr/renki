@@ -44,6 +44,7 @@ def main(task, args, timeout):
             status = frame.get("status")
             if status in ("succeeded", "failed", "rejected", "cancelled"):
                 detail = " ".join(str(frame.get(key, "")) for key in ("reason", "detail")).strip()
+                if len(detail) > 600: detail = detail[:600] + "…"
                 print(f"{task_id} {task}: {status}" + (f" ({detail})" if detail else ""))
                 print(f"Evidence: {path}")
                 return 0 if status == "succeeded" else 1

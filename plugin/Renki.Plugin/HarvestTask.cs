@@ -128,7 +128,7 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             if (cancelled || p == null || p.IsDead()) return Finish(Outcome.Failed(Wire.ReasonStopped, "not in the world"));
             if (Time.unscaledTime - startedAt > 180) return Finish(Outcome.Failed(Wire.ReasonTimeout, "harvest reached its 180 s work limit"));
-            if (injured || HarvestHealth.Hurt(initialHealth, p.GetHealth())) return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
+            if (injured || HarvestHealth.Hurt(initialHealth, p.GetHealth(), p.GetMaxHealth())) return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
             if (Time.unscaledTime >= nextThreatCheck)
             {
                 nextThreatCheck = Time.unscaledTime + .25f;
