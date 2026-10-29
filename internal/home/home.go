@@ -246,14 +246,36 @@ func (k *Keeper) Ordered() {
 	st := k.s.State()
 	k.mu.Lock()
 	k.respawned, k.resume = false, nil
-	if st != nil && st.Phase == protocol.PhaseDead {
-		k.dead = true
+	if st != nil && st.Phase == protocol.PhaseDead && !k.dead {
+		// The death is seen here first: its grave still counts. The
+		// order itself ends any shun below.
+		k.died(st)
 	}
 	if k.dead {
 		k.ordered = true
 	}
 	k.mu.Unlock()
 	k.shun("")
+}
+
+// died notes a death seen in st: where, and the grave there. A death near
+// home shuns it, since what killed it there may be there still; a later
+// death elsewhere does not make home safe, and only an order ends it.
+// k.mu is held.
+func (k *Keeper) died(st *protocol.State) {
+	k.dead = true
+	pos := st.Pos
+	k.diedAt = &pos
+	w := st.World
+	if w == "" {
+		return
+	}
+	if err := k.store.AddGrave(w, Grave{Pos: pos, At: k.now()}); err != nil {
+		k.log.Warn("could not remember the grave", "err", err)
+	}
+	if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
+		k.shun(w)
+	}
 }
 
 // Touch counts as activity: a player gave an order.
@@ -300,20 +322,8 @@ func (k *Keeper) Tick(ctx context.Context) {
 	// while dead.
 	switch {
 	case st.Phase == protocol.PhaseDead && !k.dead:
-		k.dead, k.ordered = true, false
-		pos := st.Pos
-		k.diedAt = &pos
-		if w := st.World; w != "" {
-			if err := k.store.AddGrave(w, Grave{Pos: st.Pos, At: now}); err != nil {
-				k.log.Warn("could not remember the grave", "err", err)
-			}
-			// Whatever killed it near home may be there still: going home
-			// is going back to it. A later death elsewhere does not make
-			// home safe; only an order ends it.
-			if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
-				k.shun(w)
-			}
-		}
+		k.ordered = false
+		k.died(st)
 	case st.Phase == protocol.PhaseInWorld && k.dead:
 		k.dead, k.respawned = false, !k.ordered
 		if k.ordered {

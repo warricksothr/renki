@@ -659,4 +659,11 @@ func TestTheShunSurvivesARestart(t *testing.T) {
 	if again.Shunned() != "" {
 		t.Error("an order did not end the shun")
 	}
+
+	// An order that comes before Tick sees the death still leaves a grave.
+	f2.set(f2.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{50, 0, 50}})
+	k2.Ordered()
+	if g, ok := k2.Grave(); !ok || g.Pos != (protocol.Vec3{50, 0, 50}) {
+		t.Errorf("grave %+v, %v", g, ok)
+	}
 }
