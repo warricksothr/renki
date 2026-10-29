@@ -340,6 +340,15 @@ func TestIdleDoesNotRetryAnUnreachableHome(t *testing.T) {
 	if n := len(f.sent()); n != 4 {
 		t.Errorf("moved away, did not try again: %v", f.sent())
 	}
+	// That trip failed too, from over there; back at the first spot, the
+	// bot has moved since, so idling tries again.
+	waitFor(t, func() bool { k.mu.Lock(); defer k.mu.Unlock(); return k.cutOff != nil && k.cutOff[0] == -20 })
+	f.set(hello, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if n := len(f.sent()); n < 6 {
+		t.Errorf("back at the old spot after moving away, did not try: %v", f.sent())
+	}
 }
 
 func TestStrandedBotDoesNotSetOffHome(t *testing.T) {

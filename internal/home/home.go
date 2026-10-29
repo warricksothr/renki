@@ -372,6 +372,9 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Lock()
 	cut := k.cutOff != nil && k.cutOffWorld == k.World() &&
 		flat(*k.cutOff, st.Pos) < awayFrom && math.Abs(k.cutOff[1]-st.Pos[1]) <= level
+	if !cut {
+		k.cutOff = nil // moved on, or another world: try again from anywhere
+	}
 	k.mu.Unlock()
 	if cut {
 		return
