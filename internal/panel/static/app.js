@@ -189,9 +189,9 @@ function render() {
 
   // Resources only once zoomed in enough to tell them apart.
   if (view.scale >= 3) {
-    ctx.fillStyle = colour("resource");
     for (const r of world.resources) {
       const x = sx(r.pos[0]), y = sy(r.pos[2]);
+      ctx.fillStyle = colour("resource");
       ctx.fillRect(x - 2, y - 2, 4, 4);
       if (view.scale >= 12) label(r.prefab, x + 5, y + 4, "dim");
     }

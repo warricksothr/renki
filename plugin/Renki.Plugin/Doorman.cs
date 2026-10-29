@@ -30,6 +30,11 @@ namespace Renki.Plugin
         /// so a stuck bot does not reopen the door it just shut.</summary>
         const float ShutFor = 10f;
 
+        /// <summary>How long a door the bot asked to open may stay shut before
+        /// it counts as refused. Longer than SettleFor: on a slow link the
+        /// state comes back late.</summary>
+        const float RefusedAfter = 3f;
+
         /// <summary>A door the bot opened but never went through is shut
         /// anyway after this long, once the bot is clear of it.</summary>
         const float AbandonAfter = 20f;
@@ -37,7 +42,7 @@ namespace Renki.Plugin
         sealed class Opened
         {
             public Door Door;
-            public bool Through;
+            public bool Through, Refused;
             public float At;
         }
 
@@ -103,7 +108,7 @@ namespace Renki.Plugin
                 var o = opened.Find(x => x.Door == best);
                 if (o == null) opened.Add(o = new Opened { Door = best });
                 o.At = Time.time;
-                o.Through = false;
+                o.Through = o.Refused = false;
                 leave[best] = Time.time + SettleFor;
                 Tracer.Emit("door", "opening", data);
                 return true;
@@ -134,11 +139,12 @@ namespace Renki.Plugin
                     continue;
                 }
                 var at = Convert.ToV3(o.Door.transform.position);
-                if (!o.Through && Time.time - o.At > SettleFor && !IsOpen(o.Door))
+                if (!o.Through && !o.Refused && Time.time - o.At > RefusedAfter && !IsOpen(o.Door))
                 {
                     // Asked to open and still shut: a ward, a key, or the owner
-                    // shut it again. Leave it alone for a while.
-                    opened.RemoveAt(i);
+                    // shut it again. Leave it alone for a while, but keep it,
+                    // in case it opens late and has to be shut behind.
+                    o.Refused = true;
                     leave[o.Door] = Time.time + RefusedFor;
                     Tracer.Emit("door", "will not open", new Dictionary<string, object>
                     {
