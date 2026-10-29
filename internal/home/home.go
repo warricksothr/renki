@@ -314,6 +314,12 @@ func (k *Keeper) Tick(ctx context.Context) {
 
 // announce sends the bot home and says so, for trips nobody asked for.
 func (k *Keeper) announce(ctx context.Context, why, line string) {
+	// A trip it cannot make: the plugin would refuse it, and "heading
+	// home" would not be true.
+	if st := k.s.State(); st != nil && st.Stranded() {
+		k.log.Info("not going home: carrying too much to move", "why", why)
+		return
+	}
 	if _, err := k.GoHome(ctx, nil, why); err != nil {
 		if !errors.Is(err, ErrNoHome) {
 			k.log.Warn("could not go home", "why", why, "err", err)

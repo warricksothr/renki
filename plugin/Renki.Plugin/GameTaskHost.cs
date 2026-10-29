@@ -16,6 +16,9 @@ namespace Renki.Plugin
         {
             if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead())
                 throw new TaskRefused(Wire.ReasonStopped, "not in the world");
+            // Every body task walks.
+            if (Walker.Stranded(Player.m_localPlayer) is Outcome stranded)
+                throw new TaskRefused(stranded.Reason, stranded.Detail);
             switch (args)
             {
                 case MoveToArgs m:
@@ -34,6 +37,8 @@ namespace Renki.Plugin
                         // Not even one fits: the game would leave it lying there.
                         if (!Player.m_localPlayer.GetInventory().CanAddItem(drop.m_itemData, 1))
                             throw new TaskRefused(Wire.ReasonInventoryFull, $"no room for {drop.m_itemData.m_shared.m_name}");
+                        if (PickupTask.TooHeavy(Player.m_localPlayer, drop.m_itemData))
+                            throw new TaskRefused(Wire.ReasonTooHeavy, $"{drop.m_itemData.m_shared.m_name} would take it past its carry weight");
                         return new PickupTask(drop);
                     }
                 case FollowArgs f:

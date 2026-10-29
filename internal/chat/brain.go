@@ -248,10 +248,13 @@ func (b *Brain) TaskDone(t *session.Task) {
 	status, reason, detail := t.Status()
 	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
 		// The plugin says "the other N" when some of the stack stayed behind:
-		// "no room for the other N" when it filled up first.
+		// "no room for the other N" when it filled up first, "the other N
+		// is too heavy" when it would have overloaded the bot.
 		switch {
 		case strings.Contains(detail, "no room"):
 			b.say(o, "I got some of it, but I'm out of room.")
+		case strings.Contains(detail, "too heavy"):
+			b.say(o, "I got some of it, but the rest is too heavy.")
 		case strings.Contains(detail, "the other"):
 			b.say(o, "I got some of it.")
 		default:
@@ -639,6 +642,10 @@ func explain(task, reason, player string) string {
 	switch reason {
 	case protocol.ReasonInventoryFull:
 		return "I've no room for that."
+	case protocol.ReasonTooHeavy:
+		return "That's more than I can carry."
+	case protocol.ReasonEncumbered:
+		return "I'm carrying too much to move. I need to put something down."
 	case protocol.ReasonTargetLost:
 		return fmt.Sprintf("I lost track of you, %s.", player)
 	case protocol.ReasonStuck:

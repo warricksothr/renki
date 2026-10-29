@@ -78,6 +78,10 @@ function onRecord(ev) {
         if (world.trail.length > TRAIL_MAX) world.trail.shift();
       }
       $("pos").textContent = `x ${f.pos[0].toFixed(1)}  z ${f.pos[2].toFixed(1)}  y ${f.pos[1].toFixed(1)}`;
+      // Over weightMax the bot only walks; with no stamina left it cannot move (6.1).
+      if (!(f.flags || []).includes("encumbered")) chip("load", "");
+      else if (f.stamina > 0) chip("load", "overloaded", "off");
+      else chip("load", "overloaded: can't move", "off");
       if (f.weightMax && (f.weight !== weight[0] || f.weightMax !== weight[1])) {
         weight = [f.weight, f.weightMax];
         drawInventory();

@@ -255,6 +255,37 @@ func TestStatus(t *testing.T) {
 	if got := f.said()[2]; got != want {
 		t.Errorf("status %q\nwant   %q", got, want)
 	}
+
+	// The weight, and what being over it means.
+	for i, c := range []struct {
+		weight, stamina float64
+		flags           []string
+		want            string
+	}{
+		{140, 38, nil, " Weight 140/300."},
+		{305, 12, []string{protocol.FlagEncumbered}, " Overloaded, 305/300: I can only walk, and not for long."},
+		{305, 0, []string{protocol.FlagEncumbered}, " Overloaded, 305/300: I can't move until I carry less."},
+	} {
+		st := *f.state
+		st.Weight, st.WeightMax, st.Stamina, st.Flags = c.weight, 300, c.stamina, c.flags
+		f.state = &st
+		b.Chat(line("Sothr", "bjorn status"))
+		if got := f.said()[3+i]; !strings.HasSuffix(got, "free."+c.want) {
+			t.Errorf("weight %v, stamina %v: %q\nwant it to end %q", c.weight, c.stamina, got, c.want)
+		}
+	}
+}
+
+func TestOverloadIsExplained(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	b.Chat(line("Sothr", "bjorn follow me"))
+	b.TaskDone(doneTask(f.sent()[0], protocol.StatusFailed, protocol.ReasonEncumbered))
+	if got := f.said(); len(got) != 2 || got[1] != "I'm carrying too much to move. I need to put something down." {
+		t.Errorf("said %q", got)
+	}
+	if explain(protocol.TaskPickup, protocol.ReasonTooHeavy, "Sothr") != "That's more than I can carry." {
+		t.Error("too_heavy")
+	}
 }
 
 func TestFailedTaskIsExplainedToWhoAsked(t *testing.T) {

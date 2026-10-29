@@ -105,6 +105,16 @@ namespace Renki.Plugin
         }
 
         public int RecoveryAttempts => stuck.Attempts;
+
+        /// <summary>The failure for a bot the game will not move: over its
+        /// carry weight with no stamina left. Stamina does not come back
+        /// while it is over, so only carrying less frees it, and stuck
+        /// recovery would only burn the time. Null when it can move.</summary>
+        public static Outcome Stranded(Player p) =>
+            p.IsEncumbered() && !p.HaveStamina()
+                ? Outcome.Failed(Wire.ReasonEncumbered,
+                    $"carrying {p.GetInventory().GetTotalWeight():0} of {p.GetMaxCarryWeight():0} with no stamina left")
+                : null;
     }
 
     /// <summary>move_to: walk to a point or an entity and stop within stopDistance.</summary>
@@ -143,6 +153,11 @@ namespace Renki.Plugin
             {
                 Driver.Stand();
                 return Outcome.Succeeded();
+            }
+            if (Walker.Stranded(p) is Outcome stranded)
+            {
+                Driver.Stand();
+                return stranded;
             }
             if (!walker.Steer(pos, args.Run))
             {
@@ -242,6 +257,14 @@ namespace Renki.Plugin
                         return Outcome.Succeeded($"took {took} {prefab}; no room for the other {drop.m_itemData.m_stack}");
                     return Outcome.Failed(Wire.ReasonInventoryFull, $"no room for {prefab}");
                 }
+                // The game's auto-pickup will not take what would overload the
+                // bot, but Pickup by hand would.
+                if (TooHeavy(p, drop.m_itemData))
+                {
+                    if (took > 0)
+                        return Outcome.Succeeded($"took {took} {prefab}; the other {drop.m_itemData.m_stack} is too heavy to carry");
+                    return Outcome.Failed(Wire.ReasonTooHeavy, $"{prefab} would take it past its carry weight");
+                }
                 if (tries++ >= Tries)
                     return took > 0
                         ? Outcome.Succeeded($"took {took} {prefab}; the game kept the other {drop.m_itemData.m_stack}")
@@ -251,6 +274,11 @@ namespace Renki.Plugin
                 return null;
             }
             arrivedAt = -1;
+            if (Walker.Stranded(p) is Outcome stranded)
+            {
+                Driver.Stand();
+                return stranded;
+            }
             if (!walker.Steer(pos, true))
             {
                 Driver.Stand();
@@ -276,6 +304,11 @@ namespace Renki.Plugin
             }
             return best;
         }
+
+        /// <summary>Taking all of the drop would carry the bot past its
+        /// carry weight, as the game's auto-pickup judges it.</summary>
+        public static bool TooHeavy(Player p, ItemDrop.ItemData item) =>
+            item.GetWeight() + p.GetInventory().GetTotalWeight() > p.GetMaxCarryWeight();
 
         static int Carried(Player p, string prefab)
         {
@@ -375,6 +408,11 @@ namespace Renki.Plugin
             {
                 walker.SetGoal(pos, lead);
                 pathedTo = lead;
+            }
+            if (Walker.Stranded(p) is Outcome stranded)
+            {
+                Driver.Stand();
+                return stranded;
             }
             if (!walker.Steer(pos, gait == Gait.Run))
             {

@@ -1,5 +1,7 @@
 package protocol
 
+import "slices"
+
 // Message types, as they appear in `type`.
 const (
 	TypeHello      = "hello"
@@ -163,6 +165,13 @@ const (
 	FlagInShelter  = "in_shelter"
 	FlagNearFire   = "near_fire"
 )
+
+// Encumbered reports that the bot carries more than weightMax (6.1).
+func (s *State) Encumbered() bool { return slices.Contains(s.Flags, FlagEncumbered) }
+
+// Stranded reports that the game will not move the bot: encumbered with no
+// stamina left, which does not come back until it carries less (6.1).
+func (s *State) Stranded() bool { return s.Encumbered() && s.Stamina <= 0 }
 
 // GameTime is the in-game calendar.
 type GameTime struct {
@@ -390,6 +399,8 @@ const (
 	ReasonTimeout          = "timeout"
 	ReasonNoTool           = "no_tool"
 	ReasonInventoryFull    = "inventory_full"
+	ReasonTooHeavy         = "too_heavy"
+	ReasonEncumbered       = "encumbered"
 	ReasonMissingMaterials = "missing_materials"
 	ReasonSuperseded       = "superseded"
 	ReasonStopped          = "stopped"

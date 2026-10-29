@@ -30,8 +30,8 @@ namespace Renki.Protocol
         public const string ReasonUnsupported = "unsupported", ReasonNotAllowed = "not_allowed",
             ReasonBadArgs = "bad_args", ReasonInvalidTarget = "invalid_target", ReasonTargetLost = "target_lost",
             ReasonUnreachable = "unreachable", ReasonStuck = "stuck", ReasonTimeout = "timeout",
-            ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full",
-            ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
+            ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full", ReasonTooHeavy = "too_heavy",
+            ReasonEncumbered = "encumbered", ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
             ReasonStopped = "stopped", ReasonDied = "died";
 
         public const string EventDamaged = "damaged", EventDied = "died", EventRespawned = "respawned",

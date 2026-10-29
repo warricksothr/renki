@@ -245,6 +245,28 @@ func TestIdleAwayFromHomeGoesHome(t *testing.T) {
 	}
 }
 
+func TestStrandedBotDoesNotSetOffHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	st := inWorld(protocol.Vec3{0, 0, 0}, nil)
+	st.Flags, st.Weight, st.WeightMax = []string{protocol.FlagEncumbered}, 305, 300
+	f.set(&protocol.Hello{}, st)
+	k.SetHome(protocol.Vec3{80, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Fatalf("set off home with no stamina, overloaded: %v", f.sent())
+	}
+	// With stamina it can still walk, slowly.
+	st.Stamina = 20
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 {
+		t.Errorf("overloaded but able to walk: %v", got)
+	}
+}
+
 func TestReturnOnFollowsTheRules(t *testing.T) {
 	k, _, _ := keeper(t, Memory())
 	if !k.ReturnOn(protocol.ReasonTargetLost) || !k.ReturnOn(protocol.ReasonStuck) || k.ReturnOn(protocol.ReasonStopped) {

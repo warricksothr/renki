@@ -169,6 +169,13 @@ the world.
 `sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `in_shelter`,
 `near_fire`.
 
+`encumbered` means `weight` is over `weightMax`. The game then lets the bot
+walk but not run, stops its stamina coming back, and drains stamina while it
+moves. With no stamina left it cannot move at all until it carries less, so
+body tasks fail with `encumbered` (6.6) rather than going through stuck
+recovery. The game's auto-pickup never takes what would cross `weightMax`,
+and neither does `pickup` (`too_heavy`).
+
 ### 6.2 `perception` (at `perceptionHz`, default 1)
 
 What's near the bot, within `radius`, nearest first, capped at `maxPerKind`
@@ -294,6 +301,8 @@ picking up a pile, is one message.
 | `timeout` | `timeoutS` elapsed. |
 | `no_tool` | Nothing in the inventory meets `minTool`. |
 | `inventory_full`, `missing_materials` | — |
+| `too_heavy` | Taking it would carry the bot past `weightMax`. |
+| `encumbered` | Over `weightMax` with no stamina left: the game will not let the bot move until it carries less. |
 | `superseded` | A newer body task replaced it. |
 | `stopped` | `stop`, the dead-man rule, or a logout. |
 | `died` | — |
@@ -371,9 +380,10 @@ Notes:
   of the same item is followed there. It succeeds when the bot carries more
   of the item than it did, which can also come from another stack of it that
   auto-pickup took on the way, and fails with `inventory_full` when none fits,
+  `too_heavy` when the stack would carry the bot past `weightMax`,
   `target_lost` when the drop is gone and the bot did not get it,
   `invalid_target` when the game will not hand it over after a few tries,
-  or `stuck` as `move_to` does. A pickup that got some of the stack succeeds,
+  or `stuck` or `encumbered` as `move_to` does. A pickup that got some of the stack succeeds,
   and its detail says how many stayed behind. It needs `allowGather` and `allowMovement`, since it
   walks.
 - `harvest` covers approaching the target, equipping the best tool that meets

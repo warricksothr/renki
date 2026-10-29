@@ -35,7 +35,8 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 ## What it shows
 
 - **Header:** connection, character and world, phase, the running task,
-  health, and how far home is.
+  health, a warning when the bot carries more than it can (and whether it
+  can still move), and how far home is.
 - **Map:** top-down, north up, a grid every 10 m. The bot with its facing and
   its trail over the last few minutes; from perception, players, creatures
   (red when hostile, ringed when after the bot), structures (doors hollow

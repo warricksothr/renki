@@ -39,6 +39,14 @@ func (b *Brain) status() string {
 	if inv := b.d.Inventory(); inv != nil {
 		fmt.Fprintf(&s, " %s.", carrying(inv))
 	}
+	switch {
+	case st.Stranded():
+		fmt.Fprintf(&s, " Overloaded, %.0f/%.0f: I can't move until I carry less.", st.Weight, st.WeightMax)
+	case st.Encumbered():
+		fmt.Fprintf(&s, " Overloaded, %.0f/%.0f: I can only walk, and not for long.", st.Weight, st.WeightMax)
+	case st.WeightMax > 0:
+		fmt.Fprintf(&s, " Weight %.0f/%.0f.", st.Weight, st.WeightMax)
+	}
 	if b.opts.Home != nil {
 		if d, ok := b.opts.Home.HomeDistance(); ok {
 			fmt.Fprintf(&s, " Home is %.0f m away.", d)
