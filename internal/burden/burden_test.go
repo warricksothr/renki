@@ -225,6 +225,24 @@ func TestARefusedPrefabGivesWayToTheNext(t *testing.T) {
 	}
 }
 
+func TestRefusalsThatLeaveItShortAreTriedAgain(t *testing.T) {
+	u, f, _, c := unloader(true)
+	f.drops = map[string]int{"Wood": 0}
+	f.st = overloaded(560) // 124 Wood and 6 Stone; without the Wood, not enough
+	u.Tick(context.Background())
+	c.t = c.t.Add(Settle)
+	u.Tick(context.Background())
+	if got := f.said(); got[len(got)-1] != "say: I'm carrying too much, and I can't put anything down." {
+		t.Fatalf("sent %q", got)
+	}
+	n := len(f.said())
+	c.t = c.t.Add(Retry)
+	u.Tick(context.Background())
+	if got := f.said(); len(got) <= n || got[n] != "drop 124 Wood" {
+		t.Errorf("after Retry: %q", got[n:])
+	}
+}
+
 func TestNotAllowedToDropSaysSoOnce(t *testing.T) {
 	u, f, store, c := unloader(true)
 	f.notAllowed = true

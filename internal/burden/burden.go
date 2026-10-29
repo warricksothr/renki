@@ -132,9 +132,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 	// The state's weight is rounded: over by less than it shows still
 	// needs one thing dropped.
 	drops, short := Plan(u.droppable(inv), max(st.Weight, st.WeightMax+0.01), st.WeightMax)
-	if len(drops) == 0 && len(u.refused) > 0 {
-		// The game would drop none of what it may: try them all again
-		// after a while.
+	if (len(drops) == 0 || short) && len(u.refused) > 0 {
+		// Without what the game refused, nothing would free it: try them
+		// all again after a while.
 		u.refused, u.next = nil, u.now().Add(Retry)
 		u.tell(ctx, "I'm carrying too much, and I can't put anything down.")
 		return
