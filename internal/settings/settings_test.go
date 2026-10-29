@@ -147,9 +147,10 @@ func TestSavedChangesTheConfigNoLongerAcceptsAreDropped(t *testing.T) {
 	os.WriteFile(path, []byte(`{"overrides": {
 		"home.idleMinutes": {"value": 5, "by": "panel"},
 		"home.afterDeath": {"value": "dance", "by": "panel"},
+		"overload.drop": {"value": null, "by": "panel"},
 		"gone": {"value": 1, "by": "panel"}}}`), 0o644)
 	v := open(t, path).Values()
-	if v.Home.IdleMinutes != 5 || v.Home.AfterDeath != config.AfterDeathHome {
+	if v.Home.IdleMinutes != 5 || v.Home.AfterDeath != config.AfterDeathHome || !v.Overload.Drop {
 		t.Errorf("values %+v", v)
 	}
 }

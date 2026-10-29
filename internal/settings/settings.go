@@ -314,6 +314,10 @@ func (s *Store) build(overrides map[string]Override) (Values, error) {
 		if err := json.Unmarshal(overrides[k].Value, &val); err != nil {
 			return Values{}, fmt.Errorf("%w for %s: %v", ErrBadValue, k, err)
 		}
+		// Null would decode to the zero value and quietly turn a rule off.
+		if val == nil {
+			return Values{}, fmt.Errorf("%w for %s: null", ErrBadValue, k)
+		}
 		put(tree, k, val)
 	}
 	raw, err = json.Marshal(tree)
