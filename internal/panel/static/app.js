@@ -95,8 +95,11 @@ async function loadDays() {
 
 // showDay reads a day's records into the history list, newest last; before
 // pages back to earlier ones.
-async function showDay(day, before) {
+let dayRead = 0; // which read is the newest, so a late answer is dropped
+
+async function showDay(day, before, skip) {
   const hist = $("history");
+  const read = ++dayRead; // going back to live ends a read in flight too
   const live = day === "";
   feed.hidden = !live;
   hist.hidden = live;
@@ -104,12 +107,20 @@ async function showDay(day, before) {
   if (!before) hist.replaceChildren(Object.assign(document.createElement("li"), { textContent: "Reading…" }));
   const q = new URLSearchParams({ day });
   if (before) q.set("before", before);
+  if (skip) q.set("skip", skip);
   const res = await fetch(`/api/timeline?${q}`).catch(() => null);
+  if (read !== dayRead) return;
   if (!res || !res.ok) {
-    hist.replaceChildren(Object.assign(document.createElement("li"), { textContent: res ? await res.text() : "the controller did not answer", className: "error" }));
+    const err = Object.assign(document.createElement("li"), {
+      textContent: res ? await res.text() : "the controller did not answer",
+      className: "error",
+    });
+    // A failed page back keeps what is shown.
+    before ? hist.prepend(err) : hist.replaceChildren(err);
     return;
   }
   const tl = await res.json();
+  if (read !== dayRead) return;
   const items = tl.events.filter((ev) => ev.cat !== "perception").map((ev) => {
     const li = lineItem(ev);
     if (!shown.has(ev.cat)) li.classList.add("hidden");
@@ -120,9 +131,13 @@ async function showDay(day, before) {
     const b = document.createElement("button");
     b.className = "earlier";
     b.textContent = "Load earlier";
+    const oldest = tl.events[0].at;
+    // How many records of the oldest instant are shown, with any shown
+    // from it before.
+    const atOldest = tl.events.filter((ev) => ev.at === oldest).length + (before === oldest ? skip || 0 : 0);
     b.addEventListener("click", () => {
       more.remove();
-      showDay(day, tl.events[0].at);
+      showDay(day, oldest, atOldest);
     });
     more.append(b);
     items.unshift(more);
@@ -135,17 +150,22 @@ async function showDay(day, before) {
   }
 }
 
+let taskRead = 0;
+
 async function openTask(id, at) {
   const dlg = $("task-view");
+  const read = ++taskRead;
   $("task-title").textContent = `${id}: reading…`;
   $("task-lines").replaceChildren();
   if (!dlg.open) dlg.showModal();
   const res = await fetch(`/api/task?${new URLSearchParams({ id, at })}`).catch(() => null);
+  if (read !== taskRead) return;
   if (!res || !res.ok) {
     $("task-title").textContent = `${id}: ${res ? await res.text() : "the controller did not answer"}`;
     return;
   }
   const evs = await res.json();
+  if (read !== taskRead) return;
   $("task-lines").replaceChildren(...evs.map(lineItem));
   $("task-title").textContent = taskTitle(id, evs);
 }

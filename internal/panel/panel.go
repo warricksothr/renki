@@ -26,6 +26,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
@@ -340,8 +342,10 @@ type Timeline struct {
 	More   bool    `json:"more"`
 }
 
-// timeline answers ?day=YYYY-MM-DD[&before=RFC 3339] with the day's newest
-// TimelineLimit records before that time, without state or perception.
+// timeline answers ?day=YYYY-MM-DD[&before=RFC 3339&skip=N] with the day's
+// newest TimelineLimit records up to that time, without state or
+// perception. skip is how many records at exactly that time the page has
+// already, so a page boundary between records of one instant loses none.
 func (p *panel) timeline(w http.ResponseWriter, r *http.Request) {
 	path, err := p.dayFile(r.URL.Query().Get("day"))
 	if err != nil {
@@ -354,12 +358,20 @@ func (p *panel) timeline(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "before: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		f.Until = f.Until.Add(-time.Nanosecond) // strictly before
 	}
 	recs, err := audit.ReadDay(path, f)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
+	}
+	if skip, _ := strconv.Atoi(r.URL.Query().Get("skip")); skip > 0 {
+		// The page has the last skip records at f.Until; they are the
+		// newest ones there, so the tail.
+		n := 0
+		for i := len(recs) - 1; i >= 0 && n < skip && recs[i].At.Equal(f.Until); i-- {
+			n++
+		}
+		recs = recs[:len(recs)-n]
 	}
 	out := Timeline{Events: []Event{}}
 	if len(recs) > TimelineLimit {
@@ -386,6 +398,19 @@ func (p *panel) task(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
+	}
+	// A run that began before midnight began in the day before's file, and
+	// its task may have too.
+	if !slices.ContainsFunc(recs, func(r audit.Record) bool { return r.Kind == audit.KindStart && !r.At.After(at) }) {
+		prev, _ := p.dayFile(at.Local().AddDate(0, 0, -1).Format(time.DateOnly))
+		if earlier, err := audit.ReadDay(prev, audit.Filter{}); err == nil {
+			recs = append(earlier, recs...)
+		}
+	}
+	// A task that runs past midnight goes on in the next day's file.
+	next, _ := p.dayFile(at.Local().AddDate(0, 0, 1).Format(time.DateOnly))
+	if more, err := audit.ReadDay(next, audit.Filter{}); err == nil {
+		recs = append(recs, more...)
 	}
 	// The run is from the last start at or before at to the next one. It is
 	// cut out first, so the task's records in other runs cannot stretch

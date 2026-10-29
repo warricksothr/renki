@@ -317,6 +317,12 @@ func TestPastDays(t *testing.T) {
 	if len(evs) != 1 || !strings.Contains(evs[0].Line, "move_to") || evs[0].Task != "t-1" {
 		t.Errorf("t-1 of the second run: %+v", evs)
 	}
+	// Paging back from 10:00:04, of which the page has its one record:
+	// the start and the request are left.
+	get("/api/timeline?day="+day+"&before=2026-10-28T10:00:04Z&skip=1", &tl)
+	if len(tl.Events) != 2 || tl.Events[1].Task != "t-1" || !strings.Contains(tl.Events[1].Line, "follow") {
+		t.Errorf("earlier page: %+v", tl.Events)
+	}
 	if code := get("/api/timeline?day=../../etc/passwd", &tl); code != http.StatusBadRequest {
 		t.Errorf("a path for a day: %d", code)
 	}
