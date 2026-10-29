@@ -804,8 +804,17 @@ async function loadSettings(fresh) {
   const a = document.activeElement;
   const typing = a?.matches?.('#settings-table input[type="text"], #settings-table input[type="number"], #settings-table select');
   const editing = typing ? a.closest("tr") : null;
-  const rows = entries.map((e) => (editing?.dataset.key === e.key && e.key !== fresh ? editing : settingRow(e)));
-  $("settings-table").replaceChildren(...rows);
+  const table = $("settings-table");
+  const old = [...table.querySelectorAll("tr")];
+  if (!editing || old.length !== entries.length) {
+    table.replaceChildren(...entries.map(settingRow));
+  } else {
+    // Swapped one by one, so the row being typed in is never detached and
+    // keeps the focus.
+    entries.forEach((e, i) => {
+      if (old[i] !== editing || e.key === fresh) old[i].replaceWith(settingRow(e));
+    });
+  }
   const changed = entries.filter((e) => e.set).length;
   $("settings-summary").textContent = changed ? `${changed} changed from the config` : "as the config has them";
 }
@@ -912,7 +921,6 @@ function settingResult(ok, text) {
 }
 
 $("settings").addEventListener("toggle", () => $("settings").open && loadSettings());
-// A change from chat or another page arrives while this one may be typing.
 
 // ---- the stream ----
 
