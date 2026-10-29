@@ -47,13 +47,19 @@ namespace Renki.Plugin
                 scratch.Add(goal);
             }
             path.Set(scratch.Select(Convert.ToV3));
-            Tracer.Emit("walker", StraightLine ? "no navmesh path; straight line" : "path",
-                new Dictionary<string, object>
-                {
-                    ["from"] = Convert.ToArray(from),
-                    ["to"] = Convert.ToArray(goal),
-                    ["waypoints"] = scratch.Count,
-                });
+            // The navmesh gives the way to the nearest point it can reach,
+            // which may be under a floor or behind a shut door.
+            var end = scratch[scratch.Count - 1];
+            var shortBy = Vector3.Distance(end, goal);
+            var data = new Dictionary<string, object>
+            {
+                ["from"] = Convert.ToArray(from),
+                ["to"] = Convert.ToArray(goal),
+                ["waypoints"] = scratch.Count,
+            };
+            if (shortBy > 1) data["end"] = Convert.ToArray(end);
+            Tracer.Emit("walker", StraightLine ? "no navmesh path; straight line"
+                : shortBy > 1 ? $"path stops {shortBy:0.0} m short" : "path", data);
         }
 
         public void ResetStuck(Vector3 pos)
@@ -219,7 +225,7 @@ namespace Renki.Plugin
                 }
             }
             var pos = p.transform.position;
-            if (V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= args.StopDistance)
+            if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), args.StopDistance))
             {
                 Driver.Stand();
                 return Outcome.Succeeded();
@@ -313,7 +319,7 @@ namespace Renki.Plugin
                 walker.SetGoal(p.transform.position, goal);
             }
             var pos = p.transform.position;
-            if (V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= Close)
+            if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), Close))
             {
                 Driver.Stand();
                 // Standing still on purpose is not being stuck.

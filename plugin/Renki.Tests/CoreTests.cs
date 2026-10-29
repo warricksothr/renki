@@ -217,6 +217,18 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void ArrivalIsOnTheGoalsLevel()
+        {
+            var home = new V3(-35.9, 36.09, 6.53);
+            Assert.True(Arrival.Reached(new V3(-37.0, 36.09, 6.5), home, 2));
+            // Seen on the VM: under the raised floor, 1.9 m across and 2 m down.
+            Assert.False(Arrival.Reached(new V3(-37.76, 34.0, 6.36), home, 2));
+            // A storey up is not there either; a step up is.
+            Assert.False(Arrival.Reached(new V3(-35.9, 38.09, 6.53), home, 2));
+            Assert.True(Arrival.Reached(new V3(-35.9, 37.0, 6.53), home, 2));
+        }
+
+        [Fact]
         public void WallsAreTallThinAndLong()
         {
             // wood_wall: 2 long, 0.2 thick, 2 tall, centred on its origin.

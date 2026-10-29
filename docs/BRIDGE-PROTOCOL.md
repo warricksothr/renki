@@ -268,7 +268,10 @@ picking up a pile, is one message.
 }
 ```
 
-`channel` is one of `normal`, `shout`, `whisper`, `ping`.
+`channel` is one of `normal`, `shout`, `whisper`, `ping`. `pos` is where
+the speaker stands when their character is loaded near the bot; the game
+itself sends their head, about 1.6 m higher, and that is what comes through
+otherwise. For a `ping` it is the pinged point.
 
 ### 6.5 `event` (as it happens)
 
@@ -406,6 +409,10 @@ last. It comes after the `perception` of the same scan.
 
 Notes:
 
+- `move_to` and `pickup` arrive within `stopDistance` across the ground and
+  within 1.75 m up or down, so a bot under a raised floor has not reached a
+  point on it. When the navmesh reaches only part of the way, the walker's
+  path trace says how far short it stops.
 - `pickup` walks to the drop and lets the game's auto-pickup take it, as it
   does for any player within about 2 m, picking it up directly if it is still
   there once the bot stands on it. A drop the game merges into a nearby stack
