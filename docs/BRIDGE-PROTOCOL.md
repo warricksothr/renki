@@ -606,8 +606,10 @@ chat event
   from the nearest such creature, 25 m, toward the nearest owner in sight
   within 60 m, else home unless the creature is within 15 m of it, else
   straight away, and says which ("Falling back to you, Sothr", "Heading
-  home", "Getting away from the greyling"). It does not start another while
-  a flee runs, nor within 10 s of the last. It needs `flee` in
+  home", "Getting away from the greyling"). At an owner's side already it
+  stays, since running on would leave them; at home already, it runs
+  straight away. It does not start another while a flee runs, nor within
+  10 s of the last. It needs `flee` in
   `allowedTasks`.
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back

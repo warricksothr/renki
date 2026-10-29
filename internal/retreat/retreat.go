@@ -30,6 +30,8 @@ const (
 	HomeClear = 15.0
 	// Again is how long after one retreat before another may start.
 	Again = 10 * time.Second
+	// There is how near safety the bot must be to be at it already.
+	There = 6.0
 )
 
 // Session is what the retreat needs of the session.
@@ -91,6 +93,15 @@ func (r *Retreat) Tick(ctx context.Context) {
 		return
 	}
 	toward, to := r.safety(st.Pos, threat.Pos, seen)
+	switch {
+	case to != "" && toward.Pos != nil && st.Pos.FlatDistance(*toward.Pos) <= There:
+		// At its owner's side already: the fight is theirs together, and
+		// running on would leave them.
+		return
+	case to == "" && toward.Pos != nil && st.Pos.FlatDistance(*toward.Pos) <= There:
+		// Home, and the creature followed it there: away it is.
+		toward = protocol.Target{}
+	}
 	args := &protocol.FleeArgs{From: protocol.Target{Entity: threat.ID}, Distance: ptr(Distance)}
 	line := fmt.Sprintf("Too much for me. Getting away from the %s.", name(threat))
 	switch {
@@ -131,7 +142,8 @@ func Threat(pos protocol.Vec3, seen *protocol.Perception) *protocol.PerceivedCha
 }
 
 // safety is where to run: the nearest owner in sight within OwnerReach,
-// named in owner, or home when the threat is not at it, or nowhere.
+// named in owner and with Pos set to where they stand, or home when the
+// threat is not at it, or nowhere.
 func (r *Retreat) safety(pos, threat protocol.Vec3, seen *protocol.Perception) (to protocol.Target, owner string) {
 	owners := r.owners()
 	best := OwnerReach
@@ -140,7 +152,8 @@ func (r *Retreat) safety(pos, threat protocol.Vec3, seen *protocol.Perception) (
 			continue
 		}
 		if d := pos.FlatDistance(c.Pos); d <= best {
-			best, to, owner = d, protocol.Target{Entity: c.ID}, c.Name
+			at := c.Pos
+			best, to, owner = d, protocol.Target{Entity: c.ID, Pos: &at}, c.Name
 		}
 	}
 	if owner != "" {

@@ -93,6 +93,24 @@ func TestRetreatOnLowHealthWithAThreat(t *testing.T) {
 	if want := []string{"flee 0:7 25 toward 1:2", "say: Too much for me. Falling back to you, Sothr."}; !slices.Equal(f.sent, want) {
 		t.Fatalf("sent %q\nwant %q", f.sent, want)
 	}
+
+	// At the owner's side: no running on, however long the fight.
+	f.sent, f.st.Pos = nil, protocol.Vec3{-17, 30, 4}
+	f.seen.Characters[1].Pos = protocol.Vec3{-14, 30, 4}
+	c.t = c.t.Add(Again + time.Second)
+	r.Tick(ctx)
+	if len(f.sent) != 0 {
+		t.Fatalf("ran from the owner's side: %v", f.sent)
+	}
+
+	// Home, with the creature come after it but home not where it stood:
+	// straight away.
+	f.seen.Characters = f.seen.Characters[:3]
+	f.st.Pos, f.seen.Characters[1].Pos = protocol.Vec3{-38, 31, 0}, protocol.Vec3{-23.5, 30, 0}
+	r.Tick(ctx)
+	if want := []string{"flee 0:7 25 toward nowhere", "say: Too much for me. Getting away from the greyling."}; !slices.Equal(f.sent, want) {
+		t.Fatalf("at home: sent %q\nwant %q", f.sent, want)
+	}
 }
 
 func TestNoRefugeWhereTheThreatIs(t *testing.T) {
