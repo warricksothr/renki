@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N129K1RGB8VSJZ3SDAC7N
 title: "Plugin: send the inventory on change (6.3)"
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/inventory
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 62192b97c3124d27549b489473a5a00b9d7014ef
+  session: null
+  claimed_at: 2026-10-29T02:32:48Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T01:40:10Z
+updated_at: 2026-10-29T02:32:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

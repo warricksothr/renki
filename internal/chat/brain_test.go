@@ -19,10 +19,11 @@ import (
 
 // fakeSession records orders, checking them the way Session.Dispatch does.
 type fakeSession struct {
-	mu      sync.Mutex
-	orders  []session.Order
-	allowed []string
-	state   *protocol.State
+	mu        sync.Mutex
+	orders    []session.Order
+	allowed   []string
+	state     *protocol.State
+	inventory *protocol.Inventory
 }
 
 func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Task, error) {
@@ -42,8 +43,9 @@ func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Tas
 	return &session.Task{ID: "t", Name: o.Task, Origin: o.Origin}, nil
 }
 
-func (f *fakeSession) State() *protocol.State { return f.state }
-func (f *fakeSession) AllowedTasks() []string { return f.allowed }
+func (f *fakeSession) State() *protocol.State         { return f.state }
+func (f *fakeSession) Inventory() *protocol.Inventory { return f.inventory }
+func (f *fakeSession) AllowedTasks() []string         { return f.allowed }
 
 func (f *fakeSession) sent() []session.Order {
 	f.mu.Lock()
@@ -239,6 +241,17 @@ func TestStatus(t *testing.T) {
 	}
 	if len(f.tasks()) != 0 {
 		t.Error("status sent a body task")
+	}
+
+	f.inventory = &protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{
+		{Slot: [2]int{0, 0}, Prefab: "AxeBronze", Stack: 1},
+		{Slot: [2]int{1, 0}, Prefab: "Wood", Stack: 50, StackMax: 50},
+		{Slot: [2]int{2, 0}, Prefab: "Wood", Stack: 12, StackMax: 50},
+	}}
+	b.Chat(line("Sothr", "bjorn status"))
+	want += " Carrying 62 Wood, 1 Axe Bronze; 29 slots free."
+	if got := f.said()[2]; got != want {
+		t.Errorf("status %q\nwant   %q", got, want)
 	}
 }
 
