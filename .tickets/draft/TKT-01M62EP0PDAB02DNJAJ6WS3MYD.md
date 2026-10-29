@@ -10,8 +10,8 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: null
-parent: null
+milestone: M2
+parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62BMD18K3SE1WXJ7FDN8EPT
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-10-29T01:16:12Z
+updated_at: 2026-10-29T01:40:22Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T22:34:11Z
-updated_at: 2026-10-28T23:42:00Z
+updated_at: 2026-10-29T01:37:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -81,3 +81,7 @@ known about them.
 **agent:claude-code/renki-groom** at 2026-10-28T23:42:00Z
 
 Real case, 2026-10-28 18:39: told to come to a player 184 m away, the bot ran a straight line into a lake, swam until its stamina ran out and drowned (it was on 0.2 health). Whatever fills the grid should mark water (terrain below the water level) as costly or blocked, and the straight-line fallback should not cross it.
+
+**agent:claude-code/renki-groom** at 2026-10-29T01:37:46Z
+
+Case from the game on 2026-10-28, 20:34: on 'go home' from outside, the navmesh had no path into the house (home is on a raised floor at (-35.9, 37.66, 6.53)), so the bot took a straight line, and that line runs through the wood piles 7 m short of the door at about (-43.4, 16.5). Jump, strafe and a 10-waypoint repath did not clear it; the second strafe did, after 17 s. Built pieces the navmesh does not see, and the stuck circles the walker already traces, are what a sparse grid could remember so that the second trip plans around them.

@@ -11,8 +11,8 @@ labels:
   - plugin
   - protocol
 assignees: []
-milestone: null
-parent: null
+milestone: M2
+parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies: []
 blocks_on: none
@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:55:57Z
-updated_at: 2026-10-29T01:07:49Z
+updated_at: 2026-10-29T01:40:22Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

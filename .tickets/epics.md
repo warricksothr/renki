@@ -7,3 +7,5 @@ tickets, and the next fix pass overwrites it.
 | Epic | Title | Status |
 |---|---|---|
 | [TKT-01M628X106RD9FFR8YBXV7K5HT](draft/TKT-01M628X106RD9FFR8YBXV7K5HT.md) | Web control panel to watch and steer the bot | draft |
+| [TKT-01M62MZN7QMTJ3ST0KRZH15DXZ](draft/TKT-01M62MZN7QMTJ3ST0KRZH15DXZ.md) | M2: the bot hauls and gathers wood with its owner | draft |
+| [TKT-01M62N2557R401S3E6JECSAPN4](draft/TKT-01M62N2557R401S3E6JECSAPN4.md) | M3: the bot survives danger and stands with its owner | draft |
