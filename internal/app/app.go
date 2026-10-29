@@ -16,6 +16,7 @@ import (
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/retreat"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
 )
@@ -27,6 +28,7 @@ type App struct {
 	Brain   *chat.Brain
 	Home    *home.Keeper
 	Burden  *burden.Unloader
+	Retreat *retreat.Retreat
 	Bridge  *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
@@ -71,6 +73,10 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	s.SetListener(brain)
 	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice,
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
+	a.Retreat = retreat.New(s, func() []string { return set.Values().Owners }, func() (protocol.Vec3, bool) {
+		_, h, ok := keeper.Current()
+		return h.Pos, ok
+	}, log.With("part", "retreat"), nil)
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -99,6 +105,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	defer cancel()
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
+	go a.Retreat.Run(ctx)
 	return a.Bridge.Serve(ctx, ln)
 }
 

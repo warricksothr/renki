@@ -456,6 +456,29 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void FleeRunsToSafetyUnlessItIsPastTheThreat()
+        {
+            var bot = new V3(0, 30, 0);
+            var wolf = new V3(5, 30, 0);
+            // Nowhere to go: straight away, past the distance.
+            var away = Flee.Goal(bot, wolf, null, 20);
+            Assert.True(away.X < -15 && Math.Abs(away.Z) < 1e-6, $"away to {away}");
+            Assert.Equal(30, away.Y);
+            // Home behind the bot: run home.
+            var home = new V3(-40, 31, 10);
+            Assert.Equal(home, Flee.Goal(bot, wolf, home, 20));
+            // Home past the wolf: not that way.
+            var past = new V3(40, 31, 5);
+            Assert.True(Flee.PastThreat(bot, wolf, past));
+            Assert.True(Flee.Goal(bot, wolf, past, 20).X < 0);
+            // Off to the side is no way through the wolf.
+            Assert.False(Flee.PastThreat(bot, wolf, new V3(0, 30, 30)));
+            // Already far enough: a few metres more, still away.
+            var far = Flee.Goal(bot, new V3(30, 30, 0), null, 20);
+            Assert.Equal(-Flee.Beyond, far.X, 6);
+        }
+
+        [Fact]
         public void InteractGoesByWhatItUses()
         {
             var s = new SafetyConfig();
@@ -477,6 +500,17 @@ namespace Renki.Tests
             Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ward, s).Reason);
             s.AllowMovement = false;
             Assert.False(s.Permits("interact"));
+        }
+
+        [Fact]
+        public void FleeingNeedsNoCombat()
+        {
+            var s = new SafetyConfig();
+            Assert.False(s.AllowCombat);
+            Assert.True(s.Permits("flee"));
+            Assert.False(s.Permits("attack"));
+            s.AllowMovement = false;
+            Assert.False(s.Permits("flee"));
         }
 
         [Fact]

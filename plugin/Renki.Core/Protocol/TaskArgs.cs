@@ -7,13 +7,14 @@ namespace Renki.Protocol
     public static class TaskNames
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", LookAt = "look_at",
-            Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact";
+            Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
+            Flee = "flee";
 
         public static readonly string[] M1 = { Stop, MoveTo, Follow, LookAt, Say, Emote };
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -100,6 +101,19 @@ namespace Renki.Protocol
         public bool Hold;
     }
 
+    public sealed class FleeArgs
+    {
+        /// <summary>What to get away from: an entity, or a place.</summary>
+        public Target From;
+
+        /// <summary>How far from it counts as away.</summary>
+        public double Distance = 20;
+
+        /// <summary>Where safety lies, such as the owner or home; the bot
+        /// runs there unless it lies past the threat. Null runs straight away.</summary>
+        public Target Toward;
+    }
+
     public sealed class DropArgs
     {
         /// <summary>The item, by prefab as the inventory names it (6.3).</summary>
@@ -164,6 +178,16 @@ namespace Renki.Protocol
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
                         return new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false) };
+                    }
+                case TaskNames.Flee:
+                    {
+                        var toward = a["toward"];
+                        return new FleeArgs
+                        {
+                            From = Target.Parse(a["from"], "from"),
+                            Distance = Number(a, "distance", 20),
+                            Toward = toward == null || toward.Type == JTokenType.Null ? null : Target.Parse(toward, "toward"),
+                        };
                     }
                 case TaskNames.Drop:
                     {

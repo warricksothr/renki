@@ -178,6 +178,8 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskEmote, `{"name":"wave"}`, &EmoteArgs{Name: "wave"}, nil},
 		{TaskInteract, `{"entity":"1234:310","alt":true}`, &InteractArgs{Entity: "1234:310", Alt: true}, nil},
 		{TaskInteract, `{"hold":true}`, nil, ErrBadArgs},
+		{TaskFlee, `{"from":"0:5521","toward":[1,2,3]}`, &FleeArgs{From: Target{Entity: "0:5521"}, Toward: &Target{Pos: &Vec3{1, 2, 3}}}, nil},
+		{TaskFlee, `{"distance":20}`, nil, ErrBadArgs},
 		{"harvest", `{"entity":"0:7001"}`, nil, ErrUnknownTask},
 	}
 	for _, tc := range tests {

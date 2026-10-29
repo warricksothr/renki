@@ -75,6 +75,20 @@ namespace Renki.Plugin
                             throw new TaskRefused(Wire.ReasonNotAllowed, $"the {InteractTask.Name(it)} is behind a ward");
                         return new InteractTask(ia, it);
                     }
+                case FleeArgs fl:
+                    {
+                        var (threatPos, threat) = Resolve(fl.From);
+                        Vector3? safePos = null;
+                        GameObject safe = null;
+                        if (fl.Toward != null)
+                        {
+                            // Safety out of sight is no reason not to run:
+                            // the bot runs straight away instead.
+                            if (fl.Toward.Pos.HasValue) safePos = Convert.ToVector3(fl.Toward.Pos.Value);
+                            else if ((safe = FindEntity(fl.Toward.Entity)) != null) safePos = safe.transform.position;
+                        }
+                        return new FleeTask(fl, threatPos, threat, safePos, safe);
+                    }
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)
                         throw new TaskRefused(Wire.ReasonInvalidTarget, $"no player \"{f.Player}\" in range");

@@ -136,6 +136,8 @@ namespace Renki.Tests
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":0}")]
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":2.5}")]
         [InlineData("interact", "{\"alt\":true}")]
+        [InlineData("flee", "{\"distance\":20}")]
+        [InlineData("flee", "{\"from\":\"0:1\",\"toward\":7}")]
         [InlineData("interact", "{\"entity\":\"0:1\",\"hold\":\"yes\"}")]
         public void BadArgs(string task, string args)
         {
@@ -157,6 +159,9 @@ namespace Renki.Tests
             Assert.Equal(("Wood", 3), (d.Prefab, d.Count));
             var ia = (InteractArgs)TaskArgs.Parse(Req("interact", "{\"entity\":\"1234:310\",\"alt\":true}"));
             Assert.Equal(("1234:310", true, false), (ia.Entity, ia.Alt, ia.Hold));
+            var fl = (FleeArgs)TaskArgs.Parse(Req("flee", "{\"from\":\"0:5521\"}"));
+            Assert.Equal(("0:5521", 20.0), (fl.From.Entity, fl.Distance));
+            Assert.Null(fl.Toward);
             Assert.Null(TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}")));
         }
     }

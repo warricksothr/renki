@@ -32,6 +32,9 @@ namespace Renki.Tasks
                 case "follow":
                 // It walks there; what it may use is InteractRule's call.
                 case "interact":
+                // Running away is never the unsafe choice, so it needs no
+                // AllowCombat.
+                case "flee":
                 case "look_at": return AllowMovement;
                 case "say":
                 case "emote": return AllowChat;
@@ -41,8 +44,7 @@ namespace Renki.Tasks
                 // Drops at the bot's feet, never what it has equipped.
                 case "drop": return AllowDrop;
                 case "attack":
-                case "guard":
-                case "flee": return AllowCombat;
+                case "guard": return AllowCombat;
                 case "controls": return AllowRawControls;
                 default: return false;
             }

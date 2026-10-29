@@ -406,7 +406,7 @@ last. It comes after the `perception` of the same scan.
 | `repair_all` | body | `station` | M2 |
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `guard` | body | `around`: player or position; `radius` | M3 |
-| `flee` | body | `from`: entity or position; `distance` | M3 |
+| `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 
 Notes:
@@ -469,6 +469,14 @@ Notes:
     it sits the bot down, harnesses it, carries it off or takes from its pack.
   - It needs `allowMovement`, and nothing behind a ward the bot has no access
     to.
+- `flee` runs from `from` until it is `distance` away across the ground, and
+  succeeds then, or when an entity it ran from is gone or dead. With
+  `toward` (the owner, or home) it runs there instead, unless that lies past
+  the threat (within 60° of its bearing), and stops on arriving, since the
+  rest is up to whoever is there. Otherwise it runs straight away, to 5 m
+  past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
+  and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
+  needs only `allowMovement`: running away is never the unsafe choice.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
@@ -593,6 +601,14 @@ chat event
   from `state.phase` rather than the `died` and `respawned` events, so a
   lost event does not lose them. The plugin reports `dead` from the death
   until the respawn wait ends, about 10 s.
+- **Getting away.** Below 40% health, with a hostile creature that has
+  picked the bot (`targetingMe`) within 15 m, the controller sends `flee`
+  from the nearest such creature, 25 m, toward the nearest owner in sight
+  within 60 m, else home unless the creature is within 15 m of it, else
+  straight away, and says which ("Falling back to you, Sothr", "Heading
+  home", "Getting away from the greyling"). It does not start another while
+  a flee runs, nor within 10 s of the last. It needs `flee` in
+  `allowedTasks`.
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back
   under `weightMax`: common raw materials (wood, stone, flint, resin,

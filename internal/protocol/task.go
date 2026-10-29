@@ -29,6 +29,7 @@ const (
 	TaskPickup   = "pickup"
 	TaskDrop     = "drop"
 	TaskInteract = "interact"
+	TaskFlee     = "flee"
 )
 
 // Instant reports whether a task runs alongside the body task instead of
@@ -64,7 +65,7 @@ func NewTask(id, task string, args any, timeoutS float64) (*TaskRequest, error) 
 
 // DecodeArgs returns the typed arguments for a task: a *StopArgs,
 // *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs, *EmoteArgs,
-// *PickupArgs, *DropArgs or *InteractArgs. It checks
+// *PickupArgs, *DropArgs, *InteractArgs or *FleeArgs. It checks
 // that the required ones are there and that enumerated values are known.
 func (r *TaskRequest) DecodeArgs() (any, error) {
 	var args interface{ validate() error }
@@ -87,6 +88,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &DropArgs{}
 	case TaskInteract:
 		args = &InteractArgs{}
+	case TaskFlee:
+		args = &FleeArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -223,6 +226,25 @@ type InteractArgs struct {
 func (a *InteractArgs) validate() error {
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
+	}
+	return nil
+}
+
+// FleeArgs are the arguments to `flee`: what to get away from, how far (nil
+// means the plugin's 20 m), and where safety lies, if anywhere: the bot runs
+// there unless it lies past the threat.
+type FleeArgs struct {
+	From     Target   `json:"from"`
+	Distance *float64 `json:"distance,omitempty"`
+	Toward   *Target  `json:"toward,omitempty"`
+}
+
+func (a *FleeArgs) validate() error {
+	if a.From.IsZero() {
+		return errors.New("`from` is required")
+	}
+	if a.Toward != nil && a.Toward.IsZero() {
+		return errors.New("`toward` must be a position or an entity id")
 	}
 	return nil
 }

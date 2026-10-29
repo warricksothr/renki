@@ -435,7 +435,7 @@ func (k *Keeper) setInterrupted(v bool) {
 // somewhere odd.
 func body(task string) bool {
 	switch task {
-	case protocol.TaskFollow, protocol.TaskMoveTo, protocol.TaskPickup, protocol.TaskInteract:
+	case protocol.TaskFollow, protocol.TaskMoveTo, protocol.TaskPickup, protocol.TaskInteract, protocol.TaskFlee:
 		return true
 	}
 	return false
