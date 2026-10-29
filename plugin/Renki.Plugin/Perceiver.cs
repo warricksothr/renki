@@ -259,6 +259,8 @@ namespace Renki.Plugin
                 ["structures"] = $"{snapshot.Structures.Count}/{structures.Seen}",
                 ["resources"] = $"{snapshot.Resources.Count}/{resources.Seen}",
                 ["colliders"] = hits,
+                // The buffer filled: some objects in range were not looked at.
+                ["truncated"] = mostColliders >= colliders.Length,
                 ["mostColliders"] = mostColliders,
                 ["pieces"] = pieceBuffer.Count,
             });

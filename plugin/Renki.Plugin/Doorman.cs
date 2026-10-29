@@ -31,12 +31,11 @@ namespace Renki.Plugin
         /// so a stuck bot does not reopen the door it just shut.</summary>
         const float ShutFor = 10f;
 
-        /// <summary>A door the bot opened but never went through is shut
-        /// anyway after this long, once the bot is clear of it, if it is
-        /// still within AbandonReach; farther off it is left as it is.</summary>
-        const float AbandonAfter = 20f;
-
-        const double AbandonReach = 6;
+        /// <summary>A door the bot opened but never went through is shut as
+        /// the bot walks away from it: once it is farther than LeftAt (more
+        /// than StuckReach, so a door opened while stuck is not shut at once)
+        /// and still within AbandonReach. Past that it is left as it is.</summary>
+        const double LeftAt = 4.5, AbandonReach = 6;
 
         sealed class Opened
         {
@@ -158,8 +157,9 @@ namespace Renki.Plugin
                 if (!DoorRules.Past(pos, at)) continue;
                 if (!o.Through)
                 {
-                    if (Time.time - o.At < AbandonAfter) continue;
-                    if (V3.FlatDistance(pos, at) > AbandonReach)
+                    var away = V3.FlatDistance(pos, at);
+                    if (away <= LeftAt) continue;
+                    if (away > AbandonReach)
                     {
                         // Too far off to reach for it, as a player would not.
                         opened.RemoveAt(i);
