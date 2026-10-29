@@ -624,7 +624,7 @@ func explain(task, reason, player string) string {
 		case protocol.ReasonTargetLost:
 			return "It's gone. Someone got to it first."
 		case protocol.ReasonInvalidTarget:
-			return "I can't see it from here."
+			return "I can't get that one."
 		}
 	}
 	switch reason {
