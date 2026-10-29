@@ -67,6 +67,15 @@ local-search budget starting 35 m away (3207 expansions, 513.4 ms CPU,
 navmesh prefixes and start local search near their ends. Stop and replan
 there; never invent a final segment through a wall or raised floor.
 
+On `dd9ef44`, the first order after restart again had no usable navmesh and
+exhausted local search. Retrying home at 18:03:30Z used the safe prefix,
+repositioned from beneath the floor and found a 29-waypoint local route
+(434 expansions, 84 ms total, 2.28 ms worst frame). After stuck recovery
+and a second short local plan, task `t-2` succeeded at 18:03:59Z, ending
+at `(-36.5, 36.09, 8.26)`, 25/25 HP. During local planning, recheck once
+per second for newly built usable navmesh paths without resetting the
+search's existing budget when no safe path is available.
+
 ## Raised-goal recovery check
 
 For TKT-01M647SMRM3XXAQS7Y9CW2TKZ9 (Retry raised goals from other approaches
