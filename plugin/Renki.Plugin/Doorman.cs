@@ -95,10 +95,15 @@ namespace Renki.Plugin
                 ["pos"] = Convert.ToArray(pos),
                 ["why"] = why,
             };
-            // The door itself turns the bot away for a ward or a missing key.
+            // Interact answers true for a ward or a missing key as well as for
+            // a door it opened, so a refusal shows only as a door still shut
+            // once it has settled: Tick catches that.
             if (best.Interact(me, false, false))
             {
-                if (opened.Find(o => o.Door == best) == null) opened.Add(new Opened { Door = best, At = Time.time });
+                var o = opened.Find(x => x.Door == best);
+                if (o == null) opened.Add(o = new Opened { Door = best });
+                o.At = Time.time;
+                o.Through = false;
                 leave[best] = Time.time + SettleFor;
                 Tracer.Emit("door", "opening", data);
                 return true;
@@ -129,6 +134,19 @@ namespace Renki.Plugin
                     continue;
                 }
                 var at = Convert.ToV3(o.Door.transform.position);
+                if (!o.Through && Time.time - o.At > SettleFor && !IsOpen(o.Door))
+                {
+                    // Asked to open and still shut: a ward, a key, or the owner
+                    // shut it again. Leave it alone for a while.
+                    opened.RemoveAt(i);
+                    leave[o.Door] = Time.time + RefusedFor;
+                    Tracer.Emit("door", "will not open", new Dictionary<string, object>
+                    {
+                        ["door"] = at.ToArray(),
+                        ["pos"] = pos.ToArray(),
+                    });
+                    continue;
+                }
                 if (DoorRules.In(pos, at)) o.Through = true;
                 if (!DoorRules.Past(pos, at)) continue;
                 if (!o.Through && Time.time - o.At < AbandonAfter) continue;
