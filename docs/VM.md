@@ -70,6 +70,12 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
     just vm stop
     just vm deploy                           # package, stop, copy, install the plugin, start
 
+For controller-only changes, `just vm deploy-controller` builds/uploads the
+Windows controller, stops it, installs the upload and restarts the controller
+through its scheduled task. Valheim stays running. This refreshes the bridge
+welcome and stops active body tasks; the plugin still needs a full
+`just vm deploy` when its assemblies change.
+
 ## The LLM voice
 
 Lines the command grammar does not know go to an LLM through terva, if

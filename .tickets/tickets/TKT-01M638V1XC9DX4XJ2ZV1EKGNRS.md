@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T18:05:10Z
+updated_at: 2026-10-29T18:16:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -47,7 +47,7 @@ Follow should also not count it as stuck when it is already within its distance 
 
 ## Acceptance criteria
 
-- [ ] The cause of the straight path through the wall is known and written down
+- [x] The cause of the straight path through the wall is known and written down
 - [ ] A follower that is near the leader but cannot get closer waits, not recovers
 
 ## Implementation plan
@@ -77,3 +77,7 @@ Live fe9384a: come-here t-1 left via west doorway and reached Nimah east of hous
 **agent:codex/renki-resume** at 2026-10-29T18:05:10Z
 
 Live dd9ef44 return-home t-2 succeeded at 18:03:59Z after a safe navmesh prefix, an off-level reposition and short local searches (434 expansions / 84 ms and 364 / 68.18 ms). Ended at (-36.5,36.09,8.26), 25/25 HP. First order immediately after restart still found no usable navmesh and exhausted local search; GetPath builds tiles asynchronously and unused tiles expire after 30 s. Recheck for newly usable complete paths or useful safe prefixes once per second during planning, preserving the existing search and deadline when no path is usable. Close-follower waiting and cold-start retry remain live checks; implementation tests and just check ci pass.
+
+**agent:codex/renki-resume** at 2026-10-29T18:16:46Z
+
+Live a04704d: exact east-side walk t-6 started at 18:14:37Z, used local wall-aware routing through west door, recovered at the door, adopted a newly usable navmesh during local search at 18:14:52Z and succeeded at 18:15:08Z. Final pos (-2.84,33.19,9.5), 25/25 HP. Return-home t-7 succeeded at 18:15:44Z; final (-37.03,36.09,7.92), 25/25 HP, still 15 seeds. This exercises the asynchronous-navmesh recheck and both directions through the actual house. Evidence .checks/audit-window-naIMBv.jsonl. Close-follow waiting through a wall, cancel during planning, newly built/demolished walls and a blocked door remain staged checks; only the root-cause AC is checked.

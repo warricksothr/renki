@@ -86,6 +86,15 @@ deploy: need-target
     {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
     just --justfile "{{justfile()}}" vm start
 
+# Deploy a controller-only change and refresh the bridge without restarting Valheim.
+deploy-controller: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just --justfile "{{justfile()}}" controller build-windows
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/dist/controller.exe" "{{target}}:/{{dir}}/controller.next.exe"
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/deploy-controller.ps1" "{{target}}:/{{dir}}/deploy-controller.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/deploy-controller.ps1"
+
 # Takes renki-audit flags after the day count: `just vm audit 1 -task t-6`,
 # `just vm audit 2 -last 30m -state 1s`. DAYS counts today as 1.
 [doc("Fetch the VM's audit log and print it as a timeline.")]
