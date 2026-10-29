@@ -451,6 +451,10 @@ Notes:
     beds and doors; offering bowls with `allowBossSummoning`; ship controls
     with `allowSailing`; pickables, beehives and sap collectors with
     `allowGather`.
+  - A bed answers the game's call with false whatever it did, so for a bed
+    success is what changed: it became the bot's spawn point, or the bot lay
+    down in it (its own bed already, at night). A ship is named by its hull,
+    and what is used is its helm.
   - A tombstone is the bot's own grave when all of it fits in the pack, and
     using it takes everything; otherwise it counts as a chest. If the pack
     has filled by the time the bot gets there, it fails `inventory_full`.

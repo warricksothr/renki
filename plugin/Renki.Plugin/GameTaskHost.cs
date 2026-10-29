@@ -54,6 +54,9 @@ namespace Renki.Plugin
                         // A tombstone carries a Container too, which is not what to use.
                         var it = obj == null ? null
                             : (Interactable)obj.GetComponentInParent<TombStone>() ?? obj.GetComponentInParent<Interactable>();
+                        // A ship is named by its hull; what the bot would use is its helm.
+                        if (obj != null && it == null && obj.GetComponent<Ship>() != null)
+                            it = obj.GetComponentInChildren<ShipControlls>();
                         if (obj != null && it == null)
                         {
                             // A part may carry it; with several (a smelter's

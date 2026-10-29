@@ -186,9 +186,15 @@ namespace Renki.Plugin
             Heard.Into = heard;
             try
             {
-                if (!target.Interact(p, hold, args.Alt)) return false;
-                p.DoInteractAnimation(obj);
-                return true;
+                var bed = target as Bed;
+                var wasCurrent = bed != null && bed.IsCurrent();
+                var ok = target.Interact(p, hold, args.Alt);
+                // A bed answers false whatever it did: what changed says.
+                // Claimed, it is now the bot's spawn point; its own already,
+                // the bot lies down in it.
+                if (bed != null) ok = p.IsAttached() || (!wasCurrent && bed.IsCurrent());
+                if (ok) p.DoInteractAnimation(obj);
+                return ok;
             }
             finally
             {
