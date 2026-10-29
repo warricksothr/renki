@@ -463,12 +463,13 @@ const (
 	cmdGoHome
 	cmdPickup
 	cmdBed
+	cmdClaimBed
 	cmdDoor
 )
 
 func (c command) String() string {
 	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
-		"use the bed", "get the door"}[c]
+		"go to bed", "claim the bed", "get the door"}[c]
 }
 
 var grammar = map[string]command{
@@ -483,9 +484,10 @@ var grammar = map[string]command{
 	"go back home": cmdGoHome,
 	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
-	"use the bed": cmdBed, "use your bed": cmdBed, "claim the bed": cmdBed, "claim a bed": cmdBed,
-	"claim that bed": cmdBed, "go to bed": cmdBed,
-	"get the door": cmdDoor, "open the door": cmdDoor, "close the door": cmdDoor, "use the door": cmdDoor,
+	"go to bed": cmdBed, "use your bed": cmdBed, "use the bed": cmdBed,
+	"claim the bed": cmdClaimBed, "claim a bed": cmdClaimBed, "claim that bed": cmdClaimBed,
+	"claim this bed": cmdClaimBed,
+	"get the door":   cmdDoor, "open the door": cmdDoor, "close the door": cmdDoor, "use the door": cmdDoor,
 }
 
 func parse(stripped string) (command, bool) {
@@ -513,7 +515,7 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		if order, ack, ok = b.pickup(c, from); !ok {
 			return
 		}
-	case cmdBed, cmdDoor:
+	case cmdBed, cmdClaimBed, cmdDoor:
 		var ok bool
 		if order, ack, ok = b.use(cmd, c, from); !ok {
 			return
@@ -551,13 +553,25 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 // of sight, a bed or door may be for "use the bed" or "get the door".
 const useReach = 10.0
 
-// use chooses the bed or door to interact with: for a bed the bot's own,
-// wherever it is in sight; otherwise the nearest the speaker, or the bot
-// when it cannot see the speaker. It says why when there is none.
+// use chooses the bed or door to interact with. Going to bed is to the
+// bot's own bed only, wherever it is in sight, since using any other claims
+// it. Claiming a bed, or getting a door, takes the one nearest the speaker,
+// or the bot when it cannot see the speaker. It says why when there is none.
 func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, string, bool) {
 	kind, what, ack := protocol.StructureDoor, "door", "Getting the door."
-	if cmd == cmdBed {
-		kind, what, ack = protocol.StructureBed, "bed", "Heading to bed."
+	switch cmd {
+	case cmdBed:
+		if seen := b.d.Perception(); seen != nil {
+			for _, s := range seen.Structures {
+				if s.Kind == protocol.StructureBed && s.Mine {
+					return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: s.ID}}, "Heading to bed.", true
+				}
+			}
+		}
+		b.say(from, "I don't see my bed. Tell me to claim one.")
+		return session.Order{}, "", false
+	case cmdClaimBed:
+		kind, what, ack = protocol.StructureBed, "bed", "I'll take that bed."
 	}
 	near := c.Pos
 	if !located(c) {
@@ -566,22 +580,30 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 		}
 	}
 	var (
-		best *protocol.PerceivedStructure
-		dist = useReach
+		best   *protocol.PerceivedStructure
+		dist   = useReach
+		mineIn bool
 	)
 	if seen := b.d.Perception(); seen != nil {
 		for i, s := range seen.Structures {
 			if s.Kind != kind {
 				continue
 			}
-			if s.Mine {
-				best = &seen.Structures[i]
-				break
+			d := near.FlatDistance(s.Pos)
+			if d > dist {
+				continue
 			}
-			if d := near.FlatDistance(s.Pos); d <= dist {
-				best, dist = &seen.Structures[i], d
+			// The bot's own bed is not one to claim; another in reach is.
+			if s.Mine && cmd == cmdClaimBed {
+				mineIn = true
+				continue
 			}
+			best, dist = &seen.Structures[i], d
 		}
+	}
+	if best == nil && mineIn {
+		b.say(from, "That one's mine already.")
+		return session.Order{}, "", false
 	}
 	if best == nil {
 		b.say(from, fmt.Sprintf("I don't see a %s nearby.", what))

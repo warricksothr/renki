@@ -737,9 +737,10 @@ func TestNoFollowForAnUnseenPanelOwner(t *testing.T) {
 	}
 }
 
-// TestUseTheBedAndDoor: the bot's own bed wherever it is in sight, else the
-// nearest bed or door to the speaker, or to the bot when the speaker is out
-// of sight; and what the game said comes back in the bot's words.
+// TestUseTheBedAndDoor: going to bed is to the bot's own bed only;
+// claiming a bed or getting a door takes the nearest to the speaker, or to
+// the bot when the speaker is out of sight; and what the game said comes
+// back in the bot's words.
 func TestUseTheBedAndDoor(t *testing.T) {
 	b, f, _ := newBrain(nil)
 	f.allowed = append(f.allowed, protocol.TaskInteract)
@@ -753,7 +754,7 @@ func TestUseTheBedAndDoor(t *testing.T) {
 		return ids
 	}
 
-	b.Chat(line("Sothr", "bjorn use the bed"))
+	b.Chat(line("Sothr", "bjorn claim the bed"))
 	if got := f.said(); got[0] != "I don't see a bed nearby." {
 		t.Errorf("with nothing seen: %q", got)
 	}
@@ -764,17 +765,37 @@ func TestUseTheBedAndDoor(t *testing.T) {
 		{ID: "1:2", Kind: protocol.StructureDoor, Pos: protocol.Vec3{30, 0, 10}},
 		{ID: "1:3", Kind: protocol.StructureDoor, Pos: protocol.Vec3{12, 0, 12}},
 	}}
+	// No bed of its own: going to bed claims nothing.
+	b.Chat(line("Sothr", "bjorn go to bed"))
+	if got := f.said(); got[len(got)-1] != "I don't see my bed. Tell me to claim one." || len(uses()) != 0 {
+		t.Fatalf("went to a bed not its own: %q, %v", got, uses())
+	}
 	b.Chat(line("Sothr", "bjorn claim the bed"))
 	b.Chat(line("Sothr", "bjorn open the door"))
 	if got := uses(); !slices.Equal(got, []string{"1:1", "1:3"}) {
 		t.Fatalf("used %v", got)
 	}
-	// Its own bed wins, however far.
+	// Its own bed, however far, and not one to claim again.
+	f.perception.Structures[0].Mine = false
 	f.perception.Structures = append(f.perception.Structures,
 		protocol.PerceivedStructure{ID: "1:4", Kind: protocol.StructureBed, Pos: protocol.Vec3{35, 0, 35}, Mine: true})
 	b.Chat(line("Sothr", "bjorn go to bed"))
 	if got := uses(); got[len(got)-1] != "1:4" {
 		t.Errorf("used %v; want its own bed 1:4", got)
+	}
+	// Its own bed is nearest: another free one in reach is claimed instead,
+	// and with none, nothing is.
+	f.perception.Structures[0].Mine = true
+	f.perception.Structures = append(f.perception.Structures,
+		protocol.PerceivedStructure{ID: "1:5", Kind: protocol.StructureBed, Pos: protocol.Vec3{14, 0, 10}})
+	b.Chat(line("Sothr", "bjorn claim this bed"))
+	if got := uses(); got[len(got)-1] != "1:5" {
+		t.Errorf("used %v; want the free bed 1:5", got)
+	}
+	f.perception.Structures = f.perception.Structures[:4]
+	b.Chat(line("Sothr", "bjorn claim this bed"))
+	if got := f.said(); got[len(got)-1] != "That one's mine already." {
+		t.Errorf("claimed its own bed: %q", got[len(got)-1])
 	}
 
 	// From the panel, with the owner out of sight: nearest the bot, at 29, 10.

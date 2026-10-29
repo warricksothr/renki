@@ -569,11 +569,11 @@ chat event
   `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
   `stop`, `status`, `come here`, `wait here`, `set home`, `go home`,
-  `pick that up` (the drop nearest the speaker, within 10 m), `use the bed`
-  (`claim the bed`, `go to bed`: the bot's own bed wherever it is in sight,
-  else the bed nearest the speaker within 10 m, or the bot when the speaker is
-  out of sight) and `get the door` (`open the door`, `close the door`: the
-  nearest door, likewise). The last two send `interact`, and the bot answers
+  `pick that up` (the drop nearest the speaker, within 10 m), `go to bed`
+  (the bot's own bed, wherever it is in sight, and no other, since using one
+  claims it), `claim the bed` (the bed nearest the speaker within 10 m, or the
+  bot when the speaker is out of sight) and `get the door` (`open the door`,
+  `close the door`: the nearest door, likewise). The last two send `interact`, and the bot answers
   with what the game said: "Spawn point set", or "It won't: You need a roof".
   Only `owners` can issue tasks.
 - **Home** is where the speaker stood when they said `set home`, one per
