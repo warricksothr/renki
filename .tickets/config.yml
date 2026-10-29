@@ -20,6 +20,8 @@ labels:
   - docs
 milestones:
   - M1
+  - M2
+  - M3
 series: []
 defaults:
   type: task

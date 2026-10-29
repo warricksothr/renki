@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Renki.Movement;
+using Renki.Perception;
 using Renki.Protocol;
 using Renki.Tasks;
 using Xunit;
@@ -283,6 +284,52 @@ namespace Renki.Tests
             }
             Assert.Equal(Recovery.GiveUp, seen[seen.Count - 1]);
             Assert.Contains(Recovery.Repath, seen);
+        }
+
+        [Fact]
+        public void NearestKeepsTheClosestFirst()
+        {
+            var n = new Nearest<string>(2);
+            n.Add("far", 30);
+            n.Add("near", 2);
+            n.Add("middle", 10);
+            Assert.Equal(3, n.Seen);
+            Assert.Equal(new[] { "near", "middle" }, n.Take());
+            n.Clear();
+            Assert.Empty(n.Take());
+            n.Cap = 0;
+            n.Add("any", 1);
+            Assert.Empty(n.Take());
+        }
+
+        [Fact]
+        public void EachKindKeepsItsOwnNearest()
+        {
+            var n = new NearestByKind<string>(1);
+            n.Add("tree", "near tree", 1);
+            n.Add("tree", "far tree", 3);
+            n.Add("drop", "wood", 20);
+            Assert.Equal(new[] { "near tree", "wood" }, n.Take());
+            Assert.Equal(3, n.Seen);
+            n.Clear();
+            Assert.Empty(n.Take());
+        }
+
+        [Fact]
+        public void ADoorAheadAndWithinReachIsOpened()
+        {
+            var at = new V3(0, 0, 0);
+            var north = new V3(0, 0, 1);
+            Assert.True(DoorRules.Ahead(at, north, new V3(0.5, 0, 2)));
+            Assert.False(DoorRules.Ahead(at, north, new V3(0, 0, -2)));   // behind
+            Assert.False(DoorRules.Ahead(at, north, new V3(2.4, 0, 0)));  // beside
+            Assert.False(DoorRules.Ahead(at, north, new V3(0, 0, 3)));    // out of reach
+            Assert.True(DoorRules.Ahead(at, V3.Zero, new V3(0.2, 0, 0))); // in the doorway
+            Assert.False(DoorRules.Past(new V3(0, 0, 3), new V3(0, 0, 0)));
+            Assert.True(DoorRules.Past(new V3(0, 0, 4), new V3(0, 0, 0)));
+            Assert.True(DoorRules.In(new V3(0, 0, 1), new V3(0, 0, 0)));
+            Assert.False(DoorRules.In(new V3(0, 0, 2), new V3(0, 0, 0)));
+            Assert.False(DoorRules.In(new V3(0, 3, 0.5), new V3(0, 0, 0))); // the floor above
         }
 
         [Fact]

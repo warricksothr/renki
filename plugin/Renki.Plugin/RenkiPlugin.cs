@@ -37,11 +37,14 @@ namespace Renki.Plugin
         BridgeClient client;
         TaskRunner runner;
         Reporter reporter;
+        readonly Perceiver perceiver = new Perceiver();
         Harmony harmony;
 
         Welcome welcome;
         double stateHz = 5;
+        double perceptionHz = 1;
         float nextState;
+        float nextPerception;
         float nextHello;
         bool loggingOut;
 
@@ -65,6 +68,8 @@ namespace Renki.Plugin
                 "Using offering bowls (M2).").Value;
             safety.AllowRawControls = Config.Bind("Safety", "AllowRawControls", false,
                 "The debug `controls` task.").Value;
+            Doorman.Enabled = Config.Bind("Safety", "AllowDoors", true,
+                "Open closed doors in the bot's way, and shut them behind it.").Value;
 
             Log = Logger;
             Tracer.Sink = t =>
@@ -107,11 +112,18 @@ namespace Renki.Plugin
             }
 
             reporter.Update(runner.InSession);
+            if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
             if (runner.InSession && now >= nextState)
             {
                 var state = reporter.State(Phase(), runner.Current);
                 if (state != null) Send(state);
                 nextState = now + (float)(1 / Math.Max(0.2, stateHz));
+            }
+            if (runner.InSession && now >= nextPerception)
+            {
+                var p = Player.m_localPlayer;
+                if (p != null && !p.IsDead()) Send(perceiver.Scan(p));
+                nextPerception = now + (float)(1 / Math.Max(0.1, perceptionHz));
             }
         }
 
@@ -122,6 +134,8 @@ namespace Renki.Plugin
                 case Welcome w:
                     welcome = w;
                     stateHz = w.Rates.StateHz > 0 ? w.Rates.StateHz : 5;
+                    perceptionHz = w.Rates.PerceptionHz > 0 ? w.Rates.PerceptionHz : 1;
+                    Perceive(w.Perception);
                     runner.Welcome(w.AllowedTasks);
                     loggingOut = false;
                     Driver.Active = true;
@@ -134,6 +148,8 @@ namespace Renki.Plugin
                     break;
                 case Config c:
                     if (c.Rates != null && c.Rates.StateHz > 0) stateHz = c.Rates.StateHz;
+                    if (c.Rates != null && c.Rates.PerceptionHz > 0) perceptionHz = c.Rates.PerceptionHz;
+                    Perceive(c.Perception);
                     break;
                 case Logout _:
                     Logger.LogInfo("controller asked to log out");
@@ -150,6 +166,15 @@ namespace Renki.Plugin
                     Logger.LogWarning($"controller error {e.Code} (re {e.Re}): {e.Detail}");
                     break;
             }
+        }
+
+        /// <summary>The perception bounds from welcome or config; zero or
+        /// missing keeps what there was.</summary>
+        void Perceive(PerceptionConfig c)
+        {
+            if (c == null) return;
+            if (c.Radius > 0) perceiver.Radius = c.Radius;
+            if (c.MaxPerKind > 0) perceiver.MaxPerKind = c.MaxPerKind;
         }
 
         void EndSession(string why)

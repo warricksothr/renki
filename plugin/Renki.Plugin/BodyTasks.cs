@@ -17,6 +17,7 @@ namespace Renki.Plugin
     {
         readonly PathFollower path = new PathFollower();
         readonly StuckDetector stuck = new StuckDetector();
+        readonly Doorman doors = new Doorman();
         readonly List<Vector3> scratch = new List<Vector3>();
         Vector3 goal;
         bool hasGoal;
@@ -70,6 +71,10 @@ namespace Renki.Plugin
                         ["center"] = stuck.Center.ToArray(),
                         ["goal"] = Convert.ToArray(goal),
                     });
+            // A closed door beside a stuck bot is the likeliest wall: open it
+            // in place of this round's jump, strafe or re-path.
+            if (recovery != Recovery.None && recovery != Recovery.GiveUp && doors.Stuck(Player.m_localPlayer, pos))
+                recovery = Recovery.None;
             switch (recovery)
             {
                 case Recovery.Jump:
@@ -92,6 +97,7 @@ namespace Renki.Plugin
             if (Time.time < strafeUntil)
                 dir = Vector3.Cross(Vector3.up, dir.normalized) * strafeSign + dir.normalized * 0.3f;
             Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+            doors.Walk(Player.m_localPlayer, pos, Driver.Move);
             // A strafe walks, so it cannot carry the bot out of the stuck
             // circle on its own and pass for progress.
             Driver.Run = run && Time.time >= strafeUntil;

@@ -13,6 +13,8 @@ const world = {
   yaw: 0,
   trail: [],
   characters: [], // from perception
+  structures: [],
+  resources: [],
   home: null,
   path: null, // {from, to}
   stuck: [], // {pos, attempt}
@@ -79,6 +81,8 @@ function onRecord(ev) {
       break;
     case "perception":
       world.characters = f.characters || [];
+      world.structures = f.structures || [];
+      world.resources = f.resources || [];
       break;
     case "trace":
       if (f.source !== "walker" || !f.data) break;
@@ -183,14 +187,45 @@ function render() {
     label("home", x + 9, y + 4);
   }
 
+  // Resources only once zoomed in enough to tell them apart.
+  if (view.scale >= 3) {
+    for (const r of world.resources) {
+      const x = sx(r.pos[0]), y = sy(r.pos[2]);
+      ctx.fillStyle = colour("resource");
+      ctx.fillRect(x - 2, y - 2, 4, 4);
+      if (view.scale >= 12) label(r.prefab, x + 5, y + 4, "dim");
+    }
+  }
+
+  for (const s of world.structures) {
+    const x = sx(s.pos[0]), y = sy(s.pos[2]);
+    ctx.fillStyle = ctx.strokeStyle = colour("structure");
+    if (s.kind === "door") {
+      ctx.lineWidth = 2;
+      s.open ? ctx.strokeRect(x - 3, y - 5, 6, 10) : ctx.fillRect(x - 3, y - 5, 6, 10);
+    } else {
+      ctx.fillRect(x - 4, y - 4, 8, 8);
+    }
+    const name = s.kind === "portal" && s.tag ? `portal "${s.tag}"` : s.kind === "bed" && s.mine ? "bed (mine)" : s.kind;
+    if (view.scale >= 6) label(name, x + 7, y + 4, "dim");
+  }
+
   for (const c of world.characters) {
     const x = sx(c.pos[0]), y = sy(c.pos[2]);
     const player = c.kind === "player";
-    ctx.fillStyle = colour(player ? "player" : "other");
+    ctx.fillStyle = colour(player ? "player" : c.kind === "tamed" ? "tamed" : c.hostile ? "hostile" : "other");
     ctx.beginPath();
     ctx.arc(x, y, player ? 6 : 4, 0, 2 * Math.PI);
     ctx.fill();
-    if (player || view.scale >= 6) label(c.name || c.prefab || "", x + 8, y + 4);
+    if (c.targetingMe) {
+      ctx.strokeStyle = colour("hostile");
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+    const stars = c.stars ? " " + "★".repeat(c.stars) : "";
+    if (player || c.targetingMe || view.scale >= 6) label((c.name || c.prefab || "") + stars, x + 9, y + 4);
   }
 
   if (world.bot) {
@@ -213,8 +248,8 @@ function render() {
   }
 }
 
-function label(text, x, y) {
-  ctx.fillStyle = colour("text");
+function label(text, x, y, tone = "text") {
+  ctx.fillStyle = colour(tone);
   ctx.font = "12px system-ui, sans-serif";
   ctx.fillText(text, x, y);
 }

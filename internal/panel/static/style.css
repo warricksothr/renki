@@ -10,6 +10,10 @@
   --home: #f2d14b;
   --stuck: #ff5c5c;
   --path: #b08cff;
+  --hostile: #ff6b6b;
+  --tamed: #5fd4c8;
+  --structure: #a7b4c2;
+  --resource: #5f8f62;
   color-scheme: dark;
 }
 
@@ -102,6 +106,11 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
 .legend .other { background: var(--other); }
 .legend .home { background: var(--home); border-radius: 2px; }
 .legend .stuck { border: 2px solid var(--stuck); }
+.legend .hostile { background: var(--hostile); }
+.legend .tamed { background: var(--tamed); }
+.legend .structure { background: var(--structure); border-radius: 2px; }
+.legend .door { border: 2px solid var(--structure); border-radius: 0; width: 4px; }
+.legend .resource { background: var(--resource); width: 6px; height: 6px; }
 .legend .path { background: var(--path); height: 3px; border-radius: 0; vertical-align: 2px; }
 
 #feed {

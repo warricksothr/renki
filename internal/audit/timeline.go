@@ -229,7 +229,18 @@ func frame(r Record) string {
 				players = append(players, fmt.Sprintf("%s at %s", c.Name, vec(c.Pos)))
 			}
 		}
-		return fmt.Sprintf("perception %d characters; players: %s", len(m.Characters), or(strings.Join(players, ", "), "none"))
+		var after []string
+		for _, c := range m.Characters {
+			if c.TargetingMe {
+				after = append(after, fmt.Sprintf("%s at %s", or(c.Prefab, c.Name), vec(c.Pos)))
+			}
+		}
+		line := fmt.Sprintf("perception %d characters, %d structures, %d resources; players: %s",
+			len(m.Characters), len(m.Structures), len(m.Resources), or(strings.Join(players, ", "), "none"))
+		if len(after) > 0 {
+			line += "; after the bot: " + strings.Join(after, ", ")
+		}
+		return line
 	case *protocol.Chat:
 		return fmt.Sprintf("chat      %s (%s, %.0f m): %s", m.From.Name, m.Channel, m.Dist, m.Text)
 	case *protocol.Event:
