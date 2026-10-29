@@ -58,17 +58,20 @@ namespace Renki.Plugin
                 threatPos = threat.transform.position;
             }
             var gap = V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(threatPos));
-            if (gap >= args.Distance)
+            if (!aimed || Time.time >= nextAim) Aim(pos);
+            // Far enough, unless it is on its way to safety: a hurt bot
+            // standing in the open is only waiting for the next creature.
+            if (gap >= args.Distance && straight)
             {
                 Driver.Stand();
                 return Outcome.Succeeded($"{gap:0} m away");
             }
-            if (!aimed || Time.time >= nextAim) Aim(pos);
             if (!straight && V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= AtSafety)
             {
-                // At its owner with the threat still close: the rest is
-                // theirs together, and running on would leave them.
-                if (toward != null)
+                // At its owner: the rest is theirs together, and running on
+                // would leave them. At a place the threat did not follow it
+                // to, it is safe.
+                if (toward != null || gap >= args.Distance)
                 {
                     Driver.Stand();
                     return Outcome.Succeeded($"at safety, {gap:0} m from the threat");

@@ -471,10 +471,11 @@ Notes:
     to.
 - `flee` runs from `from` until it is `distance` away across the ground, and
   succeeds then, or when an entity it ran from is gone or dead. With
-  `toward` (the owner, or home) it runs there instead, unless that lies past
-  the threat (within 60° of its bearing). At an entity there (the owner) it
-  stops, since the rest is up to them together; at a position (home) with
-  the threat still close, it runs on straight away. Otherwise it runs
+  `toward` (the owner, or home) it runs there instead, however far, unless
+  that lies past the threat (within 60° of its bearing). At an entity there
+  (the owner) it stops, since the rest is up to them together; at a
+  position (home) it stops if the threat is `distance` away, and with the
+  threat still close runs on straight away. Otherwise it runs
   straight away, to 5 m past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
   and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
   needs only `allowMovement`: running away is never the unsafe choice.
