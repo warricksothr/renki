@@ -74,17 +74,34 @@ and Tas rejoined DizzysHellheim at 25/25 health.
   at 22/25 health. His inventory was empty before this death, so it did not
   provide a populated tombstone for a positive retrieval check.
 
-A positive retrieval and return from Tas's own populated tombstone, and
-resuming a follow through an actual death, still need live verification.
-TKT-01M62N12MX (Controller: corpse run after a death) remains in review with
-its retrieval acceptance criterion unchecked.
-
 The next staged death carried 15 BeechSeeds. Interact task `t-18` reached
 the populated grave at `(-16.34, 31.76, 33.26)` but never used it and ran
 through stuck recovery instead. The interaction sight check now follows
 Valheim's hover rule: ignore the player's own rigidbody and use the nearest
 other ray hit, retaining wall and floor blocking. Regression tests cover
-that rule; live retrieval of the untouched seed grave is the next check.
+that rule. The fix landed in PR #10 and was deployed as `d369b07`.
+
+### Populated-grave verification after the interaction fix
+
+- An initial attempt died near the house exit before reaching the seed
+  grave. After respawning, the bot logged `died near home; not going back`
+  and waited, including through later deaths at spawn. Explicit owner
+  commands resumed movement. The owner cleared the attacking Greylings
+  before the successful retrieval.
+- On deployed `d369b07`, `get your things` started interact task `t-10` at
+  `2026-10-29T17:17:40.410Z`, targeting the same untouched tombstone
+  `2344638503:696`. At `17:17:51.245Z`, the task succeeded and the bot said
+  `Got my things back.` The tombstone disappeared and inventory reported
+  exactly 15 BeechSeeds.
+- An explicit panel Go home started task `t-11`, which succeeded at
+  `17:18:20.151Z`. Final status was idle near home at
+  `(-36.79, 36.09, 7.62)`, 25/25 health, with all 15 seeds still carried.
+
+TKT-01M62N12MX (Controller: corpse run after a death) is complete: the
+on-demand retrieval and explicit return home, plus staying away from a
+home that killed the bot until ordered, were verified live. Resuming a
+follow through an actual death remains covered by automated tests; it was
+not staged in these live checks.
 
 ## 1. Set up a game with BepInEx
 
