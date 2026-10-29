@@ -16,6 +16,7 @@ import (
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/memory"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/retreat"
 	"github.com/warricksothr/renki/internal/session"
@@ -31,6 +32,7 @@ type App struct {
 	Burden     *burden.Unloader
 	Retreat    *retreat.Retreat
 	Behaviours *behaviour.Engine
+	Memory     *memory.Containers
 	Bridge     *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
@@ -79,9 +81,11 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		return h.Pos, ok
 	}, log.With("part", "retreat"), nil)
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set,
-		Owners: func() []string { return set.Values().Owners },
-		Home:   func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
-		Logger: log.With("part", "behaviour")})
+		Owners:     func() []string { return set.Values().Owners },
+		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
+		Containers: homes.RememberedContainers,
+		Logger:     log.With("part", "behaviour")})
+	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
@@ -128,6 +132,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Burden.Run(ctx)
 	go a.Retreat.Run(ctx)
 	go a.Behaviours.Run(ctx)
+	go a.Memory.Run(ctx)
 	return a.Bridge.Serve(ctx, ln)
 }
 

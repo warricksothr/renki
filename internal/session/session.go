@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/warricksothr/renki/internal/bridge"
 	"github.com/warricksothr/renki/internal/protocol"
@@ -99,19 +100,20 @@ type Session struct {
 	log      *slog.Logger
 	listener Listener
 
-	mu         sync.Mutex
-	dispatchMu sync.Mutex // serialize wire order and automation ownership
-	automation *Automation
-	orders     uint64
-	conn       *bridge.Conn
-	state      *protocol.State
-	seen       *protocol.Perception
-	carried    *protocol.Inventory
-	containers map[string]*protocol.Container
-	allowed    []string
-	permit     func(task string) bool
-	tasks      map[string]*Task
-	nextTask   uint64
+	mu          sync.Mutex
+	dispatchMu  sync.Mutex // serialize wire order and automation ownership
+	automation  *Automation
+	orders      uint64
+	conn        *bridge.Conn
+	state       *protocol.State
+	seen        *protocol.Perception
+	carried     *protocol.Inventory
+	containers  map[string]*protocol.Container
+	containerAt map[string]time.Time
+	allowed     []string
+	permit      func(task string) bool
+	tasks       map[string]*Task
+	nextTask    uint64
 }
 
 // New returns a session that reports to l.
@@ -148,6 +150,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
+	s.containerAt = make(map[string]time.Time)
 	s.mu.Unlock()
 	s.log.Info("session started", "allowed", allowed)
 }
@@ -184,6 +187,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		if s.conn == c && (s.state == nil || m.Seq > s.state.Seq) {
 			if s.state != nil && s.state.World != m.World {
 				s.containers = make(map[string]*protocol.Container)
+				s.containerAt = make(map[string]time.Time)
 				s.seen, s.carried, s.automation = nil, nil, nil
 			}
 			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
@@ -214,6 +218,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		s.mu.Lock()
 		if s.conn == c && m.Entity != "" && (s.containers[m.Entity] == nil || m.Seq > s.containers[m.Entity].Seq) {
 			s.containers[m.Entity] = m
+			s.containerAt[m.Entity] = time.Now().UTC()
 		}
 		s.mu.Unlock()
 	case *protocol.Trace, *protocol.Layout:

@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
@@ -20,13 +21,14 @@ import (
 const MaxInstances = 256
 
 type Options struct {
-	Session   *session.Session
-	Store     *settings.Store
-	Templates map[string]Template
-	Owners    func() []string
-	Home      func() (protocol.Vec3, bool)
-	Logger    *slog.Logger
-	Now       func() time.Time
+	Session    *session.Session
+	Store      *settings.Store
+	Templates  map[string]Template
+	Owners     func() []string
+	Home       func() (protocol.Vec3, bool)
+	Containers func(world string) []home.RememberedContainer
+	Logger     *slog.Logger
+	Now        func() time.Time
 }
 type Engine struct {
 	mu                  sync.Mutex
@@ -300,6 +302,21 @@ func (e *Engine) Run(ctx context.Context) {
 }
 func (e *Engine) view() View {
 	v := View{State: e.o.Session.State(), Inventory: e.o.Session.Inventory(), Perception: e.o.Session.Perception(), Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	if e.o.Containers != nil && v.State != nil {
+		// Live contents supersede the entire old observation, including an
+		// empty chest. Never satisfy a condition from an older duplicate.
+		live := make(map[string]bool, len(v.Containers))
+		for _, c := range v.Containers {
+			live[c.Entity] = true
+		}
+		for _, c := range e.o.Containers(v.State.World) {
+			age := e.o.Now().Sub(c.At)
+			if live[c.Entity] || c.At.IsZero() || age < 0 {
+				continue
+			}
+			v.Containers = append(v.Containers, &protocol.Container{Envelope: protocol.Envelope{T: v.State.T - age.Seconds()}, Entity: c.Entity, Pos: c.Pos, Size: c.Size, Items: c.Items})
+		}
+	}
 	if e.o.Home != nil {
 		if home, ok := e.o.Home(); ok {
 			v.Home = &home

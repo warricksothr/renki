@@ -106,3 +106,7 @@ Run `just check controller test-packages ./internal/behaviour ./internal/session
 for focused engine, ownership and API checks. `just check ci` also runs them
 under the race detector. Route and combat checks in docs/TESTING.md remain
 separate live tests.
+
+Fresh remembered chest contents can also satisfy stock conditions after a
+controller restart. Live observations take precedence over a remembered
+copy of the same chest. See [MEMORY.md](MEMORY.md) for persistence and ages.
