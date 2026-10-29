@@ -490,6 +490,13 @@ func TestAnOrderInTheVoiceCountsAsAnOrder(t *testing.T) {
 	if h.died != 1 || h.ordered != 1 || h.touched != 1 {
 		t.Errorf("died %d, ordered %d, touched %d; want 1 each", h.died, h.ordered, h.touched)
 	}
+
+	// That follow dies too: it is left to resume, for the same player.
+	follow := f.sent()[0]
+	b.TaskDone(doneTask(follow, protocol.StatusFailed, protocol.ReasonDied))
+	if h.resume == nil {
+		t.Error("no resume left after a follow the voice ordered died")
+	}
 }
 
 func TestADeadFollowLeavesAResumeForTheSamePlayer(t *testing.T) {

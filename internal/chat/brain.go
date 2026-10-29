@@ -519,6 +519,13 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool) {
 	if len(p.Args) > 0 {
 		args = p.Args
 	}
+	if p.Task == protocol.TaskFollow {
+		// Who to find again if a death cuts the follow short.
+		var fa protocol.FollowArgs
+		if json.Unmarshal(p.Args, &fa) == nil {
+			from.follow = fa.Player
+		}
+	}
 	if _, err := b.d.Dispatch(context.Background(), session.Order{Task: p.Task, Args: args, Origin: from}); err != nil {
 		b.opts.Logger.Warn("voice proposal refused", "task", p.Task, "args", string(p.Args), "err", err)
 		return

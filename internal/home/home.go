@@ -252,9 +252,14 @@ func (k *Keeper) Tick(ctx context.Context) {
 		// clock starts again.
 		k.conn, k.checked, k.active = hello, false, now
 	}
-	if st.Phase == protocol.PhaseDead && !k.dead {
-		// The died event can be missed, across a reconnect for one.
+	// The died and respawned events can be missed, across a reconnect for
+	// one, so the state says when the bot is dead too. Coming back keeps
+	// ordered for the respawned event, which may still be on its way.
+	switch {
+	case st.Phase == protocol.PhaseDead && !k.dead:
 		k.dead, k.ordered = true, false
+	case st.Phase == protocol.PhaseInWorld && k.dead:
+		k.dead = false
 	}
 	k.mu.Unlock()
 	if st.Phase != protocol.PhaseInWorld {

@@ -315,7 +315,24 @@ func TestAnOrderAfterTheRespawnWins(t *testing.T) {
 		t.Errorf("went home after an order given while dead, died missed: %v", f.sent())
 	}
 
+	// Back without a respawned event: a later order is not one given
+	// while dead, and must not cancel the next respawn.
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
+	k.Tick(ctx)
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.Tick(ctx)
+	k.Ordered()
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
+	k.Tick(ctx)
+	k.Respawned()
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[1] != "say: I'm back. Heading home." {
+		t.Errorf("an order given while alive cancelled the next respawn: %v", got)
+	}
+
 	// "wait here" while the bot is dead: over before it is back.
+	n := len(f.sent())
 	k.Died()
 	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
 	k.Ordered()
@@ -323,7 +340,7 @@ func TestAnOrderAfterTheRespawnWins(t *testing.T) {
 	k.Respawned()
 	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
 	k.Tick(ctx)
-	if len(f.sent()) != 0 {
+	if len(f.sent()) != n {
 		t.Errorf("went home after an order given while dead: %v", f.sent())
 	}
 }
