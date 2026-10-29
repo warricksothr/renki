@@ -31,7 +31,7 @@ namespace Renki.Plugin
         readonly float startedAt = Time.unscaledTime;
         ItemDrop.ItemData tool;
         Vector3 origin, walkGoal, retreat;
-        bool walking, retreatReady, broken, cancelled;
+        bool walking, retreatReady, retreated, broken, cancelled;
         float brokeAt, quietSince = -1, nextCollect, swingSince = -1;
         int hitsAtSwingStart, collected;
         PickupTask pickup;
@@ -220,7 +220,7 @@ namespace Renki.Plugin
 
         Outcome AfterBreak(Player p, double dt)
         {
-            if (rolling && V3.FlatDistance(Convert.ToV3(p.transform.position), Convert.ToV3(origin)) < 5.5)
+            if (rolling && !retreated && V3.FlatDistance(Convert.ToV3(p.transform.position), Convert.ToV3(origin)) < 5.5)
             {
                 if (!retreatReady || Time.unscaledTime - brokeAt > 6) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "could not retreat from the broken trunk"));
                 var delta = retreat - p.transform.position; delta.y = 0;
@@ -231,6 +231,9 @@ namespace Renki.Plugin
                 Driver.Move = delta.normalized; Driver.Run = true;
                 return null;
             }
+            // Retreat is a phase, not a permanent exclusion radius: after
+            // logs settle, collection must be able to approach the drops.
+            retreated = true;
             if (!Settled(origin, 8)) { quietSince = -1; return null; }
             if (quietSince < 0) quietSince = Time.unscaledTime;
             if (Time.unscaledTime - quietSince < 2) return null;
