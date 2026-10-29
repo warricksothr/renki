@@ -365,6 +365,12 @@ on the message.
 
 Notes:
 
+- `pickup` walks to the drop and lets the game's auto-pickup take it, as it
+  does for any player within about 2 m, picking it up directly if it is still
+  there once the bot stands on it. It succeeds when the bot carries more of
+  the item than it did, and fails with `inventory_full` when none fits,
+  `target_lost` when the drop is gone and the bot did not get it, or `stuck`
+  as `move_to` does. It needs `allowGather`.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
@@ -448,8 +454,9 @@ chat event
   (`agentName`, or else the character's name) or one of the controller's
   `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
-  `stop`, `status`, `come here`, `wait here`, `set home`, `go home`. Only
-  `owners` can issue tasks.
+  `stop`, `status`, `come here`, `wait here`, `set home`, `go home`,
+  `pick that up` (the drop nearest the speaker, within 10 m). Only `owners`
+  can issue tasks.
 - **Home** is where the speaker stood when they said `set home`, one per
   world, kept in the controller's `dataDir` across restarts. The bot also
   goes home by itself, as the `home` config allows: when follow loses its
