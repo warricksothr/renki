@@ -123,6 +123,42 @@ at `(-37.03, 36.09, 7.92)`. Tas finished at 25/25 HP, with all 15 seeds.
 Close-follow waiting across a wall, cancellation during planning and changed
 or blocked walls/doorways still need separate live checks.
 
+### Cached local-planner geometry
+
+The plugin retains nearby upright box and capsule solids in a spatial index.
+Discovery runs near Tas (10 m, due every 0.25 s), ahead along the travel
+direction (12 m around a point up to 16 m ahead, 0.5 s), and farther out
+(40 m, 2 s). At most one scan starts per rendered frame; the oldest due
+pass wins and results are processed across frames. Near objects have first
+refresh priority, then the forward corridor. Unchanged geometry is reused.
+Changed geometry drops its old bounds before a queued rebuild. The cache
+holds at most 4096 records, rebuilds at most 16 per frame, sweeps at most
+32 per frame, and evicts records unseen for 10 s or beyond 64 m. Processing
+scan results and rebuilds targets 0.75 ms combined; Unity's broad-phase
+query itself and the sweep can exceed that target and are measured.
+
+Cached bounds only reject legs, and a candidate blocker must still have
+the same live transform/shape and remain enabled. Doors, rigidbodies,
+tilted/sheared boxes, complex meshes and unindexed space use live physics.
+Exact support samples are shared within one planning physics step, with
+different heights kept separate; the next step resamples even a previously
+missing floor. Session/world changes clear geometry and buffers. Planner
+physics queries use fixed buffers and reject a leg on saturation.
+
+Run `just check plugin test-core NavigationCacheTests` for deterministic
+geometry, invalidation, support lifetime, priority and detour regressions.
+These establish fewer simulated live checks on an identical route; actual
+Unity CPU savings still need the repeated house exit/return check. Compare
+`supportHits`, `supportQueries`, `boundsRejected`, `physicsCasts`,
+`saturated`, `expanded`, `ms` and `worstFrameMs` in the walker result trace.
+The `navigation` / `obstacle cache` trace every 30 s reports occupancy,
+pending work, rebuilds, removals, discovery saturation and maintenance CPU.
+Try demolishing/building a wall or floor and opening/closing the door
+during planning; no stale blocker should survive a freshness check, and
+an uncached obstacle must still be checked by physics. Also confirm that
+stopping during planning stops Tas. These live checks are deferred until
+the owner is available; do not count them as passed from Core tests.
+
 ## Raised-goal recovery check
 
 For TKT-01M647SMRM3XXAQS7Y9CW2TKZ9 (Retry raised goals from other approaches

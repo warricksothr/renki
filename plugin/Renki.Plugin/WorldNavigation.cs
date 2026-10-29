@@ -13,30 +13,79 @@ namespace Renki.Plugin
     {
         internal static IReadOnlyList<Wall> Walls = Array.Empty<Wall>();
         static readonly int Mask = LayerMask.GetMask("Default", "Default_small", "static_solid", "piece", "terrain");
+        static readonly NavigationObstacles obstacles = new NavigationObstacles(Mask);
+        static readonly RaycastHit[] supportHits = new RaycastHit[64];
+        static readonly RaycastHit[] castHits = new RaycastHit[64];
+        static readonly Collider[] overlaps = new Collider[64];
+        static Vector3? focus;
+        static string world;
         const float Step = .6f;
         const float Radius = .4f;
 
-        internal static V3? Probe(V3 from, V3 desired)
+        internal static void Focus(Vector3 target) => focus = target;
+        internal static void Reset()
         {
-            // Start at this floor's level; never snap down to a different
-            // storey or up onto a roof just because x/z match.
-            Vector3? Support(V3 at)
+            Walls = Array.Empty<Wall>(); obstacles.Clear(); focus = null; world = null;
+            Array.Clear(supportHits, 0, supportHits.Length);
+            Array.Clear(castHits, 0, castHits.Length);
+            Array.Clear(overlaps, 0, overlaps.Length);
+        }
+        internal static void Update(Player p)
+        {
+            var current = ZNet.instance != null ? ZNet.instance.GetWorldName() : "";
+            if (world != current) { Reset(); world = current; }
+            var pos = p.transform.position;
+            obstacles.Update(pos, focus ?? pos, Time.unscaledTime);
+        }
+
+        // Start at this floor's level; never snap onto a different storey.
+        static V3? Support(V3 at, double fromY, out bool saturated)
+        {
+            var top = new Vector3((float)at.X, (float)fromY + Step + .05f, (float)at.Z);
+            var count = Physics.RaycastNonAlloc(top, Vector3.down, supportHits, Step * 2 + .1f, Mask, QueryTriggerInteraction.Ignore);
+            saturated = count == supportHits.Length;
+            if (saturated) return null;
+            RaycastHit? support = null;
+            for (var i = 0; i < count; i++)
+                if (supportHits[i].normal.y >= .35f && (!support.HasValue || supportHits[i].point.y > support.Value.point.y)) support = supportHits[i];
+            return support.HasValue && Math.Abs(support.Value.point.y - fromY) <= Step ? Convert.ToV3(support.Value.point) : (V3?)null;
+        }
+
+        internal sealed class PlanningProbe
+        {
+            readonly SupportMemo support;
+            long slice;
+            public int BoundsRejected, PhysicsCasts, Saturated;
+            public int SupportHits => support.Hits;
+            public int SupportQueries => support.Misses;
+            public PlanningProbe()
             {
-                var top = new Vector3((float)at.X, (float)from.Y + Step + .05f, (float)at.Z);
-                var hits = Physics.RaycastAll(top, Vector3.down, Step * 2 + .1f, Mask, QueryTriggerInteraction.Ignore);
-                RaycastHit? support = null;
-                foreach (var hit in hits)
-                    if (hit.normal.y >= .35f && (!support.HasValue || hit.point.y > support.Value.point.y)) support = hit;
-                return support.HasValue && Math.Abs(support.Value.point.y - from.Y) <= Step ? support.Value.point : (Vector3?)null;
+                support = new SupportMemo((at, y) =>
+                {
+                    var result = Support(at, y, out var full);
+                    if (full) Saturated++;
+                    return result;
+                });
             }
-            var supported = Support(desired);
-            var middle = Support((from + desired) * .5);
+            // Support (including missing support) can change independently
+            // of indexed solids. Share samples only within one planning
+            // slice; resample floors and moving platforms next physics step.
+            public void BeginSlice() => slice++;
+            public V3? Probe(V3 from, V3 desired) => WorldNavigation.Probe(from, desired, this);
+            internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
+        }
+
+        static V3? Probe(V3 from, V3 desired, PlanningProbe plan)
+        {
+            var supported = plan.Sample(desired, from.Y);
+            var middle = plan.Sample((from + desired) * .5, from.Y);
             if (!supported.HasValue || !middle.HasValue) return null;
-            var at = supported.Value;
+            var dest = supported.Value;
+            var at = Convert.ToVector3(dest);
             var water = ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000;
-            if (at.y < water - .5f || middle.Value.y < water - .5f) return null;
-            var dest = Convert.ToV3(at);
+            if (at.y < water - .5f || middle.Value.Y < water - .5f) return null;
             if (!WallRoute.Clear(from, dest, Walls)) return null;
+            if (obstacles.Blocked(from, dest)) { plan.BoundsRejected++; return null; }
             var origin = Convert.ToVector3(from);
             var delta = at - origin;
             if (delta.sqrMagnitude < .0001f) return dest;
@@ -48,12 +97,16 @@ namespace Renki.Plugin
                     PrivateArea.CheckAccess(c.transform.position, 0f, false, false)) return false;
                 return true;
             }
-            foreach (var hit in Physics.CapsuleCastAll(origin + Vector3.up * 1.05f, origin + Vector3.up * 1.4f,
-                         Radius, delta.normalized, delta.magnitude, Mask, QueryTriggerInteraction.Ignore))
-                if (Obstacle(hit.collider)) return null;
-            foreach (var c in Physics.OverlapCapsule(at + Vector3.up * 1.05f, at + Vector3.up * 1.4f,
-                         Radius, Mask, QueryTriggerInteraction.Ignore))
-                if (Obstacle(c)) return null;
+            plan.PhysicsCasts++;
+            var casts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * 1.05f, origin + Vector3.up * 1.4f,
+                Radius, delta.normalized, castHits, delta.magnitude, Mask, QueryTriggerInteraction.Ignore);
+            if (casts == castHits.Length) { plan.Saturated++; return null; }
+            for (var i = 0; i < casts; i++) if (Obstacle(castHits[i].collider)) return null;
+            plan.PhysicsCasts++;
+            var hits = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * 1.05f, at + Vector3.up * 1.4f,
+                Radius, overlaps, Mask, QueryTriggerInteraction.Ignore);
+            if (hits == overlaps.Length) { plan.Saturated++; return null; }
+            for (var i = 0; i < hits; i++) if (Obstacle(overlaps[i])) return null;
             return dest;
         }
     }

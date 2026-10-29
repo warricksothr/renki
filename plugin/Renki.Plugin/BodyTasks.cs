@@ -24,6 +24,7 @@ namespace Renki.Plugin
         Vector3 goal;
         bool hasGoal;
         LocalRoute localRoute;
+        WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
         float localStarted, nextWallCheck, nextNavmeshCheck;
@@ -116,6 +117,7 @@ namespace Renki.Plugin
         {
             approach.Reset();
             goal = to;
+            WorldNavigation.Focus(to);
             hasGoal = true;
             Repath(from);
         }
@@ -298,7 +300,8 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), WorldNavigation.Probe);
+            localProbe = new WorldNavigation.PlanningProbe();
+            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe);
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
             localMs = localWorstMs = 0;
@@ -332,6 +335,7 @@ namespace Renki.Plugin
                 }
             }
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            localProbe.BeginSlice();
             // At most eight expansions and roughly 2 ms per physics step.
             for (var i = 0; i < 8 && watch.Elapsed.TotalMilliseconds < 2 && localRoute.Status == RouteStatus.Searching; i++)
                 localRoute.Advance(1);
@@ -346,6 +350,11 @@ namespace Renki.Plugin
                 ["to"] = Convert.ToArray(goal),
                 ["expanded"] = localRoute.Expanded,
                 ["probes"] = localRoute.Probes,
+                ["supportHits"] = localProbe.SupportHits,
+                ["supportQueries"] = localProbe.SupportQueries,
+                ["boundsRejected"] = localProbe.BoundsRejected,
+                ["physicsCasts"] = localProbe.PhysicsCasts,
+                ["saturated"] = localProbe.Saturated,
                 ["ms"] = System.Math.Round(localMs, 2),
                 ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),
                 ["waypoints"] = found ? localRoute.Path.Count : 0,

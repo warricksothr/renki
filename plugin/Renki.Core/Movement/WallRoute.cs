@@ -66,7 +66,7 @@ namespace Renki.Movement
         }
 
         // Closest parameters on two finite segments in the horizontal plane.
-        static void Closest(V3 p, V3 p1, V3 q, V3 q1, out double s, out double t)
+        internal static void Closest(V3 p, V3 p1, V3 q, V3 q1, out double s, out double t)
         {
             var d = (p1 - p).Flat;
             var e = (q1 - q).Flat;
