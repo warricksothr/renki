@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6348M7PNSNXWCW877A7FTDH
 title: "Perception and panel: draw the walls of buildings near the bot"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/panel
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 64b975c9484738143462ee88a7bcc23c9630f96d
-  session: null
-  claimed_at: 2026-10-29T06:06:26Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T06:06:26Z
-updated_at: 2026-10-29T06:37:00Z
+updated_at: 2026-10-29T06:41:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -71,3 +64,7 @@ AC 4 (budget) is left unticked. In steady state the scan averages 1.1–1.25 ms 
 Accepted review finding: walls below the bot are drawn at full strength, so an upstairs bot sees the ground floor's walls over its own doorways. A two-sided band would also fade every building downhill (the old shelter sits 3.7 m below the house), and the bot is on the ground floor far more often, so only upper storeys fade.
 
 Half walls (1 m) and floors are not walls by design (WallShape: at least 1.2 m tall, twice as long as thick, at most ~1 m thick).
+
+## Summary
+
+Plugin sends wall foot lines in a layout message (6.9) on change; the audit log keeps the newest; the map draws them, fading upper storeys. Seen in use on the VM, 2026-10-29. AC 4 left unticked: steady scans stay around 1.1-1.25 ms, but the first scan after login rose from about 40 to 56 ms (see the note).

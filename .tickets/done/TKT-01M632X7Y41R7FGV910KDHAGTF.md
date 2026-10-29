@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M632X7Y41R7FGV910KDHAGTF
 title: "Panel: make the map readable without zooming in"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -17,17 +17,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/panel
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: a239abe9b9791f12b72a6b9deaa078002e91b692
-  session: null
-  claimed_at: 2026-10-29T05:45:19Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T05:42:44Z
-updated_at: 2026-10-29T06:05:49Z
+updated_at: 2026-10-29T06:41:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -77,3 +70,7 @@ before anything on it means something:
 **agent:claude-code/renki-groom** at 2026-10-29T06:05:49Z
 
 2026-10-29: built and checked on a local controller fed with real perception from the VM's audit log: chests at home group as '6 chests', hover lists each with its distance, labels do not overlap, and the view fits the 40 m radius. Deployed to the VM.
+
+## Summary
+
+Map rewritten: a shape and colour per kind, chain clustering with counts, collision-free labels, hover tooltips, opens fitted to the perception radius. Seen in use on the VM during navigation and return home, 2026-10-29.
