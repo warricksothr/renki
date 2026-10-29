@@ -60,6 +60,7 @@ namespace Renki.Plugin
         {
             stuck.Reset(Convert.ToV3(pos), Time.time);
             climb.Stop();
+            climbWaiting = false;
         }
 
         /// <summary>Steers toward the goal for this step. Returns false when stuck recovery gave up.</summary>
@@ -95,6 +96,7 @@ namespace Renki.Plugin
                     break;
                 case Recovery.Climb:
                     climb.Start(Time.time);
+                    climbWaiting = false;
                     if (Climb(pos)) return true;
                     break;
                 case Recovery.GiveUp:
@@ -423,6 +425,9 @@ namespace Renki.Plugin
                     lastGait = Lost;
                 }
                 Driver.Stand();
+                // Not steering: when the leader is back, start the walk
+                // afresh, with no half-done climb or stuck count.
+                moving = false;
                 return Time.time - lastSeen > LoseAfter
                     ? Outcome.Failed(Wire.ReasonTargetLost, $"{args.Player} is gone")
                     : null;
