@@ -243,7 +243,9 @@ namespace Renki.Plugin
                     return Outcome.Failed(Wire.ReasonInventoryFull, $"no room for {prefab}");
                 }
                 if (tries++ >= Tries)
-                    return Outcome.Failed(Wire.ReasonInvalidTarget, $"the game will not hand over the {prefab}");
+                    return took > 0
+                        ? Outcome.Succeeded($"took {took} {prefab}; the game kept the other {drop.m_itemData.m_stack}")
+                        : Outcome.Failed(Wire.ReasonInvalidTarget, $"the game will not hand over the {prefab}");
                 p.Pickup(drop.gameObject, false, false);
                 arrivedAt = Time.time; // give it a moment to land before trying again
                 return null;
