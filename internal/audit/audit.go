@@ -168,7 +168,7 @@ func (l *Log) Missed() int {
 // l.mu is held.
 func (l *Log) remember(r Record) {
 	switch typ := frameType(r); typ {
-	case "state", "perception":
+	case "state", "perception", "inventory":
 		l.last[typ] = r
 		if typ == "state" && (len(l.trail) == 0 || r.At.Sub(l.trail[len(l.trail)-1].At) >= time.Second) {
 			l.trail = append(l.trail, r)

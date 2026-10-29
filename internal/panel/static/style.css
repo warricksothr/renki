@@ -113,6 +113,27 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
 .legend .resource { background: var(--resource); width: 6px; height: 6px; }
 .legend .path { background: var(--path); height: 3px; border-radius: 0; vertical-align: 2px; }
 
+#inventory { border-bottom: 1px solid var(--line); padding: 4px 10px 8px; }
+#inventory summary { cursor: pointer; color: var(--text); padding: 2px 0 6px; }
+#inv-summary { color: var(--dim); margin-left: 6px; font-size: 12px; }
+#inv-grid { display: grid; gap: 3px; }
+#inv-grid .slot {
+  position: relative;
+  min-height: 34px;
+  padding: 2px 4px;
+  background: #101215;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.2;
+  overflow: hidden;
+}
+#inv-grid .slot.equipped { border-color: var(--bot); }
+#inv-grid .name { display: block; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#inv-grid .stack { color: var(--dim); }
+#inv-grid .wear { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--player); }
+#inv-grid .wear.low { background: var(--hostile); }
+
 #feed {
   flex: 1;
   overflow-y: auto;

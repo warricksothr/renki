@@ -37,17 +37,22 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Header:** connection, character and world, phase, the running task,
   health, and how far home is.
 - **Map:** top-down, north up, a grid every 10 m. The bot with its facing and
-  its trail over the last few minutes, players and creatures from
-  perception, home, the walker's latest path (dashed when it had no navmesh
+  its trail over the last few minutes; from perception, players, creatures
+  (red when hostile, ringed when after the bot), structures (doors hollow
+  when open) and, zoomed in, trees, rocks, pickables and drops; home, the
+  walker's latest path (dashed when it had no navmesh
   path and went straight), and a circle for each stuck recovery. Scroll or
   use + and − to zoom; drag to pan, which stops it following the bot.
+- **Inventory:** what the bot carries, laid out as in the game, with stacks,
+  a wear bar on items that wear (red below a quarter), equipped items
+  outlined, and free slots and weight above. Hover a slot for the detail.
 - **Feed:** the audit log's records as they are written (docs/AUDIT.md), in
   the same lines `just vm audit` prints. Filters: chat, tasks, the plugin's
   decisions (`trace`), the controller's decisions, other frames, and state
   (once a second). **Pause** stops it scrolling.
 
-A new page starts with the last 500 records, plus a state a second for the
-last five minutes for the trail.
+A new page starts with the last 500 records, the newest state, perception
+and inventory, and a state a second for the last five minutes for the trail.
 
 ## How it works
 
