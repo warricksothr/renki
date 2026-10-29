@@ -52,6 +52,21 @@ straight drive through the remaining wall. These checks need the game: the
 Core regression uses the measured house walls but cannot establish physical
 support, stair clearance or door response.
 
+### First wall-route check, 2026-10-29
+
+On `fe9384a`, come-here task `t-1` started at 17:57:37Z from
+`(-36.8, 36.09, 7.64)` and reached Nimah east of the house at
+`(-0.93, 33.25, 9.02)` at 17:57:53Z. It left through the west doorway.
+The local route used 1121 expansions / 8961 probes, 238.69 ms total CPU
+over 2.8 seconds; the slowest planning frame took 12.95 ms.
+
+Return-home task `t-2` failed at 17:58:12Z: it spent its entire eight-second
+local-search budget starting 35 m away (3207 expansions, 513.4 ms CPU,
+2.11 ms worst frame). The navmesh already supplied a wall-safe route to
+`(-37.47, 34.14, 6.13)`, under the raised floor. Preserve useful, wall-safe
+navmesh prefixes and start local search near their ends. Stop and replan
+there; never invent a final segment through a wall or raised floor.
+
 ## Raised-goal recovery check
 
 For TKT-01M647SMRM3XXAQS7Y9CW2TKZ9 (Retry raised goals from other approaches

@@ -48,6 +48,23 @@ namespace Renki.Movement
             return true;
         }
 
+        /// <summary>Keep useful navmesh travel before a missing or blocked
+        /// final leg. Local search then starts near the obstacle, rather
+        /// than spending its bounded budget crossing open ground.</summary>
+        public static IReadOnlyList<V3> Prefix(V3 from, V3 goal, IReadOnlyList<V3> path, IReadOnlyList<Wall> walls)
+        {
+            var prefix = new List<V3>();
+            var previous = from;
+            foreach (var point in path)
+            {
+                if (!Clear(previous, point, walls)) break;
+                prefix.Add(point);
+                previous = point;
+            }
+            return prefix.Count > 0 && V3.FlatDistance(from, goal) - V3.FlatDistance(previous, goal) >= 6
+                ? prefix : Array.Empty<V3>();
+        }
+
         // Closest parameters on two finite segments in the horizontal plane.
         static void Closest(V3 p, V3 p1, V3 q, V3 q1, out double s, out double t)
         {

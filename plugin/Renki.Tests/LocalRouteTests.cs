@@ -35,6 +35,29 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void ReturnHomeUsesSafeOpenGroundBeforeSearchingForTheRaisedFloor()
+        {
+            var start = new V3(-.93, 33.25, 9.02);
+            var goal = new V3(-35.9, 37.66, 6.53);
+            var end = new V3(-37.47, 34.14, 6.13);
+            var points = new[] { start, new V3(-20, 33, 10), end };
+            var prefix = WallRoute.Prefix(start, goal, points, Array.Empty<Wall>());
+            Assert.Equal(points, prefix);
+            Assert.False(Arrival.Reached(end, goal, 2));
+            var follower = new PathFollower();
+            follower.Set(prefix);
+            follower.Next(start);
+            follower.Next(points[1]);
+            Assert.Null(follower.Next(end));
+
+            var wall = new[] { Wall(-25, 0, -25, 20, 33) };
+            var truncated = WallRoute.Prefix(start, goal, points, wall);
+            Assert.Equal(points.Take(2), truncated);
+            Assert.True(WallRoute.Clear(start, truncated, wall));
+            Assert.Empty(WallRoute.Prefix(new V3(-36, 34, 6), goal, new[] { end }, Array.Empty<Wall>()));
+        }
+
+        [Fact]
         public void WallsRespectFloorHeightAndBodyClearance()
         {
             var wall = new[] { Wall(0, -2, 0, 2, 2) };

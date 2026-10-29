@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T17:53:21Z
+updated_at: 2026-10-29T17:59:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -69,3 +69,7 @@ Cause confirmed from the 17:39:47Z–17:40:43Z audit window and installed game A
 Implemented height-aware validation against current measured walls and a bounded, supported local A* fallback (0.75 m cells, 4096 expansions, 48 m per axis, 8 s; eight expansions and a 2 ms target budget per physics frame). Physical probes check floor support at the end and midpoint, step height, body clearance and water; normal doors remain usable. Partial endpoints stop and replan instead of driving past them. Raised-goal detours now actually request complete navmesh paths and validate walls. Close followers blocked by a wall wait within the usual one-metre slack.
 
 Six regressions pass, including all 71 measured house walls, stacked floors, clearance, backing away from a wall, bounded no-route search, partial endpoint steering and near-leader waiting. just check plugin test-core LocalRouteTests and just check ci passed (133 C# tests). Live wall/door/stair and performance checks remain to be observed after deployment. Chest-transfer work is safely retained in the stash named Hauling chest transfers in progress before wall routing fix; resume it after navigation and retreat verification.
+
+**agent:codex/renki-resume** at 2026-10-29T17:59:52Z
+
+Live fe9384a: come-here t-1 left via west doorway and reached Nimah east of house in 16 s (17:57:37Z–17:57:53Z), 1121 expansions, 238.69 ms CPU, 12.95 ms worst planning frame. Return-home t-2 failed after eight seconds of searching from 35 m away despite a wall-safe partial navmesh route to within 2 m horizontally, under the floor. Evidence: .checks/audit-window-qfLEXg.jsonl. Preserve useful wall-safe prefixes and stop/replan near their endpoint so local search can spend its bounded budget on the missing final leg. Live return verification remains outstanding.
