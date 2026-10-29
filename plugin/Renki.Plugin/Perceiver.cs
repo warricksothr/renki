@@ -149,6 +149,9 @@ namespace Renki.Plugin
             if (c.GetLevel() > 1) pc.Stars = c.GetLevel() - 1;
             if (BaseAI.IsEnemy(c, me)) pc.Hostile = true;
             var ai = c.GetBaseAI();
+            // AI targets are local to the peer simulating the creature.
+            // Remote attackers are also recognized from damage events by
+            // the controller; absence of this flag does not mean safety.
             if (ai != null && ai.GetTargetCreature() == me) pc.TargetingMe = true;
             return pc;
         }

@@ -9,6 +9,7 @@
 # C# plugin build output
 bin/
 obj/
+/plugin/.tools/
 
 # Local settings, which hold the controller token and server password
 *.local.json

@@ -40,6 +40,19 @@ test *ARGS:
 test-core filter='Renki.Tests':
     dotnet test Renki.Tests -c Release --nologo --filter "FullyQualifiedName~$1&FullyQualifiedName!~Renki.Tests.InteropTests"
 
+# Inspect the installed game's API; keep decompiled source locally, never redistribute it.
+[positional-arguments]
+game-source TYPE:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    game="${VALHEIM_DIR:-$(sed -n 's:.*<ValheimDir>\(.*\)</ValheimDir>.*:\1:p' game.local.props 2>/dev/null)}"
+    [ -f "$game/valheim_Data/Managed/assembly_valheim.dll" ] || { echo 'Set VALHEIM_DIR or game.local.props' >&2; exit 1; }
+    [ -x .tools/ilspycmd ] || dotnet tool install ilspycmd --version 9.1.0.7988 --tool-path .tools >&2
+    out="../.checks/game-source/$1.cs"
+    mkdir -p "$(dirname "$out")"
+    .tools/ilspycmd -t "$1" "$game/valheim_Data/Managed/assembly_valheim.dll" > "$out"
+    echo "$out"
+
 # Check formatting.
 lint:
     dotnet format whitespace Renki.Core/Renki.Core.csproj --verify-no-changes

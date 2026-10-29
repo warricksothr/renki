@@ -94,22 +94,84 @@ func TestRetreatOnLowHealthWithAThreat(t *testing.T) {
 		t.Fatalf("sent %q\nwant %q", f.sent, want)
 	}
 
-	// At the owner's side: no running on, however long the fight.
+	// At the owner's side with the threat still close: keep getting away.
 	f.sent, f.st.Pos = nil, protocol.Vec3{-17, 30, 4}
 	f.seen.Characters[1].Pos = protocol.Vec3{-14, 30, 4}
 	c.t = c.t.Add(Again + time.Second)
 	r.Tick(ctx)
-	if len(f.sent) != 0 {
-		t.Fatalf("ran from the owner's side: %v", f.sent)
+	if want := []string{"flee 0:7 25 toward nowhere", "say: Too much for me. Getting away from the greyling."}; !slices.Equal(f.sent, want) {
+		t.Fatalf("waited beside an owner in danger: %v", f.sent)
 	}
 
 	// Home, with the creature come after it but home not where it stood:
 	// straight away.
-	f.seen.Characters = f.seen.Characters[:3]
+	f.seen.Characters, f.sent = f.seen.Characters[:3], nil
 	f.st.Pos, f.seen.Characters[1].Pos = protocol.Vec3{-38, 31, 0}, protocol.Vec3{-23.5, 30, 0}
+	c.t = c.t.Add(Again + time.Second)
 	r.Tick(ctx)
 	if want := []string{"flee 0:7 25 toward nowhere", "say: Too much for me. Getting away from the greyling."}; !slices.Equal(f.sent, want) {
 		t.Fatalf("at home: sent %q\nwant %q", f.sent, want)
+	}
+}
+
+func TestRemoteAttackerWithoutTargetingFlag(t *testing.T) {
+	c := &clock{time.Unix(1000, 0)}
+	// Positions, health and missing targetingMe from the fatal 17:15:00Z
+	// scene. The owner is visible but past the two attackers.
+	f := &fake{
+		st: &protocol.State{Phase: protocol.PhaseInWorld, World: "DizzysHellheim", HP: 5.4, HPMax: 25, Pos: protocol.Vec3{-28.81, 34.47, -0.48}},
+		seen: &protocol.Perception{Characters: []protocol.PerceivedCharacter{
+			{ID: "709168501:274", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{-28.5, 34.03, 2.54}, Hostile: true},
+			{ID: "709168501:983", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{-27.4, 34.16, 2.16}, Hostile: true},
+			{ID: "709168501:394", Kind: protocol.CharacterPlayer, Name: "Nimah", Pos: protocol.Vec3{-35.27, 36.09, 8.43}, HPFrac: .3},
+		}},
+	}
+	r := New(f, func() []string { return []string{"Nimah"} }, nil, quiet, c.now)
+	r.Tick(context.Background())
+	if len(f.sent) != 0 {
+		t.Fatal("unrelated hostiles caused retreat", f.sent)
+	}
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "709168501:274", Amount: 5})
+	r.Tick(context.Background())
+	if len(f.sent) != 2 || f.sent[0] != "flee 709168501:274 25 toward nowhere" {
+		t.Fatalf("did not escape the known attacker: %v", f.sent)
+	}
+}
+
+func TestRecentDamageIsBoundedAndCleared(t *testing.T) {
+	for _, tc := range []string{"expiry", "world", "died", "respawned", "environment", "player", "gone", "far"} {
+		t.Run(tc, func(t *testing.T) {
+			c := &clock{time.Unix(1000, 0)}
+			f := scene(5)
+			f.st.World = "world-a"
+			f.seen.Characters[1].TargetingMe = false
+			r := New(f, func() []string { return nil }, nil, quiet, c.now)
+			by := "0:7"
+			if tc == "environment" {
+				by = ""
+			}
+			r.Event(&protocol.Event{Event: protocol.EventDamaged, By: by, Amount: 5})
+			switch tc {
+			case "expiry":
+				c.t = c.t.Add(HurtFor)
+			case "world":
+				f.st.World = "world-b"
+			case "died":
+				r.Event(&protocol.Event{Event: protocol.EventDied})
+			case "respawned":
+				r.Event(&protocol.Event{Event: protocol.EventRespawned})
+			case "player":
+				f.seen.Characters[1].Kind = protocol.CharacterPlayer
+			case "gone":
+				f.seen.Characters = f.seen.Characters[:1]
+			case "far":
+				f.seen.Characters[1].Pos[0] = 30
+			}
+			r.Tick(context.Background())
+			if len(f.sent) != 0 {
+				t.Fatal("stale or unrelated damage caused retreat", f.sent)
+			}
+		})
 	}
 }
 

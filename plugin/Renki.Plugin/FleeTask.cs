@@ -68,10 +68,10 @@ namespace Renki.Plugin
             }
             if (!straight && V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= AtSafety)
             {
-                // At its owner: the rest is theirs together, and running on
-                // would leave them. At a place the threat did not follow it
-                // to, it is safe.
-                if (toward != null || gap >= args.Distance)
+                // Reaching an owner or home is only safe with clearance
+                // from the threat. Otherwise keep running instead of
+                // standing beside the owner while still being attacked.
+                if (gap >= args.Distance)
                 {
                     Driver.Stand();
                     return Outcome.Succeeded($"at safety, {gap:0} m from the threat");
@@ -104,8 +104,9 @@ namespace Renki.Plugin
         {
             nextAim = Time.time + Reaim;
             Vector3? safe = towardPos;
-            if (toward != null) safe = toward.transform.position;
-            else if (args.Toward?.Entity != null || atPlace) safe = null; // gone, or reached
+            if (atPlace) safe = null;
+            else if (toward != null) safe = toward.transform.position;
+            else if (args.Toward?.Entity != null) safe = null; // gone
             var next = Flee.Goal(Convert.ToV3(pos), Convert.ToV3(threatPos), safe.HasValue ? Convert.ToV3(safe.Value) : (V3?)null, args.Distance);
             var nextGoal = Convert.ToVector3(next);
             var nextStraight = !safe.HasValue || Flee.PastThreat(Convert.ToV3(pos), Convert.ToV3(threatPos), Convert.ToV3(safe.Value));

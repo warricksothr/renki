@@ -480,9 +480,8 @@ Notes:
 - `flee` runs from `from` until it is `distance` away across the ground, and
   succeeds then, or when an entity it ran from is gone or dead. With
   `toward` (the owner, or home) it runs there instead, however far, unless
-  that lies past the threat (within 60° of its bearing). At an entity there
-  (the owner) it stops, since the rest is up to them together; at a
-  position (home) it stops if the threat is `distance` away, and with the
+  that lies past the threat (within 60° of its bearing). At the owner or
+  a position (home) it stops if the threat is `distance` away, and with the
   threat still close runs on straight away. Otherwise it runs
   straight away, to 5 m past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
   and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
@@ -624,15 +623,19 @@ chat event
   lost event does not lose them. The plugin reports `dead` from the death
   until the respawn wait ends, about 10 s.
 - **Getting away.** Below 40% health, with a hostile creature that has
-  picked the bot (`targetingMe`) within 15 m, the controller sends `flee`
+  picked the bot (`targetingMe`) or damaged it in the last 30 s within
+  15 m, the controller sends `flee`
   from the nearest such creature, 25 m, toward the nearest owner in sight
   within 60 m, else home if it is within 150 m and the creature not within
   15 m of it, else
   straight away (also when the owner or home lies past the creature, as the
   plugin judges it), and says which ("Falling back to you, Sothr", "Heading
-  home", "Getting away from the greyling"). At an owner's side already it
-  stays, since running on would leave them; at home already, it runs
-  straight away. Each flee has 60 s. It does not start another while a flee
+  home", "Getting away from the greyling"). At an owner's side or home
+  already, it runs straight away while the threat remains close. Damage
+  evidence expires, is scoped to this world, and is cleared on death or
+  respawn; only a still-perceived hostile creature counts. AI targets are
+  not replicated to other clients, so a missing `targetingMe` flag does
+  not imply that the bot is safe. Each flee has 60 s. It does not start another while a flee
   runs, nor within 10 s of the last. It needs `flee` in
   `allowedTasks`.
 - **Carrying too much.** When the state says `encumbered`, the controller
