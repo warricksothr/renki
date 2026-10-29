@@ -45,7 +45,7 @@ namespace Renki.Plugin
         Welcome welcome;
         double stateHz = 5;
         double perceptionHz = 1;
-        float nextState;
+        readonly Renki.Perception.ObservationSchedule stateSchedule = new Renki.Perception.ObservationSchedule();
         float nextPerception;
         float nextHello;
         bool loggingOut;
@@ -117,19 +117,30 @@ namespace Renki.Plugin
                 EndSession("dead-man");
             }
 
+            var phase = Phase();
+            var player = Player.m_localPlayer;
+            var world = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
+            // Inventory is sent on change, often as soon as the player
+            // appears between periodic state ticks. Establish its world
+            // first, then resend observations on phase/world/player changes.
+            if (runner.InSession && stateSchedule.Due(now, phase, world, player,
+                1 / Math.Max(0.2, stateHz), out var scopeChanged))
+            {
+                var state = reporter.State(phase, runner.Current);
+                if (state != null) Send(state);
+                if (scopeChanged)
+                {
+                    inventory.Resend(); perceiver.Resend(); terrain.Resend();
+                    nextPerception = 0;
+                }
+            }
             reporter.Update(runner.InSession);
-            inventory.Update(runner.InSession);
+            inventory.Update(runner.InSession && (phase == Wire.PhaseInWorld || phase == Wire.PhaseDead));
             if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
             {
                 WorldNavigation.Update(Player.m_localPlayer);
             }
             if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
-            if (runner.InSession && now >= nextState)
-            {
-                var state = reporter.State(Phase(), runner.Current);
-                if (state != null) Send(state);
-                nextState = now + (float)(1 / Math.Max(0.2, stateHz));
-            }
             // Publish the current world before any terrain patch, including
             // the first update after a new welcome.
             if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
@@ -160,7 +171,7 @@ namespace Renki.Plugin
                     inventory.Resend();
                     perceiver.Resend();
                     terrain.Resend();
-                    nextState = 0;
+                    stateSchedule.Reset();
                     loggingOut = false;
                     Driver.Active = true;
                     var name = w.AgentName != "" ? w.AgentName : "the character's name";

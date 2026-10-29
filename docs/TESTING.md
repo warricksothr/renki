@@ -378,3 +378,12 @@ and targets beyond the radius are not chosen. Clear threats beforehand and
 avoid deep-water flint; the normal walker may refuse a wet route. Do not
 claim tree-felling/mining, cache invalidation, chest capacity/wards or retreat
 verification from this collection check.
+
+The initial seed-stow check on cf04d60 failed before dispatch: the first
+inventory arrived while state was still connecting, and the subsequent
+world transition cleared it. No seed/chest mutation occurred; Tas remained
+25/25 HP. ObservationSchedule now forces state before world observations
+on every phase/world/player transition, with welcome resetting its deadline.
+`just check plugin test-core ObservationScheduleTests` covers the scheduling
+race. After deployment, verify the first in-world state precedes inventory
+and a manual stow works without waiting for a pack mutation or reconnect.

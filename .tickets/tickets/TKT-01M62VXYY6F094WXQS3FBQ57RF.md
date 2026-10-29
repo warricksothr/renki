@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T21:54:36Z
+updated_at: 2026-10-29T21:59:57Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -104,3 +104,9 @@ Collect selects only current pickable/drop output prefabs inside an explicit wor
 Focused Go regressions passed, including partial/full/busy/missing chest policy, exact receipts/pack ordering, reserves, protected gear, yield/site selection, capacity, pickable-to-drop-to-stow-to-return, bounded observation waits, duplicate shortfalls and bridge-level owner-stop preemption. Full just check ci passed: race suite, Linux/Windows builds, JS map checks, plugin build and 166 C# tests including the new shared yield fixture. The storage-needed panel renders on desktop/mobile without console errors or overflow. Committed review, landing, deployment and a controlled live collection/seed check follow. Keep acceptance criteria open until evidence is recorded; broader hauling remains incomplete.
 
 Filed draft TKT-01M64T4WGZA175B38A8GBQ9YD4 (Tools: acquire, craft, repair and upgrade harvesting equipment) for the owner's follow-up: prefer carried/stored tools and repair, then plan recipes/stations/material shortages, obey resource/progression policy for upgrades, and resume the interrupted gathering job. No crafting work was promoted.
+
+**agent:codex/renki-resume** at 2026-10-29T21:59:57Z
+
+The first live stow check on cf04d60 exposed a startup publication-order bug before any body task or inventory mutation: inventory seq 113 arrived at 21:57:21.842Z while state still said connecting/world empty; the first in_world/DizzysHellheim state seq 117 arrived at 21:57:22.005Z and correctly cleared observations from the old world. With an unchanged pack there was no second inventory. The stow job therefore failed its bounded five-second observation wait at 21:58:06Z. Tas remained idle at home, 25/25 HP; the 15 seeds were untouched.
+
+Follow-up t3/world-observation-order fixes the sender, preserving the controller's world-clearing rule. ObservationSchedule forces state on phase/world/player-identity transitions even between periodic ticks. RenkiPlugin publishes that state before reporter events, inventory, terrain and perception, and resends observations on scope changes. Welcome resets the state deadline. Inventory is emitted only in-world/dead. Regressions cover entering between periodic ticks, reconnect, different worlds, replacement players and menu transitions. Focused just check plugin test-core ObservationScheduleTests passed; gate/review and deployment follow. The seed and loose-stone checks must be retried after the fix, and are not yet passes.
