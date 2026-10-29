@@ -157,7 +157,7 @@ namespace Renki.Plugin
             wall = null;
             if (!pieces.TryGetValue(p, out var k))
             {
-                if (pieces.Count >= CacheMax) pieces.Clear();
+                if (pieces.Count >= CacheMax) Prune();
                 pieces[p] = k = Classify(p) ?? Unmeasured;
             }
             if (k == Unmeasured)
@@ -214,6 +214,21 @@ namespace Renki.Plugin
         }
 
         static readonly List<Collider> pieceColliders = new List<Collider>();
+
+        readonly List<Piece> gone = new List<Piece>();
+
+        /// <summary>Forgets the pieces destroyed or unloaded since, keeping
+        /// what is known of the rest, walls above all: measuring them again
+        /// takes several scans, and the layout would shrink meanwhile. Only
+        /// when that frees too little does it start again.</summary>
+        void Prune()
+        {
+            gone.Clear();
+            foreach (var piece in pieces.Keys)
+                if (piece == null) gone.Add(piece);
+            foreach (var piece in gone) pieces.Remove(piece);
+            if (pieces.Count >= CacheMax * 3 / 4) pieces.Clear();
+        }
 
         /// <summary>Whether the piece is a wall, from the box its solid
         /// colliders fill in its own frame.</summary>
