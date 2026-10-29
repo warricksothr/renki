@@ -38,6 +38,7 @@ namespace Renki.Plugin
         TaskRunner runner;
         Reporter reporter;
         readonly Perceiver perceiver = new Perceiver();
+        readonly TerrainReporter terrain = new TerrainReporter();
         InventoryReporter inventory;
         Harmony harmony;
 
@@ -83,6 +84,7 @@ namespace Renki.Plugin
             runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);
+            TerrainReporter.Current = terrain;
             inventory = new InventoryReporter(this);
 
             harmony = new Harmony(Guid);
@@ -118,7 +120,9 @@ namespace Renki.Plugin
             reporter.Update(runner.InSession);
             inventory.Update(runner.InSession);
             if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
+            {
                 WorldNavigation.Update(Player.m_localPlayer);
+            }
             if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
             if (runner.InSession && now >= nextState)
             {
@@ -126,6 +130,10 @@ namespace Renki.Plugin
                 if (state != null) Send(state);
                 nextState = now + (float)(1 / Math.Max(0.2, stateHz));
             }
+            // Publish the current world before any terrain patch, including
+            // the first update after a new welcome.
+            if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
+                terrain.Update(this, Player.m_localPlayer, perceiver.Radius);
             if (runner.InSession && now >= nextPerception)
             {
                 var p = Player.m_localPlayer;
@@ -151,6 +159,8 @@ namespace Renki.Plugin
                     runner.Welcome(w.AllowedTasks);
                     inventory.Resend();
                     perceiver.Resend();
+                    terrain.Resend();
+                    nextState = 0;
                     loggingOut = false;
                     Driver.Active = true;
                     var name = w.AgentName != "" ? w.AgentName : "the character's name";

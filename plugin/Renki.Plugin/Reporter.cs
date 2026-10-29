@@ -140,6 +140,7 @@ namespace Renki.Plugin
             if (p.IsEncumbered() && !p.HaveStamina()) s.Flags.Add("stranded");
             if (p.InShelter()) s.Flags.Add("in_shelter");
             s.Biome = Heightmap.FindBiome(p.transform.position).ToString();
+            s.Location = Location(p);
             var env = EnvMan.instance;
             if (env != null)
             {
@@ -170,6 +171,21 @@ namespace Renki.Plugin
         }
 
         static double Round(float f) => System.Math.Round(f, 1);
+
+        static Protocol.Location Location(Player p)
+        {
+            var at = p.transform.position;
+            var wet = p.InWater();
+            var loc = new Protocol.Location { InWater = wet, WaterDepth = wet ? Round(Mathf.Max(0, p.GetLiquidLevel() - at.y)) : 0 };
+            if (Heightmap.GetHeight(at, out var ground)) loc.GroundHeight = Round(ground);
+            var col = p.IsOnGround() ? p.GetLastGroundCollider() : null;
+            loc.Support = p.GetStandingOnShip() != null || p.IsAttachedToShip() ? "ship"
+                : p.IsSwimming() ? "swimming"
+                : col != null && col.GetComponentInParent<Heightmap>() != null ? "terrain"
+                : col != null && col.GetComponentInParent<Piece>() != null ? "structure"
+                : p.IsOnGround() ? "other" : p.InLiquid() ? "liquid" : "airborne";
+            return loc;
+        }
 
         static void Equip(State s, string slot, ItemDrop.ItemData item)
         {

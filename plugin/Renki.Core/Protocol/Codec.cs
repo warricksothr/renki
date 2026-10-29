@@ -39,6 +39,7 @@ namespace Renki.Protocol
             [Wire.Inventory] = () => new Inventory(),
             [Wire.Container] = () => new ContainerSnapshot(),
             [Wire.Layout] = () => new Layout(),
+            [Wire.Terrain] = () => new Terrain(),
             [Wire.Chat] = () => new Chat(),
             [Wire.Event] = () => new Event(),
             [Wire.Task] = () => new TaskStatus(),

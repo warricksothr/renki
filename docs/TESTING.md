@@ -39,6 +39,33 @@ of downloading or displaying a whole day. `just plugin game-source <Type>`
 saves the installed game's decompiled API under `.checks/game-source/` for
 local inspection; do not commit or redistribute those files.
 
+## Terrain map check
+
+Use `just check controller test-map` for interpolation, negative grid positions,
+unknown samples and shoreline clipping, and `just check plugin test-core TerrainCacheTests`
+for cache reuse, bounded per-step sampling, refresh, invalidation and resend.
+Both are included in `just check ci`; Node.js 20+ is needed for the panel maths.
+
+`just controller preview-map --serve` opens a read-only fixture preview at
+127.0.0.1:18780 using the actual panel assets. `--status <status.json> --map
+<map.json>` uses captured `/api/status` and `/api/map` snapshots instead.
+It creates `.checks/map-ui-preview.html`, works without Valheim or credentials,
+and rejects task actions. Use the browser console for bounded fixture checks.
+
+In the panel, verify the biome and support at home, with character height
+above the underlying terrain height. Toggle Terrain/Elevation/Remembered/
+Resources and inspect the compass, scale bar and marker hovers. Pan beyond
+sampled tiles to confirm unknown areas stay dark. Inspect a shoreline from
+dry land; compare water shading and contour levels to the game. A loaded
+terrain sample cannot establish floor, bridge, cave or navigation clearance.
+
+With the owner present, landscape a small safe area and confirm the changed
+heightmap refreshes its tiles. Check shallow water and swimming, then return
+to dry land and check the location readout. Restart the controller and
+reload the page; cached terrain should repopulate while remembered landmarks
+remain. A menu/world change must clear old-world tiles, paths and markers.
+Inspect the terrain cache diagnostic for maintenance time and worst frame.
+
 ## Chest-transfer check
 
 Use a storage chest visible in perception and only Tas's test items.

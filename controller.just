@@ -61,6 +61,15 @@ test-packages +PACKAGES:
 test-race *ARGS:
     go test -race ./... {{ARGS}}
 
+# Terrain interpolation/shoreline checks use Node's built-in test runner.
+test-map:
+    node --test internal/panel/terrain_test.cjs
+
+# Read-only real-assets preview; pass --serve, or captured --status/--map JSON.
+[positional-arguments]
+preview-map *ARGS:
+    python3 scripts/map-preview.py "$@"
+
 # Run go vet.
 vet:
     go vet ./...
@@ -79,7 +88,7 @@ tidy:
     go mod tidy
 
 # Everything CI runs for the controller.
-ci: lint test-race build build-windows
+ci: lint test-race test-map build build-windows
 
 # Remove build output.
 clean:

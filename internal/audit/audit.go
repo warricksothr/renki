@@ -182,6 +182,8 @@ func (l *Log) addRecent(r Record) {
 // l.mu is held.
 func (l *Log) remember(r Record) {
 	switch typ := frameType(r); typ {
+	case "terrain":
+		// Delta tiles bootstrap from the scoped map API, not a partial replay.
 	case "inventory":
 		// Rare, so it stays in the feed as well; last keeps the newest
 		// for a new page once it has scrolled out of recent.

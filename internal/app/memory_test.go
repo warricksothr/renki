@@ -80,7 +80,23 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-	handler := panel.Handler(panel.Options{Token: "test", Status: func() any { return nil }, ContainerMemory: a.ContainerMemory, LandmarkMemory: a.LandmarkMemory})
+	height, biome := 32.0, "Meadows"
+	tile := protocol.TerrainTile{X: -3, Z: 0, WaterLevel: 30, Heights: make([]*float64, 25), Biomes: make([]*string, 25)}
+	for i := 1; i < 25; i++ {
+		tile.Heights[i], tile.Biomes[i] = &height, &biome
+	}
+	p.Send(&protocol.Terrain{World: "world", Tiles: []protocol.TerrainTile{tile}})
+	for {
+		_, _, tiles := a.Session.TerrainSnapshot()
+		if len(tiles) == 1 {
+			break
+		}
+		if time.Now().After(until) {
+			t.Fatal("terrain not received")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	handler := panel.Handler(panel.Options{Token: "test", Status: func() any { return nil }, ContainerMemory: a.ContainerMemory, LandmarkMemory: a.LandmarkMemory, Map: a.MapSnapshot})
 	get := func(path string, auth bool) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(http.MethodGet, path, nil)
 		if auth {
@@ -90,7 +106,7 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 		handler.ServeHTTP(w, r)
 		return w
 	}
-	for _, path := range []string{"/api/memory/containers", "/api/memory/landmarks"} {
+	for _, path := range []string{"/api/memory/containers", "/api/memory/landmarks", "/api/map"} {
 		if w := get(path, false); w.Code != http.StatusUnauthorized {
 			t.Fatal(path, w.Code)
 		}
@@ -116,5 +132,13 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	}
 	if landmarks.World != "world" || len(landmarks.Landmarks) != 1 || landmarks.Landmarks[0].Entity != "portal" || landmarks.Landmarks[0].AgeS < 60 || landmarks.Landmarks[0].Tag != "mine" {
 		t.Fatal(landmarks)
+	}
+	w = get("/api/map", true)
+	var mapped MapSnapshot
+	if err := json.Unmarshal(w.Body.Bytes(), &mapped); err != nil {
+		t.Fatal(err)
+	}
+	if mapped.World != "world" || mapped.Connection == 0 || len(mapped.Landmarks) != 1 || len(mapped.Tiles) != 1 || mapped.Tiles[0].X != -3 || mapped.Tiles[0].Heights[0] != nil || *mapped.Tiles[0].Heights[1] != 32 {
+		t.Fatal(mapped)
 	}
 }

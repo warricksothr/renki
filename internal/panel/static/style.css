@@ -14,7 +14,7 @@
   --tamed: #5fd4c8;
   --structure: #a7b4c2;
   --resource: #5f8f62;
-  --wall: #6b7480;
+  --wall: #a3afb0;
   color-scheme: dark;
 }
 
@@ -75,13 +75,32 @@ main {
 }
 
 @media (max-width: 800px) {
-  main { grid-template-columns: 1fr; grid-template-rows: 50vh 1fr; }
+  main { grid-template-columns: 1fr; grid-template-rows: minmax(560px, 65vh) minmax(300px, 1fr); overflow: auto; }
 }
 
 section { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
 
 #map-pane { position: relative; }
-#map { flex: 1; width: 100%; min-height: 0; background: #101215; }
+#map { flex: 1; width: 100%; min-height: 160px; background: #182126; touch-action: none; }
+.map-heading { padding: 12px 14px 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.map-heading strong { font-size: 17px; }
+#map-world { display: block; color: var(--dim); font-size: 12px; }
+.location-chips { display: flex; flex-wrap: wrap; gap: 5px; font-size: 12px; }
+.map-layers { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 0 14px 10px; }
+.map-layers button { font-size: 12px; }
+.map-layers button[aria-pressed="true"] { background: #30453b; border-color: #718d78; color: #e1ebdc; }
+#terrain-status { font-size: 11px; color: var(--dim); margin-left: auto; }
+.location-details { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 7px 12px; color: #b3c5ca; font-size: 12px; }
+.terrain-legend { display: flex; flex-wrap: wrap; gap: 5px 14px; padding: 5px 12px; color: var(--dim); font-size: 11px; }
+.terrain-legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px; border: 1px solid #ffffff20; border-radius: 2px; }
+.terrain-legend .meadows::before { background: #344a36; }
+.terrain-legend .forest::before { background: #233b30; }
+.terrain-legend .water::before { background: #2a5360; }
+.terrain-legend .unknown::before { background: #182126; }
+.terrain-legend .memory::before { background: #a0a9aa; opacity: .4; }
+.map-key { padding: 4px 12px 7px; font-size: 12px; color: var(--dim); }
+.map-key summary { cursor: pointer; }
+.map-key .legend { padding: 8px 0 0; }
 #map-tip {
   position: absolute;
   max-width: 340px;
@@ -91,6 +110,7 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
   border-radius: 4px;
   font-size: 12px;
   pointer-events: none;
+  z-index: 2;
 }
 
 .map-bar, .filters {

@@ -314,6 +314,8 @@ func frame(r Record) string {
 		return line
 	case *protocol.Layout:
 		return fmt.Sprintf("layout    %d walls", len(m.Walls))
+	case *protocol.Terrain:
+		return fmt.Sprintf("terrain   %d tiles in %s", len(m.Tiles), m.World)
 	case *protocol.Inventory:
 		var held []string
 		for _, it := range m.Items {

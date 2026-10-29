@@ -79,6 +79,11 @@ package:
 tickets-check:
     git ticket check --strict
 
+# Repair generated ticket indexes; pass --dry-run to inspect first.
+[positional-arguments]
+tickets-fix actor *ARGS:
+    git ticket check --fix --actor "$1" "${@:2}"
+
 # Takes a git range first, default origin/main...HEAD, and vuoro flags after
 # it or instead of it: `just review -preset renki`, `just review main...HEAD
 # -json`. Exit status is vuoro's: 0 clean, 1 findings, 3 failed. vuoro reviews

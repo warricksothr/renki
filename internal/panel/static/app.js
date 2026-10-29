@@ -20,7 +20,50 @@ const world = {
   left: [], // what the bot left on the ground: {pos, items}
   path: null, // {from, to}
   stuck: [], // {pos, attempt}
+  tiles: new Map(),
+  landmarks: [],
 };
+
+const layers = { terrain: true, elevation: true, memory: true, resources: false };
+for (const b of document.querySelectorAll("[data-layer]")) b.addEventListener("click", () => {
+  const key = b.dataset.layer;
+  layers[key] = !layers[key];
+  b.setAttribute("aria-pressed", String(layers[key]));
+  draw();
+});
+let mapWorld = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, mapFetchedAt = 0;
+
+function resetMap() {
+  mapGeneration++;
+  Object.assign(world, { bot: null, trail: [], characters: [], structures: [], resources: [], walls: [],
+    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [] });
+  mapFetchedAt = 0;
+  $("terrain-status").textContent = "Waiting for terrain";
+}
+
+async function loadMap() {
+  if (!mapWorld || mapLoading) return;
+  mapLoading = true;
+  const generation = mapGeneration;
+  try {
+    const res = await fetch("/api/map", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (generation !== mapGeneration || data.world !== mapWorld || data.connection !== mapConnection) return;
+    world.tiles = new Map((data.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]));
+    world.landmarks = data.landmarks || [];
+    if (data.perception) {
+      world.structures = data.perception.structures || [];
+      world.resources = data.perception.resources || [];
+      world.characters = data.perception.characters || [];
+    }
+    world.walls = data.walls || [];
+    mapFetchedAt = Date.now();
+    $("terrain-status").textContent = world.tiles.size ? "Terrain sampled every 4 m" : "Waiting for terrain";
+    draw();
+  } catch { /* Keep the last scoped snapshot through a transient request failure. */ }
+  finally { mapLoading = false; }
+}
 
 const view = {
   scale: 4, // pixels per metre
@@ -230,6 +273,7 @@ function onRecord(ev) {
   switch (f.type) {
     case "state":
       if (f.phase !== "in_world") return;
+      if (mapWorld && f.world !== mapWorld) return;
       world.bot = f.pos;
       world.yaw = f.yaw || 0;
       const last = world.trail[world.trail.length - 1];
@@ -237,7 +281,7 @@ function onRecord(ev) {
         world.trail.push(f.pos);
         if (world.trail.length > TRAIL_MAX) world.trail.shift();
       }
-      $("pos").textContent = `x ${f.pos[0].toFixed(1)}  z ${f.pos[2].toFixed(1)}  y ${f.pos[1].toFixed(1)}`;
+      $("pos").textContent = `x ${f.pos[0].toFixed(1)}  z ${f.pos[2].toFixed(1)}`;
       // Over weightMax the bot only walks; with no stamina left it cannot move (6.1).
       const flags = f.flags || [];
       if (flags.includes("stranded")) chip("load", "overloaded: can't move", "off");
@@ -253,9 +297,11 @@ function onRecord(ev) {
       drawInventory();
       break;
     case "layout":
+      if (!mapWorld) break;
       world.walls = f.walls || [];
       break;
     case "perception":
+      if (!mapWorld) break;
       world.characters = f.characters || [];
       world.structures = f.structures || [];
       world.resources = f.resources || [];
@@ -337,6 +383,27 @@ function chip(id, text, cls) {
 }
 
 function onStatus(s) {
+  const active = s.connected && s.phase === "in_world" && s.world;
+  const nextWorld = active ? s.world : "", nextConnection = active ? s.connection || 0 : 0;
+  if (nextWorld !== mapWorld || nextConnection !== mapConnection) {
+    resetMap(); mapWorld = nextWorld; mapConnection = nextConnection;
+  }
+  if (active) {
+    world.bot = s.pos || world.bot; world.yaw = s.yaw || 0;
+    if (Date.now() - mapFetchedAt > 5000) loadMap();
+  }
+  $("map-name").textContent = active ? s.character || "Location" : "Location";
+  $("map-world").textContent = active ? s.world : "Not in the world";
+  chip("biome", active ? plain(s.biome || "Biome unknown") : "");
+  const loc = active ? s.location : null, flags = active ? s.flags || [] : [];
+  const support = { terrain: "On terrain", structure: "On a structure", ship: "On a ship", other: "Grounded",
+    swimming: "Swimming", airborne: "Airborne", liquid: "In liquid", unknown: "Support unknown" };
+  chip("surface", active ? (loc ? loc.inWater && loc.support !== "swimming" ? "In shallow water" : support[loc.support] || "Support unknown"
+    : flags.includes("swimming") ? "Swimming" : flags.includes("grounded") ? "Grounded" : "Support unknown") : "");
+  chip("shelter", flags.includes("in_shelter") ? "Sheltered" : "");
+  $("height").textContent = active && s.pos ? `Character ${s.pos[1].toFixed(1)} m · terrain ${loc?.groundHeight != null ? loc.groundHeight.toFixed(1) + " m" : "unknown"}` : "Height unknown";
+  $("depth").textContent = loc ? loc.inWater ? `Water above feet ${loc.waterDepth.toFixed(1)} m` : "Feet out of water" : "";
+  $("pos").textContent = active && s.pos ? `x ${s.pos[0].toFixed(1)}  z ${s.pos[2].toFixed(1)}` : "";
   chip("link", s.connected ? "connected" : "no plugin", s.connected ? "on" : "off");
   for (const b of document.querySelectorAll("button.act")) b.disabled = !s.connected || acting;
   onModel(s);
@@ -346,8 +413,8 @@ function onStatus(s) {
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
   if (s.perceptionRadius) view.radius = s.perceptionRadius;
   chip("hp", s.hpMax ? `hp ${Math.round(s.hp)}/${Math.round(s.hpMax)}` : "");
-  world.left = s.leftBehind || [];
-  if (s.home) {
+  world.left = active ? s.leftBehind || [] : [];
+  if (active && s.home) {
     world.home = s.home.pos;
     chip("home", s.home.distance != null ? `home ${Math.round(s.home.distance)} m` : "home set");
   } else {
@@ -389,7 +456,13 @@ function render() {
   const sx = (x) => w / 2 + (x - view.centre[0]) * view.scale;
   const sy = (z) => h / 2 - (z - view.centre[1]) * view.scale;
 
+  RenkiTerrain.draw(ctx, world.tiles, sx, sy, layers, w, h);
   grid(w, h, sx, sy);
+
+  if (world.bot && view.radius) {
+    ctx.save(); ctx.strokeStyle = "#96bdd850"; ctx.setLineDash([3, 6]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(sx(world.bot[0]), sy(world.bot[2]), view.radius * view.scale, 0, 2 * Math.PI); ctx.stroke(); ctx.restore();
+  }
 
   // Walls under everything else, as thick as they are, near enough. Those
   // standing on a storey above the bot are faint, so the doorways on its
@@ -448,36 +521,49 @@ function render() {
   // importance and are skipped where they would overlap.
   const markers = collect(sx, sy);
   const taken = [];
-  if (world.bot) taken.push(box(sx(world.bot[0]) - 9, sy(world.bot[2]) - 9, 18, 18));
+  if (world.bot) {
+    taken.push(box(sx(world.bot[0]) - 12, sy(world.bot[2]) - 12, 24, 24));
+    taken.push(box(sx(world.bot[0]) + 13, sy(world.bot[2]) - 10, 26, 16));
+  }
   for (const m of markers) {
+    ctx.globalAlpha = m.remembered ? .35 : 1;
     drawMarker(m);
     taken.push(box(m.x - m.r, m.y - m.r, 2 * m.r, 2 * m.r));
   }
+  ctx.globalAlpha = 1;
   for (const m of [...markers].sort((a, b) => a.prio - b.prio)) {
+    ctx.globalAlpha = m.remembered ? .5 : 1;
     if (m.label) place(m, taken);
   }
+  ctx.globalAlpha = 1;
   hit = markers;
   // The markers moved under a still pointer: say what is there now.
   if (pointer) hover(pointer.x, pointer.y);
 
   if (world.bot) {
     const x = sx(world.bot[0]), y = sy(world.bot[2]);
-    ctx.fillStyle = colour("bot");
+    ctx.fillStyle = "#182832";
     ctx.beginPath();
-    ctx.arc(x, y, 7, 0, 2 * Math.PI);
+    ctx.arc(x, y, 10, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.strokeStyle = "#a9e2ff"; ctx.lineWidth = 2; ctx.stroke();
     // Facing: yaw 0 is north, clockwise.
     const a = (world.yaw * Math.PI) / 180;
-    ctx.strokeStyle = colour("bot");
-    ctx.lineWidth = 2;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = "#a9e2ff";
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + Math.sin(a) * 16, y - Math.cos(a) * 16);
-    ctx.stroke();
+    ctx.moveTo(0, -8); ctx.lineTo(5, 5); ctx.lineTo(0, 3); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill(); ctx.restore();
+    label("bot", x + 14, y + 4);
   } else {
     ctx.fillStyle = colour("dim");
     ctx.fillText("The bot is not in the world.", 12, 20);
   }
+  ctx.fillStyle = "#d3dfdf"; ctx.font = "12px system-ui";
+  ctx.fillText("N ↑", w - 36, 24);
+  const metres = view.scale >= 3 ? 10 : 50, bar = metres * view.scale;
+  ctx.strokeStyle = "#b4c6c9"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(w - 16 - bar, h - 26); ctx.lineTo(w - 16 - bar, h - 21);
+  ctx.lineTo(w - 16, h - 21); ctx.lineTo(w - 16, h - 26); ctx.stroke();
+  ctx.font = "10px system-ui"; ctx.fillText(`${metres} m`, w - 16 - bar, h - 7);
 }
 
 // ---- markers ----
@@ -512,6 +598,7 @@ function collect(sx, sy) {
   // A thing joins a group of its kind when it is near any member, so a
   // row of chests is one group however long. Groups it bridges merge.
   const add = (key, look, thing, x, y, extra = {}) => {
+    if (x < -30 || y < -30 || x > canvas.clientWidth + 30 || y > canvas.clientHeight + 30) return;
     const near = out.filter((m) => m.key === key && m.pts.some(([px, py]) => Math.hypot(px - x, py - y) < JOIN));
     if (near.length === 0) {
       out.push({ key, look, items: [thing], pts: [[x, y]], x, y, prio: look.prio, ...extra });
@@ -532,7 +619,7 @@ function collect(sx, sy) {
       out.splice(out.indexOf(r), 1);
     }
   };
-  for (const r of world.resources) {
+  for (const r of layers.resources ? world.resources : []) {
     const look = LOOK[r.kind] || LOOK.pickable;
     add("r:" + r.kind, look, { what: look.one, ...r }, sx(r.pos[0]), sy(r.pos[2]));
   }
@@ -541,6 +628,15 @@ function collect(sx, sy) {
     // An open door, a claimed bed and a named portal stand alone.
     const key = "s:" + s.kind + (s.open ? ":open" : "") + (s.mine ? ":mine" : "") + (s.tag ? ":" + s.tag : "");
     add(key, look, { what: look.one, ...s }, sx(s.pos[0]), sy(s.pos[2]));
+  }
+  if (layers.memory) {
+    const live = new Set([...world.structures, ...world.resources].map((s) => s.id));
+    for (const s of world.landmarks) {
+      if (live.has(s.entity) || (!layers.resources && ["pickable", "rock"].includes(s.kind))) continue;
+      const look = LOOK[s.kind] || LOOK.other;
+      add("memory:" + s.kind, { ...look, prio: look.prio + 40 }, { ...s, what: look.one, remembered: true },
+        sx(s.pos[0]), sy(s.pos[2]), { remembered: true });
+    }
   }
   for (const c of world.characters) {
     const kind = c.kind === "player" ? "player" : c.kind === "tamed" ? "tamed" : c.hostile ? "hostile" : "other";
@@ -680,7 +776,7 @@ function place(m, taken) {
 function label(text, x, y, tone = "text") {
   ctx.fillStyle = colour(tone);
   ctx.font = "12px system-ui, sans-serif";
-  ctx.fillText(text, x, y);
+  ctx.strokeStyle = "#182126"; ctx.lineWidth = 3; ctx.strokeText(text, x, y); ctx.fillText(text, x, y);
 }
 
 function grid(w, h, sx, sy) {
@@ -688,7 +784,7 @@ function grid(w, h, sx, sy) {
   const step = view.scale < 2 ? 50 : 10;
   const left = view.centre[0] - w / 2 / view.scale, right = view.centre[0] + w / 2 / view.scale;
   const bottom = view.centre[1] - h / 2 / view.scale, top = view.centre[1] + h / 2 / view.scale;
-  ctx.strokeStyle = colour("line");
+  ctx.strokeStyle = "#c3d0d015";
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let x = Math.ceil(left / step) * step; x <= right; x += step) {
@@ -766,16 +862,20 @@ function hover(x, y) {
     if (d <= m.r + 4 && d < bestD) (best = m), (bestD = d);
   }
   if (!best) {
-    tip.hidden = true;
-    return;
+    const wx = view.centre[0] + (x - rect.width / 2) / view.scale;
+    const wz = view.centre[1] - (y - rect.height / 2) / view.scale;
+    const s = RenkiTerrain.sample(world.tiles, wx, wz);
+    const text = s ? `${plain(s.biome || "Biome unknown")} · terrain ${s.height.toFixed(1)} m${s.water > s.height ? ` · water depth ${(s.water - s.height).toFixed(1)} m` : " · above water level"}` : "Unknown terrain · no loaded sample";
+    tip.replaceChildren(Object.assign(document.createElement("div"), { textContent: text }));
+  } else {
+    tip.replaceChildren(...describe(best).map((t) => Object.assign(document.createElement("div"), { textContent: t })));
   }
-  tip.replaceChildren(...describe(best).map((t) => Object.assign(document.createElement("div"), { textContent: t })));
   tip.hidden = false;
   // Beside the pointer, kept inside the map.
   const left = Math.min(x + 14, rect.width - tip.offsetWidth - 4);
   const top = Math.min(y + 14, rect.height - tip.offsetHeight - 4);
-  tip.style.left = Math.max(4, left) + "px";
-  tip.style.top = Math.max(4, top) + "px";
+  tip.style.left = canvas.offsetLeft + Math.max(4, left) + "px";
+  tip.style.top = canvas.offsetTop + Math.max(4, top) + "px";
 }
 
 // describe lists a marker's items: what each is and how far from the bot,
@@ -788,7 +888,8 @@ function describe(m) {
     if (i.prefab) parts.push(plain(i.prefab));
     if (i.detail) parts.push(i.detail);
     if (i.stack > 1) parts.push(`×${i.stack}`);
-    if (i.kind === "door") parts.push(i.open ? "open" : "shut");
+    if (i.kind === "door" && !i.remembered) parts.push(i.open ? "open" : "shut");
+    if (i.remembered) parts.push(`last seen ${new Date(i.at).toLocaleString()}`);
     if (i.mine) parts.push("the bot's");
     if (i.tag) parts.push(`"${i.tag}"`);
     if (i.minTool != null) parts.push(`needs tool tier ${i.minTool}`);
@@ -1079,6 +1180,7 @@ $("settings").addEventListener("toggle", () => $("settings").open && loadSetting
 
 function connect() {
   const es = new EventSource("/api/events");
+  es.onopen = () => { resetMap(); mapWorld = ""; mapConnection = 0; };
   es.addEventListener("record", (e) => onRecord(JSON.parse(e.data)));
   es.addEventListener("status", (e) => onStatus(JSON.parse(e.data)));
   es.onerror = async () => {

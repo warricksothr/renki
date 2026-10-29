@@ -46,6 +46,9 @@ Every task is a `just` recipe; `just` lists them. `just ci` is the gate,
 `just package` builds the bundle for the Windows VM. AGENTS.md has the
 conventions and the ticket workflow.
 
+Development checks use Go, the .NET SDK, `just`, and Node.js 20+ for the
+panel's terrain maths (`just controller test-map`).
+
 ## Prior art
 
 The architecture follows
