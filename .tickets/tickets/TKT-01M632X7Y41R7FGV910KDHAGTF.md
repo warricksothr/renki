@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M632X7Y41R7FGV910KDHAGTF
 title: "Panel: make the map readable without zooming in"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -17,10 +17,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/panel
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: a239abe9b9791f12b72a6b9deaa078002e91b692
+  session: null
+  claimed_at: 2026-10-29T05:45:19Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T05:42:44Z
-updated_at: 2026-10-29T05:42:44Z
+updated_at: 2026-10-29T05:45:19Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

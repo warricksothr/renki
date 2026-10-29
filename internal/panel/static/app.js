@@ -25,6 +25,9 @@ const view = {
   scale: 4, // pixels per metre
   centre: [0, 0], // x, z
   followBot: true,
+  // Until the user zooms, the scale fits the perception radius.
+  zoomed: false,
+  radius: 0,
 };
 
 // ---- feed ----
@@ -179,6 +182,7 @@ function onStatus(s) {
   chip("who", s.character ? `${s.character}${s.world ? " in " + s.world : ""}` : "");
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
+  if (s.perceptionRadius) view.radius = s.perceptionRadius;
   chip("hp", s.hpMax ? `hp ${Math.round(s.hp)}/${Math.round(s.hpMax)}` : "");
   world.left = s.leftBehind || [];
   if (s.home) {
@@ -215,6 +219,7 @@ function render() {
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
+  if (!view.zoomed && view.radius > 0) view.scale = Math.min(w, h) / (2 * view.radius * 1.1);
   if (view.followBot && world.bot) view.centre = [world.bot[0], world.bot[2]];
   // North (+z) is up, east (+x) is right.
   const sx = (x) => w / 2 + (x - view.centre[0]) * view.scale;
@@ -251,68 +256,20 @@ function render() {
     ctx.stroke();
   }
 
-  if (world.home) {
-    ctx.fillStyle = colour("home");
-    const x = sx(world.home[0]), y = sy(world.home[2]);
-    ctx.fillRect(x - 6, y - 6, 12, 12);
-    label("home", x + 9, y + 4);
+  // Everything with a place gets a marker; markers of one kind close
+  // together on screen become one, with a count. Labels go on in order of
+  // importance and are skipped where they would overlap.
+  const markers = collect(sx, sy);
+  const taken = [];
+  if (world.bot) taken.push(box(sx(world.bot[0]) - 9, sy(world.bot[2]) - 9, 18, 18));
+  for (const m of markers) {
+    drawMarker(m);
+    taken.push(box(m.x - m.r, m.y - m.r, 2 * m.r, 2 * m.r));
   }
-
-  for (const c of world.left) {
-    ctx.strokeStyle = colour("home");
-    ctx.lineWidth = 2;
-    const x = sx(c.pos[0]), y = sy(c.pos[2]);
-    ctx.beginPath();
-    ctx.moveTo(x, y - 6);
-    ctx.lineTo(x + 6, y);
-    ctx.lineTo(x, y + 6);
-    ctx.lineTo(x - 6, y);
-    ctx.closePath();
-    ctx.stroke();
-    const what = Object.entries(c.items).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${n} ${plain(p)}`).join(", ");
-    label(`left: ${what}`, x + 9, y + 4);
+  for (const m of [...markers].sort((a, b) => a.prio - b.prio)) {
+    if (m.label) place(m, taken);
   }
-
-  // Resources only once zoomed in enough to tell them apart.
-  if (view.scale >= 3) {
-    for (const r of world.resources) {
-      const x = sx(r.pos[0]), y = sy(r.pos[2]);
-      ctx.fillStyle = colour("resource");
-      ctx.fillRect(x - 2, y - 2, 4, 4);
-      if (view.scale >= 12) label(r.prefab, x + 5, y + 4, "dim");
-    }
-  }
-
-  for (const s of world.structures) {
-    const x = sx(s.pos[0]), y = sy(s.pos[2]);
-    ctx.fillStyle = ctx.strokeStyle = colour("structure");
-    if (s.kind === "door") {
-      ctx.lineWidth = 2;
-      s.open ? ctx.strokeRect(x - 3, y - 5, 6, 10) : ctx.fillRect(x - 3, y - 5, 6, 10);
-    } else {
-      ctx.fillRect(x - 4, y - 4, 8, 8);
-    }
-    const name = s.kind === "portal" && s.tag ? `portal "${s.tag}"` : s.kind === "bed" && s.mine ? "bed (mine)" : s.kind;
-    if (view.scale >= 6) label(name, x + 7, y + 4, "dim");
-  }
-
-  for (const c of world.characters) {
-    const x = sx(c.pos[0]), y = sy(c.pos[2]);
-    const player = c.kind === "player";
-    ctx.fillStyle = colour(player ? "player" : c.kind === "tamed" ? "tamed" : c.hostile ? "hostile" : "other");
-    ctx.beginPath();
-    ctx.arc(x, y, player ? 6 : 4, 0, 2 * Math.PI);
-    ctx.fill();
-    if (c.targetingMe) {
-      ctx.strokeStyle = colour("hostile");
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, 2 * Math.PI);
-      ctx.stroke();
-    }
-    const stars = c.stars ? " " + "★".repeat(c.stars) : "";
-    if (player || c.targetingMe || view.scale >= 6) label((c.name || c.prefab || "") + stars, x + 9, y + 4);
-  }
+  hit = markers;
 
   if (world.bot) {
     const x = sx(world.bot[0]), y = sy(world.bot[2]);
@@ -332,6 +289,198 @@ function render() {
     ctx.fillStyle = colour("dim");
     ctx.fillText("The bot is not in the world.", 12, 20);
   }
+}
+
+// ---- markers ----
+
+// How each kind looks: a shape, a colour, and what to call one or several.
+const LOOK = {
+  // structures (6.2)
+  container: { shape: "square", colour: "#c8955a", one: "chest", many: "chests", prio: 40 },
+  station: { shape: "diamond", colour: "#b08cff", one: "station", many: "stations", prio: 41 },
+  bed: { shape: "bar", colour: "#6fa8ff", one: "bed", many: "beds", prio: 42 },
+  portal: { shape: "ring", colour: "#d07cff", one: "portal", many: "portals", prio: 39 },
+  fire: { shape: "circle", colour: "#ff8a3d", one: "fire", many: "fires", prio: 43 },
+  smelter: { shape: "square", colour: "#ff5f3d", one: "smelter", many: "smelters", prio: 43 },
+  door: { shape: "door", colour: "#a7b4c2", one: "door", many: "doors", prio: 45 },
+  other: { shape: "square", colour: "#a7b4c2", one: "structure", many: "structures", prio: 46 },
+  // resources (6.2)
+  drop: { shape: "diamond", colour: "#e8e2a0", one: "drop", many: "drops", prio: 50, size: 4 },
+  tree: { shape: "triangle", colour: "#3fa45b", one: "tree", many: "trees", prio: 60 },
+  log: { shape: "bar", colour: "#a07a4a", one: "log", many: "logs", prio: 61 },
+  stump: { shape: "dot", colour: "#8a6a45", one: "stump", many: "stumps", prio: 63 },
+  rock: { shape: "circle", colour: "#9aa3ad", one: "rock", many: "rocks", prio: 62 },
+  pickable: { shape: "dot", colour: "#e07bb5", one: "pickable", many: "pickables", prio: 64 },
+};
+
+// How close on screen, in pixels, things of one kind join one marker.
+const JOIN = 14;
+
+let hit = []; // the markers last drawn, for hovering
+
+function collect(sx, sy) {
+  const out = [];
+  // A thing joins a group of its kind when it is near any member, so a
+  // row of chests is one group however long. Groups it bridges merge.
+  const add = (key, look, thing, x, y, extra = {}) => {
+    const near = out.filter((m) => m.key === key && m.pts.some(([px, py]) => Math.hypot(px - x, py - y) < JOIN));
+    if (near.length === 0) {
+      out.push({ key, look, items: [thing], pts: [[x, y]], x, y, prio: look.prio, ...extra });
+      return;
+    }
+    const [m, ...rest] = near;
+    m.items.push(thing);
+    m.pts.push([x, y]);
+    for (const r of rest) {
+      m.items.push(...r.items);
+      m.pts.push(...r.pts);
+      m.ring = m.ring || r.ring;
+      out.splice(out.indexOf(r), 1);
+    }
+  };
+  for (const r of world.resources) {
+    const look = LOOK[r.kind] || LOOK.pickable;
+    add("r:" + r.kind, look, { what: look.one, ...r }, sx(r.pos[0]), sy(r.pos[2]));
+  }
+  for (const s of world.structures) {
+    const look = LOOK[s.kind] || LOOK.other;
+    // An open door, a claimed bed and a named portal stand alone.
+    const key = "s:" + s.kind + (s.open ? ":open" : "") + (s.mine ? ":mine" : "") + (s.tag ? ":" + s.tag : "");
+    add(key, look, { what: look.one, ...s }, sx(s.pos[0]), sy(s.pos[2]));
+  }
+  for (const c of world.characters) {
+    const kind = c.kind === "player" ? "player" : c.kind === "tamed" ? "tamed" : c.hostile ? "hostile" : "other";
+    const look = { shape: "circle", colour: colour(kind), size: c.kind === "player" ? 6 : 4,
+      one: c.kind === "player" ? "player" : c.kind === "tamed" ? "tamed" : c.hostile ? "hostile" : "creature",
+      prio: c.kind === "player" ? 10 : c.targetingMe ? 11 : c.hostile ? 12 : 30 };
+    // Each player stands alone; creatures of one prefab group.
+    add(c.kind === "player" ? "p:" + c.id : "c:" + kind + ":" + (c.prefab || ""), look, { what: look.one, ...c },
+      sx(c.pos[0]), sy(c.pos[2]), { ring: c.targetingMe });
+  }
+  if (world.home) {
+    out.push({ key: "home", look: { shape: "square", colour: colour("home"), size: 6, one: "home" },
+      items: [{ what: "home", pos: world.home }], x: sx(world.home[0]), y: sy(world.home[2]), prio: 20, label: "home" });
+  }
+  for (const c of world.left) {
+    const what = Object.entries(c.items).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${n} ${plain(p)}`).join(", ");
+    out.push({ key: "left", look: { shape: "hollow-diamond", colour: colour("home"), size: 6, one: "left behind" },
+      items: [{ what: "left behind", pos: c.pos, detail: what }], x: sx(c.pos[0]), y: sy(c.pos[2]), prio: 21, label: `left: ${what}` });
+  }
+  for (const m of out) {
+    if (m.label) continue;
+    const first = m.items[0];
+    m.x = m.items.reduce((a, i) => a + sx(i.pos[0]), 0) / m.items.length;
+    m.y = m.items.reduce((a, i) => a + sy(i.pos[2]), 0) / m.items.length;
+    m.label = markerLabel(m, first);
+  }
+  return out;
+}
+
+// A marker's label: a player's name, a group's count, a drop's stack, a
+// structure's kind. Single trees, rocks and the like go unlabelled; hover
+// says what they are.
+function markerLabel(m, first) {
+  const n = m.items.length;
+  if (first.kind === "player") return first.name;
+  if (m.key.startsWith("c:")) {
+    const stars = first.stars ? " " + "★".repeat(first.stars) : "";
+    const name = plain(first.prefab || first.name || "creature") + stars;
+    return n > 1 ? `${n} × ${name}` : name;
+  }
+  if (first.kind === "drop") {
+    const total = m.items.reduce((a, i) => a + (i.stack || 1), 0);
+    const kinds = new Set(m.items.map((i) => i.prefab));
+    return kinds.size === 1 ? `${plain(first.prefab)} ×${total}` : `${n} drops`;
+  }
+  if (m.key.startsWith("r:")) return n > 1 ? `${n} ${m.look.many}` : "";
+  let name = n > 1 ? `${n} ${m.look.many}` : m.look.one;
+  if (first.kind === "portal" && first.tag) name += ` "${first.tag}"`;
+  if (first.kind === "bed" && first.mine) name += " (mine)";
+  if (first.kind === "door") name += first.open ? " (open)" : "";
+  return name;
+}
+
+function drawMarker(m) {
+  const { shape, colour: c } = m.look;
+  const r = (m.look.size || 5) + (m.items.length > 1 ? 1 : 0);
+  const { x, y } = m;
+  ctx.fillStyle = ctx.strokeStyle = c;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  switch (shape) {
+    case "square":
+      ctx.rect(x - r, y - r, 2 * r, 2 * r);
+      ctx.fill();
+      break;
+    case "diamond":
+    case "hollow-diamond":
+      ctx.moveTo(x, y - r - 1);
+      ctx.lineTo(x + r + 1, y);
+      ctx.lineTo(x, y + r + 1);
+      ctx.lineTo(x - r - 1, y);
+      ctx.closePath();
+      shape === "diamond" ? ctx.fill() : ctx.stroke();
+      break;
+    case "triangle":
+      ctx.moveTo(x, y - r - 1);
+      ctx.lineTo(x + r, y + r);
+      ctx.lineTo(x - r, y + r);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    case "bar":
+      ctx.rect(x - r - 1, y - r / 2, 2 * r + 2, r);
+      ctx.fill();
+      break;
+    case "ring":
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.stroke();
+      break;
+    case "dot":
+      ctx.arc(x, y, Math.max(2.5, r - 2), 0, 2 * Math.PI);
+      ctx.fill();
+      break;
+    case "door": {
+      const open = m.items[0].open;
+      ctx.rect(x - 3, y - r - 1, 6, 2 * r + 2);
+      open ? ctx.stroke() : ctx.fill();
+      break;
+    }
+    default:
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fill();
+  }
+  if (m.ring) {
+    ctx.strokeStyle = colour("hostile");
+    ctx.beginPath();
+    ctx.arc(x, y, r + 4, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+  m.r = r + 2;
+}
+
+const box = (x, y, w, h) => ({ x, y, w, h });
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+// place puts m's label to its right, or else its left, above or below,
+// wherever it overlaps no label or marker already placed.
+function place(m, taken) {
+  ctx.font = "12px system-ui, sans-serif";
+  const w = ctx.measureText(m.label).width, h = 13, gap = m.r + 3;
+  const tries = [
+    box(m.x + gap, m.y - h / 2, w, h),
+    box(m.x - gap - w, m.y - h / 2, w, h),
+    box(m.x - w / 2, m.y - gap - h, w, h),
+    box(m.x - w / 2, m.y + gap, w, h),
+    box(m.x + gap, m.y - gap - h, w, h),
+    box(m.x + gap, m.y + gap, w, h),
+    box(m.x - gap - w, m.y - gap - h, w, h),
+    box(m.x - gap - w, m.y + gap, w, h),
+  ];
+  const spot = tries.find((b) => !taken.some((t) => overlaps(b, t)));
+  if (!spot) return;
+  taken.push(spot);
+  label(m.label, spot.x, spot.y + h - 2, m.prio >= 50 ? "dim" : "text");
 }
 
 function label(text, x, y, tone = "text") {
@@ -363,6 +512,7 @@ function grid(w, h, sx, sy) {
 }
 
 function zoom(f) {
+  view.zoomed = true;
   view.scale = Math.min(40, Math.max(0.25, view.scale * f));
   draw();
 }
@@ -395,6 +545,56 @@ canvas.addEventListener("pointermove", (e) => {
   draw();
 });
 canvas.addEventListener("pointerup", () => (drag = null));
+
+// Hovering a marker says what it is: every item of a group.
+const tip = $("map-tip");
+canvas.addEventListener("pointermove", (e) => {
+  if (drag) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  let best = null, bestD = Infinity;
+  for (const m of hit) {
+    const d = Math.hypot(m.x - x, m.y - y);
+    if (d <= m.r + 4 && d < bestD) (best = m), (bestD = d);
+  }
+  if (!best) {
+    tip.hidden = true;
+    return;
+  }
+  tip.replaceChildren(...describe(best).map((t) => Object.assign(document.createElement("div"), { textContent: t })));
+  tip.hidden = false;
+  // Beside the pointer, kept inside the map.
+  const left = Math.min(x + 14, rect.width - tip.offsetWidth - 4);
+  const top = Math.min(y + 14, rect.height - tip.offsetHeight - 4);
+  tip.style.left = Math.max(4, left) + "px";
+  tip.style.top = Math.max(4, top) + "px";
+});
+canvas.addEventListener("pointerleave", () => (tip.hidden = true));
+
+// describe lists a marker's items: what each is and how far from the bot,
+// nearest first, at most a dozen.
+function describe(m) {
+  const far = (p) => (world.bot ? Math.hypot(p[0] - world.bot[0], p[2] - world.bot[2]) : null);
+  const items = [...m.items].sort((a, b) => (far(a.pos) ?? 0) - (far(b.pos) ?? 0));
+  const lines = items.slice(0, 12).map((i) => {
+    const parts = [i.kind === "player" ? i.name : i.what];
+    if (i.prefab) parts.push(plain(i.prefab));
+    if (i.detail) parts.push(i.detail);
+    if (i.stack > 1) parts.push(`×${i.stack}`);
+    if (i.kind === "door") parts.push(i.open ? "open" : "shut");
+    if (i.mine) parts.push("the bot's");
+    if (i.tag) parts.push(`"${i.tag}"`);
+    if (i.minTool) parts.push(`needs tool tier ${i.minTool}`);
+    if (i.stars) parts.push("★".repeat(i.stars));
+    if (typeof i.hpFrac === "number") parts.push(`${Math.round(i.hpFrac * 100)}% health`);
+    if (i.targetingMe) parts.push("after the bot");
+    const d = far(i.pos);
+    if (d != null) parts.push(`${Math.round(d)} m`);
+    return parts.join(" · ");
+  });
+  if (items.length > 12) lines.push(`and ${items.length - 12} more`);
+  return lines;
+}
 window.addEventListener("resize", draw);
 
 // ---- the stream ----

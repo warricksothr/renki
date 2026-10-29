@@ -28,6 +28,8 @@ type PanelStatus struct {
 	Pos       *protocol.Vec3    `json:"pos,omitempty"`
 	Biome     string            `json:"biome,omitempty"`
 	Home      *PanelHome        `json:"home,omitempty"`
+	// PerceptionRadius is how far perception reaches, for the map's first view.
+	PerceptionRadius float64 `json:"perceptionRadius"`
 	// LeftBehind is what the bot had to leave on the ground in this world.
 	LeftBehind []home.Cache `json:"leftBehind,omitempty"`
 
@@ -51,7 +53,8 @@ func (a *App) PanelStatus(version string) PanelStatus {
 	st := a.status()
 	ps := PanelStatus{Version: version, Connected: st.Connected, Character: st.Character, Phase: st.Phase, Task: st.Task,
 		AgentName: a.Config.AgentName, Nicknames: a.Settings.Values().Nicknames,
-		Owners: a.Settings.Values().Owners, Rules: a.Home.Rules()}
+		Owners: a.Settings.Values().Owners, Rules: a.Home.Rules(),
+		PerceptionRadius: a.Config.Perception.Radius}
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		if s.Phase == protocol.PhaseInWorld {
