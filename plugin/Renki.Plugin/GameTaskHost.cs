@@ -181,8 +181,8 @@ namespace Renki.Plugin
                     broken = true;
                     continue;
                 }
-                if (best == null || item.m_durability > best.m_durability ||
-                    (item.m_durability == best.m_durability && item.m_quality > best.m_quality))
+                if (best == null || Repair(item) > Repair(best) ||
+                    (Repair(item) == Repair(best) && item.m_quality > best.m_quality))
                     best = item;
             }
             if (best == null)
@@ -195,6 +195,10 @@ namespace Renki.Plugin
                 return Outcome.Failed(Wire.ReasonRefused, heard.Count > 0 ? string.Join("; ", heard) : $"the game would not equip the {e.Item}");
             return Outcome.Succeeded($"equipped {e.Item}");
         }
+
+        /// <summary>How whole an item is, 1 for new or for what does not wear.</summary>
+        static float Repair(ItemDrop.ItemData item) =>
+            item.m_shared.m_useDurability && item.GetMaxDurability() > 0 ? item.m_durability / item.GetMaxDurability() : 1f;
 
         /// <summary>Empties a slot, or both hands.</summary>
         static Outcome Unequip(Player player, UnequipArgs u)
