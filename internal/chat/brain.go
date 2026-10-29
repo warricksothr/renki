@@ -349,6 +349,22 @@ func (b *Brain) TaskDone(t *session.Task) {
 		}
 		return
 	}
+	if t.Name == protocol.TaskInteract {
+		// The plugin passes on what the game said: "used the Bed: Spawn
+		// point set", or, refused, the game's words alone.
+		switch {
+		case status == protocol.StatusSucceeded:
+			if _, said, ok := strings.Cut(detail, ": "); ok {
+				b.say(o, said)
+			} else {
+				b.say(o, "Done.")
+			}
+			return
+		case reason == protocol.ReasonRefused && detail != "":
+			b.say(o, "It won't: "+detail)
+			return
+		}
+	}
 	if status != protocol.StatusFailed && status != protocol.StatusRejected {
 		return
 	}
@@ -446,10 +462,13 @@ const (
 	cmdSetHome
 	cmdGoHome
 	cmdPickup
+	cmdBed
+	cmdDoor
 )
 
 func (c command) String() string {
-	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up"}[c]
+	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
+		"use the bed", "get the door"}[c]
 }
 
 var grammar = map[string]command{
@@ -464,6 +483,9 @@ var grammar = map[string]command{
 	"go back home": cmdGoHome,
 	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
+	"use the bed": cmdBed, "use your bed": cmdBed, "claim the bed": cmdBed, "claim a bed": cmdBed,
+	"claim that bed": cmdBed, "go to bed": cmdBed, "go to sleep": cmdBed, "sleep": cmdBed,
+	"get the door": cmdDoor, "open the door": cmdDoor, "close the door": cmdDoor, "use the door": cmdDoor,
 }
 
 func parse(stripped string) (command, bool) {
@@ -489,6 +511,11 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdPickup:
 		var ok bool
 		if order, ack, ok = b.pickup(c, from); !ok {
+			return
+		}
+	case cmdBed, cmdDoor:
+		var ok bool
+		if order, ack, ok = b.use(cmd, c, from); !ok {
 			return
 		}
 	case cmdFollow:
@@ -518,6 +545,49 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		return
 	}
 	b.say(from, ack)
+}
+
+// useReach is how far from the speaker, or the bot when the speaker is out
+// of sight, a bed or door may be for "use the bed" or "get the door".
+const useReach = 10.0
+
+// use chooses the bed or door to interact with: for a bed the bot's own,
+// wherever it is in sight; otherwise the nearest the speaker, or the bot
+// when it cannot see the speaker. It says why when there is none.
+func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, string, bool) {
+	kind, what, ack := protocol.StructureDoor, "door", "Getting the door."
+	if cmd == cmdBed {
+		kind, what, ack = protocol.StructureBed, "bed", "Heading to bed."
+	}
+	near := c.Pos
+	if !located(c) {
+		if st := b.d.State(); st != nil {
+			near = st.Pos
+		}
+	}
+	var (
+		best *protocol.PerceivedStructure
+		dist = useReach
+	)
+	if seen := b.d.Perception(); seen != nil {
+		for i, s := range seen.Structures {
+			if s.Kind != kind {
+				continue
+			}
+			if s.Mine {
+				best = &seen.Structures[i]
+				break
+			}
+			if d := near.FlatDistance(s.Pos); d <= dist {
+				best, dist = &seen.Structures[i], d
+			}
+		}
+	}
+	if best == nil {
+		b.say(from, fmt.Sprintf("I don't see a %s nearby.", what))
+		return session.Order{}, "", false
+	}
+	return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: best.ID}}, ack, true
 }
 
 // pickupReach is how far from the speaker a drop may lie for "pick that up".

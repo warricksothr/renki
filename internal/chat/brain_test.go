@@ -736,3 +736,53 @@ func TestNoFollowForAnUnseenPanelOwner(t *testing.T) {
 		t.Errorf("carried out %v", got)
 	}
 }
+
+// TestUseTheBedAndDoor: the bot's own bed wherever it is in sight, else the
+// nearest bed or door to the speaker, or to the bot when the speaker is out
+// of sight; and what the game said comes back in the bot's words.
+func TestUseTheBedAndDoor(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.allowed = append(f.allowed, protocol.TaskInteract)
+	uses := func() []string {
+		var ids []string
+		for _, o := range f.sent() {
+			if o.Task == protocol.TaskInteract {
+				ids = append(ids, o.Args.(*protocol.InteractArgs).Entity)
+			}
+		}
+		return ids
+	}
+
+	b.Chat(line("Sothr", "bjorn use the bed"))
+	if got := f.said(); got[0] != "I don't see a bed nearby." {
+		t.Errorf("with nothing seen: %q", got)
+	}
+
+	// The speaker stands at 10, 10.
+	f.perception = &protocol.Perception{Structures: []protocol.PerceivedStructure{
+		{ID: "1:1", Kind: protocol.StructureBed, Pos: protocol.Vec3{11, 0, 10}},
+		{ID: "1:2", Kind: protocol.StructureDoor, Pos: protocol.Vec3{30, 0, 10}},
+		{ID: "1:3", Kind: protocol.StructureDoor, Pos: protocol.Vec3{12, 0, 12}},
+	}}
+	b.Chat(line("Sothr", "bjorn claim the bed"))
+	b.Chat(line("Sothr", "bjorn open the door"))
+	if got := uses(); !slices.Equal(got, []string{"1:1", "1:3"}) {
+		t.Fatalf("used %v", got)
+	}
+	// Its own bed wins, however far.
+	f.perception.Structures = append(f.perception.Structures,
+		protocol.PerceivedStructure{ID: "1:4", Kind: protocol.StructureBed, Pos: protocol.Vec3{35, 0, 35}, Mine: true})
+	b.Chat(line("Sothr", "bjorn go to bed"))
+	if got := uses(); got[len(got)-1] != "1:4" {
+		t.Errorf("used %v; want its own bed 1:4", got)
+	}
+
+	sent := slices.DeleteFunc(f.sent(), func(o session.Order) bool { return o.Task != protocol.TaskInteract })
+	n := len(f.said())
+	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusSucceeded, "", "used the Bed: Spawn point set"))
+	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusFailed, protocol.ReasonRefused, "You need a roof"))
+	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusSucceeded, "", "used the Door"))
+	if got := f.said()[n:]; !slices.Equal(got, []string{"Spawn point set", "It won't: You need a roof", "Done."}) {
+		t.Errorf("said %q", got)
+	}
+}
