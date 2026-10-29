@@ -85,6 +85,7 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	for i := 1; i < 25; i++ {
 		tile.Heights[i], tile.Biomes[i] = &height, &biome
 	}
+	p.Send(&protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: "chest", Kind: protocol.StructureContainer}}})
 	p.Send(&protocol.Terrain{World: "world", Tiles: []protocol.TerrainTile{tile}})
 	for {
 		_, _, tiles := a.Session.TerrainSnapshot()
@@ -133,6 +134,12 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	if landmarks.World != "world" || len(landmarks.Landmarks) != 1 || landmarks.Landmarks[0].Entity != "portal" || landmarks.Landmarks[0].AgeS < 60 || landmarks.Landmarks[0].Tag != "mine" {
 		t.Fatal(landmarks)
 	}
+	if err := store.RememberContainers("other", []home.RememberedContainer{{Entity: "chest", Size: [2]int{2, 2}, At: now, Items: []protocol.InventoryItem{{Prefab: "Stone", Stack: 99}}}}, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.RememberContainers("world", []home.RememberedContainer{{Entity: "unmapped", Size: [2]int{2, 2}, At: now}}, time.Now()); err != nil {
+		t.Fatal(err)
+	}
 	w = get("/api/map", true)
 	var mapped MapSnapshot
 	if err := json.Unmarshal(w.Body.Bytes(), &mapped); err != nil {
@@ -141,4 +148,30 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	if mapped.World != "world" || mapped.Connection == 0 || len(mapped.Landmarks) != 1 || len(mapped.Tiles) != 1 || mapped.Tiles[0].X != -3 || mapped.Tiles[0].Heights[0] != nil || *mapped.Tiles[0].Heights[1] != 32 {
 		t.Fatal(mapped)
 	}
+	if len(mapped.Containers) != 1 || mapped.Containers[0].Entity != "chest" || mapped.Containers[0].Inventory().Count("Wood") != 10 || !mapped.Containers[0].At.Equal(now) {
+		t.Fatal(mapped.Containers)
+	}
+	// A later empty observation replaces the old contents in the same store.
+	empty := mapped.Containers[0]
+	empty.Items = nil
+	empty.At = time.Now()
+	if err := store.RememberContainers("world", []home.RememberedContainer{empty}, empty.At); err != nil {
+		t.Fatal(err)
+	}
+	refreshed := a.MapSnapshot().(MapSnapshot)
+	if len(refreshed.Containers) != 1 || len(refreshed.Containers[0].Items) != 0 || !refreshed.Containers[0].At.Equal(empty.At) {
+		t.Fatal(refreshed.Containers)
+	}
+	// A menu state must not expose remembered contents from the old world.
+	p.Send(&protocol.State{Phase: protocol.PhaseMenu})
+	for a.Session.State().Phase != protocol.PhaseMenu {
+		if time.Now().After(until) {
+			t.Fatal("menu state not received")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if closed := a.MapSnapshot().(MapSnapshot); closed.World != "" || len(closed.Containers) != 0 {
+		t.Fatal(closed)
+	}
+
 }

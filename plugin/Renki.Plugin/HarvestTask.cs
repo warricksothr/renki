@@ -20,6 +20,7 @@ namespace Renki.Plugin
         readonly ZNetView view;
         readonly Collider[] targetColliders;
         readonly HashSet<string> yields = new HashSet<string>();
+        readonly List<Character> nearbyCharacters = new List<Character>();
         readonly HashSet<ZDOID> oldDrops = new HashSet<ZDOID>();
         readonly Dictionary<string, int> before = new Dictionary<string, int>();
         readonly Collider[] hits = new Collider[256];
@@ -213,13 +214,13 @@ namespace Renki.Plugin
 
         bool ThreatNear(Player p)
         {
-            var count = Physics.OverlapSphereNonAlloc(p.transform.position, 15, hits, ~0, QueryTriggerInteraction.Ignore);
-            if (count == hits.Length) return true;
-            for (var i = 0; i < count; i++)
-            {
-                var c = hits[i].GetComponentInParent<Character>();
+            // Construction colliders can saturate a broad-phase buffer around
+            // home. Use the same character registry as perception so dense
+            // scenery cannot masquerade as an enemy or hide one.
+            nearbyCharacters.Clear();
+            Character.GetCharactersInRange(p.transform.position, 15, nearbyCharacters);
+            foreach (var c in nearbyCharacters)
                 if (c != null && c != p && !(c is Player) && !c.IsDead() && BaseAI.IsEnemy(p, c)) return true;
-            }
             return false;
         }
 

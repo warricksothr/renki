@@ -31,6 +31,8 @@ mapped=dict(world=status['world'],connection=1,tiles=tiles,landmarks=landmarks)
 frames=[dict(type='layout',walls=[dict(a=[-42,36,-2],b=[-34,36,-5],h=2),dict(a=[-34,36,-5],b=[-27,36,13],h=2),dict(a=[-27,36,13],b=[-35,36,16],h=2),dict(a=[-35,36,16],b=[-42,36,-2],h=2)]),dict(type='perception',structures=[dict(id='chest',kind='container',pos=[-34,36,4]),dict(id='door',kind='door',open=True,pos=[-40,36,3]),dict(id='bench',kind='station',pos=[-30,36,9]),dict(id='bed',kind='bed',pos=[-34,36,12])],resources=[dict(id='tree',kind='tree',prefab='Beech1',pos=[-53,33,25])])]
 mapped['walls'] = frames[0]['walls']
 mapped['perception'] = frames[1]
+mapped['containers'] = [dict(entity='chest',pos=[-34,36,4],size=[5,2],at='2026-10-29T18:00:00Z',items=[dict(prefab='CookedDeerMeat',stack=9),dict(prefab='Wood',stack=12)]),dict(entity='empty-chest',pos=[-54,33,4],size=[5,2],at='2026-10-29T17:00:00Z',items=[])]
+frames[1]['structures'].extend([dict(id='empty-chest',kind='container',pos=[-54,33,4]),dict(id='unknown-chest',kind='container',pos=[-54,33,14])])
 if args.status:
  status=json.loads(pathlib.Path(args.status).read_text())
  mapped=json.loads(pathlib.Path(args.map).read_text())

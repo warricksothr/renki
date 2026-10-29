@@ -32,6 +32,14 @@ on the ticket so a resumed session can read those instead of old transcripts.
 Rerun checks after changes or new evidence, rather than repeating passing
 suites while waiting for the game. The complete gate is still required.
 
+For a single live task, `just vm task-check <task> '<args>' <timeout>` sends
+once, waits for its terminal status, saves the complete task history in
+`.checks/`, and prints only the result and evidence path. Its query timestamp
+selects the current controller run so recycled task IDs cannot select an older
+run. It exits nonzero for refusal, failure or a wait limit; it never resends or
+cancels a task. Use a finite positive timeout and inspect retained diagnostics
+before retrying. The audit summary below adds pack/chest and health evidence.
+
 For a short incident that needs state and perception as well as decisions,
 `just vm audit-window <since> <until>` saves only that ISO timestamp window
 to `.checks/` and prints its path. `just vm audit-summary <since> <until>`

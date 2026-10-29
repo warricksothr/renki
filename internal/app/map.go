@@ -7,17 +7,18 @@ import (
 )
 
 type MapSnapshot struct {
-	World      string                 `json:"world"`
-	Connection uint64                 `json:"connection"`
-	Tiles      []protocol.TerrainTile `json:"tiles"`
-	Landmarks  []home.Landmark        `json:"landmarks"`
-	Perception *protocol.Perception   `json:"perception,omitempty"`
-	Walls      []protocol.Wall        `json:"walls"`
+	World      string                     `json:"world"`
+	Connection uint64                     `json:"connection"`
+	Tiles      []protocol.TerrainTile     `json:"tiles"`
+	Containers []home.RememberedContainer `json:"containers"`
+	Landmarks  []home.Landmark            `json:"landmarks"`
+	Perception *protocol.Perception       `json:"perception,omitempty"`
+	Walls      []protocol.Wall            `json:"walls"`
 }
 
 func (a *App) MapSnapshot() any {
 	world, conn, tiles := a.Session.TerrainSnapshot()
-	out := MapSnapshot{World: world, Connection: conn, Tiles: tiles, Landmarks: []home.Landmark{}}
+	out := MapSnapshot{World: world, Connection: conn, Tiles: tiles, Landmarks: []home.Landmark{}, Containers: []home.RememberedContainer{}}
 	out.Perception, out.Walls = a.Session.MapObjects(world, conn)
 	if world != "" {
 		out.Landmarks = a.Landmarks.Store.Landmarks(world)
@@ -28,6 +29,22 @@ func (a *App) MapSnapshot() any {
 		}
 		if len(out.Landmarks) > 512 {
 			out.Landmarks = out.Landmarks[:512]
+		}
+		// Include only mapped entities, keeping the snapshot bounded by its
+		// landmarks and visible structures. This is the bot's shared memory.
+		mapped := make(map[string]bool, len(out.Landmarks))
+		for _, landmark := range out.Landmarks {
+			mapped[landmark.Entity] = true
+		}
+		if out.Perception != nil {
+			for _, structure := range out.Perception.Structures {
+				mapped[structure.ID] = true
+			}
+		}
+		for _, chest := range a.Memory.Store.RememberedContainers(world) {
+			if mapped[chest.Entity] {
+				out.Containers = append(out.Containers, chest)
+			}
 		}
 	}
 	return out
