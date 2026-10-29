@@ -133,6 +133,13 @@ func TestNoRunningThroughTheThreat(t *testing.T) {
 	if want := []string{"flee 0:7 25 toward nowhere", "say: Too much for me. Getting away from the greyling."}; !slices.Equal(f.sent, want) {
 		t.Fatalf("sent %q\nwant %q", f.sent, want)
 	}
+	// Home too far to run to.
+	f.sent, c.t = nil, c.t.Add(Again+time.Second)
+	r.home = func() (protocol.Vec3, bool) { return protocol.Vec3{-400, 30, 0}, true }
+	r.Tick(context.Background())
+	if want := []string{"flee 0:7 25 toward nowhere", "say: Too much for me. Getting away from the greyling."}; !slices.Equal(f.sent, want) {
+		t.Fatalf("far from home: sent %q\nwant %q", f.sent, want)
+	}
 	if PastThreat(protocol.Vec3{}, protocol.Vec3{5, 0, 0}, protocol.Vec3{0, 0, 30}) {
 		t.Error("off to the side counted as past the threat")
 	}

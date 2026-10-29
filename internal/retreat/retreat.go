@@ -33,6 +33,11 @@ const (
 	Again = 10 * time.Second
 	// There is how near safety the bot must be to be at it already.
 	There = 6.0
+	// HomeReach is how far home may be to run to: farther, the run itself
+	// is the danger.
+	HomeReach = 150.0
+	// For bounds one flee: one that cannot reach safety still ends.
+	For = 60.0
 )
 
 // Session is what the retreat needs of the session.
@@ -118,7 +123,7 @@ func (r *Retreat) Tick(ctx context.Context) {
 		line = "Too much for me. Heading home."
 	}
 	r.last = r.now()
-	if _, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskFlee, Args: args}); err != nil {
+	if _, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskFlee, Args: args, TimeoutS: For}); err != nil {
 		r.log.Warn("could not flee", "err", err)
 		return
 	}
@@ -163,8 +168,8 @@ func Threat(pos protocol.Vec3, seen *protocol.Perception) *protocol.PerceivedCha
 }
 
 // safety is where to run: the nearest owner in sight within OwnerReach,
-// named in owner and with Pos set to where they stand, or home when the
-// threat is not at it, or nowhere.
+// named in owner and with Pos set to where they stand, or home within
+// HomeReach when the threat is not at it, or nowhere.
 func (r *Retreat) safety(pos, threat protocol.Vec3, seen *protocol.Perception) (to protocol.Target, owner string) {
 	owners := r.owners()
 	best := OwnerReach
@@ -183,7 +188,7 @@ func (r *Retreat) safety(pos, threat protocol.Vec3, seen *protocol.Perception) (
 	if r.home == nil {
 		return protocol.Target{}, ""
 	}
-	if h, ok := r.home(); ok && h.FlatDistance(threat) > HomeClear {
+	if h, ok := r.home(); ok && h.FlatDistance(threat) > HomeClear && h.FlatDistance(pos) <= HomeReach {
 		return protocol.Target{Pos: &h}, ""
 	}
 	return protocol.Target{}, ""

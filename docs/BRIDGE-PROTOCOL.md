@@ -606,13 +606,14 @@ chat event
 - **Getting away.** Below 40% health, with a hostile creature that has
   picked the bot (`targetingMe`) within 15 m, the controller sends `flee`
   from the nearest such creature, 25 m, toward the nearest owner in sight
-  within 60 m, else home unless the creature is within 15 m of it, else
+  within 60 m, else home if it is within 150 m and the creature not within
+  15 m of it, else
   straight away (also when the owner or home lies past the creature, as the
   plugin judges it), and says which ("Falling back to you, Sothr", "Heading
   home", "Getting away from the greyling"). At an owner's side already it
   stays, since running on would leave them; at home already, it runs
-  straight away. It does not start another while a flee runs, nor within
-  10 s of the last. It needs `flee` in
+  straight away. Each flee has 60 s. It does not start another while a flee
+  runs, nor within 10 s of the last. It needs `flee` in
   `allowedTasks`.
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back
