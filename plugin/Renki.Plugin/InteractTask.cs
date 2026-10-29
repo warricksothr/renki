@@ -55,6 +55,10 @@ namespace Renki.Plugin
             var go = ((MonoBehaviour)it).gameObject;
             switch (it)
             {
+                // Its own grave it empties into the pack when all of it
+                // fits; otherwise the game opens it as a chest.
+                case TombStone t:
+                    return t.IsOwner() && t.EasyFitInInventory(Player.m_localPlayer) ? InteractRule.Other : InteractRule.Container;
                 case OfferingBowl _: return InteractRule.Boss;
                 case ShipControlls _: return InteractRule.Ship;
                 case Pickable _: return InteractRule.Pickable;
@@ -76,9 +80,10 @@ namespace Renki.Plugin
         {
             var p = Player.m_localPlayer;
             if (p == null) return Outcome.Failed(Wire.ReasonStopped, "no player");
+            // Used up by the first press of a hold is still used.
+            if (holdUntil >= 0) return obj == null ? Answer(used) : Holding(p);
             if (obj == null) return Outcome.Failed(Wire.ReasonTargetLost, $"the {name} is gone");
             var pos = p.transform.position;
-            if (holdUntil >= 0) return Holding(p);
             if (Near(p))
             {
                 Driver.Stand();
@@ -160,6 +165,9 @@ namespace Renki.Plugin
             finally
             {
                 Heard.Into = null;
+                // Whatever opened a window anyway (a tombstone too full to
+                // take at once opens as a chest) is shut: nobody is there to use it.
+                if (InventoryGui.IsVisible()) InventoryGui.instance.Hide();
             }
         }
 

@@ -51,7 +51,9 @@ namespace Renki.Plugin
                 case InteractArgs ia:
                     {
                         var obj = FindEntity(ia.Entity);
-                        var it = obj != null ? obj.GetComponentInParent<Interactable>() : null;
+                        // A tombstone carries a Container too, which is not what to use.
+                        var it = obj == null ? null
+                            : (Interactable)obj.GetComponentInParent<TombStone>() ?? obj.GetComponentInParent<Interactable>();
                         if (obj != null && it == null)
                         {
                             // A part may carry it; with several (a smelter's

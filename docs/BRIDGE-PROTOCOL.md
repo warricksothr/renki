@@ -453,7 +453,8 @@ Notes:
   their own tasks or open a window the bot cannot use, and so is a thing
   with several parts to use and none named (a smelter's ore, fuel and
   output). Wards are `not_allowed`: switching one, or joining it, is its
-  owner's to do. It needs
+  owner's to do. A tombstone counts as a chest unless it is the bot's own
+  and all of it fits in the pack, when using it takes everything. It needs
   `allowMovement`, and nothing behind a ward the bot has no access to.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
