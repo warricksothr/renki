@@ -57,7 +57,8 @@ type memory struct {
 	Graves map[string][]Grave `json:"graves,omitempty"`
 	// Shunned are the worlds where the bot died near home and has had no
 	// order since: nothing sends it home there by itself.
-	Shunned []string `json:"shunned,omitempty"`
+	Shunned    []string                                  `json:"shunned,omitempty"`
+	Containers map[string]map[string]RememberedContainer `json:"containers,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file

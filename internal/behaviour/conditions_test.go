@@ -1,8 +1,10 @@
 package behaviour
 
 import (
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"testing"
+	"time"
 )
 
 func ptr[T any](v T) *T { return &v }
@@ -98,4 +100,28 @@ func TestManualStartBeforeFirstSchedulerTickIsNotLost(t *testing.T) {
 	f.act(t, "start", "start")
 	f.tick()
 	f.p.NextTask()
+}
+
+func TestRememberedStockUsesItsAgeAndLiveEmptyChestWins(t *testing.T) {
+	f := setup(t)
+	f.e.o.Containers = func(world string) []home.RememberedContainer {
+		if world != "test" {
+			t.Fatal(world)
+		}
+		return []home.RememberedContainer{{Entity: "chest", Size: [2]int{2, 2}, Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 10}}, At: f.now.Add(-2 * time.Second)}}
+	}
+	c := Conditions{Stock: []Stock{{Container: "chest", Prefab: "Wood", MinCount: 10, MaxAgeS: 3}}}
+	if !c.Match(f.e.view()) {
+		t.Fatal("fresh remembered stock ignored")
+	}
+	c.Stock[0].MaxAgeS = 1
+	if c.Match(f.e.view()) {
+		t.Fatal("stale remembered stock accepted")
+	}
+	c.Stock[0].MaxAgeS = 3
+	f.p.Send(&protocol.Container{Entity: "chest", Size: [2]int{2, 2}})
+	wait(t, func() bool { return len(f.s.Containers()) == 1 })
+	if c.Match(f.e.view()) {
+		t.Fatal("old memory overruled live empty chest")
+	}
 }

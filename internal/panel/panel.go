@@ -69,7 +69,8 @@ type Options struct {
 	// Dispatch sends an explicit task through normal capability/safety checks.
 	Dispatch func(context.Context, TaskCommand) (string, error)
 	// Behaviours serves engine controls behind the panel's authentication.
-	Behaviours http.Handler
+	Behaviours      http.Handler
+	ContainerMemory func() any
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -119,6 +120,12 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	if o.ContainerMemory != nil {
+		authed.HandleFunc("GET /api/memory/containers", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(o.ContainerMemory())
+		})
+	}
 	if o.Behaviours != nil {
 		authed.Handle("GET /api/behaviours", o.Behaviours)
 		authed.Handle("POST /api/behaviours", o.Behaviours)
