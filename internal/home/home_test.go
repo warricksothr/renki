@@ -316,9 +316,15 @@ func TestIdleUnderTheFloorGoesHome(t *testing.T) {
 // TestIdleDoesNotRetryAnUnreachableHome: once a trip home finds no way
 // there, idling waits for the bot to move rather than shouting every spell.
 func TestIdleDoesNotRetryAnUnreachableHome(t *testing.T) {
+	for _, reason := range []string{protocol.ReasonUnreachable, protocol.ReasonDeepWater} {
+		t.Run(reason, func(t *testing.T) { idleDoesNotRetry(t, reason) })
+	}
+}
+
+func idleDoesNotRetry(t *testing.T, reason string) {
 	k, f, c := keeper(t, Memory())
 	ctx := context.Background()
-	f.final, f.reason = true, protocol.ReasonUnreachable
+	f.final, f.reason = true, reason
 	hello := &protocol.Hello{}
 	f.set(hello, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
 	k.SetHome(protocol.Vec3{-35.9, 36.09, 6.53}, "Nimah")

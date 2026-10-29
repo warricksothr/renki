@@ -32,7 +32,12 @@ namespace Renki.Plugin
         public string Blocked { get; private set; }
 
         /// <summary>The failure for a walk the walker will not make, or null.</summary>
-        public Outcome Refused() => Blocked != null ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null;
+        /// <summary>The deep_water failure, once the bot is on dry land. A
+        /// swimming bot is not left treading water: Steer takes it ashore
+        /// first, and the re-plan there decides.</summary>
+        public Outcome Refused() =>
+            Blocked != null && Player.m_localPlayer?.IsSwimming() != true
+                ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null;
 
         /// <summary>The terrain's height at x, z, or NaN where it is not
         /// loaded.</summary>
@@ -235,13 +240,15 @@ namespace Renki.Plugin
                     shore = null;
                 }
             }
-            if (shore == null && p.GetStamina() >= SwimLow * p.GetMaxStamina()) return false;
+            // Low on stamina, or refused the way on: ashore first.
+            if (shore == null && Blocked == null && p.GetStamina() >= SwimLow * p.GetMaxStamina()) return false;
             if (shore == null)
             {
                 // A failed search is not run again every frame.
                 if (Time.time - noShoreAt < 2f) return false;
                 shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel, tried: triedShores);
-                Tracer.Emit("walker", shore != null ? "swimming, low on stamina: making for shore" : "swimming, low on stamina, and no shore in reach",
+                var why = Blocked != null ? "swimming, the way on is refused" : "swimming, low on stamina";
+                Tracer.Emit("walker", shore != null ? why + ": making for shore" : why + ", and no shore in reach",
                     new Dictionary<string, object>
                     {
                         ["stamina"] = System.Math.Round(p.GetStamina(), 1),

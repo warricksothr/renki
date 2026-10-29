@@ -386,15 +386,16 @@ func (k *Keeper) Tick(ctx context.Context) {
 	}
 }
 
-// watchIdle notes where an idle trip home found no way there, so idling
-// does not set off from the same spot every spell.
+// watchIdle notes where an idle trip home found no way there, the navmesh
+// not reaching it or deep water in the way, so idling does not set off from
+// the same spot every spell.
 func (k *Keeper) watchIdle(ctx context.Context, t *session.Task) {
 	select {
 	case <-t.Done():
 	case <-ctx.Done():
 		return
 	}
-	if _, reason, _ := t.Status(); reason != protocol.ReasonUnreachable {
+	if _, reason, _ := t.Status(); reason != protocol.ReasonUnreachable && reason != protocol.ReasonDeepWater {
 		return
 	}
 	if st := k.s.State(); st != nil {

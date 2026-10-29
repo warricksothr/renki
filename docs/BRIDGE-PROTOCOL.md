@@ -459,6 +459,7 @@ Notes:
   swims slowly, regains no stamina in the water and drowns at none. Deep
   water the line starts in does not count, so a bot already swimming may
   head out, and ground in a zone not loaded counts as unknown, not as water.
+  A swimming bot refused this way makes for shore first, and fails there.
 - **Swimming:** a swimming bot walks, never runs. Below 30% stamina it makes
   for the nearest point it can stand on (searched in rings out to 60 m, the lowest on the nearest ring),
   whatever its goal, and the stuck count holds meanwhile. A point it gets no
