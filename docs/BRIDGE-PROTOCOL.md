@@ -512,7 +512,8 @@ chat event
   under `weightMax`: common raw materials (wood, stone, flint, resin,
   feathers), then other materials, then food and potions, then trophies
   and other odds and ends, then valuables (`value`). It never drops anything equipped or any gear (weapons, tools,
-  armour, shields, torches, ammunition). It shouts what it left, and keeps
+  armour, shields, torches, ammunition), and drops nothing at all when even
+  everything else would not bring it under; it says so instead. It shouts what it left, and keeps
   where and what per world in `dataDir`, shown by `status` and on the panel
   map, until perception, from within 15 m, has seen none of it there for
   5 s; a place where it sees fewer than it left now remembers that many.

@@ -202,6 +202,16 @@ func TestNotAllowedToDropSaysSoOnce(t *testing.T) {
 	}
 }
 
+func TestNothingIsDroppedWhenItWouldNotBeEnough(t *testing.T) {
+	u, f, store, _ := unloader(true)
+	f.st = overloaded(700)
+	u.Tick(context.Background())
+	want := []string{"say: I'm carrying too much, and even without everything but my gear it would still be too much."}
+	if got := f.said(); !reflect.DeepEqual(got, want) || len(store.LeftBehind("Midgard")) != 0 {
+		t.Errorf("sent %q", got)
+	}
+}
+
 func TestGearIsNeverDropped(t *testing.T) {
 	u, f, store, c := unloader(true)
 	axe := item("AxeStone", "TwoHandedWeapon", 1, 3)

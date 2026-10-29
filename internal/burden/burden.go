@@ -2,6 +2,7 @@ package burden
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -61,7 +62,7 @@ type Unloader struct {
 	next time.Time
 	// unsaid is what it left and could not announce because the link
 	// went; it is said on the next connection.
-	unsaid string
+	unsaid map[string]int
 	// told is set once the bot has said why it is still carrying too
 	// much (all gear, or it may not drop), so it says so once per overload.
 	told bool
@@ -104,10 +105,10 @@ func (u *Unloader) Tick(ctx context.Context) {
 	if hello != u.conn {
 		// A new connection: try at once, and say again what is wrong.
 		u.conn, u.next, u.told = hello, time.Time{}, false
-		if u.unsaid != "" {
-			line := fmt.Sprintf("I was carrying too much, so I left %s back there. I'll remember where.", u.unsaid)
+		if len(u.unsaid) > 0 {
+			line := fmt.Sprintf("I was carrying too much, so I left %s back there. I'll remember where.", list(u.unsaid))
 			if u.say(ctx, line) == nil {
-				u.unsaid = ""
+				u.unsaid = nil
 			}
 		}
 	}
@@ -132,16 +133,23 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.tell(ctx, "I'm carrying too much, and all of it is gear I won't leave behind.")
 		return
 	}
+	if short {
+		// Even all it may drop would not free it: leave everything, rather
+		// than scatter its valuables for nothing.
+		u.tell(ctx, "I'm carrying too much, and even without everything but my gear it would still be too much.")
+		return
+	}
 	left := map[string]int{}
+	lost := false
 	for _, d := range drops {
 		n, err := u.drop(ctx, d)
 		if n > 0 {
 			left[d.Prefab] += n
 		}
-		if err != nil {
+		if errors.Is(err, session.ErrNotConnected) || ctx.Err() != nil {
 			// The link went, or the controller is stopping: what went out is
 			// still remembered, and the rest waits for the next connection.
-			u.next = time.Time{}
+			lost = true
 			break
 		}
 	}
@@ -153,10 +161,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 		}
 		u.remember(st.World, pos, left)
 	}
-	if u.next.IsZero() {
-		if len(left) > 0 {
-			u.unsaid = list(left)
-		}
+	if lost {
+		u.next = time.Time{}
+		u.owe(left)
 		return
 	}
 	if len(left) == 0 {
@@ -166,13 +173,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.tell(ctx, "I'm carrying too much, and I can't put anything down.")
 		return
 	}
-	line := fmt.Sprintf("I was carrying too much, so I left %s here. I'll remember where.", list(left))
-	if short {
-		line = fmt.Sprintf("I was carrying too much, so I left %s here. It's still too much, but the rest is gear.", list(left))
-	}
 	// Any failure to send: the link is going, and the next one hears it.
-	if u.say(ctx, line) != nil {
-		u.unsaid = list(left)
+	if u.say(ctx, fmt.Sprintf("I was carrying too much, so I left %s here. I'll remember where.", list(left))) != nil {
+		u.owe(left)
 	}
 }
 
@@ -314,6 +317,19 @@ func distance(a, b protocol.Vec3) float64 {
 
 func missingKey(world string, pos protocol.Vec3, prefab string) string {
 	return fmt.Sprintf("%s|%.1f|%.1f|%s", world, pos[0], pos[2], prefab)
+}
+
+// owe adds what it left to what it has yet to announce.
+func (u *Unloader) owe(left map[string]int) {
+	if len(left) == 0 {
+		return
+	}
+	if u.unsaid == nil {
+		u.unsaid = map[string]int{}
+	}
+	for p, n := range left {
+		u.unsaid[p] += n
+	}
 }
 
 // tell says text once per overload.
