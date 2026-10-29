@@ -184,25 +184,63 @@ namespace Renki.Plugin
         /// <summary>Stamina below this share, a swimming bot makes for shore.</summary>
         const float SwimLow = 0.3f;
 
+        /// <summary>Seconds without getting nearer before a shore is given up.</summary>
+        const float ShoreStall = 4f;
+
         V3? shore;
+        readonly List<V3> triedShores = new List<V3>();
+        double shoreBest;
+        float shoreGainAt, noShoreAt = float.MinValue;
+        bool swimming;
 
         /// <summary>A swimming bot walks: running drains the stamina it
         /// needs to stay afloat, and none comes back in the water. With
         /// little left it makes for the nearest shore, whatever the goal, and
-        /// holds the stuck count meanwhile. True while it is doing that.</summary>
+        /// holds the stuck count meanwhile; a shore it gets no nearer to, or
+        /// reaches still swimming, it gives up for another. True while it is
+        /// doing that. Out of the water it plans the way to the goal again,
+        /// since the line it swam out on may cross back.</summary>
         bool Swim(Vector3 pos, ref bool run)
         {
             var p = Player.m_localPlayer;
             if (p == null || !p.IsSwimming())
             {
                 shore = null;
+                triedShores.Clear();
+                if (swimming && p != null)
+                {
+                    swimming = false;
+                    Repath(pos);
+                }
                 return false;
             }
+            swimming = true;
             run = false;
+            if (shore is V3 aim)
+            {
+                var d = V3.FlatDistance(Convert.ToV3(pos), aim);
+                if (d < shoreBest - 0.5)
+                {
+                    shoreBest = d;
+                    shoreGainAt = Time.time;
+                }
+                else if (Time.time - shoreGainAt > ShoreStall || d < 1.5)
+                {
+                    Tracer.Emit("walker", "swimming: cannot get ashore there; trying another", new Dictionary<string, object>
+                    {
+                        ["pos"] = Convert.ToArray(pos),
+                        ["shore"] = aim.ToArray(),
+                    });
+                    triedShores.Add(aim);
+                    shore = null;
+                }
+            }
             if (shore == null && p.GetStamina() >= SwimLow * p.GetMaxStamina()) return false;
             if (shore == null)
             {
-                shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel);
+                // A failed search is not run again every frame.
+                if (Time.time - noShoreAt < 2f) return false;
+                shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel, tried: triedShores);
                 Tracer.Emit("walker", shore != null ? "swimming, low on stamina: making for shore" : "swimming, low on stamina, and no shore in reach",
                     new Dictionary<string, object>
                     {
@@ -210,7 +248,13 @@ namespace Renki.Plugin
                         ["pos"] = Convert.ToArray(pos),
                         ["shore"] = shore?.ToArray(),
                     });
-                if (shore == null) return false;
+                if (shore == null)
+                {
+                    noShoreAt = Time.time;
+                    return false;
+                }
+                shoreBest = V3.FlatDistance(Convert.ToV3(pos), shore.Value);
+                shoreGainAt = Time.time;
             }
             stuck.Hold(Time.time);
             var dir = Convert.ToVector3(shore.Value) - pos;

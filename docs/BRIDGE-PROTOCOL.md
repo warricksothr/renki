@@ -456,10 +456,15 @@ Notes:
   when no path comes back, unless that line crosses water deeper than 1.4 m
   (sampled every 2 m, the ground's height against the water level): then
   `move_to`, `pickup` and `follow` fail with `deep_water`, since the bot
-  swims slowly, regains no stamina in the water and drowns at none.
+  swims slowly, regains no stamina in the water and drowns at none. Deep
+  water the line starts in does not count, so a bot already swimming may
+  head out, and ground in a zone not loaded counts as unknown, not as water.
 - **Swimming:** a swimming bot walks, never runs. Below 30% stamina it makes
   for the nearest point it can stand on (searched in rings out to 60 m),
-  whatever its goal, and the stuck count holds meanwhile.
+  whatever its goal, and the stuck count holds meanwhile. A point it gets no
+  nearer to for 4 s, or reaches still swimming, it gives up, and searches
+  again passing over points within 8 m of it. Out of the water it plans its
+  way again, so a line back across the water is refused.
 - Steering sets the move direction and look yaw every frame.
 - **Stuck detection:** the bot is stuck while it stays within 3 m of where it
   was. Every 3 s inside that circle triggers the next recovery: a jump, then a
