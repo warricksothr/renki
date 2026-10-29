@@ -69,6 +69,8 @@ type fake struct {
 	drops map[string]int  // prefab → how many the plugin drops; absent drops all asked
 	hello *protocol.Hello // nil is disconnected
 	cut   int             // drops to let through before the link goes; 0 never
+	// notAllowed refuses every drop, as a session without drop does.
+	notAllowed bool
 }
 
 func (f *fake) Handshake() (*protocol.Hello, *protocol.Welcome, bool) {
@@ -96,6 +98,10 @@ func (f *fake) Dispatch(_ context.Context, o session.Order) (*session.Task, erro
 	}
 	switch a := o.Args.(type) {
 	case *protocol.DropArgs:
+		if f.notAllowed {
+			f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
+			return nil, session.ErrNotAllowed
+		}
 		f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
 		if f.cut > 0 {
 			if f.cut--; f.cut == 0 {
@@ -184,9 +190,25 @@ func TestOnlyWhatTheGameDroppedIsRemembered(t *testing.T) {
 	}
 }
 
-func TestNotAllowedToDropSaysSoOnce(t *testing.T) {
+func TestARefusedPrefabGivesWayToTheNext(t *testing.T) {
 	u, f, store, c := unloader(true)
 	f.drops = map[string]int{"Wood": 0}
+	f.st = overloaded(306)
+	u.Tick(context.Background())
+	c.t = c.t.Add(Settle)
+	u.Tick(context.Background())
+	want := []string{"drop 3 Wood", "drop 3 Stone"}
+	if got := f.said(); len(got) < 2 || !reflect.DeepEqual(got[:2], want) {
+		t.Fatalf("sent %q\nwant it to start %q", got, want)
+	}
+	if left := store.LeftBehind("Midgard"); len(left) != 1 || left[0].Items["Stone"] != 3 {
+		t.Errorf("remembered %+v", left)
+	}
+}
+
+func TestNotAllowedToDropSaysSoOnce(t *testing.T) {
+	u, f, store, c := unloader(true)
+	f.notAllowed = true
 	f.st = overloaded(310)
 	u.Tick(context.Background())
 	c.t = c.t.Add(Settle)

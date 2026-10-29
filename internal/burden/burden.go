@@ -63,6 +63,9 @@ type Unloader struct {
 	// unsaid is what it left and could not announce because the link
 	// went; it is said on the next connection.
 	unsaid map[string]int
+	// refused are the prefabs the plugin would not drop during this
+	// overload; plans leave them out so the rest get a turn.
+	refused map[string]bool
 	// told is set once the bot has said why it is still carrying too
 	// much (all gear, or it may not drop), so it says so once per overload.
 	told bool
@@ -104,7 +107,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 	}
 	if hello != u.conn {
 		// A new connection: try at once, and say again what is wrong.
-		u.conn, u.next, u.told = hello, time.Time{}, false
+		u.conn, u.next, u.told, u.refused = hello, time.Time{}, false, nil
 		if len(u.unsaid) > 0 {
 			line := fmt.Sprintf("I was carrying too much, so I left %s back there. I'll remember where.", list(u.unsaid))
 			if !linkGone(u.say(ctx, line)) {
@@ -118,7 +121,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 	}
 	u.forgetGone(st, seen)
 	if !st.Encumbered() {
-		u.told = false
+		u.told, u.refused = false, nil
 		return
 	}
 	inv := u.s.Inventory()
@@ -128,7 +131,7 @@ func (u *Unloader) Tick(ctx context.Context) {
 	u.next = u.now().Add(Settle)
 	// The state's weight is rounded: over by less than it shows still
 	// needs one thing dropped.
-	drops, short := Plan(inv, max(st.Weight, st.WeightMax+0.01), st.WeightMax)
+	drops, short := Plan(u.droppable(inv), max(st.Weight, st.WeightMax+0.01), st.WeightMax)
 	if len(drops) == 0 {
 		u.tell(ctx, "I'm carrying too much, and all of it is gear I won't leave behind.")
 		return
@@ -140,11 +143,17 @@ func (u *Unloader) Tick(ctx context.Context) {
 		return
 	}
 	left := map[string]int{}
-	lost := false
+	lost, newlyRefused := false, false
 	for _, d := range drops {
 		n, err := u.drop(ctx, d)
 		if n > 0 {
 			left[d.Prefab] += n
+		}
+		if n == 0 && err == nil {
+			if u.refused == nil {
+				u.refused = map[string]bool{}
+			}
+			u.refused[d.Prefab], newlyRefused = true, true
 		}
 		if linkGone(err) || ctx.Err() != nil {
 			// The link went, or the controller is stopping: what went out is
@@ -167,8 +176,12 @@ func (u *Unloader) Tick(ctx context.Context) {
 		return
 	}
 	if len(left) == 0 {
-		// Not allowed (allowedTasks or the plugin's allowDrop), or refused:
-		// say so once, and do not ask again every few seconds.
+		if newlyRefused {
+			// Refused for those prefabs: plan again without them.
+			return
+		}
+		// Not allowed (allowedTasks or the plugin's allowDrop): say so once,
+		// and do not ask again every few seconds.
 		u.next = u.now().Add(Retry)
 		u.tell(ctx, "I'm carrying too much, and I can't put anything down.")
 		return
@@ -317,6 +330,16 @@ func distance(a, b protocol.Vec3) float64 {
 
 func missingKey(world string, pos protocol.Vec3, prefab string) string {
 	return fmt.Sprintf("%s|%.1f|%.1f|%s", world, pos[0], pos[2], prefab)
+}
+
+// droppable is inv without what the plugin has refused to drop.
+func (u *Unloader) droppable(inv *protocol.Inventory) *protocol.Inventory {
+	if len(u.refused) == 0 {
+		return inv
+	}
+	out := *inv
+	out.Items = slices.DeleteFunc(slices.Clone(inv.Items), func(it protocol.InventoryItem) bool { return u.refused[it.Prefab] })
+	return &out
 }
 
 // linkGone reports whether a Dispatch failed for want of a link, rather
