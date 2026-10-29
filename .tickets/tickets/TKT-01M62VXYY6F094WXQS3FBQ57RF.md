@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T21:59:57Z
+updated_at: 2026-10-29T22:08:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -110,3 +110,14 @@ Filed draft TKT-01M64T4WGZA175B38A8GBQ9YD4 (Tools: acquire, craft, repair and up
 The first live stow check on cf04d60 exposed a startup publication-order bug before any body task or inventory mutation: inventory seq 113 arrived at 21:57:21.842Z while state still said connecting/world empty; the first in_world/DizzysHellheim state seq 117 arrived at 21:57:22.005Z and correctly cleared observations from the old world. With an unchanged pack there was no second inventory. The stow job therefore failed its bounded five-second observation wait at 21:58:06Z. Tas remained idle at home, 25/25 HP; the 15 seeds were untouched.
 
 Follow-up t3/world-observation-order fixes the sender, preserving the controller's world-clearing rule. ObservationSchedule forces state on phase/world/player-identity transitions even between periodic ticks. RenkiPlugin publishes that state before reporter events, inventory, terrain and perception, and resends observations on scope changes. Welcome resets the state deadline. Inventory is emitted only in-world/dead. Regressions cover entering between periodic ticks, reconnect, different worlds, replacement players and menu transitions. Focused just check plugin test-core ObservationScheduleTests passed; gate/review and deployment follow. The seed and loose-stone checks must be retried after the fix, and are not yet passes.
+
+**agent:codex/renki-resume** at 2026-10-29T22:08:25Z
+
+Live checks on 91b4835 after the startup fix:
+- First in-world state seq117 at 22:02:57.890Z preceded inventory seq118 at 22:02:57.903Z. The unchanged 15-seed inventory was available without a reconnect or pack mutation.
+- Stow t-1 at 22:03:12–22:03:14Z deposited exactly five BeechSeeds into 1:30592 and preserved ten. The chest's one ArmorRagsChest was unchanged. Withdraw t-2 at 22:03:33Z restored the pack to 15 seeds and the chest to its original contents.
+- Initial collection move t-3 failed safely inside the house: local search exhausted 215 nodes /1720 probes at 22:03:45Z (47.72 ms total, 2.11 ms worst frame), with no item mutation. Explicit door interaction t-4 moved Tas from (-36.07,36.09,7.82) to (-37.69,36.09,9.52) and opened the west door. That combines opening and repositioning; it does not isolate the navigation cause.
+- Retried stone collection then completed t-5 move to site, t-6 use Stone, t-7 take one Stone, t-8 approach chest, t-9 deposit exactly one Stone, t-10 return to site (22:04:58–22:05:12Z). Chest held Stone1 plus the unchanged rag armour. Tas stayed 25/25 HP. This is a controlled full loop after doorway staging, not proof of reliable unattended house exits.
+- The next flint job used its pickable at 22:06:02Z and auto-pickup put Flint1 in the pack at 22:06:03.489Z. A stale perceived product caused pickup t-13 to arrive 97 ms later and be rejected invalid_target: no drop in range. The Flint is safe in the pack, but delivery stopped. No full flint-loop pass is claimed yet.
+
+Follow-up t3/collection-pickup-race checks measured whole-yield gains before choosing stale product drops. A rejected missing product can be handled only while a known pickable's output is pending; fresh inventory evidence is still required. Added regressions cover both inventory-before-perception and request-versus-auto-pickup races, plus refusal without inventory evidence. Also handle a rejected vanished chest as an unmutated fallback, with permission rejection still terminal. Focused just check controller test-packages ./internal/behaviour passed. Gate/review/controller deploy and a new flint target follow; final live receipt will be attached to the follow-up PR. Background jobs remain uninstalled and check definitions are disabled between runs.

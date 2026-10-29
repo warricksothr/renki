@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T18:35:05Z
+updated_at: 2026-10-29T22:08:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -92,3 +92,14 @@ Implemented the owner-requested mark/refresh/sweep cache on t3/navigation-cache.
 NavigationCacheTests adds 14 cases covering rotated/rounded geometry, circles, height/backing-out, index moves/removals/deduplication, stale-bound rejection, refresh priority, bounded support memory and floor lifetime. An identical deterministic detour uses fewer simulated live queries; actual Unity CPU savings are not yet measured. just check plugin build and just check plugin test-core NavigationCacheTests passed; just check ci passed all 158 C# tests including interop plus the controller race suite and both builds. docs/TESTING.md now names cache limits, trace fields and remaining staged checks.
 
 Live testing remains deferred at the owner's request: repeat the exact house exit/return, changed walls/floors/doors, stop during planning and near-leader waiting, and compare planner plus maintenance CPU. Do not close the remaining follower criterion from Core tests. M3 retreat implementation remains staged for a controlled Greyling check; M2 next implementation is the ready behaviour-engine ticket TKT-01M62VXYSN4RQV75HTA3BSD162 (Controller: behaviour engine: templates, instances, triggers, repeat), followed by chest/work-site memory and loot/stow orchestration. The milestones remain incomplete.
+
+**agent:codex/renki-resume** at 2026-10-29T22:08:25Z
+
+Live checks on 91b4835 after the startup fix:
+- First in-world state seq117 at 22:02:57.890Z preceded inventory seq118 at 22:02:57.903Z. The unchanged 15-seed inventory was available without a reconnect or pack mutation.
+- Stow t-1 at 22:03:12–22:03:14Z deposited exactly five BeechSeeds into 1:30592 and preserved ten. The chest's one ArmorRagsChest was unchanged. Withdraw t-2 at 22:03:33Z restored the pack to 15 seeds and the chest to its original contents.
+- Initial collection move t-3 failed safely inside the house: local search exhausted 215 nodes /1720 probes at 22:03:45Z (47.72 ms total, 2.11 ms worst frame), with no item mutation. Explicit door interaction t-4 moved Tas from (-36.07,36.09,7.82) to (-37.69,36.09,9.52) and opened the west door. That combines opening and repositioning; it does not isolate the navigation cause.
+- Retried stone collection then completed t-5 move to site, t-6 use Stone, t-7 take one Stone, t-8 approach chest, t-9 deposit exactly one Stone, t-10 return to site (22:04:58–22:05:12Z). Chest held Stone1 plus the unchanged rag armour. Tas stayed 25/25 HP. This is a controlled full loop after doorway staging, not proof of reliable unattended house exits.
+- The next flint job used its pickable at 22:06:02Z and auto-pickup put Flint1 in the pack at 22:06:03.489Z. A stale perceived product caused pickup t-13 to arrive 97 ms later and be rejected invalid_target: no drop in range. The Flint is safe in the pack, but delivery stopped. No full flint-loop pass is claimed yet.
+
+Follow-up t3/collection-pickup-race checks measured whole-yield gains before choosing stale product drops. A rejected missing product can be handled only while a known pickable's output is pending; fresh inventory evidence is still required. Added regressions cover both inventory-before-perception and request-versus-auto-pickup races, plus refusal without inventory evidence. Also handle a rejected vanished chest as an unmutated fallback, with permission rejection still terminal. Focused just check controller test-packages ./internal/behaviour passed. Gate/review/controller deploy and a new flint target follow; final live receipt will be attached to the follow-up PR. Background jobs remain uninstalled and check definitions are disabled between runs.

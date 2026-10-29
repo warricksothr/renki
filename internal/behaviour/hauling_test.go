@@ -343,3 +343,71 @@ func TestStorageNoticeIsScopedCopiedAndDeduplicated(t *testing.T) {
 		t.Fatal(lines)
 	}
 }
+
+func TestCollectDoesNotChaseProductAlreadyAutoPicked(t *testing.T) {
+	p := collectParams()
+	p.MaxTargets = 1
+	p.Return = false
+	r := &collectRun{p: p, seen: map[string]bool{}}
+	v := haulView()
+	v.Inventory = pack(10)
+	v.Perception.Resources = []protocol.PerceivedResource{target("flint", protocol.ResourcePickable, "Flint", 1)}
+	nextTask(t, r, v, nil, protocol.TaskInteract)
+	v.Inventory = pack(13, material("Flint", 1))
+	v.Perception.Resources = []protocol.PerceivedResource{target("stale-product", protocol.ResourceDrop, "Flint", 1)}
+	// A new inventory can arrive before the next perception removes the drop.
+	o := nextTask(t, r, v, success("pick"), protocol.TaskDeposit)
+	if o.Args.(*protocol.TransferArgs).Items[0].Prefab != "Flint" {
+		t.Fatal(o)
+	}
+}
+
+func TestCollectRecoversDisappearingSpawnedDropOnlyWithInventoryEvidence(t *testing.T) {
+	p := collectParams()
+	p.MaxTargets = 1
+	p.Return = false
+	makeRun := func() (*collectRun, View) {
+		r := &collectRun{p: p, seen: map[string]bool{}}
+		v := haulView()
+		v.Inventory = pack(10)
+		v.Perception.Resources = []protocol.PerceivedResource{target("flint", protocol.ResourcePickable, "Flint", 1)}
+		nextTask(t, r, v, nil, protocol.TaskInteract)
+		v.Perception.Resources = []protocol.PerceivedResource{target("product", protocol.ResourceDrop, "Flint", 1)}
+		nextTask(t, r, v, success("pick"), protocol.TaskPickup)
+		return r, v
+	}
+	rejected := &Result{Status: protocol.StatusRejected, Reason: protocol.ReasonInvalidTarget, TaskID: "take"}
+	r, v := makeRun()
+	if !r.Recover(*rejected) {
+		t.Fatal("pending product rejection must be observed")
+	}
+	if _, err := r.Next(v, rejected); !errors.Is(err, ErrWait) {
+		t.Fatal("must not claim collection with no inventory gain", err)
+	}
+	v.Inventory = pack(20, material("Flint", 1))
+	nextTask(t, r, v, rejected, protocol.TaskDeposit)
+	r, v = makeRun()
+	v.Inventory = pack(20, material("Flint", 1))
+	nextTask(t, r, v, rejected, protocol.TaskDeposit)
+	r = &collectRun{task: protocol.TaskPickup}
+	if r.Recover(*rejected) {
+		t.Fatal("unrelated invalid targets cannot be swallowed")
+	}
+}
+
+func TestStowFallsBackFromRejectedMissingChestWithoutAReceipt(t *testing.T) {
+	r := &stowRun{p: stowParams()}
+	v := haulView()
+	nextTask(t, r, v, nil, protocol.TaskDeposit)
+	rejected := &Result{Status: protocol.StatusRejected, Reason: protocol.ReasonInvalidTarget, TaskID: "first"}
+	if !r.Recover(*rejected) {
+		t.Fatal("host rejects a vanished chest before transfer starts")
+	}
+	o := nextTask(t, r, v, rejected, protocol.TaskDeposit)
+	if a := o.Args.(*protocol.TransferArgs); a.Container != "b" || a.Items[0].Count != 8 {
+		t.Fatal(a)
+	}
+	if r.Recover(Result{Status: protocol.StatusRejected, Reason: protocol.ReasonNotAllowed}) {
+		t.Fatal("permission failure must stop")
+	}
+}

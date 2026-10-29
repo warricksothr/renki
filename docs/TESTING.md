@@ -387,3 +387,30 @@ on every phase/world/player transition, with welcome resetting its deadline.
 `just check plugin test-core ObservationScheduleTests` covers the scheduling
 race. After deployment, verify the first in-world state precedes inventory
 and a manual stow works without waiting for a pack mutation or reconnect.
+
+### Collection/stow live checks, 2026-10-29
+
+On 91b4835, initial state seq117 preceded inventory seq118. The seed-stow
+job worked without a reconnect or inventory mutation: t-1 deposited five
+BeechSeeds and kept ten; t-2 withdrew the five, restoring all 15. The rag
+armour in chest 1:30592 was unchanged.
+
+Initial move t-3 to the stone site failed inside the raised house with no
+supported local route. Interact t-4 opened the west door and repositioned
+Tas closer to it. Retrying completed the stone loop: t-5 went to
+(-50.62,32.41,18.46), t-6 used the Stone, t-7 picked up one Stone, t-8
+approached the chest, t-9 deposited one Stone, t-10 returned to the site
+(22:04:58Z–22:05:12Z). Tas stayed 25/25 HP. Treat this as a controlled loop
+after doorway staging; the initial closed-door/start-position failure
+remains open on the navigation ticket.
+
+The first flint trial auto-picked Flint1 before its explicit pickup request;
+t-13 was rejected because the perceived drop had already disappeared.
+Collection now checks whole-yield inventory gains before stale products and
+handles that specific pending-product rejection only with inventory evidence.
+A missing chest rejected before transfer can also fall back to the next
+named chest without needing a nonexistent receipt. Controller regressions
+cover both races, missing evidence and retained permission failure handling.
+The initial flint trial did not deliver; a post-fix full loop still needs
+its own live receipt. Full/warded storage and repeat unattended house exits
+remain staged checks.

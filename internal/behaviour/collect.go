@@ -88,6 +88,12 @@ func (r *collectRun) Recover(result Result) bool {
 	if r.stow != nil {
 		return r.stow.Recover(result)
 	}
+	// Auto-pickup can consume a spawned product after perception but before
+	// the explicit request reaches GameTaskHost. Only a pending pickable
+	// may recover this rejection, and Next still requires measured pack gain.
+	if r.picked && r.task == protocol.TaskPickup && result.Status == protocol.StatusRejected && result.Reason == protocol.ReasonInvalidTarget {
+		return true
+	}
 	if result.Status != protocol.StatusFailed {
 		return false
 	}
@@ -167,6 +173,11 @@ func (r *collectRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	// After using a pickable, wait for its products or a measured inventory
 	// increase. Its animation/RPC result alone is not a collection receipt.
+	if r.picked && v.Inventory.Seq > r.beforeSeq && v.Inventory.Count(r.yield.Prefab)-r.beforeCount >= r.yield.Count {
+		// The whole possible yield is already in the pack. The current
+		// perception may still show the drop the game just auto-picked.
+		r.picked = false
+	}
 	if r.picked {
 		for _, drop := range v.Perception.Resources {
 			if r.targets < 128 && drop.Kind == protocol.ResourceDrop && !r.seen[drop.ID] && drop.Yield != nil && drop.Yield.Prefab == r.yield.Prefab && distance(drop.Pos, r.targetPos) <= 4 && distance(drop.Pos, r.p.Site.Pos) <= r.p.Site.Radius && r.fits(v, drop.Yield) {
