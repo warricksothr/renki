@@ -34,8 +34,11 @@ namespace Renki.Plugin
         /// <summary>The failure for a walk the walker will not make, or null.</summary>
         public Outcome Refused() => Blocked != null ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null;
 
+        /// <summary>The terrain's height at x, z, or NaN where it is not
+        /// loaded.</summary>
         static double Ground(double x, double z) =>
-            ZoneSystem.instance != null ? ZoneSystem.instance.GetGroundHeight(new Vector3((float)x, 0, (float)z)) : 0;
+            ZoneSystem.instance != null && ZoneSystem.instance.GetGroundHeight(new Vector3((float)x, 0, (float)z), out var h)
+                ? h : double.NaN;
 
         static double WaterLevel => ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000;
 

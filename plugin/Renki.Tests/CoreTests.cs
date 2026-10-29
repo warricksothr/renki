@@ -227,6 +227,11 @@ namespace Renki.Tests
             Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(18, 34, 0), Ground, 30));
             // Wading depth is fine.
             Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), (x, z) => 29, 30));
+            // Already swimming: the way out is open, a way back in is not.
+            Assert.Null(DeepWater.Crossing(new V3(40, 30, 0), new V3(0, 34, 0), Ground, 30));
+            Assert.NotNull(DeepWater.Crossing(new V3(40, 30, 0), new V3(0, 34, 0), (x, z) => x > 20 ? 25 : x > 10 ? 34 : 25, 30));
+            // Ground not loaded is not water.
+            Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), (x, z) => x > 50 ? double.NaN : 34, 30));
         }
 
         [Fact]
