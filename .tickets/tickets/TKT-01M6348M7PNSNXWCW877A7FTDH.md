@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T06:06:26Z
-updated_at: 2026-10-29T06:06:26Z
+updated_at: 2026-10-29T06:37:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -55,7 +55,19 @@ same data for paths later.
 
 ## Acceptance criteria
 
-- [ ] The plugin sends the walls near the bot as segments in a layout message when they change, with a protocol fixture
-- [ ] The controller keeps the newest layout, the audit log records it, and a new panel page gets it
-- [ ] The panel map draws the walls under the markers, so rooms, doors and chests read in place
+- [x] The plugin sends the walls near the bot as segments in a layout message when they change, with a protocol fixture
+- [x] The controller keeps the newest layout, the audit log records it, and a new panel page gets it
+- [x] The panel map draws the walls under the markers, so rooms, doors and chests read in place
 - [ ] A scan with layout stays within the perception budget
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T06:37:00Z
+
+Deployed and seen on the VM at home: 72 walls in range, and the panel draws the house outline with the gap at the door (checked against the real layout frame in a local preview).
+
+AC 4 (budget) is left unticked. In steady state the scan averages 1.1–1.25 ms with layout on (1.0 before), and the worst over 30 s is 2.5–4.8 ms (2.4 before). The first scan after login was already ~40 ms (JIT and first classification) and is now ~56 ms: measuring is about 0.1 ms per piece the first time, capped at 200 pieces per scan, so a base fills in over a few scans. If that spike matters, lower MeasurePerScan.
+
+Accepted review finding: walls below the bot are drawn at full strength, so an upstairs bot sees the ground floor's walls over its own doorways. A two-sided band would also fade every building downhill (the old shelter sits 3.7 m below the house), and the bot is on the ground floor far more often, so only upper storeys fade.
+
+Half walls (1 m) and floors are not walls by design (WallShape: at least 1.2 m tall, twice as long as thick, at most ~1 m thick).
