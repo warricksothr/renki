@@ -21,23 +21,22 @@ namespace Renki.Plugin
         const float RefusedFor = 10f;
 
         /// <summary>How long a door the bot just opened or shut is left
-        /// alone. Interact asks the door's owner to toggle it, and its state
-        /// takes a moment to come back: asking again before then toggles it
-        /// a second time.</summary>
-        const float SettleFor = 1.5f;
+        /// alone, and how long one it asked to open may stay shut before it
+        /// counts as refused. Interact asks the door's owner to toggle it,
+        /// and its state takes a moment to come back (longer on a slow
+        /// link): asking again before then toggles it a second time.</summary>
+        const float SettleFor = 3f;
 
         /// <summary>How long a door the bot shut stays out of stuck recovery,
         /// so a stuck bot does not reopen the door it just shut.</summary>
         const float ShutFor = 10f;
 
-        /// <summary>How long a door the bot asked to open may stay shut before
-        /// it counts as refused. Longer than SettleFor: on a slow link the
-        /// state comes back late.</summary>
-        const float RefusedAfter = 3f;
-
         /// <summary>A door the bot opened but never went through is shut
-        /// anyway after this long, once the bot is clear of it.</summary>
+        /// anyway after this long, once the bot is clear of it, if it is
+        /// still within AbandonReach; farther off it is left as it is.</summary>
         const float AbandonAfter = 20f;
+
+        const double AbandonReach = 6;
 
         sealed class Opened
         {
@@ -139,7 +138,7 @@ namespace Renki.Plugin
                     continue;
                 }
                 var at = Convert.ToV3(o.Door.transform.position);
-                if (!o.Through && !o.Refused && Time.time - o.At > RefusedAfter && !IsOpen(o.Door))
+                if (!o.Through && !o.Refused && Time.time - o.At > SettleFor && !IsOpen(o.Door))
                 {
                     // Asked to open and still shut: a ward, a key, or the owner
                     // shut it again. Leave it alone for a while, but keep it,
@@ -155,7 +154,16 @@ namespace Renki.Plugin
                 }
                 if (DoorRules.In(pos, at)) o.Through = true;
                 if (!DoorRules.Past(pos, at)) continue;
-                if (!o.Through && Time.time - o.At < AbandonAfter) continue;
+                if (!o.Through)
+                {
+                    if (Time.time - o.At < AbandonAfter) continue;
+                    if (V3.FlatDistance(pos, at) > AbandonReach)
+                    {
+                        // Too far off to reach for it, as a player would not.
+                        opened.RemoveAt(i);
+                        continue;
+                    }
+                }
                 if (leave.TryGetValue(o.Door, out var settling) && Time.time < settling) continue;
                 opened.RemoveAt(i);
                 if (!IsOpen(o.Door) || o.Door.m_canNotBeClosed) continue;
