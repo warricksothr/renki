@@ -33,6 +33,7 @@ type App struct {
 	Retreat    *retreat.Retreat
 	Behaviours *behaviour.Engine
 	Memory     *memory.Containers
+	Landmarks  *memory.Landmarks
 	Bridge     *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
@@ -86,6 +87,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Containers: homes.RememberedContainers,
 		Logger:     log.With("part", "behaviour")})
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
+	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
@@ -127,12 +129,21 @@ func Welcome(cfg config.Config, v settings.Values) *protocol.Welcome {
 // Serve runs the controller on ln until ctx ends.
 func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	landmarksDone := make(chan struct{})
+	defer func() {
+		cancel()
+		// Let the recorder persist its final batch before main can exit.
+		<-landmarksDone
+	}()
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
 	go a.Retreat.Run(ctx)
 	go a.Behaviours.Run(ctx)
 	go a.Memory.Run(ctx)
+	go func() {
+		defer close(landmarksDone)
+		a.Landmarks.Run(ctx)
+	}()
 	return a.Bridge.Serve(ctx, ln)
 }
 

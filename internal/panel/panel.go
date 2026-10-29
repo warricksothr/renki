@@ -71,6 +71,7 @@ type Options struct {
 	// Behaviours serves engine controls behind the panel's authentication.
 	Behaviours      http.Handler
 	ContainerMemory func() any
+	LandmarkMemory  func() any
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -124,6 +125,12 @@ func Handler(o Options) http.Handler {
 		authed.HandleFunc("GET /api/memory/containers", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(o.ContainerMemory())
+		})
+	}
+	if o.LandmarkMemory != nil {
+		authed.HandleFunc("GET /api/memory/landmarks", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(o.LandmarkMemory())
 		})
 	}
 	if o.Behaviours != nil {

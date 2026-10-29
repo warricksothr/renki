@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/protocol"
 	"time"
 )
 
@@ -24,6 +25,30 @@ func (a *App) ContainerMemory() any {
 	now := time.Now()
 	for _, c := range a.Memory.Store.RememberedContainers(out.World) {
 		out.Containers = append(out.Containers, ContainerMemoryEntry{c, now.Sub(c.At).Seconds()})
+	}
+	return out
+}
+
+type LandmarkMemoryEntry struct {
+	home.Landmark
+	AgeS float64 `json:"ageS"`
+}
+
+type LandmarkMemoryStatus struct {
+	World     string                `json:"world"`
+	Landmarks []LandmarkMemoryEntry `json:"landmarks"`
+}
+
+func (a *App) LandmarkMemory() any {
+	out := LandmarkMemoryStatus{Landmarks: []LandmarkMemoryEntry{}}
+	state := a.Session.State()
+	if state == nil || state.Phase != protocol.PhaseInWorld {
+		return out
+	}
+	out.World = state.World
+	now := time.Now()
+	for _, landmark := range a.Landmarks.Store.Landmarks(out.World) {
+		out.Landmarks = append(out.Landmarks, LandmarkMemoryEntry{landmark, now.Sub(landmark.At).Seconds()})
 	}
 	return out
 }
