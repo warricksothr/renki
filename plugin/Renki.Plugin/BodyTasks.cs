@@ -130,6 +130,14 @@ namespace Renki.Plugin
         {
             var p = Player.m_localPlayer;
             if (p == null) return false;
+            // Out of the stuck circle: free, and walking on is what is left.
+            if (V3.FlatDistance(Convert.ToV3(pos), stuck.Center) > stuck.Radius)
+            {
+                climb.Stop();
+                climbWaiting = false;
+                Tracer.Emit("walker", "climb: free", new Dictionary<string, object> { ["pos"] = Convert.ToArray(pos) });
+                return false;
+            }
             stuck.Hold(Time.time);
             // What a jump costs before gear and effects, which is near enough
             // to know how long to wait.
