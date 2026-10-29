@@ -793,14 +793,18 @@ const AFTER_DEATH = ["home", "resume", "stay"];
 // Lists, which come as null when empty.
 const LISTS = new Set(["owners", "nicknames", "allowedTasks"]);
 
-async function loadSettings() {
+// fresh is the key just changed from this page, whose row is rebuilt
+// even while it has the focus.
+async function loadSettings(fresh) {
   const res = await fetch("/api/settings").catch(() => null);
   if (!res || !res.ok) return;
   const entries = await res.json();
   // A row being edited stays as it is, so a refresh does not throw the
   // edit away; the rest show the values now.
-  const editing = document.activeElement?.closest?.("#settings-table tr");
-  const rows = entries.map((e) => (editing?.dataset.key === e.key ? editing : settingRow(e)));
+  const a = document.activeElement;
+  const typing = a?.matches?.('#settings-table input[type="text"], #settings-table input[type="number"], #settings-table select');
+  const editing = typing ? a.closest("tr") : null;
+  const rows = entries.map((e) => (editing?.dataset.key === e.key && e.key !== fresh ? editing : settingRow(e)));
   $("settings-table").replaceChildren(...rows);
   const changed = entries.filter((e) => e.set).length;
   $("settings-summary").textContent = changed ? `${changed} changed from the config` : "as the config has them";
@@ -896,7 +900,7 @@ async function changeSetting(body) {
   }).catch(() => null);
   const answer = res ? await res.json().catch(() => ({})) : {};
   settingResult(!!res?.ok, answer.text || "the controller did not answer");
-  loadSettings(); // the value now, which a refused change leaves as it was
+  loadSettings(body.key); // the value now, which a refused change leaves as it was
 }
 
 function settingResult(ok, text) {
@@ -908,6 +912,7 @@ function settingResult(ok, text) {
 }
 
 $("settings").addEventListener("toggle", () => $("settings").open && loadSettings());
+// A change from chat or another page arrives while this one may be typing.
 
 // ---- the stream ----
 
