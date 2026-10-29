@@ -1,7 +1,7 @@
 ---
 schema: 4
 id: TKT-01M62XRVCPQ36CXEG89JDAC1RS
-title: Drop the least valuable, heaviest items when overloaded, and remember them
+title: Drop the least valuable, heaviest things when overloaded; remember them
 type: task
 status: in-progress
 status_reason: null
@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T04:12:58Z
-updated_at: 2026-10-29T04:12:58Z
+updated_at: 2026-10-29T05:06:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -69,8 +69,14 @@ up later (by an owner, or by the bot once hauling exists).
 
 ## Acceptance criteria
 
-- [ ] An encumbered bot drops the least valuable, heaviest items first until it is under its carry weight
-- [ ] It never drops equipped items, tools, weapons or armour
-- [ ] It says what it left behind
+- [x] An encumbered bot drops the least valuable, heaviest items first until it is under its carry weight
+- [x] It never drops equipped items, tools, weapons or armour
+- [x] It says what it left behind
 - [ ] Where it left what is remembered per world, shown in status and on the panel map, and forgotten once the drops are gone
-- [ ] A switch turns it off, and the plugin's drop task sits behind a Safety switch
+- [x] A switch turns it off, and the plugin's drop task sits behind a Safety switch
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T05:06:42Z
+
+2026-10-29 00:05: deployed with drop in the VM's allowedTasks. On connecting at 306/300 the bot dropped 3 Wood and shouted 'I was carrying too much, so I left 3 Wood here. I'll remember where.' Criterion 4 is built and tested (status, panel map diamond, forgetting by perception) but the panel map and the forgetting have not been seen in the game yet. Three low review findings stand, all on recovery when the game refuses some drops: a partial drop continues the plan, the 'can't put anything down' line after refusals, and any non-success answer counting as a refusal.
