@@ -327,6 +327,8 @@ namespace Renki.Tests
             Assert.True(DoorRules.Ahead(at, V3.Zero, new V3(0.2, 0, 0))); // in the doorway
             Assert.False(DoorRules.Past(new V3(0, 0, 3), new V3(0, 0, 0)));
             Assert.True(DoorRules.Past(new V3(0, 0, 4), new V3(0, 0, 0)));
+            Assert.True(DoorRules.In(new V3(0, 0, 1), new V3(0, 0, 0)));
+            Assert.False(DoorRules.In(new V3(0, 0, 2), new V3(0, 0, 0)));
         }
 
         [Fact]

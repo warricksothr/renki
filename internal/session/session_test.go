@@ -121,6 +121,12 @@ func TestTheNewestPerceptionIsKept(t *testing.T) {
 	if len(s.Perception().Characters) != 1 {
 		t.Error("an older perception replaced a newer one")
 	}
+
+	// A new connection starts its sequence again: the old snapshot goes.
+	s.Connected(currentConn(t, s))
+	if s.Perception() != nil {
+		t.Error("the snapshot outlived a new connection")
+	}
 }
 
 func TestDisconnectStopsTasksAndSendsNothingAfter(t *testing.T) {

@@ -112,6 +112,7 @@ namespace Renki.Plugin
             }
 
             reporter.Update(runner.InSession);
+            if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
             if (runner.InSession && now >= nextState)
             {
                 var state = reporter.State(Phase(), runner.Current);

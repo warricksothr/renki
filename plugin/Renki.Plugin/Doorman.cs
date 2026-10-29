@@ -6,9 +6,11 @@ namespace Renki.Plugin
 {
     /// <summary>
     /// Doors for the walker: opens a closed one ahead, or beside the bot
-    /// when it is stuck, and shuts the ones it opened once it is past them.
-    /// It uses Door.Interact, as a player does, so wards and keys still
-    /// decide. The rules on distance and direction are DoorRules.
+    /// when it is stuck, and shuts the ones it opened once it has gone
+    /// through. It uses Door.Interact, as a player does, so wards and keys
+    /// still decide. The rules on distance and direction are DoorRules.
+    /// What the bot has opened is kept for the whole plugin, not per walk,
+    /// so Tick shuts a door behind it after the task that opened it ends.
     /// </summary>
     sealed class Doorman
     {
@@ -24,28 +26,45 @@ namespace Renki.Plugin
         /// a second time.</summary>
         const float SettleFor = 1.5f;
 
+        /// <summary>How long a door the bot shut stays out of stuck recovery,
+        /// so a stuck bot does not reopen the door it just shut.</summary>
+        const float ShutFor = 10f;
+
+        /// <summary>A door the bot opened but never went through is shut
+        /// anyway after this long, once the bot is clear of it.</summary>
+        const float AbandonAfter = 20f;
+
+        sealed class Opened
+        {
+            public Door Door;
+            public bool Through;
+            public float At;
+        }
+
+        static readonly List<Opened> opened = new List<Opened>();
+        static readonly Dictionary<Door, float> leave = new Dictionary<Door, float>();
+        static readonly Dictionary<Door, float> shut = new Dictionary<Door, float>();
+
         readonly List<Piece> near = new List<Piece>();
-        readonly List<Door> opened = new List<Door>();
-        readonly Dictionary<Door, float> leave = new Dictionary<Door, float>();
         float nextLook;
 
-        /// <summary>Each step while walking: shuts doors left behind, and a few
-        /// times a second opens a closed door ahead.</summary>
+        /// <summary>A few times a second while walking: opens a closed door ahead.</summary>
         public void Walk(Player me, Vector3 pos, Vector3 heading)
         {
-            if (!Enabled || me == null) return;
-            ShutBehind(me, pos);
-            if (Time.time < nextLook) return;
+            if (!Enabled || me == null || Time.time < nextLook) return;
             nextLook = Time.time + 0.25f;
             var at = Convert.ToV3(pos);
             var dir = Convert.ToV3(heading);
-            Open(me, pos, (float)DoorRules.Reach, d => DoorRules.Ahead(at, dir, Convert.ToV3(d)), "ahead");
+            Open(me, pos, (float)DoorRules.Reach, (d, _) => DoorRules.Ahead(at, dir, Convert.ToV3(d)), "ahead");
         }
 
-        /// <summary>When stuck: opens the nearest closed door in any direction.
-        /// True when it opened one, which is the recovery for this round.</summary>
+        /// <summary>When stuck: opens the nearest closed door in any direction,
+        /// other than one it has just shut. True when it opened one, which is
+        /// the recovery for this round.</summary>
         public bool Stuck(Player me, Vector3 pos) =>
-            Enabled && me != null && Open(me, pos, (float)DoorRules.StuckReach, _ => true, "stuck");
+            Enabled && me != null &&
+            Open(me, pos, (float)DoorRules.StuckReach,
+                (_, door) => !(shut.TryGetValue(door, out var until) && Time.time < until), "stuck");
 
         static bool IsOpen(Door d)
         {
@@ -53,7 +72,7 @@ namespace Renki.Plugin
             return zdo != null && zdo.GetInt(ZDOVars.s_state, 0) != 0;
         }
 
-        bool Open(Player me, Vector3 pos, float radius, System.Func<Vector3, bool> wanted, string why)
+        bool Open(Player me, Vector3 pos, float radius, System.Func<Vector3, Door, bool> wanted, string why)
         {
             near.Clear();
             Piece.GetAllPiecesInRadius(pos, radius, near);
@@ -64,7 +83,7 @@ namespace Renki.Plugin
                 if (!p.TryGetComponent<Door>(out var door) || IsOpen(door)) continue;
                 if (leave.TryGetValue(door, out var until) && Time.time < until) continue;
                 var at = door.transform.position;
-                if (!wanted(at)) continue;
+                if (!wanted(at, door)) continue;
                 var d = Vector3.Distance(pos, at);
                 if (d < bestDistance) (best, bestDistance) = (door, d);
             }
@@ -79,7 +98,7 @@ namespace Renki.Plugin
             // The door itself turns the bot away for a ward or a missing key.
             if (best.Interact(me, false, false))
             {
-                if (!opened.Contains(best)) opened.Add(best);
+                if (opened.Find(o => o.Door == best) == null) opened.Add(new Opened { Door = best, At = Time.time });
                 leave[best] = Time.time + SettleFor;
                 Tracer.Emit("door", "opening", data);
                 return true;
@@ -89,26 +108,40 @@ namespace Renki.Plugin
             return false;
         }
 
-        void ShutBehind(Player me, Vector3 pos)
+        /// <summary>Every frame in a session: notes when the bot is in the
+        /// doorway of a door it opened, and shuts that door once the bot is
+        /// past it, whether or not a task is still running.</summary>
+        public static void Tick(Player me)
         {
+            if (opened.Count == 0) return;
+            if (!Enabled || me == null)
+            {
+                opened.Clear();
+                return;
+            }
+            var pos = Convert.ToV3(me.transform.position);
             for (var i = opened.Count - 1; i >= 0; i--)
             {
-                var door = opened[i];
-                if (door == null)
+                var o = opened[i];
+                if (o.Door == null)
                 {
                     opened.RemoveAt(i);
                     continue;
                 }
-                if (!DoorRules.Past(Convert.ToV3(pos), Convert.ToV3(door.transform.position))) continue;
-                if (leave.TryGetValue(door, out var settling) && Time.time < settling) continue;
+                var at = Convert.ToV3(o.Door.transform.position);
+                if (DoorRules.In(pos, at)) o.Through = true;
+                if (!DoorRules.Past(pos, at)) continue;
+                if (!o.Through && Time.time - o.At < AbandonAfter) continue;
+                if (leave.TryGetValue(o.Door, out var settling) && Time.time < settling) continue;
                 opened.RemoveAt(i);
-                if (!IsOpen(door) || door.m_canNotBeClosed) continue;
-                door.Interact(me, false, false);
-                leave[door] = Time.time + SettleFor;
-                Tracer.Emit("door", "shutting behind", new Dictionary<string, object>
+                if (!IsOpen(o.Door) || o.Door.m_canNotBeClosed) continue;
+                o.Door.Interact(me, false, false);
+                leave[o.Door] = Time.time + SettleFor;
+                shut[o.Door] = Time.time + ShutFor;
+                Tracer.Emit("door", o.Through ? "shutting behind" : "shutting, never went through", new Dictionary<string, object>
                 {
-                    ["door"] = Convert.ToArray(door.transform.position),
-                    ["pos"] = Convert.ToArray(pos),
+                    ["door"] = Convert.ToArray(o.Door.transform.position),
+                    ["pos"] = pos.ToArray(),
                 });
             }
         }

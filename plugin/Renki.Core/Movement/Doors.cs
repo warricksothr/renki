@@ -18,6 +18,11 @@ namespace Renki.Movement
         /// <summary>How far past a door the bot shuts it again.</summary>
         public const double ShutPast = 3.5;
 
+        /// <summary>How close the bot must come to a door it opened before
+        /// leaving it counts as going through: a door opened from a few
+        /// metres away is not passed until the bot has been in it.</summary>
+        public const double Through = 1.5;
+
         /// <summary>Half the angle, in degrees, in front of the bot that counts as ahead.</summary>
         public const double Cone = 70;
 
@@ -34,7 +39,11 @@ namespace Renki.Movement
             return cos >= Math.Cos(Cone * Math.PI / 180);
         }
 
-        /// <summary>The bot is far enough past a door it opened to shut it.</summary>
+        /// <summary>The bot is in the doorway of a door it opened.</summary>
+        public static bool In(V3 pos, V3 door) => V3.FlatDistance(pos, door) <= Through;
+
+        /// <summary>The bot, having been in the doorway, is far enough past
+        /// the door to shut it.</summary>
         public static bool Past(V3 pos, V3 door) => V3.FlatDistance(pos, door) > ShutPast;
     }
 }

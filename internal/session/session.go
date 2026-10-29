@@ -124,7 +124,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 		return !slices.Contains(c.Hello.Capabilities, t)
 	})
 	s.mu.Lock()
-	s.conn, s.state, s.allowed = c, nil, allowed
+	s.conn, s.state, s.seen, s.allowed = c, nil, nil, allowed
 	s.mu.Unlock()
 	s.log.Info("session started", "allowed", allowed)
 }
