@@ -39,6 +39,19 @@ of downloading or displaying a whole day. `just plugin game-source <Type>`
 saves the installed game's decompiled API under `.checks/game-source/` for
 local inspection; do not commit or redistribute those files.
 
+## Wall-aware route check
+
+From inside the raised home, stand outside the east wall and say `come here`.
+The walker should reject the direct or partial navmesh path, trace `planning
+a local route`, then `local route found`, leave through the west doorway and
+walk around the building. Inspect the planning trace's `expanded`, `probes`,
+`ms` and `worstFrameMs`. Repeat a return home and a follow across the doorway.
+Try stopping during planning, a blocked doorway, and a newly built/demolished
+wall. A partial path must end in a replan or an explained failure, never a
+straight drive through the remaining wall. These checks need the game: the
+Core regression uses the measured house walls but cannot establish physical
+support, stair clearance or door response.
+
 ## Raised-goal recovery check
 
 For TKT-01M647SMRM3XXAQS7Y9CW2TKZ9 (Retry raised goals from other approaches

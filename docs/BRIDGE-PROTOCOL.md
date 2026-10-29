@@ -498,14 +498,22 @@ Notes:
 ### 7.3 Movement inside the plugin
 
 - Get a path from the game's own navmesh
-  (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Fall back to a straight line
-  when no path comes back, unless that line crosses water deeper than 1.4 m
-  (sampled every 2 m, the ground's height against the water level): then
-  `move_to`, `pickup` and `follow` fail with `deep_water`, since the bot
-  swims slowly, regains no stamina in the water and drowns at none. Deep
-  water the line starts in does not count, so a bot already swimming may
-  head out, and ground in a zone not loaded counts as unknown, not as water.
-  A swimming bot refused this way makes for shore first, and fails there.
+  (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Check every segment against
+  the measured wall layout, with body clearance and wall height. Never steer
+  past the last waypoint of a partial path toward the original goal.
+- **Local routing:** when the navmesh has no path, ends more than 1.5 m short
+  across the ground, crosses a known wall, or stuck recovery asks for another
+  route, run local A* on 0.75 m cells. Ground probes preserve floors and
+  enforce a 0.6 m maximum step; capsule probes check clearance. Closed doors
+  remain usable through the normal door handler. Unknown support and water
+  more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
+  48 m from its start on each axis, and 8 s. It advances at most eight nodes
+  per physics step, with a 2 ms target budget, holding movement and the stuck
+  clock meanwhile. Traces record probes and actual total/worst-frame time.
+  Failure is `unreachable`, or `deep_water` if the original straight line
+  crossed deep water. A swimming bot seeks shore before failing. Current
+  physics overrides assumptions; local cells are not persisted across tasks
+  or restarts, so demolished walls cannot remain stale route blockers.
 - **Swimming:** a swimming bot walks, never runs. Below 30% stamina it makes
   for the nearest point it can stand on (searched in rings out to 60 m, the lowest on the nearest ring),
   whatever its goal, and the stuck count holds meanwhile. A point it gets no
@@ -524,7 +532,9 @@ Notes:
   resets when the bot gets 6 m from where the first recovery fired, so a
   strafe that carries it just over the edge and back is still stuck.
 - `follow` keeps `distance` with hysteresis. It walks when the gap is under
-  2× the distance, runs beyond that, and stops inside the distance.
+  2× the distance, runs beyond that, and stops inside the distance. If a known
+  wall blocks closing the last metre, it waits within `distance` + 1 m until
+  its leader moves farther away.
 
 ### 7.4 Other messages
 
