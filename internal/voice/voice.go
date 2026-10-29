@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 // Config is the `llm.terva` block of the controller's configuration.
@@ -44,12 +46,18 @@ type Config struct {
 
 // Options configure a Voice.
 type Options struct {
-	Terva   Config
+	Terva Config
+	// Model, when set, is read before each reply and replaces Terva's
+	// provider, model and base URL, so the settings store can switch them
+	// while the bot runs.
+	Model   func() settings.Model
 	Persona string
 	// DailyTokens caps input plus output tokens per local day; 0 is no cap.
 	DailyTokens int
 	Logger      *slog.Logger
 	Now         func() time.Time
+	// HTTP lists the backend's models. Default http.DefaultClient.
+	HTTP *http.Client
 	// newRuntime is replaced in tests.
 	newRuntime func(sdk.Config) (runtime, error)
 }
@@ -84,6 +92,9 @@ func New(opts Options) (*Voice, error) {
 	if opts.Now == nil {
 		opts.Now = time.Now
 	}
+	if opts.HTTP == nil {
+		opts.HTTP = http.DefaultClient
+	}
 	if opts.newRuntime == nil {
 		opts.newRuntime = func(c sdk.Config) (runtime, error) { return sdk.New(c) }
 	}
@@ -115,10 +126,12 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 		return chat.Reply{}, err
 	}
 	rec := &recorder{}
+	m := v.model()
+	start := v.opts.Now()
 	rt, err := v.opts.newRuntime(sdk.Config{
-		Provider:     v.opts.Terva.Provider,
-		Model:        v.opts.Terva.Model,
-		BaseURL:      v.opts.Terva.BaseURL,
+		Provider:     m.Provider,
+		Model:        m.Name,
+		BaseURL:      m.BaseURL,
 		Reasoning:    v.opts.Terva.Reasoning,
 		APIKey:       v.apiKey,
 		CWD:          v.cwd,
@@ -155,13 +168,71 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 			}
 		}
 	}
-	v.charge(rt.Cost())
+	cost := rt.Cost()
+	v.charge(cost)
+	// What each model costs and how long it takes, to compare them from
+	// the audit log.
+	took := []any{"model", m.Name, "ms", v.opts.Now().Sub(start).Milliseconds(),
+		"tokensIn", cost.Input, "tokensOut", cost.Output}
 	if failure != "" {
+		v.opts.Logger.Warn("voice failed", append([]any{"player", req.Speaker, "err", failure}, took...)...)
 		return chat.Reply{}, fmt.Errorf("terva: %s", failure)
 	}
 	reply := chat.Reply{Say: oneLine(text.String()), Task: rec.proposal()}
-	v.opts.Logger.Info("voice", "player", req.Speaker, "say", reply.Say, "proposal", reply.Task)
+	v.opts.Logger.Info("voice", append([]any{"player", req.Speaker, "say", reply.Say, "proposal", reply.Task}, took...)...)
 	return reply, nil
+}
+
+// model is the model to use now.
+func (v *Voice) model() settings.Model {
+	if v.opts.Model != nil {
+		return v.opts.Model()
+	}
+	return settings.Model{Provider: v.opts.Terva.Provider, Name: v.opts.Terva.Model, BaseURL: v.opts.Terva.BaseURL}
+}
+
+// Models lists the models the voice's backend offers, by name, from its
+// OpenAI-compatible /models endpoint.
+func (v *Voice) Models(ctx context.Context) ([]string, error) {
+	m := v.model()
+	base := m.BaseURL
+	switch {
+	case m.Provider != "openai-compatible" && m.Provider != "openai":
+		return nil, fmt.Errorf("listing models needs an OpenAI-compatible backend, and this one is %q", m.Provider)
+	case base == "" && m.Provider == "openai":
+		base = "https://api.openai.com/v1"
+	case base == "":
+		return nil, errors.New("no base URL to list models from")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	if v.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+v.apiKey)
+	}
+	res, err := v.opts.HTTP.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s/models: %s", strings.TrimRight(base, "/"), res.Status)
+	}
+	var body struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		return nil, fmt.Errorf("models: %w", err)
+	}
+	names := make([]string, 0, len(body.Data))
+	for _, d := range body.Data {
+		names = append(names, d.ID)
+	}
+	slices.Sort(names)
+	return slices.Compact(names), nil
 }
 
 func (v *Voice) persona(agent string, nicknames []string) string {

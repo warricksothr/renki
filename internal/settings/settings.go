@@ -29,14 +29,26 @@ type Values struct {
 	AllowedTasks []string `json:"allowedTasks"`
 	// Voice turns the LLM's chat replies on or off; off, the bot answers
 	// the command grammar only. It has no effect with no LLM configured.
-	Voice    bool             `json:"voice"`
+	Voice bool `json:"voice"`
+	// Model is the voice's model, seeded from llm.terva. The key stays in
+	// the environment variable llm.terva.apiKeyEnv names.
+	Model    Model            `json:"model"`
 	Home     config.HomeRules `json:"home"`
 	Overload config.Overload  `json:"overload"`
+}
+
+// Model names the voice's model: terva's provider, the model, and the
+// backend's base URL. Empty fields fall back to terva's own configuration.
+type Model struct {
+	Provider string `json:"provider"`
+	Name     string `json:"name"`
+	BaseURL  string `json:"baseURL"`
 }
 
 // Keys are the settings that can be changed, as dotted paths into Values.
 var Keys = []string{
 	"owners", "nicknames", "allowedTasks", "voice",
+	"model.provider", "model.name", "model.baseURL",
 	"home.whenLost", "home.whenStuck", "home.afterOutage", "home.idleMinutes", "home.afterDeath",
 	"overload.drop",
 }
@@ -300,7 +312,7 @@ func (s *Store) Entries() []Entry {
 func (s *Store) build(overrides map[string]Override) (Values, error) {
 	b := s.base
 	v := Values{Owners: b.Owners, Nicknames: b.Nicknames, AllowedTasks: b.AllowedTasks,
-		Voice: b.LLM != nil, Home: b.Home, Overload: b.Overload}
+		Voice: b.LLM != nil, Model: seed(b), Home: b.Home, Overload: b.Overload}
 	tree := map[string]any{}
 	raw, err := json.Marshal(v)
 	if err != nil {
@@ -337,6 +349,20 @@ func (s *Store) build(overrides map[string]Override) (Values, error) {
 		return Values{}, fmt.Errorf("%w: %v", ErrBadValue, err)
 	}
 	return out, nil
+}
+
+// seed is the model llm.terva names. A block that does not parse is the
+// voice's to report; here it names no model.
+func seed(c config.Config) Model {
+	var m struct {
+		Provider string `json:"provider"`
+		Model    string `json:"model"`
+		BaseURL  string `json:"baseURL"`
+	}
+	if c.LLM != nil && len(c.LLM.Terva) > 0 {
+		_ = json.Unmarshal(c.LLM.Terva, &m)
+	}
+	return Model{Provider: m.Provider, Name: m.Model, BaseURL: m.BaseURL}
 }
 
 // put sets the dotted path k in tree.

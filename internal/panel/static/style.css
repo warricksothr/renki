@@ -141,8 +141,15 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
 .legend .wall { background: var(--wall); height: 4px; width: 14px; border-radius: 0; vertical-align: 2px; }
 .legend .path { background: var(--path); height: 3px; border-radius: 0; vertical-align: 2px; }
 
-#inventory { border-bottom: 1px solid var(--line); padding: 4px 10px 8px; }
-#inventory summary { cursor: pointer; color: var(--text); padding: 2px 0 6px; }
+#inventory, #voice { border-bottom: 1px solid var(--line); padding: 4px 10px 8px; }
+#inventory summary, #voice summary { cursor: pointer; color: var(--text); padding: 2px 0 6px; }
+#voice-summary { color: var(--dim); margin-left: 6px; font-size: 12px; }
+.voice-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#model-select { background: var(--pane); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; max-width: 22em; }
+#model-result { color: var(--dim); }
+#model-result.error { color: var(--stuck); }
+#model-note { color: var(--dim); font-size: 12px; margin: 6px 0 0; }
+#model-note:empty { display: none; }
 #inv-summary { color: var(--dim); margin-left: 6px; font-size: 12px; }
 #inv-grid { display: grid; gap: 3px; }
 #inv-grid .slot {

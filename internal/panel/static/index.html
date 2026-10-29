@@ -62,6 +62,16 @@
       </ul>
     </section>
     <section id="feed-pane">
+      <details id="voice">
+        <summary>Voice <span id="voice-summary"></span></summary>
+        <div class="voice-row">
+          <label>Model <select id="model-select"></select></label>
+          <button id="model-use">Use</button>
+          <button id="model-refresh" title="Ask the backend which models it offers">Refresh</button>
+          <span id="model-result" role="status"></span>
+        </div>
+        <p id="model-note"></p>
+      </details>
       <details id="inventory" open>
         <summary>Inventory <span id="inv-summary">not yet seen</span></summary>
         <div id="inv-grid" role="grid" aria-label="The bot's inventory, as laid out in the game"></div>

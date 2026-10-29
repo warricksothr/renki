@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
+	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 const token = "0123456789abcdef-test"
@@ -205,5 +207,58 @@ func TestEventsReplayThenStream(t *testing.T) {
 	l.Frame(1, audit.In, []byte(`{"v":1,"type":"trace","seq":2,"t":0,"task":"t-1","source":"walker","msg":"stuck; trying Jump","data":{"attempt":1}}`))
 	if ev := next("record"); ev.Cat != CatTrace || !strings.Contains(ev.Line, "t-1 walker: stuck; trying Jump attempt=1") {
 		t.Errorf("live %+v", ev)
+	}
+}
+
+// TestSettingsFromThePage: a change is the panel's, the page reads it back
+// with who made it, and bad, unknown and owner-only changes say why.
+func TestSettingsFromThePage(t *testing.T) {
+	cfg := config.Default()
+	cfg.Owners = []string{"Sothr"}
+	cfg.LLM = &config.LLM{Terva: json.RawMessage(`{"provider":"openai-compatible","model":"gemma","baseURL":"http://cpa/v1"}`)}
+	store, err := settings.Open("", cfg, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l, _ := audit.Open("", 0, nil)
+	srv := httptest.NewServer(Handler(Options{
+		Token: token, Log: l, Status: func() any { return nil }, Settings: store,
+		Models: func(context.Context) ([]string, error) { return []string{"claude-haiku-5-5", "gemma"}, nil },
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}))
+	defer srv.Close()
+	do := func(method, path, body string) (int, string) {
+		req, _ := http.NewRequest(method, srv.URL+path, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set(ActHeader, "1")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(b)
+	}
+	for _, c := range []struct {
+		body string
+		code int
+	}{
+		{`{"key":"model.name","value":"claude-haiku-5-5"}`, 200},
+		{`{"key":"home.idleMinutes","value":"soon"}`, 400},
+		{`{"key":"colour","value":"red"}`, 404},
+		{`{"key":"model.name"`, 400},
+	} {
+		if code, body := do("POST", "/api/setting", c.body); code != c.code {
+			t.Errorf("%s: %d %s; want %d", c.body, code, body, c.code)
+		}
+	}
+	if m := store.Values().Model; m.Name != "claude-haiku-5-5" {
+		t.Errorf("model %+v", m)
+	}
+	if _, body := do("GET", "/api/settings", ""); !strings.Contains(body, `"by":"panel"`) {
+		t.Errorf("settings do not say the panel changed one: %s", body)
+	}
+	if _, body := do("GET", "/api/models", ""); !strings.Contains(body, `"models":["claude-haiku-5-5","gemma"]`) {
+		t.Errorf("models %s", body)
 	}
 }

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M630V7ZTEW2WR52HVWXR475M
 title: "Panel: choose the voice's model at runtime, to compare them"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -21,10 +21,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/panel-controls
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: e72594201fb46403dcb61a5ae1aed8f8b19514d6
+  session: null
+  claimed_at: 2026-10-29T07:37:25Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T05:06:42Z
-updated_at: 2026-10-29T05:26:35Z
+updated_at: 2026-10-29T07:42:42Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -51,6 +58,10 @@ between them while the bot runs.
 
 ## Acceptance criteria
 
-- [ ] The panel lists the models the configured backends offer and switches the voice to one without a restart
+- [x] The panel lists the models the configured backends offer and switches the voice to one without a restart
 - [ ] Every reply in the audit log names the model that wrote it, with its latency and tokens
-- [ ] The choice is kept in the settings store, recorded with who made it
+- [x] The choice is kept in the settings store, recorded with who made it
+
+## Implementation plan
+
+Settings store keys model.provider/name/baseURL seeded from llm.terva; the voice reads them per reply (a runtime is built per reply anyway) and logs model, ms, tokensIn, tokensOut. Voice.Models lists GET {baseURL}/models for OpenAI-compatible backends. Panel: GET /api/settings, POST /api/setting (as the panel), GET /api/models, and a Voice section with a model list, Use and Refresh, and who chose the model.

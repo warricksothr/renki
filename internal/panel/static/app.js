@@ -184,6 +184,7 @@ function chip(id, text, cls) {
 function onStatus(s) {
   chip("link", s.connected ? "connected" : "no plugin", s.connected ? "on" : "off");
   for (const b of document.querySelectorAll("button.act")) b.disabled = !s.connected || acting;
+  onModel(s);
   chip("who", s.character ? `${s.character}${s.world ? " in " + s.world : ""}` : "");
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
@@ -683,6 +684,84 @@ async function act(action) {
 }
 
 for (const b of document.querySelectorAll("button.act")) b.addEventListener("click", () => act(b.dataset.act));
+
+// ---- voice ----
+
+// The model the voice uses now, what the backend offers, and whether the
+// user has picked one in the list that is not yet in use.
+let model = { voice: false, name: "" };
+let offered = [];
+let picked = false;
+let modelError = "";
+let modelTimer = 0;
+
+function onModel(s) {
+  const changed = s.model?.name !== model.name;
+  model = { voice: !!s.voice, name: s.model?.name || "" };
+  $("voice-summary").textContent = model.voice ? model.name || "terva's default" : "off: commands only";
+  if (changed) {
+    picked = false;
+    fillModels();
+    loadModelNote();
+  }
+}
+
+function fillModels() {
+  const sel = $("model-select");
+  const names = [...new Set([model.name, ...offered].filter(Boolean))].sort();
+  // Rebuilt when the names or the one in use change, so the mark follows.
+  const key = model.name + "\n" + names.join("\n");
+  if (sel.dataset.names !== key) {
+    sel.dataset.names = key;
+    sel.replaceChildren(...names.map((n) => new Option(n === model.name ? `${n} (in use)` : n, n)));
+  }
+  if (!picked) sel.value = model.name;
+}
+
+async function loadModels() {
+  const res = await fetch("/api/models").catch(() => null);
+  const body = res && res.ok ? await res.json() : { error: "the controller did not answer" };
+  offered = body.models || [];
+  modelError = body.error ? `Cannot list the backend's models: ${body.error}` : "";
+  fillModels();
+  loadModelNote();
+}
+
+// Who chose the model in use, from the settings store.
+async function loadModelNote() {
+  const res = await fetch("/api/settings").catch(() => null);
+  const entries = res && res.ok ? await res.json() : [];
+  const e = entries.find((x) => x.key === "model.name");
+  let who = "";
+  if (e?.set) who = `Chosen by ${e.set.by}, ${new Date(e.set.at).toLocaleString()}.`;
+  else if (e) who = "As the config file has it.";
+  $("model-note").textContent = [who, modelError].filter(Boolean).join(" ");
+}
+
+async function useModel() {
+  const name = $("model-select").value;
+  const out = $("model-result");
+  if (!name || name === model.name) return;
+  const res = await fetch("/api/setting", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+    body: JSON.stringify({ key: "model.name", value: name }),
+  }).catch(() => null);
+  const body = res ? await res.json().catch(() => ({})) : {};
+  out.className = res?.ok ? "" : "error";
+  out.textContent = res?.ok ? "The next reply uses it." : body.text || "the controller did not answer";
+  if (res?.ok) {
+    picked = false;
+    model.name = ""; // the next status brings the new one and the note
+  }
+  clearTimeout(modelTimer);
+  modelTimer = setTimeout(() => (out.textContent = ""), 8000);
+}
+
+$("model-select").addEventListener("change", () => (picked = true));
+$("model-use").addEventListener("click", useModel);
+$("model-refresh").addEventListener("click", loadModels);
+$("voice").addEventListener("toggle", () => $("voice").open && loadModels());
 
 // ---- the stream ----
 

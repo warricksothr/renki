@@ -61,6 +61,13 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   what it is, its distance from the bot and its details, every item of a
   group. Scroll or use + and − to zoom; drag to pan, which stops it
   following the bot.
+- **Voice:** the model the bot's chat replies use, who chose it and when,
+  and a list of what the backend offers (its `/models`, for an
+  OpenAI-compatible backend such as cpa-api). **Use** switches to the one
+  picked, recorded as the panel's change in the settings store; the next
+  reply uses it, with no restart. Each reply's audit line (`voice`) names
+  the model, its latency in `ms` and its `tokensIn` and `tokensOut`, so
+  models can be compared from the log.
 - **Inventory:** what the bot carries, laid out as in the game, with stacks,
   a wear bar on items that wear (red below a quarter), equipped items
   outlined, and free slots and weight above. Hover a slot for the detail.
@@ -74,13 +81,17 @@ and inventory, and a state a second for the last five minutes for the trail.
 
 ## How it works
 
-`internal/panel` serves three embedded files and three endpoints, all
+`internal/panel` serves three embedded files and these endpoints, all
 behind the login: `GET /api/status`, a snapshot of the bot,
 `GET /api/events`, server-sent events carrying each audit record (`record`,
 with the timeline's `line` and a category `cat`) and a status every second
 (`status`), and `POST /api/act/{stop,home,logout}` for the buttons, which
 answers `{"text": …}` with 200, 404 for an unknown action or 409 when it
-could not be done. A press must carry an `X-Renki-Act` header: a page on
+could not be done. `GET /api/settings` lists the runtime settings with who
+set each, `POST /api/setting` with `{"key": …, "value": …}` changes one as
+the panel (400 bad value, 404 unknown key, 409 pinned or owners-only), and
+`GET /api/models` lists the voice's models. A press or a change must carry
+an `X-Renki-Act` header: a page on
 another site cannot add one without the browser asking this server first,
 which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a
 bearer token: `curl -H "Authorization: Bearer $TOKEN" http://…/api/status`.

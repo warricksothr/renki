@@ -7,6 +7,9 @@
 // server-sent events carrying the audit log's records as they are written
 // (internal/audit), after the recent ones, and a status snapshot each second.
 // POST /api/act/{action} asks the bot to stop, go home or log out.
+// GET /api/settings and POST /api/setting read and change the runtime
+// settings (internal/settings), and GET /api/models lists the voice's
+// models.
 package panel
 
 import (
@@ -24,6 +27,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/settings"
 )
 
 //go:embed static
@@ -46,6 +50,11 @@ type Options struct {
 	// Act does one of Actions and returns what to show for it, or an
 	// error to show instead. Nil turns the buttons' endpoint off.
 	Act func(ctx context.Context, action string) (string, error)
+	// Settings is the store the page reads and changes, as the panel.
+	// Nil turns those endpoints off.
+	Settings *settings.Store
+	// Models lists the voice's models; nil when there is no voice.
+	Models func(ctx context.Context) ([]string, error)
 }
 
 // Actions are what the page's buttons ask for.
@@ -82,6 +91,14 @@ func Handler(o Options) http.Handler {
 	if o.Act != nil {
 		authed.HandleFunc("POST /api/act/{action}", p.act)
 	}
+	if o.Settings != nil {
+		authed.HandleFunc("GET /api/settings", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(o.Settings.Entries())
+		})
+		authed.HandleFunc("POST /api/setting", p.set)
+	}
+	authed.HandleFunc("GET /api/models", p.models)
 
 	mux := http.NewServeMux()
 	// The stylesheet holds nothing private, and the login page needs it.
@@ -194,6 +211,57 @@ func (p *panel) act(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"text": text})
+}
+
+// set changes one setting from {"key": …, "value": …}, recorded as the
+// panel's change, and answers {"text": …}: 200, or 400 for a bad value, 404
+// for an unknown key, 409 for a pinned one.
+func (p *panel) set(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get(ActHeader) == "" {
+		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
+		return
+	}
+	var req struct {
+		Key   string          `json:"key"`
+		Value json.RawMessage `json:"value"`
+	}
+	code, text := http.StatusOK, ""
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
+		code, text = http.StatusBadRequest, "not a setting: "+err.Error()
+	} else if err := p.o.Settings.Set(req.Key, req.Value, settings.ByPanel); err != nil {
+		code, text = http.StatusBadRequest, err.Error()
+		switch {
+		case errors.Is(err, settings.ErrUnknownKey):
+			code = http.StatusNotFound
+		case errors.Is(err, settings.ErrPinned), errors.Is(err, settings.ErrNotAllowed):
+			code = http.StatusConflict
+		}
+	} else {
+		text = req.Key + " is now " + string(req.Value)
+	}
+	p.o.Logger.Info("panel setting", "key", req.Key, "value", string(req.Value), "remote", r.RemoteAddr, "status", code)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"text": text})
+}
+
+// models answers {"models": [...]} or {"error": …}, always with 200: a
+// backend that cannot list its models leaves the page a text field.
+func (p *panel) models(w http.ResponseWriter, r *http.Request) {
+	out := map[string]any{"models": []string{}}
+	if p.o.Models == nil {
+		out["error"] = "the bot has no LLM voice"
+	} else {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		if names, err := p.o.Models(ctx); err != nil {
+			out["error"] = err.Error()
+		} else {
+			out["models"] = names
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
 }
 
 // Event is a record as the page gets it: the record, the timeline's line
