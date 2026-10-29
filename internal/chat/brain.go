@@ -590,6 +590,11 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 	if last, ok := b.lastVoice[c.From.Name]; ok && now.Sub(last) < b.opts.Cooldown {
 		b.mu.Unlock()
 		b.opts.Logger.Info("voice cooling down", "player", c.From.Name)
+		if c.Channel == channelPanel {
+			// In the game the silence is the answer; on the panel it would
+			// look like the words were lost.
+			b.say(from, "Give me a moment; I spoke just now.")
+		}
 		return
 	}
 	b.lastVoice[c.From.Name] = now
