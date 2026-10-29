@@ -10,6 +10,7 @@ import (
 	"cmp"
 	"math"
 	"slices"
+	"strings"
 
 	"github.com/warricksothr/renki/internal/protocol"
 )
@@ -66,7 +67,9 @@ func Plan(inv *protocol.Inventory, weight, max float64) (drops []Drop, short boo
 	var kinds []kind
 	for _, it := range inv.Items {
 		t, ok := tier(it)
-		if !ok || it.Weight <= 0 {
+		// An item with no prefab goes by its name token (6.3), which drop
+		// cannot name: the game has nothing to put on the ground.
+		if !ok || it.Weight <= 0 || strings.HasPrefix(it.Prefab, "$") {
 			continue
 		}
 		i := slices.IndexFunc(kinds, func(k kind) bool { return k.prefab == it.Prefab })

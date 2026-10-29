@@ -32,6 +32,7 @@ func pack() *protocol.Inventory {
 		item("Wood", "Material", 50, 2), item("Wood", "Material", 50, 2), item("Wood", "Material", 24, 2),
 		item("Stone", "Material", 16, 2), item("Flint", "Material", 13, 1),
 		item("LeatherScraps", "Material", 10, 0.5), item("CookedMeat", "Consumable", 5, 1),
+		item("$item_mystery", "Material", 1, 50), // no prefab: drop cannot name it
 	}}
 }
 
