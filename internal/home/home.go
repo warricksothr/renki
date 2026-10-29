@@ -248,7 +248,9 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Lock()
 	respawned := k.respawned && st.Task == nil
 	resume := k.resume
-	if respawned {
+	if k.respawned {
+		// A task already running once the bot is back is a newer order,
+		// and it wins: drop the respawn either way.
 		k.respawned, k.resume = false, nil
 	}
 	k.mu.Unlock()

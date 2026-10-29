@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T23:42:30Z
+updated_at: 2026-10-29T00:27:24Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -60,4 +60,4 @@ died and respawned seen in the game at 18:39:19 and 18:39:29 on 2026-10-28, with
 
 ## Summary
 
-The plugin streams state, chat (without the bot's own lines) and events; seen in the game, except died and respawned, which share damaged's hook.
+The plugin streams state, chat (without the bot's own lines) and events. All of them have been seen in the game, died and respawned included (2026-10-28).

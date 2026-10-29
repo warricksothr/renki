@@ -287,6 +287,24 @@ func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
 	}
 }
 
+func TestAnOrderAfterTheRespawnWins(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	// The owner says "follow me" as the bot comes back, then "stop".
+	k.Respawned()
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, &protocol.TaskRef{ID: "t-9", Task: "follow", Status: "running"}))
+	k.Tick(ctx)
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after a newer order ended: %v", f.sent())
+	}
+}
+
 func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
 	k, f, _ := keeper(t, Memory())
 	ctx := context.Background()

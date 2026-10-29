@@ -43,6 +43,7 @@ $secrets | ConvertTo-Json | Set-Content $file -Encoding ascii
 # not the machine, so a name would be wrong.
 $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 icacls.exe $file /inheritance:r /grant:r "*${me}:F" '*S-1-5-18:F' | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "could not restrict $file" }
 icacls.exe $file /remove:g '*S-1-5-32-544' | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "could not restrict $file" }
 Write-Host 'restart the controller to use it: just vm restart'
