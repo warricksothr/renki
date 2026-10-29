@@ -270,6 +270,8 @@ function render() {
     if (m.label) place(m, taken);
   }
   hit = markers;
+  // The markers moved under a still pointer: say what is there now.
+  if (pointer) hover(pointer.x, pointer.y);
 
   if (world.bot) {
     const x = sx(world.bot[0]), y = sy(world.bot[2]);
@@ -328,13 +330,18 @@ function collect(sx, sy) {
       out.push({ key, look, items: [thing], pts: [[x, y]], x, y, prio: look.prio, ...extra });
       return;
     }
+    // A group shows the ring and takes the label rank of its most
+    // pressing member.
     const [m, ...rest] = near;
     m.items.push(thing);
     m.pts.push([x, y]);
+    m.ring = m.ring || extra.ring;
+    m.prio = Math.min(m.prio, look.prio);
     for (const r of rest) {
       m.items.push(...r.items);
       m.pts.push(...r.pts);
       m.ring = m.ring || r.ring;
+      m.prio = Math.min(m.prio, r.prio);
       out.splice(out.indexOf(r), 1);
     }
   };
@@ -548,10 +555,24 @@ canvas.addEventListener("pointerup", () => (drag = null));
 
 // Hovering a marker says what it is: every item of a group.
 const tip = $("map-tip");
+let pointer = null; // where the pointer rests over the map, while not dragging
 canvas.addEventListener("pointermove", (e) => {
-  if (drag) return;
+  if (drag) {
+    pointer = null;
+    tip.hidden = true;
+    return;
+  }
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  pointer = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  hover(pointer.x, pointer.y);
+});
+canvas.addEventListener("pointerleave", () => {
+  pointer = null;
+  tip.hidden = true;
+});
+
+function hover(x, y) {
+  const rect = canvas.getBoundingClientRect();
   let best = null, bestD = Infinity;
   for (const m of hit) {
     const d = Math.hypot(m.x - x, m.y - y);
@@ -568,8 +589,7 @@ canvas.addEventListener("pointermove", (e) => {
   const top = Math.min(y + 14, rect.height - tip.offsetHeight - 4);
   tip.style.left = Math.max(4, left) + "px";
   tip.style.top = Math.max(4, top) + "px";
-});
-canvas.addEventListener("pointerleave", () => (tip.hidden = true));
+}
 
 // describe lists a marker's items: what each is and how far from the bot,
 // nearest first, at most a dozen.
