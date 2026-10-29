@@ -173,7 +173,9 @@ namespace Renki.Plugin
             var broken = false;
             foreach (var item in player.GetInventory().GetAllItems())
             {
-                if (item.m_dropPrefab == null || item.m_dropPrefab.name != e.Item) continue;
+                // By prefab, or by name token for the few items with none, as
+                // the inventory names them (6.3).
+                if (Prefab(item) != e.Item) continue;
                 if (!item.IsEquipable()) return Outcome.Failed(Wire.ReasonInvalidTarget, $"{e.Item} is not something to equip");
                 if (player.IsItemEquiped(item)) return Outcome.Succeeded($"already holding {e.Item}");
                 if (item.m_shared.m_useDurability && item.m_durability <= 0)
