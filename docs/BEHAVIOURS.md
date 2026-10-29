@@ -110,3 +110,73 @@ separate live tests.
 Fresh remembered chest contents can also satisfy stock conditions after a
 controller restart. Live observations take precedence over a remembered
 copy of the same chest. See [MEMORY.md](MEMORY.md) for persistence and ages.
+
+## Bounded collection and stowing
+
+`stow` and `collect` are manually configured templates. They do not install
+background jobs, choose arbitrary storage, or interrupt a running follow.
+Use the existing behaviour API to save a disabled definition, then start it
+when its world, site and destination chest IDs have been checked.
+
+`stow` takes these parameters:
+
+```json
+{"world":"DizzysHellheim","items":["Stone","Flint"],"from":"pack",
+ "to":["<first-chest-id>","<overflow-chest-id>"],"keep":{"Stone":5},
+ "overflow":"tell"}
+```
+
+Items are exact prefabs or the selectors `wood`, `ore`, `food`, `*`. Wood
+covers Wood, FineWood, RoundLog, YggdrasilWood and Blackwood. Ore covers
+CopperOre, TinOre, IronScrap, SilverOre, BlackMetalScrap, FlametalOre,
+FlametalOreNew and CopperScrap. Food uses the game's Consumable item type
+(including potions). All equipped items and all gear remain protected.
+`keep` retains at least the named count, including equipped stacks. `from`
+currently accepts only `pack`. There may be at most 16 ordered chests.
+
+Remembered chests provide locations; old contents never establish capacity.
+Each chest is approached if necessary and attempted once. The game's transfer
+fills compatible partial stacks first, then empty slots. Exact task-matched
+receipts and updated pack observations determine what remains for the next
+chest, including partial transfers into a chest with less room than expected.
+Busy, vanished, full or unreachable chests can fall back to the next named
+chest. Permission failures and cancellation stop the run. Nothing is dropped
+or destroyed. A shortfall remains in behaviour status and the panel's
+Storage needed message. `tell` also announces it in game; an identical
+shortfall is repeated only after five minutes or when its counts/reason change.
+`leave` suppresses the announcement. Rerun after resolving storage; a
+successful run clears its shortfall.
+
+`collect` performs one bounded collection-and-delivery trip:
+
+```json
+{"site":{"world":"DizzysHellheim","pos":[-50,32,18],"radius":12},
+ "items":["Flint","Stone","Wood"],"to":["<destination-chest-id>"],
+ "keep":{"Wood":5},"maxTargets":8,"maxWeightFraction":0.8,
+ "drops":false,"return":true}
+```
+
+It visits the site when outside its radius, chooses current pickables by their
+output prefab, collects their spawned drops, stows the selected carried items
+above `keep`, then optionally returns to the site's centre. It requires exact
+item prefabs, a radius up to 40 m and 1–64 target attempts. Spawned products
+count toward the target budget; finishing a picked target may exceed that
+budget, up to a hard cap of 128 attempts. Each body step has a 60/90-second
+timeout. Missing fresh observations wait at most five seconds.
+
+Only resources with known primary yields qualify. Extra/random-product and
+theft-provoking pickables have no automatic yield. Carry checks reserve empty
+slots for the whole expected yield and use the larger of live state weight
+and the pack's item weight. The default limit is 80% of carry capacity and
+can be configured between 10% and 90%. Yield counts include possible skill
+bonuses and are upper bounds, not evidence that anything was collected.
+After use, a fresh inventory or visible product is required. The normal game
+pickup/interaction and chest-access rules remain authoritative.
+
+Arbitrary existing drops are not chosen unless `drops:true` explicitly opts
+into collecting the selected materials in that area. Spawned products near a
+pickable are followed as part of that target. Normal game auto-pickup may
+still take incidental items along a route. Automatic owner-drop inference,
+work-site discovery, leader detours/resumption, resource exploration, tool
+swings and chat shortcuts remain separate work. This template is suitable
+for staged loose flint/stone/branch tests; it does not fell trees or mine rock.

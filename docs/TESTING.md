@@ -353,3 +353,28 @@ When a check fails, note it on the ticket it names, with the log lines.
 `just vm audit 1 -task t-6` (docs/AUDIT.md) prints everything about one
 task, from the chat that started it to how it ended, including the plugin's
 own decisions along the way.
+
+## Bounded collection/delivery check
+
+Use `just check controller test-packages ./internal/behaviour ./internal/app ./internal/protocol`
+for stow/collect policy and bridge regressions. Shared perception-yield wire
+fixtures run through Go and C# in `just check ci`. Save disabled manual
+instances through `/api/behaviours` as documented in BEHAVIOURS.md.
+
+First check a `stow` job with Tas's test seeds and a known chest, preserving
+at least ten seeds through `keep`; verify the task-matched chest receipt,
+pack counts, and unchanged unrelated items. Restore test seeds with
+`just vm task withdraw`. Repeat using a full/busy first chest and another
+available destination. Check a nonzero storage-needed report, its deduplicated
+announcement and panel visibility, then make room and rerun. Stop while
+approaching or waiting for an observation; no later step may run.
+
+Stage a small safe area containing loose stone, flint or branches. Record
+initial pack/chest counts and current resource IDs/yields. Configure explicit
+world/site/chests, one or two target attempts, `drops:false`, and a carry
+reserve. Start `collect`, observe interaction/product pickup, exact deposits
+and optional return to the site. Confirm unknown yields, unselected materials
+and targets beyond the radius are not chosen. Clear threats beforehand and
+avoid deep-water flint; the normal walker may refuse a wet route. Do not
+claim tree-felling/mining, cache invalidation, chest capacity/wards or retreat
+verification from this collection check.

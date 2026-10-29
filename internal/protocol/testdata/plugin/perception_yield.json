@@ -1,0 +1,122 @@
+{
+  "v": 1,
+  "type": "perception",
+  "seq": 210,
+  "t": 18234.6,
+  "characters": [
+    {
+      "id": "1234:88",
+      "kind": "player",
+      "name": "Sothr",
+      "pos": [
+        120.1,
+        31.0,
+        -86.0
+      ],
+      "hpFrac": 1.0
+    },
+    {
+      "id": "0:5521",
+      "kind": "creature",
+      "prefab": "Greydwarf",
+      "pos": [
+        140.2,
+        33.9,
+        -70.4
+      ],
+      "hpFrac": 0.6,
+      "stars": 1,
+      "hostile": true,
+      "targetingMe": true
+    }
+  ],
+  "resources": [
+    {
+      "id": "0:7101",
+      "kind": "pickable",
+      "prefab": "Pickable_Flint",
+      "pos": [
+        118,
+        31.1,
+        -84.9
+      ],
+      "yield": {
+        "prefab": "Flint",
+        "count": 1,
+        "stackMax": 50,
+        "weight": 2
+      }
+    },
+    {
+      "id": "0:7120",
+      "kind": "drop",
+      "prefab": "Wood",
+      "stack": 3,
+      "pos": [
+        129.6,
+        31.6,
+        -89.2
+      ],
+      "yield": {
+        "prefab": "Wood",
+        "count": 3,
+        "stackMax": 50,
+        "weight": 2
+      }
+    }
+  ],
+  "structures": [
+    {
+      "id": "1234:301",
+      "kind": "container",
+      "prefab": "piece_chest_wood",
+      "pos": [
+        110.0,
+        32.0,
+        -80.0
+      ]
+    },
+    {
+      "id": "1234:302",
+      "kind": "station",
+      "prefab": "piece_workbench",
+      "pos": [
+        112.0,
+        32.0,
+        -80.0
+      ]
+    },
+    {
+      "id": "1234:310",
+      "kind": "bed",
+      "prefab": "bed",
+      "pos": [
+        108.0,
+        32.0,
+        -78.0
+      ],
+      "mine": true
+    },
+    {
+      "id": "1234:320",
+      "kind": "portal",
+      "tag": "home",
+      "pos": [
+        105.0,
+        32.0,
+        -75.0
+      ]
+    },
+    {
+      "id": "1234:330",
+      "kind": "door",
+      "prefab": "wood_door",
+      "pos": [
+        111.0,
+        32.0,
+        -82.0
+      ],
+      "open": false
+    }
+  ]
+}

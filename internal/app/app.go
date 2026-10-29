@@ -85,7 +85,13 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Owners:     func() []string { return set.Values().Owners },
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
-		Logger:     log.With("part", "behaviour")})
+		Notify: func(ctx context.Context, line string) {
+			_, err := s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}, TimeoutS: 5})
+			if err != nil {
+				log.Warn("could not report storage needed", "err", err)
+			}
+		},
+		Logger: log.With("part", "behaviour")})
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours})

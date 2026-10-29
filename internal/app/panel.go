@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
+	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/home"
@@ -38,7 +39,8 @@ type PanelStatus struct {
 	// PerceptionRadius is how far perception reaches, for the map's first view.
 	PerceptionRadius float64 `json:"perceptionRadius"`
 	// LeftBehind is what the bot had to leave on the ground in this world.
-	LeftBehind []home.Cache `json:"leftBehind,omitempty"`
+	LeftBehind    []home.Cache            `json:"leftBehind,omitempty"`
+	StorageNeeded []behaviour.StorageNeed `json:"storageNeeded,omitempty"`
 
 	AgentName string           `json:"agentName"`
 	Nicknames []string         `json:"nicknames"`
@@ -77,6 +79,13 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		}
 	}
 	ps.LeftBehind = a.Home.LeftBehind()
+	if ps.Connected && ps.Phase == protocol.PhaseInWorld {
+		for _, instance := range a.Behaviours.List() {
+			if need := instance.StorageNeeded; need != nil && need.World == ps.World {
+				ps.StorageNeeded = append(ps.StorageNeeded, *need)
+			}
+		}
+	}
 	if world, h, ok := a.Home.Current(); ok {
 		ps.Home = &PanelHome{World: world, Pos: h.Pos, SetBy: h.SetBy, At: h.At}
 		if d, ok := a.Home.HomeDistance(); ok {

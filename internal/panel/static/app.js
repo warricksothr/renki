@@ -383,6 +383,10 @@ function chip(id, text, cls) {
 }
 
 function onStatus(s) {
+  const needs = s.connected && s.phase === "in_world" ? s.storageNeeded || [] : [];
+  const storage = $("storage-needed");
+  storage.hidden = needs.length === 0;
+  storage.textContent = needs.map(n => `Storage needed: ${Object.entries(n.items).map(([name, count]) => `${count} ${name}`).join(", ")}. ${n.reason}`).join(" · ");
   const active = s.connected && s.phase === "in_world" && s.world;
   const nextWorld = active ? s.world : "", nextConnection = active ? s.connection || 0 : 0;
   if (nextWorld !== mapWorld || nextConnection !== mapConnection) {
