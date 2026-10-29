@@ -51,7 +51,17 @@ namespace Renki.Plugin
                 case InteractArgs ia:
                     {
                         var obj = FindEntity(ia.Entity);
-                        var it = obj != null ? obj.GetComponentInParent<Interactable>() ?? obj.GetComponentInChildren<Interactable>() : null;
+                        var it = obj != null ? obj.GetComponentInParent<Interactable>() : null;
+                        if (obj != null && it == null)
+                        {
+                            // A part may carry it; with several (a smelter's
+                            // ore, fuel and output), which one is not ours to guess.
+                            var parts = obj.GetComponentsInChildren<Interactable>();
+                            if (parts.Length > 1)
+                                throw new TaskRefused(Wire.ReasonInvalidTarget,
+                                    $"{ia.Entity} has {parts.Length} things to use: {string.Join(", ", System.Linq.Enumerable.Select(parts, InteractTask.Name))}");
+                            if (parts.Length == 1) it = parts[0];
+                        }
                         if (it == null) throw new TaskRefused(Wire.ReasonInvalidTarget, $"nothing to use at {ia.Entity} in range");
                         if (InteractRule.Check(InteractTask.Kind(it), safety) is Outcome no)
                             throw new TaskRefused(no.Reason, no.Detail);

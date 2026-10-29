@@ -471,6 +471,7 @@ namespace Renki.Tests
             // These have their own tasks, or a window the bot cannot use.
             foreach (var k in new[] { InteractRule.Drop, InteractRule.Container, InteractRule.Station, InteractRule.Text })
                 Assert.Equal(Wire.ReasonInvalidTarget, InteractRule.Check(k, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ward, s).Reason);
             s.AllowMovement = false;
             Assert.False(s.Permits("interact"));
         }

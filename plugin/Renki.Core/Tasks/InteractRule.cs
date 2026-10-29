@@ -10,7 +10,7 @@ namespace Renki.Tasks
     public static class InteractRule
     {
         public const string Boss = "boss", Ship = "ship", Pickable = "pickable", Drop = "drop",
-            Container = "container", Station = "station", Text = "text", Other = "other";
+            Container = "container", Station = "station", Text = "text", Ward = "ward", Other = "other";
 
         /// <summary>Null when interact may use a thing of this kind, or the
         /// refusal: a reason and what to say.</summary>
@@ -37,6 +37,10 @@ namespace Renki.Tasks
                     return Outcome.Failed(Wire.ReasonInvalidTarget, "a crafting station opens a window the bot cannot use");
                 case Text:
                     return Outcome.Failed(Wire.ReasonInvalidTarget, "it asks for text, which the bot cannot type");
+                // Using one turns it on or off, or adds the user to it: that
+                // is its owner's to do.
+                case Ward:
+                    return Outcome.Failed(Wire.ReasonNotAllowed, "a ward is its owner's to set");
             }
             return null;
         }

@@ -23,7 +23,8 @@ namespace Renki.Plugin
         /// <summary>How long a hold keeps the use key down.</summary>
         const float HoldFor = 1.0f;
 
-        /// <summary>How often a held key repeats, as the game's own 0.2 s.</summary>
+        /// <summary>How often a held key repeats: a little slower than the
+        /// game's 0.2 s, which it would turn away.</summary>
         const float Repeat = 0.25f;
 
         readonly InteractArgs args;
@@ -62,6 +63,7 @@ namespace Renki.Plugin
                 case CraftingStation _: return InteractRule.Station;
                 case Sign _:
                 case TeleportWorld _: return InteractRule.Text;
+                case PrivateArea _: return InteractRule.Ward;
             }
             // A station's parts can carry their own Interactable.
             return go.GetComponentInParent<CraftingStation>() != null ? InteractRule.Station : InteractRule.Other;
@@ -189,7 +191,9 @@ namespace Renki.Plugin
             static void Postfix(Player __instance, string msg)
             {
                 if (Into == null || __instance != Player.m_localPlayer || string.IsNullOrEmpty(msg)) return;
-                Into.Add(Localize(msg).Trim());
+                // A held key hears the same line on every repeat.
+                var line = Localize(msg).Trim();
+                if (!Into.Contains(line)) Into.Add(line);
             }
         }
     }
