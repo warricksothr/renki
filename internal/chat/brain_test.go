@@ -666,6 +666,10 @@ func TestFromThePanel(t *testing.T) {
 	if err := b.FromPanel("Mallory", "follow me"); !errors.Is(err, ErrNotOwner) {
 		t.Errorf("a non-owner: %v", err)
 	}
+	if err := b.FromPanel("Sothr", "stop"); !errors.Is(err, ErrNoBot) {
+		t.Errorf("with no bot in the world: %v", err)
+	}
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld}
 	if err := b.FromPanel("Sothr", "stop"); err != nil {
 		t.Fatal(err)
 	}
@@ -681,7 +685,6 @@ func TestFromThePanel(t *testing.T) {
 	}
 	f.perception = &protocol.Perception{Characters: []protocol.PerceivedCharacter{
 		{Kind: protocol.CharacterPlayer, Name: "Sothr", Pos: protocol.Vec3{5, 0, 7}}}}
-	f.state = &protocol.State{Pos: protocol.Vec3{0, 0, 0}}
 	b.FromPanel("Sothr", "come here")
 	orders := f.sent()
 	if a, ok := orders[len(orders)-1].Args.(*protocol.MoveToArgs); !ok || *a.To.Pos != (protocol.Vec3{5, 0, 7}) {

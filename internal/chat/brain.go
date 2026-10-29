@@ -236,8 +236,11 @@ type origin struct {
 // addressed to the bot, and answered on the panel, not in the game.
 const channelPanel = "panel"
 
-// ErrNotOwner is FromPanel's answer for a speaker who is not an owner.
-var ErrNotOwner = errors.New("not an owner")
+// FromPanel's errors.
+var (
+	ErrNotOwner = errors.New("not an owner")
+	ErrNoBot    = errors.New("the bot is not in the world")
+)
 
 // FromPanel takes text typed into the control panel as if speaker, an
 // owner, had said it to the bot. Where the speaker stands comes from
@@ -247,14 +250,15 @@ func (b *Brain) FromPanel(speaker, text string) error {
 	if !slices.Contains(b.live().Owners, speaker) {
 		return fmt.Errorf("%w: %s", ErrNotOwner, speaker)
 	}
+	st := b.d.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld {
+		return ErrNoBot
+	}
 	c := &protocol.Chat{From: protocol.ChatSender{Name: speaker, Owner: true}, Channel: channelPanel, Text: text, Dist: -1}
 	if seen := b.d.Perception(); seen != nil {
 		for _, p := range seen.Characters {
 			if p.Kind == protocol.CharacterPlayer && p.Name == speaker {
-				c.Pos = p.Pos
-				if st := b.d.State(); st != nil {
-					c.Dist = st.Pos.FlatDistance(p.Pos)
-				}
+				c.Pos, c.Dist = p.Pos, st.Pos.FlatDistance(p.Pos)
 			}
 		}
 	}
