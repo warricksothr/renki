@@ -37,13 +37,15 @@ if ($Remove) {
 }
 
 $file = Join-Path $PSScriptRoot 'secrets.local.json'
-$secrets | ConvertTo-Json | Set-Content $file -Encoding ascii
-# Only this account (the one RenkiStart runs as) and SYSTEM, and nothing
-# inherited from the folder. By SID: over SSH $env:USERDOMAIN is WORKGROUP,
+# Lock the file down before the value goes in, so it never sits under the
+# folder's ACL: only this account (the one RenkiStart runs as) and SYSTEM,
+# and nothing inherited. By SID: over SSH $env:USERDOMAIN is WORKGROUP,
 # not the machine, so a name would be wrong.
+if (-not (Test-Path $file)) { New-Item -ItemType File -Path $file | Out-Null }
 $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 icacls.exe $file /inheritance:r /grant:r "*${me}:F" '*S-1-5-18:F' | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "could not restrict $file" }
 icacls.exe $file /remove:g '*S-1-5-32-544' | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "could not restrict $file" }
+$secrets | ConvertTo-Json | Set-Content $file -Encoding ascii
 Write-Host 'restart the controller to use it: just vm restart'

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M61T36B839WT7KEZ14TDMB8B
 title: "M1: bot joins, follows, stops, reports status and chats"
 type: epic
-status: ready
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-29T00:18:48Z
+updated_at: 2026-10-29T00:30:30Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -77,3 +77,7 @@ Stuck recovery verified in the game on 2026-10-28; see the note on TKT-01M61T36N
 **agent:claude-code/renki-groom** at 2026-10-29T00:18:48Z
 
 Criterion 2 verified, superseding the note above that left it unticked. The follow at 19:01:22–19:03:46 on 2026-10-28 (t-3) went from home (-36.0, 11.8) to the slope at (-6.5, 315.2): 393 m walked, heights 28–39, and two stuck recoveries that got it free (19:01:44 and 19:03:31). It ended when a creature killed it at 19:03:46.
+
+## Summary
+
+M1 is done. The bot joins the server unattended, follows (393 m in one go, recovering from stuck), stops, waits, comes, reports status, emotes and chats in character through terva, takes orders from owners only, and stops within 10 s when the controller dies. All of it was verified in the game on 2026-10-28; the evidence is in the notes. What M1 left behind is filed: drowning on straight-line paths (TKT-01M62G71Q), and perception and memory (TKT-01M62BMD1, TKT-01M62EP0P).

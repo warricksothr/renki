@@ -183,6 +183,15 @@ func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
 	k.mu.Unlock()
 }
 
+// Ordered drops whatever a death left pending: the resume, and the
+// respawn Tick has not acted on yet. Any order given after the death wins,
+// even one such as stop that is over before the bot is back.
+func (k *Keeper) Ordered() {
+	k.mu.Lock()
+	k.respawned, k.resume = false, nil
+	k.mu.Unlock()
+}
+
 // Respawned notes that the bot came back from death. Once it is in the
 // world with nothing to do, Tick resumes, goes home or stays, as
 // rules.AfterDeath says.

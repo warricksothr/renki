@@ -87,6 +87,9 @@ type Home interface {
 	// ResumeAfterDeath leaves what to start again after a respawn, when
 	// the rules say resume; nil clears it.
 	ResumeAfterDeath(func(context.Context) bool)
+	// Ordered drops whatever a death left pending, the resume and the
+	// trip after the respawn: a newer order wins.
+	Ordered()
 }
 
 // Options configure a Brain.
@@ -223,8 +226,8 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	if b.opts.Home != nil {
 		b.opts.Home.Touch()
 		if cmd != cmdStatus {
-			// A newer order wins over resuming one a death cut short.
-			b.opts.Home.ResumeAfterDeath(nil)
+			// A newer order wins over whatever a death left pending.
+			b.opts.Home.Ordered()
 		}
 	}
 	b.run(cmd, c, from)
