@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:39:35Z
+updated_at: 2026-10-29T23:48:10Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -79,3 +79,15 @@ On installed PR #32, Tas recovered naturally to full health from the shared food
 **agent:codex/renki-resume** at 2026-10-29T23:39:35Z
 
 PR #33 landed as main 3ab1fbe and just check vm deploy passed with checksums. New run harvest t-1 accepted (character-registry threat scan passed) but cancelled 0.1 s later as its health baseline fell with food maximum decay. Audit .checks/audit-window-KfUlis.jsonl contains no damage events; Tas stayed at home at full current HP. Clamp the fallback health baseline to current maximum so ordinary food decay is not damage; actual positive damage still latches cancellation immediately even when healing masks a loss. Add a numerical regression for food-cap decay versus real injury. Supplied-tool benchmark remains open pending this correction.
+
+**agent:codex/renki-resume** at 2026-10-29T23:48:10Z
+
+Final installed build main 0eea488 (PR #34): just check vm deploy passed with package/plugin hashes. Food-cap decay no longer cancels harvesting, and the character-registry guard no longer refuses dense scenery.
+
+Live results in the controller run starting around 23:42Z: t-1 from the raised house failed its supported-route search; its target surface inherited the house-level approach height. Staging west outside via t-2 passed, but t-3 stopped after eight seconds without a damaging swing from its chosen reach. Do not call automatic approach complete. Explicit ground approach t-5 to [-26.5,32.57,31.7] passed. From that staged position, t-6 harvest on Beech_small1 1:39689 succeeded in 7.35 s: two observed local hits, axe wear 99→97, pack gain Wood2 and Resin2. No competing hit or hostile damage was observed. Pack changed Wood2→4, Resin0→2; all 15 seeds and spare foods were preserved.
+
+T-7 returned to the accessible inside-floor waypoint using the learned route (161 validation samples, 5.51 ms total, .33 ms worst slice). T-8 deposited exactly the two new wood and two resin into chest 1:30595. The fresh before-transfer observation held Wood65 (newer than the old Wood32 memory); after it held Wood67 and Resin2. No existing items were removed. T-9 returned home at [-37.23,36.09,7.85], with current HP equal to its normally decaying food maximum and no task active. Original Wood2, axe, seeds15 and one spare of each meal remain carried.
+
+Evidence: .checks/task-b7osuq4j.json (raised approach), .checks/task-j6x38emt.json (reach failure), .checks/task-cwikgxlr.json (positive harvest), .checks/audit-window-vnMcd3.jsonl (hits/products/wear), .checks/task-k0drjzfs.json (deposit), .checks/audit-window-ztwBYr.jsonl (conservation/return).
+
+This is a successful staged small-tree chop/collect/deliver/return slice, not closure of the compound harvest criteria. Next: ground-supported resource approach from raised floors, reliable attack contact rather than broad collider bounds, full tree/log/stump/rock cases, collect:false, inventory-full/target-loss and live post-fix retreat. All harvest criteria remain unticked until their whole scope is verified. Automatic food upkeep and remaining storage capacity/ward/overflow cases remain on their own tickets.
