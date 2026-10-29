@@ -361,8 +361,10 @@ Notes:
 - **Stuck detection:** the bot is stuck while it stays within 3 m of where it
   was. Every 3 s inside that circle triggers the next recovery: a jump, then a
   strafe (at a walk), then a re-path. After 3 rounds the task fails with
-  `stuck`. Only leaving the circle counts as progress, so hopping or shuffling
-  against a wall does not reset it.
+  `stuck`. Hopping or shuffling against a wall does not reset it. Once a
+  recovery has fired, leaving the circle only starts a new circle; the count
+  resets when the bot gets 6 m from where the first recovery fired, so a
+  strafe that carries it just over the edge and back is still stuck.
 - `follow` keeps `distance` with hysteresis. It walks when the gap is under
   2× the distance, runs beyond that, and stops inside the distance.
 
@@ -433,6 +435,15 @@ chat event
   home (`whenStuck`), when an outage cut a moving task short, including a
   logout or a controller restart (`afterOutage`), and after `idleMinutes`
   with no task when it is more than 5 m from home.
+- **After a respawn** the bot does what `home.afterDeath` says, once it is
+  back in the world: `home` (the default) walks home; `resume` picks a
+  follow back up for the same player, and goes home if there was none or
+  the player has gone (the follow then fails with `target_lost`); `stay`
+  stays at the spawn point. Any order given after the death wins, except
+  `set home` and `status`. The controller reads the death and the respawn
+  from `state.phase` rather than the `died` and `respawned` events, so a
+  lost event does not lose them. The plugin reports `dead` from the death
+  until the respawn wait ends, about 10 s.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.

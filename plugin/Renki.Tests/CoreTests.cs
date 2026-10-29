@@ -244,15 +244,45 @@ namespace Renki.Tests
         }
 
         [Fact]
-        public void LeavingTheCircleStartsAgain()
+        public void LeavingTheCircleStartsANewOne()
         {
             var d = new StuckDetector();
             var t = 0.0;
             for (; t < 3.05; t += 0.1) d.Update(new V3(0, 0, 0), t);
-            Assert.Equal(Recovery.Strafe, d.Update(new V3(0, 0, 0), 6.0));
-            Assert.Equal(Recovery.None, d.Update(new V3(3.5, 0, 0), 6.1)); // out: a new circle
-            Assert.Equal(Recovery.None, d.Update(new V3(3.5, 0, 0), 8.9));
-            Assert.Equal(Recovery.Jump, d.Update(new V3(3.5, 0, 0), 9.2));
+            Assert.Equal(Recovery.Strafe, d.Update(new V3(0, 0, 0), 6.1));
+            Assert.Equal(Recovery.None, d.Update(new V3(3.5, 0, 0), 6.2)); // out: a new circle
+            Assert.Equal(Recovery.None, d.Update(new V3(3.5, 0, 0), 9.1));
+            Assert.Equal(Recovery.Repath, d.Update(new V3(3.5, 0, 0), 9.3)); // but still stuck
+        }
+
+        [Fact]
+        public void GettingAwayStartsAgain()
+        {
+            var d = new StuckDetector();
+            var t = 0.0;
+            for (; t < 3.05; t += 0.1) d.Update(new V3(0, 0, 0), t);
+            Assert.Equal(Recovery.Strafe, d.Update(new V3(0, 0, 0), 6.1));
+            Assert.Equal(Recovery.None, d.Update(new V3(6.5, 0, 0), 6.2)); // past Escape
+            Assert.Equal(Recovery.Jump, d.Update(new V3(6.5, 0, 0), 9.3));
+        }
+
+        [Fact]
+        public void StrafingOverTheEdgeAndBackIsStillStuck()
+        {
+            // Seen on a slope in the game: every strafe carried the bot about
+            // 3 m sideways, just out of the circle, and the next one back.
+            var d = new StuckDetector();
+            var seen = new List<Recovery>();
+            var x = 0.0;
+            for (var t = 0.0; t < 60 && !seen.Contains(Recovery.GiveUp); t += 0.1)
+            {
+                var r = d.Update(new V3(x, 0, 0), t);
+                if (r == Recovery.None) continue;
+                seen.Add(r);
+                if (r == Recovery.Strafe) x = x == 0 ? 3.2 : 0;
+            }
+            Assert.Equal(Recovery.GiveUp, seen[seen.Count - 1]);
+            Assert.Contains(Recovery.Repath, seen);
         }
 
         [Fact]

@@ -12,18 +12,23 @@ namespace Renki.Movement
     /// it stays within Radius metres of where it was. Each Window seconds
     /// inside that circle triggers the next recovery: a jump, then a strafe,
     /// then a re-path. That is one round; after Rounds rounds the task gives
-    /// up. Only leaving the circle counts as progress, so hopping or
-    /// shuffling against a wall does not start the count again.
+    /// up. Hopping or shuffling against a wall does not start the count
+    /// again. Once a recovery has fired, leaving the circle only starts a new
+    /// one; the count goes back to nothing when the bot gets Escape metres
+    /// from where the first recovery fired, so a strafe that carries it just
+    /// over the edge and back is still stuck.
     /// </summary>
     public sealed class StuckDetector
     {
         public double Window = 3;
         public double Radius = 3;
+        public double Escape = 6;
         public int Rounds = 3;
 
         static readonly Recovery[] Sequence = { Recovery.Jump, Recovery.Strafe, Recovery.Repath };
 
         V3 center;
+        V3 anchor;
         double since = double.NaN;
         int step;
 
@@ -37,13 +42,22 @@ namespace Renki.Movement
         /// <summary>Call every tick while the bot is trying to move.</summary>
         public Recovery Update(V3 pos, double now)
         {
-            if (double.IsNaN(since) || V3.FlatDistance(pos, center) > Radius)
+            if (double.IsNaN(since))
             {
                 Reset(pos, now);
                 return Recovery.None;
             }
-            if (now - since < Window * (step + 1)) return Recovery.None;
+            if (V3.FlatDistance(pos, center) > Radius)
+            {
+                if (step == 0 || V3.FlatDistance(pos, anchor) > Escape) step = 0;
+                center = pos;
+                since = now;
+                return Recovery.None;
+            }
+            if (now - since < Window) return Recovery.None;
             if (step >= Sequence.Length * Rounds) return Recovery.GiveUp;
+            if (step == 0) anchor = center;
+            since = now;
             return Sequence[step++ % Sequence.Length];
         }
 

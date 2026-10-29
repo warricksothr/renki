@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M61T36PT29B498MSZR71GGC3
 title: "VM launch script: start and stop the bot on demand"
 type: task
-status: review
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -21,17 +21,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 60a7cadfdcfe97db807f95dbbe7e32d6a14e992c
-  session: null
-  claimed_at: 2026-10-28T18:51:07Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T19:55:31Z
+updated_at: 2026-10-28T23:24:05Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -48,9 +41,9 @@ another takes it down cleanly.
 
 ## Acceptance criteria
 
-- [ ] A PowerShell script launches Valheim via Steam with +connect and joins
+- [x] A PowerShell script launches Valheim via Steam with +connect and joins
 - [x] It starts the controller too, when the controller runs on the VM
-- [ ] A stop script logs the bot out cleanly before closing the game
+- [x] A stop script logs the bot out cleanly before closing the game
 
 ## Implementation plan
 
@@ -62,6 +55,10 @@ scripts/vm/start-bot.ps1 starts the controller (when its exe sits beside the scr
 
 Built and checked off-game; not yet run inside Valheim. In review = check it in game; docs/TESTING.md has the steps.
 
+**agent:claude-code/renki-groom** at 2026-10-28T23:24:05Z
+
+start-bot.ps1 runs valheim.exe directly rather than through Steam (Steam just has to be running), with -joinserverwithcharacter; it joined every time on 2026-10-28. stop-bot.ps1 logs out through the control API, then closes the game; just vm stop and restart ran a dozen times.
+
 ## Summary
 
-scripts/vm: start-bot.ps1 starts controller.exe when it sits beside the script (logs go to scripts/vm/logs), launches valheim.exe with -joinserverwithcharacter/-password from bot.local.psd1 (template: bot.example.psd1), and waits for /control/status to report in_world. stop-bot.ps1 POSTs /control/logout, waits for the menu phase, closes the game (CloseMainWindow, then Stop-Process after 30 s) and stops the controller. The controller's /control/ API answers loopback only and wants the token as a bearer when one is configured. `just package` builds dist/renki-vm/ with everything for the VM. Both scripts parse under Windows PowerShell 5.1. The Windows controller.exe was run on this Windows host and its status and logout endpoints answered through common.ps1. Not yet run against the game.
+start-bot.ps1 and stop-bot.ps1 start the controller and the game, join unattended, and log out cleanly before closing; run many times on the bot VM.

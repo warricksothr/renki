@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M621A0DZ49KWQC3J43440RYX
 title: Remote control of the bot VM over SSH
 type: task
-status: review
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: a13120e7f465a835a60ff50699a865fe378716dd
-  session: null
-  claimed_at: 2026-10-28T19:55:31Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T19:55:31Z
-updated_at: 2026-10-28T20:07:02Z
+updated_at: 2026-10-28T23:24:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -47,7 +40,7 @@ So the tooling on the dev box can deploy, start, stop and inspect the bot on the
 - [x] setup-remote.ps1 enables OpenSSH (key-only, PowerShell shell), authorises the dev box key, and registers RenkiStart/RenkiStop tasks in the desktop session
 - [x] `just vm check|start|stop|restart|status|logs|deploy|shell` drive the VM from the dev box
 - [x] `just vm deploy` packages, stops, copies, installs the plugin and starts the bot again
-- [ ] One full deploy and restart has run against the real VM
+- [x] One full deploy and restart has run against the real VM
 
 ## Notes
 
@@ -58,3 +51,11 @@ All scripts parse under Windows PowerShell 5.1, and the just recipes list and re
 **agent:claude-code/renki-groom** at 2026-10-28T20:07:02Z
 
 Defender on the VM flagged controller.exe as Trojan:Win32/Bearfoos.A!ml (an ML heuristic). Four builds scanned clean on the dev box, so it is likely a cloud reputation verdict at first run. The owner added a Defender exclusion on the VM (2026-10-28). If it returns, the options are the -tags novoice build or running the controller on Linux off the VM.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:24:05Z
+
+just vm deploy ran against the real VM about ten times on 2026-10-28: package, stop, scp, install, start, in the world again each time.
+
+## Summary
+
+The bot VM is driven over SSH: setup-remote.ps1, the RenkiStart/RenkiStop tasks, and just vm check/start/stop/restart/status/logs/deploy/audit/panel-*.

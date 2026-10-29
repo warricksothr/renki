@@ -72,12 +72,13 @@ func run() int {
 	trail.Write(audit.Record{Kind: audit.KindStart, Msg: "renki controller " + version,
 		Attrs: map[string]any{"config": redacted(cfg), "pid": os.Getpid()}})
 
+	// A voice that cannot be set up, such as for a key that is not set,
+	// leaves the bot on the command grammar rather than off.
 	var voice chat.Voice
 	if cfg.LLM != nil {
-		voice, err = newVoice(cfg, log)
-		if err != nil {
-			log.Error("llm", "err", err)
-			return 2
+		if voice, err = newVoice(cfg, log); err != nil {
+			log.Error("llm voice off; the bot answers the command grammar only", "err", err)
+			voice = nil
 		}
 	}
 

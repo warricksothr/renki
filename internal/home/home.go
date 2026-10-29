@@ -55,6 +55,13 @@ type Keeper struct {
 	checked bool
 	// active is the last time the bot had a task or was given an order.
 	active time.Time
+	// dead is set while the state shows the bot dead. respawned is set
+	// when it shows it back, unless ordered says an order came in between,
+	// and cleared once Tick has acted on it.
+	dead, ordered, respawned bool
+	// resume picks up what a death cut short, for AfterDeathResume. The
+	// chat brain sets it, since it knows what that was and for whom.
+	resume func(context.Context) bool
 }
 
 // New returns a keeper over store. now may be nil.
@@ -170,6 +177,33 @@ func (k *Keeper) ReturnOn(reason string) bool {
 	return false
 }
 
+// ResumeAfterDeath leaves what to do if the bot dies now and the rules
+// say resume: f starts it again and reports whether it did. Nil clears it.
+func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
+	k.mu.Lock()
+	k.resume = f
+	k.mu.Unlock()
+}
+
+// Ordered drops whatever a death left pending: the resume, and the
+// respawn Tick has not acted on yet. Any order given after the death wins,
+// even one such as stop that is over before the bot is back, and even
+// one given while it is still dead.
+func (k *Keeper) Ordered() {
+	// The newest state, not only what Tick last saw: Tick polls once a
+	// second, and an order in that gap still comes after the death.
+	st := k.s.State()
+	k.mu.Lock()
+	k.respawned, k.resume = false, nil
+	if st != nil && st.Phase == protocol.PhaseDead {
+		k.dead = true
+	}
+	if k.dead {
+		k.ordered = true
+	}
+	k.mu.Unlock()
+}
+
 // Touch counts as activity: a player gave an order.
 func (k *Keeper) Touch() {
 	k.mu.Lock()
@@ -206,6 +240,22 @@ func (k *Keeper) Tick(ctx context.Context) {
 		// clock starts again.
 		k.conn, k.checked, k.active = hello, false, now
 	}
+	// Death and the respawn come from the state rather than the died and
+	// respawned events, so they are seen in order with any order given in
+	// between, and still seen when an event was lost to a reconnect. Once
+	// it is back in the world with nothing to do, Tick resumes, goes home
+	// or stays, as rules.AfterDeath says, unless it was given an order
+	// while dead.
+	switch {
+	case st.Phase == protocol.PhaseDead && !k.dead:
+		k.dead, k.ordered = true, false
+	case st.Phase == protocol.PhaseInWorld && k.dead:
+		k.dead, k.respawned = false, !k.ordered
+		if k.ordered {
+			k.resume = nil
+		}
+		k.ordered = false
+	}
 	k.mu.Unlock()
 	if st.Phase != protocol.PhaseInWorld {
 		return
@@ -221,6 +271,29 @@ func (k *Keeper) Tick(ctx context.Context) {
 			k.announce(ctx, "after an outage", "Something cut me off. Heading home.")
 			return
 		}
+	}
+
+	k.mu.Lock()
+	respawned := k.respawned && st.Task == nil
+	resume := k.resume
+	if k.respawned {
+		// A task already running once the bot is back is a newer order,
+		// and it wins: drop the respawn either way.
+		k.respawned, k.resume = false, nil
+	}
+	k.mu.Unlock()
+	if respawned {
+		switch k.rules.AfterDeath {
+		case config.AfterDeathResume:
+			if resume != nil && resume(ctx) {
+				k.log.Info("resumed after a respawn")
+				return
+			}
+			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+		case config.AfterDeathHome:
+			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+		}
+		return
 	}
 
 	busy := st.Task != nil && body(st.Task.Task)

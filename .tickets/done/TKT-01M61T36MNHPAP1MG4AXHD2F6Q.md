@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M61T36MNHPAP1MG4AXHD2F6Q
 title: "Plugin: task runner, safety config and dead-man rule"
 type: task
-status: review
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -19,17 +19,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 94c0949e9abff4d3c2953c782958e7a0cbd1595c
-  session: null
-  claimed_at: 2026-10-28T18:50:44Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T18:50:49Z
+updated_at: 2026-10-28T23:59:31Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -59,6 +52,17 @@ character on a shared server.
 
 Built against the game (assembly_valheim 0.221.x on the dev box) and unit-tested off-game; not yet run inside Valheim. In review = check it in game; docs/TESTING.md has the steps.
 
+**agent:claude-code/renki-groom** at 2026-10-28T23:59:24Z
+
+Killing the controller verified in the game on 2026-10-28.
+
+- At 18:58:16.8 I killed controller.exe on the VM while the bot was running after Nimah (task t-1, follow).
+- The plugin logged "bridge: disconnected; retrying in 16 s" and kept following on its last order. It ran about 28 m, from (12.3, 32.0, 35.7) to (38.9, 32.3, 25.5).
+- It then logged "no controller message for 10 s; stopping". After that the log has no walker or follow lines, only "retrying in 30 s": it stayed stopped, and nothing resumed on its own.
+- At 18:58:51 I restarted with RenkiStart. At 18:59:04.8 the plugin reconnected, and the controller sent move_to home (why "after an outage") and "Something cut me off. Heading home."
+
+The 10 s count starts at the plugin's last message from the controller, which came no later than the kill, so the stop came within 10 s of the kill.
+
 ## Summary
 
-Renki.Core.Tasks.TaskRunner holds one body task and runs instants alongside it. It reports accepted/running/succeeded/failed/cancelled, or rejected with unsupported, not_allowed, bad_args or the host's reason. A new body task supersedes the old one, stop cancels everything, timeoutS is enforced, and death fails the body task with died. SafetyConfig is the BepInEx [Safety] section: Enabled, AllowMovement, AllowChat and the doc's allow* switches. stop is always permitted, and welcome.allowedTasks is intersected with it, never added. Dead-man: RenkiPlugin.Update ends the session after 10 s with no controller message, the bot stands, and nothing runs until the next welcome. say: 1 per 2 s with a burst of 3, one line, leading slashes stripped, 200 characters. Unit-tested in Renki.Tests (TaskRunnerTests).
+The task runner, safety config and dead-man rule are in the plugin, covered by the C# tests and interop against the real controller. In the game on 2026-10-28, killing the controller mid-follow stopped the bot within 10 s, and it stayed stopped until the controller came back.

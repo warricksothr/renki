@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M61T36CCV76K49ZDHSNV04RB
 title: "Spike: WebSocket client inside Valheim's Mono runtime"
 type: spike
-status: blocked
-status_reason: Needs Valheim running with BepInEx and the renki plugin, on the dev box or the VM, to watch the bridge connect and reconnect under Mono.
+status: done
+status_reason: null
 priority: high
 due_on: null
 labels:
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-groom
-  branch: t3/groom-start-renki
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 94c0949e9abff4d3c2953c782958e7a0cbd1595c
-  session: null
-  claimed_at: 2026-10-28T18:37:51Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-28T17:49:28Z
-updated_at: 2026-10-28T18:50:44Z
+updated_at: 2026-10-28T23:23:28Z
 created_by:
   id: agent:claude-code/valheim-setup
   name: Claude Code
@@ -50,8 +43,8 @@ BepInEx will do.
 
 ## Acceptance criteria
 
-- [ ] A test plugin in a running game exchanges messages both ways with a test server
-- [ ] It reconnects after the server restarts
+- [x] A test plugin in a running game exchanges messages both ways with a test server
+- [x] It reconnects after the server restarts
 - [x] The choice of library and the reason are recorded in a note
 
 ## Notes
@@ -67,3 +60,11 @@ Choice: System.Net.WebSockets.ClientWebSocket. It is in the System.dll the game 
 **agent:claude-code/renki-groom** at 2026-10-28T18:50:44Z
 
 in-progress to blocked: Needs Valheim running with BepInEx and the renki plugin, on the dev box or the VM, to watch the bridge connect and reconnect under Mono.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:23:27Z
+
+Answered in the game on 2026-10-28: the real plugin's ClientWebSocket, from the game's Mono System.dll, has carried every message both ways all day (bridge connected, session started, tasks, traces). It reconnected by itself after each controller restart, within 2 to 13 s depending on its backoff. No websocket-sharp needed.
+
+## Summary
+
+ClientWebSocket from the game's own System.dll works under Valheim's Mono: messages both ways, and reconnection after controller restarts, seen repeatedly on the bot VM on 2026-10-28.

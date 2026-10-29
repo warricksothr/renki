@@ -81,7 +81,7 @@ func (c *clock) advance(d time.Duration) {
 	c.mu.Unlock()
 }
 
-var rules = config.HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10}
+var rules = config.HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: config.AfterDeathHome}
 
 func inWorld(pos protocol.Vec3, task *protocol.TaskRef) *protocol.State {
 	return &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", Pos: pos, Task: task}
@@ -253,5 +253,150 @@ func TestReturnOnFollowsTheRules(t *testing.T) {
 	k.rules.WhenStuck = false
 	if k.ReturnOn(protocol.ReasonStuck) {
 		t.Error("whenStuck off")
+	}
+}
+
+// dead and back drive the keeper through a death as the state reports it.
+func dead(f *fakeSession) {
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
+}
+
+func back(f *fakeSession, task *protocol.TaskRef) {
+	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, task))
+}
+
+func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	dead(f)
+	k.Tick(ctx)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Fatalf("sent %v while dead", f.sent())
+	}
+	back(f, nil)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[0] != "move_to" || got[1] != "say: I'm back. Heading home." {
+		t.Errorf("after the respawn: %v", got)
+	}
+	k.Tick(ctx)
+	if len(f.sent()) != 2 {
+		t.Errorf("went home twice: %v", f.sent())
+	}
+
+	k.rules.AfterDeath = config.AfterDeathStay
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if len(f.sent()) != 2 {
+		t.Errorf("afterDeath stay still went home: %v", f.sent())
+	}
+}
+
+func TestAnOrderAfterTheDeathWins(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	// "wait here" while the bot is dead: over before it is back.
+	dead(f)
+	k.Tick(ctx)
+	k.Ordered()
+	back(f, nil)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after an order given while dead: %v", f.sent())
+	}
+
+	// The same, before Tick has seen the death.
+	dead(f)
+	k.Ordered()
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after an order given before Tick saw the death: %v", f.sent())
+	}
+
+	// "follow me" as it comes back, then "stop".
+	dead(f)
+	k.Tick(ctx)
+	back(f, &protocol.TaskRef{ID: "t-9", Task: "follow", Status: "running"})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after a newer order ended: %v", f.sent())
+	}
+
+	// "stop" on the tick it is back, before Tick acts.
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Ordered()
+	k.Tick(ctx)
+	if len(f.sent()) != 0 {
+		t.Errorf("went home after an order as it came back: %v", f.sent())
+	}
+
+	// An order while alive is not one given while dead: the next death
+	// still sends it home.
+	k.Ordered()
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[1] != "say: I'm back. Heading home." {
+		t.Errorf("an order before the death cancelled the respawn: %v", got)
+	}
+}
+
+func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	k.rules.AfterDeath = config.AfterDeathResume
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{40, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	resumed := 0
+	die := func() {
+		dead(f)
+		k.Tick(ctx)
+		back(f, nil)
+		k.Tick(ctx)
+	}
+	k.ResumeAfterDeath(func(context.Context) bool { resumed++; return true })
+	die()
+	if resumed != 1 || len(f.sent()) != 0 {
+		t.Fatalf("resumed %d, sent %v", resumed, f.sent())
+	}
+
+	// Nothing to resume, or a resume that cannot start: go home.
+	die()
+	k.ResumeAfterDeath(func(context.Context) bool { return false })
+	die()
+	if got := f.sent(); len(got) != 4 || got[1] != "say: I'm back. Heading home." || resumed != 1 {
+		t.Errorf("fallbacks: %v, resumed %d", got, resumed)
+	}
+
+	// An order while dead drops the resume for good: the next death,
+	// with nothing to resume, goes home.
+	k.ResumeAfterDeath(func(context.Context) bool { resumed++; return true })
+	dead(f)
+	k.Tick(ctx)
+	k.Ordered()
+	back(f, nil)
+	k.Tick(ctx)
+	die()
+	if resumed != 1 || len(f.sent()) != 6 {
+		t.Errorf("a dropped resume ran: resumed %d, sent %v", resumed, f.sent())
 	}
 }

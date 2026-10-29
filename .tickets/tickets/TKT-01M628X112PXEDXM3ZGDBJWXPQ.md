@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-28T22:15:09Z
+updated_at: 2026-10-29T00:16:18Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -91,3 +91,15 @@ Homes and the interrupted flag live in a data file the controller owns
 **agent:claude-code/renki-groom** at 2026-10-28T22:15:09Z
 
 Deployed as 83c9e81; the VM's state now carries world DizzysHellheim. Criteria 1-5 are covered by tests in internal/home and internal/chat; criterion 6 waits on checks 17-20 in docs/TESTING.md.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:56:57Z
+
+Lost follow verified in the game on 2026-10-28. At 18:38:00 the plugin traced 'Nimah out of sight', then player_left. At 18:38:05 task t-3 failed target_lost, the controller logged 'going home' (why: after follow failed: target_lost), and the bot said 'I lost track of you, Nimah. Heading home.' Still to verify before ticking 'Verified in the game': the outage trip (kill the controller mid-follow), the stuck give-up, and idling.
+
+**agent:claude-code/renki-groom** at 2026-10-28T23:59:24Z
+
+Outage trip verified in the game on 2026-10-28: after the controller was killed mid-follow at 18:58:16 and restarted at 18:58:51, it sent the bot home on reconnect at 18:59:04 (why 'after an outage') and said 'Something cut me off. Heading home.' Still to verify: the stuck give-up, and idling.
+
+**agent:claude-code/renki-groom** at 2026-10-29T00:16:18Z
+
+Verified in the game on 2026-10-28: the stuck give-up trip (19:13:36: why 'after move_to failed: stuck', with 'I'm stuck. I'll try to make it home.'), and afterDeath=home twice (19:03:59 and 19:14:53, each with 'I'm back. Heading home.'; the trip at 19:14:53 reached home at 19:15:26). Of the triggers, only idling is still unverified. The trip home after the give-up drowned on the way; see TKT-01M62G71Q (Bot swims into deep water on a straight-line path and drowns).

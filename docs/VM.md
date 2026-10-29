@@ -68,6 +68,36 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
     just vm stop
     just vm deploy                           # package, stop, copy, install the plugin, start
 
+## The LLM voice
+
+Lines the command grammar does not know go to an LLM through terva, if
+`controller.local.json` has an `llm` block. The VM uses the self-hosted
+OpenAI-compatible backend `cpa`:
+
+```json
+"llm": {
+  "cooldownS": 5,
+  "dailyTokens": 200000,
+  "terva": {
+    "provider": "openai-compatible",
+    "baseURL": "https://cpa-api.local.sothr.com/v1",
+    "model": "gemma-4-12B-heretic-v3-mtp",
+    "apiKeyEnv": "CPA_API_KEY",
+    "tervaHome": "terva-home"
+  }
+}
+```
+
+The file names the key's variable, never the key. Store the key with
+
+    just vm secret CPA_API_KEY      # prompts here, not shown, sent over SSH
+    just vm restart
+
+`just vm secret` keeps it in `C:\renki\secrets.local.json`, which only the bot's
+account and SYSTEM can read, and `start-bot.ps1` hands it to the controller
+as an environment variable. Without the key the controller logs `llm voice
+off` and the bot answers the command grammar only.
+
 ## When something is off
 
 - **`just vm check` cannot connect.** Run `Get-Service sshd` on the VM. Also

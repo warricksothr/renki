@@ -395,6 +395,8 @@ type fakeHome struct {
 	homeward map[string]bool
 	trips    []string
 	touched  int
+	ordered  int
+	resume   func(context.Context) bool
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -419,8 +421,10 @@ func (h *fakeHome) Homeward(id string) bool { return h.homeward[id] }
 func (h *fakeHome) ReturnOn(reason string) bool {
 	return reason == protocol.ReasonTargetLost || reason == protocol.ReasonStuck
 }
-func (h *fakeHome) HomeDistance() (float64, bool) { return 42, h.home != nil }
-func (h *fakeHome) Touch()                        { h.touched++ }
+func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h.home != nil }
+func (h *fakeHome) Touch()                                        { h.touched++ }
+func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
+func (h *fakeHome) Ordered()                                      { h.resume = nil; h.ordered++ }
 
 func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	b, f, _ := newBrain(nil)
@@ -466,5 +470,64 @@ func TestFailedFollowGoesHomeButAFailedTripHomeDoesNot(t *testing.T) {
 	b.TaskDone(trip)
 	if got := f.said(); got[len(got)-1] != "I'm stuck. Can you come back for me?" || len(h.trips) != 1 {
 		t.Errorf("said %q, trips %v", got, h.trips)
+	}
+}
+
+func TestAnOrderInTheVoiceCountsAsAnOrder(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "Right behind you.",
+		Task: &Proposal{Task: "follow", Args: json.RawMessage(`{"player":"Sothr"}`)}}}
+	b, f, _ := newBrain(v)
+	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
+	b.opts.Home = h
+	b.Chat(line("Sothr", "bjorn wait for me where you wake up and then tag along"))
+	<-v.got
+	waitSaid(t, f, 1)
+	if h.ordered != 1 || h.touched != 1 {
+		t.Errorf("ordered %d, touched %d; want 1 each", h.ordered, h.touched)
+	}
+
+	// That follow dies too: it is left to resume, for the same player.
+	follow := f.sent()[0]
+	b.TaskDone(doneTask(follow, protocol.StatusFailed, protocol.ReasonDied))
+	if h.resume == nil {
+		t.Error("no resume left after a follow the voice ordered died")
+	}
+}
+
+func TestADeadFollowLeavesAResumeForTheSamePlayer(t *testing.T) {
+	b, f, h := homeBrain()
+	c := line("Sothr", "bjorn follow me")
+	c.Channel = protocol.ChannelShout
+	b.Chat(c)
+	follow := f.sent()[0]
+	b.TaskDone(doneTask(follow, protocol.StatusFailed, protocol.ReasonDied))
+	if h.resume == nil {
+		t.Fatal("no resume left after a follow died")
+	}
+	if !h.resume(context.Background()) {
+		t.Fatal("the resume did not start")
+	}
+	orders := f.sent()
+	last, said := orders[len(orders)-2], orders[len(orders)-1]
+	if a, ok := last.Args.(*protocol.FollowArgs); !ok || a.Player != "Sothr" {
+		t.Errorf("resumed %+v", last)
+	}
+	if s := said.Args.(*protocol.SayArgs); s.Text != "I'm back. Coming to find you, Sothr." || s.Channel != protocol.ChannelShout {
+		t.Errorf("said %+v", s)
+	}
+
+	// A newer order, even while dead, clears the resume.
+	b.TaskDone(doneTask(follow, protocol.StatusFailed, protocol.ReasonDied))
+	b.Chat(line("Sothr", "bjorn go home"))
+	if h.resume != nil {
+		t.Error("an order after the death left the old follow to resume")
+	}
+
+	// A come-here that dies leaves nothing to resume.
+	b.Chat(line("Sothr", "bjorn come here"))
+	come := f.sent()[len(f.sent())-2]
+	b.TaskDone(doneTask(come, protocol.StatusFailed, protocol.ReasonDied))
+	if h.resume != nil {
+		t.Error("a come-here left a resume")
 	}
 }

@@ -69,3 +69,14 @@ func TestPanelNeedsALongToken(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestAfterDeathMustBeKnown(t *testing.T) {
+	c := Default()
+	if c.Home.AfterDeath != AfterDeathHome {
+		t.Errorf("default %q", c.Home.AfterDeath)
+	}
+	c.Home.AfterDeath = "dance"
+	if c.Validate() == nil {
+		t.Error("afterDeath dance was accepted")
+	}
+}
