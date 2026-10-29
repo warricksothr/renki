@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N12MXJ9XXPX8A2M50HBV4
 title: "Controller: corpse run after a death"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -20,17 +20,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-resume
-  branch: t3/live-verification
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 2b7cad9705a40bac08002ef0c7e6d6bbe06c030a
-  session: null
-  claimed_at: 2026-10-29T17:07:07Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T17:08:15Z
+updated_at: 2026-10-29T17:19:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -46,7 +39,7 @@ Agreed on 2026-10-28 for M2: after a death, the bot's things are in a tombstone 
 
 ## Acceptance criteria
 
-- [ ] After a respawn the bot can go back to its tombstone, empty it and return
+- [x] After a respawn the bot can go back to its tombstone, empty it and return
 - [x] It does not go back into a place that just killed it without being told
 
 ## Implementation plan
@@ -79,6 +72,10 @@ Additional live death: Greyling killed Tas at 2026-10-29T16:59:35Z, with dead st
 
 Positive seed test exposed a live blocker: interact t-18 reached the own tombstone at (-16.34,31.76,33.26) with an empty pack but stayed there through stuck recoveries without using it. The game’s FindHoverObject sorts ray hits and skips colliders attached to the local player; InteractTask.Sees uses the first Raycast hit and does not skip the player. Fix visibility to choose the nearest non-self hit while retaining wall/floor occlusion, cover that selection off-game, and retry the same populated grave. Also give tombstones a name because GetHoverName intentionally returns an empty string in Valheim.
 
+**agent:codex/renki-resume** at 2026-10-29T17:19:34Z
+
+Completed the live seed test on deployed d369b07 (PR #10). After an initial death near the house exit, the shun held across respawn and later deaths at spawn; explicit orders resumed movement, and the user cleared attacking Greylings. Retrieval of the untouched tombstone 2344638503:696 started as interact t-10 at 2026-10-29T17:17:40.410Z and succeeded at 17:17:51.245Z. Inventory confirmed all 15 BeechSeeds and the tombstone disappeared. An explicit panel Go home then succeeded as t-11 at 17:18:20.151Z. Final bot state: idle at (-36.79,36.09,7.62), 25/25 health, all 15 seeds carried. Home shun and explicit retrieval/return are now verified live. Actual follow-resume-through-death was not staged; regression coverage remains automated. docs/TESTING.md contains the timings and validation limits.
+
 ## Summary
 
-Corpse-run and shun code is implemented, with the latest fixes and regressions in the working tree. Automated CI passes; live retrieval of the grave and return still need validation.
+Landed through PRs #9 and #10 and deployed as d369b07. Corpse runs are explicit: get your things retrieves the bot’s own grave, then Go home can return it. The live 15-seed run verified retrieval, tombstone removal and return with the entire inventory; the bot ended idle at home at full health. A near-home death verified waiting through respawn until a new owner order. The live test exposed interaction visibility; the fix ignores the player’s own rigidbody while retaining wall/floor occlusion, and passed all 127 C# tests plus the complete CI and commit review. Follow resumption after death has automated regression coverage but was not staged live.
