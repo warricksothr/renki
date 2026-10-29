@@ -397,7 +397,7 @@ last. It comes after the `perception` of the same scan.
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
 | `interact` | body | `entity`; `alt` (bool); `hold` (bool) | M2 |
 | `harvest` | body | `entity` (tree, log, rock or pickable); `collect` (default true) | M2 |
-| `equip` / `unequip` | instant | `item` (prefab) / `slot` | M2 |
+| `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (eat, drink) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
 | `withdraw` | body | `container`; `items` | M2 |
@@ -469,6 +469,13 @@ Notes:
     it sits the bot down, harnesses it, carries it off or takes from its pack.
   - It needs `allowMovement`, and nothing behind a ward the bot has no access
     to.
+- `equip` holds or wears an item by prefab: of its stacks, the one in best
+  repair, then of highest quality. One already equipped succeeds as it is.
+  A broken item, or one that is not equipment, is `invalid_target`; the game
+  saying no (swimming, mid-swing) is `refused` with what it said. `unequip`
+  empties a slot, and `hands` both hands; an empty slot is
+  `invalid_target`. Both need `allowMovement`: they move nothing, but the
+  gear is the body's.
 - `flee` runs from `from` until it is `distance` away across the ground, and
   succeeds then, or when an entity it ran from is gone or dead. With
   `toward` (the owner, or home) it runs there instead, however far, unless

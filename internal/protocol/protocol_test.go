@@ -181,6 +181,10 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskFlee, `{"from":"0:5521","toward":[1,2,3]}`, &FleeArgs{From: Target{Entity: "0:5521"}, Toward: &Target{Pos: &Vec3{1, 2, 3}}}, nil},
 		{TaskFlee, `{"distance":20}`, nil, ErrBadArgs},
 		{TaskFlee, `{"from":"0:1","distance":0}`, nil, ErrBadArgs},
+		{TaskEquip, `{"item":"AxeStone"}`, &EquipArgs{Item: "AxeStone"}, nil},
+		{TaskEquip, `{}`, nil, ErrBadArgs},
+		{TaskUnequip, `{"slot":"hands"}`, &UnequipArgs{Slot: "hands"}, nil},
+		{TaskUnequip, `{"slot":"tail"}`, nil, ErrBadArgs},
 		{"harvest", `{"entity":"0:7001"}`, nil, ErrUnknownTask},
 	}
 	for _, tc := range tests {

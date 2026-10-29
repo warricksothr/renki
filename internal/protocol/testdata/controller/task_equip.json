@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "id": "t-43", "seq": 134, "t": 18263.0,
+  "task": "equip", "args": { "item": "AxeBronze" }, "timeoutS": 0 }

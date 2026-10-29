@@ -124,6 +124,10 @@ namespace Renki.Plugin
                     return Outcome.Succeeded();
                 case DropArgs d:
                     return Drop(player, d);
+                case EquipArgs eq:
+                    return Equip(player, eq);
+                case UnequipArgs uq:
+                    return Unequip(player, uq);
             }
             return Outcome.Failed(Wire.ReasonUnsupported, req.Task);
         }
@@ -159,6 +163,69 @@ namespace Renki.Plugin
             if (dropped == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"the game would not drop the {d.Prefab}");
             return Outcome.Succeeded($"dropped {dropped} {d.Prefab}");
         }
+
+        /// <summary>Equips the item by prefab: of its stacks, the one in
+        /// best repair, then of highest quality. One already equipped is
+        /// left as it is.</summary>
+        static Outcome Equip(Player player, EquipArgs e)
+        {
+            ItemDrop.ItemData best = null;
+            var broken = false;
+            foreach (var item in player.GetInventory().GetAllItems())
+            {
+                if (item.m_dropPrefab == null || item.m_dropPrefab.name != e.Item) continue;
+                if (!item.IsEquipable()) return Outcome.Failed(Wire.ReasonInvalidTarget, $"{e.Item} is not something to equip");
+                if (player.IsItemEquiped(item)) return Outcome.Succeeded($"already holding {e.Item}");
+                if (item.m_shared.m_useDurability && item.m_durability <= 0)
+                {
+                    broken = true;
+                    continue;
+                }
+                if (best == null || item.m_durability > best.m_durability ||
+                    (item.m_durability == best.m_durability && item.m_quality > best.m_quality))
+                    best = item;
+            }
+            if (best == null)
+                return Outcome.Failed(Wire.ReasonInvalidTarget, broken ? $"every {e.Item} is broken" : $"no {e.Item} to equip");
+            var heard = new System.Collections.Generic.List<string>();
+            bool ok;
+            using (InteractTask.Listen(heard))
+                ok = player.EquipItem(best, true);
+            if (!ok)
+                return Outcome.Failed(Wire.ReasonRefused, heard.Count > 0 ? string.Join("; ", heard) : $"the game would not equip the {e.Item}");
+            return Outcome.Succeeded($"equipped {e.Item}");
+        }
+
+        /// <summary>Empties a slot, or both hands.</summary>
+        static Outcome Unequip(Player player, UnequipArgs u)
+        {
+            ItemDrop.ItemData[] items;
+            switch (u.Slot)
+            {
+                case "right": items = new[] { player.m_rightItem }; break;
+                case "left": items = new[] { player.m_leftItem }; break;
+                case "hands": items = new[] { player.m_rightItem, player.m_leftItem }; break;
+                case "head": items = new[] { player.m_helmetItem }; break;
+                case "chest": items = new[] { player.m_chestItem }; break;
+                case "legs": items = new[] { player.m_legItem }; break;
+                case "shoulder": items = new[] { player.m_shoulderItem }; break;
+                case "utility": items = new[] { player.m_utilityItem }; break;
+                case "trinket": items = new[] { player.m_trinketItem }; break;
+                case "ammo": items = new[] { player.m_ammoItem }; break;
+                default: return Outcome.Failed(Wire.ReasonBadArgs, $"unknown slot {u.Slot}");
+            }
+            var names = new System.Collections.Generic.List<string>();
+            foreach (var item in items)
+            {
+                if (item == null || names.Contains(Prefab(item))) continue; // a two-handed item fills both
+                player.UnequipItem(item, true);
+                names.Add(Prefab(item));
+            }
+            if (names.Count == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"nothing in {u.Slot}");
+            return Outcome.Succeeded($"put away {string.Join(" and ", names)}");
+        }
+
+        static string Prefab(ItemDrop.ItemData item) => item.m_dropPrefab != null ? item.m_dropPrefab.name : item.m_shared.m_name;
 
         /// <summary>A target as a position, plus the object when it is an entity.</summary>
         static (Vector3, GameObject) Resolve(Target t)

@@ -35,6 +35,10 @@ namespace Renki.Tasks
                 // Running away is never the unsafe choice, so it needs no
                 // AllowCombat.
                 case "flee":
+                // The bot's own gear: changing it moves nothing, but it is
+                // the body's to do.
+                case "equip":
+                case "unequip":
                 case "look_at": return AllowMovement;
                 case "say":
                 case "emote": return AllowChat;

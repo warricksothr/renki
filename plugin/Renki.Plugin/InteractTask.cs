@@ -180,6 +180,19 @@ namespace Renki.Plugin
                    hit.collider.transform.IsChildOf(obj.transform);
         }
 
+        /// <summary>Collects what the game says to the bot into lines until
+        /// disposed: the words behind a refusal.</summary>
+        public static System.IDisposable Listen(List<string> lines)
+        {
+            Heard.Into = lines;
+            return new Stop();
+        }
+
+        sealed class Stop : System.IDisposable
+        {
+            public void Dispose() => Heard.Into = null;
+        }
+
         /// <summary>One press of the use key, hearing what the game says.</summary>
         bool Use(Player p, bool hold)
         {

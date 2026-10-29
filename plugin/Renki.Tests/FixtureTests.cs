@@ -137,6 +137,8 @@ namespace Renki.Tests
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":2.5}")]
         [InlineData("interact", "{\"alt\":true}")]
         [InlineData("flee", "{\"distance\":20}")]
+        [InlineData("equip", "{}")]
+        [InlineData("unequip", "{\"slot\":\"tail\"}")]
         [InlineData("flee", "{\"from\":\"0:1\",\"distance\":0}")]
         [InlineData("flee", "{\"from\":\"0:1\",\"toward\":7}")]
         [InlineData("interact", "{\"entity\":\"0:1\",\"hold\":\"yes\"}")]
@@ -163,6 +165,9 @@ namespace Renki.Tests
             var fl = (FleeArgs)TaskArgs.Parse(Req("flee", "{\"from\":\"0:5521\"}"));
             Assert.Equal(("0:5521", 20.0), (fl.From.Entity, fl.Distance));
             Assert.Null(fl.Toward);
+            Assert.Equal("AxeStone", ((EquipArgs)TaskArgs.Parse(Req("equip", "{\"item\":\"AxeStone\"}"))).Item);
+            Assert.Equal("hands", ((UnequipArgs)TaskArgs.Parse(Req("unequip", "{\"slot\":\"hands\"}"))).Slot);
+            Assert.True(TaskNames.IsInstant("equip") && TaskNames.IsInstant("unequip"));
             Assert.Null(TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}")));
         }
     }

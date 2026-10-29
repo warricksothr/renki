@@ -8,18 +8,22 @@ namespace Renki.Protocol
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", LookAt = "look_at",
             Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
-            Flee = "flee";
+            Flee = "flee", Equip = "equip", Unequip = "unequip";
+
+        /// <summary>The slots unequip empties: "hands" is both.</summary>
+        public static readonly string[] Slots =
+            { "right", "left", "hands", "head", "chest", "legs", "shoulder", "utility", "trinket", "ammo" };
 
         public static readonly string[] M1 = { Stop, MoveTo, Follow, LookAt, Say, Emote };
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
-            task == LookAt || task == Say || task == Emote || task == Drop || task == "equip" ||
-            task == "unequip" || task == "use_item";
+            task == LookAt || task == Say || task == Emote || task == Drop || task == Equip ||
+            task == Unequip || task == "use_item";
     }
 
     /// <summary>Missing or malformed arguments; answered with bad_args.</summary>
@@ -114,6 +118,18 @@ namespace Renki.Protocol
         public Target Toward;
     }
 
+    public sealed class EquipArgs
+    {
+        /// <summary>The item, by prefab as the inventory names it (6.3).</summary>
+        public string Item;
+    }
+
+    public sealed class UnequipArgs
+    {
+        /// <summary>One of TaskNames.Slots.</summary>
+        public string Slot;
+    }
+
     public sealed class DropArgs
     {
         /// <summary>The item, by prefab as the inventory names it (6.3).</summary>
@@ -191,6 +207,20 @@ namespace Renki.Protocol
                             Distance = distance,
                             Toward = toward == null || toward.Type == JTokenType.Null ? null : Target.Parse(toward, "toward"),
                         };
+                    }
+                case TaskNames.Equip:
+                    {
+                        var item = Str(a, "item");
+                        if (string.IsNullOrEmpty(item)) throw new BadArgsException("`item` is required");
+                        return new EquipArgs { Item = item };
+                    }
+                case TaskNames.Unequip:
+                    {
+                        var slot = Str(a, "slot");
+                        if (string.IsNullOrEmpty(slot)) throw new BadArgsException("`slot` is required");
+                        if (Array.IndexOf(TaskNames.Slots, slot) < 0)
+                            throw new BadArgsException($"unknown slot \"{slot}\"; want one of {string.Join(", ", TaskNames.Slots)}");
+                        return new UnequipArgs { Slot = slot };
                     }
                 case TaskNames.Drop:
                     {
