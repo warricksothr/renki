@@ -484,7 +484,7 @@ var grammar = map[string]command{
 	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
 	"use the bed": cmdBed, "use your bed": cmdBed, "claim the bed": cmdBed, "claim a bed": cmdBed,
-	"claim that bed": cmdBed, "go to bed": cmdBed, "go to sleep": cmdBed, "sleep": cmdBed,
+	"claim that bed": cmdBed, "go to bed": cmdBed,
 	"get the door": cmdDoor, "open the door": cmdDoor, "close the door": cmdDoor, "use the door": cmdDoor,
 }
 
@@ -810,6 +810,9 @@ func joinNames(names []string) string {
 
 // explain turns a failed task into something to say, or "" for nothing.
 func explain(task, reason, player string) string {
+	if task == protocol.TaskInteract && reason == protocol.ReasonTargetLost {
+		return "It's gone."
+	}
 	if task == protocol.TaskPickup {
 		switch reason {
 		case protocol.ReasonTargetLost:

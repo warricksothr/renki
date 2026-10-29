@@ -792,7 +792,8 @@ func TestUseTheBedAndDoor(t *testing.T) {
 	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusSucceeded, "", "used the Bed: Spawn point set"))
 	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusFailed, protocol.ReasonRefused, "You need a roof"))
 	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusSucceeded, "", "used the Door"))
-	if got := f.said()[n:]; !slices.Equal(got, []string{"Spawn point set", "It won't: You need a roof", "Done."}) {
+	b.TaskDone(session.FinishedWith(protocol.TaskInteract, sent[0].Origin, protocol.StatusFailed, protocol.ReasonTargetLost, "the Bed is gone"))
+	if got := f.said()[n:]; !slices.Equal(got, []string{"Spawn point set", "It won't: You need a roof", "Done.", "It's gone."}) {
 		t.Errorf("said %q", got)
 	}
 }
