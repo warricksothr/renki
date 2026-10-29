@@ -2,7 +2,6 @@ package burden
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -107,8 +106,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 		u.conn, u.next, u.told = hello, time.Time{}, false
 		if u.unsaid != "" {
 			line := fmt.Sprintf("I was carrying too much, so I left %s back there. I'll remember where.", u.unsaid)
-			u.unsaid = ""
-			u.say(ctx, line)
+			if u.say(ctx, line) == nil {
+				u.unsaid = ""
+			}
 		}
 	}
 	var seen protocol.PerceptionConfig
@@ -135,13 +135,14 @@ func (u *Unloader) Tick(ctx context.Context) {
 	left := map[string]int{}
 	for _, d := range drops {
 		n, err := u.drop(ctx, d)
-		if errors.Is(err, session.ErrNotConnected) {
-			// Gone mid-way: start again on the next connection.
-			u.next = time.Time{}
-			break
-		}
 		if n > 0 {
 			left[d.Prefab] += n
+		}
+		if err != nil {
+			// The link went, or the controller is stopping: what went out is
+			// still remembered, and the rest waits for the next connection.
+			u.next = time.Time{}
+			break
 		}
 	}
 	if len(left) > 0 {
@@ -169,7 +170,8 @@ func (u *Unloader) Tick(ctx context.Context) {
 	if short {
 		line = fmt.Sprintf("I was carrying too much, so I left %s here. It's still too much, but the rest is gear.", list(left))
 	}
-	if errors.Is(u.say(ctx, line), session.ErrNotConnected) {
+	// Any failure to send: the link is going, and the next one hears it.
+	if u.say(ctx, line) != nil {
 		u.unsaid = list(left)
 	}
 }
@@ -186,8 +188,8 @@ func (u *Unloader) drop(ctx context.Context, d Drop) (int, error) {
 	defer cancel()
 	status, reason, err := t.Wait(wait)
 	if ctx.Err() != nil {
-		// Shutting down: nothing to say it went out.
-		return 0, ctx.Err()
+		// Shutting down after it went out: as likely on the ground as not.
+		return d.Count, ctx.Err()
 	}
 	if err != nil || status == protocol.StatusCancelled {
 		// No answer, or the link went before one came: drop is instant, so
@@ -217,6 +219,8 @@ func (u *Unloader) remember(world string, pos protocol.Vec3, items map[string]in
 			if caches[i].Pos.FlatDistance(pos) <= SameSpot {
 				for p, n := range items {
 					caches[i].Items[p] += n
+					// More here: a miss from before it does not count.
+					delete(u.missing, missingKey(world, caches[i].Pos, p))
 				}
 				caches[i].At = u.now()
 				return caches
