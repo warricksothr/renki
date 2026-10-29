@@ -42,6 +42,8 @@ local inspection; do not commit or redistribute those files.
 ## Chest-transfer check
 
 Use a storage chest visible in perception and only Tas's test items.
+After adding a task to allowedTasks, `just vm reconnect` refreshes the
+controller/bridge welcome without reloading Valheim. This stops active tasks.
 `just vm task deposit '{"container":"<id>","items":[{"prefab":"BeechSeeds","count":5}]}'`
 returns the task ID. Confirm a `container` snapshot reports exactly five
 moved and the pack loses five, then use `just vm task withdraw` with the

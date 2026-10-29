@@ -90,6 +90,7 @@ type Pin struct {
 type file struct {
 	Overrides map[string]Override `json:"overrides"`
 	Pins      map[string]Pin      `json:"pins"`
+	Instances map[string]Override `json:"instances,omitempty"`
 }
 
 // Store holds the settings.
@@ -134,6 +135,9 @@ func Open(path string, cfg config.Config, log *slog.Logger, now func() time.Time
 	}
 	if s.f.Pins == nil {
 		s.f.Pins = map[string]Pin{}
+	}
+	if s.f.Instances == nil {
+		s.f.Instances = map[string]Override{}
 	}
 	// A saved change the config no longer accepts, or a key this version
 	// does not know, is dropped rather than stopping the controller.
