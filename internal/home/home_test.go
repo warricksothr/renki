@@ -627,3 +627,36 @@ func waitFor(t *testing.T, cond func() bool) {
 		time.Sleep(5 * time.Millisecond)
 	}
 }
+
+// TestTheShunSurvivesARestart: a controller restart does not forget that
+// home is where something killed the bot.
+func TestTheShunSurvivesARestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "memory.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{10, 0, 0}, "Nimah")
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{8, 0, 2}})
+	k.Tick(ctx)
+
+	again, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k2, f2, c2 := keeper(t, again)
+	f2.set(&protocol.Hello{}, inWorld(protocol.Vec3{-60, 0, 0}, nil))
+	k2.Tick(ctx)
+	c2.advance(11 * time.Minute)
+	k2.Tick(ctx)
+	if got := f2.sent(); len(got) != 0 {
+		t.Fatalf("after a restart, idled home to what killed it: %q", got)
+	}
+	k2.Ordered()
+	if again.Shunned() != "" {
+		t.Error("an order did not end the shun")
+	}
+}

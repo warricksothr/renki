@@ -80,9 +80,6 @@ type Keeper struct {
 	resume func(context.Context) bool
 	// diedAt is where the bot last died.
 	diedAt *protocol.Vec3
-	// shunned is the world where the bot last died near home, if it has
-	// not been given an order since: nothing sends it back there by itself.
-	shunned string
 }
 
 // New returns a keeper over store with fixed rules. now may be nil.
@@ -248,7 +245,7 @@ func (k *Keeper) Ordered() {
 	// second, and an order in that gap still comes after the death.
 	st := k.s.State()
 	k.mu.Lock()
-	k.respawned, k.resume, k.shunned = false, nil, ""
+	k.respawned, k.resume = false, nil
 	if st != nil && st.Phase == protocol.PhaseDead {
 		k.dead = true
 	}
@@ -256,6 +253,7 @@ func (k *Keeper) Ordered() {
 		k.ordered = true
 	}
 	k.mu.Unlock()
+	k.shun("")
 }
 
 // Touch counts as activity: a player gave an order.
@@ -313,7 +311,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 			// is going back to it. A later death elsewhere does not make
 			// home safe; only an order ends it.
 			if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
-				k.shunned = w
+				k.shun(w)
 			}
 		}
 	case st.Phase == protocol.PhaseInWorld && k.dead:
@@ -364,11 +362,11 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Unlock()
 	if respawned {
 		k.mu.Lock()
-		diedAt, shunned := k.diedAt, k.shunned != ""
+		diedAt := k.diedAt
 		k.mu.Unlock()
-		if shunned {
+		if k.shuns() {
 			// It waits to be told.
-			k.log.Info("died near home; not going back", "died", *diedAt)
+			k.log.Info("died near home; not going back", "died", diedAt)
 			if k.Rules().AfterDeath != config.AfterDeathStay {
 				k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
 			}
@@ -493,10 +491,16 @@ func (k *Keeper) ForgetGrave(pos protocol.Vec3, r float64) {
 // shuns reports whether the bot died near home in this world and has had
 // no order since.
 func (k *Keeper) shuns() bool {
-	w := k.World()
-	k.mu.Lock()
-	defer k.mu.Unlock()
-	return k.shunned != "" && k.shunned == w
+	w := k.store.Shunned()
+	return w != "" && w == k.World()
+}
+
+// shun keeps the bot from going home by itself in world, kept across
+// restarts; "" ends it.
+func (k *Keeper) shun(world string) {
+	if err := k.store.SetShunned(world); err != nil {
+		k.log.Warn("could not save the shun", "err", err)
+	}
 }
 
 func (k *Keeper) setInterrupted(v bool) {

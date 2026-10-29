@@ -55,6 +55,9 @@ type memory struct {
 	// Graves are where the bot died and has not yet fetched its things
 	// from, by world name, oldest first.
 	Graves map[string][]Grave `json:"graves,omitempty"`
+	// Shunned is the world where the bot last died near home and has had
+	// no order since: nothing sends it home there by itself.
+	Shunned string `json:"shunned,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file
@@ -150,6 +153,24 @@ func (s *Store) UpdateLeftBehind(world string, f func([]Cache) []Cache) error {
 	} else {
 		s.mem.LeftBehind[world] = caches
 	}
+	return s.save()
+}
+
+// Shunned is the world whose home the bot keeps away from, or "".
+func (s *Store) Shunned() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.mem.Shunned
+}
+
+// SetShunned sets it, writing only when it changes.
+func (s *Store) SetShunned(world string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.mem.Shunned == world {
+		return nil
+	}
+	s.mem.Shunned = world
 	return s.save()
 }
 
