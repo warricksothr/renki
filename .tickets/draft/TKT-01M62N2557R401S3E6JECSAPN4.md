@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-29T01:40:45Z
+updated_at: 2026-10-29T13:23:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -42,3 +42,7 @@ The plugin's safety switch for this (Safety.AllowCombat) is off by default and s
 - [ ] Hurt and outmatched, the bot retreats toward its owner or home instead of standing still
 - [ ] With combat allowed, it fights what attacks it or its owner, and stops when told
 - [ ] It remembers where it was hurt and avoids those places when it can
+
+## Implementation plan
+
+Order of work, set 2026-10-29: flee and retreat when hurt and outmatched (TKT-01M62N256); danger zones from where it was hurt (TKT-01M62N25C); attack with block and dodge behind Safety.AllowCombat, off by default (TKT-01M62N258); guard the owner and defend itself (TKT-01M62N25A). Revenge (TKT-01M62VXZH, TKT-01M62VXZJ) is outside M3's criteria and waits.

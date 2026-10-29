@@ -327,3 +327,45 @@ func TestPastDays(t *testing.T) {
 		t.Errorf("a path for a day: %d", code)
 	}
 }
+
+func TestSayFromThePage(t *testing.T) {
+	var heard []string
+	l, _ := audit.Open("", 0, nil)
+	srv := httptest.NewServer(Handler(Options{Token: token, Log: l, Status: func() any { return nil },
+		Say: func(as, text string) error {
+			if as != "Sothr" {
+				return errors.New("not an owner: " + as)
+			}
+			heard = append(heard, text)
+			return nil
+		},
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil))}))
+	defer srv.Close()
+	for _, c := range []struct {
+		body   string
+		header bool
+		code   int
+	}{
+		{`{"as":"Sothr","text":"follow me"}`, true, 200},
+		{`{"as":"Mallory","text":"follow me"}`, true, 409},
+		{`{"as":"Sothr","text":"  "}`, true, 400},
+		{`{"as":"Sothr","text":"stop"}`, false, 403},
+	} {
+		req, _ := http.NewRequest("POST", srv.URL+"/api/say", strings.NewReader(c.body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		if c.header {
+			req.Header.Set(ActHeader, "1")
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != c.code {
+			t.Errorf("%s header=%v: %d; want %d", c.body, c.header, res.StatusCode, c.code)
+		}
+	}
+	if len(heard) != 1 || heard[0] != "follow me" {
+		t.Errorf("heard %q", heard)
+	}
+}

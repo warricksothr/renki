@@ -81,6 +81,32 @@ function lineItem(ev) {
   return li;
 }
 
+// ---- saying things to the bot ----
+
+function sayAs(owners) {
+  const sel = $("say-as");
+  if (sel.dataset.owners === owners.join("\n")) return;
+  sel.dataset.owners = owners.join("\n");
+  const keep = sel.value;
+  sel.replaceChildren(...owners.map((o) => new Option(o, o)));
+  if (owners.includes(keep)) sel.value = keep;
+}
+
+$("say-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("say-text").value.trim();
+  if (!text) return;
+  const res = await fetch("/api/say", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+    body: JSON.stringify({ as: $("say-as").value, text }),
+  }).catch(() => null);
+  const body = res ? await res.json().catch(() => ({})) : {};
+  // The bot's answer comes back in the feed.
+  $("say-result").textContent = res?.ok ? "" : body.text || "the controller did not answer";
+  if (res?.ok) $("say-text").value = "";
+});
+
 // ---- past days and tasks ----
 
 async function loadDays() {
@@ -314,6 +340,7 @@ function onStatus(s) {
   chip("link", s.connected ? "connected" : "no plugin", s.connected ? "on" : "off");
   for (const b of document.querySelectorAll("button.act")) b.disabled = !s.connected || acting;
   onModel(s);
+  sayAs(s.owners || []);
   chip("who", s.character ? `${s.character}${s.world ? " in " + s.world : ""}` : "");
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");

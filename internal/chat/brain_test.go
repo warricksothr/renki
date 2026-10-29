@@ -657,3 +657,34 @@ func TestPickThatUp(t *testing.T) {
 		t.Errorf("when full: %q, sent %d", got[5], len(pickups()))
 	}
 }
+
+// TestFromThePanel: words typed into the panel need no name, are answered
+// on the panel, not in the game, use the owner's position when the bot
+// sees them, and refuse what needs it when it does not.
+func TestFromThePanel(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	if err := b.FromPanel("Mallory", "follow me"); !errors.Is(err, ErrNotOwner) {
+		t.Errorf("a non-owner: %v", err)
+	}
+	if err := b.FromPanel("Sothr", "stop"); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.tasks(); len(got) != 1 || got[0] != protocol.TaskStop {
+		t.Fatalf("tasks %v", got)
+	}
+	if len(f.said()) != 0 {
+		t.Errorf("answered the panel in the game: %v", f.said())
+	}
+	b.FromPanel("Sothr", "come here")
+	if got := f.tasks(); len(got) != 1 {
+		t.Errorf("came with no idea where: %v", got)
+	}
+	f.perception = &protocol.Perception{Characters: []protocol.PerceivedCharacter{
+		{Kind: protocol.CharacterPlayer, Name: "Sothr", Pos: protocol.Vec3{5, 0, 7}}}}
+	f.state = &protocol.State{Pos: protocol.Vec3{0, 0, 0}}
+	b.FromPanel("Sothr", "come here")
+	orders := f.sent()
+	if a, ok := orders[len(orders)-1].Args.(*protocol.MoveToArgs); !ok || *a.To.Pos != (protocol.Vec3{5, 0, 7}) {
+		t.Errorf("come: %+v", orders[len(orders)-1])
+	}
+}

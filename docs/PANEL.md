@@ -78,6 +78,12 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Inventory:** what the bot carries, laid out as in the game, with stacks,
   a wear bar on items that wear (red below a quarter), equipped items
   outlined, and free slots and weight above. Hover a slot for the detail.
+- **Say:** words typed above the feed reach the bot as if the owner
+  picked beside them had said them in the game, with no need for its
+  name. It answers in the feed (`said to the panel`), not in the game.
+  "Come here", "set home" and "pick that up" use where that owner's
+  character stands when the bot can see it, and are refused when it
+  cannot.
 - **Feed:** the audit log's records as they are written (docs/AUDIT.md), in
   the same lines `just vm audit` prints. Filters: chat, tasks, the plugin's
   decisions (`trace`), the controller's decisions, other frames, and state
@@ -105,7 +111,8 @@ answers `{"text": …}` with 200, 404 for an unknown action or 409 when it
 could not be done. `GET /api/settings` lists the runtime settings with who
 set each, `POST /api/setting` with `{"key": …, "value": …}` changes one as
 the panel (400 bad value, 404 unknown key, 409 pinned or owners-only), and
-`GET /api/models` lists the voice's models. `GET /api/days` lists the
+`GET /api/models` lists the voice's models. `POST /api/say` with
+`{"as": owner, "text": …}` speaks to the bot as that owner. `GET /api/days` lists the
 audit files, `GET /api/timeline?day=…[&before=…]` reads one, and
 `GET /api/task?id=…&at=…` gives a task's records from the run going at
 `at`. A press or a change must carry

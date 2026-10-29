@@ -232,10 +232,43 @@ type origin struct {
 	follow string
 }
 
+// channelPanel is the channel of words typed into the control panel: always
+// addressed to the bot, and answered on the panel, not in the game.
+const channelPanel = "panel"
+
+// ErrNotOwner is FromPanel's answer for a speaker who is not an owner.
+var ErrNotOwner = errors.New("not an owner")
+
+// FromPanel takes text typed into the control panel as if speaker, an
+// owner, had said it to the bot. Where the speaker stands comes from
+// perception; when their character is not in sight, commands that need
+// it ("come here", "set home", "pick that up") say so.
+func (b *Brain) FromPanel(speaker, text string) error {
+	if !slices.Contains(b.live().Owners, speaker) {
+		return fmt.Errorf("%w: %s", ErrNotOwner, speaker)
+	}
+	c := &protocol.Chat{From: protocol.ChatSender{Name: speaker, Owner: true}, Channel: channelPanel, Text: text, Dist: -1}
+	if seen := b.d.Perception(); seen != nil {
+		for _, p := range seen.Characters {
+			if p.Kind == protocol.CharacterPlayer && p.Name == speaker {
+				c.Pos = p.Pos
+				if st := b.d.State(); st != nil {
+					c.Dist = st.Pos.FlatDistance(p.Pos)
+				}
+			}
+		}
+	}
+	b.Chat(c)
+	return nil
+}
+
+// located reports whether the bot knows where the speaker of c stands.
+func located(c *protocol.Chat) bool { return c.Channel != channelPanel || c.Dist >= 0 }
+
 // Chat implements session.Listener.
 func (b *Brain) Chat(c *protocol.Chat) {
 	b.remember(Line{From: c.From.Name, Text: c.Text})
-	if !b.addressed(c) {
+	if c.Channel != channelPanel && !b.addressed(c) {
 		b.opts.Logger.Debug("not addressed", "from", c.From.Name, "name", b.agentName())
 		return
 	}
@@ -420,6 +453,13 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		order session.Order
 		ack   string
 	)
+	switch cmd {
+	case cmdCome, cmdSetHome, cmdPickup:
+		if !located(c) {
+			b.say(from, fmt.Sprintf("I can't see you, %s, so I don't know where you mean.", c.From.Name))
+			return
+		}
+	}
 	switch cmd {
 	case cmdStatus:
 		b.say(from, b.status())
@@ -617,6 +657,12 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool) {
 }
 
 func (b *Brain) say(to origin, text string) {
+	if to.channel == channelPanel {
+		// For the panel's feed, not the game's chat.
+		b.opts.Logger.Info("said to the panel", "to", to.player, "text", text)
+		b.remember(Line{From: b.agentName(), Text: text, Bot: true})
+		return
+	}
 	args := &protocol.SayArgs{Text: text}
 	switch to.channel {
 	case protocol.ChannelWhisper:
@@ -647,7 +693,7 @@ func (b *Brain) remember(l Line) {
 // shout, since whoever shouted may be too far off to hear normal chat.
 func replyChannel(heard string) string {
 	switch heard {
-	case protocol.ChannelWhisper, protocol.ChannelShout:
+	case protocol.ChannelWhisper, protocol.ChannelShout, channelPanel:
 		return heard
 	}
 	return protocol.ChannelNormal
