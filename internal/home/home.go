@@ -334,7 +334,7 @@ func (k *Keeper) setInterrupted(v bool) {
 // body reports whether task moves the bot, so an outage could leave it
 // somewhere odd.
 func body(task string) bool {
-	return task == protocol.TaskFollow || task == protocol.TaskMoveTo
+	return task == protocol.TaskFollow || task == protocol.TaskMoveTo || task == protocol.TaskPickup
 }
 
 func flat(a, b protocol.Vec3) float64 { return a.FlatDistance(b) }

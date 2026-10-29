@@ -372,7 +372,8 @@ Notes:
   of the item than it did, which can also come from another stack of it that
   auto-pickup took on the way, and fails with `inventory_full` when none fits,
   `target_lost` when the drop is gone and the bot did not get it, or `stuck`
-  as `move_to` does. It needs `allowGather`.
+  as `move_to` does. It needs `allowGather` and `allowMovement`, since it
+  walks.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
