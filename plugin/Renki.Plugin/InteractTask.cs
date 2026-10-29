@@ -61,7 +61,11 @@ namespace Renki.Plugin
                     return t.IsOwner() && t.EasyFitInInventory(Player.m_localPlayer) ? InteractRule.Other : InteractRule.Container;
                 case OfferingBowl _: return InteractRule.Boss;
                 case ShipControlls _: return InteractRule.Ship;
-                case Pickable _: return InteractRule.Pickable;
+                // Everything that hands over what grows or gathers there.
+                case Pickable _:
+                case PickableItem _:
+                case Beehive _:
+                case SapCollector _: return InteractRule.Pickable;
                 case ItemDrop _: return InteractRule.Drop;
                 case Container _: return InteractRule.Container;
                 case CraftingStation _: return InteractRule.Station;

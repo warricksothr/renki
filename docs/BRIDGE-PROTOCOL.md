@@ -448,7 +448,7 @@ Notes:
   something, with what the game said on screen in `detail`, and fails with
   `refused` when it did not. What it may use goes by what the thing is:
   offering bowls need `allowBossSummoning`, ship controls `allowSailing`, and
-  pickables `allowGather`. Drops (`pickup`), chests (`deposit`, `withdraw`),
+  pickables, beehives and sap collectors `allowGather`. Drops (`pickup`), chests (`deposit`, `withdraw`),
   crafting stations, portals and signs are `invalid_target`, since they have
   their own tasks or open a window the bot cannot use, and so is a thing
   with several parts to use and none named (a smelter's ore, fuel and
