@@ -305,9 +305,11 @@ func TestAnOrderAfterTheRespawnWins(t *testing.T) {
 	}
 
 	// "wait here" while the bot is dead: over before it is back.
-	k.Respawned()
+	k.Died()
 	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard"})
 	k.Ordered()
+	k.Tick(ctx)
+	k.Respawned()
 	f.set(f.hello, inWorld(protocol.Vec3{-1, 0, -5}, nil))
 	k.Tick(ctx)
 	if len(f.sent()) != 0 {

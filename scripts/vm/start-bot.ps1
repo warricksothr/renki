@@ -36,6 +36,8 @@ if ($s.ControllerExe) {
         Start-Process -FilePath $s.ControllerExe -ArgumentList $ctlArgs -WorkingDirectory $PSScriptRoot `
             -WindowStyle Hidden -RedirectStandardError (Join-Path $logs 'controller.log') `
             -RedirectStandardOutput (Join-Path $logs 'controller.out.log') | Out-Null
+        # Only the controller: the game, started below, need not see them.
+        foreach ($k in $secrets.Keys) { Remove-Item -Path "env:$k" -ErrorAction SilentlyContinue }
         Write-Host "controller: started ($($s.ControllerExe))"
         Start-Sleep -Seconds 1
     }

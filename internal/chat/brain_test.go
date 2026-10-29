@@ -423,6 +423,7 @@ func (h *fakeHome) ReturnOn(reason string) bool {
 }
 func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h.home != nil }
 func (h *fakeHome) Touch()                                        { h.touched++ }
+func (h *fakeHome) Died()                                         {}
 func (h *fakeHome) Respawned()                                    { h.respawned++ }
 func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
 func (h *fakeHome) Ordered()                                      { h.resume = nil }

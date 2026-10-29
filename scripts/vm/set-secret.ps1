@@ -23,6 +23,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if ($Name -notmatch '^[A-Z_][A-Z0-9_]*$') { throw "Name must look like CPA_API_KEY, not $Name" }
+# start-bot.ps1 sets each secret and then removes it: not one Windows owns.
+if (-not $Remove -and ([Environment]::GetEnvironmentVariable($Name, 'Machine') -or [Environment]::GetEnvironmentVariable($Name, 'User'))) {
+    throw "$Name is already a Windows environment variable; pick another name"
+}
 . (Join-Path $PSScriptRoot 'common.ps1')
 
 $secrets = Read-Secrets

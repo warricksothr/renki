@@ -57,6 +57,9 @@ type Keeper struct {
 	active time.Time
 	// respawned is set by Respawned and cleared once Tick has acted on it.
 	respawned bool
+	// dead runs from Died to Respawned; ordered is set by an order given in
+	// between, which cancels what the respawn would have done.
+	dead, ordered bool
 	// resume picks up what a death cut short, for AfterDeathResume. The
 	// chat brain sets it, since it knows what that was and for whom.
 	resume func(context.Context) bool
@@ -185,19 +188,31 @@ func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
 
 // Ordered drops whatever a death left pending: the resume, and the
 // respawn Tick has not acted on yet. Any order given after the death wins,
-// even one such as stop that is over before the bot is back.
+// even one such as stop that is over before the bot is back, and even
+// one given while it is still dead.
 func (k *Keeper) Ordered() {
 	k.mu.Lock()
 	k.respawned, k.resume = false, nil
+	if k.dead {
+		k.ordered = true
+	}
+	k.mu.Unlock()
+}
+
+// Died notes that the bot died.
+func (k *Keeper) Died() {
+	k.mu.Lock()
+	k.dead, k.ordered = true, false
 	k.mu.Unlock()
 }
 
 // Respawned notes that the bot came back from death. Once it is in the
 // world with nothing to do, Tick resumes, goes home or stays, as
-// rules.AfterDeath says.
+// rules.AfterDeath says, unless it was given an order while dead.
 func (k *Keeper) Respawned() {
 	k.mu.Lock()
-	k.respawned = true
+	k.respawned = !k.ordered
+	k.dead, k.ordered = false, false
 	k.mu.Unlock()
 }
 

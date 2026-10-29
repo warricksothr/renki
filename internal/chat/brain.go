@@ -82,6 +82,8 @@ type Home interface {
 	HomeDistance() (float64, bool)
 	// Touch counts as activity, for the idle rule.
 	Touch()
+	// Died notes that the bot died.
+	Died()
 	// Respawned notes that the bot came back from death.
 	Respawned()
 	// ResumeAfterDeath leaves what to start again after a respawn, when
@@ -236,7 +238,13 @@ func (b *Brain) Chat(c *protocol.Chat) {
 // Event implements session.Listener.
 func (b *Brain) Event(e *protocol.Event) {
 	b.opts.Logger.Info("event", "event", e.Event, "by", e.By, "name", e.Name)
-	if e.Event == protocol.EventRespawned && b.opts.Home != nil {
+	if b.opts.Home == nil {
+		return
+	}
+	switch e.Event {
+	case protocol.EventDied:
+		b.opts.Home.Died()
+	case protocol.EventRespawned:
 		b.opts.Home.Respawned()
 	}
 }
