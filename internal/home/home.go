@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"math"
 	"sync"
 	"time"
 
@@ -338,4 +337,4 @@ func body(task string) bool {
 	return task == protocol.TaskFollow || task == protocol.TaskMoveTo
 }
 
-func flat(a, b protocol.Vec3) float64 { return math.Hypot(a[0]-b[0], a[2]-b[2]) }
+func flat(a, b protocol.Vec3) float64 { return a.FlatDistance(b) }

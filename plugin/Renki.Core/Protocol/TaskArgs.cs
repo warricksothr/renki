@@ -3,13 +3,17 @@ using Newtonsoft.Json.Linq;
 
 namespace Renki.Protocol
 {
-    /// <summary>The M1 task names (7.2).</summary>
+    /// <summary>The task names this plugin knows (7.2).</summary>
     public static class TaskNames
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", LookAt = "look_at",
-            Say = "say", Emote = "emote";
+            Say = "say", Emote = "emote", Pickup = "pickup";
 
         public static readonly string[] M1 = { Stop, MoveTo, Follow, LookAt, Say, Emote };
+
+        /// <summary>Every task the plugin carries out, M1 and what M2 has added
+        /// so far. Safety still decides which of them it offers.</summary>
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -78,11 +82,17 @@ namespace Renki.Protocol
         public string Name;
     }
 
+    public sealed class PickupArgs
+    {
+        /// <summary>The drop, by entity id from perception.</summary>
+        public string Entity;
+    }
+
     public static class TaskArgs
     {
-        /// <summary>The typed arguments for an M1 task, checked as the Go side
+        /// <summary>The typed arguments for a task, checked as the Go side
         /// checks them. Throws BadArgsException; returns null for a task
-        /// outside the M1 catalogue.</summary>
+        /// this plugin does not know.</summary>
         public static object Parse(TaskRequest req)
         {
             var a = req.Args ?? new JObject();
@@ -123,6 +133,12 @@ namespace Renki.Protocol
                         var name = Str(a, "name");
                         if (string.IsNullOrEmpty(name)) throw new BadArgsException("`name` is required");
                         return new EmoteArgs { Name = name };
+                    }
+                case TaskNames.Pickup:
+                    {
+                        var entity = Str(a, "entity");
+                        if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
+                        return new PickupArgs { Entity = entity };
                     }
             }
             return null;

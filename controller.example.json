@@ -4,7 +4,7 @@
   "owners": ["Sothr"],
   "rates": { "stateHz": 5, "perceptionHz": 1 },
   "perception": { "radius": 40, "maxPerKind": 24 },
-  "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote"],
+  "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote", "pickup"],
   "audit": { "dir": "audit", "keepDays": 14 },
   "dataDir": "data",
   "home": { "whenLost": true, "whenStuck": true, "afterOutage": true, "idleMinutes": 10, "afterDeath": "home" },

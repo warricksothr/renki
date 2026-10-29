@@ -18,7 +18,7 @@ type TaskRequest struct {
 
 func (*TaskRequest) MessageType() string { return TypeTask }
 
-// M1 task names (7.2). Later milestones add to this list.
+// Task names (7.2): M1's, and what M2 has added so far.
 const (
 	TaskStop   = "stop"
 	TaskMoveTo = "move_to"
@@ -26,6 +26,7 @@ const (
 	TaskLookAt = "look_at"
 	TaskSay    = "say"
 	TaskEmote  = "emote"
+	TaskPickup = "pickup"
 )
 
 // Instant reports whether a task runs alongside the body task instead of
@@ -38,8 +39,8 @@ func Instant(task string) bool {
 	return false
 }
 
-// ErrUnknownTask is returned by DecodeArgs for a task outside the M1
-// catalogue. The plugin answers it with ReasonUnsupported.
+// ErrUnknownTask is returned by DecodeArgs for a task this controller does
+// not know. The plugin answers it with ReasonUnsupported.
 var ErrUnknownTask = errors.New("unknown task")
 
 // ErrBadArgs is returned by DecodeArgs for missing or malformed arguments.
@@ -59,8 +60,9 @@ func NewTask(id, task string, args any, timeoutS float64) (*TaskRequest, error) 
 	return req, nil
 }
 
-// DecodeArgs returns the typed arguments for an M1 task: a *StopArgs,
-// *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs or *EmoteArgs. It checks
+// DecodeArgs returns the typed arguments for a task: a *StopArgs,
+// *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs, *EmoteArgs or
+// *PickupArgs. It checks
 // that the required ones are there and that enumerated values are known.
 func (r *TaskRequest) DecodeArgs() (any, error) {
 	var args interface{ validate() error }
@@ -77,6 +79,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &SayArgs{}
 	case TaskEmote:
 		args = &EmoteArgs{}
+	case TaskPickup:
+		args = &PickupArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -169,6 +173,18 @@ type EmoteArgs struct {
 func (a *EmoteArgs) validate() error {
 	if a.Name == "" {
 		return errors.New("`name` is required")
+	}
+	return nil
+}
+
+// PickupArgs are the arguments to `pickup`: the drop, by entity id.
+type PickupArgs struct {
+	Entity string `json:"entity"`
+}
+
+func (a *PickupArgs) validate() error {
+	if a.Entity == "" {
+		return errors.New("`entity` is required")
 	}
 	return nil
 }

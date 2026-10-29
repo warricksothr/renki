@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Renki.Plugin
 {
-    /// <summary>The M1 tasks, carried out in the game. Everything here runs on
+    /// <summary>The tasks, carried out in the game. Everything here runs on
     /// Unity's main thread.</summary>
     sealed class GameTaskHost : ITaskHost
     {
@@ -22,6 +22,16 @@ namespace Renki.Plugin
                     {
                         var (pos, obj) = Resolve(m.To);
                         return new MoveToTask(m, pos, obj);
+                    }
+                case PickupArgs pk:
+                    {
+                        var obj = FindEntity(pk.Entity);
+                        if (obj == null || !obj.TryGetComponent<ItemDrop>(out var drop) || drop.m_itemData == null)
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, $"no drop {pk.Entity} in range");
+                        // Not even one fits: the game would leave it lying there.
+                        if (!Player.m_localPlayer.GetInventory().CanAddItem(drop.m_itemData, 1))
+                            throw new TaskRefused(Wire.ReasonInventoryFull, $"no room for {drop.m_itemData.m_shared.m_name}");
+                        return new PickupTask(drop);
                     }
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)

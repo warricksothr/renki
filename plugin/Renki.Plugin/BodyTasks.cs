@@ -156,6 +156,98 @@ namespace Renki.Plugin
         public void Cancel() => Driver.Stand();
     }
 
+    /// <summary>
+    /// pickup: walk to a drop and take it. The game's auto-pickup takes
+    /// whatever is within about 2 m of the bot, as for any player, so the
+    /// walk is usually all it takes; if the drop is still there once the bot
+    /// stands on it, the task picks it up itself. It succeeds when the bot
+    /// carries more of the item than it did, however that came about.
+    /// </summary>
+    sealed class PickupTask : IBodyTask
+    {
+        /// <summary>How close counts as standing on the drop.</summary>
+        const float Close = 1.0f;
+
+        /// <summary>How long to leave auto-pickup to it before picking up by hand.</summary>
+        const float AutoFor = 1.0f;
+
+        readonly ItemDrop drop;
+        readonly string prefab;
+        readonly int before;
+        readonly Walker walker = new Walker();
+        Vector3 goal;
+        float arrivedAt = -1;
+
+        public PickupTask(ItemDrop drop)
+        {
+            this.drop = drop;
+            prefab = drop.m_itemData.m_dropPrefab != null ? drop.m_itemData.m_dropPrefab.name : PrefabOf(drop.gameObject);
+            var p = Player.m_localPlayer;
+            before = Carried(p, prefab);
+            goal = drop.transform.position;
+            walker.SetGoal(p.transform.position, goal);
+            walker.ResetStuck(p.transform.position);
+        }
+
+        public Outcome Tick(double dt)
+        {
+            var p = Player.m_localPlayer;
+            if (p == null) return Outcome.Failed(Wire.ReasonStopped, "no player");
+            var took = Carried(p, prefab) - before;
+            if (drop == null)
+            {
+                // Gone: into the bot's pack, or someone else's, or despawned.
+                Driver.Stand();
+                return took > 0
+                    ? Outcome.Succeeded($"took {took} {prefab}")
+                    : Outcome.Failed(Wire.ReasonTargetLost, $"the {prefab} is gone");
+            }
+            if ((drop.transform.position - goal).sqrMagnitude > 1)
+            {
+                // Auto-pickup pulls drops toward the player, and they roll.
+                goal = drop.transform.position;
+                walker.SetGoal(p.transform.position, goal);
+            }
+            var pos = p.transform.position;
+            if (V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= Close)
+            {
+                Driver.Stand();
+                if (arrivedAt < 0) arrivedAt = Time.time;
+                if (Time.time - arrivedAt < AutoFor) return null;
+                if (!p.GetInventory().CanAddItem(drop.m_itemData, 1))
+                    return Outcome.Failed(Wire.ReasonInventoryFull, $"no room for {prefab}");
+                p.Pickup(drop.gameObject, false, false);
+                arrivedAt = Time.time; // give it a moment to land before trying again
+                return null;
+            }
+            arrivedAt = -1;
+            if (!walker.Steer(pos, true))
+            {
+                Driver.Stand();
+                return Outcome.Failed(Wire.ReasonStuck,
+                    $"no progress after {walker.RecoveryAttempts} recoveries{(walker.StraightLine ? " (no navmesh path)" : "")}");
+            }
+            return null;
+        }
+
+        public void Cancel() => Driver.Stand();
+
+        static int Carried(Player p, string prefab)
+        {
+            var n = 0;
+            foreach (var item in p.GetInventory().GetAllItems())
+                if (item.m_dropPrefab != null && item.m_dropPrefab.name == prefab) n += item.m_stack;
+            return n;
+        }
+
+        static string PrefabOf(GameObject go)
+        {
+            var name = go.name;
+            var clone = name.IndexOf("(Clone)", System.StringComparison.Ordinal);
+            return (clone >= 0 ? name.Substring(0, clone) : name).Trim();
+        }
+    }
+
     /// <summary>follow: keep a player at a distance, at the leader's pace.</summary>
     sealed class FollowTask : IBodyTask
     {

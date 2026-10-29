@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -21,7 +22,7 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Listen != "127.0.0.1:8765" || c.Rates.StateHz != 5 || len(c.AllowedTasks) != 6 {
+	if c.Listen != "127.0.0.1:8765" || c.Rates.StateHz != 5 || !slices.Equal(c.AllowedTasks, KnownTasks) {
 		t.Errorf("defaults %+v", c)
 	}
 }

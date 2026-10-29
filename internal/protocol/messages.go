@@ -202,6 +202,29 @@ type PerceivedCharacter struct {
 	TargetingMe bool    `json:"targetingMe,omitempty"`
 }
 
+// Perceived kinds (6.2).
+const (
+	CharacterPlayer   = "player"
+	CharacterCreature = "creature"
+	CharacterTamed    = "tamed"
+
+	ResourceTree     = "tree"
+	ResourceLog      = "log"
+	ResourceStump    = "stump"
+	ResourceRock     = "rock"
+	ResourcePickable = "pickable"
+	ResourceDrop     = "drop"
+
+	StructureContainer = "container"
+	StructureStation   = "station"
+	StructureBed       = "bed"
+	StructurePortal    = "portal"
+	StructureDoor      = "door"
+	StructureFire      = "fire"
+	StructureSmelter   = "smelter"
+	StructureOther     = "other"
+)
+
 // PerceivedResource is something the bot could harvest or pick up. MinTool
 // is a pointer because tier 0 is a real value and absent means "no tool".
 type PerceivedResource struct {

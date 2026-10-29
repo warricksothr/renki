@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N12AYHHGR5W6D9RDEQKVM
 title: "Plugin: pickup task for drops on the ground"
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -19,10 +19,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/pickup
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 7c6c6f9830849f06828309bb5276a1e52a5104ff
+  session: null
+  claimed_at: 2026-10-29T02:57:48Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T02:40:17Z
+updated_at: 2026-10-29T02:57:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

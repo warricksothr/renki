@@ -25,6 +25,7 @@ import (
 type Dispatcher interface {
 	Dispatch(ctx context.Context, o session.Order) (*session.Task, error)
 	State() *protocol.State
+	Perception() *protocol.Perception
 	Inventory() *protocol.Inventory
 	AllowedTasks() []string
 }
@@ -245,6 +246,10 @@ func (b *Brain) TaskDone(t *session.Task) {
 		return
 	}
 	status, reason, _ := t.Status()
+	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
+		b.say(o, "Got it.")
+		return
+	}
 	if status != protocol.StatusFailed && status != protocol.StatusRejected {
 		return
 	}
@@ -341,10 +346,11 @@ const (
 	cmdWait
 	cmdSetHome
 	cmdGoHome
+	cmdPickup
 )
 
 func (c command) String() string {
-	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home"}[c]
+	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up"}[c]
 }
 
 var grammar = map[string]command{
@@ -357,6 +363,8 @@ var grammar = map[string]command{
 	"make this home": cmdSetHome,
 	"go home":        cmdGoHome, "home": cmdGoHome, "head home": cmdGoHome, "return home": cmdGoHome,
 	"go back home": cmdGoHome,
+	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
+	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
 }
 
 func parse(stripped string) (command, bool) {
@@ -379,6 +387,11 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdGoHome:
 		b.goHome(from)
 		return
+	case cmdPickup:
+		var ok bool
+		if order, ack, ok = b.pickup(c, from); !ok {
+			return
+		}
 	case cmdFollow:
 		order = session.Order{Task: protocol.TaskFollow, Args: &protocol.FollowArgs{Player: c.From.Name, Run: protocol.RunAuto}}
 		ack = "Right behind you."
@@ -406,6 +419,38 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		return
 	}
 	b.say(from, ack)
+}
+
+// pickupReach is how far from the speaker a drop may lie for "pick that up".
+const pickupReach = 10.0
+
+// pickup chooses the drop nearest the speaker, from perception, and checks
+// there is room for it. It says why when there is nothing to send.
+func (b *Brain) pickup(c *protocol.Chat, from origin) (session.Order, string, bool) {
+	var (
+		best *protocol.PerceivedResource
+		dist = pickupReach
+	)
+	if seen := b.d.Perception(); seen != nil {
+		for i, r := range seen.Resources {
+			if r.Kind != protocol.ResourceDrop {
+				continue
+			}
+			if d := c.Pos.FlatDistance(r.Pos); d <= dist {
+				best, dist = &seen.Resources[i], d
+			}
+		}
+	}
+	if best == nil {
+		b.say(from, "I don't see anything to pick up near you.")
+		return session.Order{}, "", false
+	}
+	if inv := b.d.Inventory(); inv != nil && inv.Room(best.Prefab, 0) < 1 {
+		b.say(from, "I've no room for that.")
+		return session.Order{}, "", false
+	}
+	order := session.Order{Task: protocol.TaskPickup, Args: &protocol.PickupArgs{Entity: best.ID}}
+	return order, fmt.Sprintf("Getting the %s.", strings.ToLower(words(best.Prefab))), true
 }
 
 func (b *Brain) setHome(c *protocol.Chat, from origin) {
@@ -574,7 +619,17 @@ func joinNames(names []string) string {
 
 // explain turns a failed task into something to say, or "" for nothing.
 func explain(task, reason, player string) string {
+	if task == protocol.TaskPickup {
+		switch reason {
+		case protocol.ReasonTargetLost:
+			return "It's gone. Someone got to it first."
+		case protocol.ReasonInvalidTarget:
+			return "I can't see it from here."
+		}
+	}
 	switch reason {
+	case protocol.ReasonInventoryFull:
+		return "I've no room for that."
 	case protocol.ReasonTargetLost:
 		return fmt.Sprintf("I lost track of you, %s.", player)
 	case protocol.ReasonStuck:

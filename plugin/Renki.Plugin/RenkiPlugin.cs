@@ -78,7 +78,7 @@ namespace Renki.Plugin
                 t.Task = runner?.Current?.Id;
                 if (client != null && client.Connected) Send(t);
             };
-            runner = new TaskRunner(safety, TaskNames.M1, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
+            runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);
             inventory = new InventoryReporter(this);
@@ -90,7 +90,7 @@ namespace Renki.Plugin
             client.SetHello(BuildHello());
             client.Start();
             Logger.LogInfo($"{Name} {Version} loaded; dialling {controllerUrl.Value}; " +
-                           $"tasks allowed by config: {string.Join(", ", TaskNames.M1.Where(safety.Permits))}");
+                           $"tasks allowed by config: {string.Join(", ", TaskNames.Supported.Where(safety.Permits))}");
         }
 
         void Update()

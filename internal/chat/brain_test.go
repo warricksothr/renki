@@ -19,11 +19,12 @@ import (
 
 // fakeSession records orders, checking them the way Session.Dispatch does.
 type fakeSession struct {
-	mu        sync.Mutex
-	orders    []session.Order
-	allowed   []string
-	state     *protocol.State
-	inventory *protocol.Inventory
+	mu         sync.Mutex
+	orders     []session.Order
+	allowed    []string
+	state      *protocol.State
+	inventory  *protocol.Inventory
+	perception *protocol.Perception
 }
 
 func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Task, error) {
@@ -43,9 +44,10 @@ func (f *fakeSession) Dispatch(_ context.Context, o session.Order) (*session.Tas
 	return &session.Task{ID: "t", Name: o.Task, Origin: o.Origin}, nil
 }
 
-func (f *fakeSession) State() *protocol.State         { return f.state }
-func (f *fakeSession) Inventory() *protocol.Inventory { return f.inventory }
-func (f *fakeSession) AllowedTasks() []string         { return f.allowed }
+func (f *fakeSession) State() *protocol.State           { return f.state }
+func (f *fakeSession) Inventory() *protocol.Inventory   { return f.inventory }
+func (f *fakeSession) Perception() *protocol.Perception { return f.perception }
+func (f *fakeSession) AllowedTasks() []string           { return f.allowed }
 
 func (f *fakeSession) sent() []session.Order {
 	f.mu.Lock()
@@ -542,5 +544,46 @@ func TestADeadFollowLeavesAResumeForTheSamePlayer(t *testing.T) {
 	b.TaskDone(doneTask(come, protocol.StatusFailed, protocol.ReasonDied))
 	if h.resume != nil {
 		t.Error("a come-here left a resume")
+	}
+}
+
+func TestPickThatUp(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.allowed = append(f.allowed, protocol.TaskPickup)
+
+	b.Chat(line("Sothr", "bjorn pick that up"))
+	if got := f.said(); got[0] != "I don't see anything to pick up near you." {
+		t.Errorf("with nothing seen: %q", got)
+	}
+
+	// Nearest the speaker (at 10, 10), not the bot, and within reach.
+	f.perception = &protocol.Perception{Resources: []protocol.PerceivedResource{
+		{ID: "0:1", Kind: protocol.ResourceDrop, Prefab: "Stone", Pos: protocol.Vec3{16, 0, 10}},
+		{ID: "0:2", Kind: protocol.ResourceDrop, Prefab: "Wood", Pos: protocol.Vec3{11, 0, 11}},
+		{ID: "0:3", Kind: protocol.ResourceTree, Prefab: "Beech1", Pos: protocol.Vec3{10, 0, 10}},
+		{ID: "0:4", Kind: protocol.ResourceDrop, Prefab: "Resin", Pos: protocol.Vec3{40, 0, 40}},
+	}}
+	pickups := func() []session.Order {
+		return slices.DeleteFunc(f.sent(), func(o session.Order) bool { return o.Task != protocol.TaskPickup })
+	}
+	b.Chat(line("Sothr", "bjorn pick that up"))
+	sent := pickups()
+	if len(sent) != 1 || sent[0].Args.(*protocol.PickupArgs).Entity != "0:2" {
+		t.Fatalf("sent %+v; want pickup of 0:2", sent)
+	}
+	if got := f.said(); got[1] != "Getting the wood." {
+		t.Errorf("ack %q", got[1])
+	}
+	b.TaskDone(doneTask(sent[0], protocol.StatusSucceeded, ""))
+	b.TaskDone(doneTask(sent[0], protocol.StatusFailed, protocol.ReasonTargetLost))
+	if got := f.said(); got[2] != "Got it." || got[3] != "It's gone. Someone got to it first." {
+		t.Errorf("results %q", got[2:])
+	}
+
+	// No slot free and no stack of it to add to.
+	f.inventory = &protocol.Inventory{Size: [2]int{1, 1}, Items: []protocol.InventoryItem{{Prefab: "Stone", Stack: 50, StackMax: 50}}}
+	b.Chat(line("Sothr", "bjorn grab that"))
+	if got := f.said(); got[4] != "I've no room for that." || len(pickups()) != 1 {
+		t.Errorf("when full: %q, sent %d", got[4], len(pickups()))
 	}
 }
