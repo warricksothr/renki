@@ -361,8 +361,10 @@ Notes:
 - **Stuck detection:** the bot is stuck while it stays within 3 m of where it
   was. Every 3 s inside that circle triggers the next recovery: a jump, then a
   strafe (at a walk), then a re-path. After 3 rounds the task fails with
-  `stuck`. Only leaving the circle counts as progress, so hopping or shuffling
-  against a wall does not reset it.
+  `stuck`. Hopping or shuffling against a wall does not reset it. Once a
+  recovery has fired, leaving the circle only starts a new circle; the count
+  resets when the bot gets 6 m from where the first recovery fired, so a
+  strafe that carries it just over the edge and back is still stuck.
 - `follow` keeps `distance` with hysteresis. It walks when the gap is under
   2× the distance, runs beyond that, and stops inside the distance.
 
