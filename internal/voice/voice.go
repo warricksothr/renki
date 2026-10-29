@@ -137,7 +137,7 @@ func (v *Voice) Reply(ctx context.Context, req chat.Request) (chat.Reply, error)
 		CWD:          v.cwd,
 		SystemPrompt: v.persona(req.AgentName, req.Nicknames),
 		NoTools:      true,
-		ExtraTools:   menu(req.Tasks, rec),
+		ExtraTools:   menu(req.Tasks, req.Gear, rec),
 		// One step to speak and maybe propose, one to finish speaking after
 		// the tool answers.
 		MaxSteps: 2,
@@ -379,13 +379,22 @@ var catalogue = map[string]struct {
 		`{"type":"object","properties":{"to":{"type":"string","description":"The entity id."}},"required":["to"]}`},
 	protocol.TaskEmote: {"Play an emote.",
 		`{"type":"object","properties":{"name":{"type":"string","enum":` + mustJSON(Emotes) + `}},"required":["name"]}`},
+	protocol.TaskUnequip: {"Put away what you hold or wear in a slot; hands is both hands.",
+		`{"type":"object","properties":{"slot":{"type":"string","enum":` + mustJSON(protocol.Slots) + `}},"required":["slot"]}`},
 }
 
 // menu returns a tool for each allowed task the model may propose. `say`
-// is never offered: the reply's own text is what the bot says.
-func menu(allowed []string, rec *recorder) []core.Tool {
+// is never offered: the reply's own text is what the bot says. equip is
+// offered with the gear the bot carries to choose from, and not without.
+func menu(allowed, gear []string, rec *recorder) []core.Tool {
 	var tools []core.Tool
 	for _, name := range allowed {
+		if name == protocol.TaskEquip && len(gear) > 0 {
+			tools = append(tools, tool{name: name, desc: "Hold or wear something you carry.",
+				schema: json.RawMessage(`{"type":"object","properties":{"item":{"type":"string","enum":` + mustJSON(gear) + `}},"required":["item"]}`),
+				rec:    rec})
+			continue
+		}
 		c, ok := catalogue[name]
 		if !ok {
 			continue

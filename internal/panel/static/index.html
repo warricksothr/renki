@@ -81,6 +81,12 @@
         <summary>Inventory <span id="inv-summary">not yet seen</span></summary>
         <div id="inv-grid" role="grid" aria-label="The bot's inventory, as laid out in the game"></div>
       </details>
+      <form id="say-form" class="say-row" autocomplete="off">
+        <label>Say as <select id="say-as"></select></label>
+        <input id="say-text" type="text" placeholder="a command, such as: follow me, go home, status" aria-label="What to say to the bot">
+        <button>Say</button>
+        <span id="say-result" role="status"></span>
+      </form>
       <div class="filters">
         <label><input type="checkbox" data-cat="chat" checked> Chat</label>
         <label><input type="checkbox" data-cat="task" checked> Tasks</label>

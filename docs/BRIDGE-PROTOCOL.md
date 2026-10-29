@@ -210,15 +210,15 @@ into a problem.
 |---|---|
 | `characters.kind` | `player`, `creature`, `tamed` |
 | `resources.kind` | `tree`, `log`, `stump`, `rock`, `pickable`, `drop` |
-| `structures.kind` | `container`, `station`, `bed`, `portal`, `door`, `fire`, `smelter`, `other` |
+| `structures.kind` | `container`, `station`, `bed`, `portal`, `door`, `fire`, `smelter`, `tombstone`, `other` |
 
 - `characters`: the bot itself is left out. `stars` is the creature's
   level less one. `hostile` means the creature would fight the bot, and
   `targetingMe` that it has picked the bot as its target.
-- `structures`: only pieces of the kinds above. Walls, floors and the like
-  are left out, so a base cannot fill the cap with them. Walls come in
-  `layout` (6.9). `mine` is set on
-  the bot's own bed, `tag` is a portal's name, and `open` is set on doors
+- `structures`: only pieces of the kinds above, and graves (`tombstone`)
+  with something in them. Walls, floors and the like are left out, so a
+  base cannot fill the cap with them. Walls come in `layout` (6.9). `mine`
+  is set on the bot's own bed and its own graves, `tag` is a portal's name, and `open` is set on doors
   only.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
   Pickables already picked are left out. A tree felled with an axe becomes
@@ -309,12 +309,14 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 | `invalid_target` | ID unknown, or the wrong kind of thing. |
 | `target_lost` | Target left range or was destroyed by someone else. |
 | `unreachable` | No path. |
+| `deep_water` | No navmesh path, and the straight line crosses water too deep to wade (over 1.4 m), where the bot would drown. |
 | `stuck` | Stuck recovery gave up. |
 | `timeout` | `timeoutS` elapsed. |
 | `no_tool` | Nothing in the inventory meets `minTool`. |
 | `inventory_full`, `missing_materials` | — |
 | `too_heavy` | Taking it would carry the bot past `weightMax`. |
 | `encumbered` | Over `weightMax` with no stamina left: the game will not let the bot move until it carries less. |
+| `refused` | The game would not do it: `interact` on a bed someone else owns, or with no roof over it. `detail` is what the game said, in its own words. |
 | `superseded` | A newer body task replaced it. |
 | `stopped` | `stop`, the dead-man rule, or a logout. |
 | `died` | — |
@@ -395,7 +397,7 @@ last. It comes after the `perception` of the same scan.
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
 | `interact` | body | `entity`; `alt` (bool); `hold` (bool) | M2 |
 | `harvest` | body | `entity` (tree, log, rock or pickable); `collect` (default true) | M2 |
-| `equip` / `unequip` | instant | `item` (prefab) / `slot` | M2 |
+| `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (eat, drink) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
 | `withdraw` | body | `container`; `items` | M2 |
@@ -404,7 +406,7 @@ last. It comes after the `perception` of the same scan.
 | `repair_all` | body | `station` | M2 |
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `guard` | body | `around`: player or position; `radius` | M3 |
-| `flee` | body | `from`: entity or position; `distance` | M3 |
+| `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 
 Notes:
@@ -439,6 +441,52 @@ Notes:
   none it may drop. The game marks a player's own drop so its auto-pickup
   does not take it straight back. It needs `allowDrop`, which is on by
   default and needs no movement.
+- `interact` walks to the entity until a ray from the bot's eye meets it
+  within 2.5 m, as the game's own hover finds things, faces it, and uses it
+  through its `Interactable` as a player pressing the use key would; `alt` is
+  the modifier key, and `hold` keeps the key down for 1 s, repeating as the
+  game does. It succeeds when the game says it did something, with what the
+  game said on screen in `detail`, and fails with `refused` when it did not.
+  - What it may use goes by what the thing is, and only what is named here:
+    beds and doors; offering bowls with `allowBossSummoning`; pickables,
+    beehives and sap collectors with `allowGather`. A ship's helm is
+    `not_allowed` even with `allowSailing`, until the plugin sails: taking it
+    holds the bot there.
+  - A bed answers the game's call with false whatever it did, so for a bed
+    success is what changed: it became the bot's spawn point, or the bot lay
+    down in it (its own bed already, at night). A ship is named by its hull,
+    and what would be used is its helm. Most offering bowls take an item
+    rather than a use, so `interact` on one mostly comes back `refused`.
+  - A tombstone is the bot's own grave when all of it fits in the pack, and
+    using it takes everything; otherwise it counts as a chest. If the pack
+    has filled by the time the bot gets there, it fails `inventory_full`.
+  - Drops (`pickup`), chests (`deposit`, `withdraw`), crafting stations,
+    portals and signs are `invalid_target`, since they have their own tasks
+    or open a window the bot cannot use. So is a thing with several parts to
+    use and none named, such as a smelter's ore, fuel and output.
+  - Wards are `not_allowed`: switching one, or joining it, is its owner's to
+    do. So is anything else (chairs, carts, fires, dungeon entrances), since
+    it sits the bot down, harnesses it, carries it off or takes from its pack.
+  - It needs `allowMovement`, and nothing behind a ward the bot has no access
+    to.
+- `equip` holds or wears an item by prefab: of its stacks, the one in best
+  repair, then of highest quality. One already equipped succeeds as it is.
+  A broken item, or one that is not equipment, is `invalid_target`; the game
+  saying no (swimming, mid-swing) is `refused` with what it said. `unequip`
+  empties a slot, and `hands` both hands; an empty slot is
+  `invalid_target`. Both need `allowMovement`: they move nothing, but the
+  gear is the body's. The voice is offered `equip` with the gear the bot
+  carries to choose from, and `unequip` with the slots.
+- `flee` runs from `from` until it is `distance` away across the ground, and
+  succeeds then, or when an entity it ran from is gone or dead. With
+  `toward` (the owner, or home) it runs there instead, however far, unless
+  that lies past the threat (within 60° of its bearing). At an entity there
+  (the owner) it stops, since the rest is up to them together; at a
+  position (home) it stops if the threat is `distance` away, and with the
+  threat still close runs on straight away. Otherwise it runs
+  straight away, to 5 m past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
+  and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
+  needs only `allowMovement`: running away is never the unsafe choice.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
@@ -452,7 +500,19 @@ Notes:
 
 - Get a path from the game's own navmesh
   (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Fall back to a straight line
-  when no path comes back.
+  when no path comes back, unless that line crosses water deeper than 1.4 m
+  (sampled every 2 m, the ground's height against the water level): then
+  `move_to`, `pickup` and `follow` fail with `deep_water`, since the bot
+  swims slowly, regains no stamina in the water and drowns at none. Deep
+  water the line starts in does not count, so a bot already swimming may
+  head out, and ground in a zone not loaded counts as unknown, not as water.
+  A swimming bot refused this way makes for shore first, and fails there.
+- **Swimming:** a swimming bot walks, never runs. Below 30% stamina it makes
+  for the nearest point it can stand on (searched in rings out to 60 m, the lowest on the nearest ring),
+  whatever its goal, and the stuck count holds meanwhile. A point it gets no
+  nearer to for 4 s, or reaches still swimming, it gives up, and searches
+  again passing over points within 8 m of it. Out of the water it plans its
+  way again, so a line back across the water is refused.
 - Steering sets the move direction and look yaw every frame.
 - **Stuck detection:** the bot is stuck while it stays within 3 m of where it
   was. Every 3 s inside that circle triggers the next recovery: a jump, then a
@@ -527,8 +587,19 @@ chat event
   `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
   `stop`, `status`, `come here`, `wait here`, `set home`, `go home`,
-  `pick that up` (the drop nearest the speaker, within 10 m). Only `owners`
-  can issue tasks.
+  `pick that up` (the drop nearest the speaker, within 10 m), `go to bed`
+  (the bot's own bed, wherever it is in sight, and no other, since using one
+  claims it), `claim the bed` (the bed nearest the speaker within 10 m, or the
+  bot when the speaker is out of sight) and `get the door` (the nearest door, likewise;
+  `open the door` takes the nearest shut one and `close the door` the
+  nearest open one, since using a door swings it either way), and `get your
+  things` (`fetch your things`, `corpse run`: the bot's own grave if it is
+  in sight, emptied at once, else a walk back to where it last died and the
+  grave there emptied, then any other of its graves there, since a bot
+  killed over and over in one place leaves one each time; one gone is
+  forgotten). These send `interact`, and the bot answers
+  with what the game said: "Spawn point set", or "It won't: You need a roof".
+  Only `owners` can issue tasks.
 - **Home** is where the speaker stood when they said `set home`, one per
   world, kept in the controller's `dataDir` across restarts. The bot also
   goes home by itself, as the `home` config allows: when follow loses its
@@ -540,11 +611,30 @@ chat event
   back in the world: `home` (the default) walks home; `resume` picks a
   follow back up for the same player, and goes home if there was none or
   the player has gone (the follow then fails with `target_lost`); `stay`
-  stays at the spawn point. Any order given after the death wins, except
+  stays at the spawn point. A death within 30 m of home keeps it from going
+  back there, whatever the rule, since what killed it may be there still: it
+  says so, and neither the respawn, idling nor an outage sends it home in
+  that world until someone gives it an order, however it dies meanwhile;
+  this is kept per world in `dataDir` across restarts, and any order in that
+  world ends it. Every death is remembered per world (the
+  last 5) as a grave to fetch from, until it is emptied or found gone. Any
+  order given after the death wins, except
   `set home` and `status`. The controller reads the death and the respawn
   from `state.phase` rather than the `died` and `respawned` events, so a
   lost event does not lose them. The plugin reports `dead` from the death
   until the respawn wait ends, about 10 s.
+- **Getting away.** Below 40% health, with a hostile creature that has
+  picked the bot (`targetingMe`) within 15 m, the controller sends `flee`
+  from the nearest such creature, 25 m, toward the nearest owner in sight
+  within 60 m, else home if it is within 150 m and the creature not within
+  15 m of it, else
+  straight away (also when the owner or home lies past the creature, as the
+  plugin judges it), and says which ("Falling back to you, Sothr", "Heading
+  home", "Getting away from the greyling"). At an owner's side already it
+  stays, since running on would leave them; at home already, it runs
+  straight away. Each flee has 60 s. It does not start another while a flee
+  runs, nor within 10 s of the last. It needs `flee` in
+  `allowedTasks`.
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back
   under `weightMax`: common raw materials (wood, stone, flint, resin,
@@ -600,7 +690,7 @@ the local Steam install on 2026-10-28. Re-check them after game updates;
 | Status effects | `Character.GetSEMan().GetStatusEffects()` → `List<StatusEffect>` |
 | Inventory | `Humanoid.GetInventory()`, `Inventory.GetAllItems()` → `List<ItemDrop.ItemData>`, `Inventory.m_onChanged` (an `Action`) |
 | Equip and use | `Humanoid.EquipItem(ItemData, bool triggerEquipEffects)` → bool; `UnequipItem(ItemData, bool)`; `UseItem(Inventory, ItemData, bool fromInventoryGui)` |
-| Interact | `Player.Interact(GameObject go, bool hold, bool alt)` |
+| Interact | `Interactable.Interact(Humanoid user, bool hold, bool alt)` → bool, as `Player.Interact` calls it (private), then `Humanoid.DoInteractAnimation(GameObject)`. What the game says comes through `Player.Message(MessageHud.MessageType, string msg, …)`, localized with `Localization.instance.Localize` (assembly_guiutils). |
 | Characters nearby | `Character.GetAllCharacters()` (static), `BaseAI.IsEnemy(Character a, Character b)` (static), `BaseAI.GetTargetCreature()` |
 | Resources and structures nearby | `Physics.OverlapSphere`, then `GetComponentInParent<TreeBase / TreeLog / MineRock / MineRock5 / Destructible / Pickable / ItemDrop / Container / CraftingStation / Bed / TeleportWorld / Door / Fireplace / Smelter>` |
 | Entity ID | `ZNetView.GetZDO().m_uid` (a `ZDOID`) |

@@ -34,6 +34,10 @@ const Arrive = 2.0
 // back, so it does not shuffle on the spot.
 const awayFrom = 5.0
 
+// DiedNearHome is how near home a death keeps the bot from going back there
+// after the respawn: whatever killed it may be there still.
+const DiedNearHome = 30.0
+
 // level is how far above or below home still counts as on its level, as
 // the plugin's arrival does (7.3): under a raised floor is not home.
 const level = 1.75
@@ -74,6 +78,8 @@ type Keeper struct {
 	// resume picks up what a death cut short, for AfterDeathResume. The
 	// chat brain sets it, since it knows what that was and for whom.
 	resume func(context.Context) bool
+	// diedAt is where the bot last died.
+	diedAt *protocol.Vec3
 }
 
 // New returns a keeper over store with fixed rules. now may be nil.
@@ -240,13 +246,46 @@ func (k *Keeper) Ordered() {
 	st := k.s.State()
 	k.mu.Lock()
 	k.respawned, k.resume = false, nil
-	if st != nil && st.Phase == protocol.PhaseDead {
-		k.dead = true
+	if st != nil && st.Phase == protocol.PhaseDead && !k.dead {
+		// The death is seen here first: its grave still counts. The
+		// order ends the shun only if it is carried out (Told).
+		k.died(st)
 	}
 	if k.dead {
 		k.ordered = true
 	}
 	k.mu.Unlock()
+}
+
+// Told ends the shun in this world: an order was carried out, so whoever
+// gave it is about and has the bot in hand. Another world's home is no
+// safer for it.
+func (k *Keeper) Told() {
+	if err := k.store.Unshun(k.World()); err != nil {
+		k.log.Warn("could not save the end of the shun", "err", err)
+	}
+}
+
+// died notes a death seen in st: where, and the grave there. A death near
+// home shuns it, since what killed it there may be there still; a later
+// death elsewhere does not make home safe, and only an order ends it.
+// k.mu is held.
+func (k *Keeper) died(st *protocol.State) {
+	k.dead = true
+	pos := st.Pos
+	k.diedAt = &pos
+	w := st.World
+	if w == "" {
+		return
+	}
+	if err := k.store.AddGrave(w, Grave{Pos: pos, At: k.now()}); err != nil {
+		k.log.Warn("could not remember the grave", "err", err)
+	}
+	if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
+		if err := k.store.Shun(w); err != nil {
+			k.log.Warn("could not save the shun", "err", err)
+		}
+	}
 }
 
 // Touch counts as activity: a player gave an order.
@@ -293,7 +332,8 @@ func (k *Keeper) Tick(ctx context.Context) {
 	// while dead.
 	switch {
 	case st.Phase == protocol.PhaseDead && !k.dead:
-		k.dead, k.ordered = true, false
+		k.ordered = false
+		k.died(st)
 	case st.Phase == protocol.PhaseInWorld && k.dead:
 		k.dead, k.respawned = false, !k.ordered
 		if k.ordered {
@@ -325,7 +365,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Unlock()
 	if first && k.store.Interrupted() {
 		k.setInterrupted(false)
-		if k.Rules().AfterOutage && st.Task == nil {
+		if k.Rules().AfterOutage && st.Task == nil && !k.shuns() {
 			k.announce(ctx, "after an outage", "Something cut me off. Heading home.")
 			return
 		}
@@ -341,16 +381,25 @@ func (k *Keeper) Tick(ctx context.Context) {
 	}
 	k.mu.Unlock()
 	if respawned {
-		switch k.Rules().AfterDeath {
-		case config.AfterDeathResume:
-			if resume != nil && resume(ctx) {
-				k.log.Info("resumed after a respawn")
-				return
-			}
-			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
-		case config.AfterDeathHome:
-			k.announce(ctx, "after a respawn", "I'm back. Heading home.")
+		k.mu.Lock()
+		diedAt := k.diedAt
+		k.mu.Unlock()
+		rule := k.Rules().AfterDeath
+		// Following a player again is no trip home: a shun does not stop it.
+		if rule == config.AfterDeathResume && resume != nil && resume(ctx) {
+			k.log.Info("resumed after a respawn")
+			return
 		}
+		if rule == config.AfterDeathStay {
+			return
+		}
+		if k.shuns() {
+			// It waits to be told.
+			k.log.Info("died near home; not going back", "died", diedAt)
+			k.say(ctx, "Something killed me at home, so I'll wait here. Say \"get your things\" when it's safe.")
+			return
+		}
+		k.announce(ctx, "after a respawn", "I'm back. Heading home.")
 		return
 	}
 
@@ -378,6 +427,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 	k.mu.Lock()
 	cut := k.cutOff != nil
 	k.mu.Unlock()
+	cut = cut || k.shuns()
 	if cut {
 		return
 	}
@@ -386,15 +436,16 @@ func (k *Keeper) Tick(ctx context.Context) {
 	}
 }
 
-// watchIdle notes where an idle trip home found no way there, so idling
-// does not set off from the same spot every spell.
+// watchIdle notes where an idle trip home found no way there, the navmesh
+// not reaching it or deep water in the way, so idling does not set off from
+// the same spot every spell.
 func (k *Keeper) watchIdle(ctx context.Context, t *session.Task) {
 	select {
 	case <-t.Done():
 	case <-ctx.Done():
 		return
 	}
-	if _, reason, _ := t.Status(); reason != protocol.ReasonUnreachable {
+	if _, reason, _ := t.Status(); reason != protocol.ReasonUnreachable && reason != protocol.ReasonDeepWater {
 		return
 	}
 	if st := k.s.State(); st != nil {
@@ -418,10 +469,48 @@ func (k *Keeper) announce(ctx context.Context, why, line string) *session.Task {
 		}
 		return nil
 	}
+	k.say(ctx, line)
+	return t
+}
+
+// say speaks a line, for things the keeper decides by itself.
+func (k *Keeper) say(ctx context.Context, line string) {
 	if _, err := k.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}}); err != nil {
 		k.log.Warn("could not say", "text", line, "err", err)
 	}
-	return t
+}
+
+// Grave is where the bot last died in the current world and has not
+// fetched its things from yet.
+func (k *Keeper) Grave() (Grave, bool) {
+	w := k.World()
+	if w == "" {
+		return Grave{}, false
+	}
+	gs := k.store.Graves(w)
+	if len(gs) == 0 {
+		return Grave{}, false
+	}
+	return gs[len(gs)-1], true
+}
+
+// ForgetGrave forgets the grave nearest pos, if within r, in the current
+// world: fetched, or found gone.
+func (k *Keeper) ForgetGrave(pos protocol.Vec3, r float64) {
+	w := k.World()
+	if w == "" {
+		return
+	}
+	if err := k.store.ForgetGrave(w, pos, r); err != nil {
+		k.log.Warn("could not forget the grave", "err", err)
+	}
+}
+
+// shuns reports whether the bot died near home in this world and has had
+// no order since.
+func (k *Keeper) shuns() bool {
+	w := k.World()
+	return w != "" && k.store.Shunned(w)
 }
 
 func (k *Keeper) setInterrupted(v bool) {
@@ -433,7 +522,11 @@ func (k *Keeper) setInterrupted(v bool) {
 // body reports whether task moves the bot, so an outage could leave it
 // somewhere odd.
 func body(task string) bool {
-	return task == protocol.TaskFollow || task == protocol.TaskMoveTo || task == protocol.TaskPickup
+	switch task {
+	case protocol.TaskFollow, protocol.TaskMoveTo, protocol.TaskPickup, protocol.TaskInteract, protocol.TaskFlee:
+		return true
+	}
+	return false
 }
 
 func flat(a, b protocol.Vec3) float64 { return a.FlatDistance(b) }

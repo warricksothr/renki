@@ -45,7 +45,17 @@ fmt: (route "fmt")
 clean: (route "clean")
 
 # Everything CI runs: each component's ci, then the ticket store.
-ci: (route "ci") tickets-check
+ci: (route "ci") tickets-check check-test
+
+# Retain full output in .checks/; print a summary or the last 80 failure lines.
+# For example: just check ci, just check controller test-packages ./internal/home.
+[positional-arguments]
+check +ARGS:
+    @bash "{{justfile_directory()}}/scripts/check.sh" "$@"
+
+# Verify log retention, bounded output, and failure propagation without builds.
+check-test:
+    @bash "{{justfile_directory()}}/scripts/check-test.sh"
 
 # The plugin goes in BepInEx/plugins/renki there; the rest in one folder.
 [doc("Assemble dist/renki-vm/: everything the Windows VM needs.")]

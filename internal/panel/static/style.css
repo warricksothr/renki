@@ -191,6 +191,10 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
   font: 12px/1.45 ui-monospace, monospace;
 }
 #history[hidden] { display: none; }
+.say-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.say-row select, .say-row input { background: var(--pane); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
+#say-text { flex: 1; min-width: 8em; }
+#say-result { color: var(--stuck); font-size: 12px; }
 #day { background: var(--pane); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; }
 .feed li .task-link, #feed li .task-link {
   background: none; border: 1px solid var(--line); border-radius: 3px; color: var(--bot);

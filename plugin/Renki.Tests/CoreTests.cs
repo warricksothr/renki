@@ -217,6 +217,43 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void TheStraightLineStopsAtDeepWater()
+        {
+            // A lake between x 20 and 60, 5 m deep; the water level is 30.
+            double Ground(double x, double z) => x > 20 && x < 60 ? 25 : 34;
+            var crossing = DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), Ground, 30);
+            Assert.NotNull(crossing);
+            Assert.InRange(crossing.Value.X, 20, 24);
+            Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(18, 34, 0), Ground, 30));
+            // Wading depth is fine.
+            Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), (x, z) => 29, 30));
+            // Already swimming: the way out is open, a way back in is not.
+            Assert.Null(DeepWater.Crossing(new V3(40, 30, 0), new V3(0, 34, 0), Ground, 30));
+            Assert.NotNull(DeepWater.Crossing(new V3(40, 30, 0), new V3(0, 34, 0), (x, z) => x > 20 ? 25 : x > 10 ? 34 : 25, 30));
+            // Ground not loaded is not water.
+            Assert.Null(DeepWater.Crossing(new V3(0, 34, 0), new V3(100, 34, 0), (x, z) => x > 50 ? double.NaN : 34, 30));
+        }
+
+        [Fact]
+        public void TheShoreIsTheNearestDryGround()
+        {
+            // Swimming at x 40 in the lake: the west shore (x 20) is nearer.
+            double Ground(double x, double z) => x > 20 && x < 70 ? 25 : 34;
+            var shore = DeepWater.Shore(new V3(40, 30, 0), Ground, 30);
+            Assert.NotNull(shore);
+            Assert.True(shore.Value.X <= 20, $"shore at {shore.Value.X}");
+            Assert.Null(DeepWater.Shore(new V3(0, 30, 0), (x, z) => 0, 30));
+            // A beach before a cliff on the same ring.
+            var beach = DeepWater.Shore(new V3(0, 30, 0), (x, z) => x < -3 ? 30.1 : x > 3 ? 45 : 25, 30);
+            Assert.NotNull(beach);
+            Assert.True(beach.Value.X < 0, $"shore at {beach.Value.X}");
+            // A shore it could not get onto is passed over for the next one.
+            var next = DeepWater.Shore(new V3(40, 30, 0), Ground, 30, tried: new[] { shore.Value });
+            Assert.NotNull(next);
+            Assert.True(V3.FlatDistance(next.Value, shore.Value) >= DeepWater.Tried, $"next shore at {next.Value.X}, {next.Value.Z}");
+        }
+
+        [Fact]
         public void ArrivalIsOnTheGoalsLevel()
         {
             var home = new V3(-35.9, 36.09, 6.53);
@@ -416,6 +453,64 @@ namespace Renki.Tests
             s.AllowMovement = false;
             Assert.False(s.Permits("pickup"));
             Assert.False(s.Permits("harvest"));
+        }
+
+        [Fact]
+        public void FleeRunsToSafetyUnlessItIsPastTheThreat()
+        {
+            var bot = new V3(0, 30, 0);
+            var wolf = new V3(5, 30, 0);
+            // Nowhere to go: straight away, past the distance.
+            var away = Flee.Goal(bot, wolf, null, 20);
+            Assert.True(away.X < -15 && Math.Abs(away.Z) < 1e-6, $"away to {away}");
+            Assert.Equal(30, away.Y);
+            // Home behind the bot: run home.
+            var home = new V3(-40, 31, 10);
+            Assert.Equal(home, Flee.Goal(bot, wolf, home, 20));
+            // Home past the wolf: not that way.
+            var past = new V3(40, 31, 5);
+            Assert.True(Flee.PastThreat(bot, wolf, past));
+            Assert.True(Flee.Goal(bot, wolf, past, 20).X < 0);
+            // Off to the side is no way through the wolf.
+            Assert.False(Flee.PastThreat(bot, wolf, new V3(0, 30, 30)));
+            // Already far enough: a few metres more, still away.
+            var far = Flee.Goal(bot, new V3(30, 30, 0), null, 20);
+            Assert.Equal(-Flee.Beyond, far.X, 6);
+        }
+
+        [Fact]
+        public void InteractGoesByWhatItUses()
+        {
+            var s = new SafetyConfig();
+            Assert.True(s.Permits("interact"));
+            foreach (var k in new[] { InteractRule.Bed, InteractRule.Door, InteractRule.Grave })
+                Assert.Null(InteractRule.Check(k, s));
+            // Chairs, carts, fires, dungeon doors: not until named.
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Other, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Boss, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ship, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Pickable, s).Reason);
+            s.AllowBossSummoning = s.AllowSailing = s.AllowGather = true;
+            Assert.Null(InteractRule.Check(InteractRule.Boss, s));
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ship, s).Reason); // not until it sails
+            Assert.Null(InteractRule.Check(InteractRule.Pickable, s));
+            // These have their own tasks, or a window the bot cannot use.
+            foreach (var k in new[] { InteractRule.Drop, InteractRule.Container, InteractRule.Station, InteractRule.Text })
+                Assert.Equal(Wire.ReasonInvalidTarget, InteractRule.Check(k, s).Reason);
+            Assert.Equal(Wire.ReasonNotAllowed, InteractRule.Check(InteractRule.Ward, s).Reason);
+            s.AllowMovement = false;
+            Assert.False(s.Permits("interact"));
+        }
+
+        [Fact]
+        public void FleeingNeedsNoCombat()
+        {
+            var s = new SafetyConfig();
+            Assert.False(s.AllowCombat);
+            Assert.True(s.Permits("flee"));
+            Assert.False(s.Permits("attack"));
+            s.AllowMovement = false;
+            Assert.False(s.Permits("flee"));
         }
 
         [Fact]

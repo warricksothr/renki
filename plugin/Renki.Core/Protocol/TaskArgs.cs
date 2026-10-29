@@ -7,18 +7,23 @@ namespace Renki.Protocol
     public static class TaskNames
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", LookAt = "look_at",
-            Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop";
+            Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
+            Flee = "flee", Equip = "equip", Unequip = "unequip";
+
+        /// <summary>The slots unequip empties: "hands" is both.</summary>
+        public static readonly string[] Slots =
+            { "right", "left", "hands", "head", "chest", "legs", "shoulder", "utility", "trinket", "ammo" };
 
         public static readonly string[] M1 = { Stop, MoveTo, Follow, LookAt, Say, Emote };
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
-            task == LookAt || task == Say || task == Emote || task == Drop || task == "equip" ||
-            task == "unequip" || task == "use_item";
+            task == LookAt || task == Say || task == Emote || task == Drop || task == Equip ||
+            task == Unequip || task == "use_item";
     }
 
     /// <summary>Missing or malformed arguments; answered with bad_args.</summary>
@@ -88,6 +93,43 @@ namespace Renki.Protocol
         public string Entity;
     }
 
+    public sealed class InteractArgs
+    {
+        /// <summary>What to use, by entity id from perception.</summary>
+        public string Entity;
+
+        /// <summary>The alternative use, as with the modifier key held.</summary>
+        public bool Alt;
+
+        /// <summary>Hold the use key, as some things need.</summary>
+        public bool Hold;
+    }
+
+    public sealed class FleeArgs
+    {
+        /// <summary>What to get away from: an entity, or a place.</summary>
+        public Target From;
+
+        /// <summary>How far from it counts as away.</summary>
+        public double Distance = 20;
+
+        /// <summary>Where safety lies, such as the owner or home; the bot
+        /// runs there unless it lies past the threat. Null runs straight away.</summary>
+        public Target Toward;
+    }
+
+    public sealed class EquipArgs
+    {
+        /// <summary>The item, by prefab as the inventory names it (6.3).</summary>
+        public string Item;
+    }
+
+    public sealed class UnequipArgs
+    {
+        /// <summary>One of TaskNames.Slots.</summary>
+        public string Slot;
+    }
+
     public sealed class DropArgs
     {
         /// <summary>The item, by prefab as the inventory names it (6.3).</summary>
@@ -146,6 +188,39 @@ namespace Renki.Protocol
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
                         return new PickupArgs { Entity = entity };
+                    }
+                case TaskNames.Interact:
+                    {
+                        var entity = Str(a, "entity");
+                        if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
+                        return new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false) };
+                    }
+                case TaskNames.Flee:
+                    {
+                        var toward = a["toward"];
+                        var distance = Number(a, "distance", 20);
+                        // Nothing is ever less than nothing away.
+                        if (distance <= 0) throw new BadArgsException("`distance` must be more than 0");
+                        return new FleeArgs
+                        {
+                            From = Target.Parse(a["from"], "from"),
+                            Distance = distance,
+                            Toward = toward == null || toward.Type == JTokenType.Null ? null : Target.Parse(toward, "toward"),
+                        };
+                    }
+                case TaskNames.Equip:
+                    {
+                        var item = Str(a, "item");
+                        if (string.IsNullOrEmpty(item)) throw new BadArgsException("`item` is required");
+                        return new EquipArgs { Item = item };
+                    }
+                case TaskNames.Unequip:
+                    {
+                        var slot = Str(a, "slot");
+                        if (string.IsNullOrEmpty(slot)) throw new BadArgsException("`slot` is required");
+                        if (Array.IndexOf(TaskNames.Slots, slot) < 0)
+                            throw new BadArgsException($"unknown slot \"{slot}\"; want one of {string.Join(", ", TaskNames.Slots)}");
+                        return new UnequipArgs { Slot = slot };
                     }
                 case TaskNames.Drop:
                     {

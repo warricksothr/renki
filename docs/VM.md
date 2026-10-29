@@ -62,6 +62,8 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
     just vm check                            # whoami, hostname, RenkiStart/RenkiStop
     just vm start                            # waits until the bot is in the world
     just vm status
+    just vm panel GET /api/status             # JSON; token stays on the VM
+    just vm panel POST /api/act/stop           # stop through the panel API
     just vm logs                             # the renki lines of the BepInEx log, and the controller's
     just vm audit 1 -last 10m                # what happened, from the audit log (docs/AUDIT.md)
     just vm panel-setup                      # once: the web control panel on Tailscale (docs/PANEL.md)

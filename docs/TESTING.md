@@ -7,6 +7,45 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Development checks with concise output
+
+Use `just check <recipe> [arguments...]` to save full output in a unique,
+gitignored `.checks/` log. Success prints one result line; failure prints the
+last 80 lines, the full log path, and returns a nonzero status. Read the
+relevant diagnostic from that log before rerunning a check. Logs remain until
+you remove them; avoid dumping whole logs into an agent conversation.
+
+- Controller iteration: `just check controller test-packages ./internal/home ./internal/chat`.
+  Package arguments can include test flags, for example `-run TestRespawn`.
+- Movement iteration: `just check plugin test-core ApproachRecoveryTests`.
+  Without a class name, `test-core` runs all tests except interop, without
+  building a controller. `just plugin test` still builds it and runs interop.
+- Format once after editing: `just check fmt`.
+- Before committing: `just check ci` runs the complete `just ci` gate.
+- After committing and before pushing: `just check review` retains the review
+  locally. Review exit 1 means findings; exit 3 means the review failed.
+
+Keep routine investigation narrow: use a file/line search first, read the
+relevant function, and query audit logs for one task with
+`just vm audit 1 -task t-3`. Keep durable decisions and remaining game checks
+on the ticket so a resumed session can read those instead of old transcripts.
+Rerun checks after changes or new evidence, rather than repeating passing
+suites while waiting for the game. The complete gate is still required.
+
+## Raised-goal recovery check
+
+For TKT-01M647SMRM3XXAQS7Y9CW2TKZ9 (Retry raised goals from other approaches
+before giving up), place the bot directly beneath the raised home floor and
+send it home. It should trace `off-level goal; repositioning`, walk away or
+around the goal on a complete navmesh path, then trace `retrying path` for
+the original home position. A usable replan should reach home; an inaccessible
+floor should end after at most three approach attempts or 30 seconds of this
+recovery. If no complete water-safe detour exists, it waits between path
+retries instead of walking a blind detour. Cancel during a detour and confirm
+the bot stops. Also try a detour beside deep water and confirm it is rejected.
+These require Valheim; unit tests cannot establish whether a house's stairs
+or floor appear in its navmesh.
+
 ## 1. Set up a game with BepInEx
 
 Use the dev box's own Valheim for a first pass, or the bot VM once

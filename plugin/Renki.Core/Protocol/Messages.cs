@@ -29,10 +29,10 @@ namespace Renki.Protocol
 
         public const string ReasonUnsupported = "unsupported", ReasonNotAllowed = "not_allowed",
             ReasonBadArgs = "bad_args", ReasonInvalidTarget = "invalid_target", ReasonTargetLost = "target_lost",
-            ReasonUnreachable = "unreachable", ReasonStuck = "stuck", ReasonTimeout = "timeout",
+            ReasonUnreachable = "unreachable", ReasonDeepWater = "deep_water", ReasonStuck = "stuck", ReasonTimeout = "timeout",
             ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full", ReasonTooHeavy = "too_heavy",
             ReasonEncumbered = "encumbered", ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
-            ReasonStopped = "stopped", ReasonDied = "died";
+            ReasonStopped = "stopped", ReasonDied = "died", ReasonRefused = "refused";
 
         public const string EventDamaged = "damaged", EventDied = "died", EventRespawned = "respawned",
             EventItemAdded = "item_added", EventSkillRaised = "skill_raised", EventPlayerJoined = "player_joined",
@@ -45,7 +45,7 @@ namespace Renki.Protocol
 
         public const string StructureContainer = "container", StructureStation = "station", StructureBed = "bed",
             StructurePortal = "portal", StructureDoor = "door", StructureFire = "fire", StructureSmelter = "smelter",
-            StructureOther = "other";
+            StructureTombstone = "tombstone", StructureOther = "other";
 
         public static bool IsFinal(string status) =>
             status == StatusRejected || status == StatusSucceeded || status == StatusFailed ||

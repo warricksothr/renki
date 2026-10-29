@@ -31,6 +31,16 @@ type Cache struct {
 	Why   string         `json:"why"`
 }
 
+// Grave is where the bot died, and so where its things are.
+type Grave struct {
+	Pos protocol.Vec3 `json:"pos"`
+	At  time.Time     `json:"at"`
+}
+
+// keepGraves is how many graves are remembered per world; the game keeps
+// each until it is emptied, but the oldest are the least likely to be there.
+const keepGraves = 5
+
 // memory is the file's content.
 type memory struct {
 	// Homes by world name.
@@ -42,6 +52,12 @@ type memory struct {
 	// LeftBehind is what the bot dropped and has not seen picked up, by
 	// world name.
 	LeftBehind map[string][]Cache `json:"leftBehind,omitempty"`
+	// Graves are where the bot died and has not yet fetched its things
+	// from, by world name, oldest first.
+	Graves map[string][]Grave `json:"graves,omitempty"`
+	// Shunned are the worlds where the bot died near home and has had no
+	// order since: nothing sends it home there by itself.
+	Shunned []string `json:"shunned,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file
@@ -136,6 +152,82 @@ func (s *Store) UpdateLeftBehind(world string, f func([]Cache) []Cache) error {
 		delete(s.mem.LeftBehind, world)
 	} else {
 		s.mem.LeftBehind[world] = caches
+	}
+	return s.save()
+}
+
+// Shunned reports whether the bot keeps away from home in world.
+func (s *Store) Shunned(world string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Contains(s.mem.Shunned, world)
+}
+
+// Shun adds world to those shunned, writing only when it changes.
+func (s *Store) Shun(world string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if slices.Contains(s.mem.Shunned, world) {
+		return nil
+	}
+	s.mem.Shunned = append(s.mem.Shunned, world)
+	return s.save()
+}
+
+// Unshun ends the shun in world, writing only when there was one.
+func (s *Store) Unshun(world string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !slices.Contains(s.mem.Shunned, world) {
+		return nil
+	}
+	s.mem.Shunned = slices.DeleteFunc(s.mem.Shunned, func(w string) bool { return w == world })
+	return s.save()
+}
+
+// Graves returns where the bot died in world, oldest first.
+func (s *Store) Graves(world string) []Grave {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.mem.Graves[world])
+}
+
+// AddGrave remembers a death in world, forgetting the oldest past
+// keepGraves.
+func (s *Store) AddGrave(world string, g Grave) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.mem.Graves == nil {
+		s.mem.Graves = map[string][]Grave{}
+	}
+	gs := append(s.mem.Graves[world], g)
+	if len(gs) > keepGraves {
+		gs = gs[len(gs)-keepGraves:]
+	}
+	s.mem.Graves[world] = gs
+	return s.save()
+}
+
+// ForgetGrave forgets the grave in world nearest pos, if within r: one
+// emptied, while others beside it may still be full.
+func (s *Store) ForgetGrave(world string, pos protocol.Vec3, r float64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	gs := slices.Clone(s.mem.Graves[world])
+	near := -1
+	for i, g := range gs {
+		if d := g.Pos.FlatDistance(pos); d <= r && (near < 0 || d < gs[near].Pos.FlatDistance(pos)) {
+			near = i
+		}
+	}
+	if near < 0 {
+		return nil
+	}
+	gs = slices.Delete(gs, near, near+1)
+	if len(gs) == 0 {
+		delete(s.mem.Graves, world)
+	} else {
+		s.mem.Graves[world] = gs
 	}
 	return s.save()
 }

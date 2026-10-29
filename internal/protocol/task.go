@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 )
 
 // TaskRequest asks the plugin to do something (7.1). Args is kept raw until
@@ -20,21 +22,28 @@ func (*TaskRequest) MessageType() string { return TypeTask }
 
 // Task names (7.2): M1's, and what M2 has added so far.
 const (
-	TaskStop   = "stop"
-	TaskMoveTo = "move_to"
-	TaskFollow = "follow"
-	TaskLookAt = "look_at"
-	TaskSay    = "say"
-	TaskEmote  = "emote"
-	TaskPickup = "pickup"
-	TaskDrop   = "drop"
+	TaskStop     = "stop"
+	TaskMoveTo   = "move_to"
+	TaskFollow   = "follow"
+	TaskLookAt   = "look_at"
+	TaskSay      = "say"
+	TaskEmote    = "emote"
+	TaskPickup   = "pickup"
+	TaskDrop     = "drop"
+	TaskInteract = "interact"
+	TaskFlee     = "flee"
+	TaskEquip    = "equip"
+	TaskUnequip  = "unequip"
 )
+
+// Slots are the equipment slots `unequip` empties; "hands" is both.
+var Slots = []string{"right", "left", "hands", "head", "chest", "legs", "shoulder", "utility", "trinket", "ammo"}
 
 // Instant reports whether a task runs alongside the body task instead of
 // replacing it (7.1).
 func Instant(task string) bool {
 	switch task {
-	case TaskLookAt, TaskSay, TaskEmote, TaskDrop, "equip", "unequip", "use_item":
+	case TaskLookAt, TaskSay, TaskEmote, TaskDrop, TaskEquip, TaskUnequip, "use_item":
 		return true
 	}
 	return false
@@ -63,7 +72,8 @@ func NewTask(id, task string, args any, timeoutS float64) (*TaskRequest, error) 
 
 // DecodeArgs returns the typed arguments for a task: a *StopArgs,
 // *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs, *EmoteArgs,
-// *PickupArgs or *DropArgs. It checks
+// *PickupArgs, *DropArgs, *InteractArgs, *FleeArgs, *EquipArgs or
+// *UnequipArgs. It checks
 // that the required ones are there and that enumerated values are known.
 func (r *TaskRequest) DecodeArgs() (any, error) {
 	var args interface{ validate() error }
@@ -84,6 +94,14 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &PickupArgs{}
 	case TaskDrop:
 		args = &DropArgs{}
+	case TaskInteract:
+		args = &InteractArgs{}
+	case TaskFlee:
+		args = &FleeArgs{}
+	case TaskEquip:
+		args = &EquipArgs{}
+	case TaskUnequip:
+		args = &UnequipArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -205,6 +223,67 @@ func (a *DropArgs) validate() error {
 	}
 	if a.Count < 1 {
 		return errors.New("`count` must be at least 1")
+	}
+	return nil
+}
+
+// InteractArgs are the arguments to `interact`: the entity to use, with
+// the alternative use (Alt) or the use key held (Hold).
+type InteractArgs struct {
+	Entity string `json:"entity"`
+	Alt    bool   `json:"alt,omitempty"`
+	Hold   bool   `json:"hold,omitempty"`
+}
+
+func (a *InteractArgs) validate() error {
+	if a.Entity == "" {
+		return errors.New("`entity` is required")
+	}
+	return nil
+}
+
+// FleeArgs are the arguments to `flee`: what to get away from, how far (nil
+// means the plugin's 20 m), and where safety lies, if anywhere: the bot runs
+// there unless it lies past the threat.
+type FleeArgs struct {
+	From     Target   `json:"from"`
+	Distance *float64 `json:"distance,omitempty"`
+	Toward   *Target  `json:"toward,omitempty"`
+}
+
+func (a *FleeArgs) validate() error {
+	if a.From.IsZero() {
+		return errors.New("`from` is required")
+	}
+	if a.Distance != nil && *a.Distance <= 0 {
+		return errors.New("`distance` must be more than 0")
+	}
+	if a.Toward != nil && a.Toward.IsZero() {
+		return errors.New("`toward` must be a position or an entity id")
+	}
+	return nil
+}
+
+// EquipArgs are the arguments to `equip`: the item, by prefab.
+type EquipArgs struct {
+	Item string `json:"item"`
+}
+
+func (a *EquipArgs) validate() error {
+	if a.Item == "" {
+		return errors.New("`item` is required")
+	}
+	return nil
+}
+
+// UnequipArgs are the arguments to `unequip`: one of Slots.
+type UnequipArgs struct {
+	Slot string `json:"slot"`
+}
+
+func (a *UnequipArgs) validate() error {
+	if !slices.Contains(Slots, a.Slot) {
+		return fmt.Errorf("unknown slot %q; want one of %s", a.Slot, strings.Join(Slots, ", "))
 	}
 	return nil
 }

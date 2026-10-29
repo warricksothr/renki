@@ -234,6 +234,7 @@ const (
 	StructureDoor      = "door"
 	StructureFire      = "fire"
 	StructureSmelter   = "smelter"
+	StructureTombstone = "tombstone"
 	StructureOther     = "other"
 )
 
@@ -419,6 +420,7 @@ const (
 	ReasonInvalidTarget    = "invalid_target"
 	ReasonTargetLost       = "target_lost"
 	ReasonUnreachable      = "unreachable"
+	ReasonDeepWater        = "deep_water"
 	ReasonStuck            = "stuck"
 	ReasonTimeout          = "timeout"
 	ReasonNoTool           = "no_tool"
@@ -429,4 +431,5 @@ const (
 	ReasonSuperseded       = "superseded"
 	ReasonStopped          = "stopped"
 	ReasonDied             = "died"
+	ReasonRefused          = "refused"
 )

@@ -135,6 +135,13 @@ namespace Renki.Tests
         [InlineData("drop", "{\"prefab\":\"Wood\"}")]
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":0}")]
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":2.5}")]
+        [InlineData("interact", "{\"alt\":true}")]
+        [InlineData("flee", "{\"distance\":20}")]
+        [InlineData("equip", "{}")]
+        [InlineData("unequip", "{\"slot\":\"tail\"}")]
+        [InlineData("flee", "{\"from\":\"0:1\",\"distance\":0}")]
+        [InlineData("flee", "{\"from\":\"0:1\",\"toward\":7}")]
+        [InlineData("interact", "{\"entity\":\"0:1\",\"hold\":\"yes\"}")]
         public void BadArgs(string task, string args)
         {
             Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Req(task, args)));
@@ -153,6 +160,14 @@ namespace Renki.Tests
             Assert.Equal("0:7120", ((PickupArgs)TaskArgs.Parse(Req("pickup", "{\"entity\":\"0:7120\"}"))).Entity);
             var d = (DropArgs)TaskArgs.Parse(Req("drop", "{\"prefab\":\"Wood\",\"count\":3}"));
             Assert.Equal(("Wood", 3), (d.Prefab, d.Count));
+            var ia = (InteractArgs)TaskArgs.Parse(Req("interact", "{\"entity\":\"1234:310\",\"alt\":true}"));
+            Assert.Equal(("1234:310", true, false), (ia.Entity, ia.Alt, ia.Hold));
+            var fl = (FleeArgs)TaskArgs.Parse(Req("flee", "{\"from\":\"0:5521\"}"));
+            Assert.Equal(("0:5521", 20.0), (fl.From.Entity, fl.Distance));
+            Assert.Null(fl.Toward);
+            Assert.Equal("AxeStone", ((EquipArgs)TaskArgs.Parse(Req("equip", "{\"item\":\"AxeStone\"}"))).Item);
+            Assert.Equal("hands", ((UnequipArgs)TaskArgs.Parse(Req("unequip", "{\"slot\":\"hands\"}"))).Slot);
+            Assert.True(TaskNames.IsInstant("equip") && TaskNames.IsInstant("unequip"));
             Assert.Null(TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}")));
         }
     }

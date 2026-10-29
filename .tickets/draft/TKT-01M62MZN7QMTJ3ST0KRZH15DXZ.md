@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-10-29T03:40:56Z
+updated_at: 2026-10-29T13:23:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -52,6 +52,21 @@ No-chop zones (places the owner wants left alone) come later, as do combat (M3) 
 - [ ] While the owner chops at a spot, the bot picks up the drops near them, carries them home when full and stores them in a chest, then comes back
 - [ ] Told "go chop wood", the bot goes to where it saw the owner working, or else to the nearest trees it knows, and fells, splits and collects
 - [ ] The bot keeps hauling across trips without drowning or getting lost, and says when it cannot (no chest, chest full, no axe)
+
+## Implementation plan
+
+Order of work, set 2026-10-29 when the owner asked for M2 and M3 to be carried through autonomously:
+
+1. TKT-01M62G71 drowning on straight-line paths: every haul is a trip.
+2. A panel command box that speaks as an owner, so each step can be checked in the game from the panel.
+3. Plugin tasks: interact (TKT-01M62PRDR), deposit/withdraw (TKT-01M62N12C), equip (TKT-01M62N12D), harvest (TKT-01M62N12F).
+4. Memory: chests and what they hold (TKT-01M62VXYW), work sites and drops (TKT-01M62N12G), on the per-world store (TKT-01M62EP0).
+5. Behaviour engine (TKT-01M62VXYS) on the settings store.
+6. Templates: loot and deliver-when-full (TKT-01M62N12H), stow (TKT-01M62VXYY).
+7. Go chop wood (TKT-01M62N12J).
+8. Chat for instances (TKT-01M62VXYV); the panel's instance half of TKT-01M628X13X.
+
+Each: ci, vuoro review until clean, deploy, check on the VM.
 
 ## Notes
 

@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "id": "t-44", "seq": 135, "t": 18264.0,
+  "task": "unequip", "args": { "slot": "hands" }, "timeoutS": 0 }

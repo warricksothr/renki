@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -316,9 +317,15 @@ func TestIdleUnderTheFloorGoesHome(t *testing.T) {
 // TestIdleDoesNotRetryAnUnreachableHome: once a trip home finds no way
 // there, idling waits for the bot to move rather than shouting every spell.
 func TestIdleDoesNotRetryAnUnreachableHome(t *testing.T) {
+	for _, reason := range []string{protocol.ReasonUnreachable, protocol.ReasonDeepWater} {
+		t.Run(reason, func(t *testing.T) { idleDoesNotRetry(t, reason) })
+	}
+}
+
+func idleDoesNotRetry(t *testing.T, reason string) {
 	k, f, c := keeper(t, Memory())
 	ctx := context.Background()
-	f.final, f.reason = true, protocol.ReasonUnreachable
+	f.final, f.reason = true, reason
 	hello := &protocol.Hello{}
 	f.set(hello, inWorld(protocol.Vec3{-37.76, 34.0, 6.36}, nil))
 	k.SetHome(protocol.Vec3{-35.9, 36.09, 6.53}, "Nimah")
@@ -423,6 +430,81 @@ func TestRespawnSendsTheBotHomeOnceItIsBack(t *testing.T) {
 	k.Tick(ctx)
 	if len(f.sent()) != 2 {
 		t.Errorf("afterDeath stay still went home: %v", f.sent())
+	}
+}
+
+// TestNoGoingBackToWhatKilledItAtHome: on 2026-10-29 a Greyling at home
+// killed the bot, which respawned, went home and was killed again, three
+// times. A death near home keeps it away, and every death is a grave to
+// fetch from.
+func TestNoGoingBackToWhatKilledItAtHome(t *testing.T) {
+	k, f, c := keeper(t, Memory())
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{10, 0, 0}, "Nimah")
+	k.Tick(ctx)
+
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{8, 0, 2}})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	want := []string{`say: Something killed me at home, so I'll wait here. Say "get your things" when it's safe.`}
+	if got := f.sent(); !slices.Equal(got, want) {
+		t.Fatalf("after dying at home: %q", got)
+	}
+	// Nor does idling take it back, until an order is carried out.
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 1 {
+		t.Fatalf("idled home to what killed it: %q", got)
+	}
+	k.Ordered()
+	k.Told()
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 3 || got[1] != "move_to" {
+		t.Fatalf("told, still kept away: %q", got)
+	}
+	// With afterDeath stay it says nothing, and idling still keeps away.
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathStay })
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{12, 0, 0}})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	c.advance(11 * time.Minute)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 3 {
+		t.Fatalf("with stay, went home to what killed it: %q", got)
+	}
+	// A later death far from home does not make home safe.
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathHome })
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{300, 0, 0}})
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 4 || got[3] != `say: Something killed me at home, so I'll wait here. Say "get your things" when it's safe.` {
+		t.Fatalf("after a later death far off: %q", got)
+	}
+	// Nor does an outage.
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{-1, 0, -5}, nil))
+	k.setInterrupted(true)
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 4 {
+		t.Fatalf("an outage sent it home to what killed it: %q", got)
+	}
+	k.ForgetGrave(protocol.Vec3{300, 0, 0}, 1)
+	g, ok := k.Grave()
+	if !ok || g.Pos != (protocol.Vec3{12, 0, 0}) {
+		t.Fatalf("newest grave %+v, %v", g, ok)
+	}
+	k.ForgetGrave(g.Pos, 1)
+	g, ok = k.Grave()
+	if !ok || g.Pos != (protocol.Vec3{8, 0, 2}) || !g.At.Equal(c.now().Add(-33*time.Minute)) {
+		t.Fatalf("grave %+v, %v", g, ok)
+	}
+	k.ForgetGrave(protocol.Vec3{9, 0, 2}, 3)
+	if _, ok := k.Grave(); ok {
+		t.Error("the fetched grave is still remembered")
 	}
 }
 
@@ -544,5 +626,84 @@ func waitFor(t *testing.T, cond func() bool) {
 			t.Fatal("condition never held")
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// TestTheShunSurvivesARestart: a controller restart does not forget that
+// home is where something killed the bot.
+func TestTheShunSurvivesARestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "memory.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.SetHome(protocol.Vec3{10, 0, 0}, "Nimah")
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{8, 0, 2}})
+	k.Tick(ctx)
+
+	again, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k2, f2, c2 := keeper(t, again)
+	f2.set(&protocol.Hello{}, inWorld(protocol.Vec3{-60, 0, 0}, nil))
+	k2.Tick(ctx)
+	c2.advance(11 * time.Minute)
+	k2.Tick(ctx)
+	if got := f2.sent(); len(got) != 0 {
+		t.Fatalf("after a restart, idled home to what killed it: %q", got)
+	}
+	k2.Ordered()
+	if !again.Shunned("Midgard") {
+		t.Fatal("an attempted order ended the shun before it was carried out")
+	}
+	k2.Told()
+	if again.Shunned("Midgard") {
+		t.Error("an order did not end the shun")
+	}
+
+	// An order that comes before Tick sees the death still leaves a grave.
+	f2.set(f2.hello, &protocol.State{Phase: protocol.PhaseDead, World: "Midgard", Pos: protocol.Vec3{50, 0, 50}})
+	k2.Ordered()
+	if g, ok := k2.Grave(); !ok || g.Pos != (protocol.Vec3{50, 0, 50}) {
+		t.Errorf("grave %+v, %v", g, ok)
+	}
+}
+
+func TestAShunnedHomeDoesNotPreventResumingAFollow(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathResume })
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{}, nil))
+	k.SetHome(protocol.Vec3{}, "Nimah")
+	k.Tick(ctx)
+	resumed := false
+	k.ResumeAfterDeath(func(context.Context) bool { resumed = true; return true })
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if !resumed || !store.Shunned("Midgard") || len(f.sent()) != 0 {
+		t.Fatalf("resumed %v, shunned %v, sent %v", resumed, store.Shunned("Midgard"), f.sent())
+	}
+}
+
+func TestACarriedOutOrderUnshunsOnlyItsWorld(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	for _, world := range []string{"Midgard", "Other"} {
+		f.set(&protocol.Hello{}, &protocol.State{Phase: protocol.PhaseInWorld, World: world})
+		k.SetHome(protocol.Vec3{}, "Nimah")
+		if err := store.Shun(world); err != nil {
+			t.Fatal(err)
+		}
+	}
+	k.Told()
+	if !store.Shunned("Midgard") || store.Shunned("Other") {
+		t.Fatalf("shunned Midgard=%v Other=%v", store.Shunned("Midgard"), store.Shunned("Other"))
 	}
 }

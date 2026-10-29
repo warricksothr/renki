@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"regexp"
 	"slices"
 	"strings"
@@ -48,6 +49,9 @@ type Request struct {
 	// Tasks are the tasks the bot may be asked to do. Empty for a
 	// non-owner, who gets conversation but no tasks.
 	Tasks []string
+	// Gear is the prefabs of what the bot carries that it could equip, for
+	// the equip task's choices.
+	Gear []string
 }
 
 // Reply is what the Voice says, and the task it proposes, if any.
@@ -92,6 +96,15 @@ type Home interface {
 	// Ordered drops whatever a death left pending, the resume and the
 	// trip after the respawn: a newer order wins.
 	Ordered()
+	// Grave is where the bot last died in this world, its things not yet
+	// fetched.
+	Grave() (home.Grave, bool)
+	// ForgetGrave forgets the grave nearest pos, if within r: fetched, or
+	// gone.
+	ForgetGrave(pos protocol.Vec3, r float64)
+	// Told says an order was carried out: whatever kept the bot from going
+	// home by itself after a death there is over.
+	Told()
 }
 
 // Options configure a Brain.
@@ -230,12 +243,62 @@ type origin struct {
 	// follow is the player a follow command was for, so a death can
 	// resume it.
 	follow string
+	// grave is set on a corpse run: the walk to the grave, then the
+	// emptying of it. emptied are the graves already emptied on this run:
+	// a bot killed over and over in one place has several there.
+	grave   *protocol.Vec3
+	emptied []string
 }
+
+// channelPanel is the channel of words typed into the control panel: always
+// addressed to the bot, and answered on the panel, not in the game.
+const channelPanel = "panel"
+
+// FromPanel's errors.
+var (
+	ErrNotOwner = errors.New("not an owner")
+	ErrNoBot    = errors.New("the bot is not connected")
+)
+
+// FromPanel takes text typed into the control panel as if speaker, an
+// owner, had said it to the bot. Where the speaker stands comes from
+// perception; when their character is not in sight, commands that need
+// it ("come here", "set home", "pick that up") say so.
+func (b *Brain) FromPanel(speaker, text string) error {
+	if !slices.Contains(b.live().Owners, speaker) {
+		return fmt.Errorf("%w: %s", ErrNotOwner, speaker)
+	}
+	// Dead or loading counts: an order given then is meant to cancel what a
+	// death left pending.
+	st := b.d.State()
+	if st == nil {
+		return ErrNoBot
+	}
+	c := &protocol.Chat{From: protocol.ChatSender{Name: speaker, Owner: true}, Channel: channelPanel, Text: text, Dist: -1}
+	// A sighting counts only from a perception as new as the state, give
+	// or take a few scans: none comes while the bot is dead or loading.
+	if seen := b.d.Perception(); seen != nil && math.Abs(st.T-seen.T) <= panelSightFor {
+		for _, p := range seen.Characters {
+			if p.Kind == protocol.CharacterPlayer && p.Name == speaker {
+				c.Pos, c.Dist = p.Pos, st.Pos.FlatDistance(p.Pos)
+			}
+		}
+	}
+	b.Chat(c)
+	return nil
+}
+
+// panelSightFor is how old, in game seconds, a perception may be for the
+// panel's owner seen in it to count as seen now.
+const panelSightFor = 5.0
+
+// located reports whether the bot knows where the speaker of c stands.
+func located(c *protocol.Chat) bool { return c.Channel != channelPanel || c.Dist >= 0 }
 
 // Chat implements session.Listener.
 func (b *Brain) Chat(c *protocol.Chat) {
 	b.remember(Line{From: c.From.Name, Text: c.Text})
-	if !b.addressed(c) {
+	if c.Channel != channelPanel && !b.addressed(c) {
 		b.opts.Logger.Debug("not addressed", "from", c.From.Name, "name", b.agentName())
 		return
 	}
@@ -252,6 +315,16 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		b.opts.Logger.Info("refused: not an owner", "from", c.From.Name, "command", cmd, "owners", owners)
 		b.say(from, fmt.Sprintf("Sorry, %s, I only take orders from %s.", c.From.Name, joinNames(owners)))
 		return
+	}
+	switch cmd {
+	// Follow too: from the panel the owner may not be in the world at all,
+	// and a follow that loses its leader sends the bot home. Refused
+	// before it counts as an order, so it cancels nothing.
+	case cmdCome, cmdSetHome, cmdPickup, cmdFollow:
+		if !located(c) {
+			b.say(from, fmt.Sprintf("I can't see you, %s, so I don't know where you mean.", c.From.Name))
+			return
+		}
 	}
 	b.opts.Logger.Info("command", "from", c.From.Name, "command", cmd)
 	if b.opts.Home != nil {
@@ -293,6 +366,27 @@ func (b *Brain) TaskDone(t *session.Task) {
 		}
 		return
 	}
+	// A trip home after a failed walk to the grave carries the run's
+	// origin, but it is no part of the run.
+	if o.grave != nil && (b.opts.Home == nil || !b.opts.Home.Homeward(t.ID)) && b.corpseRun(t, o, status, reason) {
+		return
+	}
+	if t.Name == protocol.TaskInteract {
+		// The plugin passes on what the game said: "used the Bed: Spawn
+		// point set", or, refused, the game's words alone.
+		switch {
+		case status == protocol.StatusSucceeded:
+			if _, said, ok := strings.Cut(detail, ": "); ok {
+				b.say(o, said)
+			} else {
+				b.say(o, "Done.")
+			}
+			return
+		case reason == protocol.ReasonRefused && detail != "":
+			b.say(o, "It won't: "+detail)
+			return
+		}
+	}
 	if status != protocol.StatusFailed && status != protocol.StatusRejected {
 		return
 	}
@@ -310,6 +404,63 @@ func (b *Brain) TaskDone(t *session.Task) {
 	}
 	if msg != "" {
 		b.say(o, msg)
+	}
+}
+
+// corpseRun carries a corpse run on: at the grave's place, it empties the
+// grave if it is there, and forgets it if not; emptied, it forgets it and
+// says so. It reports whether it said or sent anything, so TaskDone says
+// nothing more.
+func (b *Brain) corpseRun(t *session.Task, o origin, status, reason string) bool {
+	switch {
+	case t.Name == protocol.TaskMoveTo && status == protocol.StatusSucceeded:
+		g := b.myGrave(o.grave, nil)
+		if g == nil {
+			// Only a fresh look from beside the place says it is gone.
+			st, seen := b.d.State(), b.d.Perception()
+			if st == nil || seen == nil || math.Abs(st.T-seen.T) > panelSightFor || st.Pos.FlatDistance(*o.grave) > graveReach {
+				b.say(o, "I can't see my grave from here.")
+				return true
+			}
+			if b.opts.Home != nil {
+				b.opts.Home.ForgetGrave(*o.grave, graveReach)
+			}
+			b.say(o, "My grave's not here. Someone must have emptied it.")
+			return true
+		}
+		b.empty(o, g)
+		return true
+	case t.Name == protocol.TaskInteract && (status == protocol.StatusSucceeded || reason == protocol.ReasonTargetLost):
+		// Emptied, or gone meanwhile: forget it, and go on to the next
+		// grave there, if it died more than once in one place.
+		if b.opts.Home != nil {
+			b.opts.Home.ForgetGrave(*o.grave, graveReach)
+		}
+		if next := b.myGrave(o.grave, o.emptied); next != nil {
+			b.empty(o, next)
+			return true
+		}
+		if status == protocol.StatusSucceeded {
+			b.say(o, "Got my things back.")
+		} else {
+			b.say(o, "My grave's gone. Someone must have emptied it.")
+		}
+		return true
+	case t.Name == protocol.TaskInteract && reason == protocol.ReasonInventoryFull:
+		b.say(o, "My grave holds more than I can carry. Make some room and I'll try again.")
+		return true
+	}
+	return false
+}
+
+// empty sends the bot to empty grave g, noting it on the run.
+func (b *Brain) empty(o origin, g *protocol.PerceivedStructure) {
+	pos := g.Pos
+	o.grave, o.emptied = &pos, append(slices.Clone(o.emptied), g.ID)
+	order := session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}, Origin: o}
+	if _, err := b.d.Dispatch(context.Background(), order); err != nil {
+		b.opts.Logger.Warn("could not empty the grave", "err", err)
+		b.say(o, "I found my grave, but I can't open it.")
 	}
 }
 
@@ -390,10 +541,17 @@ const (
 	cmdSetHome
 	cmdGoHome
 	cmdPickup
+	cmdBed
+	cmdClaimBed
+	cmdDoor
+	cmdOpenDoor
+	cmdCloseDoor
+	cmdFetch
 )
 
 func (c command) String() string {
-	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up"}[c]
+	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
+		"go to bed", "claim the bed", "get the door", "open the door", "close the door", "get your things"}[c]
 }
 
 var grammar = map[string]command{
@@ -408,6 +566,12 @@ var grammar = map[string]command{
 	"go back home": cmdGoHome,
 	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
+	"go to bed": cmdBed, "use your bed": cmdBed, "use the bed": cmdBed,
+	"claim the bed": cmdClaimBed, "claim a bed": cmdClaimBed, "claim that bed": cmdClaimBed,
+	"claim this bed":  cmdClaimBed,
+	"get your things": cmdFetch, "get your stuff": cmdFetch, "fetch your things": cmdFetch,
+	"go get your things": cmdFetch, "go get your stuff": cmdFetch, "corpse run": cmdFetch,
+	"get the door": cmdDoor, "use the door": cmdDoor, "open the door": cmdOpenDoor, "close the door": cmdCloseDoor,
 }
 
 func parse(stripped string) (command, bool) {
@@ -433,6 +597,16 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdPickup:
 		var ok bool
 		if order, ack, ok = b.pickup(c, from); !ok {
+			return
+		}
+	case cmdFetch:
+		var ok bool
+		if order, ack, ok = b.fetch(&from); !ok {
+			return
+		}
+	case cmdBed, cmdClaimBed, cmdDoor, cmdOpenDoor, cmdCloseDoor:
+		var ok bool
+		if order, ack, ok = b.use(cmd, c, from); !ok {
 			return
 		}
 	case cmdFollow:
@@ -461,7 +635,147 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		}
 		return
 	}
+	if b.opts.Home != nil {
+		b.opts.Home.Told()
+	}
 	b.say(from, ack)
+}
+
+// graveReach is how near the remembered place a grave seen in perception
+// must be to be the one: the game drops it where the bot fell, and it
+// floats or rolls.
+const graveReach = 10.0
+
+// fetch starts a corpse run: the bot's own grave if it is in sight,
+// emptied at once, else a walk to where it last died, after which TaskDone
+// looks for the grave there. It says why when there is nothing to fetch.
+func (b *Brain) fetch(from *origin) (session.Order, string, bool) {
+	if g := b.myGrave(nil, nil); g != nil {
+		pos := g.Pos
+		from.grave, from.emptied = &pos, []string{g.ID}
+		return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: g.ID}}, "Getting my things.", true
+	}
+	if b.opts.Home == nil {
+		b.say(*from, "I don't know where I died.")
+		return session.Order{}, "", false
+	}
+	g, ok := b.opts.Home.Grave()
+	if !ok {
+		b.say(*from, "I've nothing to fetch; I haven't died anywhere I remember.")
+		return session.Order{}, "", false
+	}
+	pos := g.Pos
+	from.grave = &pos
+	stop, run := 3.0, true
+	return session.Order{Task: protocol.TaskMoveTo,
+		Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Run: &run}}, "Going back for my things.", true
+}
+
+// myGrave is the bot's own grave in sight, the one nearest near if set,
+// leaving out those in skip.
+func (b *Brain) myGrave(near *protocol.Vec3, skip []string) *protocol.PerceivedStructure {
+	seen := b.d.Perception()
+	if seen == nil {
+		return nil
+	}
+	var (
+		best *protocol.PerceivedStructure
+		dist = math.Inf(1)
+	)
+	for i, s := range seen.Structures {
+		if s.Kind != protocol.StructureTombstone || !s.Mine || slices.Contains(skip, s.ID) {
+			continue
+		}
+		d := 0.0
+		if near != nil {
+			if d = near.FlatDistance(s.Pos); d > graveReach {
+				continue
+			}
+		}
+		if best == nil || d < dist {
+			best, dist = &seen.Structures[i], d
+		}
+	}
+	return best
+}
+
+// useReach is how far from the speaker, or the bot when the speaker is out
+// of sight, a bed or door may be for "use the bed" or "get the door".
+const useReach = 10.0
+
+// use chooses the bed or door to interact with. Going to bed is to the
+// bot's own bed only, wherever it is in sight, since using any other claims
+// it. Claiming a bed, or getting a door, takes the one nearest the speaker,
+// or the bot when it cannot see the speaker. It says why when there is none.
+func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, string, bool) {
+	kind, what, ack := protocol.StructureDoor, "door", "Getting the door."
+	switch cmd {
+	case cmdBed:
+		if seen := b.d.Perception(); seen != nil {
+			for _, s := range seen.Structures {
+				if s.Kind == protocol.StructureBed && s.Mine {
+					return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: s.ID}}, "Heading to bed.", true
+				}
+			}
+		}
+		b.say(from, "I don't see my bed. Tell me to claim one.")
+		return session.Order{}, "", false
+	case cmdClaimBed:
+		kind, what, ack = protocol.StructureBed, "bed", "I'll take that bed."
+	case cmdOpenDoor:
+		ack = "Opening the door."
+	case cmdCloseDoor:
+		ack = "Closing the door."
+	}
+	// Using a door swings it either way, so opening takes only a shut one,
+	// and closing an open one.
+	wantOpen := cmd == cmdCloseDoor
+	sorted := cmd == cmdOpenDoor || cmd == cmdCloseDoor
+	near := c.Pos
+	if !located(c) {
+		if st := b.d.State(); st != nil {
+			near = st.Pos
+		}
+	}
+	var (
+		best    *protocol.PerceivedStructure
+		dist    = useReach
+		already bool // one in reach, but already as asked
+	)
+	if seen := b.d.Perception(); seen != nil {
+		for i, s := range seen.Structures {
+			if s.Kind != kind {
+				continue
+			}
+			d := near.FlatDistance(s.Pos)
+			if d > dist {
+				continue
+			}
+			// The bot's own bed is not one to claim; another in reach is.
+			// Likewise a door already as asked.
+			if (s.Mine && cmd == cmdClaimBed) || (sorted && s.Open != nil && *s.Open != wantOpen) {
+				already = true
+				continue
+			}
+			best, dist = &seen.Structures[i], d
+		}
+	}
+	if best == nil && already {
+		switch cmd {
+		case cmdOpenDoor:
+			b.say(from, "It's open already.")
+		case cmdCloseDoor:
+			b.say(from, "It's shut already.")
+		default:
+			b.say(from, "That one's mine already.")
+		}
+		return session.Order{}, "", false
+	}
+	if best == nil {
+		b.say(from, fmt.Sprintf("I don't see a %s nearby.", what))
+		return session.Order{}, "", false
+	}
+	return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: best.ID}}, ack, true
 }
 
 // pickupReach is how far from the speaker a drop may lie for "pick that up".
@@ -510,6 +824,7 @@ func (b *Brain) setHome(c *protocol.Chat, from origin) {
 		}
 		return
 	}
+	b.opts.Home.Told()
 	b.say(from, "This is home now.")
 }
 
@@ -532,6 +847,7 @@ func (b *Brain) goHome(from origin) {
 		}
 		return
 	}
+	b.opts.Home.Told()
 	b.say(from, "Heading home.")
 }
 
@@ -546,6 +862,11 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 	if last, ok := b.lastVoice[c.From.Name]; ok && now.Sub(last) < b.opts.Cooldown {
 		b.mu.Unlock()
 		b.opts.Logger.Info("voice cooling down", "player", c.From.Name)
+		if c.Channel == channelPanel {
+			// In the game the silence is the answer; on the panel it would
+			// look like the words were lost.
+			b.say(from, "Give me a moment; I spoke just now.")
+		}
 		return
 	}
 	b.lastVoice[c.From.Name] = now
@@ -561,8 +882,15 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 		Summary:   b.status(),
 		Recent:    recent,
 	}
+	if inv := b.d.Inventory(); inv != nil {
+		req.Gear = inv.Equipable()
+	}
 	if owner {
 		req.Tasks = b.d.AllowedTasks()
+		if !located(c) {
+			// As the grammar does: no following an owner out of sight.
+			req.Tasks = slices.DeleteFunc(slices.Clone(req.Tasks), func(t string) bool { return t == protocol.TaskFollow })
+		}
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), b.opts.VoiceTimeout)
@@ -574,7 +902,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 			return
 		}
 		if reply.Task != nil {
-			b.propose(reply.Task, from, owner)
+			b.propose(reply.Task, from, owner, req.Tasks)
 		}
 		if s := strings.TrimSpace(reply.Say); s != "" {
 			b.say(from, s)
@@ -584,9 +912,13 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 
 // propose checks a task the Voice suggested exactly as a command is checked:
 // owners only, then Dispatch's allowedTasks, capability and argument checks.
-func (b *Brain) propose(p *Proposal, from origin, owner bool) {
+func (b *Brain) propose(p *Proposal, from origin, owner bool, offered []string) {
 	if !owner {
 		b.opts.Logger.Warn("voice proposed a task for a non-owner; dropped", "player", from.player, "task", p.Task)
+		return
+	}
+	if !slices.Contains(offered, p.Task) {
+		b.opts.Logger.Warn("voice proposed a task it was not offered; dropped", "player", from.player, "task", p.Task)
 		return
 	}
 	if p.Task == protocol.TaskSay {
@@ -613,10 +945,17 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool) {
 		// An order in the owner's own words is an order like any other.
 		b.opts.Home.Touch()
 		b.opts.Home.Ordered()
+		b.opts.Home.Told()
 	}
 }
 
 func (b *Brain) say(to origin, text string) {
+	if to.channel == channelPanel {
+		// For the panel's feed, not the game's chat.
+		b.opts.Logger.Info("said to the panel", "to", to.player, "text", text)
+		b.remember(Line{From: b.agentName(), Text: text, Bot: true})
+		return
+	}
 	args := &protocol.SayArgs{Text: text}
 	switch to.channel {
 	case protocol.ChannelWhisper:
@@ -647,7 +986,7 @@ func (b *Brain) remember(l Line) {
 // shout, since whoever shouted may be too far off to hear normal chat.
 func replyChannel(heard string) string {
 	switch heard {
-	case protocol.ChannelWhisper, protocol.ChannelShout:
+	case protocol.ChannelWhisper, protocol.ChannelShout, channelPanel:
 		return heard
 	}
 	return protocol.ChannelNormal
@@ -665,6 +1004,9 @@ func joinNames(names []string) string {
 
 // explain turns a failed task into something to say, or "" for nothing.
 func explain(task, reason, player string) string {
+	if task == protocol.TaskInteract && reason == protocol.ReasonTargetLost {
+		return "It's gone."
+	}
 	if task == protocol.TaskPickup {
 		switch reason {
 		case protocol.ReasonTargetLost:
@@ -686,6 +1028,8 @@ func explain(task, reason, player string) string {
 		return "I'm stuck. Can you come back for me?"
 	case protocol.ReasonUnreachable:
 		return "I can't find a way there."
+	case protocol.ReasonDeepWater:
+		return "There's deep water in the way, and I'd drown in it. I'll stay on dry land."
 	case protocol.ReasonTimeout:
 		return "That took too long, so I gave up."
 	case protocol.ReasonNotAllowed, protocol.ReasonUnsupported:

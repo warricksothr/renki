@@ -1,0 +1,262 @@
+using System.Collections.Generic;
+using HarmonyLib;
+using Renki.Movement;
+using Renki.Protocol;
+using Renki.Tasks;
+using UnityEngine;
+
+namespace Renki.Plugin
+{
+    /// <summary>
+    /// interact: walk to a thing and use it as a player would, through its
+    /// Interactable (docs/BRIDGE-PROTOCOL.md 7.2). The game answers true or
+    /// false, and says why on the screen; the task reports both, so a ward, a
+    /// bed someone else owns or a missing roof comes back as the failure
+    /// <c>refused</c> with the game's own words.
+    /// </summary>
+    sealed class InteractTask : IBodyTask
+    {
+        /// <summary>How far from the bot's eye it uses a thing. The game
+        /// allows 5 m; nearer, the bot is plainly at it.</summary>
+        const float Reach = 2.5f;
+
+        /// <summary>How long a hold keeps the use key down.</summary>
+        const float HoldFor = 1.0f;
+
+        /// <summary>How often a held key repeats: a little slower than the
+        /// game's 0.2 s, which it would turn away.</summary>
+        const float Repeat = 0.25f;
+
+        readonly InteractArgs args;
+        readonly Interactable target;
+        readonly GameObject obj;
+        readonly string name;
+        readonly Walker walker = new Walker();
+        Vector3 goal;
+        float holdUntil = -1, nextRepeat;
+        bool used;
+        readonly List<string> heard = new List<string>();
+
+        public InteractTask(InteractArgs args, Interactable target)
+        {
+            this.args = args;
+            this.target = target;
+            obj = ((MonoBehaviour)target).gameObject;
+            name = Name(target);
+            var p = Player.m_localPlayer;
+            goal = obj.transform.position;
+            walker.SetGoal(p.transform.position, goal);
+            walker.ResetStuck(p.transform.position);
+        }
+
+        /// <summary>The kind InteractRule decides by, from the game's type.</summary>
+        public static string Kind(Interactable it)
+        {
+            var go = ((MonoBehaviour)it).gameObject;
+            switch (it)
+            {
+                // Its own grave it empties into the pack when all of it
+                // fits; otherwise the game opens it as a chest.
+                case TombStone t:
+                    return t.IsOwner() && t.EasyFitInInventory(Player.m_localPlayer) ? InteractRule.Grave : InteractRule.Container;
+                case Bed _: return InteractRule.Bed;
+                case Door _: return InteractRule.Door;
+                case OfferingBowl _: return InteractRule.Boss;
+                case ShipControlls _: return InteractRule.Ship;
+                // Everything that hands over what grows or gathers there.
+                case Pickable _:
+                case PickableItem _:
+                case Beehive _:
+                case SapCollector _: return InteractRule.Pickable;
+                case ItemDrop _: return InteractRule.Drop;
+                case Container _: return InteractRule.Container;
+                case CraftingStation _: return InteractRule.Station;
+                case Sign _:
+                case TeleportWorld _: return InteractRule.Text;
+                case PrivateArea _: return InteractRule.Ward;
+            }
+            // A station's parts can carry their own Interactable.
+            return go.GetComponentInParent<CraftingStation>() != null ? InteractRule.Station : InteractRule.Other;
+        }
+
+        public static string Name(Interactable it) =>
+            it is Hoverable h ? Localize(h.GetHoverName()) : ((MonoBehaviour)it).gameObject.name;
+
+        public Outcome Tick(double dt)
+        {
+            var p = Player.m_localPlayer;
+            if (p == null) return Outcome.Failed(Wire.ReasonStopped, "no player");
+            // Used up by the first press of a hold is still used.
+            if (holdUntil >= 0) return obj == null ? Answer(used) : Holding(p);
+            if (obj == null) return Outcome.Failed(Wire.ReasonTargetLost, $"the {name} is gone");
+            var pos = p.transform.position;
+            if (Near(p))
+            {
+                Driver.Stand();
+                walker.ResetStuck(pos);
+                Driver.LookAt = obj.transform.position;
+                Driver.LookUntil = Time.time + 1f;
+                if (p.InAttack() || p.InDodge()) return null;
+                // The pack may have filled on the way, and then the game
+                // would open the grave as a chest.
+                if (target is TombStone && Kind(target) != InteractRule.Grave)
+                    return Outcome.Failed(Wire.ReasonInventoryFull, $"not all of the {name} fits in the pack");
+                var ok = Use(p, false);
+                if (!args.Hold) return Answer(ok);
+                used = ok;
+                holdUntil = Time.time + HoldFor;
+                nextRepeat = Time.time + Repeat;
+                return null;
+            }
+            if ((obj.transform.position - goal).sqrMagnitude > 1)
+            {
+                goal = obj.transform.position;
+                walker.SetGoal(pos, goal);
+            }
+            if (walker.Unreachable(pos, Reach) is Outcome under)
+            {
+                Driver.Stand();
+                return under;
+            }
+            if (Walker.Stranded(p) is Outcome stranded)
+            {
+                Driver.Stand();
+                return stranded;
+            }
+            if (walker.Refused() is Outcome wet)
+            {
+                Driver.Stand();
+                return wet;
+            }
+            if (!walker.Steer(pos, false))
+            {
+                Driver.Stand();
+                return Outcome.Failed(Wire.ReasonStuck,
+                    $"no progress after {walker.RecoveryAttempts} recoveries{(walker.StraightLine ? " (no navmesh path)" : "")}");
+            }
+            return null;
+        }
+
+        Outcome Holding(Player p)
+        {
+            if (Time.time >= holdUntil) return Answer(used);
+            if (Time.time >= nextRepeat)
+            {
+                nextRepeat = Time.time + Repeat;
+                used |= Use(p, true);
+            }
+            return null;
+        }
+
+        /// <summary>Within reach and in sight, as the game's hover finds a
+        /// thing to use: a ray from the bot's eye, aimed at the nearest point
+        /// of each of its colliders and at their middles, meets the thing
+        /// itself within Reach, not a wall or floor in between.</summary>
+        bool Near(Player p)
+        {
+            var eye = p.m_eye != null ? p.m_eye.position : p.transform.position + Vector3.up * 1.6f;
+            var any = false;
+            foreach (var c in obj.GetComponentsInChildren<Collider>())
+            {
+                if (!c.enabled) continue;
+                any = true;
+                // Unity answers a concave mesh's ClosestPoint with the point
+                // itself, so it is aimed at by its middle only.
+                var concave = c is MeshCollider m && !m.convex;
+                if ((!concave && Sees(eye, c.ClosestPoint(eye), p)) || Sees(eye, c.bounds.center, p)) return true;
+            }
+            if (any) return false;
+            return Arrival.Reached(Convert.ToV3(p.transform.position), Convert.ToV3(obj.transform.position), Reach);
+        }
+
+        bool Sees(Vector3 eye, Vector3 at, Player p)
+        {
+            var dir = at - eye;
+            var d = dir.magnitude;
+            if (d > Reach) return false;
+            // Nearer than a ray can tell: the eye is at it, or in it.
+            if (d < 0.05f) return true;
+            return Physics.Raycast(eye, dir / d, out var hit, Reach, p.m_interactMask) &&
+                   hit.collider.transform.IsChildOf(obj.transform);
+        }
+
+        /// <summary>Collects what the game says to the bot into lines until
+        /// disposed: the words behind a refusal.</summary>
+        public static System.IDisposable Listen(List<string> lines)
+        {
+            Heard.Into = lines;
+            return new Stop();
+        }
+
+        sealed class Stop : System.IDisposable
+        {
+            public void Dispose() => Heard.Into = null;
+        }
+
+        /// <summary>One press of the use key, hearing what the game says.</summary>
+        bool Use(Player p, bool hold)
+        {
+            Heard.Into = heard;
+            try
+            {
+                var bed = target as Bed;
+                var wasSpawn = bed != null && SpawnsAt(bed);
+                var wasAttached = p.IsAttached();
+                var ok = target.Interact(p, hold, args.Alt);
+                // A bed answers false whatever it did: what changed says.
+                // Claimed, it is now the bot's spawn point (read from the
+                // profile, set at once, where the owner the bed records
+                // comes back later from whoever holds it); its own already,
+                // the bot lies down in it.
+                if (bed != null) ok = (!wasAttached && p.IsAttached()) || (!wasSpawn && SpawnsAt(bed));
+                if (ok) p.DoInteractAnimation(obj);
+                return ok;
+            }
+            finally
+            {
+                Heard.Into = null;
+                // Whatever opened a window anyway (a tombstone too full to
+                // take at once opens as a chest) is shut: nobody is there to use it.
+                if (InventoryGui.IsVisible()) InventoryGui.instance.Hide();
+            }
+        }
+
+        static bool SpawnsAt(Bed bed) =>
+            Game.instance != null &&
+            Vector3.Distance(bed.GetSpawnPoint(), Game.instance.GetPlayerProfile().GetCustomSpawnPoint()) < 1f;
+
+        Outcome Answer(bool ok)
+        {
+            var said = heard.Count > 0 ? string.Join("; ", heard) : null;
+            Tracer.Emit("interact", ok ? "used" : "refused", new Dictionary<string, object>
+            {
+                ["target"] = name,
+                ["alt"] = args.Alt,
+                ["hold"] = args.Hold,
+                ["said"] = said,
+            });
+            if (ok) return Outcome.Succeeded(said != null ? $"used the {name}: {said}" : $"used the {name}");
+            return Outcome.Failed(Wire.ReasonRefused, said ?? $"the {name} did nothing");
+        }
+
+        public void Cancel() => Driver.Stand();
+
+        static string Localize(string s) => Localization.instance != null ? Localization.instance.Localize(s) : s;
+
+        /// <summary>What the game says to the bot while it uses something:
+        /// the line a player would see in the middle of the screen.</summary>
+        [HarmonyPatch(typeof(Player), nameof(Player.Message))]
+        static class Heard
+        {
+            public static List<string> Into;
+
+            static void Postfix(Player __instance, string msg)
+            {
+                if (Into == null || __instance != Player.m_localPlayer || string.IsNullOrEmpty(msg)) return;
+                // A held key hears the same line on every repeat.
+                var line = Localize(msg).Trim();
+                if (!Into.Contains(line)) Into.Add(line);
+            }
+        }
+    }
+}

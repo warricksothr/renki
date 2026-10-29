@@ -12,6 +12,13 @@ namespace Renki.Plugin
         /// <summary>How long a look_at holds before the bot faces where it walks again.</summary>
         const float LookHold = 4f;
 
+        readonly SafetyConfig safety;
+
+        public GameTaskHost(SafetyConfig safety)
+        {
+            this.safety = safety;
+        }
+
         public IBodyTask StartBody(TaskRequest req, object args)
         {
             if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead())
@@ -40,6 +47,47 @@ namespace Renki.Plugin
                         if (PickupTask.TooHeavy(Player.m_localPlayer, drop.m_itemData))
                             throw new TaskRefused(Wire.ReasonTooHeavy, $"{drop.m_itemData.m_shared.m_name} would take it past its carry weight");
                         return new PickupTask(drop);
+                    }
+                case InteractArgs ia:
+                    {
+                        var obj = FindEntity(ia.Entity);
+                        // A tombstone carries a Container too, which is not what to use.
+                        var it = obj == null ? null
+                            : (Interactable)obj.GetComponentInParent<TombStone>() ?? obj.GetComponentInParent<Interactable>();
+                        // A ship is named by its hull; what the bot would use is its helm.
+                        if (obj != null && it == null && obj.GetComponent<Ship>() != null)
+                            it = obj.GetComponentInChildren<ShipControlls>();
+                        if (obj != null && it == null)
+                        {
+                            // A part may carry it; with several (a smelter's
+                            // ore, fuel and output), which one is not ours to guess.
+                            var parts = obj.GetComponentsInChildren<Interactable>();
+                            if (parts.Length > 1)
+                                throw new TaskRefused(Wire.ReasonInvalidTarget,
+                                    $"{ia.Entity} has {parts.Length} things to use: {string.Join(", ", System.Linq.Enumerable.Select(parts, InteractTask.Name))}");
+                            if (parts.Length == 1) it = parts[0];
+                        }
+                        if (it == null) throw new TaskRefused(Wire.ReasonInvalidTarget, $"nothing to use at {ia.Entity} in range");
+                        if (InteractRule.Check(InteractTask.Kind(it), safety) is Outcome no)
+                            throw new TaskRefused(no.Reason, no.Detail);
+                        // Section 8: nothing behind a ward the bot has no access to.
+                        if (!PrivateArea.CheckAccess(obj.transform.position, 0f, false, false))
+                            throw new TaskRefused(Wire.ReasonNotAllowed, $"the {InteractTask.Name(it)} is behind a ward");
+                        return new InteractTask(ia, it);
+                    }
+                case FleeArgs fl:
+                    {
+                        var (threatPos, threat) = Resolve(fl.From);
+                        Vector3? safePos = null;
+                        GameObject safe = null;
+                        if (fl.Toward != null)
+                        {
+                            // Safety out of sight is no reason not to run:
+                            // the bot runs straight away instead.
+                            if (fl.Toward.Pos.HasValue) safePos = Convert.ToVector3(fl.Toward.Pos.Value);
+                            else if ((safe = FindEntity(fl.Toward.Entity)) != null) safePos = safe.transform.position;
+                        }
+                        return new FleeTask(fl, threatPos, threat, safePos, safe);
                     }
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)
@@ -76,6 +124,10 @@ namespace Renki.Plugin
                     return Outcome.Succeeded();
                 case DropArgs d:
                     return Drop(player, d);
+                case EquipArgs eq:
+                    return Equip(player, eq);
+                case UnequipArgs uq:
+                    return Unequip(player, uq);
             }
             return Outcome.Failed(Wire.ReasonUnsupported, req.Task);
         }
@@ -111,6 +163,77 @@ namespace Renki.Plugin
             if (dropped == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"the game would not drop the {d.Prefab}");
             return Outcome.Succeeded($"dropped {dropped} {d.Prefab}");
         }
+
+        /// <summary>Equips the item by prefab: of its stacks, the one in
+        /// best repair, then of highest quality. One already equipped is
+        /// left as it is.</summary>
+        static Outcome Equip(Player player, EquipArgs e)
+        {
+            ItemDrop.ItemData best = null;
+            var broken = false;
+            foreach (var item in player.GetInventory().GetAllItems())
+            {
+                // By prefab, or by name token for the few items with none, as
+                // the inventory names them (6.3).
+                if (Prefab(item) != e.Item) continue;
+                if (!item.IsEquipable()) return Outcome.Failed(Wire.ReasonInvalidTarget, $"{e.Item} is not something to equip");
+                if (player.IsItemEquiped(item)) return Outcome.Succeeded($"already holding {e.Item}");
+                if (item.m_shared.m_useDurability && item.m_durability <= 0)
+                {
+                    broken = true;
+                    continue;
+                }
+                if (best == null || Repair(item) > Repair(best) ||
+                    (Repair(item) == Repair(best) && item.m_quality > best.m_quality))
+                    best = item;
+            }
+            if (best == null)
+                return Outcome.Failed(Wire.ReasonInvalidTarget, broken ? $"every {e.Item} is broken" : $"no {e.Item} to equip");
+            var heard = new System.Collections.Generic.List<string>();
+            bool ok;
+            using (InteractTask.Listen(heard))
+                ok = player.EquipItem(best, true);
+            if (!ok)
+                return Outcome.Failed(Wire.ReasonRefused, heard.Count > 0 ? string.Join("; ", heard) : $"the game would not equip the {e.Item}");
+            return Outcome.Succeeded($"equipped {e.Item}");
+        }
+
+        /// <summary>How whole an item is, 1 for new or for what does not wear.</summary>
+        static float Repair(ItemDrop.ItemData item) =>
+            item.m_shared.m_useDurability && item.GetMaxDurability() > 0 ? item.m_durability / item.GetMaxDurability() : 1f;
+
+        /// <summary>Empties a slot, or both hands.</summary>
+        static Outcome Unequip(Player player, UnequipArgs u)
+        {
+            ItemDrop.ItemData[] items;
+            switch (u.Slot)
+            {
+                case "right": items = new[] { player.m_rightItem }; break;
+                case "left": items = new[] { player.m_leftItem }; break;
+                case "hands": items = new[] { player.m_rightItem, player.m_leftItem }; break;
+                case "head": items = new[] { player.m_helmetItem }; break;
+                case "chest": items = new[] { player.m_chestItem }; break;
+                case "legs": items = new[] { player.m_legItem }; break;
+                case "shoulder": items = new[] { player.m_shoulderItem }; break;
+                case "utility": items = new[] { player.m_utilityItem }; break;
+                case "trinket": items = new[] { player.m_trinketItem }; break;
+                case "ammo": items = new[] { player.m_ammoItem }; break;
+                default: return Outcome.Failed(Wire.ReasonBadArgs, $"unknown slot {u.Slot}");
+            }
+            var names = new System.Collections.Generic.List<string>();
+            var done = new System.Collections.Generic.List<ItemDrop.ItemData>();
+            foreach (var item in items)
+            {
+                if (item == null || done.Contains(item)) continue; // a two-handed item fills both
+                player.UnequipItem(item, true);
+                done.Add(item);
+                names.Add(Prefab(item));
+            }
+            if (names.Count == 0) return Outcome.Failed(Wire.ReasonInvalidTarget, $"nothing in {u.Slot}");
+            return Outcome.Succeeded($"put away {string.Join(" and ", names)}");
+        }
+
+        static string Prefab(ItemDrop.ItemData item) => item.m_dropPrefab != null ? item.m_dropPrefab.name : item.m_shared.m_name;
 
         /// <summary>A target as a position, plus the object when it is an entity.</summary>
         static (Vector3, GameObject) Resolve(Target t)

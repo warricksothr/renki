@@ -1,0 +1,78 @@
+---
+schema: 4
+id: TKT-01M62G71QCVNG3DVW1HZ8HXA23
+title: Bot swims into deep water on a straight-line path and drowns
+type: bug
+status: in-progress
+status_reason: null
+priority: high
+due_on: null
+labels:
+  - movement
+  - safety
+  - plugin
+assignees: []
+milestone: M2
+parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
+origin: null
+dependencies: []
+blocks_on: none
+references: []
+moved_to: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/m2
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 5613bd8d59db140f6a554db688622cd109609466
+  session: null
+  claimed_at: 2026-10-29T13:55:41Z
+  expires_at: null
+archive: null
+created_at: 2026-10-29T00:16:03Z
+updated_at: 2026-10-29T14:17:45Z
+created_by:
+  id: agent:claude-code/renki-groom
+  name: Claude Code
+updated_by:
+  id: agent:claude-code/renki-groom
+  name: Claude Code
+extensions: {}
+---
+
+## Description
+
+The bot walks into deep water and drowns. It happened three times on 2026-10-28 in DizzysHellheim, all in the lake between home (-35.9, 37.66, 6.53) and the ground north of it around z 120–145:
+
+- **18:39**: on "come to me" from 184 m, at hp 0.2 after a fight. Drowned.
+- **19:05**: on "come to me" from 325 m, at 25/25. Swam about 30 m and lost 14 hp before it reached the far shore.
+- **19:14**: going home after stuck recovery gave up, at 11/25. Drowned 10 s after entering the water.
+
+In every case the navmesh had no path ("no navmesh path; straight line"), so the walker took the straight line, and that line crosses the lake. The bot was running, so its stamina was already low when it started swimming. It never eats, so health it loses stays lost (another way to die, separate from this one).
+
+### What to do
+
+- The straight-line fallback should sample the line for water (the water level against Heightmap.GetHeight). When the line crosses deep water, it should not take it: fail with a reason the controller can report ("there's water in the way"), or route around it once the sparse grid spike (TKT-01M62ACH) lands.
+- If the bot is swimming anyway, it should stop running, and it should turn back to the nearest shore when stamina gets low instead of pressing on.
+- The controller should not send the bot on a trip home after a give-up when the only route is the straight line that just failed. Today the stuck give-up and the trip home both use the same straight line.
+
+## Acceptance criteria
+
+- [x] The straight-line fallback does not cross deep water
+- [x] A swimming bot walks rather than runs, and turns for shore when stamina is low
+- [x] A stuck give-up does not start a trip home along the same blocked straight line
+
+## Implementation plan
+
+Plugin: DeepWater.Crossing samples the straight-line fallback every 2 m (ZoneSystem ground height against m_waterLevel); deeper than 1.4 m, the walker refuses and move_to, pickup and follow fail deep_water. Swimming: walk, and below 30% stamina make for DeepWater.Shore, holding the stuck count. Controller: explains deep_water and does not count it as a reason to go home, so the trip home is not sent along the same water.
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T14:17:45Z
+
+Landed on t3/m2 and deployed on 2026-10-29. The plugin loads, and the bot is in the world.
+
+- **Straight-line fallback:** it samples for deep water and fails `deep_water`. Deep water the line starts in does not count, so a bot that is already swimming can leave. Ground in an unloaded zone reads as unknown, not as water.
+- **Swimming:** the bot walks rather than runs. When stamina is low, or when the way on is refused, it makes for the lowest dry point on the nearest ring. It gives up a shore it gets no nearer to after 4 s and tries another, then re-plans once it is out of the water.
+- **Controller:** it explains `deep_water` and does not send the bot home after one. Idling remembers a spot where a trip home failed with `deep_water`, as it already does for `unreachable`.
+
+The criteria are met in code and unit tests (CoreTests and home_test). Nobody was online to walk the bot to the north side of the lake, so the swim itself has not been watched in the game yet. Keep this ticket open until someone has seen it: say "come to me" from z 130 with the bot at home.

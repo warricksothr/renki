@@ -128,7 +128,8 @@ type LLM struct {
 var KnownTasks = []string{
 	protocol.TaskStop, protocol.TaskMoveTo, protocol.TaskFollow,
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
-	protocol.TaskPickup, protocol.TaskDrop,
+	protocol.TaskPickup, protocol.TaskDrop, protocol.TaskInteract, protocol.TaskFlee,
+	protocol.TaskEquip, protocol.TaskUnequip,
 }
 
 // Default returns the configuration used for anything a file leaves out.

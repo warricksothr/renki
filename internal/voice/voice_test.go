@@ -129,6 +129,31 @@ func TestMenuNeverOffersSayAndFollowsAllowed(t *testing.T) {
 	}
 }
 
+// TestEquipChoosesFromTheGearCarried: equip is offered with what the bot
+// carries to equip, and not at all with nothing to equip.
+func TestEquipChoosesFromTheGearCarried(t *testing.T) {
+	f := &fakeRuntime{text: "Aye."}
+	v := newVoice(t, f, 0, nil)
+	req := owner
+	req.Tasks = []string{"equip", "unequip"}
+	if _, err := v.Reply(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.cfg.ExtraTools) != 1 || f.cfg.ExtraTools[0].Name() != "unequip" {
+		t.Fatalf("with no gear: %d tools", len(f.cfg.ExtraTools))
+	}
+	req.Gear = []string{"AxeStone", "Club"}
+	f = &fakeRuntime{text: "Aye."}
+	v = newVoice(t, f, 0, nil)
+	if _, err := v.Reply(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.cfg.ExtraTools) != 2 || f.cfg.ExtraTools[0].Name() != "equip" ||
+		!strings.Contains(string(f.cfg.ExtraTools[0].Schema()), `"enum":["AxeStone","Club"]`) {
+		t.Errorf("equip tool %+v", f.cfg.ExtraTools)
+	}
+}
+
 func TestNonOwnerGetsNoTools(t *testing.T) {
 	f := &fakeRuntime{text: "Hello, stranger."}
 	v := newVoice(t, f, 0, nil)

@@ -21,16 +21,6 @@ type Drop struct {
 	Count  int
 }
 
-// gear is never dropped: what the bot fights, works and dresses with is
-// slow to replace, and the ground is no place for it. The names are the
-// game's item types (6.3).
-var gear = map[string]bool{
-	"OneHandedWeapon": true, "TwoHandedWeapon": true, "TwoHandedWeaponLeft": true, "Bow": true,
-	"Shield": true, "Helmet": true, "Chest": true, "Legs": true, "Hands": true, "Shoulder": true,
-	"Utility": true, "Trinket": true, "Tool": true, "Torch": true, "Ammo": true, "AmmoNonEquipable": true,
-	"Attach_Atgeir": true, "Customization": true,
-}
-
 // common are the raw materials found everywhere, the first to go.
 var common = map[string]bool{
 	"Wood": true, "Stone": true, "Flint": true, "Resin": true, "Feathers": true,
@@ -43,7 +33,9 @@ var common = map[string]bool{
 // dropped.
 func tier(it protocol.InventoryItem) (int, bool) {
 	switch {
-	case it.Equipped || gear[it.Type]:
+	// Gear is never dropped: it is slow to replace, and the ground is no
+	// place for it.
+	case it.Equipped || it.Gear():
 		return 0, false
 	case it.Value > 0:
 		return 4, true

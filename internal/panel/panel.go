@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/warricksothr/renki/internal/audit"
@@ -62,6 +63,9 @@ type Options struct {
 	Models func(ctx context.Context) ([]string, error)
 	// AuditDir holds the audit files the timeline reads; "" turns it off.
 	AuditDir string
+	// Say takes words typed into the page as if the owner as had said them
+	// to the bot; nil turns the command box off.
+	Say func(as, text string) error
 }
 
 // Actions are what the page's buttons ask for.
@@ -106,6 +110,9 @@ func Handler(o Options) http.Handler {
 		authed.HandleFunc("POST /api/setting", p.set)
 	}
 	authed.HandleFunc("GET /api/models", p.models)
+	if o.Say != nil {
+		authed.HandleFunc("POST /api/say", p.say)
+	}
 	if o.AuditDir != "" {
 		authed.HandleFunc("GET /api/days", p.days)
 		authed.HandleFunc("GET /api/timeline", p.timeline)
@@ -301,6 +308,34 @@ func (p *panel) models(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(out)
 }
 
+// say passes {"as": owner, "text": …} to the bot as that owner's words.
+// The bot answers in the feed, as "said to the panel".
+func (p *panel) say(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get(ActHeader) == "" {
+		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
+		return
+	}
+	var req struct {
+		As   string `json:"as"`
+		Text string `json:"text"`
+	}
+	code, text := http.StatusOK, ""
+	switch err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&req); {
+	case err != nil:
+		code, text = http.StatusBadRequest, err.Error()
+	case strings.TrimSpace(req.Text) == "":
+		code, text = http.StatusBadRequest, "nothing to say"
+	default:
+		// Logged first, so the feed shows the words before the answer.
+		p.o.Logger.Info("panel said", "as", req.As, "text", req.Text, "remote", r.RemoteAddr)
+		if err := p.o.Say(req.As, req.Text); err != nil {
+			code, text = http.StatusConflict, err.Error()
+			p.o.Logger.Info("panel said: refused", "as", req.As, "err", err)
+		}
+	}
+	writeJSON(w, code, map[string]string{"text": text})
+}
+
 // Day is one audit file, for the page's day picker.
 type Day struct {
 	Day   string `json:"day"`
@@ -468,6 +503,10 @@ func event(r audit.Record) Event {
 func category(r audit.Record) string {
 	switch r.Kind {
 	case audit.KindLog:
+		// The panel's words and the bot's answers to them are chat.
+		if r.Msg == "panel said" || r.Msg == "panel said: refused" || r.Msg == "said to the panel" {
+			return CatChat
+		}
 		return CatDecision
 	case audit.KindFrame:
 		var env struct {

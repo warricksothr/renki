@@ -15,6 +15,7 @@ import (
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/bridge/bridgetest"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
@@ -271,7 +272,8 @@ func TestPanelButtons(t *testing.T) {
 	cfg := config.Default()
 	cfg.Owners = []string{"Sothr"}
 	cfg.Token = "sekrit"
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
+	homes := home.Memory()
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, homes, nil)
 	ctx := context.Background()
 	if _, err := a.PanelAct(ctx, "stop"); err == nil || err.Error() != "the bot is not connected" {
 		t.Errorf("stop before the plugin: %v", err)
@@ -291,14 +293,38 @@ func TestPanelButtons(t *testing.T) {
 	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Tasleroch", World: "Midgard"})
 	waitFor(t, func() bool { return a.Session.State() != nil })
 
+	if err := homes.Shun("Midgard"); err != nil {
+		t.Fatal(err)
+	}
 	if text, err := a.PanelAct(ctx, "stop"); err != nil || text != "Stopped." {
 		t.Errorf("stop: %q %v", text, err)
 	}
 	if task := p.NextTask(); task.Task != protocol.TaskStop {
 		t.Errorf("the plugin got %+v", task)
 	}
+	if homes.Shunned("Midgard") {
+		t.Error("a successful panel stop did not end the shun")
+	}
+	if err := homes.Shun("Midgard"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := a.PanelAct(ctx, "home"); err == nil || !strings.Contains(err.Error(), "no home") {
 		t.Errorf("home with none set: %v", err)
+	}
+	if !homes.Shunned("Midgard") {
+		t.Error("a refused panel home ended the shun")
+	}
+	if _, err := a.Home.SetHome(protocol.Vec3{40, 0, 0}, "Sothr"); err != nil {
+		t.Fatal(err)
+	}
+	if text, err := a.PanelAct(ctx, "home"); err != nil || text != "Heading home." {
+		t.Errorf("home: %q %v", text, err)
+	}
+	if task := p.NextTask(); task.Task != protocol.TaskMoveTo {
+		t.Errorf("the plugin got %+v", task)
+	}
+	if homes.Shunned("Midgard") {
+		t.Error("a successful panel home did not end the shun")
 	}
 	if _, err := a.PanelAct(ctx, "dance"); err == nil {
 		t.Error("an unknown action did something")

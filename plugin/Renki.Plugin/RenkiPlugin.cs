@@ -80,7 +80,7 @@ namespace Renki.Plugin
                 t.Task = runner?.Current?.Id;
                 if (client != null && client.Connected) Send(t);
             };
-            runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
+            runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);
             inventory = new InventoryReporter(this);
