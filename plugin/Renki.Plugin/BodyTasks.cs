@@ -379,7 +379,8 @@ namespace Renki.Plugin
                 return null;
             }
             arrivedAt = -1;
-            if (walker.Unreachable(pos, Close) is Outcome under)
+            // Within the game's auto-pickup range it may yet pull the drop in.
+            if (Vector3.Distance(pos, goal) > p.m_autoPickupRange && walker.Unreachable(pos, Close) is Outcome under)
             {
                 Driver.Stand();
                 return took > 0 ? Outcome.Succeeded($"took {took} {prefab}; the rest is out of reach") : under;
