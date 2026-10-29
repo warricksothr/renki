@@ -5,14 +5,15 @@ using Renki.Protocol;
 namespace Renki.Movement
 {
     /// <summary>What the stuck detector wants done next.</summary>
-    public enum Recovery { None, Jump, Strafe, Repath, GiveUp }
+    public enum Recovery { None, Jump, Strafe, Repath, Climb, GiveUp }
 
     /// <summary>
     /// Stuck detection (docs/BRIDGE-PROTOCOL.md 7.3): the bot is stuck while
     /// it stays within Radius metres of where it was. Each Window seconds
     /// inside that circle triggers the next recovery: a jump, then a strafe,
     /// then a re-path. That is one round; after Rounds rounds the task gives
-    /// up. Hopping or shuffling against a wall does not start the count
+    /// up. After the first round a climb (Climber) takes the jump's place:
+    /// one hop does not clear what the first jump did not. Hopping or shuffling against a wall does not start the count
     /// again. Once a recovery has fired, leaving the circle only starts a new
     /// one; the count goes back to nothing when the bot gets Escape metres
     /// from where the first recovery fired, so a strafe that carries it just
@@ -26,6 +27,7 @@ namespace Renki.Movement
         public int Rounds = 3;
 
         static readonly Recovery[] Sequence = { Recovery.Jump, Recovery.Strafe, Recovery.Repath };
+        static readonly Recovery[] Later = { Recovery.Climb, Recovery.Strafe, Recovery.Repath };
 
         V3 center;
         V3 anchor;
@@ -58,8 +60,14 @@ namespace Renki.Movement
             if (step >= Sequence.Length * Rounds) return Recovery.GiveUp;
             if (step == 0) anchor = center;
             since = now;
-            return Sequence[step++ % Sequence.Length];
+            var round = step / Sequence.Length == 0 ? Sequence : Later;
+            return round[step++ % Sequence.Length];
         }
+
+        /// <summary>Holds the count where it is while a recovery takes its
+        /// time, as a climb waiting for stamina does: the bot is not moving
+        /// on purpose, and that is not another round of being stuck.</summary>
+        public void Hold(double now) => since = now;
 
         /// <summary>The middle of the circle the bot has to leave.</summary>
         public V3 Center => center;

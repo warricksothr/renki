@@ -421,8 +421,11 @@ Notes:
 - Steering sets the move direction and look yaw every frame.
 - **Stuck detection:** the bot is stuck while it stays within 3 m of where it
   was. Every 3 s inside that circle triggers the next recovery: a jump, then a
-  strafe (at a walk), then a re-path. After 3 rounds the task fails with
-  `stuck`. Hopping or shuffling against a wall does not reset it. Once a
+  strafe (at a walk), then a re-path. In the second and third rounds a climb
+  takes the jump's place: the bot stands still until it has stamina for 3
+  jumps (at most 10 s, and not at all while overloaded, when stamina does not
+  come back), then jumps 3 times 0.8 s apart, walking on. The count holds
+  while it waits. After 3 rounds the task fails with `stuck`. Hopping or shuffling against a wall does not reset it. Once a
   recovery has fired, leaving the circle only starts a new circle; the count
   resets when the bot gets 6 m from where the first recovery fired, so a
   strafe that carries it just over the edge and back is still stuck.

@@ -18,6 +18,7 @@ namespace Renki.Plugin
         readonly PathFollower path = new PathFollower();
         readonly StuckDetector stuck = new StuckDetector();
         readonly Doorman doors = new Doorman();
+        readonly Climber climb = new Climber();
         readonly List<Vector3> scratch = new List<Vector3>();
         Vector3 goal;
         bool hasGoal;
@@ -55,12 +56,17 @@ namespace Renki.Plugin
                 });
         }
 
-        public void ResetStuck(Vector3 pos) => stuck.Reset(Convert.ToV3(pos), Time.time);
+        public void ResetStuck(Vector3 pos)
+        {
+            stuck.Reset(Convert.ToV3(pos), Time.time);
+            climb.Stop();
+        }
 
         /// <summary>Steers toward the goal for this step. Returns false when stuck recovery gave up.</summary>
         public bool Steer(Vector3 pos, bool run)
         {
             if (!hasGoal) return true;
+            if (climb.Active && Climb(pos)) return true;
             var recovery = stuck.Update(Convert.ToV3(pos), Time.time);
             if (recovery != Recovery.None)
                 Tracer.Emit("walker", recovery == Recovery.GiveUp ? "stuck; giving up" : $"stuck; trying {recovery}",
@@ -87,13 +93,14 @@ namespace Renki.Plugin
                 case Recovery.Repath:
                     Repath(pos);
                     break;
+                case Recovery.Climb:
+                    climb.Start(Time.time);
+                    if (Climb(pos)) return true;
+                    break;
                 case Recovery.GiveUp:
                     return false;
             }
-            var next = path.Next(Convert.ToV3(pos));
-            var target = next.HasValue ? Convert.ToVector3(next.Value) : goal;
-            var dir = target - pos;
-            dir.y = 0;
+            var dir = Toward(pos);
             if (Time.time < strafeUntil)
                 dir = Vector3.Cross(Vector3.up, dir.normalized) * strafeSign + dir.normalized * 0.3f;
             Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
@@ -103,6 +110,59 @@ namespace Renki.Plugin
             Driver.Run = run && Time.time >= strafeUntil;
             return true;
         }
+
+        /// <summary>The flat direction to the next waypoint, or the goal.</summary>
+        Vector3 Toward(Vector3 pos)
+        {
+            var next = path.Next(Convert.ToV3(pos));
+            var target = next.HasValue ? Convert.ToVector3(next.Value) : goal;
+            var dir = target - pos;
+            dir.y = 0;
+            return dir;
+        }
+
+        /// <summary>One step of a climb: wait for stamina, then jump a few
+        /// times pushing on. The stuck count holds meanwhile. False once the
+        /// climb is over, and the walker steers as usual.</summary>
+        bool Climb(Vector3 pos)
+        {
+            var p = Player.m_localPlayer;
+            if (p == null) return false;
+            stuck.Hold(Time.time);
+            // What a jump costs before gear and effects, which is near enough
+            // to know how long to wait.
+            var cost = p.m_jumpStaminaUsage * Game.m_moveStaminaRate;
+            var wasWaiting = climbWaiting;
+            var step = climb.Tick(Time.time, p.GetStamina(), p.GetMaxStamina(), cost, !p.IsEncumbered());
+            climbWaiting = step == ClimbStep.Wait;
+            if (step == ClimbStep.Done)
+            {
+                Tracer.Emit("walker", "climb done", new Dictionary<string, object> { ["pos"] = Convert.ToArray(pos) });
+                return false;
+            }
+            if (step == ClimbStep.Wait)
+            {
+                if (!wasWaiting)
+                    Tracer.Emit("walker", "climb: waiting for stamina", new Dictionary<string, object>
+                    {
+                        ["stamina"] = System.Math.Round(p.GetStamina(), 1),
+                        ["needed"] = System.Math.Round(climb.Needed(cost, p.GetMaxStamina()), 1),
+                        ["pos"] = Convert.ToArray(pos),
+                    });
+                // Standing still: stamina comes back faster than walking into a wall.
+                Driver.Move = Vector3.zero;
+                Driver.Run = false;
+                return true;
+            }
+            if (step == ClimbStep.Jump) Driver.Jump = true;
+            var dir = Toward(pos);
+            Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+            // Running costs the stamina the jumps need.
+            Driver.Run = false;
+            return true;
+        }
+
+        bool climbWaiting;
 
         public int RecoveryAttempts => stuck.Attempts;
 
