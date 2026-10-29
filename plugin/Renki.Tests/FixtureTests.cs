@@ -137,6 +137,7 @@ namespace Renki.Tests
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":2.5}")]
         [InlineData("interact", "{\"alt\":true}")]
         [InlineData("flee", "{\"distance\":20}")]
+        [InlineData("flee", "{\"from\":\"0:1\",\"distance\":0}")]
         [InlineData("flee", "{\"from\":\"0:1\",\"toward\":7}")]
         [InlineData("interact", "{\"entity\":\"0:1\",\"hold\":\"yes\"}")]
         public void BadArgs(string task, string args)

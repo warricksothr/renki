@@ -180,6 +180,7 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskInteract, `{"hold":true}`, nil, ErrBadArgs},
 		{TaskFlee, `{"from":"0:5521","toward":[1,2,3]}`, &FleeArgs{From: Target{Entity: "0:5521"}, Toward: &Target{Pos: &Vec3{1, 2, 3}}}, nil},
 		{TaskFlee, `{"distance":20}`, nil, ErrBadArgs},
+		{TaskFlee, `{"from":"0:1","distance":0}`, nil, ErrBadArgs},
 		{"harvest", `{"entity":"0:7001"}`, nil, ErrUnknownTask},
 	}
 	for _, tc := range tests {

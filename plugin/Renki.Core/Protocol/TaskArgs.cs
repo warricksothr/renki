@@ -182,10 +182,13 @@ namespace Renki.Protocol
                 case TaskNames.Flee:
                     {
                         var toward = a["toward"];
+                        var distance = Number(a, "distance", 20);
+                        // Nothing is ever less than nothing away.
+                        if (distance <= 0) throw new BadArgsException("`distance` must be more than 0");
                         return new FleeArgs
                         {
                             From = Target.Parse(a["from"], "from"),
-                            Distance = Number(a, "distance", 20),
+                            Distance = distance,
                             Toward = toward == null || toward.Type == JTokenType.Null ? null : Target.Parse(toward, "toward"),
                         };
                     }

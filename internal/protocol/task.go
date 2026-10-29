@@ -243,6 +243,9 @@ func (a *FleeArgs) validate() error {
 	if a.From.IsZero() {
 		return errors.New("`from` is required")
 	}
+	if a.Distance != nil && *a.Distance <= 0 {
+		return errors.New("`distance` must be more than 0")
+	}
 	if a.Toward != nil && a.Toward.IsZero() {
 		return errors.New("`toward` must be a position or an entity id")
 	}
