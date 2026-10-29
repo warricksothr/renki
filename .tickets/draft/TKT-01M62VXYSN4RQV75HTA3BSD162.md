@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-10-29T04:12:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -74,3 +74,9 @@ templates later. They do not have to move now.
 - [ ] A higher-priority instance takes over, and an owner's order always does
 - [ ] Start, stop, enable, disable, clone and edit work on any instance and survive a restart
 - [ ] Each run's start, steps and end are in the audit log with the instance name
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T04:12:05Z
+
+2026-10-28: conditions need the carried weight against weightMax (and the encumbered and stranded flags), not only free slots.

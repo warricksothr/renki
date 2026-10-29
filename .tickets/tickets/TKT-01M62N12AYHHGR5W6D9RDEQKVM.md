@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T02:57:48Z
+updated_at: 2026-10-29T04:12:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,3 +56,7 @@ Perception already reports drops with their stack, and the walker already reache
 **agent:claude-code/renki-groom** at 2026-10-29T02:40:17Z
 
 Found on 2026-10-28: the game's auto-pickup works for the bot as for a player. Items Nimah dropped at its feet went into its inventory by themselves, within about 2 m (Player.m_autoPickupRange). So pickup can walk to within a metre of the drop and let the game take it, calling Humanoid.Pickup only if the drop is still there after a moment. It should also check Room first, so it does not walk to a drop it cannot take.
+
+**agent:claude-code/renki-groom** at 2026-10-29T04:12:05Z
+
+2026-10-28: in the game the bot got to 306/300 and could not move: Pickup by hand ignores carry weight (the game's auto-pickup checks it). pickup now refuses with too_heavy, body tasks fail with encumbered when the bot is stranded (over weight, no stamina), state carries a stranded flag, and status, chat, the home keeper and the panel all know about it.

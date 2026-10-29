@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-10-29T04:12:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -73,3 +73,9 @@ is the answer, it says so and leaves the choice to the players.
 - [ ] A chest with less room than remembered is planned again from what it really holds
 - [ ] What does not fit is reported to the owners and on the panel, and the report repeats only when it changes
 - [ ] Nothing is destroyed or dropped to make room
+
+## Notes
+
+**agent:claude-code/renki-groom** at 2026-10-29T04:12:05Z
+
+2026-10-28: 'full' is slots or weight. The bot is overloaded past weightMax (state 6.1: encumbered, and stranded once stamina runs out, when it cannot move at all). Deliver-when-full must trigger on weight near weightMax as well as on free slots, and loot must stop short of it.
