@@ -1,9 +1,9 @@
 # The control panel
 
 A web page, served by the controller, for watching the bot live: where it
-is, what it is doing, and why. TKT-01M628X106 (Web control panel to watch
-and steer the bot) tracks what is still to come: buttons, behaviour
-switches and a per-task view.
+is, what it is doing, and why, with buttons to stop it, send it home or
+log it out. TKT-01M628X106 (Web control panel to watch and steer the bot)
+tracks what is still to come: behaviour switches and a per-task view.
 
 ## Turning it on
 
@@ -37,6 +37,14 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Header:** connection, character and world, phase, the running task,
   health, a warning when the bot carries more than it can (and whether it
   can still move), and how far home is.
+- **Buttons**, while the plugin is connected: **Stop** ends whatever the bot
+  is doing, as "stop" in chat does. **Go home** sends it home, as "go home"
+  does, and says why not when it can't (no home in this world, too heavy
+  to move, `move_to` not allowed). **Log the bot out** asks first, then logs
+  the character out to the menu; logging back in needs the VM
+  (`just vm start`). The answer shows beside the buttons, and each press is
+  in the feed as a `panel action` line with where it came from. The page's
+  own **Log out** only ends the login.
 - **Map:** top-down, north up, a grid every 10 m, opening zoomed to the
   perception radius. The bot with its facing and its trail over the last
   few minutes; from perception, players, creatures (red when hostile,
@@ -66,9 +74,13 @@ and inventory, and a state a second for the last five minutes for the trail.
 
 ## How it works
 
-`internal/panel` serves three embedded files and two endpoints, all behind
-the login: `GET /api/status`, a snapshot of the bot, and `GET /api/events`,
-server-sent events carrying each audit record (`record`, with the
-timeline's `line` and a category `cat`) and a status every second
-(`status`). The page has no build step. Scripts can use the token as a
+`internal/panel` serves three embedded files and three endpoints, all
+behind the login: `GET /api/status`, a snapshot of the bot,
+`GET /api/events`, server-sent events carrying each audit record (`record`,
+with the timeline's `line` and a category `cat`) and a status every second
+(`status`), and `POST /api/act/{stop,home,logout}` for the buttons, which
+answers `{"text": …}` with 200, 404 for an unknown action or 409 when it
+could not be done. A press must carry an `X-Renki-Act` header: a page on
+another site cannot add one without the browser asking this server first,
+which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a
 bearer token: `curl -H "Authorization: Bearer $TOKEN" http://…/api/status`.

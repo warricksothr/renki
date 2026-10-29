@@ -183,6 +183,7 @@ function chip(id, text, cls) {
 
 function onStatus(s) {
   chip("link", s.connected ? "connected" : "no plugin", s.connected ? "on" : "off");
+  for (const b of document.querySelectorAll("button.act")) b.disabled = !s.connected || acting;
   chip("who", s.character ? `${s.character}${s.world ? " in " + s.world : ""}` : "");
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
@@ -645,6 +646,43 @@ function describe(m) {
   return lines;
 }
 window.addEventListener("resize", draw);
+
+// ---- buttons ----
+
+let acting = false;
+let resultTimer = 0;
+
+const CONFIRM = {
+  logout: "Log the bot's character out of the game? It will need the VM to log back in.",
+};
+
+async function act(action) {
+  if (CONFIRM[action] && !confirm(CONFIRM[action])) return;
+  const out = $("act-result");
+  const buttons = document.querySelectorAll("button.act");
+  acting = true;
+  buttons.forEach((b) => (b.disabled = true));
+  let text, ok;
+  try {
+    const res = await fetch(`/api/act/${action}`, { method: "POST", headers: { "X-Renki-Act": "1" } });
+    if (res.status === 401) return void (location.href = "/login");
+    const body = await res.json().catch(() => ({}));
+    ok = res.ok;
+    text = body.text || res.statusText;
+  } catch (e) {
+    ok = false;
+    text = "the controller did not answer";
+  } finally {
+    acting = false;
+  }
+  // The next status re-enables the buttons if the bot is still connected.
+  out.textContent = text;
+  out.className = ok ? "" : "error";
+  clearTimeout(resultTimer);
+  resultTimer = setTimeout(() => (out.textContent = ""), 8000);
+}
+
+for (const b of document.querySelectorAll("button.act")) b.addEventListener("click", () => act(b.dataset.act));
 
 // ---- the stream ----
 

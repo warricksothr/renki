@@ -13,6 +13,7 @@ import (
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
 )
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
@@ -72,6 +73,41 @@ func (a *App) PanelStatus(version string) PanelStatus {
 	return ps
 }
 
+// PanelAct does what the panel's buttons ask: stop, go home or log out.
+// Errors are worded for the page.
+func (a *App) PanelAct(ctx context.Context, action string) (string, error) {
+	var err error
+	switch action {
+	case "stop":
+		if _, err = a.Session.Dispatch(ctx, session.Order{Task: protocol.TaskStop}); err == nil {
+			return "Stopped.", nil
+		}
+	case "home":
+		if _, err = a.Home.GoHome(ctx, nil, "the panel"); err == nil {
+			return "Heading home.", nil
+		}
+	case "logout":
+		if err = a.Session.Logout(ctx); err == nil {
+			return "Logging out.", nil
+		}
+	default:
+		return "", panel.ErrUnknownAction
+	}
+	switch {
+	case errors.Is(err, session.ErrNotConnected):
+		return "", errors.New("the bot is not connected")
+	case errors.Is(err, session.ErrNotAllowed):
+		return "", errors.New("that task is not in allowedTasks")
+	case errors.Is(err, home.ErrNoHome):
+		return "", errors.New(`no home in this world yet; say "set home" in the game`)
+	case errors.Is(err, home.ErrNoWorld):
+		return "", errors.New("the bot is not in a world")
+	case errors.Is(err, home.ErrStranded):
+		return "", errors.New("the bot carries too much to move")
+	}
+	return "", err
+}
+
 // panelRetry is how long ServePanel waits before trying to listen again.
 const panelRetry = 30 * time.Second
 
@@ -101,6 +137,7 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Token:  a.Config.Panel.Token,
 			Log:    trail,
 			Status: func() any { return a.PanelStatus(version) },
+			Act:    a.PanelAct,
 			Logger: log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,

@@ -17,7 +17,13 @@
     <span id="hp" class="chip"></span>
     <span id="load" class="chip"></span>
     <span id="home" class="chip"></span>
-    <form method="post" action="/logout"><button>Log out</button></form>
+    <span class="acts">
+      <button class="act" data-act="stop" disabled title="Stop whatever the bot is doing">Stop</button>
+      <button class="act" data-act="home" disabled title="Send the bot home">Go home</button>
+      <button class="act" data-act="logout" disabled title="Log the bot's character out of the game">Log the bot out</button>
+      <span id="act-result" role="status"></span>
+    </span>
+    <form method="post" action="/logout"><button title="Log this page out">Log out</button></form>
   </header>
   <main>
     <section id="map-pane">

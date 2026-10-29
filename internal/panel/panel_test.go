@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -31,6 +32,15 @@ func server(t *testing.T) (*httptest.Server, *audit.Log) {
 		Status:      func() any { return map[string]any{"connected": true, "character": "Tasleroch"} },
 		Logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
 		StatusEvery: 50 * time.Millisecond,
+		Act: func(_ context.Context, action string) (string, error) {
+			switch action {
+			case "stop":
+				return "Stopped.", nil
+			case "home":
+				return "", errors.New("no home in this world yet")
+			}
+			return "", ErrUnknownAction
+		},
 	}))
 	t.Cleanup(srv.Close)
 	return srv, l
@@ -40,6 +50,46 @@ func server(t *testing.T) (*httptest.Server, *audit.Log) {
 func client() *http.Client {
 	jar, _ := cookiejar.New(nil)
 	return &http.Client{Jar: jar, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+}
+
+// TestButtons: each answers with text to show; a request without the
+// header, as a forged form from another site would be, does nothing.
+func TestButtons(t *testing.T) {
+	srv, _ := server(t)
+	post := func(path string, header, login bool) (int, string) {
+		req, _ := http.NewRequest("POST", srv.URL+path, nil)
+		if login {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		if header {
+			req.Header.Set(ActHeader, "1")
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		var body struct{ Text string }
+		json.NewDecoder(res.Body).Decode(&body)
+		return res.StatusCode, body.Text
+	}
+	for _, c := range []struct {
+		path          string
+		header, login bool
+		code          int
+		text          string
+	}{
+		{"/api/act/stop", true, true, 200, "Stopped."},
+		{"/api/act/home", true, true, 409, "no home in this world yet"},
+		{"/api/act/dance", true, true, 404, "no such action"},
+		{"/api/act/stop", false, true, 403, ""},
+		{"/api/act/stop", true, false, 401, ""},
+	} {
+		code, text := post(c.path, c.header, c.login)
+		if code != c.code || text != c.text {
+			t.Errorf("%s header=%v login=%v: %d %q; want %d %q", c.path, c.header, c.login, code, text, c.code, c.text)
+		}
+	}
 }
 
 func TestNothingWithoutLoggingIn(t *testing.T) {

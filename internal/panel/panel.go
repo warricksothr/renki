@@ -6,12 +6,15 @@
 // GET /api/status for a snapshot of the bot, and GET /api/events, a stream of
 // server-sent events carrying the audit log's records as they are written
 // (internal/audit), after the recent ones, and a status snapshot each second.
+// POST /api/act/{action} asks the bot to stop, go home or log out.
 package panel
 
 import (
+	"context"
 	"crypto/subtle"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -40,7 +43,21 @@ type Options struct {
 	Logger *slog.Logger
 	// StatusEvery is how often the event stream sends a status. Default 1 s.
 	StatusEvery time.Duration
+	// Act does one of Actions and returns what to show for it, or an
+	// error to show instead. Nil turns the buttons' endpoint off.
+	Act func(ctx context.Context, action string) (string, error)
 }
+
+// Actions are what the page's buttons ask for.
+var Actions = []string{"stop", "home", "logout"}
+
+// ErrUnknownAction is what Act returns for an action not in Actions.
+var ErrUnknownAction = errors.New("no such action")
+
+// ActHeader must be on every POST to /api/act/: a page on another site
+// cannot set it without the browser asking first, which this server never
+// allows, so a forged form cannot press the buttons.
+const ActHeader = "X-Renki-Act"
 
 // Handler returns the panel's HTTP handler.
 func Handler(o Options) http.Handler {
@@ -62,6 +79,9 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	if o.Act != nil {
+		authed.HandleFunc("POST /api/act/{action}", p.act)
+	}
 
 	mux := http.NewServeMux()
 	// The stylesheet holds nothing private, and the login page needs it.
@@ -150,6 +170,30 @@ func (p *panel) logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: Cookie, Value: "", Path: "/", HttpOnly: true,
 		SameSite: http.SameSiteStrictMode, MaxAge: -1})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// act runs one of the buttons' actions and answers {"text": ...} with
+// 200, or with 404 for an unknown action and 409 when it could not be done.
+func (p *panel) act(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get(ActHeader) == "" {
+		http.Error(w, "missing "+ActHeader, http.StatusForbidden)
+		return
+	}
+	action := r.PathValue("action")
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	text, err := p.o.Act(ctx, action)
+	code := http.StatusOK
+	switch {
+	case errors.Is(err, ErrUnknownAction):
+		code, text = http.StatusNotFound, err.Error()
+	case err != nil:
+		code, text = http.StatusConflict, err.Error()
+	}
+	p.o.Logger.Info("panel action", "action", action, "remote", r.RemoteAddr, "status", code, "text", text)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"text": text})
 }
 
 // Event is a record as the page gets it: the record, the timeline's line
