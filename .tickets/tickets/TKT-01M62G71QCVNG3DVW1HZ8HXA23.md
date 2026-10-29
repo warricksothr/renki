@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62G71QCVNG3DVW1HZ8HXA23
 title: Bot swims into deep water on a straight-line path and drowns
 type: bug
-status: draft
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -19,10 +19,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-groom
+  branch: t3/m2
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 5613bd8d59db140f6a554db688622cd109609466
+  session: null
+  claimed_at: 2026-10-29T13:55:41Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T00:16:03Z
-updated_at: 2026-10-29T01:40:22Z
+updated_at: 2026-10-29T13:55:41Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
