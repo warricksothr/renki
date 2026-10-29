@@ -789,6 +789,8 @@ const SETTING = {
   "overload.drop": "Drop things when carrying too much",
 };
 const AFTER_DEATH = ["home", "resume", "stay"];
+// Lists, which come as null when empty.
+const LISTS = new Set(["owners", "nicknames", "allowedTasks"]);
 
 async function loadSettings() {
   const res = await fetch("/api/settings").catch(() => null);
@@ -862,10 +864,10 @@ function settingInput(e) {
     el.append(...AFTER_DEATH.map((o) => new Option(o, o)));
     el.value = v;
     el.addEventListener("change", () => send(el.value));
-  } else if (Array.isArray(v)) {
+  } else if (Array.isArray(v) || LISTS.has(e.key)) {
     el = document.createElement("input");
     el.type = "text";
-    el.value = v.join(", ");
+    el.value = (v || []).join(", ");
     el.addEventListener("change", () =>
       send(el.value.split(",").map((x) => x.trim()).filter(Boolean)),
     );
