@@ -632,7 +632,7 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 			return
 		}
 		if reply.Task != nil {
-			b.propose(reply.Task, from, owner)
+			b.propose(reply.Task, from, owner, req.Tasks)
 		}
 		if s := strings.TrimSpace(reply.Say); s != "" {
 			b.say(from, s)
@@ -642,9 +642,13 @@ func (b *Brain) converse(c *protocol.Chat, from origin, owner bool) {
 
 // propose checks a task the Voice suggested exactly as a command is checked:
 // owners only, then Dispatch's allowedTasks, capability and argument checks.
-func (b *Brain) propose(p *Proposal, from origin, owner bool) {
+func (b *Brain) propose(p *Proposal, from origin, owner bool, offered []string) {
 	if !owner {
 		b.opts.Logger.Warn("voice proposed a task for a non-owner; dropped", "player", from.player, "task", p.Task)
+		return
+	}
+	if !slices.Contains(offered, p.Task) {
+		b.opts.Logger.Warn("voice proposed a task it was not offered; dropped", "player", from.player, "task", p.Task)
 		return
 	}
 	if p.Task == protocol.TaskSay {
