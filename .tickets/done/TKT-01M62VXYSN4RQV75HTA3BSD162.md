@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T20:09:34Z
+updated_at: 2026-10-29T20:22:24Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -83,6 +83,9 @@ Build a controller behaviour package with a registered Go-template interface, st
 
 Use fake time for scheduler/condition tests and the real bridge for ownership/preemption races. Verify direct orders and flee win before a new state frame, stop cannot cancel a newer task, invalid definitions never save, stale chest observations fail conditions, and settings survive restart without replaying an unfinished manual run. Run just check controller test-packages for affected packages, just check fmt, just check ci and committed just check review. Land, deploy the controller only, and verify version/health; live game route/combat checks stay deferred.
 
+### Replacement-connection follow-up
+Hold the old Disconnected callback until its replacement is installed. The deterministic real-bridge regression initially failed because an old pending body task blocked automation in the new idle session. Finish/remove old tasks under the session lock in Connected as well as Disconnected and notify listeners once after unlocking. Verify old authority remains invalid, new idle automation can acquire, the task ends once and nothing is replayed. just check ci and committed just check review gate landing/deployment.
+
 ## Notes
 
 **agent:claude-code/renki-groom** at 2026-10-29T04:12:05Z
@@ -99,10 +102,18 @@ Verification: just check controller test-packages ./internal/session ./internal/
 
 Scope: the engine initially waits for an idle body and never interrupts a running follow; controlled loot detours with a leader leash belong to the hauling templates. Loot/stow, the stock_low emitter and dedicated chat/page controls remain their separate tickets. No definitions are installed by default. Live navigation comparisons and M3's controlled Greyling retreat remain deferred at the owner's request. Committed review, landing and a controller-only deployment with disabled-definition API verification follow this implementation commit.
 
+**agent:codex/renki-resume** at 2026-10-29T20:22:23Z
+
+done to in-progress: A reproduced replacement-connection race leaves old tasks blocking new automation
+
+**agent:codex/renki-resume** at 2026-10-29T20:22:23Z
+
+Found a replacement-connection race while checking the new engine: bridge.Server closes the previous socket without waiting for its Disconnected callback. If Connected installs the replacement first, the old callback correctly ignores the replaced connection but leaves its pending tasks in the session. TryAutomation then stays busy forever. A deterministic real-bridge regression that holds the old callback reproduced this failure.
+
+Connected now cancels/removes old tasks before installing the new session and notifies listeners after unlocking. The late old disconnect does not touch the replacement or notify twice. The regression proves new idle authority can acquire, old authority stays invalid and no old task is replayed. just check ci passed, including the controller race suite, both builds, plugin build and 158 C# tests. just check review returned no findings. Controller-only deployment follows landing.
+
 ## Summary
 
-Implemented on t3/behaviour-engine: validated named Go templates, manual/event/timer scheduling, inventory/weight/flags/time/owner/place/recent-stock conditions, cooldown and repeat/run limits, deterministic priorities, higher-priority restart, bounded events, and authenticated persisted definition controls. Session ownership guards stop stale continuations and stale stops from overriding owner/survival orders across state lag, reconnect, death, logout and world changes. Named lifecycle audit records cover runs and steps.
+The M2 behaviour engine landed in PR #21 and was deployed as e0a7f40: validated Go templates, manual/event/timer scheduling, conditions, cooldown/repeat/run limits, priority/restart, authenticated persisted definition controls and named lifecycle audit. Session ownership prevents stale continuation/stop from overriding owner and survival tasks. Live disabled-definition save/list/clone/edit/delete passed, with cleanup and Tas idle at 25/25 HP. Loot/stow, stock-low generation and dedicated page/chat controls remain separate work; initial jobs wait for an idle body. Saved policies persist without replaying unfinished manual work.
 
-The first move_to template is bounded; loot/stow, stock-low generation and page/chat controls remain separate tickets. The engine waits for an idle body; hauling templates still need controlled follow detours and a leader leash. Saved policies/enabled flags persist; interrupted manual work does not replay on restart. No default job is enabled.
-
-just check ci passed (including controller race tests, both controller builds, plugin build and 158 C# tests), focused controller checks passed and just check review returned no findings. Behaviour controls, lifecycle and ownership were verified with real bridge connections and authenticated HTTP tests. docs/BEHAVIOURS.md describes the runtime/API contracts. Controller-only deployment and disabled-definition API verification follow landing; paired navigation and Greyling checks remain deferred.
+A follow-up deterministic real-bridge regression exposed old pending tasks that could block new idle automation when a replacement connection arrived before the old disconnect callback. Connected now finalizes those tasks exactly once, preserving old-authority invalidation and no-replay behavior. just check ci and just check review pass; controller-only deployment follows landing. See docs/BEHAVIOURS.md for runtime/API contracts.
