@@ -239,7 +239,7 @@ const channelPanel = "panel"
 // FromPanel's errors.
 var (
 	ErrNotOwner = errors.New("not an owner")
-	ErrNoBot    = errors.New("the bot is not in the world")
+	ErrNoBot    = errors.New("the bot is not connected")
 )
 
 // FromPanel takes text typed into the control panel as if speaker, an
@@ -250,8 +250,10 @@ func (b *Brain) FromPanel(speaker, text string) error {
 	if !slices.Contains(b.live().Owners, speaker) {
 		return fmt.Errorf("%w: %s", ErrNotOwner, speaker)
 	}
+	// Dead or loading counts: an order given then is meant to cancel what a
+	// death left pending.
 	st := b.d.State()
-	if st == nil || st.Phase != protocol.PhaseInWorld {
+	if st == nil {
 		return ErrNoBot
 	}
 	c := &protocol.Chat{From: protocol.ChatSender{Name: speaker, Owner: true}, Channel: channelPanel, Text: text, Dist: -1}

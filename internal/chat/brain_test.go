@@ -669,7 +669,7 @@ func TestFromThePanel(t *testing.T) {
 	if err := b.FromPanel("Sothr", "stop"); !errors.Is(err, ErrNoBot) {
 		t.Errorf("with no bot in the world: %v", err)
 	}
-	f.state = &protocol.State{Phase: protocol.PhaseInWorld}
+	f.state = &protocol.State{Phase: protocol.PhaseDead}
 	if err := b.FromPanel("Sothr", "stop"); err != nil {
 		t.Fatal(err)
 	}
