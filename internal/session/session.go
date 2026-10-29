@@ -102,6 +102,7 @@ type Session struct {
 	conn     *bridge.Conn
 	state    *protocol.State
 	seen     *protocol.Perception
+	carried  *protocol.Inventory
 	allowed  []string
 	tasks    map[string]*Task
 	nextTask uint64
@@ -124,7 +125,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 		return !slices.Contains(c.Hello.Capabilities, t)
 	})
 	s.mu.Lock()
-	s.conn, s.state, s.seen, s.allowed = c, nil, nil, allowed
+	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.mu.Unlock()
 	s.log.Info("session started", "allowed", allowed)
 }
@@ -173,7 +174,13 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			s.seen = m
 		}
 		s.mu.Unlock()
-	case *protocol.Trace, *protocol.Inventory:
+	case *protocol.Inventory:
+		s.mu.Lock()
+		if s.conn == c && (s.carried == nil || m.Seq > s.carried.Seq) {
+			s.carried = m
+		}
+		s.mu.Unlock()
+	case *protocol.Trace:
 		// For the audit log and the panel, which have them from the
 		// bridge already.
 	case *protocol.Error:
@@ -214,6 +221,15 @@ func (s *Session) Perception() *protocol.Perception {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.seen
+}
+
+// Inventory returns what the bot carries, from the newest inventory
+// message, or nil before the first. Like State, it outlives a disconnect
+// and resets on a new connection.
+func (s *Session) Inventory() *protocol.Inventory {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.carried
 }
 
 // Handshake returns the current connection's hello and welcome, and false

@@ -1,8 +1,10 @@
 package chat
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/warricksothr/renki/internal/protocol"
@@ -33,6 +35,9 @@ func (b *Brain) status() string {
 		fmt.Fprintf(&s, " %s.", doing(st.Task.Task))
 	} else {
 		s.WriteString(" Idle.")
+	}
+	if inv := b.d.Inventory(); inv != nil {
+		fmt.Fprintf(&s, " %s.", carrying(inv))
 	}
 	if b.opts.Home != nil {
 		if d, ok := b.opts.Home.HomeDistance(); ok {
@@ -70,4 +75,39 @@ func doing(task string) string {
 		return "On the move"
 	}
 	return "Busy with " + strings.ReplaceAll(task, "_", " ")
+}
+
+// carrying sums what the bot carries by prefab, most first, at most five
+// kinds, and how many slots are left.
+func carrying(inv *protocol.Inventory) string {
+	if len(inv.Items) == 0 {
+		return "Carrying nothing"
+	}
+	type kind struct {
+		prefab string
+		n      int
+	}
+	var kinds []kind
+	for _, it := range inv.Items {
+		if !slices.ContainsFunc(kinds, func(k kind) bool { return k.prefab == it.Prefab }) {
+			kinds = append(kinds, kind{it.Prefab, inv.Count(it.Prefab)})
+		}
+	}
+	slices.SortStableFunc(kinds, func(a, b kind) int { return cmp.Compare(b.n, a.n) })
+	var parts []string
+	for i, k := range kinds {
+		if i == 5 {
+			parts = append(parts, "and more")
+			break
+		}
+		// An item with no prefab goes by its name token (6.3): $item_coins.
+		name := strings.ReplaceAll(strings.TrimPrefix(strings.TrimPrefix(k.prefab, "$item_"), "$"), "_", " ")
+		parts = append(parts, fmt.Sprintf("%d %s", k.n, words(name)))
+	}
+	free := inv.Free()
+	slots := "slots"
+	if free == 1 {
+		slots = "slot"
+	}
+	return fmt.Sprintf("Carrying %s; %d %s free", strings.Join(parts, ", "), free, slots)
 }

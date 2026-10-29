@@ -129,6 +129,20 @@ func TestTheNewestPerceptionIsKept(t *testing.T) {
 	}
 }
 
+func TestTheNewestInventoryIsKept(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 3}}})
+	waitFor(t, func() bool { inv := s.Inventory(); return inv != nil && inv.Count("Wood") == 3 })
+	s.Message(currentConn(t, s), &protocol.Inventory{Envelope: protocol.Envelope{Seq: 0}})
+	if s.Inventory().Count("Wood") != 3 {
+		t.Error("an older inventory replaced a newer one")
+	}
+	s.Connected(currentConn(t, s))
+	if s.Inventory() != nil {
+		t.Error("the inventory outlived a new connection")
+	}
+}
+
 func TestDisconnectStopsTasksAndSendsNothingAfter(t *testing.T) {
 	s, l, p := setup(t, []string{"follow", "say"}, nil)
 	task, err := s.Dispatch(context.Background(), Order{Task: "follow", Args: &protocol.FollowArgs{Player: "Sothr"}})

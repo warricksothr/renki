@@ -38,6 +38,7 @@ namespace Renki.Plugin
         TaskRunner runner;
         Reporter reporter;
         readonly Perceiver perceiver = new Perceiver();
+        InventoryReporter inventory;
         Harmony harmony;
 
         Welcome welcome;
@@ -80,6 +81,7 @@ namespace Renki.Plugin
             runner = new TaskRunner(safety, TaskNames.M1, new GameTaskHost(), Send, () => Time.unscaledTimeAsDouble);
             Driver.OnFixedStep = dt => runner.FixedTick(dt);
             reporter = new Reporter(this);
+            inventory = new InventoryReporter(this);
 
             harmony = new Harmony(Guid);
             harmony.PatchAll(typeof(RenkiPlugin).Assembly);
@@ -112,6 +114,7 @@ namespace Renki.Plugin
             }
 
             reporter.Update(runner.InSession);
+            inventory.Update(runner.InSession);
             if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
             if (runner.InSession && now >= nextState)
             {
@@ -137,6 +140,7 @@ namespace Renki.Plugin
                     perceptionHz = w.Rates.PerceptionHz > 0 ? w.Rates.PerceptionHz : 1;
                     Perceive(w.Perception);
                     runner.Welcome(w.AllowedTasks);
+                    inventory.Resend();
                     loggingOut = false;
                     Driver.Active = true;
                     var name = w.AgentName != "" ? w.AgentName : "the character's name";

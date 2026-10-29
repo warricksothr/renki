@@ -241,6 +241,16 @@ func frame(r Record) string {
 			line += "; after the bot: " + strings.Join(after, ", ")
 		}
 		return line
+	case *protocol.Inventory:
+		var held []string
+		for _, it := range m.Items {
+			s := fmt.Sprintf("%d %s", it.Stack, it.Prefab)
+			if it.Equipped {
+				s += " (equipped)"
+			}
+			held = append(held, s)
+		}
+		return fmt.Sprintf("inventory %d free of %d; %s", m.Free(), m.Size[0]*m.Size[1], or(strings.Join(held, ", "), "empty"))
 	case *protocol.Chat:
 		return fmt.Sprintf("chat      %s (%s, %.0f m): %s", m.From.Name, m.Channel, m.Dist, m.Text)
 	case *protocol.Event:

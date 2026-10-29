@@ -25,6 +25,7 @@ import (
 type Dispatcher interface {
 	Dispatch(ctx context.Context, o session.Order) (*session.Task, error)
 	State() *protocol.State
+	Inventory() *protocol.Inventory
 	AllowedTasks() []string
 }
 
