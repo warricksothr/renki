@@ -15,10 +15,16 @@ namespace Renki.Plugin
         /// <summary>The least time between two messages, so a burst is one.</summary>
         const float Gap = 0.25f;
 
+        /// <summary>How often worn items are checked: wear does not fire
+        /// m_onChanged, so a swinging axe would otherwise go stale.</summary>
+        const float WearEvery = 2f;
+
         readonly RenkiPlugin plugin;
         Inventory watched;
         bool dirty = true;
         float next;
+        float nextWear;
+        double lastWear;
 
         public InventoryReporter(RenkiPlugin plugin)
         {
@@ -39,6 +45,15 @@ namespace Renki.Plugin
                 watched = inv;
                 if (inv != null) inv.m_onChanged += Changed;
                 dirty = true;
+            }
+            if (inv != null && Time.unscaledTime >= nextWear)
+            {
+                nextWear = Time.unscaledTime + WearEvery;
+                var wear = 0.0;
+                foreach (var item in inv.GetAllItems())
+                    if (item.m_shared.m_useDurability) wear += item.m_durability;
+                if (System.Math.Abs(wear - lastWear) >= 1) dirty = true;
+                lastWear = wear;
             }
             if (!inSession || inv == null || !dirty || Time.unscaledTime < next) return;
             dirty = false;

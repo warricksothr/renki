@@ -24,6 +24,9 @@ func (inv *Inventory) Free() int {
 // stack the bot carries; for a prefab it carries none of, pass stackMax
 // (from perception or the catalogue), or 0 to count one per empty slot.
 // Weight is not counted: the bot can carry more than it can walk with.
+// Nor is quality: the game stacks only items of the same quality, so for
+// anything with levels this is an upper bound. Materials (wood, stone,
+// ore) have one quality, and for them it is exact.
 func (inv *Inventory) Room(prefab string, stackMax int) int {
 	n := 0
 	for _, it := range inv.Items {
