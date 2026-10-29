@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -22,9 +23,10 @@ const (
 	// SameSpot is how close a new drop must be to an old one to count as
 	// the same place.
 	SameSpot = 3.0
-	// Spread is how far from where the bot stood its drops may land: the
-	// game throws them forward, and they roll.
-	Spread = 5.0
+	// Spread is how far from a remembered place its things may lie: the
+	// game throws a drop forward and it rolls, and later drops within
+	// SameSpot join the same place.
+	Spread = 5.0 + SameSpot
 	// Look is how close the bot must be to a place it left things before
 	// perception's word on them counts.
 	Look = 15.0
@@ -101,11 +103,11 @@ func (u *Unloader) Tick(ctx context.Context) {
 		// A new connection: try at once, and say again what is wrong.
 		u.conn, u.next, u.told = hello, time.Time{}, false
 	}
-	capped := 0
+	var seen protocol.PerceptionConfig
 	if welcome != nil {
-		capped = welcome.Perception.MaxPerKind
+		seen = welcome.Perception
 	}
-	u.forgetGone(st, capped)
+	u.forgetGone(st, seen)
 	if !st.Encumbered() {
 		u.told = false
 		return
@@ -135,7 +137,12 @@ func (u *Unloader) Tick(ctx context.Context) {
 		}
 	}
 	if len(left) > 0 {
-		u.remember(st.World, st.Pos, left)
+		// Where it stands now: it may have walked on while dropping.
+		pos := st.Pos
+		if now := u.s.State(); now != nil {
+			pos = now.Pos
+		}
+		u.remember(st.World, pos, left)
 	}
 	if u.next.IsZero() {
 		return
@@ -199,9 +206,9 @@ func (u *Unloader) remember(world string, pos protocol.Vec3, items map[string]in
 }
 
 // forgetGone drops from memory what perception, looking at a place up
-// close, no longer sees there: someone picked it up. capped is how many
-// drops perception lists at most (welcome.perception.maxPerKind).
-func (u *Unloader) forgetGone(st *protocol.State, capped int) {
+// close, no longer sees there: someone picked it up. seen is what
+// perception was told to report (welcome.perception).
+func (u *Unloader) forgetGone(st *protocol.State, seen protocol.PerceptionConfig) {
 	caches := u.store.LeftBehind(st.World)
 	if len(caches) == 0 {
 		return
@@ -215,14 +222,18 @@ func (u *Unloader) forgetGone(st *protocol.State, capped int) {
 	for _, r := range p.Resources {
 		if r.Kind == protocol.ResourceDrop {
 			drops = append(drops, r)
-			farthest = max(farthest, r.Pos.FlatDistance(st.Pos))
+			// Perception ranks by distance in 3D.
+			farthest = max(farthest, distance(r.Pos, st.Pos))
 		}
 	}
 	changed := false
 	for i, c := range caches {
-		// Perception lists only the nearest drops. A full list that stops
-		// short of the place says nothing about what is there.
-		blind := capped > 0 && len(drops) >= capped && farthest < c.Pos.FlatDistance(st.Pos)+Spread
+		// Perception lists only the nearest drops within its radius. A
+		// place partly beyond the radius, or beyond a full list, is not
+		// all in view, and a miss there says nothing.
+		reach := distance(c.Pos, st.Pos) + Spread
+		blind := (seen.Radius > 0 && reach > seen.Radius) ||
+			(seen.MaxPerKind > 0 && len(drops) >= seen.MaxPerKind && farthest < reach)
 		if c.Pos.FlatDistance(st.Pos) > Look || blind {
 			// Out of sight: a miss from an earlier visit does not count later.
 			for prefab := range c.Items {
@@ -257,6 +268,10 @@ func (u *Unloader) forgetGone(st *protocol.State, capped int) {
 	if err := u.store.UpdateLeftBehind(st.World, func([]home.Cache) []home.Cache { return caches }); err != nil {
 		u.log.Warn("could not forget what was picked up", "err", err)
 	}
+}
+
+func distance(a, b protocol.Vec3) float64 {
+	return math.Sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2]))
 }
 
 func missingKey(world string, pos protocol.Vec3, prefab string) string {
