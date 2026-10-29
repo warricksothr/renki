@@ -27,6 +27,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -140,7 +141,7 @@ func (l *Log) Subscribe() (<-chan Record, func()) {
 }
 
 // RecentRecords returns the newest records, oldest first, with the newest
-// state and perception among them.
+// state, perception and inventory among them.
 func (l *Log) RecentRecords() []Record {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -150,6 +151,11 @@ func (l *Log) RecentRecords() []Record {
 	for typ, r := range l.last {
 		if typ == "state" && len(l.trail) > 0 && l.trail[len(l.trail)-1].At.Equal(r.At) {
 			continue
+		}
+		if typ == "inventory" && slices.ContainsFunc(l.recent, func(x Record) bool {
+			return x.At.Equal(r.At) && bytes.Equal(x.Frame, r.Frame)
+		}) {
+			continue // still among the recent records
 		}
 		out = append(out, r)
 	}
@@ -164,11 +170,24 @@ func (l *Log) Missed() int {
 	return l.missed
 }
 
+// addRecent adds r to the recent records, dropping the oldest. l.mu is held.
+func (l *Log) addRecent(r Record) {
+	l.recent = append(l.recent, r)
+	if len(l.recent) > Recent {
+		l.recent = append(l.recent[:0], l.recent[len(l.recent)-Recent:]...)
+	}
+}
+
 // remember keeps r among the recent records and hands it to subscribers.
 // l.mu is held.
 func (l *Log) remember(r Record) {
 	switch typ := frameType(r); typ {
-	case "state", "perception", "inventory":
+	case "inventory":
+		// Rare, so it stays in the feed as well; last keeps the newest
+		// for a new page once it has scrolled out of recent.
+		l.last[typ] = r
+		l.addRecent(r)
+	case "state", "perception":
 		l.last[typ] = r
 		if typ == "state" && (len(l.trail) == 0 || r.At.Sub(l.trail[len(l.trail)-1].At) >= time.Second) {
 			l.trail = append(l.trail, r)
@@ -177,10 +196,7 @@ func (l *Log) remember(r Record) {
 			}
 		}
 	default:
-		l.recent = append(l.recent, r)
-		if len(l.recent) > Recent {
-			l.recent = append(l.recent[:0], l.recent[len(l.recent)-Recent:]...)
-		}
+		l.addRecent(r)
 	}
 	for ch := range l.subs {
 		select {

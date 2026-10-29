@@ -166,3 +166,29 @@ func TestSubscribersAndRecentRecords(t *testing.T) {
 		t.Errorf("a log with no dir wrote %v", files)
 	}
 }
+
+func TestTheNewestInventoryOutlivesTheFeed(t *testing.T) {
+	l, err := Open("", 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inventories := func() int {
+		n := 0
+		for _, r := range l.RecentRecords() {
+			if strings.Contains(string(r.Frame), `"inventory"`) {
+				n++
+			}
+		}
+		return n
+	}
+	l.Frame(1, In, []byte(`{"v":1,"type":"inventory","seq":1,"t":0,"size":[8,4],"items":[]}`))
+	if n := inventories(); n != 1 {
+		t.Errorf("among the recent records: %d inventories; want 1", n)
+	}
+	for i := 0; i < Recent+10; i++ {
+		l.Write(Record{Kind: KindLog, Msg: "line"})
+	}
+	if n := inventories(); n != 1 {
+		t.Errorf("scrolled out of the feed: %d inventories; want 1", n)
+	}
+}
