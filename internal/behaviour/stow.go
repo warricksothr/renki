@@ -152,7 +152,12 @@ type stowRun struct {
 }
 
 func (*stowRun) Recover(r Result) bool {
-	if r.Status != protocol.StatusFailed {
+	if r.Status == protocol.StatusRejected && r.Reason == protocol.ReasonInvalidTarget {
+		// A missing chest is rejected before a TransferTask exists; it
+		// cannot have moved items and needs no transfer receipt.
+		return true
+	}
+	if r.Status != protocol.StatusFailed && r.Status != protocol.StatusRejected {
 		return false
 	}
 	return slices.Contains([]string{protocol.ReasonInventoryFull, protocol.ReasonRefused, protocol.ReasonTargetLost, protocol.ReasonUnreachable, protocol.ReasonStuck}, r.Reason)
