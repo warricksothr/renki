@@ -155,6 +155,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 			}
 			u.refused[d.Prefab], newlyRefused = true, true
 		}
+		if errors.Is(err, session.ErrNotAllowed) {
+			break
+		}
 		if linkGone(err) || ctx.Err() != nil {
 			// The link went, or the controller is stopping: what went out is
 			// still remembered, and the rest waits for the next connection.
@@ -213,6 +216,11 @@ func (u *Unloader) drop(ctx context.Context, d Drop) (int, error) {
 		// let a later look forget them if they are not there.
 		u.log.Warn("drop unconfirmed", "prefab", d.Prefab, "count", d.Count, "status", status, "err", err)
 		return d.Count, nil
+	}
+	if reason == protocol.ReasonNotAllowed || reason == protocol.ReasonUnsupported {
+		// The plugin's own switch (allowDrop): not this prefab, any drop.
+		u.log.Warn("drop not allowed", "prefab", d.Prefab, "reason", reason)
+		return 0, session.ErrNotAllowed
 	}
 	if status != protocol.StatusSucceeded {
 		u.log.Warn("drop failed", "prefab", d.Prefab, "count", d.Count, "status", status, "reason", reason)

@@ -71,6 +71,8 @@ type fake struct {
 	cut   int             // drops to let through before the link goes; 0 never
 	// notAllowed refuses every drop, as a session without drop does.
 	notAllowed bool
+	// pluginOff has the plugin reject every drop, as allowDrop off does.
+	pluginOff bool
 }
 
 func (f *fake) Handshake() (*protocol.Hello, *protocol.Welcome, bool) {
@@ -101,6 +103,10 @@ func (f *fake) Dispatch(_ context.Context, o session.Order) (*session.Task, erro
 		if f.notAllowed {
 			f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
 			return nil, session.ErrNotAllowed
+		}
+		if f.pluginOff {
+			f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
+			return session.FinishedWith(o.Task, nil, protocol.StatusRejected, protocol.ReasonNotAllowed, ""), nil
 		}
 		f.sent = append(f.sent, fmt.Sprintf("drop %d %s", a.Count, a.Prefab))
 		if f.cut > 0 {
@@ -187,6 +193,19 @@ func TestOnlyWhatTheGameDroppedIsRemembered(t *testing.T) {
 	u.Tick(context.Background())
 	if left := store.LeftBehind("Midgard"); len(left) != 1 {
 		t.Errorf("a drop that failed was remembered: %+v", left)
+	}
+}
+
+func TestPluginSwitchOffIsNotAPrefabRefusal(t *testing.T) {
+	u, f, _, c := unloader(true)
+	f.pluginOff = true
+	f.st = overloaded(306)
+	u.Tick(context.Background())
+	c.t = c.t.Add(Settle)
+	u.Tick(context.Background())
+	want := []string{"drop 3 Wood", "say: I'm carrying too much, and I can't put anything down."}
+	if got := f.said(); !reflect.DeepEqual(got, want) {
+		t.Errorf("sent %q\nwant %q", got, want)
 	}
 }
 
