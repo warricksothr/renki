@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -135,6 +136,43 @@ func TestRemoteAttackerWithoutTargetingFlag(t *testing.T) {
 	r.Tick(context.Background())
 	if len(f.sent) != 2 || f.sent[0] != "flee 709168501:274 25 toward nowhere" {
 		t.Fatalf("did not escape the known attacker: %v", f.sent)
+	}
+}
+
+func TestFirstConfirmedHitRetreatsBeforeLowHealth(t *testing.T) {
+	c := &clock{time.Unix(1000, 0)}
+	f := scene(20.4)
+	f.st.World = "DizzysHellheim"
+	f.seen.Characters[0].TargetingMe = false
+	r := New(f, func() []string { return nil }, nil, quiet, c.now)
+	r.Tick(context.Background())
+	if len(f.sent) != 0 {
+		t.Fatal("healthy targeting alone triggered retreat")
+	}
+	// The real harvesting incident had remote damage without targetingMe.
+	// Prefer that actual attacker over a closer AI that merely targets Tas.
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:9", Amount: 4.6})
+	r.Tick(context.Background())
+	if len(f.sent) != 2 || !strings.HasPrefix(f.sent[0], "flee 0:9 ") {
+		t.Fatalf("first hit did not trigger escape: %v", f.sent)
+	}
+	// No repeat from the same stored injury. A genuinely new hit after a
+	// completed flee must not wait out ten seconds while the bot is hurt.
+	r.Tick(context.Background())
+	if len(f.sent) != 2 {
+		t.Fatalf("stored injury repeated: %v", f.sent)
+	}
+	c.t = c.t.Add(2 * time.Second)
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:9", Amount: 3})
+	f.st.Task = &protocol.TaskRef{Task: protocol.TaskFlee, Status: protocol.StatusRunning}
+	r.Tick(context.Background())
+	if len(f.sent) != 2 {
+		t.Fatalf("replaced a running escape: %v", f.sent)
+	}
+	f.st.Task = nil
+	r.Tick(context.Background())
+	if len(f.sent) != 4 {
+		t.Fatalf("fresh hit waited through cooldown: %v", f.sent)
 	}
 }
 

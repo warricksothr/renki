@@ -450,7 +450,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
 | `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (bool, beds only) | M2 |
-| `harvest` | body | `entity` (tree, log, rock or pickable); `collect` (default true) | M2 |
+| `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (eat, drink) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
@@ -560,9 +560,28 @@ Notes:
   straight away, to 5 m past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
   and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
   needs only `allowMovement`: running away is never the unsafe choice.
-- `harvest` covers approaching the target, equipping the best tool that meets
-  `minTool`, swinging until the target breaks, then sweeping up drops within a
-  few metres. Choosing *which* tree is the controller's job.
+- `harvest` operates on one loaded tree, log, stump or mineable rock. It
+  chooses the greatest resource damage among usable carried melee tools that
+  meet `minTool`, requires at least 80% health and a work site clear of
+  enemies within 15 m, approaches the resource's physical surface, and uses normal
+  held primary-attack input with stamina and facing checks. Enemy proximity
+  is rechecked every 0.25 s; any health loss cancels work immediately.
+  No suitable tool
+  yields `no_tool`. Wards, nearby characters and player structures can refuse
+  the operation; a tall tree needs room for its full fall radius and a
+  supported escape. Moving logs must settle before work resumes; two
+  seconds of quiet observed pose are required even with zero local velocity. Felling or
+  splitting backs away before collection. New nearby drops matching the
+  resource's actual drop table can be collected through normal pickup tasks;
+  existing drop entities are excluded. Collection checks capacity/weight and
+  is capped at 32 attempts/25 seconds after break. The whole task has a 180 s
+  bound even with `timeoutS: 0`; caller timeouts can be shorter.
+  Destruction requires a recent observed real local hit, revoked by any later
+  observed competing hit. Remote destruction is correlated, not an
+  authoritative final-hit receipt. Absence without that evidence reports
+  `target_lost`. Cancelling clears held attack and any pending pickup.
+  Choosing a tree and chaining newly spawned logs/stumps are the controller's
+  job; this primitive does not silently harvest neighbouring resources.
 - `attack` includes blocking and dodging. Choosing *whether* to fight is the
   controller's job.
 - `controls` exists for debugging and later RL experiments. It's gated by
@@ -722,9 +741,10 @@ chat event
   from `state.phase` rather than the `died` and `respawned` events, so a
   lost event does not lose them. The plugin reports `dead` from the death
   until the respawn wait ends, about 10 s.
-- **Getting away.** Below 40% health, with a hostile creature that has
-  picked the bot (`targetingMe`) or damaged it in the last 30 s within
-  15 m, the controller sends `flee`
+- **Getting away.** A currently perceived hostile creature that damaged the
+  bot in the last 30 s and remains within 15 m triggers retreat at any health.
+  With only an AI target (`targetingMe`), health must be below 40%.
+  The controller sends `flee`
   from the nearest such creature, 25 m, toward the nearest owner in sight
   within 60 m, else home if it is within 150 m and the creature not within
   15 m of it, else
@@ -736,7 +756,8 @@ chat event
   respawn; only a still-perceived hostile creature counts. AI targets are
   not replicated to other clients, so a missing `targetingMe` flag does
   not imply that the bot is safe. Each flee has 60 s. It does not start another while a flee
-  runs, nor within 10 s of the last. It needs `flee` in
+  runs. Repeated decisions wait 10 s, but a fresh confirmed hit after a
+  completed escape can bypass that delay. It needs `flee` in
   `allowedTasks`.
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back

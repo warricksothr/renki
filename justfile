@@ -70,6 +70,7 @@ package:
     cp plugin/Renki.Plugin/bin/Release/netstandard2.1/Renki.{Plugin,Core}.dll "$out/plugin/"
     cp scripts/vm/*.ps1 scripts/vm/bot.example.psd1 controller.example.json "$out/"
     cp docs/TESTING.md docs/VM.md docs/PANEL.md "$out/"
+    (cd "$out" && sha256sum controller.exe plugin/Renki.Core.dll plugin/Renki.Plugin.dll > SHA256SUMS)
     # The key the VM authorises for this machine's tooling (setup-remote.ps1).
     for k in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do [ -f "$k" ] && { cp "$k" "$out/renki-agent.pub"; break; }; done
     echo "packaged $out ($(git describe --tags --always --dirty 2>/dev/null || echo devel)):"

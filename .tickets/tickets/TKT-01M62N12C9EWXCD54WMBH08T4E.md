@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T18:19:24Z
+updated_at: 2026-10-29T23:02:27Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -68,3 +68,7 @@ Live a04704d, new controller connection at 18:11:46Z: t-1 deposited exactly 5 Be
 **agent:codex/renki-resume** at 2026-10-29T18:19:24Z
 
 Live busy-chest check passed: Nimah held chest 1:30592 open. Deposit t-1 at 18:18:12Z failed refused with detail the chest is in use; pack remained exactly 15 BeechSeeds, with no transfer. Owner was told the check passed and to close the chest. Full/partial destination capacity and a ward refusal remain unverified live; AC 3 stays unchecked for those remaining cases.
+
+**agent:codex/renki-resume** at 2026-10-29T23:02:27Z
+
+2026-10-29 live storage continuation: rag chest 1:30592 supplied exactly one owner-designated AxeFlint (withdraw t-5 at 22:50:19Z). Stone 1, Flint 3 and ArmorRagsChest 1 retained. Extra chest 1:30595 initially refused unreachable; after explicit accessible floor waypoint (-40.1,36.09,6.8), deposited one BeechSeeds and withdrew exactly one, retaining Wood 32. Final pack AxeFlint 1/BeechSeeds 15. At 23:00:48–23:00:50Z, distant deposit t-4 toward outside chest 1:31261 was cancelled by explicit stop before access or transfer. Position stayed (-39.38,36.09,7.28), HP 25, seeds unchanged. Evidence .checks/audit-window-GndxY7.jsonl; concise inspection through new just vm audit-summary recipe. Full/partial destination overflow, ward refusal and ordered multi-chest overflow are still unverified live; neither observed chest is full. Busy refusal was already passed in earlier staged test. No ward or house changes were made.

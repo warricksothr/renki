@@ -133,7 +133,7 @@ namespace Renki.Tests
         {
             safety.AllowChat = false;
             runner.Welcome(new[] { "stop", "follow", "say", "emote", "harvest" });
-            runner.Handle(Req("t-1", "harvest", "{\"entity\":\"0:1\"}"));
+            runner.Handle(Req("t-1", "craft", "{}"));
             runner.Handle(Req("t-2", "say", "{\"text\":\"hi\"}"));
             runner.Handle(Req("t-3", "move_to", "{\"to\":[0,0,0]}"));
             runner.Handle(Req("t-4", "follow", "{}"));

@@ -18,7 +18,8 @@ namespace Renki.Protocol
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw };
+        public const string Harvest = "harvest";
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -91,6 +92,12 @@ namespace Renki.Protocol
     {
         /// <summary>The drop, by entity id from perception.</summary>
         public string Entity;
+    }
+
+    public sealed class HarvestArgs
+    {
+        public string Entity;
+        public bool Collect = true;
     }
 
     public sealed class InteractArgs
@@ -227,6 +234,12 @@ namespace Renki.Protocol
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
                         return new PickupArgs { Entity = entity };
+                    }
+                case TaskNames.Harvest:
+                    {
+                        var entity = Str(a, "entity");
+                        if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
+                        return new HarvestArgs { Entity = entity, Collect = Bool(a, "collect", true) };
                     }
                 case TaskNames.Interact:
                     {

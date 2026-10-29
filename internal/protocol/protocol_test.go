@@ -198,7 +198,11 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":2147483648}]}`, nil, ErrBadArgs},
 		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":"5"}]}`, nil, ErrBadArgs},
 		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":1},{"prefab":"Wood","count":2}]}`, nil, ErrBadArgs},
-		{"harvest", `{"entity":"0:7001"}`, nil, ErrUnknownTask},
+		{TaskHarvest, `{"entity":"0:7001"}`, &HarvestArgs{Entity: "0:7001"}, nil},
+		{TaskHarvest, `{"entity":"0:7001","collect":false}`, &HarvestArgs{Entity: "0:7001", Collect: func() *bool { v := false; return &v }()}, nil},
+		{TaskHarvest, `{}`, nil, ErrBadArgs},
+		{TaskHarvest, `{"entity":"0:7001","collect":"no"}`, nil, ErrBadArgs},
+		{"craft", `{}`, nil, ErrUnknownTask},
 	}
 	for _, tc := range tests {
 		t.Run(tc.task+" "+tc.args, func(t *testing.T) {

@@ -119,3 +119,12 @@ off` and the bot answers the command grammar only.
 - **`RenkiStart` does nothing.** Look at the task's History in Task
   Scheduler. It runs only while the bot's account is logged on, which is why
   auto-logon matters.
+
+## Install while keeping Tas offline
+
+`just vm install` builds the package, stops the game if needed, copies it and
+verifies the controller/plugin package SHA-256 manifest and installed DLLs.
+It leaves the game stopped, for example while a recovery route is being
+cleared. `just vm deploy` performs that same install and then starts Tas;
+`just vm start` starts an already installed build. Use `just check vm install`
+or `just check vm deploy` to retain deployment output.
