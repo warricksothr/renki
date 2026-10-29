@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62BMD18K3SE1WXJ7FDN8EPT
 title: "Plugin: send perception of characters, structures and resources"
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: normal
 due_on: null
@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:55:57Z
-updated_at: 2026-10-29T01:40:22Z
+updated_at: 2026-10-29T02:09:28Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
