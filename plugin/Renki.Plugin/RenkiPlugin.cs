@@ -117,6 +117,8 @@ namespace Renki.Plugin
 
             reporter.Update(runner.InSession);
             inventory.Update(runner.InSession);
+            if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
+                WorldNavigation.Update(Player.m_localPlayer);
             if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
             if (runner.InSession && now >= nextState)
             {
@@ -192,7 +194,7 @@ namespace Renki.Plugin
         void EndSession(string why)
         {
             runner.EndSession(why);
-            WorldNavigation.Walls = Array.Empty<Wall>();
+            WorldNavigation.Reset();
             Driver.Active = false;
             Driver.Stand();
             Driver.LookAt = null;

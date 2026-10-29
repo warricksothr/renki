@@ -19,15 +19,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-resume
-  branch: t3/wall-avoidance
+  branch: t3/navigation-cache
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 33d5c9ee55c3da7ea78be1f4d0bacbee756d9fd6
+  commit: bfe3f88dd5fc07bad7e0bd7f6725e63b12dd523c
   session: null
   claimed_at: 2026-10-29T17:41:35Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T18:16:46Z
+updated_at: 2026-10-29T18:35:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -60,6 +60,9 @@ Validate every candidate path against the already measured, height-aware wall se
 
 Add deterministic tests for the real house layout, doors/openings, stacked floors, enclosed/no-route goals, clearance and bounded search, and for stopping at partial path ends. Capture bounded path and probe-cost traces. Live-test walking out and returning before resuming the staged retreat and hauling work. just check ci and just check review gate landing/deployment.
 
+### Cached navigation geometry
+The owner authorized cached obstacle boxes/circles with mark-and-sweep refresh, nearer-first and travel-corridor priority. Keep the cache in the plugin and bounded in space/count/work per frame. Discover nearby/ahead/far colliders at different cadences; cache static upright box/capsule primitives, leave meshes, moving objects and doors to live physics. Transform/shape/enabled changes dirty records, destroyed objects are swept, and session/world changes clear the cache. Primitive bounds are conservative early blockers only; live support, water and capsule queries remain authoritative for uncached space. Use a spatial hash rather than testing every obstacle. Memoize exact repeated support samples within each planning physics step without merging floors; resample next step because floors and meshes can change independently of indexed solids. Revalidate candidate cached blockers against live collider stamps before rejecting a leg, so a delayed sweep cannot preserve a demolished wall. Spread discovery over frames, with the oldest due near/ahead/far pass selected to avoid starvation. Remove allocating All physics calls in the planner in favour of bounded nonallocating queries that fail closed on saturation. Log cache hits, actual physics calls, bounds rejections, cache maintenance and planning CPU; compare the same exact house exit/return. Verify geometry corners/height/backing out, mutations/removal, update priority and bounded caches in Core tests. Preserve normal navmesh and all existing movement safety.
+
 ## Notes
 
 **agent:codex/renki-resume** at 2026-10-29T17:53:21Z
@@ -81,3 +84,11 @@ Live dd9ef44 return-home t-2 succeeded at 18:03:59Z after a safe navmesh prefix,
 **agent:codex/renki-resume** at 2026-10-29T18:16:46Z
 
 Live a04704d: exact east-side walk t-6 started at 18:14:37Z, used local wall-aware routing through west door, recovered at the door, adopted a newly usable navmesh during local search at 18:14:52Z and succeeded at 18:15:08Z. Final pos (-2.84,33.19,9.5), 25/25 HP. Return-home t-7 succeeded at 18:15:44Z; final (-37.03,36.09,7.92), 25/25 HP, still 15 seeds. This exercises the asynchronous-navmesh recheck and both directions through the actual house. Evidence .checks/audit-window-naIMBv.jsonl. Close-follow waiting through a wall, cancel during planning, newly built/demolished walls and a blocked door remain staged checks; only the root-cause AC is checked.
+
+**agent:codex/renki-resume** at 2026-10-29T18:35:05Z
+
+Implemented the owner-requested mark/refresh/sweep cache on t3/navigation-cache. Static upright box and capsule solids persist in a spatial hash, with bounded near/ahead/far discovery, nearer-first and forward-corridor rebuild priority, at most 4096 records, 128 discovered records processed, 16 rebuilds and 32 sweep records per rendered frame. Candidate cached blockers validate their current collider stamp before rejection; changed bounds are dropped before rebuilding, and rebuilds stamp the geometry actually measured. Doors, rigidbodies, tilted/sheared primitives and meshes remain live physics decisions. Exact support samples share work within a planning physics step only, preserving floor levels and seeing changed/missing floors next step. Planner physics queries are nonallocating and fail closed on saturated buffers. World/session resets clear the cache and retained buffers.
+
+NavigationCacheTests adds 14 cases covering rotated/rounded geometry, circles, height/backing-out, index moves/removals/deduplication, stale-bound rejection, refresh priority, bounded support memory and floor lifetime. An identical deterministic detour uses fewer simulated live queries; actual Unity CPU savings are not yet measured. just check plugin build and just check plugin test-core NavigationCacheTests passed; just check ci passed all 158 C# tests including interop plus the controller race suite and both builds. docs/TESTING.md now names cache limits, trace fields and remaining staged checks.
+
+Live testing remains deferred at the owner's request: repeat the exact house exit/return, changed walls/floors/doors, stop during planning and near-leader waiting, and compare planner plus maintenance CPU. Do not close the remaining follower criterion from Core tests. M3 retreat implementation remains staged for a controlled Greyling check; M2 next implementation is the ready behaviour-engine ticket TKT-01M62VXYSN4RQV75HTA3BSD162 (Controller: behaviour engine: templates, instances, triggers, repeat), followed by chest/work-site memory and loot/stow orchestration. The milestones remain incomplete.
