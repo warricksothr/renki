@@ -64,6 +64,7 @@ namespace Renki.Plugin
 
             structures.Clear();
             walls.Clear();
+            measured = 0;
             pieceBuffer.Clear();
             Piece.GetAllPiecesInRadius(at, r, pieceBuffer);
             foreach (var p in pieceBuffer)
@@ -136,6 +137,10 @@ namespace Renki.Plugin
         /// objects do not pile up.</summary>
         const int CacheMax = 8192;
 
+        /// <summary>How many new pieces one scan measures for walls.</summary>
+        const int MeasurePerScan = 200;
+        int measured;
+
         readonly Dictionary<Piece, Known> pieces = new Dictionary<Piece, Known>();
         readonly Dictionary<Collider, ZNetView> owners = new Dictionary<Collider, ZNetView>();
         readonly Dictionary<ZNetView, Known> objects = new Dictionary<ZNetView, Known>();
@@ -148,8 +153,17 @@ namespace Renki.Plugin
             wall = null;
             if (!pieces.TryGetValue(p, out var k))
             {
+                k = Classify(p);
+                if (k == null)
+                {
+                    // Measuring a piece is the costly part: a big base is
+                    // measured over a few scans rather than in one frame.
+                    if (measured >= MeasurePerScan) return null;
+                    measured++;
+                    if (WallOf(p) is (V3, V3, double) shape) k = new Known { Wall = shape };
+                }
                 if (pieces.Count >= CacheMax) pieces.Clear();
-                pieces[p] = k = Classify(p);
+                pieces[p] = k;
             }
             if (k == null) return null;
             if (k.Wall is (V3 a, V3 b, double h))
@@ -192,7 +206,7 @@ namespace Renki.Plugin
             else if (p.TryGetComponent<Smelter>(out var smelter)) (kind, part) = (Wire.StructureSmelter, smelter);
             else if (p.TryGetComponent<Fireplace>(out var fire)) (kind, part) = (Wire.StructureFire, fire);
             else if (p.TryGetComponent<Container>(out var chest)) (kind, part) = (Wire.StructureContainer, chest);
-            else return WallOf(p) is (V3, V3, double) wall ? new Known { Wall = wall } : null;
+            else return null;
             return new Known { Kind = kind, Part = part, Prefab = PrefabName(p.m_nview, p.gameObject) };
         }
 
@@ -345,6 +359,7 @@ namespace Renki.Plugin
                 ["truncated"] = mostColliders >= colliders.Length,
                 ["mostColliders"] = mostColliders,
                 ["pieces"] = pieceBuffer.Count,
+                ["walls"] = walls.Seen,
             });
             scans = 0;
             totalMs = worstMs = 0;
