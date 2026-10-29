@@ -472,9 +472,10 @@ Notes:
 - `flee` runs from `from` until it is `distance` away across the ground, and
   succeeds then, or when an entity it ran from is gone or dead. With
   `toward` (the owner, or home) it runs there instead, unless that lies past
-  the threat (within 60° of its bearing), and stops on arriving, since the
-  rest is up to whoever is there. Otherwise it runs straight away, to 5 m
-  past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
+  the threat (within 60° of its bearing). At an entity there (the owner) it
+  stops, since the rest is up to them together; at a position (home) with
+  the threat still close, it runs on straight away. Otherwise it runs
+  straight away, to 5 m past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
   and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
   needs only `allowMovement`: running away is never the unsafe choice.
 - `harvest` covers approaching the target, equipping the best tool that meets
@@ -605,7 +606,8 @@ chat event
   picked the bot (`targetingMe`) within 15 m, the controller sends `flee`
   from the nearest such creature, 25 m, toward the nearest owner in sight
   within 60 m, else home unless the creature is within 15 m of it, else
-  straight away, and says which ("Falling back to you, Sothr", "Heading
+  straight away (also when the owner or home lies past the creature, as the
+  plugin judges it), and says which ("Falling back to you, Sothr", "Heading
   home", "Getting away from the greyling"). At an owner's side already it
   stays, since running on would leave them; at home already, it runs
   straight away. It does not start another while a flee runs, nor within

@@ -30,7 +30,7 @@ namespace Renki.Plugin
         readonly Walker walker = new Walker();
         Vector3 goal;
         float nextAim;
-        bool aimed, straight;
+        bool aimed, straight, atPlace;
 
         public FleeTask(FleeArgs args, Vector3 threatPos, GameObject threat, Vector3? towardPos, GameObject toward)
         {
@@ -64,12 +64,19 @@ namespace Renki.Plugin
                 return Outcome.Succeeded($"{gap:0} m away");
             }
             if (!aimed || Time.time >= nextAim) Aim(pos);
-            // At safety with the threat still close: safety was the owner or
-            // home, and the rest is theirs. Running on past it would leave them.
             if (!straight && V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(goal)) <= AtSafety)
             {
-                Driver.Stand();
-                return Outcome.Succeeded($"at safety, {gap:0} m from the threat");
+                // At its owner with the threat still close: the rest is
+                // theirs together, and running on would leave them.
+                if (toward != null)
+                {
+                    Driver.Stand();
+                    return Outcome.Succeeded($"at safety, {gap:0} m from the threat");
+                }
+                // At a place, such as home, that the threat followed it to:
+                // on, straight away.
+                atPlace = true;
+                Aim(pos);
             }
             if (Walker.Stranded(p) is Outcome stranded)
             {
@@ -95,7 +102,7 @@ namespace Renki.Plugin
             nextAim = Time.time + Reaim;
             Vector3? safe = towardPos;
             if (toward != null) safe = toward.transform.position;
-            else if (args.Toward?.Entity != null) safe = null; // the entity is gone
+            else if (args.Toward?.Entity != null || atPlace) safe = null; // gone, or reached
             var next = Flee.Goal(Convert.ToV3(pos), Convert.ToV3(threatPos), safe.HasValue ? Convert.ToV3(safe.Value) : (V3?)null, args.Distance);
             var nextGoal = Convert.ToVector3(next);
             var nextStraight = !safe.HasValue || Flee.PastThreat(Convert.ToV3(pos), Convert.ToV3(threatPos), Convert.ToV3(safe.Value));

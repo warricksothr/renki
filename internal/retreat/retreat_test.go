@@ -124,6 +124,20 @@ func TestNoRefugeWhereTheThreatIs(t *testing.T) {
 	}
 }
 
+func TestNoRunningThroughTheThreat(t *testing.T) {
+	c := &clock{time.Unix(1000, 0)}
+	f := scene(5)
+	// Home past the Greyling (at 4, 0) but clear of it: not that way.
+	r := New(f, func() []string { return nil }, func() (protocol.Vec3, bool) { return protocol.Vec3{40, 30, 3}, true }, quiet, c.now)
+	r.Tick(context.Background())
+	if want := []string{"flee 0:7 25 toward nowhere", "say: Too much for me. Getting away from the greyling."}; !slices.Equal(f.sent, want) {
+		t.Fatalf("sent %q\nwant %q", f.sent, want)
+	}
+	if PastThreat(protocol.Vec3{}, protocol.Vec3{5, 0, 0}, protocol.Vec3{0, 0, 30}) {
+		t.Error("off to the side counted as past the threat")
+	}
+}
+
 func TestNoThreatNoRetreat(t *testing.T) {
 	c := &clock{time.Unix(1000, 0)}
 	f := scene(5)

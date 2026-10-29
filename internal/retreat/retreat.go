@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -102,6 +103,10 @@ func (r *Retreat) Tick(ctx context.Context) {
 		// Home, and the creature followed it there: away it is.
 		toward = protocol.Target{}
 	}
+	if toward.Pos != nil && PastThreat(st.Pos, threat.Pos, *toward.Pos) {
+		// The plugin would run straight away instead: say that.
+		toward, to = protocol.Target{}, ""
+	}
 	args := &protocol.FleeArgs{From: protocol.Target{Entity: threat.ID}, Distance: ptr(Distance)}
 	line := fmt.Sprintf("Too much for me. Getting away from the %s.", name(threat))
 	switch {
@@ -121,6 +126,22 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if _, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}}); err != nil {
 		r.log.Warn("could not say so", "err", err)
 	}
+}
+
+// pastThreatCos is the cosine of 60°: a place within that angle of the
+// threat's bearing lies past it, as the plugin's Flee.PastThreat judges.
+var pastThreatCos = math.Cos(60 * math.Pi / 180)
+
+// PastThreat reports whether place lies past the threat seen from pos, where
+// running to it would run into the threat.
+func PastThreat(pos, threat, place protocol.Vec3) bool {
+	tx, tz := threat[0]-pos[0], threat[2]-pos[2]
+	px, pz := place[0]-pos[0], place[2]-pos[2]
+	tl, pl := math.Hypot(tx, tz), math.Hypot(px, pz)
+	if tl < 0.5 || pl < 0.5 {
+		return false
+	}
+	return (tx*px+tz*pz)/(tl*pl) > pastThreatCos
 }
 
 // Threat is the nearest hostile creature within Near that has picked the
