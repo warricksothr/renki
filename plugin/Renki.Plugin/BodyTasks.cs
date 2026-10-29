@@ -189,6 +189,21 @@ namespace Renki.Plugin
             {
                 data["why"] = crossesWall ? "known wall" : shortAcrossGround ? "partial navmesh path" : forceLocal ? "stuck" : "no navmesh path";
                 data["walls"] = WorldNavigation.Walls.Count;
+                if (!StraightLine && !forceLocal)
+                {
+                    var prefix = WallRoute.Prefix(Convert.ToV3(from), Convert.ToV3(target), scratch.Select(Convert.ToV3).ToArray(), WorldNavigation.Walls);
+                    if (prefix.Count > 0)
+                    {
+                        path.Set(prefix);
+                        end = Convert.ToVector3(prefix[prefix.Count - 1]);
+                        OffLevel = System.Math.Abs(end.y - goal.y) > Arrival.Level &&
+                            V3.FlatDistance(Convert.ToV3(end), Convert.ToV3(goal)) <= NearGoal;
+                        data["end"] = Convert.ToArray(end);
+                        data["waypoints"] = prefix.Count;
+                        Tracer.Emit("walker", "following safe navmesh prefix before local search", data);
+                        return;
+                    }
+                }
                 Tracer.Emit("walker", "planning a local route", data);
                 BeginLocal(from, target);
                 return;
