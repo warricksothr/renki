@@ -161,6 +161,9 @@ func (u *Unloader) Tick(ctx context.Context) {
 				u.refused = map[string]bool{}
 			}
 			u.refused[d.Prefab], newlyRefused = true, true
+			// The plan counted on it: plan again without it rather than
+			// drop the rest for what may now not free the bot.
+			break
 		}
 		if errors.Is(err, session.ErrNotAllowed) {
 			break
