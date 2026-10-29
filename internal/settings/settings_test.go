@@ -82,6 +82,8 @@ func TestBadChangesAreRefused(t *testing.T) {
 		{"allowedTasks", `["stop", "fly"]`, ErrBadValue},
 		{"voice", `"yes"`, ErrBadValue},
 		{"home.idleMinutes", `{`, ErrBadValue},
+		{"home.idleMinutes", `null`, ErrBadValue},
+		{"overload.drop", ` null `, ErrBadValue},
 	} {
 		if err := s.Set(c.key, json.RawMessage(c.value), ByPanel); !errors.Is(err, c.want) {
 			t.Errorf("%s = %s: %v, want %v", c.key, c.value, err, c.want)
@@ -114,6 +116,29 @@ func TestPinsHoldOffTheAgentOnly(t *testing.T) {
 	}
 	if err := s.Set("overload.drop", json.RawMessage(`true`), ByAgent); err != nil {
 		t.Errorf("unpinned: %v", err)
+	}
+}
+
+func TestTheAgentNeverChangesWhoGivesOrders(t *testing.T) {
+	s := open(t, "")
+	for _, k := range []string{"owners", "allowedTasks"} {
+		if err := s.Set(k, json.RawMessage(`[]`), ByAgent); !errors.Is(err, ErrNotAllowed) {
+			t.Errorf("the agent set %s: %v", k, err)
+		}
+		if err := s.Reset(k, ByAgent); !errors.Is(err, ErrNotAllowed) {
+			t.Errorf("the agent reset %s: %v", k, err)
+		}
+	}
+}
+
+func TestWarningsReadTheSettingsInForce(t *testing.T) {
+	s := open(t, "")
+	if w := s.Warnings(); len(w) != 0 {
+		t.Fatalf("warnings %q", w)
+	}
+	s.Set("allowedTasks", json.RawMessage(`["stop"]`), ByPanel)
+	if w := s.Warnings(); len(w) != 1 {
+		t.Errorf("without drop: %q", w)
 	}
 }
 

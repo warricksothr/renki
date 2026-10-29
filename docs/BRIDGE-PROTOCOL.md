@@ -529,7 +529,8 @@ chat event
   each with who made it (`owner:<name>`, `panel`, `agent`) and when, and
   are written to the audit log as "setting changed". A reset returns a
   setting to the config's value. An owner or the panel can pin a setting,
-  and the agent cannot change a pinned one. A change applies at once, with
+  and the agent cannot change a pinned one, nor `owners` or `allowedTasks`
+  ever. A change applies at once, with
   one exception: a task added to `allowedTasks` is only offered to the
   plugin in the next `welcome`, so it works from the next connection.
   Taking a task off the list works at once.

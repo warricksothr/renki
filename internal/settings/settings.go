@@ -41,6 +41,10 @@ var Keys = []string{
 	"overload.drop",
 }
 
+// ownersOnly are the settings the agent may never change, pinned or not:
+// who gives the orders, and what the bot may be told to do.
+var ownersOnly = []string{"owners", "allowedTasks"}
+
 // Sources of a change. An owner's is "owner:<name>".
 const (
 	ByPanel  = "panel"
@@ -163,9 +167,15 @@ func (s *Store) Set(key string, value json.RawMessage, by string) error {
 	if !slices.Contains(Keys, key) {
 		return fmt.Errorf("%w: %q", ErrUnknownKey, key)
 	}
+	if by == ByAgent && slices.Contains(ownersOnly, key) {
+		return fmt.Errorf("%w: %s", ErrNotAllowed, key)
+	}
 	var compact bytes.Buffer
 	if err := json.Compact(&compact, value); err != nil {
 		return fmt.Errorf("%w for %s: %v", ErrBadValue, key, err)
+	}
+	if bytes.Equal(compact.Bytes(), []byte("null")) {
+		return fmt.Errorf("%w for %s: null (Reset returns to the config's value)", ErrBadValue, key)
 	}
 	return s.change(key, by, func(o map[string]Override) {
 		o[key] = Override{Value: compact.Bytes(), By: by, At: s.now()}
@@ -176,6 +186,9 @@ func (s *Store) Set(key string, value json.RawMessage, by string) error {
 func (s *Store) Reset(key, by string) error {
 	if !slices.Contains(Keys, key) {
 		return fmt.Errorf("%w: %q", ErrUnknownKey, key)
+	}
+	if by == ByAgent && slices.Contains(ownersOnly, key) {
+		return fmt.Errorf("%w: %s", ErrNotAllowed, key)
 	}
 	return s.change(key, by, func(o map[string]Override) { delete(o, key) })
 }
@@ -242,6 +255,15 @@ func (s *Store) pin(key, by string, on bool) error {
 	}
 	s.log.Info("setting pinned", "key", key, "pinned", on, "by", by)
 	return nil
+}
+
+// Warnings are the config's warnings (config.Warnings) for the settings
+// in force.
+func (s *Store) Warnings() []string {
+	v := s.Values()
+	c := s.base
+	c.Owners, c.Nicknames, c.AllowedTasks, c.Home, c.Overload = v.Owners, v.Nicknames, v.AllowedTasks, v.Home, v.Overload
+	return c.Warnings()
 }
 
 // Entry describes one setting: its value now, whether that is the
