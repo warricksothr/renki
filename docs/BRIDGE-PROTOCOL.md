@@ -166,8 +166,11 @@ The bot's own body. Small and sent often.
 the world.
 
 `flags` is drawn from: `grounded`, `running`, `crouching`, `swimming`,
-`sitting`, `sleeping`, `attacking`, `blocking`, `encumbered`, `stranded`,
+`sitting`, `sleeping`, `in_bed`, `attacking`, `blocking`, `encumbered`, `stranded`,
 `in_shelter`, `near_fire`.
+
+`in_bed` means attached to a bed, including waiting for the other players;
+`sleeping` is the game's actual sleep state.
 
 `encumbered` means `weight` is over `weightMax`. The game then lets the bot
 walk but not run, stops its stamina coming back, and drains stamina while it
@@ -219,7 +222,9 @@ into a problem.
   with something in them. Walls, floors and the like are left out, so a
   base cannot fill the cap with them. Walls come in `layout` (6.9). `mine`
   is set on the bot's own bed and its own graves, `tag` is a portal's name, and `open` is set on doors
-  only.
+  only. Beds also report nullable `owned`: false means explicitly unclaimed,
+  true means claimed, and absence means unknown. `mine` distinguishes the
+  bot's own bed from another player's. Unknown ownership is never free.
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
   Optional `yield` describes a drop/simple pickable's primary output:
   `{prefab, count, stackMax, weight}`. Count is a capacity upper bound
@@ -444,14 +449,14 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
-| `interact` | body | `entity`; `alt` (bool); `hold` (bool) | M2 |
+| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (bool, beds only) | M2 |
 | `harvest` | body | `entity` (tree, log, rock or pickable); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (eat, drink) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
 | `withdraw` | body | `container`; `items` | M2 |
 | `craft` | body | `recipe` (prefab); `count`; walks to the needed station | M2 |
-| `sleep` | body | `bed` (optional; defaults to the bot's own) | M2 |
+| `sleep` (planned standalone task) | body | Chat currently uses `interact` with `sleep:true` | M2 |
 | `repair_all` | body | `station` | M2 |
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `guard` | body | `around`: player or position; `radius` | M3 |
@@ -459,6 +464,13 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 
 Notes:
+
+- `interact` with `sleep:true` uses only a bed and cannot combine `alt` or
+  `hold`. It claims an unowned bed or sets the bot's spawn point if necessary,
+  waits at most three seconds for claim ownership, then uses it again to lie
+  down. A changed spawn point alone is not sleep success. Another player's
+  bed is refused; the game's night, roof, shelter, fire, wetness and enemy
+  checks remain authoritative. Cancellation discards the whole sequence.
 
 - `deposit` and `withdraw` use a storage chest entity ID and 1–256 unique
   prefab requests with a positive integer count or `"all"`. Both require
@@ -479,6 +491,8 @@ Notes:
   across the ground but off its level (under the floor, at the foot of a
   rock), the walker tries bounded alternative approaches before failing
   `unreachable` (7.3).
+  Intermediate and final path waypoints also require arrival on their level;
+  standing directly beneath a waypoint does not advance the path follower.
 - `pickup` walks to the drop and lets the game's auto-pickup take it, as it
   does for any player within about 2 m, picking it up directly if it is still
   there once the bot stands on it. A drop the game merges into a nearby stack
@@ -656,10 +670,11 @@ chat event
   `nicknames`, or a reply within 20 s of the bot speaking to that player.
 - **Command grammar** (the fast path; works with no API key): `<name> follow`,
   `stop`, `status`, `come here`, `wait here`, `set home`, `go home`,
-  `pick that up` (the drop nearest the speaker, within 10 m), `go to bed`
-  (the bot's own bed, wherever it is in sight, and no other, since using one
-  claims it), `claim the bed` (the bed nearest the speaker within 10 m, or the
-  bot when the speaker is out of sight) and `get the door` (the nearest door, likewise;
+  `pick that up` (the drop nearest the speaker, within 10 m), `sleep` /
+  `go to sleep` / `go to bed` (the bot's own visible bed, otherwise a confirmed
+  free bed within 10 m of the speaker, or the bot when the speaker is out of
+  sight; claim/set spawn first, then actually lie down), `claim the bed`
+  (the nearest confirmed free bed in that same radius) and `get the door` (the nearest door, likewise;
   `open the door` takes the nearest shut one and `close the door` the
   nearest open one, since using a door swings it either way), and `get your
   things` (`fetch your things`, `corpse run`: the bot's own grave if it is

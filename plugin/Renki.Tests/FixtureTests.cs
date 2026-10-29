@@ -136,6 +136,8 @@ namespace Renki.Tests
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":0}")]
         [InlineData("drop", "{\"prefab\":\"Wood\",\"count\":2.5}")]
         [InlineData("interact", "{\"alt\":true}")]
+        [InlineData("interact", "{\"entity\":\"0:1\",\"sleep\":true,\"hold\":true}")]
+        [InlineData("interact", "{\"entity\":\"0:1\",\"sleep\":true,\"alt\":true}")]
         [InlineData("flee", "{\"distance\":20}")]
         [InlineData("equip", "{}")]
         [InlineData("unequip", "{\"slot\":\"tail\"}")]

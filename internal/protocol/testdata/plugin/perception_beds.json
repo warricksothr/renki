@@ -1,0 +1,1 @@
+{"v":1,"type":"perception","seq":44,"t":110,"characters":[],"resources":[],"structures":[{"id":"1:310","kind":"bed","pos":[10,36,12],"owned":false},{"id":"1:311","kind":"bed","pos":[12,36,12],"owned":true},{"id":"1:312","kind":"bed","pos":[14,36,12],"mine":true,"owned":true},{"id":"1:313","kind":"bed","pos":[16,36,12]}]}

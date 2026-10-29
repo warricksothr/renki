@@ -211,6 +211,8 @@ namespace Renki.Protocol
         [JsonProperty("tag", NullValueHandling = NullValueHandling.Ignore)] public string Tag;
         [JsonProperty("pos")] public double[] Pos = new double[3];
         [JsonProperty("mine", NullValueHandling = NullValueHandling.Ignore)] public bool? Mine;
+        /// <summary>Beds only; false explicitly means unclaimed.</summary>
+        [JsonProperty("owned", NullValueHandling = NullValueHandling.Ignore)] public bool? Owned;
         /// <summary>Doors only.</summary>
         [JsonProperty("open", NullValueHandling = NullValueHandling.Ignore)] public bool? Open;
     }

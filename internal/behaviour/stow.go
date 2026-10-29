@@ -141,14 +141,15 @@ func stowCounts(inv *protocol.Inventory, p StowParams) map[string]int {
 }
 
 type stowRun struct {
-	p          StowParams
-	remaining  map[string]int
-	index      int
-	walking    bool
-	approached bool
-	pending    bool
-	beforeSeq  uint64
-	failures   []string
+	p            StowParams
+	remaining    map[string]int
+	index        int
+	walking      bool
+	approached   bool
+	homeApproach bool
+	pending      bool
+	beforeSeq    uint64
+	failures     []string
 }
 
 func (*stowRun) Recover(r Result) bool {
@@ -194,8 +195,19 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 		r.walking = false
 		r.approached = result.Status == protocol.StatusSucceeded
 		if !r.approached {
+			// A raised chest can be a poor exterior path goal even though
+			// the owner's configured home point has a usable entrance route.
+			// Try it once, only for a known chest within 10 m of that home.
+			if !r.homeApproach && v.Home != nil && (result.Reason == protocol.ReasonUnreachable || result.Reason == protocol.ReasonStuck) {
+				if pos, ok := chestPosition(v, r.p.To[r.index]); ok && distance(pos, *v.Home) <= 10 {
+					r.walking, r.homeApproach = true, true
+					home := *v.Home
+					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}}, TimeoutS: 90}, nil
+				}
+			}
 			r.failures = append(r.failures, r.p.To[r.index]+": "+result.Reason)
 			r.index++
+			r.homeApproach = false
 		}
 	}
 	if r.pending {
@@ -227,6 +239,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 		}
 		r.pending = false
 		r.approached = false
+		r.homeApproach = false
 		r.index++
 	}
 	current := stowCounts(v.Inventory, r.p)

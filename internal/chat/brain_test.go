@@ -785,10 +785,9 @@ func TestNoFollowForAnUnseenPanelOwner(t *testing.T) {
 	}
 }
 
-// TestUseTheBedAndDoor: going to bed is to the bot's own bed only;
-// claiming a bed or getting a door takes the nearest to the speaker, or to
-// the bot when the speaker is out of sight; and what the game said comes
-// back in the bot's words.
+// TestUseTheBedAndDoor: sleep prefers its own bed; unknown ownership is
+// never free. Claims and doors are nearest the speaker or unseen bot, and
+// what the game said comes back in the bot's words.
 func TestUseTheBedAndDoor(t *testing.T) {
 	b, f, _ := newBrain(nil)
 	f.allowed = append(f.allowed, protocol.TaskInteract)
@@ -803,7 +802,7 @@ func TestUseTheBedAndDoor(t *testing.T) {
 	}
 
 	b.Chat(line("Sothr", "bjorn claim the bed"))
-	if got := f.said(); got[0] != "I don't see a bed nearby." {
+	if got := f.said(); got[0] != "I don't see a free bed nearby." {
 		t.Errorf("with nothing seen: %q", got)
 	}
 
@@ -813,11 +812,13 @@ func TestUseTheBedAndDoor(t *testing.T) {
 		{ID: "1:2", Kind: protocol.StructureDoor, Pos: protocol.Vec3{30, 0, 10}},
 		{ID: "1:3", Kind: protocol.StructureDoor, Pos: protocol.Vec3{12, 0, 12}},
 	}}
-	// No bed of its own: going to bed claims nothing.
+	// Unknown ownership must not be treated as an unclaimed bed.
 	b.Chat(line("Sothr", "bjorn go to bed"))
-	if got := f.said(); got[len(got)-1] != "I don't see my bed. Tell me to claim one." || len(uses()) != 0 {
+	if got := f.said(); got[len(got)-1] != "I don't see a free bed nearby." || len(uses()) != 0 {
 		t.Fatalf("went to a bed not its own: %q, %v", got, uses())
 	}
+	free := false
+	f.perception.Structures[0].Owned = &free
 	b.Chat(line("Sothr", "bjorn claim the bed"))
 	b.Chat(line("Sothr", "bjorn open the door"))
 	if got := uses(); !slices.Equal(got, []string{"1:1", "1:3"}) {
@@ -835,7 +836,7 @@ func TestUseTheBedAndDoor(t *testing.T) {
 	// and with none, nothing is.
 	f.perception.Structures[0].Mine = true
 	f.perception.Structures = append(f.perception.Structures,
-		protocol.PerceivedStructure{ID: "1:5", Kind: protocol.StructureBed, Pos: protocol.Vec3{14, 0, 10}})
+		protocol.PerceivedStructure{ID: "1:5", Kind: protocol.StructureBed, Pos: protocol.Vec3{14, 0, 10}, Owned: &free})
 	b.Chat(line("Sothr", "bjorn claim this bed"))
 	if got := uses(); got[len(got)-1] != "1:5" {
 		t.Errorf("used %v; want the free bed 1:5", got)
@@ -988,5 +989,42 @@ func TestCorpseRun(t *testing.T) {
 	b.TaskDone(doneTask(last(protocol.TaskMoveTo), protocol.StatusSucceeded, ""))
 	if got := f.said(); got[len(got)-1] != "My grave's not here. Someone must have emptied it." || len(h.graves) != 0 {
 		t.Errorf("grave gone: %q, graves %v", got[len(got)-1], h.graves)
+	}
+}
+
+func TestSleepClaimsOnlyAKnownFreeBedAndUsesTheSleepSequence(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.allowed = append(f.allowed, protocol.TaskInteract)
+	free, taken := false, true
+	f.perception = &protocol.Perception{Structures: []protocol.PerceivedStructure{
+		{ID: "unknown", Kind: protocol.StructureBed, Pos: protocol.Vec3{10, 0, 10}},
+		{ID: "taken", Kind: protocol.StructureBed, Pos: protocol.Vec3{11, 0, 10}, Owned: &taken},
+		{ID: "free", Kind: protocol.StructureBed, Pos: protocol.Vec3{12, 0, 10}, Owned: &free},
+	}}
+	b.Chat(line("Visitor", "bjorn sleep"))
+	if len(f.tasks()) != 0 {
+		t.Fatal("non-owner sent a task")
+	}
+	for _, phrase := range []string{"sleep", "go to sleep", "go to bed", "get some sleep"} {
+		b.Chat(line("Sothr", "bjorn "+phrase))
+		sent := f.sent()
+		var last *protocol.InteractArgs
+		for _, o := range sent {
+			if o.Task == protocol.TaskInteract {
+				last = o.Args.(*protocol.InteractArgs)
+			}
+		}
+		if last == nil || last.Entity != "free" || !last.Sleep {
+			t.Fatal(last)
+		}
+	}
+	f.perception.Structures[2].Owned = &taken
+	before := len(f.tasks())
+	b.Chat(line("Sothr", "bjorn sleep"))
+	if len(f.tasks()) != before {
+		t.Fatal("selected an owned/unknown bed")
+	}
+	if got := f.said(); got[len(got)-1] != "I don't see a free bed nearby." {
+		t.Fatal(got)
 	}
 }

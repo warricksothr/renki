@@ -270,6 +270,8 @@ type PerceivedStructure struct {
 	Tag    string `json:"tag,omitempty"`
 	Pos    Vec3   `json:"pos"`
 	Mine   bool   `json:"mine,omitempty"`
+	// Owned is present for beds; nil means ownership is unknown.
+	Owned *bool `json:"owned,omitempty"`
 	// Open is set for doors only.
 	Open *bool `json:"open,omitempty"`
 }

@@ -390,27 +390,57 @@ and a manual stow works without waiting for a pack mutation or reconnect.
 
 ### Collection/stow live checks, 2026-10-29
 
-On 91b4835, initial state seq117 preceded inventory seq118. The seed-stow
-job worked without a reconnect or inventory mutation: t-1 deposited five
-BeechSeeds and kept ten; t-2 withdrew the five, restoring all 15. The rag
-armour in chest 1:30592 was unchanged.
+- Seed stow passed on 91b4835 without a reconnect or pack mutation: deposit
+  five BeechSeeds, keep ten, then withdraw five to restore all 15. The chest's
+  rag armour was unchanged. Initial state preceded inventory after the
+  startup scheduling fix.
+- Stone collection/delivery/return passed at 22:04:58Z–22:05:12Z after explicit
+  doorway opening/repositioning. This was a controlled loop, not an
+  unattended house-exit pass.
+- Resumed flint delivery passed at 22:14:31Z–22:15:14Z: direct chest approach
+  failed, one configured-home fallback entered through the west door, and
+  the matching receipt deposited both previously collected flints.
+- Fresh flint collection/delivery passed at 22:23:51Z–22:25:01Z on the
+  height-aware waypoint build. Tas left home without manual doorway staging,
+  used pickable 1:39745 at (-28.15,30.43,42.11), picked up Flint1, recovered
+  from failed direct chest approach through configured home, and deposited
+  Flint1. Receipt t-7 and newer inventory showed chest 1:30592 holding
+  Stone1/Flint3/ArmorRagsChest1, pack BeechSeeds15. All states were 25/25 HP.
+  Both temporary check definitions were deleted afterward.
 
-Initial move t-3 to the stone site failed inside the raised house with no
-supported local route. Interact t-4 opened the west door and repositioned
-Tas closer to it. Retrying completed the stone loop: t-5 went to
-(-50.62,32.41,18.46), t-6 used the Stone, t-7 picked up one Stone, t-8
-approached the chest, t-9 deposited one Stone, t-10 returned to the site
-(22:04:58Z–22:05:12Z). Tas stayed 25/25 HP. Treat this as a controlled loop
-after doorway staging; the initial closed-door/start-position failure
-remains open on the navigation ticket.
+The flint loop proves bounded recovery, not efficient direct chest routing:
+Tas still approached the underside before using home. The path planner
+retains floor heights; the follower now also requires level-aware arrival
+for intermediate/final waypoints and replans when standing below one.
+`just check plugin test-core LocalRouteTests` covers stacked-floor arrival.
+Successful entrance/path reuse, repeated unattended routes, full/warded and
+multi-chest overflow checks, deliberate-drop detection, and leader/site
+resumption remain open. Tree cutting, mining and crafting are not implemented.
+Exact receipts, audit-window paths and remaining checks are on the stow,
+hauling and navigation tickets; keep full logs outside this document.
 
-The first flint trial auto-picked Flint1 before its explicit pickup request;
-t-13 was rejected because the perceived drop had already disappeared.
-Collection now checks whole-yield inventory gains before stale products and
-handles that specific pending-product rejection only with inventory evidence.
-A missing chest rejected before transfer can also fall back to the next
-named chest without needing a nonexistent receipt. Controller regressions
-cover both races, missing evidence and retained permission failure handling.
-The initial flint trial did not deliver; a post-fix full loop still needs
-its own live receipt. Full/warded storage and repeat unattended house exits
-remain staged checks.
+### Bed/sleep checks
+
+Use `just check controller test-packages ./internal/chat ./internal/protocol`
+for sleep aliases, owner checks and safe bed selection. The shared bed
+fixture distinguishes owned, mine, explicitly unclaimed and unknown beds.
+`just check plugin test-core BedSleepTests` checks bounded ownership waiting
+and that claiming alone never establishes sleep. The full gate checks the
+additive interact sleep arguments in both languages.
+
+Live: inspect ownership first. Tell Tas `sleep`/`go to sleep`; expect claim or
+set-spawn if needed, then lying down, reported as `in_bed`. Actual `sleeping`
+waits for the other players. Taken/unknown beds must not be selected for
+claiming. Check the game's roof/fire/wet/enemy/night refusals and stop during
+a claim wait; no later use may occur. Preserve players' beds.
+
+At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
+ownership and tried sleep. The game refused "You can't sleep at this time"
+(day 51, fraction about 0.34). Perception then showed `mine:true,owned:true`;
+bed 1:38536 remained someone else's. This exposed an interaction reach bug:
+the bed's broad effect-area trigger counted as a nearby collider. Interact
+now excludes triggers from reach and sight. At 22:28:17Z–22:28:19Z, the final
+build walked Tas from (-36.53,36.09,7.96) to (-32.03,36.09,11.97), beside the
+physical bed collider, then relayed the same daytime refusal. HP stayed 25.
+Nighttime sleep, automatic home/join/respawn claiming,
+persistent bed status and actual respawn-at-bed remain staged work.

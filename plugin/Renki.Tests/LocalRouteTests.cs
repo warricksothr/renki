@@ -97,6 +97,26 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void FollowingWaypointsKeepsTheFloorHeightUntilActuallyReached()
+        {
+            var above = new V3(1, 3, 1);
+            var next = new V3(3, 3, 1);
+            var below = new V3(1, 0, 1);
+            var path = new PathFollower();
+            path.Set(new[] { above, next });
+            Assert.Equal(above, path.Next(below));
+            Assert.Equal(above, path.Next(below));
+            Assert.Equal(next, path.Next(above));
+            // The last waypoint also cannot be consumed from below it.
+            Assert.Equal(next, path.Next(new V3(3, 0, 1)));
+            Assert.Null(path.Next(next));
+
+            // Small differences on sloping terrain remain walkable.
+            path.Set(new[] { above, next });
+            Assert.Equal(next, path.Next(new V3(1, 2.5, 1)));
+        }
+
+        [Fact]
         public void APartialPathEndsWithoutInventingAWaypointToTheGoal()
         {
             var path = new PathFollower();

@@ -139,6 +139,9 @@ Each chest is approached if necessary and attempted once. The game's transfer
 fills compatible partial stacks first, then empty slots. Exact task-matched
 receipts and updated pack observations determine what remains for the next
 chest, including partial transfers into a chest with less room than expected.
+If an approach fails as unreachable/stuck and the known chest is within 10 m
+of configured home, stow tries that home point once before giving up on the
+chest. This is bounded recovery, not a saved entrance route.
 Busy, vanished, full or unreachable chests can fall back to the next named
 chest. Permission failures and cancellation stop the run. Nothing is dropped
 or destroyed. A shortfall remains in behaviour status and the panel's

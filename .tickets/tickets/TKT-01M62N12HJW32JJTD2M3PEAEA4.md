@@ -36,7 +36,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T22:08:25Z
+updated_at: 2026-10-29T22:26:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -110,3 +110,15 @@ Live checks on 91b4835 after the startup fix:
 - The next flint job used its pickable at 22:06:02Z and auto-pickup put Flint1 in the pack at 22:06:03.489Z. A stale perceived product caused pickup t-13 to arrive 97 ms later and be rejected invalid_target: no drop in range. The Flint is safe in the pack, but delivery stopped. No full flint-loop pass is claimed yet.
 
 Follow-up t3/collection-pickup-race checks measured whole-yield gains before choosing stale product drops. A rejected missing product can be handled only while a known pickable's output is pending; fresh inventory evidence is still required. Added regressions cover both inventory-before-perception and request-versus-auto-pickup races, plus refusal without inventory evidence. Also handle a rejected vanished chest as an unmutated fallback, with permission rejection still terminal. Focused just check controller test-packages ./internal/behaviour passed. Gate/review/controller deploy and a new flint target follow; final live receipt will be attached to the follow-up PR. Background jobs remain uninstalled and check definitions are disabled between runs.
+
+**agent:codex/renki-resume** at 2026-10-29T22:21:26Z
+
+Resumed delivery on b325d9d plus the bounded home fallback, 22:14:31–22:15:14Z: collect revisited the consumed south-flint site with Flint2 already in the pack. Direct chest approach t-2 failed unreachable (3199 expansions/25593 probes; 674.12 ms total/9.07 ms worst frame). Stow then sent one move to the configured home for this chest within 10 m; t-3 eventually entered via the west door. Deposit t-4's matching receipt moved exactly Flint2, followed by newer inventory BeechSeeds15. Chest ended Stone1/Flint2/ArmorRagsChest1; HP remained 25/25. Evidence .checks/audit-window-LtoncZ.jsonl. The temporary definition was disabled afterward.
+
+This is a resumed-delivery pass, not a fresh flint collection loop. It still tried underneath the base. The owner's observation led to a separate concrete navigation fix: height-aware waypoint advancement, with a replan instead of waiting directly underneath a waypoint on another floor. LocalRoute had already distinguished heights; PathFollower had discarded them using flat-only arrival. Saved entrance/successful-route reuse remains unimplemented. Full/warded storage, multi-chest live overflow, unattended repeated exits, leader resumption, deliberate owner-drop detection and default hauling remain open. Do not mark M2/hauling complete from these controlled loops.
+
+**agent:codex/renki-resume** at 2026-10-29T22:26:17Z
+
+Fresh one-target flint loop passed on the height-aware waypoint build with the bounded stow home fallback: 22:23:51–22:25:01Z, t-2 moved from home to (-28.15,30.43,42.11), t-3 used pickable 1:39745, t-4 took exactly Flint1, t-5's direct chest approach failed unreachable, t-6 went to configured home through the west door, and t-7 deposited Flint1. Task-matched receipt and newer pack observation confirmed chest Stone1/Flint3/ArmorRagsChest1 and pack BeechSeeds15. Every recorded state was 25/25 HP. No manual door staging occurred in this loop. Both temporary test definitions were deleted afterward. Evidence: .checks/audit-window-IM0XXq.jsonl.
+
+This is a full bounded collection/delivery pass. It is not efficient/reliable direct chest routing: the direct approach still searched the underside and failed before the home fallback. Height-aware following prevents consuming waypoints from another floor; it does not add route memory. A reusable, live-validated entrance/successful-path hint is still needed, along with repeated unattended route checks. Tree cutting, mining, crafting, default loot, deliberate-drop detection, leader/work-site resumption and live multi-chest/full/ward checks remain open.

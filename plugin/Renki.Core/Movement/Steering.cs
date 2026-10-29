@@ -98,19 +98,21 @@ namespace Renki.Movement
         public V3 Direction(V3 pos) => Next(pos) is V3 next ? (next - pos).Flat : V3.Zero;
 
         /// <summary>The waypoint to head for from pos, skipping any already
-        /// reached, or null once the last is reached.</summary>
+        /// reached on their own level, or null once the last is reached.
+        /// Standing below a floor never consumes its waypoints.</summary>
         public V3? Next(V3 pos)
         {
             while (index < points.Count)
             {
                 var last = index == points.Count - 1;
-                if (!last && V3.FlatDistance(pos, points[index]) < Reach)
+                var within = last ? Reach * 0.5 : Reach;
+                if (!Arrival.Reached(pos, points[index], within)) return points[index];
+                if (!last)
                 {
                     index++;
                     continue;
                 }
-                if (last && V3.FlatDistance(pos, points[index]) < Reach * 0.5) return null;
-                return points[index];
+                return null;
             }
             return null;
         }

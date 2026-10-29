@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T22:08:25Z
+updated_at: 2026-10-29T22:26:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -103,3 +103,15 @@ Live checks on 91b4835 after the startup fix:
 - The next flint job used its pickable at 22:06:02Z and auto-pickup put Flint1 in the pack at 22:06:03.489Z. A stale perceived product caused pickup t-13 to arrive 97 ms later and be rejected invalid_target: no drop in range. The Flint is safe in the pack, but delivery stopped. No full flint-loop pass is claimed yet.
 
 Follow-up t3/collection-pickup-race checks measured whole-yield gains before choosing stale product drops. A rejected missing product can be handled only while a known pickable's output is pending; fresh inventory evidence is still required. Added regressions cover both inventory-before-perception and request-versus-auto-pickup races, plus refusal without inventory evidence. Also handle a rejected vanished chest as an unmutated fallback, with permission rejection still terminal. Focused just check controller test-packages ./internal/behaviour passed. Gate/review/controller deploy and a new flint target follow; final live receipt will be attached to the follow-up PR. Background jobs remain uninstalled and check definitions are disabled between runs.
+
+**agent:codex/renki-resume** at 2026-10-29T22:16:30Z
+
+The owner's latest observation is repeated running underneath the base. The 22:14:31–22:15:14Z trial did complete: chest move t-2 failed after a 3199-node local search; the new one-shot home fallback t-3 replanned, entered through the west door, and t-4 deposited Flint2 with inventory/chest receipts. HP25, pack BeechSeeds15, chest Stone1/Flint2/ArmorRagsChest1. Evidence: .checks/audit-window-LtoncZ.jsonl. The fallback reduces job failure but does not establish good routing.
+
+Code inspection found PathFollower.Next advances every waypoint using flat distance alone, including the final waypoint. LocalRoute keeps floor heights distinct, but following the resulting path can discard that distinction. Add height-aware waypoint arrival and stacked-floor regression checks before further live route tests. No successful-path persistence exists today; do not claim reuse of previous routes. Keep known-good entrance reuse as a separate navigation follow-up unless current evidence requires it.
+
+**agent:codex/renki-resume** at 2026-10-29T22:26:17Z
+
+Fresh one-target flint loop passed on the height-aware waypoint build with the bounded stow home fallback: 22:23:51–22:25:01Z, t-2 moved from home to (-28.15,30.43,42.11), t-3 used pickable 1:39745, t-4 took exactly Flint1, t-5's direct chest approach failed unreachable, t-6 went to configured home through the west door, and t-7 deposited Flint1. Task-matched receipt and newer pack observation confirmed chest Stone1/Flint3/ArmorRagsChest1 and pack BeechSeeds15. Every recorded state was 25/25 HP. No manual door staging occurred in this loop. Both temporary test definitions were deleted afterward. Evidence: .checks/audit-window-IM0XXq.jsonl.
+
+This is a full bounded collection/delivery pass. It is not efficient/reliable direct chest routing: the direct approach still searched the underside and failed before the home fallback. Height-aware following prevents consuming waypoints from another floor; it does not add route memory. A reusable, live-validated entrance/successful-path hint is still needed, along with repeated unattended route checks. Tree cutting, mining, crafting, default loot, deliberate-drop detection, leader/work-site resumption and live multi-chest/full/ward checks remain open.
