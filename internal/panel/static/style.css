@@ -105,6 +105,7 @@ section { display: flex; flex-direction: column; min-height: 0; border-right: 1p
 .legend .player { background: var(--player); }
 .legend .other { background: var(--other); }
 .legend .home { background: var(--home); border-radius: 2px; }
+.legend .left { border: 2px solid var(--home); border-radius: 0; transform: rotate(45deg); width: 7px; height: 7px; }
 .legend .stuck { border: 2px solid var(--stuck); }
 .legend .hostile { background: var(--hostile); }
 .legend .tamed { background: var(--tamed); }

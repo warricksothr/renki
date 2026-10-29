@@ -444,6 +444,7 @@ type fakeHome struct {
 	ordered  int
 	resume   func(context.Context) bool
 	stranded bool
+	left     []home.Cache
 }
 
 func (h *fakeHome) SetHome(pos protocol.Vec3, by string) (string, error) {
@@ -472,6 +473,7 @@ func (h *fakeHome) ReturnOn(reason string) bool {
 	return reason == protocol.ReasonTargetLost || reason == protocol.ReasonStuck
 }
 func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h.home != nil }
+func (h *fakeHome) LeftBehind() []home.Cache                      { return h.left }
 func (h *fakeHome) Touch()                                        { h.touched++ }
 func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
 func (h *fakeHome) Ordered()                                      { h.resume = nil; h.ordered++ }
@@ -481,6 +483,21 @@ func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	h := &fakeHome{world: "Midgard", homeward: map[string]bool{}}
 	b.opts.Home = h
 	return b, f, h
+}
+
+func TestStatusSaysWhatWasLeftBehind(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home = &protocol.Vec3{}
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{0, 0, 0}}
+	h.left = []home.Cache{
+		{Pos: protocol.Vec3{30, 0, 40}, Items: map[string]int{"Wood": 6, "Stone": 2}},
+		{Pos: protocol.Vec3{300, 0, 0}, Items: map[string]int{"Flint": 1}},
+	}
+	b.Chat(line("Sothr", "bjorn status"))
+	want := " Home is 42 m away. I left 6 Wood, 2 Stone 50 m from here, and things in one other place."
+	if got := f.said(); len(got) != 1 || !strings.HasSuffix(got[0], want) {
+		t.Errorf("said %q\nwant it to end %q", got, want)
+	}
 }
 
 func TestStrandedBotSaysWhyItCannotGoHome(t *testing.T) {

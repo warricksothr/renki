@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -19,6 +21,16 @@ type Home struct {
 	At    time.Time     `json:"at"`
 }
 
+// Cache is what the bot had to leave on the ground in one place, to be
+// picked up later.
+type Cache struct {
+	Pos protocol.Vec3 `json:"pos"`
+	// Items counts what was left, by prefab.
+	Items map[string]int `json:"items"`
+	At    time.Time      `json:"at"`
+	Why   string         `json:"why"`
+}
+
 // memory is the file's content.
 type memory struct {
 	// Homes by world name.
@@ -27,6 +39,9 @@ type memory struct {
 	// in the same session. Still set at the next session means an outage
 	// cut it short.
 	Interrupted bool `json:"interrupted"`
+	// LeftBehind is what the bot dropped and has not seen picked up, by
+	// world name.
+	LeftBehind map[string][]Cache `json:"leftBehind,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file
@@ -92,6 +107,36 @@ func (s *Store) SetInterrupted(v bool) error {
 		return nil
 	}
 	s.mem.Interrupted = v
+	return s.save()
+}
+
+// LeftBehind returns a copy of what the bot left on the ground in world.
+func (s *Store) LeftBehind(world string) []Cache {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]Cache, 0, len(s.mem.LeftBehind[world]))
+	for _, c := range s.mem.LeftBehind[world] {
+		c.Items = maps.Clone(c.Items)
+		out = append(out, c)
+	}
+	return out
+}
+
+// UpdateLeftBehind replaces what is remembered in world with what f makes
+// of it, and writes the file. Caches f leaves with no items are dropped.
+func (s *Store) UpdateLeftBehind(world string, f func([]Cache) []Cache) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	caches := f(s.mem.LeftBehind[world])
+	caches = slices.DeleteFunc(caches, func(c Cache) bool { return len(c.Items) == 0 })
+	if s.mem.LeftBehind == nil {
+		s.mem.LeftBehind = map[string][]Cache{}
+	}
+	if len(caches) == 0 {
+		delete(s.mem.LeftBehind, world)
+	} else {
+		s.mem.LeftBehind[world] = caches
+	}
 	return s.save()
 }
 

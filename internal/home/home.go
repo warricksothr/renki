@@ -128,6 +128,16 @@ func (k *Keeper) HomeDistance() (float64, bool) {
 	return flat(st.Pos, h.Pos), true
 }
 
+// LeftBehind is what the bot left on the ground in the current world and
+// has not seen picked up (internal/burden).
+func (k *Keeper) LeftBehind() []Cache {
+	world := k.World()
+	if world == "" {
+		return nil
+	}
+	return k.store.LeftBehind(world)
+}
+
 // GoHome sends the bot home. origin rides on the task as with any order.
 func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.Task, error) {
 	world := k.World()

@@ -63,6 +63,8 @@ namespace Renki.Plugin
             safety.AllowMovement = Config.Bind("Safety", "AllowMovement", true, "move_to, follow, look_at.").Value;
             safety.AllowChat = Config.Bind("Safety", "AllowChat", true, "say and emote.").Value;
             safety.AllowGather = Config.Bind("Safety", "AllowGather", false, "harvest, pickup (M2).").Value;
+            safety.AllowDrop = Config.Bind("Safety", "AllowDrop", true,
+                "drop: put items down at the bot's feet, never what it has equipped. The controller drops to free a bot that carries too much to move.").Value;
             safety.AllowCombat = Config.Bind("Safety", "AllowCombat", false, "attack, guard, flee (M3).").Value;
             safety.AllowSailing = Config.Bind("Safety", "AllowSailing", false, "Steering ships (later).").Value;
             safety.AllowBossSummoning = Config.Bind("Safety", "AllowBossSummoning", false,

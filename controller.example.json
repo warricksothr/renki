@@ -4,10 +4,11 @@
   "owners": ["Sothr"],
   "rates": { "stateHz": 5, "perceptionHz": 1 },
   "perception": { "radius": 40, "maxPerKind": 24 },
-  "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote", "pickup"],
+  "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote", "pickup", "drop"],
   "audit": { "dir": "audit", "keepDays": 14 },
   "dataDir": "data",
   "home": { "whenLost": true, "whenStuck": true, "afterOutage": true, "idleMinutes": 10, "afterDeath": "home" },
+  "overload": { "drop": true },
   "llm": {
     "persona": "You are a Viking farmhand who follows the players around Valheim and helps out. Good-humoured, plain-spoken, brief.",
     "cooldownS": 5,

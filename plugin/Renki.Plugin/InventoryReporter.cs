@@ -93,7 +93,11 @@ namespace Renki.Plugin
                     // The few items with no prefab go by their name token (6.3).
                     Prefab = item.m_dropPrefab != null ? item.m_dropPrefab.name : shared.m_name,
                     Stack = item.m_stack,
+                    // One of the stack, so the controller can weigh what to drop.
+                    Weight = System.Math.Round(shared.m_weight, 2),
+                    Type = shared.m_itemType.ToString(),
                 };
+                if (shared.m_value > 0) seen.Value = shared.m_value;
                 if (shared.m_maxStackSize > 1) seen.StackMax = shared.m_maxStackSize;
                 if (shared.m_maxQuality > 1) seen.Quality = item.m_quality;
                 if (shared.m_useDurability)

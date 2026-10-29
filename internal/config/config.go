@@ -48,6 +48,9 @@ type Config struct {
 	// Home says when the bot goes home by itself.
 	Home HomeRules `json:"home"`
 
+	// Overload says what the bot does when it carries more than it can.
+	Overload Overload `json:"overload"`
+
 	// Panel is the web control panel (docs/PANEL.md).
 	Panel Panel `json:"panel"`
 }
@@ -75,6 +78,15 @@ type HomeRules struct {
 	// AfterDeath is what the bot does once it is back after a respawn:
 	// AfterDeathHome, AfterDeathResume or AfterDeathStay.
 	AfterDeath string `json:"afterDeath"`
+}
+
+// Overload is what the bot does when it carries more than it can, which
+// leaves it unable to run and, once its stamina is gone, to move.
+type Overload struct {
+	// Drop puts down the least valuable, heaviest things it carries,
+	// never its gear, until it is back under its carry weight, says so,
+	// and remembers where (internal/burden).
+	Drop bool `json:"drop"`
 }
 
 // What the bot does after a respawn (HomeRules.AfterDeath).
@@ -111,11 +123,12 @@ type LLM struct {
 
 // KnownTasks are the tasks this controller can send (docs/BRIDGE-PROTOCOL.md
 // 7.2): M1's, and what M2 has added so far. The plugin's safety switches
-// still decide which of them it offers; pickup needs AllowGather.
+// still decide which of them it offers; pickup needs AllowGather, and drop
+// AllowDrop.
 var KnownTasks = []string{
 	protocol.TaskStop, protocol.TaskMoveTo, protocol.TaskFollow,
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
-	protocol.TaskPickup,
+	protocol.TaskPickup, protocol.TaskDrop,
 }
 
 // Default returns the configuration used for anything a file leaves out.
@@ -128,6 +141,7 @@ func Default() Config {
 		Audit:        Audit{Dir: "audit", KeepDays: 14},
 		DataDir:      "data",
 		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: AfterDeathHome},
+		Overload:     Overload{Drop: true},
 	}
 }
 

@@ -3,10 +3,12 @@ package chat
 import (
 	"cmp"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
@@ -53,8 +55,37 @@ func (b *Brain) status() string {
 		} else {
 			s.WriteString(" No home here yet.")
 		}
+		if left := leftBehind(b.opts.Home.LeftBehind(), st.Pos); left != "" {
+			fmt.Fprintf(&s, " %s.", left)
+		}
 	}
 	return s.String()
+}
+
+// leftBehind names what the bot left on the ground nearest pos, and how
+// many other places there are: "I left 6 Wood 40 m from here".
+func leftBehind(caches []home.Cache, pos protocol.Vec3) string {
+	if len(caches) == 0 {
+		return ""
+	}
+	near := slices.MinFunc(caches, func(a, b home.Cache) int {
+		return cmp.Compare(a.Pos.FlatDistance(pos), b.Pos.FlatDistance(pos))
+	})
+	prefabs := slices.Sorted(maps.Keys(near.Items))
+	slices.SortStableFunc(prefabs, func(a, b string) int { return cmp.Compare(near.Items[b], near.Items[a]) })
+	var parts []string
+	for _, p := range prefabs {
+		parts = append(parts, fmt.Sprintf("%d %s", near.Items[p], words(p)))
+	}
+	s := fmt.Sprintf("I left %s %.0f m from here", strings.Join(parts, ", "), near.Pos.FlatDistance(pos))
+	switch n := len(caches) - 1; n {
+	case 0:
+	case 1:
+		s += ", and things in one other place"
+	default:
+		s += fmt.Sprintf(", and things in %d other places", n)
+	}
+	return s
 }
 
 var camel = regexp.MustCompile(`([a-z])([A-Z])`)

@@ -3,7 +3,11 @@
   "size": [8, 4],
   "items": [
     { "slot": [0, 0], "prefab": "AxeBronze", "stack": 1, "quality": 2,
-      "durability": 140.0, "durabilityMax": 250.0, "equipped": true },
-    { "slot": [3, 1], "prefab": "Wood", "stack": 42, "stackMax": 50 }
+      "durability": 140.0, "durabilityMax": 250.0, "equipped": true,
+      "weight": 2.0, "type": "OneHandedWeapon" },
+    { "slot": [3, 1], "prefab": "Wood", "stack": 42, "stackMax": 50,
+      "weight": 2.0, "type": "Material" },
+    { "slot": [4, 1], "prefab": "Amber", "stack": 3, "stackMax": 20,
+      "weight": 0.1, "type": "Material", "value": 5 }
   ]
 }

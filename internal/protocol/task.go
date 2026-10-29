@@ -27,13 +27,14 @@ const (
 	TaskSay    = "say"
 	TaskEmote  = "emote"
 	TaskPickup = "pickup"
+	TaskDrop   = "drop"
 )
 
 // Instant reports whether a task runs alongside the body task instead of
 // replacing it (7.1).
 func Instant(task string) bool {
 	switch task {
-	case TaskLookAt, TaskSay, TaskEmote, "equip", "unequip", "use_item":
+	case TaskLookAt, TaskSay, TaskEmote, TaskDrop, "equip", "unequip", "use_item":
 		return true
 	}
 	return false
@@ -61,8 +62,8 @@ func NewTask(id, task string, args any, timeoutS float64) (*TaskRequest, error) 
 }
 
 // DecodeArgs returns the typed arguments for a task: a *StopArgs,
-// *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs, *EmoteArgs or
-// *PickupArgs. It checks
+// *MoveToArgs, *FollowArgs, *LookAtArgs, *SayArgs, *EmoteArgs,
+// *PickupArgs or *DropArgs. It checks
 // that the required ones are there and that enumerated values are known.
 func (r *TaskRequest) DecodeArgs() (any, error) {
 	var args interface{ validate() error }
@@ -81,6 +82,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &EmoteArgs{}
 	case TaskPickup:
 		args = &PickupArgs{}
+	case TaskDrop:
+		args = &DropArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -185,6 +188,23 @@ type PickupArgs struct {
 func (a *PickupArgs) validate() error {
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
+	}
+	return nil
+}
+
+// DropArgs are the arguments to `drop`: how many of a prefab to put down
+// at the bot's feet.
+type DropArgs struct {
+	Prefab string `json:"prefab"`
+	Count  int    `json:"count"`
+}
+
+func (a *DropArgs) validate() error {
+	if a.Prefab == "" {
+		return errors.New("`prefab` is required")
+	}
+	if a.Count < 1 {
+		return errors.New("`count` must be at least 1")
 	}
 	return nil
 }

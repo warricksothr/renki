@@ -345,6 +345,16 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void DroppingHasItsOwnSwitch()
+        {
+            var s = new SafetyConfig { AllowMovement = false };
+            Assert.True(s.Permits("drop"));
+            s.AllowDrop = false;
+            Assert.False(s.Permits("drop"));
+            Assert.True(TaskNames.IsInstant("drop"));
+        }
+
+        [Fact]
         public void PathFollowerAdvances()
         {
             var p = new PathFollower();

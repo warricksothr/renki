@@ -1,0 +1,253 @@
+package burden
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"maps"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
+)
+
+const (
+	// Settle is how long after dropping it waits for the state and the
+	// inventory to show the change before judging again.
+	Settle = 3 * time.Second
+	// SameSpot is how close a new drop must be to an old one to count as
+	// the same place.
+	SameSpot = 3.0
+	// Spread is how far from where the bot stood its drops may land: the
+	// game throws them forward, and they roll.
+	Spread = 5.0
+	// Look is how close the bot must be to a place it left things before
+	// perception's word on them counts.
+	Look = 15.0
+	// GoneAfter is how long things must be missing from a place it is
+	// looking at before they count as picked up.
+	GoneAfter = 5 * time.Second
+	// waitFor bounds the wait for one drop task's answer.
+	waitFor = 5 * time.Second
+)
+
+// Session is what the unloader needs of the session.
+type Session interface {
+	Dispatch(ctx context.Context, o session.Order) (*session.Task, error)
+	State() *protocol.State
+	Inventory() *protocol.Inventory
+	Perception() *protocol.Perception
+}
+
+// Unloader drops things when the bot carries too much, and keeps track of
+// what it left until perception shows it gone.
+type Unloader struct {
+	on    bool
+	s     Session
+	store *home.Store
+	log   *slog.Logger
+	now   func() time.Time
+
+	next time.Time
+	// gearOnly is set once the bot has said it carries too much and has
+	// nothing but gear to drop, so it says so once per overload.
+	gearOnly bool
+	// missing is when each remembered place's things were first missed,
+	// keyed by world and position.
+	missing map[string]time.Time
+}
+
+// New returns an unloader. on false leaves an overloaded bot as it is
+// (config.Overload.Drop), but what it left is still tracked.
+func New(on bool, s Session, store *home.Store, log *slog.Logger, now func() time.Time) *Unloader {
+	if now == nil {
+		now = time.Now
+	}
+	return &Unloader{on: on, s: s, store: store, log: log, now: now, missing: map[string]time.Time{}}
+}
+
+// Run calls Tick every second until ctx ends.
+func (u *Unloader) Run(ctx context.Context) {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			u.Tick(ctx)
+		}
+	}
+}
+
+// Tick unloads an overloaded bot and checks on what it left behind.
+func (u *Unloader) Tick(ctx context.Context) {
+	st := u.s.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld || st.World == "" {
+		return
+	}
+	u.forgetGone(st)
+	if !st.Encumbered() {
+		u.gearOnly = false
+		return
+	}
+	inv := u.s.Inventory()
+	if !u.on || inv == nil || u.now().Before(u.next) {
+		return
+	}
+	u.next = u.now().Add(Settle)
+	// The state's weight is rounded: over by less than it shows still
+	// needs one thing dropped.
+	drops, short := Plan(inv, max(st.Weight, st.WeightMax+0.01), st.WeightMax)
+	if len(drops) == 0 {
+		if !u.gearOnly {
+			u.gearOnly = true
+			u.say(ctx, "I'm carrying too much, and all of it is gear I won't leave behind.")
+		}
+		return
+	}
+	left := map[string]int{}
+	for _, d := range drops {
+		if n := u.drop(ctx, d); n > 0 {
+			left[d.Prefab] += n
+		}
+	}
+	if len(left) == 0 {
+		return
+	}
+	u.remember(st.World, st.Pos, left)
+	line := fmt.Sprintf("I was carrying too much, so I left %s here. I'll remember where.", list(left))
+	if short {
+		line = fmt.Sprintf("I was carrying too much, so I left %s here. It's still too much, but the rest is gear.", list(left))
+	}
+	u.say(ctx, line)
+}
+
+// drop sends one drop task and returns how many it dropped.
+func (u *Unloader) drop(ctx context.Context, d Drop) int {
+	t, err := u.s.Dispatch(ctx, session.Order{Task: protocol.TaskDrop, Args: &protocol.DropArgs{Prefab: d.Prefab, Count: d.Count}})
+	if err != nil {
+		u.log.Warn("could not drop", "prefab", d.Prefab, "count", d.Count, "err", err)
+		return 0
+	}
+	wait, cancel := context.WithTimeout(ctx, waitFor)
+	defer cancel()
+	status, reason, err := t.Wait(wait)
+	if err != nil || status != protocol.StatusSucceeded {
+		u.log.Warn("drop failed", "prefab", d.Prefab, "count", d.Count, "status", status, "reason", reason, "err", err)
+		return 0
+	}
+	// "dropped N PREFAB" (7.2).
+	_, _, detail := t.Status()
+	var n int
+	if _, err := fmt.Sscanf(detail, "dropped %d", &n); err != nil || n < 1 {
+		n = d.Count
+	}
+	u.log.Info("dropped to lighten the load", "prefab", d.Prefab, "count", n)
+	return n
+}
+
+// remember adds what was left at pos to the place nearest it, or to a new one.
+func (u *Unloader) remember(world string, pos protocol.Vec3, items map[string]int) {
+	err := u.store.UpdateLeftBehind(world, func(caches []home.Cache) []home.Cache {
+		for i := range caches {
+			if caches[i].Pos.FlatDistance(pos) <= SameSpot {
+				for p, n := range items {
+					caches[i].Items[p] += n
+				}
+				caches[i].At = u.now()
+				return caches
+			}
+		}
+		return append(caches, home.Cache{Pos: pos, Items: maps.Clone(items), At: u.now(), Why: "overloaded"})
+	})
+	if err != nil {
+		u.log.Warn("could not remember what was left", "err", err)
+	}
+}
+
+// forgetGone drops from memory what perception, looking at a place up
+// close, no longer sees there: someone picked it up.
+func (u *Unloader) forgetGone(st *protocol.State) {
+	caches := u.store.LeftBehind(st.World)
+	if len(caches) == 0 {
+		return
+	}
+	p := u.s.Perception()
+	if p == nil {
+		return
+	}
+	changed := false
+	for i, c := range caches {
+		if c.Pos.FlatDistance(st.Pos) > Look {
+			continue
+		}
+		for prefab := range c.Items {
+			key := fmt.Sprintf("%s|%.1f|%.1f|%s", st.World, c.Pos[0], c.Pos[2], prefab)
+			if slices.ContainsFunc(p.Resources, func(r protocol.PerceivedResource) bool {
+				return r.Kind == protocol.ResourceDrop && r.Prefab == prefab && r.Pos.FlatDistance(c.Pos) <= Spread
+			}) {
+				delete(u.missing, key)
+				continue
+			}
+			since, ok := u.missing[key]
+			if !ok {
+				u.missing[key] = u.now()
+				continue
+			}
+			if u.now().Sub(since) >= GoneAfter {
+				delete(u.missing, key)
+				delete(caches[i].Items, prefab)
+				changed = true
+				u.log.Info("what was left is gone", "prefab", prefab, "pos", c.Pos)
+			}
+		}
+	}
+	if !changed {
+		return
+	}
+	if err := u.store.UpdateLeftBehind(st.World, func([]home.Cache) []home.Cache { return caches }); err != nil {
+		u.log.Warn("could not forget what was picked up", "err", err)
+	}
+}
+
+func (u *Unloader) say(ctx context.Context, text string) {
+	if _, err := u.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay,
+		Args: &protocol.SayArgs{Text: text, Channel: protocol.ChannelShout}}); err != nil {
+		u.log.Warn("could not say", "text", text, "err", err)
+	}
+}
+
+// list names what was left, most first: "6 Wood and 2 Stone".
+func list(items map[string]int) string {
+	prefabs := slices.Collect(maps.Keys(items))
+	slices.SortFunc(prefabs, func(a, b string) int {
+		if items[a] != items[b] {
+			return items[b] - items[a]
+		}
+		return strings.Compare(a, b)
+	})
+	parts := make([]string, len(prefabs))
+	for i, p := range prefabs {
+		parts[i] = fmt.Sprintf("%d %s", items[p], Name(p))
+	}
+	if len(parts) == 1 {
+		return parts[0]
+	}
+	return strings.Join(parts[:len(parts)-1], ", ") + " and " + parts[len(parts)-1]
+}
+
+// Name is a prefab as a person would say it: AxeBronze is "Axe Bronze".
+func Name(prefab string) string {
+	var b strings.Builder
+	for i, r := range prefab {
+		if i > 0 && r >= 'A' && r <= 'Z' && prefab[i-1] >= 'a' && prefab[i-1] <= 'z' {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}

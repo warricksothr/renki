@@ -82,6 +82,8 @@ type Home interface {
 	ReturnOn(reason string) bool
 	// HomeDistance is how far the bot is from home.
 	HomeDistance() (float64, bool)
+	// LeftBehind is what the bot had to leave on the ground in this world.
+	LeftBehind() []home.Cache
 	// Touch counts as activity, for the idle rule.
 	Touch()
 	// ResumeAfterDeath leaves what to start again after a respawn, when

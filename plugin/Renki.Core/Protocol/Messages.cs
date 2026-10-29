@@ -224,6 +224,9 @@ namespace Renki.Protocol
         [JsonProperty("durability", NullValueHandling = NullValueHandling.Ignore)] public double? Durability;
         [JsonProperty("durabilityMax", NullValueHandling = NullValueHandling.Ignore)] public double? DurabilityMax;
         [JsonProperty("equipped", NullValueHandling = NullValueHandling.Ignore)] public bool? Equipped;
+        [JsonProperty("weight")] public double Weight;
+        [JsonProperty("type")] public string Type = "";
+        [JsonProperty("value", NullValueHandling = NullValueHandling.Ignore)] public int? Value;
     }
 
     /// <summary>Section 6.3; streamed from M2.</summary>

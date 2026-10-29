@@ -40,7 +40,9 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 - **Map:** top-down, north up, a grid every 10 m. The bot with its facing and
   its trail over the last few minutes; from perception, players, creatures
   (red when hostile, ringed when after the bot), structures (doors hollow
-  when open) and, zoomed in, trees, rocks, pickables and drops; home, the
+  when open) and, zoomed in, trees, rocks, pickables and drops; home, a
+  diamond for each place the bot had to leave things because it carried too
+  much (with what it left), the
   walker's latest path (dashed when it had no navmesh
   path and went straight), and a circle for each stuck recovery. Scroll or
   use + and − to zoom; drag to pan, which stops it following the bot.

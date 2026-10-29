@@ -16,6 +16,7 @@ const world = {
   structures: [],
   resources: [],
   home: null,
+  left: [], // what the bot left on the ground: {pos, items}
   path: null, // {from, to}
   stuck: [], // {pos, attempt}
 };
@@ -179,6 +180,7 @@ function onStatus(s) {
   chip("phase", s.phase ? s.phase.replace("_", " ") : "");
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
   chip("hp", s.hpMax ? `hp ${Math.round(s.hp)}/${Math.round(s.hpMax)}` : "");
+  world.left = s.leftBehind || [];
   if (s.home) {
     world.home = s.home.pos;
     chip("home", s.home.distance != null ? `home ${Math.round(s.home.distance)} m` : "home set");
@@ -254,6 +256,21 @@ function render() {
     const x = sx(world.home[0]), y = sy(world.home[2]);
     ctx.fillRect(x - 6, y - 6, 12, 12);
     label("home", x + 9, y + 4);
+  }
+
+  for (const c of world.left) {
+    ctx.strokeStyle = colour("home");
+    ctx.lineWidth = 2;
+    const x = sx(c.pos[0]), y = sy(c.pos[2]);
+    ctx.beginPath();
+    ctx.moveTo(x, y - 6);
+    ctx.lineTo(x + 6, y);
+    ctx.lineTo(x, y + 6);
+    ctx.lineTo(x - 6, y);
+    ctx.closePath();
+    ctx.stroke();
+    const what = Object.entries(c.items).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${n} ${plain(p)}`).join(", ");
+    label(`left: ${what}`, x + 9, y + 4);
   }
 
   // Resources only once zoomed in enough to tell them apart.

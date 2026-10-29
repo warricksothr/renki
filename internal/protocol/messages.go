@@ -279,6 +279,12 @@ type InventoryItem struct {
 	Durability    float64 `json:"durability,omitempty"`
 	DurabilityMax float64 `json:"durabilityMax,omitempty"`
 	Equipped      bool    `json:"equipped,omitempty"`
+	// Weight is one of the stack's, Type the game's item type (Material,
+	// Consumable, OneHandedWeapon...), and Value what a trader gives, set
+	// only on valuables.
+	Weight float64 `json:"weight"`
+	Type   string  `json:"type"`
+	Value  int     `json:"value,omitempty"`
 }
 
 // Chat is every chat line except the bot's own (6.4).

@@ -235,8 +235,12 @@ into a problem.
   "size": [8, 4],
   "items": [
     { "slot": [0, 0], "prefab": "AxeBronze", "stack": 1, "quality": 2,
-      "durability": 140.0, "durabilityMax": 250.0, "equipped": true },
-    { "slot": [3, 1], "prefab": "Wood", "stack": 42, "stackMax": 50 }
+      "durability": 140.0, "durabilityMax": 250.0, "equipped": true,
+      "weight": 2.0, "type": "OneHandedWeapon" },
+    { "slot": [3, 1], "prefab": "Wood", "stack": 42, "stackMax": 50,
+      "weight": 2.0, "type": "Material" },
+    { "slot": [4, 1], "prefab": "Amber", "stack": 3, "stackMax": 20,
+      "weight": 0.1, "type": "Material", "value": 5 }
   ]
 }
 ```
@@ -244,7 +248,11 @@ into a problem.
 `prefab` is the item's prefab, as drops and `deposit` name it. The few items
 the game has no prefab for go by their name token instead (`$item_…`).
 `quality` is set on items that have levels, `durability` on items that wear,
-and `equipped` on what the bot holds or wears. A burst of changes, such as
+and `equipped` on what the bot holds or wears. `weight` is the weight of one
+of the stack, and `type` the game's item type (`Material`, `Consumable`,
+`OneHandedWeapon`, `Tool`, `Helmet`, …). `value` is what a trader gives for
+one, set only on valuables such as coins, gems and amber. The controller
+uses these to choose what to drop when the bot carries too much. A burst of changes, such as
 picking up a pile, is one message.
 
 ### 6.4 `chat` (every chat line except the bot's own)
@@ -358,6 +366,7 @@ on the message.
 | `say` | instant | `text`; `channel`: `normal`, `shout` or `whisper`; `to` (whisper target) | M1 |
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
+| `drop` | instant | `prefab`; `count` (at least 1) | M2 |
 | `interact` | body | `entity`; `alt` (bool); `hold` (bool) | M2 |
 | `harvest` | body | `entity` (tree, log, rock or pickable); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot` | M2 |
@@ -389,6 +398,12 @@ Notes:
   `the game kept the other N`. The controller reads these phrases to tell the
   owner what happened, so they are part of the protocol. It needs `allowGather` and `allowMovement`, since it
   walks.
+- `drop` puts up to `count` of a prefab down at the bot's feet, as a player
+  drops from the inventory, never from a stack it has equipped. It succeeds
+  with `dropped N PREFAB`, and fails with `invalid_target` when the bot has
+  none it may drop. The game marks a player's own drop so its auto-pickup
+  does not take it straight back. It needs `allowDrop`, which is on by
+  default and needs no movement.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
   few metres. Choosing *which* tree is the controller's job.
@@ -424,7 +439,7 @@ Notes:
 
 1. **Whitelist only.** The plugin carries out the tasks in section 7.2 and
    nothing else. No console or dev commands, ever.
-2. **The plugin's own config wins.** `allowGather`, `allowCombat`,
+2. **The plugin's own config wins.** `allowGather`, `allowDrop`, `allowCombat`,
    `allowSailing`, `allowBossSummoning` and `allowRawControls` are read from the
    plugin's BepInEx config. `welcome.allowedTasks` can narrow them but never
    widen them.
@@ -439,8 +454,9 @@ Notes:
    private-area access check fails for the bot.
 7. **Bosses.** Interacting with offering bowls is refused unless
    `allowBossSummoning` is set.
-8. **No destroying items.** There's no drop or trash task. Items leave the bot
-   only through `deposit`.
+8. **No destroying items.** There's no trash task. Items leave the bot only
+   through `deposit`, or `drop`, which puts them on the ground where anyone
+   can pick them up. Nothing equipped is ever dropped.
 
 ## 9. Chat and the LLM
 
@@ -491,6 +507,16 @@ chat event
   from `state.phase` rather than the `died` and `respawned` events, so a
   lost event does not lose them. The plugin reports `dead` from the death
   until the respawn wait ends, about 10 s.
+- **Carrying too much.** When the state says `encumbered`, the controller
+  drops the least valuable, heaviest things first, just enough to be back
+  under `weightMax`: common raw materials (wood, stone, flint, resin,
+  feathers), then other materials, then food and potions, then valuables
+  (`value`). It never drops anything equipped or any gear (weapons, tools,
+  armour, shields, torches, ammunition). It shouts what it left, and keeps
+  where and what per world in `dataDir`, shown by `status` and on the panel
+  map, until perception, from within 15 m, has seen none of it there for
+  5 s. `overload.drop` (on by default) turns the dropping off; the plugin's
+  `allowDrop` does too.
 - **LLM input** is a short summary, not the raw streams. It covers health,
   biome, time of day, the current task, notable inventory, threats in view, the
   last ~20 chat lines, and the allowed tasks offered as tools.
