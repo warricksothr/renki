@@ -152,7 +152,9 @@ namespace Renki.Plugin
                     });
                     continue;
                 }
-                if (DoorRules.In(pos, at)) o.Through = true;
+                // In the doorway counts only with the door open: pressed
+                // against a shut one is not through it.
+                if (DoorRules.In(pos, at) && IsOpen(o.Door)) o.Through = true;
                 if (!DoorRules.Past(pos, at)) continue;
                 if (!o.Through)
                 {
