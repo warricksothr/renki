@@ -798,6 +798,23 @@ func TestUseTheBedAndDoor(t *testing.T) {
 		t.Errorf("claimed its own bed: %q", got[len(got)-1])
 	}
 
+	// Opening takes the nearest shut door, closing the nearest open one.
+	shut, open := false, true
+	f.perception.Structures[2].Open = &open
+	f.perception.Structures = append(f.perception.Structures,
+		protocol.PerceivedStructure{ID: "1:6", Kind: protocol.StructureDoor, Pos: protocol.Vec3{16, 0, 10}, Open: &shut})
+	b.Chat(line("Sothr", "bjorn open the door"))
+	b.Chat(line("Sothr", "bjorn close the door"))
+	if got := uses(); !slices.Equal(got[len(got)-2:], []string{"1:6", "1:3"}) {
+		t.Errorf("used %v; want shut 1:6 opened, open 1:3 closed", got)
+	}
+	f.perception.Structures[4].Open = &open
+	b.Chat(line("Sothr", "bjorn open the door"))
+	if got := f.said(); got[len(got)-1] != "It's open already." {
+		t.Errorf("with every door open: %q", got[len(got)-1])
+	}
+	f.perception.Structures[2].Open = nil
+
 	// From the panel, with the owner out of sight: nearest the bot, at 29, 10.
 	f.perception.Structures = f.perception.Structures[:3]
 	f.state = &protocol.State{Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{29, 0, 10}}

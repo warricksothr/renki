@@ -465,11 +465,13 @@ const (
 	cmdBed
 	cmdClaimBed
 	cmdDoor
+	cmdOpenDoor
+	cmdCloseDoor
 )
 
 func (c command) String() string {
 	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
-		"go to bed", "claim the bed", "get the door"}[c]
+		"go to bed", "claim the bed", "get the door", "open the door", "close the door"}[c]
 }
 
 var grammar = map[string]command{
@@ -487,7 +489,7 @@ var grammar = map[string]command{
 	"go to bed": cmdBed, "use your bed": cmdBed, "use the bed": cmdBed,
 	"claim the bed": cmdClaimBed, "claim a bed": cmdClaimBed, "claim that bed": cmdClaimBed,
 	"claim this bed": cmdClaimBed,
-	"get the door":   cmdDoor, "open the door": cmdDoor, "close the door": cmdDoor, "use the door": cmdDoor,
+	"get the door":   cmdDoor, "use the door": cmdDoor, "open the door": cmdOpenDoor, "close the door": cmdCloseDoor,
 }
 
 func parse(stripped string) (command, bool) {
@@ -515,7 +517,7 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		if order, ack, ok = b.pickup(c, from); !ok {
 			return
 		}
-	case cmdBed, cmdClaimBed, cmdDoor:
+	case cmdBed, cmdClaimBed, cmdDoor, cmdOpenDoor, cmdCloseDoor:
 		var ok bool
 		if order, ack, ok = b.use(cmd, c, from); !ok {
 			return
@@ -572,7 +574,15 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 		return session.Order{}, "", false
 	case cmdClaimBed:
 		kind, what, ack = protocol.StructureBed, "bed", "I'll take that bed."
+	case cmdOpenDoor:
+		ack = "Opening the door."
+	case cmdCloseDoor:
+		ack = "Closing the door."
 	}
+	// Using a door swings it either way, so opening takes only a shut one,
+	// and closing an open one.
+	wantOpen := cmd == cmdCloseDoor
+	sorted := cmd == cmdOpenDoor || cmd == cmdCloseDoor
 	near := c.Pos
 	if !located(c) {
 		if st := b.d.State(); st != nil {
@@ -580,9 +590,9 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 		}
 	}
 	var (
-		best   *protocol.PerceivedStructure
-		dist   = useReach
-		mineIn bool
+		best    *protocol.PerceivedStructure
+		dist    = useReach
+		already bool // one in reach, but already as asked
 	)
 	if seen := b.d.Perception(); seen != nil {
 		for i, s := range seen.Structures {
@@ -594,15 +604,23 @@ func (b *Brain) use(cmd command, c *protocol.Chat, from origin) (session.Order, 
 				continue
 			}
 			// The bot's own bed is not one to claim; another in reach is.
-			if s.Mine && cmd == cmdClaimBed {
-				mineIn = true
+			// Likewise a door already as asked.
+			if (s.Mine && cmd == cmdClaimBed) || (sorted && s.Open != nil && *s.Open != wantOpen) {
+				already = true
 				continue
 			}
 			best, dist = &seen.Structures[i], d
 		}
 	}
-	if best == nil && mineIn {
-		b.say(from, "That one's mine already.")
+	if best == nil && already {
+		switch cmd {
+		case cmdOpenDoor:
+			b.say(from, "It's open already.")
+		case cmdCloseDoor:
+			b.say(from, "It's shut already.")
+		default:
+			b.say(from, "That one's mine already.")
+		}
 		return session.Order{}, "", false
 	}
 	if best == nil {

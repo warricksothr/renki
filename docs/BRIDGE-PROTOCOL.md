@@ -572,8 +572,9 @@ chat event
   `pick that up` (the drop nearest the speaker, within 10 m), `go to bed`
   (the bot's own bed, wherever it is in sight, and no other, since using one
   claims it), `claim the bed` (the bed nearest the speaker within 10 m, or the
-  bot when the speaker is out of sight) and `get the door` (`open the door`,
-  `close the door`: the nearest door, likewise). The last two send `interact`, and the bot answers
+  bot when the speaker is out of sight) and `get the door` (the nearest door, likewise;
+  `open the door` takes the nearest shut one and `close the door` the
+  nearest open one, since using a door swings it either way). The last two send `interact`, and the bot answers
   with what the game said: "Spawn point set", or "It won't: You need a roof".
   Only `owners` can issue tasks.
 - **Home** is where the speaker stood when they said `set home`, one per
