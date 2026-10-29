@@ -247,10 +247,14 @@ func (b *Brain) TaskDone(t *session.Task) {
 	}
 	status, reason, detail := t.Status()
 	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
-		// The plugin says "no room for the other N" when it filled up first.
-		if strings.Contains(detail, "no room") {
+		// The plugin says "the other N" when some of the stack stayed behind:
+		// "no room for the other N" when it filled up first.
+		switch {
+		case strings.Contains(detail, "no room"):
 			b.say(o, "I got some of it, but I'm out of room.")
-		} else {
+		case strings.Contains(detail, "the other"):
+			b.say(o, "I got some of it.")
+		default:
 			b.say(o, "Got it.")
 		}
 		return

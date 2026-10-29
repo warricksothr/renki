@@ -371,8 +371,10 @@ Notes:
   of the same item is followed there. It succeeds when the bot carries more
   of the item than it did, which can also come from another stack of it that
   auto-pickup took on the way, and fails with `inventory_full` when none fits,
-  `target_lost` when the drop is gone and the bot did not get it, or `stuck`
-  as `move_to` does. It needs `allowGather` and `allowMovement`, since it
+  `target_lost` when the drop is gone and the bot did not get it,
+  `invalid_target` when the game will not hand it over after a few tries,
+  or `stuck` as `move_to` does. A pickup that got some of the stack succeeds,
+  and its detail says how many stayed behind. It needs `allowGather` and `allowMovement`, since it
   walks.
 - `harvest` covers approaching the target, equipping the best tool that meets
   `minTool`, swinging until the target breaks, then sweeping up drops within a
