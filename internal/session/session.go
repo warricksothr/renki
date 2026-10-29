@@ -147,12 +147,27 @@ func (s *Session) Connected(c *bridge.Conn) {
 		return !slices.Contains(c.Hello.Capabilities, t)
 	})
 	s.mu.Lock()
+	// The bridge closes the old socket without waiting for its read loop.
+	// Its Disconnected callback may arrive after this one and correctly
+	// ignore the replaced connection. Finish its tasks here as well.
+	var ended []*Task
+	for id, t := range s.tasks {
+		if t.update(protocol.StatusCancelled, protocol.ReasonStopped, "connection replaced") {
+			ended = append(ended, t)
+		}
+		delete(s.tasks, id)
+	}
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
 	s.containerAt = make(map[string]time.Time)
 	s.mu.Unlock()
 	s.log.Info("session started", "allowed", allowed)
+	for _, t := range ended {
+		if s.listener != nil {
+			s.listener.TaskDone(t)
+		}
+	}
 }
 
 // Disconnected implements bridge.Handler. Every unfinished task of that

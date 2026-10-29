@@ -3,6 +3,10 @@ package session
 import (
 	"context"
 	"errors"
+	"github.com/warricksothr/renki/internal/bridge"
+	"github.com/warricksothr/renki/internal/bridge/bridgetest"
+	"io"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -145,4 +149,71 @@ func TestAutomationCannotAcquireUsingAnOldWorldObservation(t *testing.T) {
 	if _, err := s.TryAutomationFor(hello, world); !errors.Is(err, ErrBodyBusy) {
 		t.Fatal("acquired from stale world", err)
 	}
+}
+
+// Hold the old socket's callback until its replacement has been installed.
+// This exercises the ordering that an ordinary reconnect test can miss.
+type heldDisconnect struct {
+	*Session
+	once    sync.Once
+	blocked chan struct{}
+	release chan struct{}
+}
+
+func (h *heldDisconnect) Disconnected(c *bridge.Conn, err error) {
+	h.once.Do(func() { close(h.blocked); <-h.release })
+	h.Session.Disconnected(c, err)
+}
+func TestReplacementConnectionClearsOldPendingTasksBeforeItsDisconnect(t *testing.T) {
+	l := &listener{}
+	s := New(l, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	h := &heldDisconnect{Session: s, blocked: make(chan struct{}), release: make(chan struct{})}
+	t.Cleanup(func() {
+		select {
+		case <-h.release:
+		default:
+			close(h.release)
+		}
+	})
+	url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome {
+		return &protocol.Welcome{AllowedTasks: []string{"stop", "move_to"}}
+	}}, h)
+	old := bridgetest.Connect(t, url, nil)
+	old.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25})
+	waitFor(t, func() bool { return s.State() != nil })
+	before, _, _ := s.Handshake()
+	lease, err := s.TryAutomation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pos := protocol.Vec3{2, 0, 0}
+	task, err := lease.Dispatch(context.Background(), Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}}, TimeoutS: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	old.NextTask()
+	next := bridgetest.Connect(t, url, nil)
+	waitFor(t, func() bool { hello, _, ok := s.Handshake(); return ok && hello != before })
+	next.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25})
+	waitFor(t, func() bool { return s.State() != nil })
+	select {
+	case <-task.Done():
+	default:
+		t.Fatal("replacement left old body task pending")
+	}
+	if lease.Valid() {
+		t.Fatal("old lease still owns new session")
+	}
+	replacement, err := s.TryAutomation()
+	if err != nil {
+		t.Fatal("new idle session remains blocked", err)
+	}
+	replacement.Release()
+	close(h.release)
+	waitFor(t, func() bool { return len(l.finished()) == 1 })
+	status, reason, _ := task.Status()
+	if status != protocol.StatusCancelled || reason != protocol.ReasonStopped {
+		t.Fatal(status, reason)
+	}
+	next.Quiet(20 * time.Millisecond)
 }
