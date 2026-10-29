@@ -98,15 +98,16 @@ type Session struct {
 	log      *slog.Logger
 	listener Listener
 
-	mu       sync.Mutex
-	conn     *bridge.Conn
-	state    *protocol.State
-	seen     *protocol.Perception
-	carried  *protocol.Inventory
-	allowed  []string
-	permit   func(task string) bool
-	tasks    map[string]*Task
-	nextTask uint64
+	mu         sync.Mutex
+	conn       *bridge.Conn
+	state      *protocol.State
+	seen       *protocol.Perception
+	carried    *protocol.Inventory
+	containers map[string]*protocol.Container
+	allowed    []string
+	permit     func(task string) bool
+	tasks      map[string]*Task
+	nextTask   uint64
 }
 
 // New returns a session that reports to l.
@@ -141,6 +142,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	})
 	s.mu.Lock()
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
+	s.containers = make(map[string]*protocol.Container)
 	s.mu.Unlock()
 	s.log.Info("session started", "allowed", allowed)
 }
@@ -174,6 +176,9 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 	case *protocol.State:
 		s.mu.Lock()
 		if s.conn == c && (s.state == nil || m.Seq > s.state.Seq) {
+			if s.state != nil && s.state.World != m.World {
+				s.containers = make(map[string]*protocol.Container)
+			}
 			s.state = m
 		}
 		s.mu.Unlock()
@@ -193,6 +198,12 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		s.mu.Lock()
 		if s.conn == c && (s.carried == nil || m.Seq > s.carried.Seq) {
 			s.carried = m
+		}
+		s.mu.Unlock()
+	case *protocol.Container:
+		s.mu.Lock()
+		if s.conn == c && m.Entity != "" && (s.containers[m.Entity] == nil || m.Seq > s.containers[m.Entity].Seq) {
+			s.containers[m.Entity] = m
 		}
 		s.mu.Unlock()
 	case *protocol.Trace, *protocol.Layout:
@@ -245,6 +256,17 @@ func (s *Session) Inventory() *protocol.Inventory {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.carried
+}
+
+// Containers lists chest snapshots from this connection; snapshots are immutable.
+func (s *Session) Containers() []*protocol.Container {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]*protocol.Container, 0, len(s.containers))
+	for _, c := range s.containers {
+		out = append(out, c)
+	}
+	return out
 }
 
 // Handshake returns the current connection's hello and welcome, and false

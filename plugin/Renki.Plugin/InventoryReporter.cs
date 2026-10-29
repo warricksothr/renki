@@ -81,7 +81,7 @@ namespace Renki.Plugin
             return wear;
         }
 
-        static Protocol.Inventory Describe(global::Inventory inv)
+        internal static Protocol.Inventory Describe(global::Inventory inv)
         {
             var m = new Protocol.Inventory { Size = new[] { inv.GetWidth(), inv.GetHeight() } };
             foreach (var item in inv.GetAllItems())

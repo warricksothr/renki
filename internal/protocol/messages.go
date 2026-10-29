@@ -9,6 +9,7 @@ const (
 	TypeState      = "state"
 	TypePerception = "perception"
 	TypeInventory  = "inventory"
+	TypeContainer  = "container"
 	TypeLayout     = "layout"
 	TypeChat       = "chat"
 	TypeEvent      = "event"
@@ -270,6 +271,24 @@ type Inventory struct {
 }
 
 func (*Inventory) MessageType() string { return TypeInventory }
+
+// Container is an observed chest, with exact transfer results when Task is set.
+// The snapshot is sent after normal access is granted and again after a transfer.
+type Container struct {
+	Envelope
+	Entity    string          `json:"entity"`
+	Pos       Vec3            `json:"pos"`
+	Size      [2]int          `json:"size"`
+	Items     []InventoryItem `json:"items"`
+	Task      string          `json:"task,omitempty"`
+	Direction string          `json:"direction,omitempty"`
+	Moved     map[string]int  `json:"moved,omitempty"`
+	Remaining map[string]int  `json:"remaining,omitempty"`
+}
+
+func (*Container) MessageType() string { return TypeContainer }
+
+func (c *Container) Inventory() *Inventory { return &Inventory{Size: c.Size, Items: c.Items} }
 
 // Layout is the walls near the bot, sent when they change (6.9).
 type Layout struct {

@@ -136,6 +136,25 @@ panel METHOD PATH BODY='': need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/panel-request.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/panel-request.ps1 -Method '$method' -ApiPath '$endpoint' ${bodyarg[*]}"
 
+# Send an exact task for a reproducible live check; normal safety still applies.
+[positional-arguments]
+task TASK ARGS='{}' TIMEOUT='60':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body=$(python3 -c 'import json,sys; print(json.dumps(dict(task=sys.argv[1],args=json.loads(sys.argv[2]),timeoutS=float(sys.argv[3]))))' "$1" "$2" "$3")
+    just --justfile "{{justfile()}}" vm panel POST /api/task "$body"
+
+# Read AllowGather, or set true/false before restarting the game.
+[positional-arguments]
+gather VALUE='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/gather.ps1" "{{target}}:/{{dir}}/gather.ps1"
+    valuearg=()
+    [ -z "$1" ] || valuearg=(-Value "$1")
+    {{ssh}} "{{ps}} -File {{dir}}/gather.ps1 ${valuearg[*]}"
+
 # Prompts here without echoing, and sends the value over SSH's standard
 # input, so it is in no command line, log or chat. `just vm secret CPA_API_KEY`.
 [doc("Store a secret for the controller on the VM, such as an LLM key.")]

@@ -1,0 +1,1 @@
+{"v":1,"type":"container","seq":80,"t":12,"entity":"1:25","pos":[-35,36,7],"size":[5,2],"items":[{"slot":[0,0],"prefab":"Wood","stack":50,"stackMax":50,"weight":2,"type":"Material"}],"task":"t-deposit","direction":"deposit","moved":{"Wood":20},"remaining":{"Wood":5}}

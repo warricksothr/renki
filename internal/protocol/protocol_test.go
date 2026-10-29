@@ -185,6 +185,16 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskEquip, `{}`, nil, ErrBadArgs},
 		{TaskUnequip, `{"slot":"hands"}`, &UnequipArgs{Slot: "hands"}, nil},
 		{TaskUnequip, `{"slot":"tail"}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":"all"}]}`, &TransferArgs{Container: "1:2", Items: []TransferItem{{Prefab: "Wood", Count: AllItems}}}, nil},
+		{TaskWithdraw, `{"container":"1:2","items":[{"prefab":"Wood","count":5}]}`, &TransferArgs{Container: "1:2", Items: []TransferItem{{Prefab: "Wood", Count: 5}}}, nil},
+		{TaskDeposit, `{"items":[{"prefab":"Wood","count":1}]}`, nil, ErrBadArgs},
+		{TaskWithdraw, `{"container":"1:2","items":[]}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":0}]}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":-1}]}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":1.5}]}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":2147483648}]}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":"5"}]}`, nil, ErrBadArgs},
+		{TaskDeposit, `{"container":"1:2","items":[{"prefab":"Wood","count":1},{"prefab":"Wood","count":2}]}`, nil, ErrBadArgs},
 		{"harvest", `{"entity":"0:7001"}`, nil, ErrUnknownTask},
 	}
 	for _, tc := range tests {
