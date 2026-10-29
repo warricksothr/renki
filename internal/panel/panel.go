@@ -326,11 +326,13 @@ func (p *panel) say(w http.ResponseWriter, r *http.Request) {
 	case strings.TrimSpace(req.Text) == "":
 		code, text = http.StatusBadRequest, "nothing to say"
 	default:
+		// Logged first, so the feed shows the words before the answer.
+		p.o.Logger.Info("panel said", "as", req.As, "text", req.Text, "remote", r.RemoteAddr)
 		if err := p.o.Say(req.As, req.Text); err != nil {
 			code, text = http.StatusConflict, err.Error()
+			p.o.Logger.Info("panel said: refused", "as", req.As, "err", err)
 		}
 	}
-	p.o.Logger.Info("panel said", "as", req.As, "text", req.Text, "remote", r.RemoteAddr, "status", code)
 	writeJSON(w, code, map[string]string{"text": text})
 }
 
