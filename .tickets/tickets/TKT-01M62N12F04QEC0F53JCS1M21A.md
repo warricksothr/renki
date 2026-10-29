@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:34:20Z
+updated_at: 2026-10-29T23:39:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -75,3 +75,7 @@ Source hardening: refuse harvest below 80% HP or with an enemy within 15 m, rech
 **agent:codex/renki-resume** at 2026-10-29T23:34:20Z
 
 On installed PR #32, Tas recovered naturally to full health from the shared food chest. Harvest t-14 inside and t-17 on the west terrace both refused the 15 m threat guard while current character perception showed no hostiles. Code inspection found that the all-layer overlap returns the same enemy result when its 256-collider buffer saturates; dense house geometry can therefore masquerade as a threat. Replace that scan with the same Character.GetCharactersInRange registry already used by perception, retaining all enemy/distance checks and 0.25 s cadence. No threat safety is bypassed. Full supplied-tool task/collection/delivery, log/falling-tree safety and post-fix live retreat remain unverified. Current pack still contains the original axe, 15 seeds, two wood and one spare of each of three meals.
+
+**agent:codex/renki-resume** at 2026-10-29T23:39:35Z
+
+PR #33 landed as main 3ab1fbe and just check vm deploy passed with checksums. New run harvest t-1 accepted (character-registry threat scan passed) but cancelled 0.1 s later as its health baseline fell with food maximum decay. Audit .checks/audit-window-KfUlis.jsonl contains no damage events; Tas stayed at home at full current HP. Clamp the fallback health baseline to current maximum so ordinary food decay is not damage; actual positive damage still latches cancellation immediately even when healing masks a loss. Add a numerical regression for food-cap decay versus real injury. Supplied-tool benchmark remains open pending this correction.

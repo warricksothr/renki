@@ -10,15 +10,23 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void FoodMaximumDecayIsNotDamage()
+        {
+            Assert.False(HarvestHealth.Hurt(115, 114.7, 114.7));
+            Assert.True(HarvestHealth.Hurt(115, 113.7, 114.7));
+            Assert.True(HarvestHealth.Hurt(115, 114.7, 115));
+        }
+
+        [Fact]
         public void HarvestWaitsForRecoveryAndCancelsOnTheFirstHealthLoss()
         {
             Assert.True(HarvestHealth.Ready(25, 25));
             Assert.True(HarvestHealth.Ready(20, 25));
             Assert.False(HarvestHealth.Ready(19.9, 25));
             Assert.False(HarvestHealth.Ready(25, 0));
-            Assert.False(HarvestHealth.Hurt(25, 25));
-            Assert.True(HarvestHealth.Hurt(25, 24.9));
-            Assert.True(HarvestHealth.Hurt(25, 20.4));
+            Assert.False(HarvestHealth.Hurt(25, 25, 25));
+            Assert.True(HarvestHealth.Hurt(25, 24.9, 25));
+            Assert.True(HarvestHealth.Hurt(25, 20.4, 25));
         }
 
         [Fact]
