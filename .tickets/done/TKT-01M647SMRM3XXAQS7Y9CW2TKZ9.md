@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M647SMRM3XXAQS7Y9CW2TKZ9
 title: Retry raised goals from other approaches before giving up
 type: bug
-status: review
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T16:27:24Z
-updated_at: 2026-10-29T16:34:49Z
+updated_at: 2026-10-29T16:59:05Z
 created_by:
   id: agent:codex/renki-resume
   name: ""
@@ -55,6 +55,10 @@ Implemented bounded off-level recovery in ApproachRecovery and Walker: three app
 
 Final just check ci also passed after log-capture hardening: plugin and controller builds succeeded with zero warnings/errors, all 122 C# tests passed, Go race tests passed and the ticket store was valid. Live-game recovery validation remains pending in review.
 
+**agent:codex/renki-resume** at 2026-10-29T16:59:05Z
+
+Deployed merged main 6baa828 to the VM and confirmed that exact version through the live panel. Two ordinary return-home trips succeeded. With Nimah underneath the house, come here brought Tas to approximately (-39.38,33.83,7.02), 3.8 m below home (-35.9,37.66,6.53). Task t-8 started 2026-10-29T16:56:54.668Z and succeeded at 16:57:04.192Z after walking out from under the building and climbing back up. This run found a complete route, so the dedicated off-level detour/retry branches remain verified by automated tests rather than a live trace. Follow t-4 also ran and panel Stop cancelled it with stopped. docs/TESTING.md records the evidence and limits.
+
 ## Summary
 
-Implemented in the working tree with policy tests and game-build validation. An off-level endpoint now triggers bounded repositioning and replanning before unreachable. docs/TESTING.md records the remaining live-game validation; no deployment performed.
+Landed in PR #9, merged at 6baa828, and deployed. CI and required commit review passed. Returning home from 3.8 m beneath the raised destination succeeded live in 9.5 s, alongside ordinary home and follow/stop checks. Bounded off-level retries, rejected detours and timeout have automated regression coverage; their branch was not triggered in the successful live run.

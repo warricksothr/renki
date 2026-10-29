@@ -46,6 +46,33 @@ the bot stops. Also try a detour beside deep water and confirm it is rejected.
 These require Valheim; unit tests cannot establish whether a house's stairs
 or floor appear in its navmesh.
 
+### Live verification, 2026-10-29
+
+Deployed `6baa828` after merging PRs #5–#9. The panel reported that version,
+and Tas rejoined DizzysHellheim at 25/25 health.
+
+- Two ordinary walks home from different directions succeeded (tasks `t-3`
+  and `t-6` in the controller run started by this deployment).
+- With Nimah beneath the house, `come here` brought Tas down to about
+  `(-39.38, 33.83, 7.02)`. Sending him home to `(-35.9, 37.66, 6.53)`
+  started task `t-8` at `2026-10-29T16:56:54.668Z`. He walked out from under
+  the building, climbed back up, and succeeded at `16:57:04.192Z` (9.5 s).
+  This run found a complete navmesh route; the separate off-level detour,
+  retry-limit, water rejection and timeout branches have automated coverage
+  but were not observed live.
+- Follow task `t-4` ran and was cancelled with `stopped` by the panel Stop
+  button. A subsequent home task succeeded.
+- The bot's tombstone disappeared before interact task `t-1` reached it;
+  the task reported `target_lost` and the controller explained that the
+  grave was gone. Its items had already been recovered and stored by the
+  owner. A later `get your things` with no remembered grave sent no body
+  task and explained that there was nothing to fetch.
+
+A positive retrieval and return from Tas's own populated tombstone, and
+resuming a follow through an actual death, still need live verification.
+TKT-01M62N12MX (Controller: corpse run after a death) remains in review with
+its retrieval acceptance criterion unchecked.
+
 ## 1. Set up a game with BepInEx
 
 Use the dev box's own Valheim for a first pass, or the bot VM once

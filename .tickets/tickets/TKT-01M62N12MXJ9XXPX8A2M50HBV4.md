@@ -23,7 +23,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T16:45:29Z
+updated_at: 2026-10-29T16:59:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -59,6 +59,10 @@ Completed the inherited shun changes: only successfully submitted orders clear t
 **agent:codex/renki-resume** at 2026-10-29T16:45:29Z
 
 Pre-landing inspection found the direct panel Stop/Go home actions also need Told after successful dispatch. Fixed both paths and extended TestPanelButtons to check successful stop/home clear the shun while missing-home refusal retains it. The focused integration test and full just check ci pass.
+
+**agent:codex/renki-resume** at 2026-10-29T16:59:05Z
+
+Landed in PR #9 and deployed as 6baa828. Live interact t-1 targeted Tas’s own tombstone, but it disappeared before arrival and returned target_lost; the controller correctly said the grave was gone. The user confirmed recovering and storing Tas’s items. A later get your things with no grave correctly explained there was nothing to fetch and sent no body task. Positive retrieval/return from a populated Tas tombstone and follow-after-death were not exercised live. Criterion 1 remains unchecked and the ticket remains in review. Tas was returned home at 25/25 health after movement and follow/stop verification.
 
 ## Summary
 
