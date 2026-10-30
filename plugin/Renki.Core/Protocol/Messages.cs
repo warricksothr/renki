@@ -94,6 +94,7 @@ namespace Renki.Protocol
 
     public sealed class Welcome : Message
     {
+        [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.Welcome;
         [JsonProperty("agentName")] public string AgentName = "";
         [JsonProperty("owners")] public List<string> Owners = new List<string>();
@@ -123,6 +124,7 @@ namespace Renki.Protocol
 
     public sealed class Config : Message
     {
+        [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.Config;
         [JsonProperty("rates", NullValueHandling = NullValueHandling.Ignore)] public Rates Rates;
         [JsonProperty("perception", NullValueHandling = NullValueHandling.Ignore)] public PerceptionConfig Perception;
@@ -172,6 +174,7 @@ namespace Renki.Protocol
 
     public sealed class State : Message
     {
+        [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.State;
         [JsonProperty("phase")] public string Phase = "";
         [JsonProperty("character")] public string Character = "";

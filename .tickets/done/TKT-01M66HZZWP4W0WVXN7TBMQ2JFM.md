@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M66HZZWP4W0WVXN7TBMQ2JFM
 title: Persistent goals with scripted recovery and combat testing
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-goals
-  branch: t3/persistent-goals
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 3d84b118ca809a31420c88027d417610290205a5
-  session: null
-  claimed_at: 2026-10-30T14:04:07Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T14:04:06Z
-updated_at: 2026-10-30T14:23:29Z
+updated_at: 2026-10-30T14:33:31Z
 created_by:
   id: agent:codex/renki-goals
   name: ""
@@ -49,7 +42,7 @@ Implement the owner's explicitly requested durable achieve-this system, with doc
 - [x] Restricted Starlark policies compose existing runners with bounded recovery and host-verified success
 - [x] Owner stop, task permissions, world changes and native safety remain authoritative
 - [x] Authenticated panel shows goals, progress and needs-plan context with start/resume/stop controls
-- [ ] Replay tests cover failure recovery, restart, cancellation, budgets and false success; bounded live combat goal is exercised
+- [x] Replay tests cover failure recovery, restart, cancellation, budgets and false success; bounded live combat goal is exercised
 
 ## Implementation plan
 
@@ -60,3 +53,11 @@ Implement internal/goal with an atomic durable record store, immutable policy/ha
 **agent:codex/renki-goals** at 2026-10-30T14:22:12Z
 
 Implemented durable goals.json, immutable bundled Starlark decision policies, intent/receipt checkpoints (including Windows write-through replacement), bounded retry/wait/deadline budgets and native death proof. Existing behavior engine owns body lease; lifecycle hooks cover active and queued cancellation. Goal survives interruption without replaying uncertain actions; first slice requires explicit resume after disconnect/restart. Authenticated panel controls and a persistent-mode VM supervisor are implemented. Focused goal/app/behavior replays and supervisor checks pass, including failed encounter -> changed target/direct alternative -> exact kill receipt, owner takeover, permission denial, disk failures, false/mismatched success, stale/world/area scope and restart uncertainty. Browser fixture verified empty/offline needs-plan rendering and disabled resume while offline with no JS errors. Full CI running; live trial and actual melee evidence remain open. Automatic policy revision/model calls and broader M2 goals remain future work.
+
+**agent:codex/renki-goals** at 2026-10-30T14:33:31Z
+
+Live bounded goal 13e472d7a93327c0e03aad39 exercised on reviewed/deployed 4f09e16 (PR #72 merged as 6b79dce). Evidence: .checks/combat-trial-20261030T142652052738Z/summary.json. Goal persisted and waited 120 seconds, then needs_plan: observation/recovery wait budget exhausted. Zero eligible Greyling encounters/attempts, no death proof; minimum HP 66.6 at the declining food maximum, no cleanup errors. Supervisor preserved the terminal diagnostic, logged out/stopped Valheim, restored combat false and panel-only service. This earns orchestration/limits coverage only; positive melee, block and dodge remain open on the attack ticket. Native search without an already observed target is a useful next expansion, requiring explicit target binding/evidence before success. New user-requested marker/player-profile work follows; M2/M3 remain incomplete.
+
+## Summary
+
+Landed PR #72; durable combat goals, restricted Starlark decision policies, host budgets/proof, cancellation/restart handling, authenticated panel and persistent live supervisor deployed. Full CI and committed review pass. Bounded live goal safely exhausted its observation budget without an eligible Greyling, with evidence and cleanup retained. Actual combat success remains an independent open M3 check.

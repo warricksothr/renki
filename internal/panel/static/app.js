@@ -392,6 +392,7 @@ function chip(id, text, cls) {
 
 function onStatus(s) {
   renderGoals(s);
+ renderPresence(s);
   const needs = s.connected && s.phase === "in_world" ? s.storageNeeded || [] : [];
   const storage = $("storage-needed");
   storage.hidden = needs.length === 0;
@@ -1104,6 +1105,9 @@ const SETTING = {
   "home.idleMinutes": "Go home after idling this many minutes (0: never)",
   "home.afterDeath": "After a death",
   "overload.drop": "Drop things when carrying too much",
+ "presence.sharePosition": "Share map marker with the server",
+ "presence.marcoPolo": "Marco/Polo routines",
+ "players.profiles": "Player control profiles",
 };
 const AFTER_DEATH = ["home", "resume", "stay"];
 // Lists, which come as null when empty.
@@ -1173,7 +1177,9 @@ function settingInput(e) {
   const v = e.value;
   const send = (value) => changeSetting({ key: e.key, value });
   let el;
-  if (typeof v === "boolean") {
+  if (e.key === "players.profiles") {
+    el = document.createElement("span"); el.textContent = "Edit in Players & presence above.";
+  } else if (typeof v === "boolean") {
     el = document.createElement("input");
     el.type = "checkbox";
     el.checked = v;
@@ -1410,4 +1416,47 @@ async function goalCommand(body) {
 $("goal-combat").addEventListener("click", () => {
   const s = goalSnapshot;
   if (s?.connected && s.phase === "in_world" && s.pos) goalCommand({action:"start", spec:{kind:"combat_trial", world:s.world, center:s.pos, radius:100}});
+});
+
+// ---- player profiles and map presence ----
+let presenceSnapshot = null, profileRenderKey = "";
+function renderPresence(s) {
+  presenceSnapshot = s;
+  $("share-position").checked = !!s.presence?.sharePosition;
+  $("marco-polo").checked = !!s.presence?.marcoPolo;
+  const desired = !!s.presence?.sharePosition;
+  $("presence-summary").textContent = `${desired ? "marker shared" : "marker hidden"} · Marco/Polo ${s.presence?.marcoPolo ? "on" : "off"}`;
+  $("marker-state").textContent = !s.connected ? "Applies when Tas joins" : s.sharePosition == null ? "Waiting for marker observation" : s.sharePosition === desired ? (desired ? "Marker shared" : "Marker hidden") : "Applying marker change…";
+  $("profile-owners").textContent = `Owners: ${(s.owners || []).join(", ") || "none"}. Owners also receive Marco greetings.`;
+  const entries = Object.entries(s.players?.profiles || {}).sort(([a], [b]) => a.localeCompare(b));
+  const key = JSON.stringify(entries); if (key === profileRenderKey) return; profileRenderKey = key;
+  const table = $("profile-table"); table.replaceChildren();
+  for (const [name, role] of entries) {
+    const row = document.createElement("tr"), who = document.createElement("td"), cell = document.createElement("td"), actions = document.createElement("td");
+    who.textContent = name;
+    const choice = document.createElement("select"); choice.setAttribute("aria-label", `${name}’s profile`);
+    for (const value of ["guest", "companion", "operator"]) choice.append(new Option(value, value));
+    choice.value = role; choice.addEventListener("change", () => assignProfile(name, choice.value)); cell.append(choice);
+    actions.append(button("Remove", `Remove ${name}’s profile`, () => assignProfile(name, null)));
+    row.append(who, cell, actions); table.append(row);
+  }
+}
+async function presenceSetting(key, value) {
+  const out = $("presence-result"); out.textContent = "Saving…";
+  try {
+    const res = await fetch("/api/setting", {method:"POST", headers:{"Content-Type":"application/json", "X-Renki-Act":"1"}, body:JSON.stringify({key, value})});
+    const answer = await res.json(); if (!res.ok) throw new Error(answer.text || "Could not save");
+    out.textContent = answer.text || "Saved.";
+  } catch (e) { out.textContent = e.message; profileRenderKey = ""; if (presenceSnapshot) renderPresence(presenceSnapshot); }
+}
+function assignProfile(name, role) {
+  const profiles = {...presenceSnapshot?.players?.profiles};
+  if (role === null) delete profiles[name]; else Object.defineProperty(profiles, name, {value:role, enumerable:true, configurable:true, writable:true});
+  return presenceSetting("players.profiles", profiles);
+}
+$("share-position").addEventListener("change", () => presenceSetting("presence.sharePosition", $("share-position").checked));
+$("marco-polo").addEventListener("change", () => presenceSetting("presence.marcoPolo", $("marco-polo").checked));
+$("profile-form").addEventListener("submit", (event) => {
+  event.preventDefault(); const name = $("profile-name").value.trim();
+  if (name) assignProfile(name, $("profile-role").value);
 });

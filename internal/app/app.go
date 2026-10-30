@@ -19,15 +19,18 @@ import (
 	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/memory"
+	"github.com/warricksothr/renki/internal/presence"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/retreat"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
 	"sync"
+	"sync/atomic"
 )
 
 // App is a configured controller.
 type App struct {
+	Presence     *presence.Manager
 	Goals        *goal.Store
 	goalTemplate *goal.Template
 	goalMu       sync.Mutex
@@ -84,7 +87,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		AgentName: cfg.AgentName,
 		Live: func() chat.Live {
 			v := set.Values()
-			return chat.Live{Owners: v.Owners, Nicknames: v.Nicknames, Voice: v.Voice}
+			return chat.Live{Owners: v.Players.Commanders(v.Owners), Nicknames: v.Nicknames, Voice: v.Voice}
 		},
 		Voice:    voice,
 		Cooldown: cooldown(cfg),
@@ -92,6 +95,23 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	}, s)
 	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice,
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
+	a.Presence = presence.New(presence.Options{Session: s, Live: func() presence.Live {
+		v := set.Values()
+		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
+	}, Logger: log.With("part", "presence")})
+	var markerRequested atomic.Bool
+	markerRequested.Store(set.Values().Presence.SharePosition)
+	set.OnChange(func(v settings.Values) {
+		if markerRequested.Swap(v.Presence.SharePosition) == v.Presence.SharePosition {
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		desired := v.Presence.SharePosition
+		if err := s.Configure(ctx, protocol.Config{SharePosition: &desired}); err != nil {
+			log.Debug("marker update waits for connection", "err", err)
+		}
+	})
 	a.Food = food.New(s, func() []string { return set.Values().Owners }, log.With("part", "food"), nil)
 	a.Retreat = retreat.New(s, func() []string { return set.Values().Owners }, func() (protocol.Vec3, bool) {
 		_, h, ok := keeper.Current()
@@ -117,7 +137,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Danger = &memory.Danger{Store: homes, Logger: log.With("part", "memory")}
-	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger})
+	s.SetListener(&listeners{presence: a.Presence, brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -130,18 +150,27 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 
 // listeners fan out session events without doing blocking work on the bridge.
 type listeners struct {
+	presence   *presence.Manager
 	brain      *chat.Brain
 	retreat    *retreat.Retreat
 	behaviours *behaviour.Engine
 	danger     *memory.Danger
 }
 
-func (l *listeners) Chat(c *protocol.Chat)    { l.brain.Chat(c) }
+func (l *listeners) Chat(c *protocol.Chat) {
+	if l.presence != nil && l.presence.Chat(c) {
+		return
+	}
+	l.brain.Chat(c)
+}
 func (l *listeners) TaskDone(t *session.Task) { l.brain.TaskDone(t) }
 func (l *listeners) Injury(e *protocol.Event, observation session.InjuryObservation) {
 	l.danger.Observe(e, observation)
 }
 func (l *listeners) Event(e *protocol.Event) {
+	if l.presence != nil {
+		l.presence.Event(e)
+	}
 	l.retreat.Event(e)
 	l.behaviours.Event(e.Event)
 	l.brain.Event(e)
@@ -151,11 +180,12 @@ func (l *listeners) Event(e *protocol.Event) {
 // the runtime settings.
 func Welcome(cfg config.Config, v settings.Values) *protocol.Welcome {
 	return &protocol.Welcome{
-		AgentName:    cfg.AgentName,
-		Owners:       slices.Clone(v.Owners),
-		Rates:        cfg.Rates,
-		Perception:   cfg.Perception,
-		AllowedTasks: slices.Clone(v.AllowedTasks),
+		AgentName:     cfg.AgentName,
+		SharePosition: &v.Presence.SharePosition,
+		Owners:        slices.Clone(v.Owners),
+		Rates:         cfg.Rates,
+		Perception:    cfg.Perception,
+		AllowedTasks:  slices.Clone(v.AllowedTasks),
 	}
 }
 
@@ -175,6 +205,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Retreat.Run(ctx)
 	go a.Food.Run(ctx)
 	go a.discoverWaypoints(ctx)
+	go a.Presence.Run(ctx)
 	go a.Behaviours.Run(ctx)
 	go a.Memory.Run(ctx)
 	go func() { defer close(dangerDone); a.Danger.Run(ctx) }()

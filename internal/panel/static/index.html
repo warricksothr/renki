@@ -121,6 +121,24 @@
         <p id="goal-result" role="status"></p>
         <div id="goal-list"></div>
       </details>
+      <details id="presence-controls">
+        <summary>Players &amp; presence <span id="presence-summary"></span></summary>
+        <div class="presence-options">
+          <label><input id="share-position" type="checkbox"> Share Tas’s map marker with the server</label>
+          <span id="marker-state" role="status"></span>
+          <label><input id="marco-polo" type="checkbox"> Marco/Polo greetings and location replies</label>
+        </div>
+        <p id="profile-owners"></p>
+        <table id="profile-table" aria-label="Player control profiles"></table>
+        <form id="profile-form" class="place-toolbar">
+          <label>Player <input id="profile-name" maxlength="64" required autocomplete="off"></label>
+          <label>Profile <select id="profile-role"><option value="companion">Companion</option><option value="guest">Guest</option><option value="operator">Operator</option></select></label>
+          <button type="submit">Assign profile</button>
+        </form>
+        <p class="place-help">Operator: commands, locating and join greeting. Companion: locating and greeting. Guest: locating only. Owners retain full authority.</p>
+        <p class="place-help">Shout “tas Marco” for a Polo reply describing where you are relative to Tas. Reply “Polo” to his join greeting for directions to him. Distances are straight-line estimates.</p>
+        <p id="presence-result" role="status"></p>
+      </details>
       <details id="voice">
         <summary>Voice <span id="voice-summary"></span></summary>
         <div class="voice-row">

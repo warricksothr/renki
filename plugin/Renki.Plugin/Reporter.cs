@@ -130,6 +130,7 @@ namespace Renki.Plugin
             var s = new State { Phase = phase, Task = task };
             if (p == null) return s;
             s.Character = p.GetPlayerName();
+            if (phase == Wire.PhaseInWorld && ZNet.instance != null) s.SharePosition = ZNet.instance.IsReferencePositionPublic();
             s.World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
             s.Pos = Convert.ToArray(p.transform.position);
             s.Yaw = System.Math.Round(p.transform.rotation.eulerAngles.y, 1);

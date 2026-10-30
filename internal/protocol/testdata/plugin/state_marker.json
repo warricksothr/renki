@@ -1,0 +1,54 @@
+{
+  "v": 1,
+  "type": "state",
+  "seq": 1042,
+  "t": 18234.52,
+  "phase": "in_world",
+  "character": "Tasleroch",
+  "world": "Midgard",
+  "pos": [
+    123.45,
+    31.02,
+    -88.1
+  ],
+  "yaw": 271.5,
+  "vel": [
+    0.0,
+    0.0,
+    3.9
+  ],
+  "hp": 47.0,
+  "hpMax": 60.0,
+  "stamina": 38.0,
+  "staminaMax": 75.0,
+  "eitr": 0.0,
+  "eitrMax": 0.0,
+  "flags": [
+    "grounded",
+    "running"
+  ],
+  "biome": "BlackForest",
+  "env": "Rain",
+  "time": {
+    "day": 14,
+    "dayFraction": 0.81,
+    "night": false
+  },
+  "equipped": {
+    "right": "AxeBronze",
+    "left": "ShieldWood",
+    "chest": "ArmorBronzeChest"
+  },
+  "effects": [
+    "Rested",
+    "Wet"
+  ],
+  "weight": 212.0,
+  "weightMax": 300.0,
+  "task": {
+    "id": "t-17",
+    "task": "follow",
+    "status": "running"
+  },
+  "sharePosition": false
+}

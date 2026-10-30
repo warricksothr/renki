@@ -217,3 +217,36 @@ func TestReplacementConnectionClearsOldPendingTasksBeforeItsDisconnect(t *testin
 	}
 	next.Quiet(20 * time.Millisecond)
 }
+
+func TestMarkerConfigurationPreservesAutomationAndCurrentTask(t *testing.T) {
+	s, _, p := setup(t, []string{"move_to"}, []string{"move_to"})
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "one", HP: 25})
+	waitFor(t, func() bool { return s.State() != nil })
+	lease, err := s.TryAutomation()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pos := protocol.Vec3{1, 0, 0}
+	task, err := lease.Dispatch(context.Background(), Order{Task: "move_to", Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}}, TimeoutS: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.NextTask()
+	revision := s.ControlRevision()
+	on := true
+	if err = s.Configure(context.Background(), protocol.Config{SharePosition: &on}); err != nil {
+		t.Fatal(err)
+	}
+	msg, ok := p.Next().(*protocol.Config)
+	if !ok || msg.SharePosition == nil || !*msg.SharePosition {
+		t.Fatal(msg)
+	}
+	if !lease.Valid() || s.ControlRevision() != revision {
+		t.Fatal("marker configuration took body control")
+	}
+	select {
+	case <-task.Done():
+		t.Fatal("marker configuration ended movement")
+	default:
+	}
+}

@@ -944,3 +944,12 @@ P→C chat       {from:{name:"Sothr"}, text:"bjorn how are you holding up?"}
 C   addressed, no grammar match → LLM(summary: hp 47/60, Black Forest, raining, following Sothr)
 C→P task       {id:"t-3", task:"say", args:{text:"Wet, bruised, and still swinging. Lead on."}}
 ```
+
+### Shared map position
+
+Optional `sharePosition` booleans on `welcome` and `config` select the normal
+Valheim shared map marker. Absence leaves it unchanged; explicit `false` turns
+it off. `state.sharePosition` reports the observed native setting while in-world.
+This is session configuration, so it neither replaces body tasks nor invalidates
+automation. The plugin applies it only in a controlled session with its master
+switch enabled, using the same game setting as the map's visibility checkbox.

@@ -19,14 +19,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/config"
 )
 
 // Values are the settings that can change while the bot runs.
 type Values struct {
-	Owners       []string `json:"owners"`
-	Nicknames    []string `json:"nicknames"`
-	AllowedTasks []string `json:"allowedTasks"`
+	Players      access.Rules    `json:"players"`
+	Presence     config.Presence `json:"presence"`
+	Owners       []string        `json:"owners"`
+	Nicknames    []string        `json:"nicknames"`
+	AllowedTasks []string        `json:"allowedTasks"`
 	// Voice turns the LLM's chat replies on or off; off, the bot answers
 	// the command grammar only. It has no effect with no LLM configured.
 	Voice bool `json:"voice"`
@@ -50,13 +53,13 @@ var Keys = []string{
 	"owners", "nicknames", "allowedTasks", "voice",
 	"model.provider", "model.name", "model.baseURL",
 	"home.whenLost", "home.whenStuck", "home.afterOutage", "home.idleMinutes", "home.afterDeath",
-	"overload.drop",
+	"overload.drop", "players.profiles", "presence.sharePosition", "presence.marcoPolo",
 }
 
 // ownersOnly are the settings the agent may never change, pinned or not:
 // who gives the orders, what the bot may be told to do, and where the
 // voice sends its key.
-var ownersOnly = []string{"owners", "allowedTasks", "model.provider", "model.baseURL"}
+var ownersOnly = []string{"players.profiles", "owners", "allowedTasks", "model.provider", "model.baseURL"}
 
 // Sources of a change. An owner's is "owner:<name>".
 const (
@@ -168,6 +171,7 @@ func (s *Store) Values() Values {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v := s.cur
+	v.Players.Profiles = maps.Clone(v.Players.Profiles)
 	v.Owners, v.Nicknames, v.AllowedTasks = slices.Clone(v.Owners), slices.Clone(v.Nicknames), slices.Clone(v.AllowedTasks)
 	return v
 }
@@ -317,7 +321,7 @@ func (s *Store) Entries() []Entry {
 func (s *Store) build(overrides map[string]Override) (Values, error) {
 	b := s.base
 	v := Values{Owners: b.Owners, Nicknames: b.Nicknames, AllowedTasks: b.AllowedTasks,
-		Voice: b.LLM != nil, Model: seed(b), Home: b.Home, Overload: b.Overload}
+		Voice: b.LLM != nil, Model: seed(b), Home: b.Home, Overload: b.Overload, Players: b.Players, Presence: b.Presence}
 	tree := map[string]any{}
 	raw, err := json.Marshal(v)
 	if err != nil {
@@ -349,6 +353,7 @@ func (s *Store) build(overrides map[string]Override) (Values, error) {
 	}
 	// The same rules as the config file.
 	c := b
+	c.Players, c.Presence = out.Players, out.Presence
 	c.Owners, c.Nicknames, c.AllowedTasks, c.Home, c.Overload = out.Owners, out.Nicknames, out.AllowedTasks, out.Home, out.Overload
 	if err := c.Validate(); err != nil {
 		return Values{}, fmt.Errorf("%w: %v", ErrBadValue, err)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/chat"
@@ -22,27 +23,30 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
-	Goals      []goal.Record          `json:"goals"`
-	Version    string                 `json:"version"`
-	Connected  bool                   `json:"connected"`
-	Character  string                 `json:"character,omitempty"`
-	World      string                 `json:"world,omitempty"`
-	Phase      string                 `json:"phase,omitempty"`
-	Task       *protocol.TaskRef      `json:"task,omitempty"`
-	HP         float64                `json:"hp,omitempty"`
-	HPMax      float64                `json:"hpMax,omitempty"`
-	Food       *protocol.FoodStatus   `json:"food,omitempty"`
-	Combat     *protocol.CombatStatus `json:"combat,omitempty"`
-	Stamina    float64                `json:"stamina,omitempty"`
-	StaminaMax float64                `json:"staminaMax,omitempty"`
-	PVP        *bool                  `json:"pvp,omitempty"`
-	Pos        *protocol.Vec3         `json:"pos,omitempty"`
-	Biome      string                 `json:"biome,omitempty"`
-	Location   *protocol.Location     `json:"location,omitempty"`
-	Flags      []string               `json:"flags,omitempty"`
-	Yaw        float64                `json:"yaw"`
-	Connection uint64                 `json:"connection"`
-	Home       *PanelHome             `json:"home,omitempty"`
+	SharePosition *bool                  `json:"sharePosition,omitempty"`
+	Presence      config.Presence        `json:"presence"`
+	Players       access.Rules           `json:"players"`
+	Goals         []goal.Record          `json:"goals"`
+	Version       string                 `json:"version"`
+	Connected     bool                   `json:"connected"`
+	Character     string                 `json:"character,omitempty"`
+	World         string                 `json:"world,omitempty"`
+	Phase         string                 `json:"phase,omitempty"`
+	Task          *protocol.TaskRef      `json:"task,omitempty"`
+	HP            float64                `json:"hp,omitempty"`
+	HPMax         float64                `json:"hpMax,omitempty"`
+	Food          *protocol.FoodStatus   `json:"food,omitempty"`
+	Combat        *protocol.CombatStatus `json:"combat,omitempty"`
+	Stamina       float64                `json:"stamina,omitempty"`
+	StaminaMax    float64                `json:"staminaMax,omitempty"`
+	PVP           *bool                  `json:"pvp,omitempty"`
+	Pos           *protocol.Vec3         `json:"pos,omitempty"`
+	Biome         string                 `json:"biome,omitempty"`
+	Location      *protocol.Location     `json:"location,omitempty"`
+	Flags         []string               `json:"flags,omitempty"`
+	Yaw           float64                `json:"yaw"`
+	Connection    uint64                 `json:"connection"`
+	Home          *PanelHome             `json:"home,omitempty"`
 	// PerceptionRadius is how far perception reaches, for the map's first view.
 	PerceptionRadius float64 `json:"perceptionRadius"`
 	// LeftBehind is what the bot had to leave on the ground in this world.
@@ -82,6 +86,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		ps.Food = s.Food
 		ps.Combat, ps.Stamina, ps.StaminaMax = s.Combat, s.Stamina, s.StaminaMax
 		ps.PVP = s.PVP
+		ps.SharePosition = s.SharePosition
 		ps.Connection = a.Session.ConnectionID()
 		if s.Phase == protocol.PhaseInWorld {
 			pos := s.Pos
@@ -89,6 +94,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		}
 	}
 	ps.Goals = a.Goals.Summaries()
+	ps.Presence, ps.Players = a.Settings.Values().Presence, a.Settings.Values().Players
 	ps.LeftBehind = a.Home.LeftBehind()
 	if ps.Connected && ps.Phase == protocol.PhaseInWorld {
 		for _, instance := range a.Behaviours.List() {

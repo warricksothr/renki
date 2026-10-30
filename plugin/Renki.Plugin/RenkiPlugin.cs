@@ -49,6 +49,7 @@ namespace Renki.Plugin
         float nextPerception;
         float nextHello;
         bool loggingOut;
+        bool? sharePosition;
 
         internal IReadOnlyCollection<string> Owners => welcome?.Owners ?? (IReadOnlyCollection<string>)Array.Empty<string>();
 
@@ -134,6 +135,9 @@ namespace Renki.Plugin
                     nextPerception = 0;
                 }
             }
+            if (runner.InSession && safety.Enabled && sharePosition.HasValue && Player.m_localPlayer != null && ZNet.instance != null &&
+                ZNet.instance.IsReferencePositionPublic() != sharePosition.Value)
+                ZNet.instance.SetPublicReferencePosition(sharePosition.Value);
             reporter.Update(runner.InSession);
             inventory.Update(runner.InSession && (phase == Wire.PhaseInWorld || phase == Wire.PhaseDead));
             if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
@@ -164,6 +168,7 @@ namespace Renki.Plugin
             {
                 case Welcome w:
                     welcome = w;
+                    sharePosition = w.SharePosition;
                     stateHz = w.Rates.StateHz > 0 ? w.Rates.StateHz : 5;
                     perceptionHz = w.Rates.PerceptionHz > 0 ? w.Rates.PerceptionHz : 1;
                     Perceive(w.Perception);
@@ -182,6 +187,7 @@ namespace Renki.Plugin
                     runner.Handle(t);
                     break;
                 case Config c:
+                    if (c.SharePosition.HasValue) sharePosition = c.SharePosition;
                     if (c.Rates != null && c.Rates.StateHz > 0) stateHz = c.Rates.StateHz;
                     if (c.Rates != null && c.Rates.PerceptionHz > 0) perceptionHz = c.Rates.PerceptionHz;
                     Perceive(c.Perception);
@@ -214,6 +220,7 @@ namespace Renki.Plugin
 
         void EndSession(string why)
         {
+            sharePosition = null;
             runner.EndSession(why);
             WorldNavigation.Reset();
             Driver.Active = false;
