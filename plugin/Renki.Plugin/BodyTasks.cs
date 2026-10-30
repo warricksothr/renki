@@ -273,9 +273,10 @@ namespace Renki.Plugin
         }
 
         /// <summary>Steers toward the goal for this step. Returns false when stuck recovery gave up.</summary>
-        public bool Steer(Vector3 pos, bool run)
+        public bool Steer(Vector3 pos, bool run, bool climbObstacles = true)
         {
             if (!hasGoal) return true;
+            if (!climbObstacles) { climb.Stop(); climbWaiting = false; }
             RecordGrounded(pos);
             if (Swim(pos, ref run)) return true;
             if (replay != null) return PlanReplay(pos);
@@ -341,7 +342,9 @@ namespace Renki.Plugin
                 return true;
             }
             if (recovery != Recovery.None)
-                Tracer.Emit("walker", recovery == Recovery.GiveUp ? "stuck; giving up" : $"stuck; trying {recovery}",
+                Tracer.Emit("walker", recovery == Recovery.GiveUp ? "stuck; giving up"
+                    : !climbObstacles && (recovery == Recovery.Jump || recovery == Recovery.Climb)
+                        ? "stuck; keeping feet on support" : $"stuck; trying {recovery}",
                     new Dictionary<string, object>
                     {
                         ["attempt"] = stuck.Attempts,
@@ -356,7 +359,7 @@ namespace Renki.Plugin
             switch (recovery)
             {
                 case Recovery.Jump:
-                    Driver.Jump = true;
+                    if (climbObstacles) Driver.Jump = true;
                     break;
                 case Recovery.Strafe:
                     strafeUntil = Time.time + 1f;
@@ -367,6 +370,7 @@ namespace Renki.Plugin
                     if (localRoute != null) { Driver.Stand(); return true; }
                     break;
                 case Recovery.Climb:
+                    if (!climbObstacles) break;
                     climb.Start(Time.time);
                     climbWaiting = false;
                     if (Climb(pos)) return true;

@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T00:03:46Z
+updated_at: 2026-10-30T00:08:26Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -95,3 +95,7 @@ Implemented physical Collider.Raycast contact at attack height, support projecti
 **agent:codex/renki-resume** at 2026-10-30T00:03:46Z
 
 Installed dc981d1: t-5 harvest from raised home reached outdoor stump 1:39764 directly without manual staging and without health loss, but never swung. Evidence .checks/task-9fx2jr97.json and .checks/audit-window-gZ6auq.jsonl: navmesh follower stopped within its default final half-metre tolerance while harvesting still needed a tighter physical-contact stance. Cancelled with t-6 return-home, which passed, then just vm stop succeeded. Corrected PathFollower with an optional tighter final tolerance, wired from Walker arrivalWithin; intermediate waypoints and partial-path ends retain existing semantics. Added a regression using the actual stopped position plus bounded contact/goal/tool-range traces. just check ci passed (20261030T000304Z-mQg7u4.log, 198 plugin tests). Retrying live after review/deploy; no stump success is claimed yet.
+
+**agent:codex/renki-resume** at 2026-10-30T00:08:26Z
+
+Installed 5d51fc8: t-1 again reached the stump from inside home, but final approach pressed against its wider base and recovery jumped onto it. Owner screenshot independently confirmed the behavior. Bounded contact trace measured axe range2.2, attackHeight0.8, selected reach1.0 and physical contact [-30.22,33.01,33.2]; terrain stance [-30.52,32.48,32.22] was just outside that unnecessarily restrictive radius. Once above the stump, horizontal-only look also missed the low target. Task failed unreachable; t-2 returned home successfully and just vm stop completed. No products or success claimed. Evidence .checks/task-didvylz4.json, .checks/audit-window-JMurji.jsonl, .checks/audit-window-Eocs7d.jsonl, .checks/task-0jwlx1qp.json. Implemented range-scaled stance with a 1.4m conservative maximum (still within 2.2m axe reach), downward normal attack aim from tool attack height, and disabled jump/climb recovery within3m of the resource. Added actual-coordinate regression and honest suppressed-jump trace. Retrying live after final gate/review/deploy.

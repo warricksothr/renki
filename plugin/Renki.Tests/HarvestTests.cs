@@ -34,6 +34,23 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void StumpStrikeRangeDoesNotRequireClimbingItsBase()
+        {
+            var feet = new V3(-30.52, 32.48, 32.22);
+            var contact = new V3(-30.22, 33.01, 33.2);
+            var reach = HarvestReach.Range(2.2); // Observed flint axe.
+            Assert.True(HarvestReach.InRange(feet, contact, .8, reach));
+            var standOff = HarvestReach.StandOff(reach, false);
+            Assert.True(standOff > .65);
+            Assert.True(standOff + .15 < reach); // Arrival margin.
+            Assert.True(HarvestReach.StandOff(reach, true) < standOff);
+            var shortReach = HarvestReach.Range(.8);
+            Assert.True(HarvestReach.StandOff(shortReach, false) < shortReach);
+            // Raising the feet onto the resource must not be necessary.
+            Assert.False(HarvestReach.InRange(feet + new V3(0, 3, 0), contact, .8, reach));
+        }
+
+        [Fact]
         public void FoodMaximumDecayIsNotDamage()
         {
             Assert.False(HarvestHealth.Hurt(115, 114.7, 114.7));

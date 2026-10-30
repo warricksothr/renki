@@ -161,11 +161,12 @@ namespace Renki.Plugin
             var eye = p.transform.position + Vector3.up * attackHeight;
             if (!HarvestApproach.Contact(targetColliders, origin, p.transform.position, attackHeight, out var surface))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
-            var reach = Mathf.Min(1f, tool.m_shared.m_attack.m_attackRange * .65f);
+            var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
             if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
             if (forceApproach || !HarvestReach.InRange(Convert.ToV3(p.transform.position), Convert.ToV3(surface), attackHeight, reach) || !UseReach.Near(p, target, 2.5f))
             {
-                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position, contactRetries == 0 ? .65f : .5f, out var goal))
+                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position,
+                    (float)HarvestReach.StandOff(reach, contactRetries > 0), out var goal))
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported, water-safe position beside the resource"));
                 if (!walking || Vector3.Distance(walkGoal, goal) > .45f)
                 {
@@ -183,7 +184,8 @@ namespace Renki.Plugin
                 }
                 if (walker.Unreachable(p.transform.position, .15f) is Outcome no) return Finish(no);
                 if (walker.Refused() is Outcome refused) return Finish(refused);
-                if (!walker.Steer(p.transform.position, false)) return Finish(Outcome.Failed(Wire.ReasonStuck, "cannot approach the resource"));
+                if (!walker.Steer(p.transform.position, false, climbObstacles: Vector3.Distance(p.transform.position, origin) > 3))
+                    return Finish(Outcome.Failed(Wire.ReasonStuck, "cannot approach the resource"));
                 swingSince = -1;
                 return null;
             }
@@ -210,8 +212,9 @@ namespace Renki.Plugin
                 retreat = Convert.ToVector3(at); retreatReady = true;
             }
             Driver.LookAt = surface;
+            Driver.LookOriginHeight = attackHeight;
             Driver.LookUntil = Time.time + .2f;
-            var direction = surface - eye; direction.y = 0;
+            var direction = surface - eye;
             if (!p.IsOnGround() || p.InAttack() || Vector3.Angle(p.m_lookDir, direction) > 10) return null;
             if (!p.HaveStamina(tool.m_shared.m_attack.m_attackStamina + 1)) { swingSince = -1; return null; }
             if (swingSince < 0 || hitsAtSwingStart != evidence.LocalHits)
@@ -223,7 +226,8 @@ namespace Renki.Plugin
                 if (contactRetries++ > 0) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "swings did not reach or damage the resource after repositioning"));
                 // One bounded closer approach, with fresh support/clearance
                 // validation. Never keep swinging indefinitely without a hit.
-                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position, .5f, out var closer))
+                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position,
+                    (float)HarvestReach.StandOff(reach, true), out var closer))
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no closer supported strike position"));
                 walker.SetGoal(p.transform.position, closer, .1f);
                 walker.ResetStuck(p.transform.position);
