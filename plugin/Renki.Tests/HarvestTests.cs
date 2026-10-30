@@ -61,6 +61,22 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void CanopyContactCannotBeReachedByWalkingUnderneathIt()
+        {
+            var resource = new V3(23.62, 31.37, 33.53);
+            var feet = new V3(22.44, 31.1, 34.55);
+            var canopy = new V3(22.76, 40.14, 35.19);
+            var approach = HarvestReach.StandAt(resource, canopy, feet, .95);
+            // A valid ground projection does not prove axe reach. This is the
+            // recorded full-tree timeout, including its lower supported floor.
+            var supported = new V3(approach.X, 30.87, approach.Z);
+            Assert.False(HarvestReach.InRange(supported, canopy, .8, 1.4));
+            var trunk = new V3(23.2, 32.17, 33.9);
+            approach = HarvestReach.StandAt(resource, trunk, feet, .95);
+            Assert.True(HarvestReach.InRange(approach, trunk, .8, 1.4));
+        }
+
+        [Fact]
         public void BroadBoundsAreNotStrikeContactAndCloserPositionIsInReach()
         {
             var missed = new V3(-27.5, 32.57, 30.86);
