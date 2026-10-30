@@ -1199,6 +1199,10 @@ const SETTING = {
   "home.afterDeath": "After a death",
   "overload.drop": "Drop things when carrying too much",
  "presence.sharePosition": "Share map marker with the server",
+ "screenshot.enabled": "Capture game-camera images",
+ "screenshot.intervalS": "Seconds between camera images (1–300)",
+ "screenshot.width": "Camera image width (320–1280)",
+ "screenshot.quality": "JPEG quality (30–90)",
  "presence.marcoPolo": "Marco/Polo routines",
  "players.profiles": "Player control profiles",
 };
@@ -1552,4 +1556,85 @@ $("marco-polo").addEventListener("change", () => presenceSetting("presence.marco
 $("profile-form").addEventListener("submit", (event) => {
   event.preventDefault(); const name = $("profile-name").value.trim();
   if (name) assignProfile(name, $("profile-role").value);
+});
+
+// Image bytes are fetched separately and never enter the event/timeline feed.
+let cameraBusy = false, cameraURL = "", cameraGeneration = 0;
+async function refreshCamera() {
+  if (cameraBusy || document.hidden || !$("camera").open) return;
+  cameraBusy = true;
+  const generation = cameraGeneration;
+  try {
+    const response = await fetch("/api/camera", {cache:"no-store"});
+    if (!response.ok) throw new Error("Camera status unavailable");
+    const data = await response.json();
+    if (generation !== cameraGeneration) return;
+    $("camera-enabled").checked = !!data.config.enabled;
+    if (document.activeElement !== $("camera-interval")) $("camera-interval").value = data.config.intervalS;
+    if (!data.available) {
+      const previous = $("camera-image").src;
+      $("camera-image").hidden = true; $("camera-image").removeAttribute("src"); cameraURL = "";
+      if (previous.startsWith("blob:")) URL.revokeObjectURL(previous);
+      $("camera-status").textContent = data.config.enabled ? "No current image · bot offline or capture pending" : "Capture off";
+      return;
+    }
+    const frame = data.frame;
+    $("camera-status").textContent = `${data.ageS.toFixed(1)} s since received · captured ${new Date(frame.capturedAt).toLocaleTimeString()} · ${frame.width}×${frame.height} · ${frame.captureMs.toFixed(1)} ms · ${frame.task || "idle"}`;
+    if (data.imageUrl !== cameraURL) {
+      const image = await fetch(data.imageUrl, {cache:"no-store"});
+      if (!image.ok) return; // Superseded image: refresh metadata next tick.
+      const url = URL.createObjectURL(await image.blob());
+      if (generation !== cameraGeneration) { URL.revokeObjectURL(url); return; }
+      const previous = $("camera-image").src;
+      $("camera-image").src = url; $("camera-image").hidden = false;
+      if (previous.startsWith("blob:")) URL.revokeObjectURL(previous);
+      cameraURL = data.imageUrl;
+    }
+  } catch (error) { $("camera-status").textContent = error.message; }
+  finally { cameraBusy = false; }
+}
+async function cameraSetting(key, value) {
+  cameraGeneration++;
+  const response = await fetch("/api/setting", {method:"POST",headers:{"Content-Type":"application/json","X-Renki-Act":"camera"},body:JSON.stringify({key,value})});
+  if (!response.ok) $("camera-status").textContent = await response.text();
+  else refreshCamera();
+}
+$("camera-enabled").addEventListener("change", () => cameraSetting("screenshot.enabled", $("camera-enabled").checked));
+$("camera-interval").addEventListener("change", () => {
+  if ($("camera-interval").reportValidity()) cameraSetting("screenshot.intervalS", Number($("camera-interval").value));
+});
+setInterval(refreshCamera, 1000);
+refreshCamera();
+
+// Agent and user exports share the exact canvas renderer and its loaded data.
+window.renkiSnapshots = {
+  map({maxWidth = 960, quality = .8} = {}) {
+    if (!Number.isFinite(maxWidth) || !Number.isFinite(quality)) throw new Error('Invalid snapshot dimensions/quality');
+    if (!mapWorld && !selectedAtlas) throw new Error('No map scope has loaded');
+    render();
+    if (!canvas.width || !canvas.height) throw new Error('Map has no rendered viewport');
+    const scale = Math.min(1, Math.max(320, Math.min(1280, maxWidth)) / canvas.width, 720 / canvas.height);
+    const image = document.createElement('canvas');
+    image.width = Math.max(1, Math.round(canvas.width * scale));
+    image.height = Math.max(1, Math.round(canvas.height * scale));
+    image.getContext('2d').drawImage(canvas, 0, 0, image.width, image.height);
+    return {
+      kind: 'map', mimeType: 'image/jpeg', image: image.toDataURL('image/jpeg', Math.max(.3, Math.min(.9, quality))),
+      metadata: {capturedAt: new Date().toISOString(), mapLoadedAt: mapFetchedAt ? new Date(mapFetchedAt).toISOString() : null,
+        world: selectedAtlas ? savedWorlds.find(w => w.key === selectedAtlas)?.name || "Saved world" : mapWorld,
+        worldUid: mapUID, connection: mapConnection,
+        worldKey: selectedAtlas || lastLiveAtlas, saved: Boolean(selectedAtlas), online: mapOnline,
+        width: image.width, height: image.height, centre: [...view.centre], metresPerPixel: 1 / (view.scale * (window.devicePixelRatio || 1) * scale), layers: {...layers}},
+      data: JSON.parse(JSON.stringify({bot:world.bot, yaw:world.yaw, tiles:[...world.tiles.values()], landmarks:world.landmarks,
+        characters:world.characters, structures:world.structures, resources:world.resources, walls:world.walls,
+        containers:[...world.containers.values()], danger:world.danger, waypoints:world.waypoints, path:world.path, trail:world.trail})),
+    };
+  },
+};
+$("map-export").addEventListener('click', () => {
+  const snapshot = window.renkiSnapshots.map();
+  const base = 'renki-map-' + snapshot.metadata.capturedAt.replace(/[:.]/g, '-');
+  const link = document.createElement('a'); link.href = snapshot.image; link.download = base + '.jpg'; link.click();
+  const file = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], {type:'application/json'}));
+  link.href = file; link.download = base + '.json'; link.click(); setTimeout(() => URL.revokeObjectURL(file), 1000);
 });

@@ -34,6 +34,12 @@ namespace Renki.Bridge
         readonly ILog log;
         readonly ConcurrentQueue<Message> inbound = new ConcurrentQueue<Message>();
         readonly ConcurrentQueue<Message> outbound = new ConcurrentQueue<Message>();
+        sealed class PendingScreenshot
+        {
+            internal Screenshot Frame;
+            internal int Connection;
+        }
+        PendingScreenshot screenshot;
         readonly SemaphoreSlim outboundReady = new SemaphoreSlim(0);
         readonly CancellationTokenSource stop = new CancellationTokenSource();
         readonly Stopwatch clock = Stopwatch.StartNew();
@@ -97,6 +103,15 @@ namespace Renki.Bridge
             Enqueue(m);
         }
 
+        public void ClearScreenshots() => Interlocked.Exchange(ref screenshot, null);
+
+        public void SendScreenshot(Screenshot frame, int connection)
+        {
+            if (!welcomed || connection != ConnectionId) return;
+            if (frame.T == 0) frame.T = GameTime;
+            if (Interlocked.Exchange(ref screenshot, new PendingScreenshot { Frame = frame, Connection = connection }) == null) outboundReady.Release();
+        }
+
         void Enqueue(Message m)
         {
             if (m.T == 0) m.T = GameTime;
@@ -148,6 +163,7 @@ namespace Renki.Bridge
                 }
                 log.Info("bridge: connected to " + url);
                 while (outbound.TryDequeue(out _)) { }
+                ClearScreenshots();
                 Interlocked.Exchange(ref seq, 0);
                 var hello = Volatile.Read(ref helloTemplate);
                 hello.T = GameTime;
@@ -209,6 +225,8 @@ namespace Renki.Bridge
             {
                 await outboundReady.WaitAsync(ct).ConfigureAwait(false);
                 if (outbound.TryDequeue(out var m)) await WriteAsync(ws, m, ct).ConfigureAwait(false);
+                else if (Interlocked.Exchange(ref screenshot, null) is PendingScreenshot image && image.Connection == ConnectionId)
+                    await WriteAsync(ws, image.Frame, ct).ConfigureAwait(false);
             }
         }
 

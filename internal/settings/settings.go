@@ -21,15 +21,17 @@ import (
 
 	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/protocol"
 )
 
 // Values are the settings that can change while the bot runs.
 type Values struct {
-	Players      access.Rules    `json:"players"`
-	Presence     config.Presence `json:"presence"`
-	Owners       []string        `json:"owners"`
-	Nicknames    []string        `json:"nicknames"`
-	AllowedTasks []string        `json:"allowedTasks"`
+	Screenshot   protocol.ScreenshotConfig `json:"screenshot"`
+	Players      access.Rules              `json:"players"`
+	Presence     config.Presence           `json:"presence"`
+	Owners       []string                  `json:"owners"`
+	Nicknames    []string                  `json:"nicknames"`
+	AllowedTasks []string                  `json:"allowedTasks"`
 	// Voice turns the LLM's chat replies on or off; off, the bot answers
 	// the command grammar only. It has no effect with no LLM configured.
 	Voice bool `json:"voice"`
@@ -51,6 +53,7 @@ type Model struct {
 // Keys are the settings that can be changed, as dotted paths into Values.
 var Keys = []string{
 	"owners", "nicknames", "allowedTasks", "voice",
+	"screenshot.enabled", "screenshot.intervalS", "screenshot.width", "screenshot.quality",
 	"model.provider", "model.name", "model.baseURL",
 	"home.whenLost", "home.whenStuck", "home.afterOutage", "home.idleMinutes", "home.afterDeath",
 	"overload.drop", "players.profiles", "presence.sharePosition", "presence.marcoPolo",
@@ -321,7 +324,7 @@ func (s *Store) Entries() []Entry {
 func (s *Store) build(overrides map[string]Override) (Values, error) {
 	b := s.base
 	v := Values{Owners: b.Owners, Nicknames: b.Nicknames, AllowedTasks: b.AllowedTasks,
-		Voice: b.LLM != nil, Model: seed(b), Home: b.Home, Overload: b.Overload, Players: b.Players, Presence: b.Presence}
+		Voice: b.LLM != nil, Model: seed(b), Home: b.Home, Overload: b.Overload, Players: b.Players, Presence: b.Presence, Screenshot: b.Screenshot}
 	tree := map[string]any{}
 	raw, err := json.Marshal(v)
 	if err != nil {
@@ -353,7 +356,7 @@ func (s *Store) build(overrides map[string]Override) (Values, error) {
 	}
 	// The same rules as the config file.
 	c := b
-	c.Players, c.Presence = out.Players, out.Presence
+	c.Players, c.Presence, c.Screenshot = out.Players, out.Presence, out.Screenshot
 	c.Owners, c.Nicknames, c.AllowedTasks, c.Home, c.Overload = out.Owners, out.Nicknames, out.AllowedTasks, out.Home, out.Overload
 	if err := c.Validate(); err != nil {
 		return Values{}, fmt.Errorf("%w: %v", ErrBadValue, err)

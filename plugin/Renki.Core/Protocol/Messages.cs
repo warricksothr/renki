@@ -14,7 +14,7 @@ namespace Renki.Protocol
 
         public const string Hello = "hello", Welcome = "welcome", State = "state", Perception = "perception",
             Inventory = "inventory", Container = "container", Layout = "layout", Terrain = "terrain", Chat = "chat", Event = "event", Task = "task", Ping = "ping", Pong = "pong",
-            Config = "config", Logout = "logout", Bye = "bye", Error = "error", Trace = "trace";
+            Config = "config", Logout = "logout", Bye = "bye", Error = "error", Trace = "trace", Screenshot = "screenshot";
 
         public const string PhaseMenu = "menu", PhaseConnecting = "connecting", PhaseInWorld = "in_world",
             PhaseDead = "dead", PhaseLoggingOut = "logging_out";
@@ -94,6 +94,7 @@ namespace Renki.Protocol
 
     public sealed class Welcome : Message
     {
+        [JsonProperty("screenshot", NullValueHandling = NullValueHandling.Ignore)] public ScreenshotConfig Screenshot;
         [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.Welcome;
         [JsonProperty("agentName")] public string AgentName = "";
@@ -124,6 +125,7 @@ namespace Renki.Protocol
 
     public sealed class Config : Message
     {
+        [JsonProperty("screenshot", NullValueHandling = NullValueHandling.Ignore)] public ScreenshotConfig Screenshot;
         [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.Config;
         [JsonProperty("rates", NullValueHandling = NullValueHandling.Ignore)] public Rates Rates;

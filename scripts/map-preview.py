@@ -11,6 +11,9 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--status')
 parser.add_argument('--map')
 parser.add_argument('--serve', action='store_true')
+parser.add_argument('--output')
+parser.add_argument('--atlas')
+parser.add_argument('--map-only', action='store_true')
 parser.add_argument('--port', type=int, default=18780)
 args = parser.parse_args()
 if bool(args.status) != bool(args.map):
@@ -51,20 +54,22 @@ for tile in saved_tiles:
  tile.setdefault('sources',['preview-observer']*25)
  tile.setdefault('stale',[tile['x'] < -4]*25)
 mapped['worldKey']=atlas_key
-saved_map=dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
+saved_map=json.loads(pathlib.Path(args.atlas).read_text()) if args.atlas else dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
 html=(root/'internal/panel/static/index.html').read_text().replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')
 def embedded(value):
  return json.dumps(value).replace('<', '\\u003c')
 
 bootstrap='''<script>const previewStatus=STATUS, previewMap=MAPPED, previewFrames=FRAMES, previewAtlas=ATLAS, previewWorlds=WORLDS;
-window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/map'?previewMap:path==='/api/atlas/worlds'?previewWorlds:path.startsWith('/api/atlas/map?')?previewAtlas:path==='/api/status'?previewStatus:[]});
+window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/camera'?({available:false,config:{enabled:false,intervalS:5}}):path==='/api/map'?previewMap:path==='/api/atlas/worlds'?previewWorlds:path.startsWith('/api/atlas/map?')?previewAtlas:path==='/api/status'?previewStatus:[]});
 window.EventSource=class{constructor(){this.handlers={};setTimeout(()=>{this.onopen?.();this.handlers.status?.({data:JSON.stringify(previewStatus)});for(const frame of previewFrames)this.handlers.record?.({data:JSON.stringify({kind:'frame',cat:'perception',frame})});},20)}addEventListener(n,fn){this.handlers[n]=fn}};</script>'''.replace('STATUS',embedded(status)).replace('MAPPED',embedded(mapped)).replace('FRAMES',embedded(frames)).replace('ATLAS',embedded(saved_map)).replace('WORLDS',embedded([saved_world]))
 html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script>'+(root/'internal/panel/static/terrain.js').read_text()+'</script>').replace('<script src="/app.js" defer></script>','')
 notice='Recorded game snapshot · read-only preview' if args.status else 'Fixture terrain · read-only preview'
 html=html.replace('<body>', '<body><div style="padding:5px 12px;color:#c3cbd1;background:#273039;font-size:12px">'+notice+'</div>')
 checks='''<script>setTimeout(()=>{console.log(JSON.stringify({terrain:world.tiles.size,landmarks:world.landmarks.length,biome:document.getElementById('biome').textContent,surface:document.getElementById('surface').textContent,height:document.getElementById('height').textContent,errors:window.previewErrors||[]}));const first=document.querySelector('[data-layer=terrain]');first.click();if(layers.terrain!==false)throw Error('Terrain toggle failed');first.click();if(layers.terrain!==true)throw Error('Terrain toggle restore failed');console.log('Layer controls passed');},80);</script>'''
 html=html.replace('</body>','<script>window.previewErrors=[];window.addEventListener("error",e=>previewErrors.push(e.message));</script><script>'+(root/'internal/panel/static/app.js').read_text()+'</script>'+checks+'</body>')
-out=root/'.checks/map-ui-preview.html'
+if args.map_only:
+ html=html.replace('</head>','<style>body{height:760px}header,#feed-pane,#places,.map-key{display:none!important}main{display:block}#map-pane{height:730px}#map{flex:1 0 440px;min-height:440px}</style></head>')
+out=pathlib.Path(args.output) if args.output else root/'.checks/map-ui-preview.html'
 out.parent.mkdir(exist_ok=True)
 out.write_text(html)
 print(out, flush=True)

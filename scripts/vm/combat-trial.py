@@ -294,6 +294,12 @@ def main():
     finally:
         # Always save/logout, stop the game and restore combat off. Restart only
         # the controller so monitoring remains available between trials.
+        # Retain the current view before logout for agent-assisted diagnosis. This
+        # reads the latest frame; it never bypasses the native capture ceiling.
+        try:
+            summary['cameraEvidence'] = call('camera').strip()
+        except Exception as error:
+            summary['cameraUnavailable'] = str(error)
         cleanup = []
         if summary.get('goalId') and summary.get('goal', {}).get('status') not in ('succeeded', 'needs_plan', 'cancelled'):
             cleanup.append(('panel', 'POST', '/api/goals', json.dumps(dict(action='stop', id=summary['goalId']))))

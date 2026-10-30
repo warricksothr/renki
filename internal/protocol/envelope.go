@@ -69,6 +69,7 @@ func (e *VersionError) Error() string {
 var registry = map[Sender]map[string]func() Message{
 	FromPlugin: {
 		TypeHello:      func() Message { return &Hello{} },
+		TypeScreenshot: func() Message { return &Screenshot{} },
 		TypeState:      func() Message { return &State{} },
 		TypePerception: func() Message { return &Perception{} },
 		TypeInventory:  func() Message { return &Inventory{} },

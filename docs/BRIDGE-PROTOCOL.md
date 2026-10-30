@@ -990,3 +990,23 @@ fixed `at` cannot combine with a search radius above 12 m. Search uses checked
 short walking legs; acquisition farther from the initial area triggers a local
 fighting-ground survey. The local 40 m lure bound and melee leash remain
 unchanged. The final receipt binds the selected entity as described in 6.6.
+
+### Rendered camera images
+
+Optional `screenshot` settings on `welcome` and `config` contain `enabled`,
+`intervalS` (1–300), `width` (320–1280) and `quality` (30–90). New controllers
+default to disabled, five seconds, width960 and quality70. Older plugins can
+ignore this optional block. A new plugin emits `type:"screenshot"` while enabled
+and in-world, with `world`, `worldUid`, UTC `capturedAt`, bot `pos`, `cameraPos`,
+`cameraAngles` (Unity Euler degrees), optional `task`, `width`, `height`,
+`captureMs` and base64 `jpeg`. Images are bounded to1280×720 and512 KiB before
+base64, fitting the existing1 MiB bridge frame limit. The JSON fixture under
+`testdata/plugin/screenshot.json` is shared by both codecs.
+
+This is a latest-only visual observation, not a task or perception receipt.
+Capture starts are limited to once per second even after settings changes;
+there is one capture in flight and one low-priority pending transport image.
+A reconnect drops pending images. The receiver validates JPEG dimensions and
+world/connection scope. Audit persistence and panel event streams strip `jpeg`,
+retaining metadata only. Authenticated media retrieval lives outside timeline
+responses, avoiding base64 images in routine diagnostic context.

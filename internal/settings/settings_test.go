@@ -209,3 +209,24 @@ func TestPlayerProfilesAndPresencePersistWithoutAgentPrivilegeEscalation(t *test
 		t.Fatal(got)
 	}
 }
+
+func TestScreenshotSettingsPersistWithHardBounds(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	s := open(t, path)
+	if s.Values().Screenshot.IntervalS != 5 {
+		t.Fatal("wrong default")
+	}
+	for key, values := range map[string][]string{"screenshot.intervalS": {"0", "0.99", "301"}, "screenshot.width": {"319", "1281"}, "screenshot.quality": {"29", "91"}} {
+		for _, value := range values {
+			if err := s.Set(key, json.RawMessage(value), ByPanel); !errors.Is(err, ErrBadValue) {
+				t.Fatal(key, value, err)
+			}
+		}
+	}
+	if err := s.Set("screenshot.intervalS", json.RawMessage(`1`), ByPanel); err != nil {
+		t.Fatal(err)
+	}
+	if open(t, path).Values().Screenshot.IntervalS != 1 {
+		t.Fatal("interval lost on restart")
+	}
+}

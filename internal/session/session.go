@@ -134,6 +134,7 @@ type Session struct {
 	terrainScope   *protocol.TerrainScope
 	terrainPending []TerrainObservation
 	terrainDropped uint64
+	screenshot     *CameraFrame
 	layout         *protocol.Layout
 	allowed        []string
 	permit         func(task string) bool
@@ -198,6 +199,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	s.terrain, s.terrainSeq = nil, 0
 	s.terrainScope = nil
 	s.layout = nil
+	s.screenshot = nil
 	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
 	s.containerAt = make(map[string]time.Time)
@@ -220,6 +222,7 @@ func (s *Session) Disconnected(c *bridge.Conn, err error) {
 		return
 	}
 	s.conn, s.allowed = nil, nil
+	s.screenshot = nil
 	s.automation = nil
 	var ended []*Task
 	for id, t := range s.tasks {
@@ -237,6 +240,8 @@ func (s *Session) Disconnected(c *bridge.Conn, err error) {
 // Message implements bridge.Handler.
 func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 	switch m := m.(type) {
+	case *protocol.Screenshot:
+		s.rememberScreenshot(c, m)
 	case *protocol.State:
 		s.mu.Lock()
 		if s.conn == c && (s.state == nil || m.Seq > s.state.Seq) {
@@ -247,6 +252,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 				s.terrain, s.terrainSeq = nil, 0
 				s.terrainScope = nil
 				s.layout = nil
+				s.screenshot = nil
 			}
 			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
 				s.automation = nil
@@ -256,6 +262,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 				s.terrain, s.terrainSeq = nil, 0
 				s.terrainScope = nil
 				s.layout = nil
+				s.screenshot = nil
 			}
 			s.state = m
 			s.stateAt = time.Now().UTC()
