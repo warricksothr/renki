@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T05:56:22Z
+updated_at: 2026-10-30T06:08:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,9 +56,9 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Implementation plan
 
-The first deployed autonomous full-tree benchmark on e36e366 reached the measured stance beside Beech1 but kept trying to approach without hitting. Live trace: contact [176.21,84.97,-250.22], goal [175.69,84.46,-249.43], axe reach1.4/attackHeight0.8; observed feet around [175.83,84.45,-249.43] are already within strike range. The remaining approach condition is generic UseReach.Near. For nonconvex MeshColliders that helper cannot use ClosestPoint and instead checks bounds.center; the standing Beech's tall collider center is many metres overhead. Generic interaction sight therefore cannot establish melee contact even at a valid strike stance.
+The cb0192a retry positively observed physical strike sight on full Beech1 1:24194, then refused in Protected. The last perception contained only a Deer about37m away and no structures. Protected currently maps both a real collider exclusion and a saturated256-collider all-layer overlap to the same refusal; Settled uses the same fixed buffer and can also wait forever on unrelated dense scenery. Retain exact cause evidence rather than reducing exclusions.
 
-Let the running bounded benchmark terminate/clean up. Replace only harvesting's generic interaction condition with a ray from the actual axe-height origin to the measured physical contact, using the normal solid/character/terrain attack layers, ignoring self and triggers, failing closed on buffer saturation and requiring the target to be the first solid hit. Keep physical reach/aim, threat/structure guards and falling escape unchanged. Retain existing generic interaction behavior for chests/doors/etc. Add policy regressions using the observed stance/contact, overhead center, occluders, missing target and character offsets. Validate, review, land/deploy, then retry the same autonomous benchmark and record actual outcome. Do not mark tree/log/mining criteria from positioning alone.
+Use a reusable scan buffer that retries full queries at bounded doubling capacities up to2048 (the existing perception cap). Consume only complete results; at the maximum, refuse explicitly as dense scene. Use it for the existing all-layer Protected and Settled scans, preserving their radii/layers and actual collider checks. Keep the item-drop scan separate. Emit bounded phase/capacity/count/completion metadata on expansion/saturation and exact blocking collider/character/piece evidence on a real exclusion. Stop explicitly if settling cannot be fully scanned. Add tests proving a protected object beyond the old truncation remains visible, exact-capacity retry, reuse with smaller result sets and bounded maximum failure. Validate/review/land/deploy and retry autonomous full-tree/log work; the new trace will establish actual density versus actual hazards.
 
 ## Notes
 
@@ -135,3 +135,9 @@ Focused just check plugin test-core HarvestTests passed18 cases (.checks/2026103
 **agent:codex/renki-resume** at 2026-10-30T05:56:22Z
 
 Before retrying, aligned the benchmark's candidate exclusion with the native full-tree fall guard's maximum32m radius. Settled logs use8m rather than inheriting a standing tree's fall radius;15m around the bot remains clear. This reduces predictable refused candidates while preserving native guards. Added a regression distinguishing a creature25m away from full-tree versus log work. Final just check ci passed325 plugin tests, five combat and four harvest supervisor tests (.checks/20261030T055533Z-AyIAtv.log). The already committed strike-sight fix reviewed without findings; review the combined commits again before pushing this follow-up.
+
+**agent:codex/renki-resume** at 2026-10-30T06:08:48Z
+
+The cb0192a retry passed physical strike sight but refused before a swing. Evidence: .checks/harvest-trial-20261030T055804421383Z/summary.json and .checks/audit-window-fsiaZG.jsonl. That build conflates a full 256-collider buffer with an actual character/structure exclusion; saturation is a hypothesis until new trace evidence establishes the cause.
+
+Implemented complete-result safety scans with reusable 256-to-2048 bounded growth, explicit dense-scene refusal and exact blocker traces, preserving protection/settling radii, layers and PvP rules. Focused ScanBufferTests passed (.checks/20261030T060427Z-Hdd7nT.log). Full just check ci passed (.checks/20261030T060547Z-Xhdxv1.log). Review, landing, deployment and autonomous retry follow; no additional acceptance criterion is verified yet.
