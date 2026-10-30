@@ -94,18 +94,23 @@ def ground_diagnostics(audit, task_id):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
+    harvest_mode = parser.add_mutually_exclusive_group()
+    harvest_mode.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
+    harvest_mode.add_argument('--harvest-logs', type=float, nargs=3, help='retry existing nearby beech logs around this center; no full-tree claim')
     parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     args = parser.parse_args()
-    if args.harvest_tree and (args.entity or args.at):
+    harvesting = args.harvest_tree or args.harvest_logs is not None
+    if harvesting and (args.entity or args.at):
         parser.error('harvest mode selects its own eligible nearby work site')
+    if args.harvest_logs and not all(math.isfinite(v) for v in args.harvest_logs):
+        parser.error('--harvest-logs must contain finite coordinates')
     if args.at and not all(math.isfinite(v) for v in args.at):
         parser.error('--at must contain finite coordinates')
     if not math.isfinite(args.wait_s) or not 0 <= args.wait_s <= 120:
         parser.error('--wait-s must be between 0 and 120')
-    saved = ROOT / '.checks' / (('harvest-trial-' if args.harvest_tree else 'combat-trial-') + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+    saved = ROOT / '.checks' / (('harvest-trial-' if harvesting else 'combat-trial-') + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     saved.mkdir(parents=True)
     summary = {'outcome': 'not_started', 'evidence': str(saved)}
     since = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -130,9 +135,9 @@ def main():
         return status, mapped
 
     try:
-        print('Preparing one bounded ' + ('harvest' if args.harvest_tree else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
+        print('Preparing one bounded ' + ('harvest' if harvesting else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
         call('stop', timeout=200)
-        call('combat', 'false' if args.harvest_tree else 'true')
+        call('combat', 'false' if harvesting else 'true')
         call('start', timeout=330)
         deadline = time.monotonic() + args.wait_s
         while True:
@@ -154,10 +159,10 @@ def main():
             if time.monotonic() >= deadline:
                 raise RuntimeError('no fed, rested, safe single-Greyling encounter available')
             time.sleep(1)
-        if args.harvest_tree:
+        if harvesting:
             from harvest_trial import run
-            print('Testing native full-tree/log harvesting', flush=True)
-            run(summary, call, observe, terminal, saved)
+            print('Testing native ' + ('existing logs' if args.harvest_logs else 'full-tree/log harvesting'), flush=True)
+            run(summary, call, observe, terminal, saved, log_center=args.harvest_logs)
         else:
             goal = {'kite': True, 'style': 'melee'}
             if args.entity:
@@ -205,7 +210,7 @@ def main():
         try:
             audit = call('audit-window', since, until, timeout=60).strip()
             summary['audit'] = audit
-            if summary.get('task') and not args.harvest_tree:
+            if summary.get('task') and not harvesting:
                 try:
                     summary['ground'] = ground_diagnostics(audit, summary['task'])
                 except Exception as e:
@@ -216,8 +221,8 @@ def main():
     report = {k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'evidence', 'cleanupErrors') if k in summary}
     if summary.get('result'):
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
-    if args.harvest_tree:
-        report.update({k: summary[k] for k in ('logsHarvested', 'woodGain') if k in summary})
+    if harvesting:
+        report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))
     if summary.get('ground'):
         report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected')}

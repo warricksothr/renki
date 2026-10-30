@@ -56,12 +56,14 @@ class HarvestTrialTests(unittest.TestCase):
         self.assertFalse(harvest.pack_ready(dict(self.pack, inventory=None)))
 
     def test_native_goals_evidence_and_cleanup_for_success_and_failures(self):
-        for scenario in ('success', 'no_site', 'failed', 'missing_hit', 'world_change', 'damage', 'pack_scope', 'no_wood', 'unsafe_log'):
+        for scenario in ('success', 'logs_only', 'no_site', 'failed', 'missing_hit', 'world_change', 'damage', 'pack_scope', 'no_wood', 'unsafe_log'):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as directory:
                 commands, sent = [], []
                 resources = [self.tree, dict(self.log, id='old')]
                 if scenario == 'no_site':
                     resources = []
+                if scenario == 'logs_only':
+                    resources = [self.log]
                 active, wood, clock = None, 2, [0.0]
                 pack = json.loads(json.dumps(self.pack))
 
@@ -117,12 +119,13 @@ class HarvestTrialTests(unittest.TestCase):
                 def sleep(seconds):
                     clock[0] += seconds
 
+                mode = ['--harvest-logs', '5', '32', '0'] if scenario == 'logs_only' else ['--harvest-tree']
                 with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), \
-                        mock.patch.object(trial.sys, 'argv', ['combat-trial', '--harvest-tree', '--wait-s', '0']), \
+                        mock.patch.object(trial.sys, 'argv', ['combat-trial', *mode, '--wait-s', '0']), \
                         mock.patch.object(harvest.time, 'monotonic', side_effect=lambda: clock[0]), \
                         mock.patch.object(harvest.time, 'sleep', side_effect=sleep), contextlib.redirect_stdout(io.StringIO()):
                     code = trial.main()
-                self.assertEqual(code, 0 if scenario == 'success' else 1)
+                self.assertEqual(code, 0 if scenario in ('success', 'logs_only') else 1)
                 self.assertEqual(commands.count(['stop']), 2)
                 self.assertEqual(commands[-2][0], 'combat')
                 self.assertNotIn(['combat', 'true'], commands)
@@ -134,6 +137,13 @@ class HarvestTrialTests(unittest.TestCase):
                     result = json.loads(saved.read_text())
                     self.assertEqual(result['woodGain'], 20)
                     self.assertEqual(result['logsHarvested'], 3)
+                if scenario == 'logs_only':
+                    self.assertEqual([g['entity'] for g in sent], ['log', 'half1', 'half2'])
+                    saved = next((Path(directory) / '.checks').glob('harvest-trial-*/summary.json'))
+                    result = json.loads(saved.read_text())
+                    self.assertEqual(result['mode'], 'logs_only')
+                    self.assertNotIn('tree', result)
+                    self.assertIn('full-tree benchmark not tested', result['result']['detail'])
 
 
 if __name__ == '__main__':

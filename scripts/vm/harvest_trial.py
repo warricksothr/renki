@@ -59,7 +59,7 @@ def pack_ready(pack):
                for i in inv.get('items', []))
 
 
-def run(summary, call, observe, terminal, saved):
+def run(summary, call, observe, terminal, saved, log_center=None):
     status, mapped = observe()
     world, connection, origin = status.get('world'), status.get('connection'), status['pos']
     if not world or not connection:
@@ -98,12 +98,16 @@ def run(summary, call, observe, terminal, saved):
     if not pack_ready(before):
         raise RuntimeError('harvest needs a usable axe, four free slots and 60 spare carry weight')
     perception = mapped.get('perception') or {}
-    target = select_resource(status, perception)
+    logs_only = log_center is not None
+    target = select_resource(status, perception, set(), log_center) if logs_only else select_resource(status, perception)
     if target is None:
-        raise RuntimeError('no nearby isolated tier-zero full beech work site')
+        raise RuntimeError('no nearby isolated tier-zero beech logs' if logs_only else 'no nearby isolated tier-zero full beech work site')
     summary['before'] = counts(before)
-    summary['tree'] = target
-    baseline = {r['id'] for r in perception.get('resources', [])}
+    center = log_center if logs_only else target['pos']
+    summary.update(mode='logs_only' if logs_only else 'full_tree', site=center)
+    if not logs_only:
+        summary['tree'] = target
+    baseline = set() if logs_only else {r['id'] for r in perception.get('resources', [])}
     completed, log_count = set(), 0
     for index in range(5):
         status, mapped = snapshot()
@@ -148,7 +152,7 @@ def run(summary, call, observe, terminal, saved):
                 raise RuntimeError('a character approached the harvest route or falling area')
             time.sleep(.5)
         completed.add(target['id'])
-        if index:
+        if target['kind'] == 'log':
             log_count += 1
         summary['after'] = counts(pack_snapshot())
         summary['logsHarvested'] = log_count
@@ -161,15 +165,16 @@ def run(summary, call, observe, terminal, saved):
             status, mapped = snapshot()
             if status.get('task'):
                 raise RuntimeError('another task took ownership between harvests')
-            target = select_resource(status, mapped.get('perception') or {}, baseline, summary['tree']['pos'], completed)
+            target = select_resource(status, mapped.get('perception') or {}, baseline, center, completed)
             if target:
                 break
             time.sleep(.5)
         if target is None:
-            if remaining_logs(mapped.get('perception') or {}, baseline, summary['tree']['pos'], completed):
+            if remaining_logs(mapped.get('perception') or {}, baseline, center, completed):
                 raise RuntimeError('new nearby logs remain unavailable or unsafe; benchmark incomplete')
-            if log_count < 2 or summary['woodGain'] <= 0:
+            if log_count < (1 if logs_only else 2) or summary['woodGain'] <= 0:
                 raise RuntimeError('full tree finished but log splitting and collected Wood are not yet verified')
-            summary.update(outcome='succeeded', result=dict(status='succeeded', detail='full beech and newly observed logs harvested; collected Wood verified'))
+            detail = 'nearby beech logs harvested; collected Wood verified; full-tree benchmark not tested' if logs_only else 'full beech and newly observed logs harvested; collected Wood verified'
+            summary.update(outcome='succeeded', result=dict(status='succeeded', detail=detail))
             return
     raise RuntimeError('harvest task budget exhausted; remaining logs left in place')

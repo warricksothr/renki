@@ -617,6 +617,12 @@ test-harvest-trial` for selection, scoped inventory, native-goal sequencing,
 evidence requirements, failure and cleanup checks; it is part of `just check ci`.
 This does not establish mining, crafting, delivery home or indefinite harvesting.
 
+To retry a fallen trunk without felling another tree, use `just vm harvest-logs
+X Y Z --wait-s 60` with the known log area's center. This explicitly considers
+existing nearby tier-zero beech logs, uses the same safety/cleanup bounds, and
+reports `mode: logs_only`. A pass requires a log break, collected Wood and no
+observed unfinished nearby logs; it does not claim a full-tree benchmark.
+
 The first deployed benchmark (e36e366) reached full Beech1 `1:24194` but
 timed out without a strike. Its measured contact was within axe range; generic
 interaction sight instead tested the center of a tall nonconvex mesh, overhead
@@ -636,6 +642,15 @@ piece and rolling-log checks retain their radii/layers. Expansion/saturation
 traces record phase, capacity and count; a true exclusion names its collider.
 Use `just check plugin test-core ScanBufferTests` for complete-result retry,
 protected objects beyond the original prefix, storage reuse and the hard cap.
+
+The 53a27dc trial confirmed the old query was truncated: the complete protection
+scan found 281 colliders. Tas felled the full beech after seven local hits,
+retreated from the trunk and collected two seeds and two feathers without
+damage. The next log failed contact acquisition before approach. The contact
+probe now falls back from a horizontal slice to a 3D ray through the collider
+center; an actual collider hit and clear strike sight remain required.
+Evidence: `.checks/harvest-trial-20261030T060943568520Z/summary.json` and
+`.checks/audit-window-LxVrpf.jsonl`. Log splitting remains a pending live check.
 
 ### Explicit melee
 
