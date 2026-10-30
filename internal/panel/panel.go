@@ -73,6 +73,7 @@ type Options struct {
 	ContainerMemory func() any
 	LandmarkMemory  func() any
 	Map             func() any
+	Waypoints       http.Handler
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -128,6 +129,10 @@ func Handler(o Options) http.Handler {
 			w.Header().Set("Cache-Control", "no-store")
 			_ = json.NewEncoder(w).Encode(o.Map())
 		})
+	}
+	if o.Waypoints != nil {
+		authed.Handle("GET /api/waypoints", o.Waypoints)
+		authed.Handle("POST /api/waypoints", o.Waypoints)
 	}
 	if o.ContainerMemory != nil {
 		authed.HandleFunc("GET /api/memory/containers", func(w http.ResponseWriter, r *http.Request) {

@@ -28,6 +28,7 @@ for tz in range(-3,4):
   tiles.append(dict(x=tx,z=tz,heights=heights,biomes=biomes,waterLevel=30))
 landmarks=[dict(entity='old-station',kind='station',prefab='piece_workbench',pos=[-61,33,0],at='2026-10-29T18:00:00Z')]
 mapped=dict(world=status['world'],connection=1,tiles=tiles,landmarks=landmarks)
+mapped['waypoints'] = [dict(name='storage',kind='storage',pos=[-34,36,4],radius=6,source='bot',setBy='bot',at='2026-10-29T18:00:00Z',evidence='Observed chest'),dict(name='woodlot',kind='wood',pos=[-53,33,25],radius=12,source='owner',setBy='Nimah',at='2026-10-29T18:01:00Z')]
 frames=[dict(type='layout',walls=[dict(a=[-42,36,-2],b=[-34,36,-5],h=2),dict(a=[-34,36,-5],b=[-27,36,13],h=2),dict(a=[-27,36,13],b=[-35,36,16],h=2),dict(a=[-35,36,16],b=[-42,36,-2],h=2)]),dict(type='perception',structures=[dict(id='chest',kind='container',pos=[-34,36,4]),dict(id='door',kind='door',open=True,pos=[-40,36,3]),dict(id='bench',kind='station',pos=[-30,36,9]),dict(id='bed',kind='bed',pos=[-34,36,12])],resources=[dict(id='tree',kind='tree',prefab='Beech1',pos=[-53,33,25])])]
 mapped['walls'] = frames[0]['walls']
 mapped['perception'] = frames[1]
@@ -42,7 +43,7 @@ def embedded(value):
  return json.dumps(value).replace('<', '\\u003c')
 
 bootstrap='''<script>const previewStatus=STATUS, previewMap=MAPPED, previewFrames=FRAMES;
-window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/map'?previewMap:path==='/api/status'?previewStatus:[]});
+window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/map'?previewMap:path==='/api/status'?previewStatus:[]});
 window.EventSource=class{constructor(){this.handlers={};setTimeout(()=>{this.onopen?.();this.handlers.status?.({data:JSON.stringify(previewStatus)});for(const frame of previewFrames)this.handlers.record?.({data:JSON.stringify({kind:'frame',cat:'perception',frame})});},20)}addEventListener(n,fn){this.handlers[n]=fn}};</script>'''.replace('STATUS',embedded(status)).replace('MAPPED',embedded(mapped)).replace('FRAMES',embedded(frames))
 html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script>'+(root/'internal/panel/static/terrain.js').read_text()+'</script>').replace('<script src="/app.js" defer></script>','')
 notice='Recorded game snapshot · read-only preview' if args.status else 'Fixture terrain · read-only preview'
