@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M67AE99E6VZXM2FA76PP2WK1
 title: Balance panel monitoring layout and surface routine controls
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/panel-layout
-  branch: t3/improve-control-panel-layout
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6f0693b4
-  commit: 7700a93c992f8d73790e1489181354ffb083733a
-  session: null
-  claimed_at: 2026-10-30T21:11:47Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T21:11:21Z
-updated_at: 2026-10-30T21:21:31Z
+updated_at: 2026-10-30T21:22:51Z
 created_by:
   id: agent:codex/panel-layout
   name: ""
@@ -47,7 +40,7 @@ Improve the desktop monitoring hierarchy from the supplied screenshot using loca
 - [x] Balanced map and camera presentation removes the map-side dead space and surfaces routine commands and goals.
 - [x] Deep preferences and editors remain accessible without crowding monitoring; desktop and mobile have no clipping or overlap.
 - [x] Existing browser automation includes layout regressions and repeatable visually inspected screenshots.
-- [ ] just check ci and post-commit just check review pass; open a linked PR without merging or deploying.
+- [x] just check ci and post-commit just check review pass; open a linked PR without merging or deploying.
 
 ## Implementation plan
 
@@ -66,3 +59,9 @@ Focused just check panel ui-test passed after updating disclosure interactions. 
 Full just check ci passed in .checks/20261030T211714Z-7eUrl3.log: 32 browser scenarios / 87 named checks with zero browser errors, all controller checks and 367 plugin core tests. The existing plugin DLL gate skips without Valheim assemblies; no live acceptance is claimed. A second gate run includes the final screenshot positioning improvement so expanded card titles remain clear of the fixture banner.
 
 CI initially exposed an occupied default fixture port. panel ci now invokes its existing ui-test recipe with --port 0, allowing isolated worktrees to run concurrently without touching the other listener. Final screenshots/diagnostics are in .checks/panel-ui; visual-review-agent.json records the inspected subset and leaves user aesthetic acceptance pending. Reproduce layout artifacts with just check panel ui-test --scenario layout-monitoring --port 0 --output ../.checks/layout-review. Review and PR creation remain acceptance criterion 4.
+
+## Summary
+
+Implemented on t3/improve-control-panel-layout from 7700a93. Draft PR https://github.com/warricksothr/renki/pull/110 targets main and is registered with T3 for this and the parent thread. No merge or deployment. The layout aligns map/camera, surfaces commands and goal access at current status, gives Activity/Kit two columns, and keeps secondary editors collapsed and reachable.
+
+Final implementation gate: just check ci passed in .checks/20261030T211959Z-SpIFdy.log (32 browser scenarios, 87 named checks, zero browser errors; 367 plugin core tests and controller checks). Post-commit just check review passed with no findings at 79dd0bd in .checks/20261030T212139Z-522iAs.log. The existing plugin DLL check skipped because Valheim assemblies are unavailable locally. Retained screenshots and visual-review-agent.json are in .checks/panel-ui; layout-monitoring documents their repeatable generation. User aesthetic acceptance remains pending. No VM, live game or runtime configuration changes were made.
