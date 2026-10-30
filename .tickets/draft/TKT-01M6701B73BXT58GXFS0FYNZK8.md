@@ -21,27 +21,28 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T18:09:31Z
-updated_at: 2026-10-30T18:09:31Z
+updated_at: 2026-10-30T18:21:43Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:codex/procedure-research
   name: ""
 extensions: {}
 ---
 
 ## Description
 
-Follow docs/PROCEDURES.md, researched at the owner's request. Extend the existing restricted Starlark goal host with typed capabilities, checkpointable child phases, per-native-task intents/budgets/receipts and a persistent host-owned candidate/attempt ledger. The existing runtime extracts one combat attack and discards the child; adding template names alone is insufficient.
+Follow docs/PROCEDURES.md and docs/PROCEDURE-TOOLS.md. Preserve M2/M3 priority and separate their acceptance from procedure infrastructure. Generalize the existing combat-specific goal host through explicitly typed reconstructible phases, one admitted food adapter at a time. There is no generic child checkpoint protocol today; registering arbitrary behaviour.Runner values is insufficient. Keep the restricted Starlark grammar and existing permission/body ownership boundaries.
 
-Use food resupply as the first generic procedure. Fresh inventory and matched transfer receipts prove progress; remembered chest contents only rank candidates. An inspected empty chest advances search. Count repetition by action, target and relevant observation fingerprint, separately from global budgets. Preserve owner cancellation, scope, permissions and uncertain-action rules. Do not introduce another language or broaden the interpreter.
+Implement a host-owned durable candidate/attempt ledger, structured expected-negative versus execution-fault outcomes, and per-native-task intents, budget charging, run-scoped identities and receipts. A wrong remembered food hint must lead to a fresh scoped observation and another allowed chest. Repeat detection uses action, target and meaningful observation revision; distinct empty boxes are not identical retries. Food success requires the declared host predicate and matched transfer plus fresh inventory/consumption evidence appropriate to that predicate.
 
-Existing bounded test-supervisor resupply is a reference implementation, not evidence that this production goal is already available. Combat and M2/M3 acceptance remain separate.
+Add compact decision/evidence diagnostics and bounded scenario capture before automatic model integration. Reconcile interrupted actions only when retained proof suffices; otherwise preserve uncertainty and existing explicit-resume rules. Existing resupply_trial.py is reference/test supervision, not an implemented production goal. Unsupported crafting, repair, exploration and arbitrary durable behavior composition remain outside this slice.
 
 ## Acceptance criteria
 
-- [ ] Generic child phases checkpoint and account for every native task; existing combat behavior is preserved
-- [ ] Empty or stale chest hints advance a durable candidate ledger without repeating unchanged actions
-- [ ] Food success requires matched receipts and fresh scoped inventory evidence
-- [ ] Replay covers restart uncertainty, partial transfers, owner takeover and persistent budgets; bounded live resupply passes
+- [ ] Explicit food adapter phases persist state and charge every native task without claiming arbitrary child-runner checkpointability; bundled combat behavior is preserved
+- [ ] Wrong or empty food hints update a durable scoped candidate ledger and select another allowed chest; unchanged retries stay bounded across restart
+- [ ] Host food completion requires declared receipt and fresh inventory/consumption proof; uncertainty, cancellation, current permissions and spent budgets cannot be bypassed
+- [ ] Compact diagnosis links decisions, host context, scoped native receipts and candidate outcomes and distinguishes missing evidence from zero observed events
+- [ ] Replay covers partial transfers, distinct empty chests, exhausted search, uncertain restart, checkpoint failure and owner takeover; separately authorized bounded live resupply earns its native evidence

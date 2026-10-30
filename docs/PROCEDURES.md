@@ -14,6 +14,18 @@ motion, timing-sensitive interactions and immediate safety. Users and models
 can author the same versioned procedure format; a future visual editor can
 compile to it.
 
+For more granular C# responses and choreography, prefer parameterized native
+routines plus a bounded declarative local sequence first. The native-side
+comparison, dance example and explicit interpreter adoption experiment are in
+[Local native policies](NATIVE-POLICIES.md). This is a separate task-level
+extension under the same body ownership and safety authority, not another
+long-horizon autonomy loop.
+
+The concrete proposed interfaces, operating-agent workflow, feedback records and
+implementation sequence are in [Procedure tools and feedback](PROCEDURE-TOOLS.md).
+All interfaces in that companion are proposals. Existing goal and audit APIs
+remain the available inspection surface; no new runtime is required.
+
 The existing implementation is a useful first slice, but has concrete gaps:
 
 - `internal/goal/policy.go` accepts a deliberately narrow decision-tree subset:
@@ -75,10 +87,13 @@ Host-ranked candidates can account for distance, freshness, access and prior
 outcomes. Scripts choose between allowed actions; they cannot invent a target
 or expand scope by modifying a host-provided parameter dictionary.
 
-Generalize child execution with checkpointable adapters or reconstructible
-host-controlled phases. Define stable checkpoint schemas for each supported
-behavior. Every native dispatch needs a saved intent, validated parameters,
-scoped identity and a matched outcome receipt. Account for every native task
+Generalize child execution incrementally with explicit reconstructible
+host-controlled phases. There is no generic child checkpoint protocol today.
+Define and test a stable checkpoint schema for each admitted adapter before
+allowing a goal to use it; ordinary in-memory runners do not become durable
+merely because the goal record is saved. Every native dispatch needs a saved
+intent, validated parameters, scoped identity and a matched outcome receipt.
+Account for every native task
 inside a child, including retries, rather than charging once per child.
 
 Distinguish running, bounded waiting, suspended, uncertain, needs-plan,
@@ -155,6 +170,15 @@ for rollback. A model cannot override refusals or invent success evidence.
 Planner request/token/time budgets are durable and survive revision. Ask a human
 when new authority or an unavailable resource is actually required.
 
+Make the deterministic system useful to a coding agent before adding an
+automatic planner. Capability discovery must say what is implemented, allowed
+and ready; diagnosis must identify the decision and evidence behind a refusal;
+draft/edit/validate/replay/compare must work offline without body authority.
+Use immutable feedback records with separate observed facts, inferred causes
+and proposed remedies. A model explanation is not new game evidence. The
+companion design specifies bounded trace pages, structured validation errors,
+content-pinned scenarios and publication/rollback boundaries.
+
 ## Evaluation and promotion into routines
 
 Replay stale hints, empty boxes, partial transfers, new chest identities,
@@ -177,21 +201,29 @@ scripts as higher-level compositions of the new routines.
 
 ## Delivery order
 
-1. Generalize the host with typed goal kinds, a capability registry, structured
-   search outcomes, a durable candidate ledger and checkpointable child phases.
-   Move food resupply into this contract first; preserve combat behavior.
-2. Add versioned procedure packages, authoring diagnostics, deterministic scenario
-   bundles and short decision traces. Use the same host for M2 prerequisites.
-3. Add bounded model proposals, validation/replay comparison and rollback.
-4. Add a visual editor compiled to the same representation when authoring needs
+1. Preserve M2/M3 implementation priority. Add compact diagnostics and scenario
+   capture around existing combat/food-supervisor behavior without enabling
+   authoring, automatic revision or a new food goal.
+2. Generalize the host with typed goal kinds, a capability registry, structured
+   search outcomes and a durable candidate ledger. Admit one explicitly
+   checkpointed food adapter at a time; preserve combat behavior. This supports
+   M2 prerequisites but does not satisfy harvesting or M3 combat acceptance.
+3. Add versioned packages and agent draft/edit/validate/replay/compare tooling,
+   then authorized publication, bounded live canaries and rollback. Keep the
+   automatic model planner disabled until these deterministic tools work.
+4. Add bounded model proposals using those same tools and durable budgets.
+5. Add a visual editor compiled to the same representation when authoring needs
    justify it. Add planning/decomposition only with explicit capability models.
-5. Promote proven patterns into native routines while retaining replay contracts.
+6. Promote proven patterns into native routines while retaining replay contracts.
 
 Draft follow-up tickets, in dependency order:
 
 - TKT-01M6701B73BXT58GXFS0FYNZK8 — Generalize durable goals for multistep food search.
 - TKT-01M6701PBVRTHD0SGRE45F42Q5 — Add versioned procedure authoring and replay.
 - TKT-01M6701ZJS66ZY78FVG10TSWMC — Bound model-assisted procedure revisions and recovery.
+- TKT-01M670QPEAJNPZ952E3R5VWWVF — Evaluate bounded native policies and choreography.
+  This separate experiment waits on M2/M3 and may conclude that no additional
+  interpreter is warranted.
 
 ## Primary sources
 

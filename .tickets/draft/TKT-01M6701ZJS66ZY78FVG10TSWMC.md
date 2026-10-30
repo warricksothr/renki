@@ -23,26 +23,29 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T18:09:52Z
-updated_at: 2026-10-30T18:09:52Z
+updated_at: 2026-10-30T18:21:43Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:codex/procedure-research
   name: ""
 extensions: {}
 ---
 
 ## Description
 
-Add the bounded model revision loop proposed in docs/PROCEDURES.md after deterministic recovery exhausts its alternatives. Supply only objective, allowed capabilities, relevant fresh observations, distinct failures and remaining budgets. A model proposes a draft revision or supported alternative; validate source/schema/capabilities and replay scenarios before authorized activation. Preserve the previous version for rollback.
+Implement bounded model-assisted revision only after the deterministic host and agent tools in docs/PROCEDURE-TOOLS.md work. Interactive coding agents and the future automatic planner must use the same capability/diagnosis/evidence/draft/validate/replay/compare interfaces. Persist evidence-linked feedback with separate observed facts, inferred causes, remedies, authorship and uncertainty. The needs-plan fingerprint triggers one bounded improvement episode instead of a model call per tick.
 
-Persist request/token/time budgets through restart and revision. Revisions inherit original scope, permissions, deadline, spent budgets, cancellation and uncertain intents. A model cannot fabricate completion evidence or override native refusals. Retain compact decisions and artifact references for context efficiency. Human input is for actual missing resources or authority.
+Persist reserved and consumed model request/token/time budgets, proposed edits, jobs and version lineage across restarts and revisions. Unknown remote usage retains its conservative reservation until reconciled. Proposals inherit original goal scope, deadline, permissions, cancellation, uncertainty and spent native budgets. World text and diagnostics are untrusted data, not authority to widen capabilities. Native refusal or absent food is not fixable by invented policy evidence.
 
-Stable reusable scripts may later become reviewed Go compositions or C# routines, preserving evidence contracts and replay fixtures. Visual authoring can compile to this same representation later.
+Measure verified success and all terminal categories with denominators/cohorts, unchanged-action retries, damage/authority/evidence violations, efficiency, context/tool/token cost and proposal rollback rate. Keep replay/simulation/live results separate. Candidate publication, live canary and stable promotion require their own scoped authority; no automatic promotion or model call enters a native physics tick. Promote reusable patterns to reviewed Go/C# routines only after explicit contract, corpus, performance and live-evidence criteria; local native policy research remains a separate draft experiment.
 
 ## Acceptance criteria
 
-- [ ] Planner uses bounded relevant context and durable request/token/time budgets
-- [ ] Proposals validate and replay before activation, with rollback and inherited authority and spent budgets
-- [ ] Replay proves revisions cannot revive cancellation, repeat uncertain actions or fabricate success
+- [ ] One fingerprinted improvement episode uses compact relevant evidence and durable request/token/time/edit limits across revisions and restart, including uncertain remote usage
+- [ ] Feedback distinguishes immutable observed facts from model hypotheses and records superseding corrections and exact version/scenario/evidence provenance
+- [ ] Proposals validate and compare on pinned scenarios before authorized candidate publication/canary/stable promotion, with prior-version rollback
+- [ ] Revisions cannot revive cancellation, reset native budgets, alter scope/permissions or replay an uncertain action; untrusted world text cannot expand authority
+- [ ] Verified success metrics include denominators, unresolved/cancelled cohorts, expected negatives, violations and context cost, with simulated and live evidence distinct
+- [ ] Failed or exhausted improvement stops with an actionable shortfall and cannot call a model per tick or bypass missing native capabilities
