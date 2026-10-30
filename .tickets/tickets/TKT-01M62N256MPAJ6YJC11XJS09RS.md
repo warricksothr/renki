@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T01:09:38Z
+updated_at: 2026-10-30T01:22:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -91,3 +91,9 @@ Self-defense planning after the completed raised-home stump delivery: current re
 **agent:codex/renki-resume** at 2026-10-30T01:09:38Z
 
 PR #43 adds coordination for the explicit melee primitive: fresh state.combat must match the running attack task id before retreat defers to a healthy single-Greyling encounter or the plugin's active fallback flee. Unsafe health/stamina, additional attackers, unknown mode or mismatched metadata do not suppress ordinary retreat. Regression tests cover healthy confirmed hit versus worsening condition, extra attacker, stale id, stop and preservation of fallback flee. Food upkeep waits through the attack; a reconnect after interrupted combat returns home without resuming it. Deployed dd3edda with plugin combat disabled and verified the permission refusal; positive live combat/escape tests remain pending owner staging.
+
+**agent:codex/renki-resume** at 2026-10-30T01:22:25Z
+
+Owner-staged live attempt on 2026-10-30 UTC exposed an initiation gap, not a successful melee encounter. Tas rejoined fully fed at 80.5/80.5 HP with an equipped 92/100 flint axe. The ordinary Greyling was observed near home, then moved northeast. Normal move_to approaches completed, but confirmed hits triggered ordinary retreat before an explicit attack could begin. t-10 attack was rejected outside the 12 m encounter leash (.checks/task-zbbs7ljn.json). No combat traces, swings, blocks, dodges or kill were observed.
+
+Exact evidence: .checks/audit-window-7K058z.jsonl and .checks/melee-range-watch.jsonl. Repeated ordinary escapes drained stamina to zero and moved Tas from home to around [174.18,84.73,-246.79], where another Boar hit for 9. Minimum observed HP was 68.1; final observed HP was 76.1/76.7. Logged out and just vm stop completed. Plugin combat config reset false for next restart. Owner was asked to clear threats, then explicitly chose to iterate on combat using this evidence. Tas remains offline; do not rejoin automatically into that encounter during development.

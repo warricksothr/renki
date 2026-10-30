@@ -599,6 +599,19 @@ Use `just check controller test-packages ./internal/retreat ./internal/protocol
 fixtures include task_attack and state_combat. These do not prove real strike
 contact, animation timing, block effectiveness or roll displacement.
 
+`just vm combat-trial` performs one automated live attempt with normal controls
+and no owner staging/clearance prerequisite. It restarts Tas, temporarily enables
+combat, selects an observed ordinary Greyling in clear ground, requires active
+food/80% health/40 stamina, and records evidence under `.checks/combat-trial-*`.
+It always logs out/stops/restores combat off. Additional creatures, unsafe
+health, exhausted escape, lost task ownership and more than 40 m travel abort
+the trial. No eligible encounter is an aborted trial, never a pass. Optional
+`--entity` restricts target selection and `--wait-s` bounds preparation to 0..120 s.
+It does not spawn/reset targets or automatically scout out of shelter. Use
+`just check vm test-combat-trial` for selection, interruption and cleanup checks;
+these are included in `just check ci`. A repeatable isolated test arena remains
+future work; positive contact/block/dodge checks still require actual observations.
+
 Read the plugin gate with `just vm combat`. First deploy with it off, allow
 attack in the controller's allowedTasks and verify a command is rejected by
 the plugin. For an owner-staged live check, use `just vm combat true` before
@@ -617,3 +630,10 @@ controller allowedTasks included attack, but the plugin with AllowCombat=false
 rejected the request as not_allowed. Tas stayed idle and sheltered. Browser
 preview checks passed for stamina, block mode, retreat reasons and clearing
 finished combat status. No positive combat outcome is claimed by these checks.
+
+The subsequent owner-staged attempt never entered melee: ordinary retreat took
+over after confirmed Greyling hits, and t-10 attack arrived outside the original
+12 m admission bound. Repeated escapes exhausted stamina and led into a Boar.
+Minimum observed health was 68.1; final observed health was 76.1/76.7. The game
+was stopped and combat config reset off. This motivated explicit bounded closing
+and the automated trial backstops above; it proves no swing/block/dodge outcome.

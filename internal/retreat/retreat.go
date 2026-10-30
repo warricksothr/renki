@@ -188,7 +188,10 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	if st.HP < st.HPMax*.8 || st.Stamina < 10 {
 		return false
 	}
+	rangeLimit := 12.0
 	switch c.Mode {
+	case "closing":
+		rangeLimit = 30
 	case "approach", "strike", "block", "dodge", "wait":
 	default:
 		return false
@@ -198,7 +201,7 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	defer r.mu.Unlock()
 	for _, other := range seen.Characters {
 		if other.ID == c.Entity {
-			found = other.Kind == protocol.CharacterCreature && other.Hostile && other.Prefab == "Greyling" && other.Stars == 0 && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) <= 12
+			found = other.Kind == protocol.CharacterCreature && other.Hostile && other.Prefab == "Greyling" && other.Stars == 0 && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) <= rangeLimit
 			continue
 		}
 		if other.Kind != protocol.CharacterCreature || !other.Hostile || other.HPFrac <= 0 {

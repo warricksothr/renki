@@ -111,6 +111,54 @@ func TestPluginFallbackFleeIsNotRepeatedlyReplaced(t *testing.T) {
 	}
 }
 
+func TestExplicitClosingOwnsTheHealthyTargetBeforeStrikeRange(t *testing.T) {
+	for _, mode := range []string{"closing", "approach", "block", "unknown"} {
+		t.Run(mode, func(t *testing.T) {
+			f := fighting()
+			f.st.Combat.Mode = mode
+			f.seen.Characters[0].Pos = protocol.Vec3{25, 30, 0}
+			r := New(f, func() []string { return nil }, nil, quiet, nil)
+			if got := r.controlledAttack(f.st, f.seen); got != (mode == "closing") {
+				t.Fatalf("controlledAttack=%v for %s at 25 m", got, mode)
+			}
+		})
+	}
+}
+
+func TestClosingDoesNotHideAdditionalAttackersOrUnsafeState(t *testing.T) {
+	for _, change := range []string{"healthy", "low health", "low stamina", "stale id", "outside range", "extra attacker"} {
+		t.Run(change, func(t *testing.T) {
+			f := fighting()
+			f.st.Combat.Mode = "closing"
+			f.seen.Characters[0].Pos = protocol.Vec3{14, 30, 0}
+			r := New(f, func() []string { return nil }, nil, quiet, nil)
+			r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+			switch change {
+			case "low health":
+				f.st.HP = 19
+			case "low stamina":
+				f.st.Stamina = 9
+			case "stale id":
+				f.st.Combat.ID = "old"
+			case "outside range":
+				f.seen.Characters[0].Pos[0] = 30.01
+			case "extra attacker":
+				f.seen.Characters = append(f.seen.Characters, protocol.PerceivedCharacter{ID: "boar", Kind: protocol.CharacterCreature, Prefab: "Boar", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{8, 30, 0}})
+				r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "boar", Amount: 1})
+			}
+			if got := r.controlledAttack(f.st, f.seen); got != (change == "healthy") {
+				t.Fatalf("controlledAttack=%v for %s", got, change)
+			}
+			if change != "outside range" {
+				r.Tick(context.Background())
+				if (len(f.sent) == 0) != (change == "healthy") {
+					t.Fatalf("retreat dispatch: %v", f.sent)
+				}
+			}
+		})
+	}
+}
+
 // The bot at home, a Greyling after it: what killed it on 2026-10-29.
 func scene(hp float64) *fake {
 	return &fake{

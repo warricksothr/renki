@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T01:10:58Z
+updated_at: 2026-10-30T01:26:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Implement the first explicit bounded melee attack against one unstarred Greyling (melee/auto style, ranged deferred), behind combat plus movement permissions. Add Go/C# args/fixtures, a testable core encounter policy, normal game aiming/weapon selection from combat damage, stamina reserves, attack-window block/dodge with supported dodge paths, complete input/queue cleanup, live target death versus loss, encounter leash/progress/time bounds, and plugin-owned flee fallback. Coordinate the existing retreat watcher with fresh world-scoped attack metadata in state so healthy accepted attacks are not canceled on every hit but new threats/unsafe state still escape. No autonomous combat or owner guarding in this slice. Test policy transitions, protocol parity, permissions, cancellation/dead-man, and retreat/attack arbitration. Run focused just check recipes, just check ci, commit and just check review before landing. Deploy with combat off for smoke checks, retain live staged Greyling criteria as pending until an owner is present to clear the encounter.
+Add a bounded closing phase to the existing explicit single-Greyling attack, accepting a named target up to 30 m away. Walk using supported navigation, keep the initial area bounded, require distance progress and cap closing at 12 seconds. At first entry to 12 m, anchor the existing encounter leash and start its combat progress/time budgets. Continue health, stamina, weapon, bystander and additional-threat checks throughout; no automatic target selection. Matching task-ID combat metadata distinguishes closing, allowing retreat to defer only to this healthy explicit target within the closing bound while preserving emergency escape for other threats or worsening conditions. Add deterministic closing/engagement boundary and retreat handoff regressions, compile against the installed game, run just check ci and committed just check review, land/deploy with combat disabled, then retry only with a controlled live staging opportunity. Record the separate repeated-flee stamina/roaming limitation without weakening escape to conceal it.
 
 ## Notes
 
@@ -70,3 +70,15 @@ Tas rejoined without active meals (25/25 health), so food preparation is underwa
 **agent:codex/renki-resume** at 2026-10-30T01:10:58Z
 
 Food preparation completed through normal withdrawals: Tas has active CookedDeerMeat and NeckTailGrilled plus one carried spare of each. Fresh panel status (.checks/melee-handoff-status.json) shows dd3edda, sheltered on structure inside home at [-37.59,36.09,6.11], 73/83.2 health and full 69.4 stamina. No combat task is active; plugin combat remains disabled while the owner staging question is pending. The next live check must refresh health, target identity and surroundings before enabling combat.
+
+**agent:codex/renki-resume** at 2026-10-30T01:22:25Z
+
+Owner-staged live attempt on 2026-10-30 UTC exposed an initiation gap, not a successful melee encounter. Tas rejoined fully fed at 80.5/80.5 HP with an equipped 92/100 flint axe. The ordinary Greyling was observed near home, then moved northeast. Normal move_to approaches completed, but confirmed hits triggered ordinary retreat before an explicit attack could begin. t-10 attack was rejected outside the 12 m encounter leash (.checks/task-zbbs7ljn.json). No combat traces, swings, blocks, dodges or kill were observed.
+
+Exact evidence: .checks/audit-window-7K058z.jsonl and .checks/melee-range-watch.jsonl. Repeated ordinary escapes drained stamina to zero and moved Tas from home to around [174.18,84.73,-246.79], where another Boar hit for 9. Minimum observed HP was 68.1; final observed HP was 76.1/76.7. Logged out and just vm stop completed. Plugin combat config reset false for next restart. Owner was asked to clear threats, then explicitly chose to iterate on combat using this evidence. Tas remains offline; do not rejoin automatically into that encounter during development.
+
+**agent:codex/renki-resume** at 2026-10-30T01:26:52Z
+
+Implemented an explicit closing phase up to 30 m, bounded by 12 seconds, the initial 30 m area and 0.5 m distance progress every 4 seconds. At first entry to 12 m, anchor the encounter and reset combat budgets; all health/stamina/equipment/geometry checks remain active. Matching closing/task metadata coordinates retreat, including regression coverage for known damage, stale IDs, stronger/additional threats and worsening conditions. No autonomous combat selection was enabled.
+
+The owner then requested replacing recurring manual test prerequisites with tools and loops. Added just vm combat-trial: restart/temporarily enable combat, check fed/rested state, select an observed safe single ordinary Greyling, send normal attack, retain task/status/perception/audit evidence, and always logout/stop/restore combat off. It aborts on another creature, task takeover, 40 m travel, low health or exhausted escape rather than requesting owner clearance. Selection and orchestration/cleanup checks are part of just check ci. A naturally unavailable encounter is aborted, never a positive pass; isolated-world fixture/reset remains separate follow-up. Focused policy/arbitration checks and just check ci passed before the documentation/ticket follow-up; final gate/review and deployed automatic trial follow. Tas remains offline at the saved northeast position.
