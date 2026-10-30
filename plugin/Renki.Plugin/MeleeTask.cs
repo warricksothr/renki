@@ -13,7 +13,7 @@ namespace Renki.Plugin
         internal static MeleeTask Active;
         readonly Character enemy;
         readonly string entity, id;
-        readonly Vector3 start;
+        Vector3 start;
         readonly MeleeEncounter encounter;
         readonly Walker walker = new Walker();
         readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe();
@@ -37,13 +37,15 @@ namespace Renki.Plugin
             if (enemy == null || !Eligible(p, enemy) || enemy.IsDead())
                 throw new TaskRefused(Wire.ReasonInvalidTarget, "melee currently supports one living unstarred hostile Greyling, never players or tamed creatures");
             start = p.transform.position;
-            if (Vector3.Distance(start, enemy.transform.position) > MeleeEncounter.Leash)
-                throw new TaskRefused(Wire.ReasonRefused, "target is outside the 12 m encounter leash");
+            var distance = Vector3.Distance(start, enemy.transform.position);
+            if (distance > MeleeEncounter.ClosingRange)
+                throw new TaskRefused(Wire.ReasonRefused, "target is outside the 30 m closing range");
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
                 throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before combat");
             weapon = Best(p);
             if (weapon == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable ordinary melee weapon");
-            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth());
+            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance);
+            if (!encounter.Engaged) mode = "closing";
             walker.ResetStuck(start);
             Active = this;
         }
@@ -104,6 +106,8 @@ namespace Renki.Plugin
             blockCost = Mathf.Max(0, blockCost);
             var pos = p.transform.position;
             var targetPos = enemy.transform.position;
+            var targetDistance = Vector3.Distance(pos, targetPos);
+            if (!encounter.Engaged && targetDistance <= MeleeEncounter.Leash) start = pos;
             var eye = pos + Vector3.up * weapon.m_shared.m_attack.m_attackHeight;
             var collider = enemy.GetCollider();
             if (collider == null || !collider.enabled) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target collider is unavailable"));
@@ -133,10 +137,11 @@ namespace Renki.Plugin
                 InRange = Vector3.Distance(eye, contact) <= reach,
                 TargetHp = enemy.GetHealth(),
                 DistanceFromStart = Math.Max(Vector3.Distance(start, pos), Vector3.Distance(start, targetPos)),
+                TargetDistance = targetDistance,
             };
             var action = encounter.Decide(frame, Time.unscaledTime);
             enemyWasAttacking = attackWindow;
-            SetMode(action.ToString().ToLowerInvariant(), encounter.Reason);
+            SetMode(!encounter.Engaged && action != MeleeAction.Retreat ? "closing" : action.ToString().ToLowerInvariant(), encounter.Reason);
             if (action == MeleeAction.Retreat) return Retreat(p, encounter.Reason);
             if (!p.IsItemEquiped(weapon))
             {
@@ -146,7 +151,7 @@ namespace Renki.Plugin
             Driver.LookAt = contact; Driver.LookOriginHeight = weapon.m_shared.m_attack.m_attackHeight; Driver.LookUntil = Time.time + .2f;
             var facing = contact - eye;
             var aligned = facing.sqrMagnitude > .001f && Vector3.Angle(p.m_lookDir, facing) < 15;
-            if (action == MeleeAction.Approach)
+            if (action == MeleeAction.Approach || action == MeleeAction.Closing)
             {
                 if (!walking || Time.unscaledTime >= nextAim && Vector3.Distance(targetPos, walkGoal) > .6f)
                 {

@@ -13,7 +13,7 @@ owner guarding below are subsequent work.
 
 An explicit `attack` accepts `entity` and optional `style` (`melee` or `auto`,
 which currently selects melee). This build accepts only one unstarred hostile
-Greyling, within 12 m, starting at 80% health or higher. Players, tame creatures,
+Greyling, within 30 m, starting at 80% health or higher. Players, tame creatures,
 other species, ranged style and unusable weapons are refused. Combat and
 movement permissions are both required.
 
@@ -25,11 +25,16 @@ Attacks preserve stamina for defense plus 10 for escape. Dodges require a new
 observed attack window and a supported, clear 5 m corridor. A missing roll
 corridor selects block when affordable. No timed-parry guarantee is made.
 
+An explicit target outside 12 m first enters `closing`: supported walking
+within 30 m of the starting position, at most 12 seconds, with at least
+0.5 m of distance progress every 4 seconds. Health, stamina and nearby-threat
+checks apply throughout. When the target first comes within 12 m, the bot's
+position anchors the fighting leash and starts the encounter budgets.
 An encounter has a 12 m leash, 45 s work limit and 12 s no-progress limit.
 Low health/stamina, lost equipment, another nearby creature or unsafe scenery
 selects a bounded ordinary flee. That escape stays part of the attack task;
 its final result reports the failed encounter and the escape outcome. The
-controller recognizes matching combat/task IDs and lets healthy melee or an
+controller recognizes matching combat/task IDs and lets healthy closing, melee or an
 active fallback flee run, while stale/unsafe attack state still allows retreat.
 Only observed target death succeeds; unloading reports target_lost. Stop,
 replacement, timeout and session cancellation clear held inputs and pending
@@ -135,12 +140,21 @@ Plugin checks must cover friendly targets, target loss versus confirmed death,
 weapon reach, supported dodge movement, disabled permissions, cancellation and
 clearing attack/block/dodge inputs. Include dead-man and reconnect behavior.
 
-The first live check is one staged unstarred Greyling in open ground, with
-food and a usable weapon, an owner ready to clear the encounter, and exact
-task/audit evidence. Verify defending, then disengagement and return to shelter;
-do not deliberately injure Tas to cross a health threshold. Record incomplete
-game checks on the tickets. Use just check for retained, bounded diagnostics;
-just check ci and committed just check review remain the landing gates.
+Use `just vm combat-trial` for one automatic normal-controls encounter when a
+safe ordinary Greyling is available nearby. It restarts with combat enabled,
+checks food, health, stamina, bystanders and observed structures, chooses one
+eligible target, records task/state/perception/audit evidence, and always logs
+out and stops the game, restoring the combat config to false. It aborts on
+lost body ownership, another nearby creature, health below 70%, escape stamina
+below 10 or travel beyond 40 m. It never requests owner clearance. No suitable
+encounter produces an explicit aborted result, not a passing combat test.
+The runner does not spawn enemies, reset the character, scout unseen terrain,
+or prove return-to-shelter. Repeatable isolated-world staging/reset is still
+needed to guarantee a positive encounter independently of live-world state.
+Verify defending and disengagement from actual evidence; do not deliberately
+injure Tas to cross a health threshold. Record incomplete game checks on the
+tickets. Use just check for retained, bounded diagnostics; just check ci and
+committed just check review remain the landing gates.
 
 Tracking: TKT-01M62N25826TRP761PYVVC7RKY (Plugin: attack task with blocking
 and dodging), TKT-01M62N25ADM0Z968D974G0CHP2 (Controller: guard the owner

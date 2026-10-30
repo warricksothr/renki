@@ -174,6 +174,15 @@ task TASK ARGS='{}' TIMEOUT='60':
 task-check TASK ARGS='{}' TIMEOUT='60':
     python3 "{{justfile_directory()}}/scripts/vm/task-check.py" "$1" "$2" "$3"
 
+# Start one automatic normal-controls encounter if a safe Greyling is available;
+# record results and always log out/stop, restoring combat off afterward.
+[positional-arguments]
+combat-trial *ARGS:
+    python3 "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
+
+test-combat-trial:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial-test.py"
+
 # Read AllowCombat, or set true/false before a staged encounter and restart.
 [positional-arguments]
 combat VALUE='': need-target

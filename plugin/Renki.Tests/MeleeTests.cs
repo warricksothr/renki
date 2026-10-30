@@ -58,6 +58,62 @@ namespace Renki.Tests
             Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 5));
         }
 
+        [Fact]
+        public void ExplicitTargetCanBeClosedOnBeforeTheEncounterLeashStarts()
+        {
+            // The live attempt escaped to 25 m before the command arrived.
+            var policy = new MeleeEncounter(0, 20, 25); var f = Healthy();
+            f.TargetDistance = f.DistanceFromStart = 25; f.InRange = false;
+            Assert.Equal(MeleeAction.Closing, policy.Decide(f, 1));
+            Assert.False(policy.Engaged);
+            f.TargetDistance = f.DistanceFromStart = 20;
+            Assert.Equal(MeleeAction.Closing, policy.Decide(f, 4));
+            // The host reanchors at the bot's position when within 12 m.
+            f.TargetDistance = f.DistanceFromStart = 12;
+            Assert.Equal(MeleeAction.Approach, policy.Decide(f, 8));
+            Assert.True(policy.Engaged);
+            f.InRange = true; f.TargetDistance = 1; f.DistanceFromStart = 11;
+            Assert.Equal(MeleeAction.Strike, policy.Decide(f, 13));
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 20));
+            Assert.Equal("no observed progress against target", policy.Reason);
+        }
+
+        [Theory]
+        [InlineData("time")]
+        [InlineData("progress")]
+        [InlineData("target range")]
+        [InlineData("travel area")]
+        [InlineData("health")]
+        [InlineData("stamina")]
+        [InlineData("bystander")]
+        [InlineData("weapon")]
+        public void ClosingIsBoundedAndKeepsEmergencyRetreat(string cause)
+        {
+            var policy = new MeleeEncounter(0, 20, 25); var f = Healthy();
+            f.TargetDistance = f.DistanceFromStart = 25;
+            var now = 1.0;
+            if (cause == "time") { now = 12; f.TargetDistance = 12; f.DistanceFromStart = 12; }
+            if (cause == "progress") now = 4;
+            if (cause == "target range") f.TargetDistance = 30.01;
+            if (cause == "travel area") f.DistanceFromStart = 30.01;
+            if (cause == "health") f.Hp = 79;
+            if (cause == "stamina") f.Stamina = 9;
+            if (cause == "bystander") f.Unsafe = true;
+            if (cause == "weapon") f.Weapon = false;
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, now));
+            Assert.False(policy.Engaged);
+        }
+
+        [Fact]
+        public void ClosingDoesNotRenewItsTimeBudgetWithDamageOrSmallOscillations()
+        {
+            var policy = new MeleeEncounter(0, 20, 25); var f = Healthy();
+            f.TargetDistance = f.DistanceFromStart = 24.6; f.TargetHp = 15;
+            Assert.Equal(MeleeAction.Closing, policy.Decide(f, 3));
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 4));
+            Assert.Equal("no progress closing on target", policy.Reason);
+        }
+
         [Theory]
         [InlineData("health")]
         [InlineData("weapon")]
