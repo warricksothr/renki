@@ -615,6 +615,23 @@ preparation may walk out to checked ground before acquisition. Use
 these are included in `just check ci`. A repeatable isolated test arena remains
 future work; positive contact/block/dodge checks still require actual observations.
 
+The first deployed native trial on 2026-10-30 UTC (684504b) accepted one
+`attack {"kite":true}` goal and failed `unreachable` after an 8.6 s local survey:
+no supported clear fighting ground with a checked escape corridor was found
+near Tas's hillside position. No enemy was acquired or damage observed;
+minimum HP was 76.1. Automatic logout, shutdown and combat-off reset completed
+without cleanup errors. This verifies the bounded refusal, not successful
+kiting or melee. Evidence: `.checks/combat-trial-20261030T021553504234Z/summary.json`
+and `.checks/audit-window-qI99Fo.jsonl`. This exposed an unintended flat-ground
+requirement: the full corridor inherited a single-step height limit. The
+corrected validator follows support every 0.5 m, permits up to 30 degrees of
+inclination, and rejects changes over 15 degrees between adjacent segments.
+Fighting-ground diameters and dodge corridors share this policy, with
+candidate rejection traces for live diagnosis. Use `just check plugin test-core
+GroundCorridorTests` for gradual uphill/downhill terrain, changing grade,
+sharp crests/dips/ledges and unsupported/blocked intermediate ground. Positive
+pursuit/engagement checks still require live evidence.
+
 Read the plugin gate with `just vm combat`. First deploy with it off, allow
 attack in the controller's allowedTasks and verify a command is rejected by
 the plugin. For an owner-staged live check, use `just vm combat true` before

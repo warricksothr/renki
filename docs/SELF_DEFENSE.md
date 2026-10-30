@@ -25,6 +25,9 @@ blocking reserves the conservative full stamina drain, not an assumed parry.
 Attacks preserve stamina for defense plus 10 for escape. Dodges require a new
 observed attack window and a supported, clear 5 m corridor. A missing roll
 corridor selects block when affordable. No timed-parry guarantee is made.
+Ground need not be flat: dodge corridors follow support every 0.5 m, allowing
+up to 30 degrees of inclination and at most 15 degrees of change between
+adjacent segments. Dry footing and body clearance are still required.
 
 An explicit target outside 12 m first enters `closing`: supported walking
 within 30 m of the starting position, at most 12 seconds, with at least
@@ -120,7 +123,15 @@ after an owner order, reconnect or world change.
 ordinary Greyling. Optional `at: [x,y,z]` supplies preferred fighting ground
 within 12 m. Without it, the routine surveys the starting point and rings at
 6 and 12 m. Each candidate must have dry supported terrain, clear body routes
-across a 6 m area, no nearby buildings or bystanders, and a usable approach.
+within a 6 m radius, no nearby buildings or bystanders, and a usable approach.
+Four full diameters sample support every 0.5 m, including across the center.
+They use the same 30-degree grade and 15-degree adjacent-change limits as
+dodging, allowing gradual hillsides while rejecting steep ground and sharp
+crests, dips or ledges at that sampling resolution. The installed game's
+player sliding threshold is 38 degrees; 30 leaves margin for combat.
+Rejected candidates emit `combat/ground_rejected` traces with their location,
+attempt number and reason (grade, sharp change, support/clearance, scenery,
+characters or approach).
 It moves to the checked ground before searching. Preparation is capped at
 25 seconds; local enemy acquisition waits at most 8 seconds once positioned.
 

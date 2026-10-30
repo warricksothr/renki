@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T01:30:44Z
+updated_at: 2026-10-30T02:19:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -105,3 +105,9 @@ PR #45 landed as 6ba8e99. just check ci passed with 245 plugin tests, Go checks/
 Ran just check vm combat-trial --wait-s 0 without owner staging or clearance (.checks/20261030T012816Z-5MpagM.log). The runner correctly reported aborted/no fed, rested, safe single-Greyling encounter available, exit 1; this is not a passing combat test. Live preflight saw active meat meals, 76.1/76.6 HP, only 36.5 stamina (below its 40 minimum), a Greyling just outside 30 m at a lower elevation, and a Boar near that target. No attack command was sent. It automatically logged out, stopped the game and restored combat config false, with no cleanup errors. Evidence and full audit: .checks/combat-trial-20261030T012816512053Z/summary.json and .checks/audit-window-bU7lMF.jsonl. No swing/block/dodge result or successful live closing is claimed; acceptance criteria remain open.
 
 Owner-independent live trial selection/recording/backstops now exist, but guaranteeing a positive repeatable encounter still needs a disposable local arena and reset. Filed draft TKT-01M656NE4C71PNAJMK025TB6FW (Repeatable isolated combat trials with automatic reset) for that remaining setup, preserving production saves. Tas remains offline at the northeast saved position; do not request owner clearance as the default next step.
+
+**agent:codex/renki-resume** at 2026-10-30T02:19:02Z
+
+PR #48 (684504b) adds native draw/kite/hold phases and matching-task retreat arbitration without suppressing low-health, stale-ID, extra-attacker or exhausted-stamina emergencies. Pure policy and integration checks passed under just check ci; committed just check review had no findings. Installed checksum verification passed.
+
+The automated native trial (.checks/combat-trial-20261030T021553504234Z/summary.json; audit .checks/audit-window-qI99Fo.jsonl) failed safely during fighting-ground survey before acquiring an enemy or moving materially. Minimum HP was 76.1 with no observed damage, automatic shutdown/reset had no cleanup errors, and Tas is offline with combat false. This does not supply positive live flee/pursuit/defense evidence; acceptance criteria remain open. No owner staging or clearance was requested.
