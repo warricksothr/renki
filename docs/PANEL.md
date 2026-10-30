@@ -80,7 +80,11 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   up to 512 nearest remembered landmarks; the page refreshes it every 5 s.
   The hot cache holds 256 tiles; the durable atlas accumulates measured terrain
   across reconnects and restarts under stable world/epoch identity. The **Map**
-  selector opens a saved world's terrain while offline. Stale cells fade; hover
+  selector defaults to **Follow Tas · last map offline**: it keeps his last
+  saved terrain under a fog overlay after logout and opens the most recent
+  saved world on a fresh offline page. Rejoining restores live mode. Choosing
+  a specific saved world pins it until Follow Tas is selected again. Stale
+  cells fade further; hover
   shows measurement age, source and spacing. Saved viewing clears live actors
   and objects. Viewport requests are bounded to 512 m per side; wider views show
   a central detail region. [ATLAS.md](ATLAS.md) documents retention, quotas and

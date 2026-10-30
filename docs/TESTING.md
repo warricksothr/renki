@@ -76,9 +76,24 @@ terrain sample cannot establish floor, bridge, cave or navigation clearance.
 With the owner present, landscape a small safe area and confirm the changed
 heightmap refreshes its tiles. Check shallow water and swimming, then return
 to dry land and check the location readout. Restart the controller and
-reload the page; cached terrain should repopulate while remembered landmarks
-remain. A menu/world change must clear old-world tiles, paths and markers.
+reload the page; the same stable world/epoch should restore retained terrain.
+After logout, confirm Follow Tas automatically retains its fogged saved atlas;
+reload offline to check fallback, then rejoin to check live mode returns. A
+manually selected saved world should stay pinned on rejoin. Live paths and
+markers must clear. A different world/epoch must not inherit the old terrain.
 Inspect the terrain cache diagnostic for maintenance time and worst frame.
+
+For bounded repeatable persistence evidence, run `just vm atlas-check` after
+fresh terrain arrives. It stores full API responses under `.checks/` and prints
+sample/tile counts, health, version and the evidence path. Run
+`just vm atlas-check --baseline <that-path>` after `just vm reconnect`, logout,
+or a game restart. It queries the original saved world/viewport and requires
+all baseline canonical samples to remain with no older measurement times;
+changed heights/biomes are counted. It also detects conflicting overlapping
+transport borders. The helper is read-only: it neither starts the game nor
+changes tasks, settings or terrain. Age/capacity expiry can legitimately make
+a long-delayed baseline fail; use a short controlled window for restart proof.
+
 
 ## Food recovery check
 

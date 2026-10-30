@@ -35,6 +35,7 @@ for (const b of document.querySelectorAll("[data-layer]")) b.addEventListener("c
   draw();
 });
 let selectedAtlas = "", savedWorlds = [], atlasListFetchedAt = 0;
+let atlasPinned = false, mapOnline = false, lastLiveAtlas = "", lastLiveName = "";
 let mapWorld = "", mapUID = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, mapFetchedAt = 0;
 
 function resetMap() {
@@ -46,6 +47,32 @@ function resetMap() {
   $("terrain-status").textContent = "Waiting for terrain";
 }
 
+// Auto mode follows Tas live, then keeps his last saved atlas through logout.
+// A deliberate saved-world selection stays pinned when he joins elsewhere.
+function selectAtlas(key, keepTerrain = false) {
+  if (key === selectedAtlas) return;
+  const tiles = world.tiles;
+  if (keepTerrain && view.followBot && world.bot) view.centre = [world.bot[0],world.bot[2]];
+  selectedAtlas = key;
+  resetMap(); mapWorld = ""; mapUID = ""; mapConnection = 0;
+  if (keepTerrain) world.tiles = tiles;
+  const saved = savedWorlds.find(w => w.key === key);
+  if (key && saved && !keepTerrain) { view.centre = saved.center; view.zoomed = true; }
+  $("atlas-world").value = atlasPinned ? selectedAtlas : "";
+  if (key) {
+    $("terrain-status").textContent = mapOnline ? "Saved terrain · fogged" : "Bot offline · remembered terrain · fogged";
+    $("map-name").textContent = "Remembered terrain";
+    $("map-world").textContent = `${saved?.name || lastLiveName || "Saved world"} · ${mapOnline ? "saved atlas" : "bot offline"}`;
+    for (const id of ["biome","surface","shelter","pos","height","depth"]) $(id).textContent = "";
+  }
+  draw();
+}
+function followAtlas() {
+  if (atlasPinned) return;
+  const key = mapOnline ? "" : lastLiveAtlas || savedWorlds[0]?.key || "";
+  selectAtlas(key, !mapOnline && key === lastLiveAtlas && world.tiles.size > 0);
+}
+
 async function loadAtlasWorlds() {
   atlasListFetchedAt = Date.now();
   try {
@@ -55,26 +82,30 @@ async function loadAtlasWorlds() {
     if (!Array.isArray(data)) return;
     savedWorlds = data;
     const select = $("atlas-world");
-    select.replaceChildren(Object.assign(document.createElement("option"), { value: "", textContent: "Live world" }));
+    select.replaceChildren(Object.assign(document.createElement("option"), { value: "", textContent: "Follow Tas · last map offline" }));
     for (const w of data) select.append(Object.assign(document.createElement("option"), {
       value: w.key, textContent: `${w.name} · ${w.scope.namespace} · epoch ${w.scope.epoch} · ${w.scope.worldUid}` }));
     if (selectedAtlas && !data.some(w => w.key === selectedAtlas)) select.append(Object.assign(document.createElement("option"), {value:selectedAtlas,textContent:"Atlas no longer retained"}));
-    select.value = selectedAtlas;
+    followAtlas();
+    select.value = atlasPinned ? selectedAtlas : "";
+    if (selectedAtlas) loadMap();
   } catch { /* A transient list failure leaves the current selection alone. */ }
 }
 
 $("atlas-world").addEventListener("change", () => {
-  selectedAtlas = $("atlas-world").value;
-  resetMap(); mapWorld = ""; mapUID = ""; mapConnection = 0;
-  const saved = savedWorlds.find((w) => w.key === selectedAtlas);
-  if (saved) {
-    view.centre = saved.center; view.followBot = false; view.zoomed = true;
-    $("follow-bot").checked = false;
-    $("map-world").textContent = `${saved.name} · saved atlas`;
-    $("map-name").textContent = "Remembered terrain";
-    loadMap();
+  const key = $("atlas-world").value;
+  atlasPinned = Boolean(key);
+  if (atlasPinned) {
+    selectAtlas(key);
+    view.followBot = false; $("follow-bot").checked = false;
+  } else {
+    view.followBot = true; $("follow-bot").checked = true;
+    followAtlas();
   }
-  draw();
+  const saved = savedWorlds.find(w => w.key === selectedAtlas);
+  $("map-name").textContent = selectedAtlas ? "Remembered terrain" : "Location";
+  $("map-world").textContent = saved ? `${saved.name} · ${mapOnline ? "saved atlas" : "bot offline"}` : "";
+  loadMap(); draw();
 });
 
 async function loadMap() {
@@ -101,6 +132,7 @@ async function loadMap() {
     } else {
       if (!data || data.world !== mapWorld || data.connection !== mapConnection || (data.worldUid || "") !== mapUID) return;
       const saved = atlas && atlas.connection === mapConnection && atlas.worldKey === data.worldKey ? atlas.tiles || [] : [];
+      lastLiveAtlas = data.worldKey || ""; lastLiveName = data.world;
       world.tiles = RenkiTerrain.merge(data.tiles || [], saved);
       world.landmarks = data.landmarks || [];
       world.danger = data.danger || [];
@@ -116,7 +148,7 @@ async function loadMap() {
     }
     mapFetchedAt = Date.now();
     $("terrain-status").textContent = world.tiles.size
-      ? `${selected ? "Saved terrain" : "Terrain"} · 4 m samples · faded = stale${halfX === 256 || halfZ === 256 ? " · detail within 512 m" : ""}`
+      ? `${selected ? mapOnline ? "Saved terrain · fogged" : "Bot offline · remembered terrain · fogged" : "Terrain"} · 4 m samples · faded = stale${halfX === 256 || halfZ === 256 ? " · detail within 512 m" : ""}`
       : selected ? "No retained samples here" : "Waiting for terrain";
     draw();
   } catch { /* Keep the last scoped snapshot through a transient request failure. */ }
@@ -448,7 +480,9 @@ function onStatus(s) {
   const storage = $("storage-needed");
   storage.hidden = needs.length === 0;
   storage.textContent = needs.map(n => `Storage needed: ${Object.entries(n.items).map(([name, count]) => `${count} ${name}`).join(", ")}. ${n.reason}`).join(" · ");
-  const active = !selectedAtlas && s.connected && s.phase === "in_world" && s.world;
+  mapOnline = Boolean(s.connected && s.phase === "in_world" && s.world);
+  followAtlas();
+  const active = !selectedAtlas && mapOnline;
   const nextUID = active ? s.worldUid || "" : "";
   const nextWorld = active ? s.world : "", nextConnection = active ? s.connection || 0 : 0;
   if (nextWorld !== mapWorld || nextUID !== mapUID || nextConnection !== mapConnection) {
@@ -460,7 +494,7 @@ function onStatus(s) {
   if (Date.now() - atlasListFetchedAt > 30000) loadAtlasWorlds();
   if (Date.now() - mapFetchedAt > 5000) loadMap();
   $("map-name").textContent = selectedAtlas ? "Remembered terrain" : active ? s.character || "Location" : "Location";
-  $("map-world").textContent = selectedAtlas ? `${savedWorlds.find(w => w.key === selectedAtlas)?.name || "Saved world"} · saved atlas` : active ? s.world : "Not in the world";
+  $("map-world").textContent = selectedAtlas ? `${savedWorlds.find(w => w.key === selectedAtlas)?.name || lastLiveName || "Saved world"} · ${mapOnline ? "saved atlas" : "bot offline"}` : active ? s.world : "Not in the world";
   chip("biome", active ? plain(s.biome || "Biome unknown") : "");
   const loc = active ? s.location : null, flags = active ? s.flags || [] : [];
   const support = { terrain: "On terrain", structure: "On a structure", ship: "On a ship", other: "Grounded",
@@ -526,7 +560,7 @@ function render() {
   const sx = (x) => w / 2 + (x - view.centre[0]) * view.scale;
   const sy = (z) => h / 2 - (z - view.centre[1]) * view.scale;
 
-  RenkiTerrain.draw(ctx, world.tiles, sx, sy, layers, w, h);
+  RenkiTerrain.draw(ctx, world.tiles, sx, sy, layers, w, h, Boolean(selectedAtlas));
   grid(w, h, sx, sy);
   if (layers.danger) for (const zone of world.danger) {
     ctx.save();
@@ -640,7 +674,7 @@ function render() {
     label("bot", x + 14, y + 4);
   } else {
     ctx.fillStyle = colour("dim");
-    ctx.fillText("The bot is not in the world.", 12, 20);
+    ctx.fillText(selectedAtlas ? "Remembered terrain · no live observations" : "The bot is not in the world.", 12, 20);
   }
   ctx.fillStyle = "#d3dfdf"; ctx.font = "12px system-ui";
   ctx.fillText("N ↑", w - 36, 24);
@@ -1304,7 +1338,7 @@ $("settings").addEventListener("toggle", () => $("settings").open && loadSetting
 
 function connect() {
   const es = new EventSource("/api/events");
-  es.onopen = () => { if (!selectedAtlas) { resetMap(); mapWorld = ""; mapUID = ""; mapConnection = 0; } };
+  es.onopen = () => { mapGeneration++; mapFetchedAt = 0; };
   es.addEventListener("record", (e) => onRecord(JSON.parse(e.data)));
   es.addEventListener("status", (e) => onStatus(JSON.parse(e.data)));
   es.onerror = async () => {
