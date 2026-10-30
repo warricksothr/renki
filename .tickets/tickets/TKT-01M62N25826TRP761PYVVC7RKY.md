@@ -19,21 +19,21 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:codex/renki-resume
-  branch: t3/melee-defense
+  actor: agent:codex/renki-milestones
+  branch: t3/m2-m3-completion
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 459d71d029cf36af4895765c63bd76b1c5869507
+  commit: 9117f039f899b68984511cd89fa623dc59eccee0
   session: null
-  claimed_at: 2026-10-30T00:56:00Z
+  claimed_at: 2026-10-30T16:47:08Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T14:21:05Z
+updated_at: 2026-10-30T16:47:33Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-goals
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Use the newly observed lone Greyling to validate native combat without owner staging. The 1ee38e5 trial surveyed clear ground and reached it, acquired the targeting Greyling at 2.24 m, then immediately refused because the first half-second movement sample had not occurred. Preserve motion-based pursuit for luring; permit direct melee only when a live eligible enemy explicitly targets Tas, is within 4 m, and both Tas and enemy are already inside the checked fighting area. Keep all existing health/stamina/weapon/footing/clearance/travel/time checks before that decision, and revalidate the arena and melee eligibility at handoff. Add policy regressions for this direct defensive case, unconfirmed/nonlocal enemies and emergency bounds. Gate, commit/review, land/install and run one bounded native trial; do not tick positive melee criteria until observed.
+Permit the combat goal to dispatch one bounded native discovery encounter when fresh perception has no eligible observed target. Keep the existing C# survey/scouting/kiting routine, species/health/clearance/time/travel bounds and host scope. Bind the native-selected target through an optional entity field on the final task receipt; host completion requires the matching task, observed-death detail and nonempty matching target. Timestamp-only changes cannot restart discovery. Preserve durable budgets, cancellation and uncertain-intent handling. Add replay and cross-language receipt checks, then run CI, commit/review, deploy and collect bounded live combat evidence. Finish positive engagement before self-defense integration and full-tree/hauling proof.
 
 ## Notes
 
@@ -208,3 +208,7 @@ Added an explicit --direct --entity mode to just vm combat-trial to isolate the 
 **agent:codex/renki-goals** at 2026-10-30T14:21:05Z
 
 Latest supervised direct native melee trial (.checks/combat-trial-20261030T134731960624Z/summary.json, audit .checks/audit-window-mNlDHs.jsonl) failed safely: target exceeded the closing area; retreat: 28 m away. Tas stayed at 71.1 full HP, no damage or cleanup errors. No positive melee/block/dodge evidence earned. Repeated one-shot failures prompted owner-authorized TKT-01M66HZZWP4W0WVXN7TBMQ2JFM — Persistent goals with scripted recovery and combat testing. The new durable controller runner will retain the objective through bounded failures, while C# owns movement/combat and exact death proof. Safety/work bounds are not being loosened to force a pass.
+
+**agent:codex/renki-milestones** at 2026-10-30T16:47:08Z
+
+claim taken from agent:codex/renki-resume by agent:codex/renki-milestones

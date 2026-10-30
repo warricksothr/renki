@@ -220,7 +220,10 @@ func TestBudgetsAndCancellationSurviveResume(t *testing.T) {
 func TestWaitBudgetEndsUnchangedObservationLoop(t *testing.T) {
 	host, r, v, id := fixture(t)
 	v.Perception.Characters = nil
-	for i := 0; i < 25; i++ {
+	attack(t, r, v, "search-1")
+	_, _ = r.Next(v, &behaviour.Result{Status: "failed", Reason: "invalid_target", TaskID: "search-1"})
+	fresh(&v, 5)
+	for i := 1; i < 25; i++ {
 		o, e := r.Next(v, nil)
 		if o != nil {
 			t.Fatal(o)
@@ -234,7 +237,52 @@ func TestWaitBudgetEndsUnchangedObservationLoop(t *testing.T) {
 		fresh(&v, 5)
 	}
 	g, _ := host.Store.Get(id)
-	if g.Status != "needs_plan" || g.WaitS != 120 || g.TaskCount != 0 {
+	if g.Status != "needs_plan" || g.WaitS != 120 || g.TaskCount != 1 {
+		t.Fatal(g)
+	}
+}
+
+func TestDiscoveryBindsOnlyTheNativeFinalReceipt(t *testing.T) {
+	for _, entity := range []string{"", "native-grey"} {
+		t.Run("receipt="+entity, func(t *testing.T) {
+			host, r, v, id := fixture(t)
+			v.Perception.Characters = nil
+			order, err := r.Next(v, nil)
+			if err != nil || order == nil {
+				t.Fatal(order, err)
+			}
+			args := order.Args.(*protocol.AttackArgs)
+			if !args.Kite || args.Entity != "" || args.At != nil {
+				t.Fatal("discovery must use native acquisition", args)
+			}
+			if err := r.Dispatched("search-1"); err != nil {
+				t.Fatal(err)
+			}
+			_, err = r.Next(v, &behaviour.Result{TaskID: "search-1", Status: "succeeded", Detail: "observed Greyling death", Entity: entity})
+			if err != nil {
+				t.Fatal(err)
+			}
+			g, _ := host.Store.Get(id)
+			if entity == "" {
+				if g.Status != "needs_plan" || g.Proof != nil {
+					t.Fatal("unbound discovery claimed success", g)
+				}
+			} else if g.Status != "succeeded" || g.Proof == nil || g.Proof.Entity != entity {
+				t.Fatal(g)
+			}
+		})
+	}
+}
+
+func TestTargetedReceiptCannotSubstituteAnotherEntity(t *testing.T) {
+	host, r, v, id := fixture(t)
+	attack(t, r, v, "task-1")
+	_, err := r.Next(v, &behaviour.Result{TaskID: "task-1", Status: "succeeded", Detail: "observed Greyling death", Entity: "other"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, _ := host.Store.Get(id)
+	if g.Status != "needs_plan" || g.Proof != nil {
 		t.Fatal(g)
 	}
 }

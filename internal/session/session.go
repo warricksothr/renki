@@ -58,6 +58,7 @@ type Task struct {
 	status string
 	reason string
 	detail string
+	entity string
 	done   chan struct{}
 }
 
@@ -66,6 +67,13 @@ func (t *Task) Status() (status, reason, detail string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.status, t.reason, t.detail
+}
+
+// Entity returns the target bound by the native task's final receipt.
+func (t *Task) Entity() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.entity
 }
 
 // Done is closed when the task reaches a final status.
@@ -84,7 +92,7 @@ func (t *Task) Wait(ctx context.Context) (status, reason string, err error) {
 
 // update records a status and reports whether it made the task final. A
 // task that is already final ignores later reports.
-func (t *Task) update(status, reason, detail string) bool {
+func (t *Task) update(status, reason, detail string, entity ...string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if protocol.Final(t.status) {
@@ -92,6 +100,9 @@ func (t *Task) update(status, reason, detail string) bool {
 	}
 	t.status, t.reason, t.detail = status, reason, detail
 	if protocol.Final(status) {
+		if len(entity) > 0 {
+			t.entity = entity[0]
+		}
 		close(t.done)
 		return true
 	}
@@ -329,7 +340,7 @@ func (s *Session) taskStatus(m *protocol.TaskStatus) {
 		return
 	}
 	s.log.Info("task", "id", t.ID, "task", t.Name, "status", m.Status, "reason", m.Reason, "detail", m.Detail)
-	if t.update(m.Status, m.Reason, m.Detail) {
+	if t.update(m.Status, m.Reason, m.Detail, m.Entity) {
 		s.listener.TaskDone(t)
 	}
 }

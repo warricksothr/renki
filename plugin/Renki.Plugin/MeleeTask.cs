@@ -222,7 +222,7 @@ namespace Renki.Plugin
             Tracer.Emit("combat", next, new Dictionary<string, object> { ["entity"] = entity, ["reason"] = why });
         }
 
-        Outcome Finish(Outcome result) { Cancel(); return result; }
+        Outcome Finish(Outcome result) { result.Entity = entity; Cancel(); return result; }
         public void Cancel()
         {
             cancelled = true; escape?.Cancel();

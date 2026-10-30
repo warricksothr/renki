@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M66SXGAMHZYATMRAP7B5ADSA
 title: Report menu after a requested logout finishes
 type: bug
-status: draft
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,15 +18,22 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/m2-m3-completion
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 9117f039f899b68984511cd89fa623dc59eccee0
+  session: null
+  claimed_at: 2026-10-30T16:47:16Z
+  expires_at: null
 archive: null
 created_at: 2026-10-30T16:22:34Z
-updated_at: 2026-10-30T16:22:34Z
+updated_at: 2026-10-30T16:48:17Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
 updated_by:
-  id: agent:codex/renki-atlas
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -40,3 +47,7 @@ During atlas restart checks just vm stop took about 68 seconds despite eventual 
 - [ ] Phase reports logging_out only during shutdown and menu once the game has returned there
 - [ ] AutoJoin suppression remains active after an explicit logout
 - [ ] A live logout/stop check recognizes menu without exhausting the 60-second wait
+
+## Implementation plan
+
+Publish phase transitions after explicit logout even though body control has ended. Resolve menu once Player and ZNet are gone before returning logging_out; keep the logout latch and AutoJoin suppression, including across a new welcome, so final reporting cannot restore automation. Verify the transition policy and controller handling, then confirm native logout reaches menu without the 60-second wait. This addresses the final-state issue also described by TKT-01M64Z4P80P9W2QSGQ22QAE56W — Logout: publish an accurate final connection and phase state; close that duplicate only after the shared behavior is verified.

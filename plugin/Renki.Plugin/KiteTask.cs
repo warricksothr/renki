@@ -404,7 +404,7 @@ namespace Renki.Plugin
             });
         }
 
-        Outcome Finish(Outcome result) { Cancel(); return result; }
+        Outcome Finish(Outcome result) { result.Entity = string.IsNullOrEmpty(entity) ? null : entity; Cancel(); return result; }
         public void Cancel()
         {
             cancelled = true; melee?.Cancel(); escape?.Cancel();

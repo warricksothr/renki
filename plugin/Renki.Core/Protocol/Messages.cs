@@ -351,6 +351,7 @@ namespace Renki.Protocol
         [JsonProperty("status")] public string Status = "";
         [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;
         [JsonProperty("detail", NullValueHandling = NullValueHandling.Ignore)] public string Detail;
+        [JsonProperty("entity", NullValueHandling = NullValueHandling.Ignore)] public string Entity;
     }
 
     // ---- Controller to plugin (section 7) ----

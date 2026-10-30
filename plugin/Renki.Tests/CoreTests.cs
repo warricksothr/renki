@@ -88,6 +88,18 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void FinalBodyReceiptCarriesNativeSelectedEntity()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            host.Bodies[0].Next = new Outcome { Status = Wire.StatusSucceeded, Detail = "observed Greyling death", Entity = "native-grey" };
+            runner.FixedTick(.02);
+            Assert.Equal("native-grey", reports.Last().Entity);
+            Assert.Equal("t-1", reports.Last().Re);
+            Assert.Null(reports.First().Entity);
+        }
+
+        [Fact]
         public void NewBodyTaskSupersedes()
         {
             runner.Welcome(TaskNames.M1);

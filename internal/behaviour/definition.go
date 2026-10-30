@@ -65,7 +65,7 @@ type Stock struct {
 }
 
 // Result is the last completed step, or nil at the start of a run.
-type Result struct{ Status, Reason, Detail, TaskID string }
+type Result struct{ Status, Reason, Detail, TaskID, Entity string }
 
 // ErrWait keeps a runner alive for a fresh observation, for at most five
 // seconds. It does not send a task or release body ownership.

@@ -592,7 +592,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		select {
 		case <-i.task.Done():
 			status, reason, detail := i.task.Status()
-			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID}
+			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID, Entity: i.task.Entity()}
 			i.task = nil
 			i.waitingSince = time.Time{}
 			if status != protocol.StatusSucceeded {
