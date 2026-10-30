@@ -632,6 +632,15 @@ GroundCorridorTests` for gradual uphill/downhill terrain, changing grade,
 sharp crests/dips/ledges and unsupported/blocked intermediate ground. Positive
 pursuit/engagement checks still require live evidence.
 
+The corrected build (33cd427) also returned `unreachable` from the same hillside
+on 2026-10-30 UTC. Its 34 candidate traces reported 16 grade refusals, 8 sharp
+changes and 10 support/clearance failures. No enemy was acquired; no damage was
+observed, and automatic shutdown restored combat off without cleanup errors.
+This is a failed encounter attempt, not positive kiting evidence or proof that
+every rejected point is physically unusable. Summary:
+`.checks/combat-trial-20261030T022800895969Z/summary.json`; candidate traces:
+`.checks/audit-window-df13eN.jsonl`.
+
 Read the plugin gate with `just vm combat`. First deploy with it off, allow
 attack in the controller's allowedTasks and verify a command is rejected by
 the plugin. For an owner-staged live check, use `just vm combat true` before

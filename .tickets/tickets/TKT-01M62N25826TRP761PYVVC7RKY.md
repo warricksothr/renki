@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T02:26:48Z
+updated_at: 2026-10-30T02:31:36Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -114,3 +114,11 @@ Keep both broad acceptance criteria open. Next native iteration should expose pe
 Replaced the aggregate elevation restriction with a shared GroundCorridor validator: half-metre physical support/clearance samples, maximum 30-degree inclination and 15-degree adjacent inclination change. Four complete diameters cover the fighting area's center so a sharp crest/dip there is not missed. The melee dodge corridor now uses the same local profile limits instead of a 0.5m total elevation ceiling. Dry ground, structures, characters and navmesh approach checks remain, and failed candidates emit location/attempt/reason traces. The installed Character implementation starts player sliding at 38 degrees, so the 30-degree cap leaves margin.
 
 just check plugin test-core GroundCorridorTests passed 12 meaningful cases for sustained uphill/downhill elevation, gradual grade changes, steep slopes, sharp crests/dips/ledges, unsupported/blocked intermediate ground, character-foot height offset and invalid/unbounded data (.checks/20261030T022447Z-8ZaF9n.log). just check ci passed with 287 plugin tests plus controller and supervisor suites (.checks/20261030T022558Z-OXvjlk.log). Committed review, installation and another automated live attempt follow. No positive combat acceptance criterion has been checked.
+
+**agent:codex/renki-resume** at 2026-10-30T02:31:36Z
+
+The grade/roughness correction landed in PR #49 as 33cd427. Committed just check review had no findings (.checks/20261030T022648Z-m8CAb6.log), and just check vm install verified package checksums (.checks/20261030T022743Z-xwMUT9.log).
+
+Ran a second automated normal-controls attempt with just check vm combat-trial --wait-s 60 (.checks/20261030T022800Z-9GPeqv.log). One native attack surveyed 34 candidates and returned unreachable without acquiring an enemy. Rejection traces distinguish 16 grade, 8 sharp_change and 10 blocked_or_unsupported candidates; this run did not find an eligible fighting area. Those counts describe observed policy refusals, not proof every candidate is physically unusable. GroundCorridorTests separately establish that gradual slopes can accumulate several metres of elevation and that the flat-ground restriction is gone.
+
+Tas remained around [174.15,84.73,-246.79]. Minimum observed HP was 75.8 with HP following the food-derived maximum and no observed damage; stamina stayed near 67. Automatic logout, stop and combat=false restoration completed with no cleanup errors. Summary: .checks/combat-trial-20261030T022800895969Z/summary.json. Audit with candidate reasons: .checks/audit-window-df13eN.jsonl. No positive pursuit, contact, block or dodge is claimed. Acceptance criteria remain open. Future ground-selection work can inspect rejected sample locations and actual collider/terrain causes rather than adjusting limits blindly; no owner staging or clearance is required by the harness.
