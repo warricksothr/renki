@@ -634,10 +634,10 @@ observed unfinished nearby logs; it does not claim a full-tree benchmark.
 Physical reach uses actual collider contact and strike sight from axe height;
 a bounds center is never contact evidence. Logs probe at Tas's strike height
 with a 3D collider-ray fallback. Support projection uses the lower of the pivot
-and measured contact. High or unsupported contacts still refuse. Complete
+and measured contact. High or unsupported contacts still refuse.
 For supported box/sphere/capsule/convex-mesh log colliders, exact nearest-surface
 queries precede the ray fallback; nonconvex meshes retain physical rays.
-protection/settling queries reuse a buffer that grows from 256 to 2048, then
+Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
 refuse rather than consume truncated results. Before swings, up to seven
 outward six-metre escape corridors are checked, one per physics tick, with
 supported, dry, wall/body-clear steps every half metre.
