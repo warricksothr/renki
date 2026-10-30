@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T19:33:52Z
+updated_at: 2026-10-30T20:47:01Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-The zero-coverage failure is caused by trying to scout directly from raised building support using terrain-only combat-route validation. Add a bounded native travel preparation only when starting near a structure or on a different supporting level. Select dry, clear, character-separated open-ground endpoints inside the existing search radius, use the ordinary floor-aware MoveTo/Walker for doorway/stair/local routing, and monitor health, stamina, footing, nearby characters, travel and time throughout. Acquisition and swings start only after actual arrival at clear terrain; fighting-area checks remain unchanged. Exhausted preparation or zero completed scout legs returns unreachable, not a negative creature-search claim. Record preparation mode/rejections and include bounded scout reasons/examples in compact goal-trial output. Verify core coverage regression, native build, CI, committed review and a bounded live no-owner-assistance trial. Positive kill/block/dodge remain open until directly observed.
+Continue native acquisition by fixing the route refusals observed in the retained persistent trial: outbound route changes/no progress currently abort the entire task, and return chooses new straight destinations instead of remembering the walk. Add a finite outbound recovery allowance that stops the rejected movement and considers another existing candidate, without resetting candidate/time/travel budgets. Retain a bounded trail of actual observed positions during owned outbound movement; return through those hints only after current native support/path/character validation. Reserve travel for the measured trail rather than only radial distance. Return-route refusal, health/footing/threat failures and stop/owner displacement remain immediate exits. Expose compact route recovery/trail diagnostics. Verify changed routes, failed walkers, no progress, finite retries, bent return routes, travel reservation and invalid/unsafe data with focused policy checks; build native DLL, run just check ci and committed just check review, land/deploy, then one bounded autonomous live encounter trial with automatic logout/stop and offline panel. Positive kill/block/dodge remain unticked until directly evidenced. This does not implement speculative look-ahead or remove terrain/grade/clearance guards.
 
 ## Notes
 
@@ -238,3 +238,9 @@ On installed b536179 (PR100), ordinary movement recovery successfully left the r
 The subsequent persistent trial .checks/combat-trial-20261030T192119356202Z/summary.json covered 227.9m across three native attempts, then goal fb340b7325e19de9e0282b7d entered needs_plan after repeated native route refusals. The final task made eleven outbound route commitments. Rejections include sharp_change, scouting_route_limit, character_near_route, structure_near_route, wet_or_unloaded and blocked. Audit .checks/audit-window-0hjdQA.jsonl records no damage; final HP76.5/76.5 at [10.71,30.32,47.3]. Cleanup logged Tas out, stopped the game, restored combat off and left the panel online. Camera .checks/camera-20261030T192412092997Z.jpg retains the final scene. No kill/block/dodge proof earned.
 
 Owner observed pauses between legs. TKT-01M674C36AET3YJMR7AFQZB6AD — Design cancellable look-ahead between movement steps records investigation of bounded provisional next-step preparation, route freshness and immediate stop/retreat/owner displacement. Do not infer a controller delay from visible native holds without measuring.
+
+**agent:codex/renki-milestones** at 2026-10-30T20:47:01Z
+
+The retained audit distinguishes outbound route changes (t-1/t-3) and a refused newly planned return (t-2), all previously reported as refused. Implemented a shared four-event outbound route/Walker/no-progress recovery allowance. A rejected leg stops, advances to the next search bearing and retains the existing candidate/time/travel budgets. Exhaustion initiates return. Return planning uses up to160 actual outbound position samples and current route validation for every connector; a winding-trail distance reserves return travel before the old radial estimate would. Return failures, unsafe body/threat conditions and owner cancellation remain exits. Only completed outbound legs count as search coverage. No speculative planning or weaker physics/grade/clearance guard was added.
+
+Focused policy checks passed (.checks/20261030T204525Z-hxURqx.log), including alternate bearings, finite Walker failures/no false coverage, bent retracing, return-travel reservation, changed return refusal and immediate threat priority. Native DLL build passed (.checks/20261030T204617Z-hD3gQE.log). Compact trial projection checks passed (.checks/20261030T204549Z-CeH0K7.log and .checks/20261030T204614Z-5PyYR9.log); reports retain recovery reason counts and last trail point/distance hints without broad trace output. CI/review/landing/deployment and one bounded live trial follow. Positive kill/block/dodge AC stay open.

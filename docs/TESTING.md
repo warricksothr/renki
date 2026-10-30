@@ -735,7 +735,16 @@ It does not spawn/reset targets or scout beyond its bounded local area. Native
 preparation moves to checked ground and can make short checked out-and-back
 scouting excursions while acquiring. Use `just check plugin test-core ScoutingTests`
 for finite route selection, return, stamina/time/travel/progress bounds and
-route changes. No eligible enemy after returning remains a failed trial. Use
+route changes. Outbound route changes, stuck progress and Walker refusals stop
+that leg and advance to another bearing, with at most four recoveries and the
+same candidate/time/travel bounds. At the limit Tas returns instead of starting
+another excursion. A bounded trail records actual outbound positions; current
+path/support/grade/water/character checks must approve every return connector.
+The planner reserves travel for that winding trail rather than just distance
+from the origin. A refused return or unsafe body state still exits immediately.
+Return legs do not count as outbound search coverage. Compact trial reports
+retain recovery-reason counts and the latest trail length/point count; raw
+traces remain on disk. No eligible enemy after returning remains a failed trial. Use
 `just check plugin test-core KitingTests` for pursuit/pacing/bounds and
 `just check vm test-combat-trial` for single-goal dispatch, interruption and cleanup;
 these are included in `just check ci`. A repeatable isolated test arena remains

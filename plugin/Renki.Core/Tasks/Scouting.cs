@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Renki.Tasks
 {
@@ -11,8 +12,11 @@ namespace Renki.Tasks
         public const int CandidateLimit = 24;
         public const double WorkLimit = 90, ReturnLimit = 150, Leash = 80, TravelLimit = 300;
         public const double LegLength = 16;
+        public const int RecoveryLimit = 4, TrailLimit = 160;
+        const double TrailSpacing = 2;
         readonly V3 origin, area;
         readonly double began, radius;
+        readonly List<V3> trail = new List<V3>();
         V3 last, destination;
         double progressAt, bestDistance;
         bool hasGoal, hasDestination, ending;
@@ -20,6 +24,24 @@ namespace Renki.Tasks
         public bool Returning { get; private set; }
         public int Attempts { get; private set; }
         public int CompletedLegs { get; private set; }
+        public int Recoveries { get; private set; }
+        public int TrailPoints => trail.Count;
+        // These are return hints from actual observations, never authority to
+        // walk. Every connector still goes through the current route validator.
+        public double ReturnDistance
+        {
+            get
+            {
+                double length = 0;
+                var previous = last;
+                for (var i = trail.Count - 1; i >= 0; i--)
+                {
+                    length += (previous - trail[i]).Length;
+                    previous = trail[i];
+                }
+                return length;
+            }
+        }
         public double Travel { get; private set; }
         public string Reason { get; private set; }
 
@@ -28,6 +50,7 @@ namespace Renki.Tasks
             if (!Finite(radius) || radius < 12 || radius > Leash) throw new ArgumentOutOfRangeException(nameof(radius));
             this.origin = origin; this.area = area; this.radius = radius;
             last = bot; began = progressAt = now;
+            trail.Add(area);
         }
 
         public ScoutAction Decide(V3 bot, double stamina, bool safe, double now, Func<V3, V3?> route)
@@ -38,17 +61,34 @@ namespace Renki.Tasks
             Travel += (bot - last).Length; last = bot;
             if (!WithinBounds(bot) || Travel > TravelLimit) return Abort("scouting travel limit");
             if (now - began >= ReturnLimit) return Abort("scouting return time limit");
-            ending |= now - began >= WorkLimit || stamina < 30 || Travel >= TravelLimit - radius * 1.5 ||
+            if (!Returning && hasGoal && (bot - trail[trail.Count - 1]).Length >= TrailSpacing)
+            {
+                if (trail.Count < TrailLimit) trail.Add(bot);
+                else ending = true;
+            }
+            if (hasGoal && (bot - Goal).Length <= 1.5)
+            {
+                if (!Returning) CompletedLegs++;
+                hasGoal = false;
+            }
+            ending |= now - began >= WorkLimit || stamina < 30 || Travel + ReturnDistance >= TravelLimit - LegLength ||
                 Attempts >= CandidateLimit && (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5);
             if (ending && !Returning)
             {
-                Returning = true; hasGoal = false; hasDestination = true; destination = area;
+                Returning = true; hasGoal = false; hasDestination = false;
             }
             if (Returning && (bot - area).Length <= 1.5) return ScoutAction.Done;
-            if (hasGoal && (bot - Goal).Length <= 1.5) { CompletedLegs++; hasGoal = false; }
             if (!hasGoal)
             {
-                if (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5)
+                if (Returning)
+                {
+                    // Revisit the actual winding trail instead of inventing a
+                    // straight return across ground we never traversed.
+                    while (trail.Count > 1 && (bot - trail[trail.Count - 1]).Length <= 1.5)
+                        trail.RemoveAt(trail.Count - 1);
+                    destination = trail[trail.Count - 1]; hasDestination = true;
+                }
+                else if (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5)
                 {
                     if (now - began < 2) return ScoutAction.Wait;
                     if (Attempts >= CandidateLimit) return ScoutAction.Done;
@@ -72,12 +112,27 @@ namespace Renki.Tasks
             {
                 var supported = route(Goal);
                 if (!supported.HasValue || !WithinBounds(supported.Value) || (supported.Value - Goal).Length > .65)
-                    return Abort("scouting route changed or became unsafe");
+                    return RejectRoute("scouting route changed or became unsafe");
             }
             var distance = (bot - Goal).Length;
             if (distance <= bestDistance - .5) { bestDistance = distance; progressAt = now; }
-            if (now - progressAt >= 4) return Abort("no progress along the scouting route");
+            if (now - progressAt >= 4) return RejectRoute("no progress along the scouting route");
             return ScoutAction.Walk;
+        }
+
+        // Host Walker failures and policy revalidation failures share the same
+        // finite allowance. No retry resets travel/time/candidate accounting.
+        public ScoutAction RejectRoute(string reason)
+        {
+            if (Returning) return Abort(reason);
+            Recoveries = Math.Min(RecoveryLimit, Recoveries + 1);
+            hasGoal = hasDestination = false;
+            // Advance to the next bearing instead of committing another
+            // collinear leg toward a farther point on the rejected spoke.
+            Attempts = Math.Min(CandidateLimit, (Attempts + 2) / 3 * 3);
+            ending |= Recoveries >= RecoveryLimit || Attempts >= CandidateLimit;
+            Reason = reason;
+            return ScoutAction.Wait;
         }
 
         bool WithinBounds(V3 at) => Finite(at) && (at - origin).Length <= radius + .25;

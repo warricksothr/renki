@@ -312,8 +312,10 @@ namespace Renki.Plugin
             if (Time.unscaledTime >= nextScout)
             {
                 nextScout = Time.unscaledTime + .5f;
+                var recoveries = scouting.Recoveries;
                 scoutAction = scouting.Decide(Convert.ToV3(pos), p.GetStamina(), ClearCharacters(p, null, pos),
                     Time.unscaledTime, goal => ScoutRoute(p, goal));
+                if (scouting.Recoveries != recoveries) TraceScoutRecovery();
                 if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
                 if (scoutAction == ScoutAction.Done)
                     return Finish(scouting.CompletedLegs == 0
@@ -326,15 +328,40 @@ namespace Renki.Plugin
                     walkGoal = goal; walking = true;
                     walker.SetGoal(pos, goal, 1); walker.ResetStuck(pos);
                     Tracer.Emit("combat", "scout_route", new Dictionary<string, object>
-                    { ["goal"] = Convert.ToArray(goal), ["returning"] = scouting.Returning, ["attempts"] = scouting.Attempts });
+                    {
+                        ["goal"] = Convert.ToArray(goal),
+                        ["returning"] = scouting.Returning,
+                        ["attempts"] = scouting.Attempts,
+                        ["trailPoints"] = scouting.TrailPoints,
+                        ["returnDistance"] = scouting.ReturnDistance
+                    });
                 }
                 Mode(scouting.Returning ? "scout_return" : "scout");
             }
             if (scoutAction != ScoutAction.Walk) return null;
-            if (walker.Refused() is Outcome refused) return Abort(p, refused.Detail ?? refused.Reason);
-            if (!walker.Steer(pos, false, climbObstacles: false)) return Abort(p, "cannot follow the scouting route");
+            if (walker.Refused() is Outcome refused) return RecoverScout(p, refused.Detail ?? refused.Reason);
+            if (!walker.Steer(pos, false, climbObstacles: false)) return RecoverScout(p, "cannot follow the scouting route");
             return null;
         }
+
+        Outcome RecoverScout(Player p, string why)
+        {
+            scoutAction = scouting.RejectRoute(why);
+            walking = false;
+            if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
+            TraceScoutRecovery();
+            Mode("search", why);
+            return null;
+        }
+
+        void TraceScoutRecovery() => Tracer.Emit("combat", "scout_recovery", new Dictionary<string, object>
+        {
+            ["reason"] = scouting.Reason,
+            ["recoveries"] = scouting.Recoveries,
+            ["attempts"] = scouting.Attempts,
+            ["trailPoints"] = scouting.TrailPoints,
+            ["returnDistance"] = scouting.ReturnDistance,
+        });
 
         V3? ScoutRoute(Player p, V3 desired)
         {

@@ -76,7 +76,8 @@ class CombatTrialTests(unittest.TestCase):
         rows += [trace('prepare_search', {}), trace('search_egress_route', dict(goal=[2,3,4]))]
         rows += [trace('search_egress_rejected', dict(reason='endpoint_not_dry_clear_or_separated'))]
         rows += [trace('scout', {})] * 20 + [trace('scout_return', {})]
-        rows += [trace('scout_route', dict(returning=False)), trace('scout_route', dict(returning=True))]
+        rows += [trace('scout_route', dict(returning=False)), trace('scout_route', dict(returning=True, trailPoints=4, returnDistance=20))]
+        rows += [trace('scout_recovery', dict(reason='route changed')), trace('scout_recovery', dict(reason='route changed'), task='old')]
         rows += [trace('scout_rejected', dict(goal=[1, 2, 3], reason='blocked_' + str(i))) for i in range(10)]
         rows += [trace('scout_rejected', dict(reason='blocked_0'))]
         with tempfile.TemporaryDirectory() as directory:
@@ -89,6 +90,8 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['scouting']['routes'], {'preparation': 1, 'outbound': 1, 'return': 1})
         self.assertEqual(summary['scouting']['reasons']['endpoint_not_dry_clear_or_separated'], 1)
         self.assertEqual(summary['scouting']['reasons']['blocked_0'], 2)
+        self.assertEqual(summary['scouting']['recoveries'], {'route changed': 1})
+        self.assertEqual(summary['scouting']['returnHint'], dict(trailPoints=4, returnDistance=20))
         self.assertEqual(len(summary['scouting']['examples']), 6)
 
     def test_direct_mode_requires_an_explicit_target_and_no_lure_or_harvest_options(self):

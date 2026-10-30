@@ -69,7 +69,8 @@ def ground_diagnostics(audit, task_id):
     reasons, stages, regions = Counter(), Counter(), Counter()
     examples, seen = [], set()
     modes, selected, scout_examples = [], None, []
-    scout_reasons, scout_routes = Counter(), Counter()
+    scout_reasons, scout_routes, scout_recoveries = Counter(), Counter(), Counter()
+    return_hint = None
     with Path(audit).open() as lines:
         for line in lines:
             row = json.loads(line)
@@ -86,6 +87,9 @@ def ground_diagnostics(audit, task_id):
                 selected = {k: data[k] for k in ('area', 'escape', 'stanceRadius') if k in data}
             if message == 'scout_route':
                 scout_routes['return' if data.get('returning') else 'outbound'] += 1
+                return_hint = {k: data[k] for k in ('trailPoints', 'returnDistance') if k in data}
+            if message == 'scout_recovery':
+                scout_recoveries[data.get('reason', 'unknown')] += 1
             if message == 'search_egress_route':
                 scout_routes['preparation'] += 1
             if message in ('scout_rejected', 'search_egress_rejected'):
@@ -108,7 +112,8 @@ def ground_diagnostics(audit, task_id):
                                 'supported', 'angle', 'previousAngle', 'roughness', 'probeStage', 'probeAt', 'collider',
                                 'colliderCenter') if k in data})
     return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), regions=dict(regions), examples=examples,
-                selected=selected, modes=modes, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons), examples=scout_examples))
+                selected=selected, modes=modes, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons),
+                recoveries=dict(scout_recoveries), returnHint=return_hint, examples=scout_examples))
 
 
 def run_persistent_goal(summary, call, observe, saved):
@@ -364,7 +369,7 @@ def main():
     if summary.get('goalId'):
         report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof')}
         report['encounters'] = [dict(taskId=e['taskId'], status=e['status'], reason=e['reason'],
-            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','examples')})
+            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','recoveries','returnHint','examples')})
             for e in summary.get('encounters', [])]
     if harvesting:
         report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain', 'deposited', 'returned', 'selection') if k in summary})
@@ -376,7 +381,7 @@ def main():
         report['tasks'] = len(summary.get('tasks', []))
     if summary.get('ground'):
         report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected')}
-        report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons')}
+        report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons', 'recoveries', 'returnHint')}
     print(json.dumps(report, indent=2))
     return 0 if summary['outcome'] == 'succeeded' and not summary.get('cleanupErrors') else 1
 
