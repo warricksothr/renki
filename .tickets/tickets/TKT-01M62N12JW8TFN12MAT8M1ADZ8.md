@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T21:05:17Z
+updated_at: 2026-10-30T21:17:16Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -57,7 +57,9 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-Fix the observed M2 food-refresh false injury before retrying full delivery. The scoped native audit shows no damage while HP decayed60.7->60, then a meal refresh raised maximum66.1 between supervisor polls. Expose the existing accepted injury-event sequence through session/view/panel status and observe it even without a memory listener. Controller gather and VM health checks must stop on changed/missing known injury evidence, including a hit hidden by regeneration, and retain conservative HP fallback without that marker. Only a confirmed refreshed food timer plus increased maximum and unchanged known injury marker can explain this food transition. Native harvest keeps its actual-damage latch, compares consecutive food/health samples and enforces the80% floor. Verify the recorded sequence, coincident/hidden hit, legacy/missing marker, reconnect and unexplained losses; run focused checks, CI and committed review, then land/deploy and retry one bounded controller tree/log/gain-only deposit/return cycle. Record exact proof or diagnose the next failure; no owner staging. Repeated hauling, broader site discovery, mining/crafting and positive M3 combat proof remain open.
+PR108 landed food-refresh/injury evidence as7700a93; CI, committed review and checksum-verified installation passed. The changed-build gather attempt reached beech1:61548 but timed out in native approach with no physical strike/hit: measured contacts were40.14–41.87m high while feet/support were about31m. Audit .checks/audit-window-1FNOLW.jsonl and summary .checks/gather-trial-20261030T210820019368Z/summary.json show zero damage, final57.9HP and successful cleanup. Native horizontal probes currently aim through each collider AABB centre; a full-tree canopy can shift that centre away from the narrow trunk slice and force a high centre-ray fallback. Approach then walks repeatedly toward unreachable ground below that contact.
+
+Add a pivot-centred physical horizontal ray before the existing collider-centre/fallback probes, preserving Collider.Raycast as contact evidence. Check physical contact reach from the proposed supported standing position before issuing movement, returning a concise refusal rather than spending180seconds underneath an unreachable point. Include probe method/pivot/feet in compact approach diagnostics. Verify a canopy-offset narrow-trunk regression, high contact refusal and existing tilted-log/raised-floor/occlusion policies, then focused checks, full CI and committed review. Land/deploy and run one changed-build trial; record exact outcome without rerunning unchanged or owner staging. Full delivery, repeated hauling and positive M3 combat remain open.
 
 ## Notes
 
@@ -106,3 +108,11 @@ The live gather trial on28a488f selected full beech1:61548 at[23.62,31.37,33.53]
 Implemented accepted injury-event sequence in session/view/panel without a wire change, including listener-independent tracking. Gather and VM supervisors require unchanged known injury evidence, increased maximum and a refreshed food timer to tolerate this transition; real or regenerated hits, lost evidence and unexplained losses still stop. Legacy status retains conservative HP fallback. Native harvest keeps its actual-damage latch, compares consecutive food/health samples and checks the80% floor throughout. Cleanup now stops/deletes this trial's behavior or active goal before diagnostic image transfer, preventing continued automation during a slow camera fetch.
 
 Focused Go checks passed .checks/20261030T210040Z-tDAgV3.log; VM gather/harvest/resupply/combat checks passed .checks/20261030T210045Z-{vi7Sp6,1W8AfD,bzPKFQ,3KQxfh}.log (see individual saved check logs for exact generated names). Native HarvestTests passed .checks/20261030T210145Z-xTN19W.log and native build .checks/20261030T210148Z-hofUeq.log. Latest cleanup-order combat/goal checks passed .checks/20261030T210331Z-e1aWJJ.log and .checks/20261030T210331Z-T0y9K0.log. Full CI, committed review, landing/deployment and one changed-build live retry follow. Broad M2 acceptance remains open.
+
+**agent:codex/renki-milestones** at 2026-10-30T21:17:16Z
+
+PR108 merged as7700a93. Full just check ci passed (.checks/20261030T210517Z-IvoHqY.log), committed just check review passed (.checks/20261030T210710Z-uB3SYK.log), and just check vm install verified controller/plugin checksums (.checks/20261030T210745Z-YszhTF.log).
+
+The one changed-build live trial (.checks/20261030T210819Z-kcHKdj.log; .checks/gather-trial-20261030T210820019368Z/summary.json) reached tree1:61548 after successful move_to t-1, then harvest t-2 timed out after180seconds without strike contact or harvesting. Exact audit .checks/audit-window-1FNOLW.jsonl shows three approach commitments, with physical contact Y40.98/41.87/40.14 above supported ground Y31.15/31.02/30.87. Zero damage events; final57.9HP at[21.8,30.87,35.06]; no cleanup errors, combat off, game stopped and panel online. Original Wood22/BeechSeeds17/Feathers2 remain; there was no spare food at start. Camera .checks/camera-20261030T211121661091Z.jpg and final camera .checks/camera-20261030T211235274500Z.jpg retain visual evidence. This run did not encounter another food refresh, so it does not live-prove that branch; its recorded food-refresh/real-injury regressions pass.
+
+Added a resource-pivot horizontal physical ray before the collider-centre fallback, rejecting unreachable physical contact from the projected support before movement. Added compact probe/pivot/feet diagnostics and the recorded canopy-height reach regression; just check plugin test-core HarvestTests passed (.checks/20261030T211632Z-ZFH6pV.log). CI, committed review, landing/deployment and a single changed-build retry follow. All full delivery/repeated hauling acceptance remains open.

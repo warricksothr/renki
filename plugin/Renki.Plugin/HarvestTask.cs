@@ -184,7 +184,7 @@ namespace Renki.Plugin
             var attackHeight = tool.m_shared.m_attack.m_attackHeight;
             var eye = p.transform.position + Vector3.up * attackHeight;
             var contactBaseHeight = rolling && !tallTree ? p.transform.position.y : origin.y;
-            if (!HarvestApproach.Contact(targetColliders, contactBaseHeight, p.transform.position, attackHeight, rolling && !tallTree, out var surface, out var contactMethod))
+            if (!HarvestApproach.Contact(targetColliders, origin, contactBaseHeight, p.transform.position, attackHeight, rolling && !tallTree, out var surface, out var contactMethod))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
             if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
@@ -213,6 +213,19 @@ namespace Renki.Plugin
                     });
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported, water-safe position beside the resource"));
                 }
+                if (!HarvestReach.InRange(Convert.ToV3(goal), Convert.ToV3(surface), attackHeight, reach))
+                {
+                    Tracer.Emit("harvest", "contact outside supported strike reach", new Dictionary<string, object>
+                    {
+                        ["resource"] = Convert.ToArray(origin),
+                        ["contact"] = Convert.ToArray(surface),
+                        ["goal"] = Convert.ToArray(goal),
+                        ["reach"] = reach,
+                        ["attackHeight"] = attackHeight,
+                        ["probe"] = contactMethod,
+                    });
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the physical contact cannot be reached from supported ground"));
+                }
                 if (!walking || Vector3.Distance(walkGoal, goal) > .45f)
                 {
                     walker.SetGoal(p.transform.position, goal, .15f);
@@ -225,6 +238,9 @@ namespace Renki.Plugin
                         ["reach"] = reach,
                         ["attackHeight"] = attackHeight,
                         ["attackRange"] = tool.m_shared.m_attack.m_attackRange,
+                        ["resource"] = Convert.ToArray(origin),
+                        ["feet"] = Convert.ToArray(p.transform.position),
+                        ["probe"] = contactMethod,
                     });
                 }
                 if (walker.Unreachable(p.transform.position, .15f) is Outcome no) return Finish(no);

@@ -10,7 +10,8 @@ def diagnostics(audit, task_ids):
     """A bounded projection of matching harvest traces; raw evidence stays on disk."""
     fields = {
         'physical strike contact visible': ('entity', 'contact', 'origin', 'reach', 'probe'),
-        'approaching physical contact': ('contact', 'goal', 'reach', 'attackHeight'),
+        'approaching physical contact': ('contact', 'goal', 'reach', 'attackHeight', 'resource', 'feet', 'probe'),
+        'contact outside supported strike reach': ('resource', 'contact', 'goal', 'reach', 'attackHeight', 'probe'),
         'resource broke after local hit': ('entity', 'hits'),
         'protected collider': ('collider', 'radius', 'center', 'boundsDistance', 'character', 'piece'),
         'safety scan': ('phase', 'radius', 'previousCapacity', 'capacity', 'count', 'complete'),
