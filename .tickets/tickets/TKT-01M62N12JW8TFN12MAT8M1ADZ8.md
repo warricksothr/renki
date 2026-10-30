@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T20:22:23Z
+updated_at: 2026-10-30T20:31:03Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -57,7 +57,7 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-Validate the existing controller gather template with one bounded autonomous full-tree -> new logs -> observed product gains -> exact home-chest deposit receipts -> return-site cycle. Add just vm gather-trial using a uniquely named manual once-only behavior; native tasks own movement and work. Require stable world/connection, supplied axe/capacity/food, isolated tree and remembered home storage, and abort on health loss, nearby hostiles, scope changes or bounds. Stop/delete the temporary behavior even after a lost response, then logout/stop and keep the offline panel available. Verify exact behavior-attributed requests, distinct resource IDs/local-hit breaks, preservation of original products, measured gains/receipts and final return. Cover forged/incomplete proof and supervisor failure/cleanup paths with focused checks, then run just check ci and committed just check review before landing. Diagnose the first live outcome using compact retained evidence; do not repeat unchanged failures or ask for owner staging. Site inference/chat, repeated hauling and broad M2 acceptance remain open.
+Add owner-authorized deterministic chop wood/gather wood chat commands that queue the existing bounded controller gather template. Use fresh scoped state/perception/inventory, existing tool/food/health/capacity/character guards and explicit permissions before saving or starting anything. Prefer the previous command's persisted same-world worksite when fresh safe trees confirm it, or use a distant remembered site as a travel hint that must be revalidated on arrival; otherwise choose a nearby currently observed isolated beech with danger-aware cost. Choose ordered remembered/current home chests as hints, retaining exact native storage receipts. Persist one identifiable manual once-only command instance; refuse collisions with user-authored instances, active tasks and queued work. Normal stop/owner takeover must cancel without later steps. Verify planner refusals, permission/chat routing, persisted-site reuse and cancellation; run focused checks, CI and committed review. Keep full live delivery, repeated hauling and M3 kill/block/dodge acceptance open. The protected-tree live refusal from the benchmark is retained; do not ask for owner staging or rerun unchanged.
 
 ## Notes
 
@@ -90,3 +90,11 @@ Added a controller-owned gather benchmark with exact instance/native step attrib
 First live attempt against installed a525b18 aborted before any task: no isolated full beech in the native selector's 18 m radius. .checks/gather-trial-20261030T201912076800Z/summary.json and .checks/20261030T201912Z-pBuX0o.log retain evidence. No damage events, no travel/work, final66.2/66.2 HP and successful cleanup. Detailed observations show nearest three trees11.9–13.7 m away were close to a Boar/structures; tree1:61548 was18.48 m away but only30.5 m from the Boar, still inside32 m falling protection. No currently observed full beech passed protection even when considering farther trees. This is a correct refusal, not gathering proof or an owner-clearance request.
 
 The controller benchmark now considers observed sites up to60 m away because gather can approach before its18 m native acquisition; unchanged falling/character/structure guards remain authoritative. Bounded nearest-candidate diagnostics explain subsequent refusals without broad perception dumps. Focused benchmark/native regression checks passed; final CI/review follow. Full delivery, chat/site selection and repeated hauling remain open. Do not rerun the same protected site until a new safe-site acquisition strategy or changed observations justify it.
+
+**agent:codex/renki-milestones** at 2026-10-30T20:31:03Z
+
+Implemented owner/command-profile grammar go chop wood, chop wood and gather wood, routed to the existing controller gather template without model interpretation. The bounded command selects a safe observed tier-zero beech within60 m using remembered danger preferences, or reuses its persisted same-world site when freshly confirmed/distant enough to need travel and revalidation. Home/site remain within150 m of home; ordered storage hints are within10 m of home. Existing native safety, gain-only receipt-based stow and return remain authoritative. Missing prerequisites and active/queued work are explained before starting. One manual once-only Owner wood gathering instance stores the requested site and never resumes automatically after restart; a user-authored name collision is refused.
+
+Focused behavior/chat/app checks passed: .checks/20261030T202955Z-Xx77CT.log. Coverage includes distant approach without relaxed protection, foreign/unsafe-local site exclusion, confirmed remembered-site preference, missing axe/food/capacity/stamina/home/storage/fresh perception, unauthorized chat, permission refusal, user-definition preservation, persisted non-resumption, queued owner stop and a newer stop arriving during planning. The latter binds the queued work to the original control revision so a settings save cannot resurrect an older order. A separate existing player-presence test timed out once in an earlier focused run; its targeted rerun and the subsequent full focused suites passed (.checks/20261030T202804Z-sTD8Ls.log and .checks/20261030T202909Z-tfOVFK.log). No presence change was made merely to hide that timeout.
+
+Final CI/review/landing/deployment follow. All broad M2 AC remain unticked until required live proof is earned. This command is one bounded tree cycle, not repeated multi-tree hauling, mining or crafting. M3 positive kill/block/dodge proof also remains open.

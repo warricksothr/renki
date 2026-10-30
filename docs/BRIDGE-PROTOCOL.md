@@ -809,6 +809,12 @@ chat event
   forgotten). These send `interact`, and the bot answers
   with what the game said: "Spawn point set", or "It won't: You need a roof".
   Only `owners` can issue tasks.
+- `go chop wood` (`chop wood`, `gather wood`) is also deterministic: authorized
+  command players start one controller-owned beech/log/gains-only-delivery cycle,
+  with a return to the work site. Missing supplies, safe trees or storage are
+  explained before work starts. The previous requested same-world site is saved
+  in the manual once-only behavior; restarting does not resume it. `stop` cancels
+  normally. See `docs/BEHAVIOURS.md` for current bounds and selection rules.
 - **Home** is where the speaker stood when they said `set home`, one per
   world, kept in the controller's `dataDir` across restarts. The bot also
   goes home by itself, as the `home` config allows: when follow loses its

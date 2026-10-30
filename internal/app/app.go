@@ -93,7 +93,9 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		v := set.Values()
 		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
 	}, Logger: log.With("part", "presence")})
+	var gatherWood func(context.Context, string) (string, error)
 	brain := chat.New(chat.Options{
+		GatherWood:  func(ctx context.Context, by string) (string, error) { return gatherWood(ctx, by) },
 		PlayerQuery: playerPresence.PanelQuery,
 		Home:        keeper,
 		Places:      homes,
@@ -157,6 +159,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 			}
 		},
 		Logger: log.With("part", "behaviour")})
+	gatherWood = a.Behaviours.StartWood
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Danger = &memory.Danger{Store: homes, Logger: log.With("part", "memory")}
