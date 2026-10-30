@@ -11,9 +11,19 @@ $controllers | Wait-Process -Timeout 10
 # Windows may retain process/image records briefly after Wait-Process returns.
 for ($attempt = 0; $attempt -lt 40; $attempt++) {
     if (-not (Get-Controller (Read-BotSettings))) {
-        Write-Host 'controller: stopped and exit verified'
-        exit 0
+        # Process disappearance does not guarantee its executable's image
+        # lock has been released. Probe write access without changing bytes
+        # before scp tries to replace it during a full package installation.
+        try {
+            $stream = [IO.File]::Open((Read-BotSettings).ControllerExe,
+                [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+            $stream.Dispose()
+            Write-Host 'controller: stopped and executable released'
+            exit 0
+        } catch [System.IO.IOException] {
+            # Retry the transient image lock, with the same bounded wait.
+        }
     }
     Start-Sleep -Milliseconds 250
 }
-throw 'Controller is still running after the exit wait' 
+throw 'Controller process or executable lock remained after the exit wait'

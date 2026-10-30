@@ -816,6 +816,13 @@ and time/travel limits abort. Evidence and cleanup use the shared trial harness,
 which always logs out/stops and leaves the panel available. It is an explicit
 operator preparation check, not a background supply policy.
 
+During a trial, `just vm trial-status` reads the newest local evidence directory
+and prints only position, observed travel, health, food, task and observation
+age. Pass an evidence directory to inspect a particular run. It makes no VM
+requests, and reports success only from the completed supervisor summary.
+Full observations, task histories and audit frames remain on disk; inspect
+specific diagnostics only when this compact progress indicates a problem.
+
 Task histories now include the chest receipts naming that task, so the panel's
 task view and preparation supervisor can inspect exact moved/remaining counts
 without reading a complete audit window.

@@ -279,6 +279,12 @@ resupply-food *ARGS:
 
 test-resupply-food:
     python3 -B "{{justfile_directory()}}/scripts/vm/resupply-trial-test.py"
+    python3 -B "{{justfile_directory()}}/scripts/vm/trial-status-test.py"
+
+# Read the latest local trial's compact progress without polling the VM.
+[positional-arguments]
+trial-status *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/trial-status.py" "$@"
 
 # With Tas online, verify native on/off marker telemetry and preserve the selected final state.
 [positional-arguments]
