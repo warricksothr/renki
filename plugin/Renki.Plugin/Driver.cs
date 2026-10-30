@@ -31,6 +31,10 @@ namespace Renki.Plugin
         /// <summary>A point to face instead of the move direction, until LookUntil.</summary>
         public static Vector3? LookAt;
 
+        // Harvest aims its normal attack from the tool's attack height,
+        // including pitch for a low stump or resource on a slope.
+        internal static float? LookOriginHeight;
+
         public static float LookUntil;
 
         /// <summary>Runs first in every controlled physics step: the task runner's tick.</summary>
@@ -45,6 +49,7 @@ namespace Renki.Plugin
             Run = false;
             Jump = false;
             HarvestAttack = false;
+            LookOriginHeight = null;
         }
 
         internal static void Step(Player player, float dt)
@@ -52,15 +57,16 @@ namespace Renki.Plugin
             OnFixedStep?.Invoke(dt);
 
             Vector3 want = Vector3.zero;
+            var pitch = LookAt.HasValue && Time.time < LookUntil && LookOriginHeight.HasValue;
             if (LookAt.HasValue && Time.time < LookUntil)
-                want = LookAt.Value - player.GetHeadPoint();
+                want = LookAt.Value - (pitch ? player.transform.position + Vector3.up * LookOriginHeight.Value : player.GetHeadPoint());
             else if (Move.sqrMagnitude > 0.0001f)
                 want = Move;
-            want.y = 0;
+            if (!pitch) want.y = 0;
             if (want.sqrMagnitude > 0.0001f)
             {
                 var current = player.m_lookDir;
-                current.y = 0;
+                if (!pitch) current.y = 0;
                 var turned = Vector3.RotateTowards(current.normalized, want.normalized, TurnRate * Mathf.Deg2Rad * dt, 0f);
                 player.SetLookDir(turned);
             }

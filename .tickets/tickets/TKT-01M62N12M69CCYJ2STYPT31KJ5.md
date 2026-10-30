@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T00:03:46Z
+updated_at: 2026-10-30T00:08:26Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -70,3 +70,7 @@ Implemented optional game-reported active/carried food status, exposed it throug
 **agent:codex/renki-resume** at 2026-10-30T00:03:46Z
 
 PR #36 merged as dc981d1; just check vm deploy passed with installed hashes. On rejoin at home, automatic t-1/t-2/t-3 consumed exactly the carried CookedDeerMeat, CookedMeat and NeckTailGrilled, with active food confirmation and zero of each left carried. Health regenerated normally from 25 to full 113.7/113.7. T-4 withdrew one spare of each from food chest 1:30600; current food observation correctly marks all three ineligible, with no duplicate consumption. Pack retains AxeFlint1, seeds15 and original Wood2. Evidence .checks/audit-window-G5p4Sh.jsonl and .checks/task-f0u_bp2u.json. AC2 earned. Owner-request policy passes deterministic tests but no natural injured/foodless live case was staged; AC3 remains open.
+
+**agent:codex/renki-resume** at 2026-10-30T00:08:26Z
+
+Restart check exposed active meal prefab names as localization tokens because deserialized Food.m_item lacks m_dropPrefab. Report the game Food.m_name, its persisted prefab identifier, so empty-slot-before-refresh priority remains consistent across restart. The game eligibility already prevented duplicate consumption. Normal food maintenance and recovery stay verified; owner request live case remains open.

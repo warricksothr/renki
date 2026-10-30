@@ -178,7 +178,7 @@ namespace Renki.Plugin
             var status = new FoodStatus();
             string Name(ItemDrop.ItemData item) => item.m_dropPrefab != null ? item.m_dropPrefab.name : item.m_shared.m_name;
             foreach (var food in p.m_foods)
-                status.Active.Add(new ActiveFood { Prefab = Name(food.m_item), RemainingS = Round(food.m_time) });
+                status.Active.Add(new ActiveFood { Prefab = food.m_name, RemainingS = Round(food.m_time) });
             var seen = new HashSet<string>();
             foreach (var item in p.GetInventory().GetAllItems())
             {

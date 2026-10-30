@@ -519,6 +519,10 @@ waypoint or manual closer move. Confirm the approach uses outdoor support and
 physical collider contact, then measure new products, deposit only those gains
 and return home. Missed swings permit one closer supported approach before
 failure; this needs real collider verification as well as the offline checks.
+For stumps, verify Tas stays beside the resource, aims down from the tool's
+attack height and does not use jump/climb recovery during the final approach.
+After a restart, active food prefabs must remain stable rather than becoming
+localized name tokens; eligible spares should still be recognized as refreshes.
 
 First verify no-tool refusal on a loaded mineable rock while Tas has an axe
 and no pickaxe. Then use a small isolated tree away from the home/players,

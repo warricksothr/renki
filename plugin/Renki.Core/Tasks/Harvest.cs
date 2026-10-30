@@ -6,6 +6,11 @@ namespace Renki.Tasks
 {
     public static class HarvestReach
     {
+        // Leave a real margin within the weapon's attack ray without making
+        // the bot press its capsule into a stump's wider base.
+        public static double Range(double attackRange) => Math.Min(1.4, attackRange * .65);
+        public static double StandOff(double reach, bool closer) => Math.Min(closer ? .65 : .95, reach * .7);
+
         public static V3 StandAt(V3 resource, V3 contact, V3 from, double standOff)
         {
             var away = (from - contact).Flat.Normalized;
