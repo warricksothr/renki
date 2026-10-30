@@ -60,9 +60,12 @@ explored, extending its design with separate kinds of evidence:
   movement/obstacle conditions. Keep endpoints, world, age and validation state;
   a remembered traversal is a candidate for revalidation, not a permanent route.
 
-Terrain, resources, useful structures, player encounters and injuries continue
-using their existing memory stores and precision/age policies. Exploration
-references those observations rather than duplicating them in every checkpoint.
+Resources, useful structures, player encounters and injuries continue using
+their existing memory stores and precision/age policies. Terrain is currently
+session-only; [ATLAS.md](ATLAS.md) proposes its durable storage and exchange,
+without starting exploration or equating loaded terrain with personal coverage.
+Exploration references those observations rather than duplicating them in every
+checkpoint.
 Player sightings remain historical evidence, never guaranteed rendezvous points.
 Dynamic obstacles, enemies, resources and containers must be checked again
 before relying on them. Old static map knowledge can remain useful while its

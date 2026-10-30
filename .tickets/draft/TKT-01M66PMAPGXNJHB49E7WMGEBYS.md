@@ -18,18 +18,19 @@ dependencies:
   - TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
   - TKT-01M62N2557R401S3E6JECSAPN4
   - TKT-01M62VXZ0J9Q2WH4XN4E6N7F27
+  - TKT-01M66QF9G576JFCQ0JBP3RWR2E
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:25:07Z
-updated_at: 2026-10-30T15:25:07Z
+updated_at: 2026-10-30T15:40:14Z
 created_by:
   id: agent:codex/renki-exploration
   name: ""
 updated_by:
-  id: agent:codex/renki-exploration
+  id: agent:codex/renki-atlas
   name: ""
 extensions: {}
 ---
@@ -43,3 +44,9 @@ Implement the frontier selection and failed-approach memory proposed in docs/EXP
 - [ ] Rank bounded frontier candidates using observation gain, terrain/danger constraints and return cost without assuming unknown land is safe
 - [ ] Persist scoped failed approaches with reason/age/revalidation criteria; repeated observations alone do not enable identical retries
 - [ ] Replay tests cover no safe frontier, shared-map-only knowledge, stale coverage, alternative approaches and bounded memory
+
+## Notes
+
+**agent:codex/renki-atlas** at 2026-10-30T15:40:14Z
+
+Durable terrain/current-state history is tracked by TKT-01M66QF9G576JFCQ0JBP3RWR2E — Persist a bounded world atlas with merge and expiry. Added that store as a dependency so frontier planning can reference accumulated evidence with explicit age/provenance instead of treating the 256-tile live cache as durable coverage. M2/M3 and coverage dependencies remain; this ticket is still draft. See docs/ATLAS.md.
