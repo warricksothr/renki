@@ -16,28 +16,33 @@ import (
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/food"
+	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/memory"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/retreat"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
+	"sync"
 )
 
 // App is a configured controller.
 type App struct {
-	Config     config.Config
-	Session    *session.Session
-	Brain      *chat.Brain
-	Home       *home.Keeper
-	Burden     *burden.Unloader
-	Retreat    *retreat.Retreat
-	Food       *food.Keeper
-	Behaviours *behaviour.Engine
-	Memory     *memory.Containers
-	Landmarks  *memory.Landmarks
-	Danger     *memory.Danger
-	Bridge     *bridge.Server
+	Goals        *goal.Store
+	goalTemplate *goal.Template
+	goalMu       sync.Mutex
+	Config       config.Config
+	Session      *session.Session
+	Brain        *chat.Brain
+	Home         *home.Keeper
+	Burden       *burden.Unloader
+	Retreat      *retreat.Retreat
+	Food         *food.Keeper
+	Behaviours   *behaviour.Engine
+	Memory       *memory.Containers
+	Landmarks    *memory.Landmarks
+	Danger       *memory.Danger
+	Bridge       *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
 	Settings *settings.Store
@@ -50,7 +55,7 @@ type App struct {
 // audit may be nil, which records nothing, homes nil, which remembers
 // homes only until the controller stops, and set nil, which keeps runtime
 // settings in memory over cfg.
-func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log, homes *home.Store, set *settings.Store) *App {
+func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log, homes *home.Store, set *settings.Store, goals ...*goal.Store) *App {
 	if log == nil {
 		log = slog.Default()
 	}
@@ -92,7 +97,12 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		_, h, ok := keeper.Current()
 		return h.Pos, ok
 	}, log.With("part", "retreat"), nil)
-	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set,
+	a.Goals, _ = goal.Open("")
+	if len(goals) > 0 && goals[0] != nil {
+		a.Goals = goals[0]
+	}
+	a.goalTemplate = &goal.Template{Store: a.Goals}
+	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate},
 		Owners:     func() []string { return set.Values().Owners },
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,

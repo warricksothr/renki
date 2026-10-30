@@ -84,6 +84,16 @@ lint:
 fmt:
     gofmt -w .
 
+# Add or update a controller dependency at an explicit module/version.
+[positional-arguments]
+dependency-add MODULE:
+    go get "$1"
+
+# Inspect a dependency API without invoking the compiler directly.
+[positional-arguments]
+dependency-doc SYMBOL:
+    go doc "$1"
+
 # Tidy go.mod and go.sum.
 tidy:
     go mod tidy

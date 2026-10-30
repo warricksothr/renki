@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
@@ -73,6 +74,21 @@ var ErrWait = errors.New("waiting for an observation")
 // FailureAware is opt-in. Ordinary templates still fail on every failed
 // task; a bounded multi-chest runner can handle expected partial/refusal results.
 type FailureAware interface{ Recover(Result) bool }
+
+// Lifecycle receives every end, including cancellation of queued work.
+// Implementations must be idempotent and must never dispatch game actions.
+type Lifecycle interface {
+	End(json.RawMessage, string) error
+}
+
+// TaskStarted checkpoints the assigned receipt identity after dispatch.
+type TaskStarted interface{ Dispatched(string) error }
+
+// Delay is an explicit bounded observation wait; it keeps body ownership.
+type Delay struct{ Until time.Time }
+
+func (d *Delay) Error() string { return "waiting until " + d.Until.String() }
+
 type Runner interface {
 	Next(View, *Result) (*session.Order, error)
 }

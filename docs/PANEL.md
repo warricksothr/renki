@@ -165,3 +165,15 @@ owners can add, rename, move, resize and delete them. Your changes take
 precedence over automatic discovery. **What's nearby?** shares Tas's
 last-known object and chest memory. See [Places and zones](WAYPOINTS.md) for
 height handling, chat commands, named movement and the API.
+
+
+## Persistent goals
+
+The Goals section keeps an objective visible across individual routine failures.
+“Test one Greyling encounter nearby” starts a bounded goal at Tas’s current
+position using existing combat permissions. Progress includes attempts, recovery
+reasons, recent task outcomes and native success evidence. Stop goal cancels its
+continuation; the main Stop button also cancels queued goals. Suspended goals
+require explicit Resume with fresh observations in the original world. Uncertain
+actions cannot be replayed. See [GOALS.md](GOALS.md) for budgets, policy limits
+and the authenticated `/api/goals` contract.

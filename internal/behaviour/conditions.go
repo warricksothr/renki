@@ -11,15 +11,17 @@ import (
 // View contains immutable protocol snapshots, scoped to the current session
 // and world. A missing observation fails a condition that needs it.
 type View struct {
-	Now        time.Time
-	State      *protocol.State
-	Inventory  *protocol.Inventory
-	Perception *protocol.Perception
-	Containers []*protocol.Container
-	Owners     []string
-	Home       *protocol.Vec3
-	Danger     []home.DangerZone
-	Idle       bool
+	StateAt      time.Time
+	PerceptionAt time.Time
+	Now          time.Time
+	State        *protocol.State
+	Inventory    *protocol.Inventory
+	Perception   *protocol.Perception
+	Containers   []*protocol.Container
+	Owners       []string
+	Home         *protocol.Vec3
+	Danger       []home.DangerZone
+	Idle         bool
 }
 
 func (c Conditions) Match(v View) bool {

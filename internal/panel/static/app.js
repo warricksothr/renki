@@ -391,6 +391,7 @@ function chip(id, text, cls) {
 }
 
 function onStatus(s) {
+  renderGoals(s);
   const needs = s.connected && s.phase === "in_world" ? s.storageNeeded || [] : [];
   const storage = $("storage-needed");
   storage.hidden = needs.length === 0;
@@ -1360,3 +1361,53 @@ $("place-near").addEventListener("click", async () => {
   } catch (error) { if (generation === mapGeneration) placeResult(error.message, true); }
 });
 resetPlaceEditor();
+
+// ---- persistent objectives ----
+let goalSnapshot = null, goalRenderKey = "";
+function renderGoals(s) {
+  goalSnapshot = s;
+  const active = s.connected && s.phase === "in_world" && !!s.pos;
+  $("goal-combat").disabled = !active;
+  const records = s.goals || [];
+  const key = JSON.stringify([active, s.world, records]);
+  if (key === goalRenderKey) return;
+  goalRenderKey = key;
+  $("goal-count").textContent = records.length ? `(${records.length})` : "";
+  const list = $("goal-list"); list.replaceChildren();
+  if (!records.length) { list.textContent = "No goals yet."; return; }
+  for (const g of records) {
+    const article = document.createElement("article"); article.className = "goal-record";
+    const title = document.createElement("strong"); title.textContent = `Greyling encounter · ${g.status.replaceAll("_", " ")}`;
+    const progress = document.createElement("p");
+    progress.textContent = `${g.world} · Attempts ${g.attempts}/${g.maxAttempts} · Tasks ${g.taskCount}/${g.maxTasks} · Policy ${g.policyHash.slice(0, 8)}`;
+    const reason = document.createElement("p"); reason.textContent = g.reason || "Objective saved";
+    article.append(title, progress, reason);
+    if (g.proof) { const proof = document.createElement("p"); proof.textContent = `Verified: ${g.proof.detail} (${g.proof.taskId})`; article.append(proof); }
+    if (g.history?.length) {
+      const history = document.createElement("ol");
+      for (const outcome of g.history.slice(-3)) { const row = document.createElement("li"); row.textContent = `${outcome.status}: ${outcome.reason || outcome.detail || "no detail"} (${outcome.taskId})`; history.append(row); }
+      article.append(history);
+    }
+    if (["ready", "suspended", "needs_plan"].includes(g.status) && !g.pending) {
+      const resume = document.createElement("button"); resume.textContent = "Resume"; resume.disabled = !active || s.world !== g.world;
+      resume.addEventListener("click", () => goalCommand({action:"resume", id:g.id})); article.append(resume);
+    }
+    if (!["succeeded", "cancelled"].includes(g.status)) {
+      const stop = document.createElement("button"); stop.textContent = "Stop goal";
+      stop.addEventListener("click", () => goalCommand({action:"stop", id:g.id})); article.append(stop);
+    }
+    list.append(article);
+  }
+}
+async function goalCommand(body) {
+  const out = $("goal-result"); out.textContent = "Saving goal…";
+  try {
+    const res = await fetch("/api/goals", {method:"POST", headers:{"Content-Type":"application/json", "X-Renki-Act":"1"}, body:JSON.stringify(body)});
+    if (!res.ok) throw new Error(await res.text());
+    const g = await res.json(); out.textContent = `Goal ${g.status.replaceAll("_", " ")}.`;
+  } catch (e) { out.textContent = e.message; }
+}
+$("goal-combat").addEventListener("click", () => {
+  const s = goalSnapshot;
+  if (s?.connected && s.phase === "in_world" && s.pos) goalCommand({action:"start", spec:{kind:"combat_trial", world:s.world, center:s.pos, radius:100}});
+});

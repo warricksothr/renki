@@ -14,6 +14,7 @@ type Combat struct{}
 type combatParams struct {
 	World  string          `json:"world"`
 	Entity string          `json:"entity,omitempty"`
+	Direct bool            `json:"direct,omitempty"`
 	At     json.RawMessage `json:"at,omitempty"`
 }
 
@@ -25,7 +26,10 @@ func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error)
 	if strings.TrimSpace(p.World) == "" {
 		return p, nil, errors.New("combat needs a world")
 	}
-	args := map[string]any{"kite": true, "style": "melee"}
+	if p.Direct && (p.Entity == "" || p.At != nil) {
+		return p, nil, errors.New("direct combat needs only an entity")
+	}
+	args := map[string]any{"kite": !p.Direct, "style": "melee"}
 	if p.Entity != "" {
 		args["entity"] = p.Entity
 	}

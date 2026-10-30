@@ -778,3 +778,16 @@ over after confirmed Greyling hits, and t-10 attack arrived outside the original
 Minimum observed health was 68.1; final observed health was 76.1/76.7. The game
 was stopped and combat config reset off. This motivated explicit bounded closing
 and the automated trial backstops above; it proves no swing/block/dodge outcome.
+
+
+## Persistent combat objective
+
+`just check vm goal-trial` submits one durable `combat_trial` goal and follows it
+across failed native tasks. It retains compact progress, the final goal record
+and full observations in `.checks/`. A changed target or a close confirmed
+attacker can produce another native attempt, while unchanged failures exhaust a
+bounded recovery wait and request a new plan. A goal success requires an exact
+native “observed Greyling death” receipt; orchestration progress alone does not
+close melee/block/dodge checks. Cleanup cancels unfinished goals, logs out and
+stops the game, restores combat off and starts the controller/panel alone.
+See [GOALS.md](GOALS.md) for restart uncertainty and policy boundaries.
