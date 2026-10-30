@@ -32,6 +32,7 @@ func TestServeWaitsForFinalLandmarkBatch(t *testing.T) {
 	a.Session.Message(c, &protocol.State{Phase: protocol.PhaseInWorld, World: "world", HP: 25})
 	a.Session.Message(c, &protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: "chest", Kind: protocol.StructureContainer}}})
 	a.Landmarks.Tick()
+	a.Session.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 1}, Event: protocol.EventDamaged, Amount: 5})
 	if len(store.Landmarks("world")) != 0 {
 		t.Fatal("batch committed early")
 	}
@@ -50,8 +51,36 @@ func TestServeWaitsForFinalLandmarkBatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if got := reopened.Harms("world"); len(got) != 1 || got[0].Amount != 5 {
+		t.Fatal(got)
+	}
 	if got := reopened.Landmarks("world"); len(got) != 1 || got[0].Entity != "chest" {
 		t.Fatal(got)
+	}
+}
+
+func TestDangerIsWorldScopedInMap(t *testing.T) {
+	store := home.Memory()
+	now := time.Now().UTC()
+	if err := store.RememberHarms([]home.Harm{{World: "one", At: now, Event: protocol.EventDied}, {World: "two", At: now, Event: protocol.EventDamaged, Amount: 10}}, now); err != nil {
+		t.Fatal(err)
+	}
+	a := New(config.Default(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, nil)
+	c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+	a.Session.Connected(c)
+	a.Session.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 1}, Phase: protocol.PhaseInWorld, World: "one", HP: 25})
+	got := a.MapSnapshot().(MapSnapshot)
+	if len(got.Danger) != 1 || got.Danger[0].Deaths != 1 {
+		t.Fatal(got.Danger)
+	}
+	a.Session.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 2}, Phase: protocol.PhaseInWorld, World: "two", HP: 25})
+	got = a.MapSnapshot().(MapSnapshot)
+	if len(got.Danger) != 1 || got.Danger[0].Hits != 1 || got.Danger[0].Deaths != 0 {
+		t.Fatal(got.Danger)
+	}
+	a.Session.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 3}, Phase: protocol.PhaseMenu})
+	if len(a.MapSnapshot().(MapSnapshot).Danger) != 0 {
+		t.Fatal("menu exposes old world danger")
 	}
 }
 

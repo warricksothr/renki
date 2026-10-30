@@ -60,6 +60,7 @@ type memory struct {
 	Shunned    []string                                  `json:"shunned,omitempty"`
 	Containers map[string]map[string]RememberedContainer `json:"containers,omitempty"`
 	Landmarks  map[string]landmarkWorld                  `json:"landmarks,omitempty"`
+	Harms      map[string][]Harm                         `json:"harms,omitempty"`
 	Waypoints  map[string]waypointWorld                  `json:"waypoints,omitempty"`
 }
 

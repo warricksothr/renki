@@ -22,11 +22,12 @@ const world = {
   stuck: [], // {pos, attempt}
   tiles: new Map(),
   landmarks: [],
+  danger: [],
   waypoints: [],
   containers: new Map(),
 };
 
-const layers = { terrain: true, elevation: true, memory: true, resources: false };
+const layers = { terrain: true, elevation: true, memory: true, danger: true, resources: false };
 for (const b of document.querySelectorAll("[data-layer]")) b.addEventListener("click", () => {
   const key = b.dataset.layer;
   layers[key] = !layers[key];
@@ -38,7 +39,7 @@ let mapWorld = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, map
 function resetMap() {
   mapGeneration++;
   Object.assign(world, { bot: null, trail: [], characters: [], structures: [], resources: [], walls: [],
-    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [], waypoints: [], containers: new Map() });
+    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [], danger: [], waypoints: [], containers: new Map() });
   resetPlaceEditor();
   mapFetchedAt = 0;
   $("terrain-status").textContent = "Waiting for terrain";
@@ -55,6 +56,7 @@ async function loadMap() {
     if (generation !== mapGeneration || data.world !== mapWorld || data.connection !== mapConnection) return;
     world.tiles = new Map((data.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]));
     world.landmarks = data.landmarks || [];
+    world.danger = data.danger || [];
     world.waypoints = data.waypoints || [];
     syncPlaceList();
     world.containers = new Map((data.containers || []).map((c) => [c.entity, c]));
@@ -471,6 +473,13 @@ function render() {
 
   RenkiTerrain.draw(ctx, world.tiles, sx, sy, layers, w, h);
   grid(w, h, sx, sy);
+  if (layers.danger) for (const zone of world.danger) {
+    ctx.save();
+    ctx.fillStyle = `rgba(230, 82, 68, ${Math.min(0.3, 0.04 + zone.score * 0.035)})`;
+    ctx.strokeStyle = "#ed736a99"; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.arc(sx(zone.pos[0]), sy(zone.pos[2]), zone.radius * view.scale, 0, 2 * Math.PI);
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  }
 
   for (const p of world.waypoints) {
     if (!(p.radius > 0)) continue;
@@ -901,7 +910,9 @@ function hover(x, y) {
     const wz = view.centre[1] - (y - rect.height / 2) / view.scale;
     const s = RenkiTerrain.sample(world.tiles, wx, wz);
     const text = s ? `${plain(s.biome || "Biome unknown")} · terrain ${s.height.toFixed(1)} m${s.water > s.height ? ` · water depth ${(s.water - s.height).toFixed(1)} m` : " · above water level"}` : "Unknown terrain · no loaded sample";
-    tip.replaceChildren(Object.assign(document.createElement("div"), { textContent: text }));
+    const danger = layers.danger ? world.danger.filter((z) => Math.hypot(wx-z.pos[0], wz-z.pos[2]) <= z.radius) : [];
+    const lines = [text, ...danger.slice(0, 3).map((z) => `Remembered danger · ${z.hits} injuries · ${z.deaths} deaths · score ${z.score.toFixed(2)} · height ${z.pos[1].toFixed(1)} m · ${z.prefab ? plain(z.prefab) : z.by || "cause unknown"} · last hurt ${new Date(z.at).toLocaleString()}`)];
+    tip.replaceChildren(...lines.map((line) => Object.assign(document.createElement("div"), { textContent: line })));
   } else {
     tip.replaceChildren(...describe(best).map((t) => Object.assign(document.createElement("div"), { textContent: t })));
   }

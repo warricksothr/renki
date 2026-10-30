@@ -310,8 +310,8 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 
 | `event` | Extra fields |
 |---|---|
-| `damaged` | `by`, `amount`, `damageType` |
-| `died` | `by` |
+| `damaged` | `by`, `amount`, optional `damageType`, `pos`, attacker `prefab` |
+| `died` | `by`, optional `pos`, attacker `prefab` |
 | `respawned` | `pos` |
 | `item_added` | `prefab`, `count` |
 | `skill_raised` | `skill`, `level` |
