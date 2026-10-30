@@ -23,3 +23,7 @@ vm.local
 
 # Locked frontend dependencies (generated embedded assets are committed)
 /panel/node_modules/
+
+# Python tooling caches
+__pycache__/
+*.pyc

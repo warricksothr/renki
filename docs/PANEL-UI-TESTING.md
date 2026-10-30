@@ -129,3 +129,15 @@ sizes. They do not prove other browser engines, native mobile behavior,
 production authentication, real capture timing, lease persistence/displacement,
 VM rendering or game outcomes. Existing unit/controller tests retain scope and
 race coverage; live acceptance remains separate and owner controlled.
+
+## Video scenarios
+
+`video-standby`, `video-no-source`, `video-connected`, `video-reconnect` and
+`video-scope` run at both viewport sizes. These use a fixture peer with a locally
+animated canvas stream, so actual browser video decoding/freshness gates are
+exercised without a network relay. They prove no JPEG requests with diagnostic
+details closed, safe covering, stalled-video recovery and logout preserving the
+media session. Existing JPEG scenarios explicitly open diagnostic details first.
+Screenshots remain **FIXTURE / NOT LIVE**; these cannot prove OBS game capture.
+For real local media transport, use `just check streaming proof` as documented in
+[LOCAL-VIDEO.md](LOCAL-VIDEO.md); it separately retains relay/FFmpeg/browser evidence.

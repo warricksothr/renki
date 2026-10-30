@@ -248,7 +248,15 @@ try {
           await window.renkiPreviewReady;
           await document.fonts.ready;
         });
-        await expect(page.locator(".camera-badge")).toHaveText("latest frame");
+        if (
+          !scenario.startsWith("video-") &&
+          scenario !== "layout-monitoring"
+        ) {
+          await page.locator(".video-diagnostics > summary").click();
+          await expect(page.locator(".camera-badge")).toHaveText(
+            "latest frame",
+          );
+        }
         await expect
           .poll(() =>
             page.evaluate(

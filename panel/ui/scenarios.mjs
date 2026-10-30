@@ -24,6 +24,126 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "video-standby": async ({ page, check }) => {
+    await check(
+      "No normal JPEG polling; original slate shown without configured video",
+      async () => {
+        await expect(page.locator(".standby-slate")).toBeVisible();
+        const fits = await page
+          .locator(".video-stage")
+          .evaluate(
+            (stage) =>
+              stage.getBoundingClientRect().width <=
+              stage.closest("#camera").clientWidth + 1,
+          );
+        assert.ok(
+          fits,
+          "Standby stage fits the card at narrow widths; no clipped right edge",
+        );
+        await expect(page.locator(".slate-reason")).toHaveText(
+          "Video is not configured",
+        );
+        assert.equal(
+          await page.evaluate(
+            () =>
+              renkiPreview.requests.filter((r) =>
+                r.path.startsWith("/api/camera"),
+              ).length,
+          ),
+          0,
+        );
+      },
+    );
+    await page.locator("#camera").scrollIntoViewIfNeeded();
+  },
+  "video-no-source": async ({ page, check }) => {
+    await page.evaluate(() => renkiPreview.setVideo("no-source"));
+    await check(
+      "No source keeps standby covering every game image",
+      async () => {
+        await expect(
+          page.locator('[data-video-state="connecting"]'),
+        ).toBeVisible();
+        await expect(page.locator(".slate-message strong")).toHaveText(
+          "Please stand by",
+        );
+        await expect(page.locator(".video-stage video")).toBeHidden();
+      },
+    );
+    await page.locator("#camera").scrollIntoViewIfNeeded();
+  },
+  "video-connected": async ({ page, check }) => {
+    await page.evaluate(() => renkiPreview.setVideo("gameplay"));
+    await check(
+      "Local synthetic frames decode; transport alone does not bypass health",
+      async () => {
+        await expect(
+          page.locator('[data-video-state="gameplay"]'),
+        ).toBeVisible();
+        assert.ok(
+          await page
+            .locator(".video-stage video")
+            .evaluate((v) => v.getVideoPlaybackQuality().totalVideoFrames > 1),
+        );
+        await expect(page.locator(".standby-slate")).toHaveCount(0);
+      },
+    );
+    await page.locator("#camera").scrollIntoViewIfNeeded();
+  },
+  "video-reconnect": async ({ page, check, shot }) => {
+    await page.evaluate(() => renkiPreview.setVideo("gameplay"));
+    await expect(page.locator('[data-video-state="gameplay"]')).toBeVisible();
+    await page.locator("#camera").scrollIntoViewIfNeeded();
+    await shot("connected");
+    await page.evaluate(() => renkiPreview.setVideo("stalled"));
+    await check(
+      "Stalled video hides the frozen picture before reconnection",
+      async () => {
+        await expect(
+          page.locator('[data-video-state="reconnecting"]'),
+        ).toBeVisible({ timeout: 7000 });
+        await expect(page.locator(".video-stage video")).toBeHidden();
+      },
+    );
+    await shot("stalled");
+    await page.evaluate(() => renkiPreview.setVideo("gameplay"));
+    await check("Later decoded frames recover the picture", async () => {
+      await expect(page.locator('[data-video-state="gameplay"]')).toBeVisible();
+    });
+  },
+  "video-scope": async ({ page, check, shot }) => {
+    await page.evaluate(() => renkiPreview.setVideo("gameplay"));
+    await expect(page.locator('[data-video-state="gameplay"]')).toBeVisible();
+    await check(
+      "Logout covers game immediately and preserves the media session",
+      async () => {
+        await page.evaluate(() => {
+          renkiPreview.beforeVideoLogouts = renkiPreview.requests.filter(
+            (r) => r.method === "DELETE",
+          ).length;
+          renkiPreview.stream.emit("status", {
+            ...renkiPreview.status,
+            connected: false,
+            phase: "menu",
+          });
+        });
+        await expect(page.locator(".slate-reason")).toHaveText(
+          "Tas is resting",
+        );
+        assert.equal(
+          await page.evaluate(
+            () =>
+              renkiPreview.requests.filter((r) => r.method === "DELETE")
+                .length - renkiPreview.beforeVideoLogouts,
+          ),
+          0,
+        );
+      },
+    );
+    await page.locator("#camera").scrollIntoViewIfNeeded();
+    await shot("resting");
+  },
+
   "layout-monitoring": async ({ page, check, shot }) => {
     const original = page.viewportSize();
     // Native anchor scrolling respects the fixture banner and sticky header;
@@ -50,7 +170,7 @@ export const scenarios = {
             "#map-pane",
             "#map",
             "#camera",
-            ".camera-stage",
+            ".video-stage",
             "#feed-pane",
             "#supplies",
             "#navigation",
@@ -70,7 +190,7 @@ export const scenarios = {
       );
       assert.ok(g["#map"].height >= 260, "Map keeps a useful canvas height");
       assert.ok(
-        g[".camera-stage"].height >= 180,
+        g[".video-stage"].height >= 180,
         "Camera keeps a useful scene height",
       );
       if (page.viewportSize().width > 1100) {
@@ -175,6 +295,7 @@ export const scenarios = {
       await page.setViewportSize(original);
     }
     await page.locator(".map-key summary").click();
+    await page.locator(".video-diagnostics > summary").click();
     await page.locator(".camera-details summary").click();
     await check(
       "Expanded view details reflow without covering current work",

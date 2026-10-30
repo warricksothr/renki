@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useStatus, getStatus, subscribeStatus, scope } from "./status.js";
+import { Video } from "./video.jsx";
 import { CameraSession, cameraPresentation } from "./camera.js";
 
-export function Camera() {
+export function DiagnosticCamera() {
   const status = useStatus();
   const [state, setState] = useState({
     phase: "loading",
@@ -43,11 +44,11 @@ export function Camera() {
   const presentation = cameraPresentation(state, now);
   const imageVisible = state.url && state.scope === scope(status);
   return (
-    <section class="card camera" id="camera" aria-labelledby="camera-title">
+    <section class="card camera" aria-labelledby="camera-title">
       <div class="section-heading">
         <div>
           <span class="eyebrow">THROUGH TAS’S EYES</span>
-          <h2 id="camera-title">Game camera</h2>
+          <h2 id="camera-title">Diagnostic images</h2>
         </div>
         <span
           class={`camera-badge ${presentation.label === "stale" || state.phase === "failed" ? "warning" : ""}`}
@@ -174,6 +175,28 @@ export function Camera() {
             : "No current image metadata."}{" "}
           Image delivery is visual context; task receipts confirm outcomes.
         </p>
+      </details>
+    </section>
+  );
+}
+
+export function Camera() {
+  const [diagnostics, setDiagnostics] = useState(false);
+  return (
+    <section class="card camera" id="camera" aria-labelledby="video-title">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">THROUGH TAS’S EYES</span>
+          <h2 id="video-title">Game video</h2>
+        </div>
+      </div>
+      <Video />
+      <details
+        class="video-diagnostics"
+        onToggle={(e) => setDiagnostics(e.currentTarget.open)}
+      >
+        <summary>Diagnostic images &amp; capture settings</summary>
+        {diagnostics && <DiagnosticCamera />}
       </details>
     </section>
   );

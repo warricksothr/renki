@@ -23,6 +23,7 @@ mod? plugin
 
 # Driving the bot VM over SSH (not a component; see docs/VM.md).
 mod vm 'scripts/vm/vm.just'
+mod streaming 'scripts/streaming/streaming.just'
 
 # The components the verbs route to, in order. Adding a component means a
 # `mod` line above and its name here.
@@ -48,7 +49,7 @@ fmt: (route "fmt")
 clean: (route "clean")
 
 # Everything CI runs: each component's ci, then the ticket store.
-ci: (route "ci") tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-gather-trial
+ci: (route "ci") streaming::test tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-gather-trial
 
 # Retain full output in .checks/; print a summary or the last 80 failure lines.
 # For example: just check ci, just check controller test-packages ./internal/home.

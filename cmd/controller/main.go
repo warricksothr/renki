@@ -142,6 +142,9 @@ func redacted(cfg config.Config) config.Config {
 	if cfg.Panel.Token != "" {
 		cfg.Panel.Token = "[redacted]"
 	}
+	if cfg.Panel.Video.Password != "" {
+		cfg.Panel.Video.Password = "[redacted]"
+	}
 	if cfg.LLM != nil {
 		llm := *cfg.LLM
 		if len(llm.Terva) > 0 {

@@ -1973,3 +1973,54 @@ footer {
   border-radius: 5px;
   line-height: 1.6;
 }
+
+.video-stage {
+  width: 100%;
+  position: relative;
+  aspect-ratio: 16 / 11;
+  min-height: 270px;
+  overflow: hidden;
+  background: #25352b;
+}
+.video-stage video {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.video-stage .standby-slate {
+  position: absolute;
+  inset: 0;
+}
+.video-live {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: #15251ee8;
+  color: #f0e6bb;
+  padding: 6px 9px;
+  border-radius: 3px;
+  font: 10px monospace;
+}
+.video-caption {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  color: var(--muted);
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.video-diagnostics {
+  border-top: 1px solid var(--line);
+  padding: 14px 18px;
+}
+.video-diagnostics > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.video-diagnostics .camera {
+  margin: 12px 0 0;
+  border-radius: 5px;
+}

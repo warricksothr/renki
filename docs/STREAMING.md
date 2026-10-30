@@ -1,5 +1,11 @@
 # Broadcasting Renki's game view
 
+**Local implementation update:** [LOCAL-VIDEO.md](LOCAL-VIDEO.md) supersedes the
+local-viewing, standby and outage-lifecycle parts of this original research.
+The new slice adds authenticated WHEP/player, shared original slate and local
+relay tooling. Windows OBS capture/scene automation and external destinations
+remain future work. The text below records the PR #112 research baseline.
+
 Proposed design, researched 2026-10-30 against base `3ccd07d` (PR #109).
 No VM, account, capture setting or service was accessed or changed. This branch
 adds offline configuration/diagnostic tooling only. OBS installation, a running
@@ -102,8 +108,8 @@ scope plus several successful capture checks before returning to gameplay.
 Reacquire the approved executable after a restart with bounded backoff. After
 repeated failures, remain on the slate and report a fixed reason; never restart
 the game or broaden capture automatically. Stream network reconnect is separate
-from game availability; keeping the slate on air briefly is reasonable. A
-configurable maximum outage should stop output. Restarting OBS must not silently
+from game availability; keeping the slate on air briefly is reasonable. Game downtime should preserve output on the slate; only explicit output intent
+or a separate destination/output failure should affect that session. Restarting OBS must not silently
 restore a previously running stream: the operator must re-arm the session.
 
 `GetSourceActive` only reports whether a source is in Program or showing in OBS

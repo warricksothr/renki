@@ -19,6 +19,7 @@ import (
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
+	"github.com/warricksothr/renki/internal/video"
 )
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
@@ -235,10 +236,14 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			PlayerMemory:    a.PlayerMemory,
 			Map:             a.MapSnapshot,
 			Camera:          a.CameraHandler(),
-			Atlas:           a.AtlasHandler(),
-			Inventory:       func() any { return a.Session.PackSnapshot() },
-			Waypoints:       a.WaypointHandler(),
-			Logger:          log,
+			Video: video.New(a.Config.Panel.Video, func() video.Scope {
+				s := a.PanelStatus(version)
+				return video.Scope{Online: s.Connected && s.Phase == "in_world", Connection: s.Connection, World: s.World, WorldUID: s.WorldUID}
+			}),
+			Atlas:     a.AtlasHandler(),
+			Inventory: func() any { return a.Session.PackSnapshot() },
+			Waypoints: a.WaypointHandler(),
+			Logger:    log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 		BaseContext:       func(net.Listener) context.Context { return ctx },
