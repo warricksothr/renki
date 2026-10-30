@@ -177,3 +177,11 @@ continuation; the main Stop button also cancels queued goals. Suspended goals
 require explicit Resume with fresh observations in the original world. Uncertain
 actions cannot be replayed. See [GOALS.md](GOALS.md) for budgets, policy limits
 and the authenticated `/api/goals` contract.
+
+## Players and presence
+
+**Players & presence** controls Tas's shared map marker and Marco/Polo routine,
+and assigns operator, companion or guest profiles. Observed marker state comes
+from the game; offline changes apply on the next join. Profiles separate chat
+command authority from locating/greeting permissions. See [PLAYERS.md](PLAYERS.md)
+for the permission matrix and the two opposite direction exchanges.

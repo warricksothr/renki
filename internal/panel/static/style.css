@@ -280,3 +280,11 @@ body.login input { width: 100%; margin-top: 4px; padding: 6px; background: var(-
 .goal-record { padding: .65rem 0; border-top: 1px solid #3c4650; }
 .goal-record p { margin: .35rem 0; overflow-wrap: anywhere; }
 .goal-record button { margin-right: .5rem; }
+
+#presence-controls { padding: .5rem .75rem; border-bottom: 1px solid #3c4650; }
+.presence-options { display: grid; gap: .5rem; margin: .75rem 0; }
+#profile-table { width: 100%; }
+#profile-table td { padding: .25rem .5rem .25rem 0; }
+#marker-state { color: #aabcc8; font-size: .9em; }
+
+#presence-controls[open] { max-height: 50vh; overflow-y: auto; flex-shrink: 0; }

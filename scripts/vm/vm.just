@@ -264,3 +264,11 @@ goal-trial *ARGS:
 
 test-goal-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/goal-trial-test.py"
+
+# With Tas online, verify native on/off marker telemetry and preserve the selected final state.
+[positional-arguments]
+marker-check FINAL='restore':
+    python3 -B "{{justfile_directory()}}/scripts/vm/marker-check.py" "$1"
+
+test-marker-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/marker-check-test.py"

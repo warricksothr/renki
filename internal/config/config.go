@@ -10,12 +10,19 @@ import (
 	"os"
 	"slices"
 
+	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
 // Config is the controller's configuration file. Every field has a default,
 // so an empty file is a working configuration for a controller on the VM.
+type Presence struct {
+	SharePosition bool `json:"sharePosition"`
+	MarcoPolo     bool `json:"marcoPolo"`
+}
 type Config struct {
+	Players  access.Rules `json:"players"`
+	Presence Presence     `json:"presence"`
 	// Listen is the address the bridge serves on. Anything but loopback
 	// needs a Token.
 	Listen string `json:"listen"`
@@ -137,6 +144,7 @@ var KnownTasks = []string{
 func Default() Config {
 	return Config{
 		Listen:       "127.0.0.1:8765",
+		Presence:     Presence{MarcoPolo: true},
 		Rates:        protocol.Rates{StateHz: 5, PerceptionHz: 1},
 		Perception:   protocol.PerceptionConfig{Radius: 40, MaxPerKind: 24},
 		AllowedTasks: slices.Clone(KnownTasks),
@@ -170,6 +178,9 @@ func Load(path string) (Config, error) {
 
 // Validate refuses a configuration that would be unsafe or cannot work.
 func (c Config) Validate() error {
+	if err := c.Players.Validate(); err != nil {
+		return err
+	}
 	host, _, err := net.SplitHostPort(c.Listen)
 	if err != nil {
 		return fmt.Errorf("listen %q: %w", c.Listen, err)

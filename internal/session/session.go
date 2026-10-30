@@ -38,9 +38,11 @@ type Listener interface {
 
 // Order is a task the caller wants run.
 type Order struct {
-	Task     string
-	Args     any
-	TimeoutS float64
+	scopeHello *protocol.Hello
+	scopeWorld string
+	Task       string
+	Args       any
+	TimeoutS   float64
 	// Origin is the caller's own note on why it was sent, such as the chat
 	// line that asked for it. The session only carries it.
 	Origin any
@@ -243,7 +245,12 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 	case *protocol.TaskStatus:
 		s.taskStatus(m)
 	case *protocol.Chat:
-		s.listener.Chat(m)
+		s.mu.Lock()
+		current := s.conn == c
+		s.mu.Unlock()
+		if current {
+			s.listener.Chat(m)
+		}
 	case *protocol.Event:
 		if observer, ok := s.listener.(InjuryListener); ok {
 			if observation, valid := s.ObserveInjury(c, m, time.Now().UTC()); valid {
@@ -430,6 +437,10 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.mu.Unlock()
 		return nil, ErrNotConnected
 	}
+	if !s.orderScopeMatches(o, conn) {
+		s.mu.Unlock()
+		return nil, ErrBodyBusy
+	}
 	if !s.permitted(o.Task) {
 		s.mu.Unlock()
 		return nil, fmt.Errorf("%w: %q", ErrNotAllowed, o.Task)
@@ -477,6 +488,10 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.mu.Unlock()
 		return nil, ErrNotConnected
 	}
+	if !s.orderScopeMatches(o, conn) {
+		s.mu.Unlock()
+		return nil, ErrBodyBusy
+	}
 	if resolved && (s.state == nil || s.state.World != world || s.state.Phase != protocol.PhaseInWorld) {
 		s.mu.Unlock()
 		return nil, errors.New("world changed while resolving the waypoint")
@@ -512,4 +527,22 @@ func FinishedWith(name string, origin any, status, reason, detail string) *Task 
 	t := &Task{ID: "t-test", Name: name, Origin: origin, done: make(chan struct{})}
 	t.update(status, reason, detail)
 	return t
+}
+
+// DispatchFor sends an instant reply only in the observed connection/world.
+// It checks scope alongside connection selection and again before publishing.
+func (s *Session) DispatchFor(ctx context.Context, o Order, hello *protocol.Hello, world string) (*Task, error) {
+	if hello == nil || world == "" || !protocol.Instant(o.Task) {
+		return nil, ErrBodyBusy
+	}
+	o.scopeHello, o.scopeWorld = hello, world
+	return s.Dispatch(ctx, o)
+}
+
+// orderScopeMatches holds s.mu.
+func (s *Session) orderScopeMatches(o Order, conn *bridge.Conn) bool {
+	if o.scopeHello == nil {
+		return true
+	}
+	return conn != nil && conn.Hello == o.scopeHello && s.state != nil && s.state.World == o.scopeWorld && s.state.Phase == protocol.PhaseInWorld && s.state.HP > 0 && time.Since(s.stateAt) >= 0 && time.Since(s.stateAt) <= 3*time.Second
 }

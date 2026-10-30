@@ -178,3 +178,34 @@ func TestSavedChangesTheConfigNoLongerAcceptsAreDropped(t *testing.T) {
 		t.Errorf("values %+v", v)
 	}
 }
+
+func TestPlayerProfilesAndPresencePersistWithoutAgentPrivilegeEscalation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	s := open(t, path)
+	if err := s.Set("players.profiles", json.RawMessage(`{"Friend":"operator"}`), ByAgent); !errors.Is(err, ErrNotAllowed) {
+		t.Fatal(err)
+	}
+	if err := s.Set("players.profiles", json.RawMessage(`{"Friend":"companion","Visitor":"guest"}`), ByPanel); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"presence.sharePosition", "presence.marcoPolo"} {
+		if err := s.Set(key, json.RawMessage(`true`), ByPanel); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, raw := range []string{`{"Friend":"admin"}`, `{" Friend":"guest"}`, `{"Friend":{"command":true}}`} {
+		if err := s.Set("players.profiles", json.RawMessage(raw), ByPanel); !errors.Is(err, ErrBadValue) {
+			t.Fatal(raw, err)
+		}
+	}
+	v := s.Values()
+	v.Players.Profiles["Friend"] = "operator"
+	if s.Values().Players.Profiles["Friend"] != "companion" {
+		t.Fatal("profile snapshot aliases authority")
+	}
+	reopened := open(t, path)
+	got := reopened.Values()
+	if got.Players.Profiles["Friend"] != "companion" || !got.Presence.SharePosition || !got.Presence.MarcoPolo {
+		t.Fatal(got)
+	}
+}
