@@ -72,6 +72,8 @@ class CombatTrialTests(unittest.TestCase):
         def trace(message, data, task='trial'):
             return dict(frame=dict(type='trace', source='combat', task=task, msg=message, data=data))
         rows = [trace('scout', {}, 'old'), trace('ground_selected', dict(area=[1, 2, 3], escape=[7, 2, 3], stanceRadius=3))]
+        rows += [trace('prepare_search', {}), trace('search_egress_route', dict(goal=[2,3,4]))]
+        rows += [trace('search_egress_rejected', dict(reason='endpoint_not_dry_clear_or_separated'))]
         rows += [trace('scout', {})] * 20 + [trace('scout_return', {})]
         rows += [trace('scout_route', dict(returning=False)), trace('scout_route', dict(returning=True))]
         rows += [trace('scout_rejected', dict(goal=[1, 2, 3], reason='blocked_' + str(i))) for i in range(10)]
@@ -82,8 +84,9 @@ class CombatTrialTests(unittest.TestCase):
             summary = trial.ground_diagnostics(audit, 'trial')
         self.assertEqual(summary['candidates'], 0)
         self.assertEqual(summary['selected']['escape'], [7, 2, 3])
-        self.assertEqual(summary['modes'], ['scout', 'scout_return'])
-        self.assertEqual(summary['scouting']['routes'], {'outbound': 1, 'return': 1})
+        self.assertEqual(summary['modes'], ['prepare_search', 'scout', 'scout_return'])
+        self.assertEqual(summary['scouting']['routes'], {'preparation': 1, 'outbound': 1, 'return': 1})
+        self.assertEqual(summary['scouting']['reasons']['endpoint_not_dry_clear_or_separated'], 1)
         self.assertEqual(summary['scouting']['reasons']['blocked_0'], 2)
         self.assertEqual(len(summary['scouting']['examples']), 6)
 

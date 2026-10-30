@@ -79,14 +79,16 @@ def ground_diagnostics(audit, task_id):
                 continue
             data = frame.get('data') or {}
             message = frame.get('msg')
-            if message in ('position', 'search', 'scout', 'scout_return', 'draw', 'kite', 'hold',
+            if message in ('prepare_search', 'position', 'search', 'scout', 'scout_return', 'draw', 'kite', 'hold',
                            'engage', 'approach', 'strike', 'block', 'dodge', 'wait', 'retreat') and message not in modes:
                 modes.append(message)
             if message == 'ground_selected':
                 selected = {k: data[k] for k in ('area', 'escape', 'stanceRadius') if k in data}
             if message == 'scout_route':
                 scout_routes['return' if data.get('returning') else 'outbound'] += 1
-            if message == 'scout_rejected':
+            if message == 'search_egress_route':
+                scout_routes['preparation'] += 1
+            if message in ('scout_rejected', 'search_egress_rejected'):
                 reason = data.get('reason', 'unknown')
                 if reason not in scout_reasons and len(scout_examples) < 6:
                     scout_examples.append({k: data[k] for k in ('goal', 'reason') if k in data})
@@ -344,7 +346,7 @@ def main():
     if summary.get('goalId'):
         report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof')}
         report['encounters'] = [dict(taskId=e['taskId'], status=e['status'], reason=e['reason'],
-            entity=e['entity'], modes=e['ground']['modes'], scouting=e['ground']['scouting']['routes'])
+            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','examples')})
             for e in summary.get('encounters', [])]
     if harvesting:
         report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain') if k in summary})

@@ -32,6 +32,11 @@ namespace Renki.Plugin
         V3? escapeEnd;
         MeleeTask melee;
         FleeTask escape;
+        MoveToTask preparation;
+        Vector3 preparationGoal, preparationLast;
+        float preparationBegan, preparationLegAt, preparationTravel;
+        int preparationAttempts;
+        bool preparing;
         int survey;
         bool hasArea, areaChecked, positioned, walking, cancelled;
         float nextSurvey, nextAreaCheck, nextSample, followingUntil, nextAim, escapeAt, nextSearch, nextScout;
@@ -60,8 +65,17 @@ namespace Renki.Plugin
                 if (!Ground(origin, out area))
                     throw new TaskRefused(Wire.ReasonUnreachable, "no dry supported search origin");
                 hasArea = positioned = true;
-                scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius);
-                Mode("search");
+                preparing = Math.Abs(origin.y - area.y) > 1 || !ClearScenery(origin);
+                if (preparing)
+                {
+                    preparationLast = origin; preparationBegan = began;
+                    Mode("prepare_search", "travel from building support to open ground before scouting");
+                }
+                else
+                {
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius);
+                    Mode("search");
+                }
             }
             Active = this;
         }
@@ -89,6 +103,7 @@ namespace Renki.Plugin
             if (!p.IsOnGround() || p.IsSwimming() || p.IsEncumbered()) return Abort(p, "unsafe footing");
             if (Vector3.Distance(origin, p.transform.position) > searchRadius + Kiting.TravelLimit)
                 return Abort(p, "overall search and encounter travel limit");
+            if (preparing) return PrepareSearch(p, dt);
             if (!positioned && Time.unscaledTime - surveyBegan >= 25)
                 return Finish(Outcome.Failed(Wire.ReasonTimeout, "local encounter preparation time limit"));
             if (!hasArea)
@@ -239,6 +254,54 @@ namespace Renki.Plugin
             enemy = selected;
         }
 
+        Outcome PrepareSearch(Player p, double dt)
+        {
+            Driver.ClearCombat();
+            var pos = p.transform.position;
+            preparationTravel += Vector3.Distance(pos, preparationLast); preparationLast = pos;
+            if (Time.unscaledTime - preparationBegan >= 60 || preparationTravel > 64 || Vector3.Distance(origin, pos) > searchRadius + .25)
+                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search travel preparation exhausted its time or travel budget"));
+            if (!ClearCharacters(p, null, pos)) return Abort(p, "another character is too close during search travel preparation");
+            if (preparation == null)
+            {
+                if (preparationAttempts >= 8)
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no reachable clear search origin after bounded travel preparation"));
+                var angle = preparationAttempts++ * Math.PI / 4;
+                var candidate = origin + new Vector3((float)Math.Cos(angle), 0, (float)Math.Sin(angle)) * (float)Math.Min(16, searchRadius - 1);
+                if (!Ground(candidate, out preparationGoal) || Vector3.Distance(origin, preparationGoal) > searchRadius ||
+                    !ClearScenery(preparationGoal) || !ClearCharacters(p, null, preparationGoal))
+                {
+                    Tracer.Emit("combat", "search_egress_rejected", new Dictionary<string, object>
+                    { ["goal"] = Convert.ToArray(candidate), ["reason"] = "endpoint_not_dry_clear_or_separated", ["attempt"] = preparationAttempts });
+                    return null;
+                }
+                preparation = new MoveToTask(new MoveToArgs
+                { To = new Target { Pos = Convert.ToV3(preparationGoal) }, StopDistance = 1, Run = false }, preparationGoal, null);
+                preparationLegAt = Time.unscaledTime;
+                Mode("prepare_search", "ordinary checked travel to open ground");
+                Tracer.Emit("combat", "search_egress_route", new Dictionary<string, object>
+                { ["goal"] = Convert.ToArray(preparationGoal), ["attempt"] = preparationAttempts });
+            }
+            if (!ClearScenery(preparationGoal) || !ClearCharacters(p, null, preparationGoal))
+                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search preparation destination became unsafe"));
+            var ended = Time.unscaledTime - preparationLegAt >= 25
+                ? Outcome.Failed(Wire.ReasonTimeout, "search travel leg time limit") : preparation.Tick(dt);
+            if (ended == null) return null;
+            preparation.Cancel(); preparation = null;
+            if (ended.Status != Wire.StatusSucceeded)
+            {
+                Tracer.Emit("combat", "search_egress_rejected", new Dictionary<string, object>
+                { ["goal"] = Convert.ToArray(preparationGoal), ["reason"] = ended.Reason, ["detail"] = ended.Detail });
+                return null;
+            }
+            if (!Ground(pos, out var supported) || Math.Abs(pos.y - supported.y) > 1 || !ClearScenery(pos))
+                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search travel ended without clear terrain support"));
+            preparing = false; area = supported;
+            scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius);
+            Mode("search", "reached open ground through ordinary checked travel");
+            return null;
+        }
+
         Outcome Scout(Player p)
         {
             var pos = p.transform.position;
@@ -249,7 +312,9 @@ namespace Renki.Plugin
                     Time.unscaledTime, goal => ScoutRoute(p, goal));
                 if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
                 if (scoutAction == ScoutAction.Done)
-                    return Finish(Outcome.Failed(Wire.ReasonInvalidTarget, "no eligible single Greyling after bounded local scouting and return"));
+                    return Finish(scouting.CompletedLegs == 0
+                        ? Outcome.Failed(Wire.ReasonUnreachable, "no completed scouting route; creature search has no coverage")
+                        : Outcome.Failed(Wire.ReasonInvalidTarget, "no eligible single Greyling after bounded local scouting and return"));
                 if (scoutAction == ScoutAction.Wait) { walking = false; Mode("search"); return null; }
                 var goal = Convert.ToVector3(scouting.Goal);
                 if (!walking || Vector3.Distance(walkGoal, goal) > .2f)
@@ -296,8 +361,19 @@ namespace Renki.Plugin
                     if (Scouting.RouteDistance(previous, next, Convert.ToV3(c.transform.position)) < (BaseAI.IsEnemy(p, c) ? 15 : 8))
                         return RejectScout(desired, "character_near_route");
                 }
-                var failure = (next - previous).Length < .05 ? null : GroundCorridor.Inspect(previous, next, DryProbe);
-                if (failure != null) return RejectScout(desired, failure.Reason);
+                // A 16 m scouting leg can be one straight navmesh edge;
+                // the local corridor checker accepts at most 12 m per call.
+                var parts = Math.Max(1, (int)Math.Ceiling((next - previous).Length / 8));
+                var segment = previous;
+                for (var part = 1; part <= parts; part++)
+                {
+                    var endpoint = previous + (next - previous) * ((double)part / parts);
+                    if (!Ground(Convert.ToVector3(endpoint), out var supportedEnd)) return RejectScout(desired, "unsupported_navmesh_corner");
+                    endpoint = Convert.ToV3(supportedEnd);
+                    var failure = (endpoint - segment).Length < .05 ? null : GroundCorridor.Inspect(segment, endpoint, DryProbe);
+                    if (failure != null) return RejectScout(desired, failure.Reason);
+                    segment = endpoint;
+                }
                 if (!ClearScenery(supported)) return RejectScout(desired, "structure_near_route");
                 previous = next;
             }
@@ -441,7 +517,7 @@ namespace Renki.Plugin
         Outcome Finish(Outcome result) { result.Entity = string.IsNullOrEmpty(entity) ? null : entity; Cancel(); return result; }
         public void Cancel()
         {
-            cancelled = true; melee?.Cancel(); escape?.Cancel();
+            cancelled = true; melee?.Cancel(); escape?.Cancel(); preparation?.Cancel();
             if (ReferenceEquals(Active, this)) Active = null;
             Driver.ClearCombat();
         }
