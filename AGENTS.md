@@ -13,6 +13,7 @@ directory:
 
 | Component | Module file | Example |
 |---|---|---|
+| Preact panel | `panel/justfile` | `just panel build` |
 | Go controller | `controller.just` (root, beside go.mod) | `just controller build-windows` |
 | C# plugin | `plugin/justfile`, picked up once it exists | `just plugin deploy` |
 

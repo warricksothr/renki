@@ -211,7 +211,7 @@ func TestLoginLogout(t *testing.T) {
 	}
 	res, _ = c.Get(srv.URL + "/")
 	body, _ := io.ReadAll(res.Body)
-	if res.StatusCode != 200 || !strings.Contains(string(body), `<canvas id="map"`) {
+	if res.StatusCode != 200 || !strings.Contains(string(body), `<div id="app">`) || !strings.Contains(string(body), `<script src="/app.js" defer>`) {
 		t.Fatalf("the page after login: %d", res.StatusCode)
 	}
 	res, _ = c.Get(srv.URL + "/api/status")

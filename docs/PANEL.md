@@ -36,7 +36,7 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 
 ## What it shows
 
-- **Header:** connection, character and world, phase, the running task,
+- **Overview and safety bar:** connection, character and world, phase, the running task, active meals,
   health, a warning when the bot carries more than it can (and whether it
   can still move), and how far home is.
 - **Buttons**, while the plugin is connected: **Stop** ends whatever the bot
@@ -115,8 +115,10 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   name. It answers in the feed (`said to the panel`), not in the game.
   "Come here", "set home", "pick that up" and "follow me" need that
   owner's character in the bot's sight, and are refused when it is not.
-- **Feed:** the audit log's records as they are written (docs/AUDIT.md), in
-  the same lines `just vm audit` prints. Filters: chat, tasks, the plugin's
+- **Activity:** a bounded timeline beside the camera, with tasks and chat visible
+  by default. Task outcomes show readable reasons; each record has expandable
+  **Technical details** containing the original audit line (`just vm audit`).
+  Warnings and errors stay visible even when their category is unchecked. Under **Filters & history**: chat, tasks, the plugin's
   decisions (`trace`), the controller's decisions, other frames, and state
   (once a second). **Pause** stops it scrolling. The day picker beside it
   reads a past day's audit file instead (its newest 2000 records, with
@@ -135,7 +137,7 @@ and inventory, and a state a second for the last five minutes for the trail.
 
 ## How it works
 
-`internal/panel` serves three embedded files and these endpoints, all
+`internal/panel` serves the built, embedded Preact workspace and shared terrain renderer and these endpoints, all
 behind the login: `GET /api/status`, a snapshot of the bot,
 `GET /api/inventory`, a read-only snapshot of its pack, carrying weight and
 world/connection scope (inventory is null before observation or outside a live
@@ -160,7 +162,7 @@ the session. `just vm task <task> '<args-json>' [timeout]` sends one without
 exposing panel credentials. A press or a change must carry
 an `X-Renki-Act` header: a page on
 another site cannot add one without the browser asking this server first,
-which it never allows, so a forged form cannot press the buttons. The page has no build step. Scripts can use the token as a
+which it never allows, so a forged form cannot press the buttons. The frontend build is described below. Scripts can use the token as a
 bearer token: `curl -H "Authorization: Bearer $TOKEN" http://…/api/status`.
 
 Chest markers show last-known contents on hover, using the same per-world
@@ -274,3 +276,63 @@ source into model context. This uses the default panel viewport; an exact view
 with the user's pan/zoom/layers comes from the panel export/browser function.
 The capture is sequential and records its scope checks; it is not an atomic
 photograph of a changing world. It cannot infer physical visibility or success.
+
+
+## Workspace and frontend development
+
+The Preact workspace source is in `panel/src`; `controller.jsx` adapts the
+established control APIs and contains the single canvas map renderer. Preact
+mounts its stable control containers once, then the adapter owns their contents.
+Camera, food/current-goal overview and activity records use Preact components.
+The map, its hover content, terrain layers and `window.renkiSnapshots.map`
+share that renderer; standalone previews embed the same built assets.
+
+The page scrolls as a document. Activity, long goals, settings and place editors
+have bounded independent scrolling; expanding one does not clip other controls.
+Section links jump to Map, Camera, Places, Kit & goals, Activity and Preferences.
+On narrow screens the map, camera, activity and control cards stack. Stop, Go
+home and Log bot out remain in the safety bar (a fixed bottom dock on mobile); **Sign out** ends only the panel
+session. Logging the bot out still asks for confirmation.
+
+Game camera stays prominent without opening a disclosure. Capture defaults
+remain off, five seconds, with a one-second minimum. Enable capture with its
+checkbox; edit **Base interval … seconds**, then **Apply**. Temporary capture overrides
+show the effective interval, base interval and expiry beside these controls. Width, quality, pins and
+reset remain in Settings. The panel shows loading, disabled, pending, offline,
+failed/decode-error and stale states. It reports both receipt age and capture
+age, and dims images older than three capture intervals (at least 15 seconds).
+A disconnect, world/connection replacement, disabled setting or failed request
+clears the scene. A blob URL is shown only after a matching scoped image
+request, and the image's load/decode result is checked. The image policy permits
+`blob:` alongside same-origin/data images, as introduced in the camera CSP fix.
+
+Use Node.js 20+ and npm with the existing Go/.NET tools. `just panel build`
+installs exact lockfile versions with `npm ci` and bundles Preact locally;
+there are no CDN scripts or runtime third-party requests. Generated JS/CSS are
+committed under `internal/panel/static` for Go embedding. `just panel verify`
+checks that those bytes match the source before controller recipes can build.
+`just controller build`, `just controller build-windows`, `just controller run`,
+`just controller preview-map` and `just package` rebuild the frontend before
+embedding/previewing it. Root build/test/lint/fmt/ci/clean route to the panel
+component first. `just check panel test` exercises camera scope/races and
+presentation; `just check ci` includes reproducibility and the full gate.
+Edit sources in `panel/src`, then use `just check panel fmt` and
+`just check panel build`; do not edit generated assets.
+
+`just controller preview-map --serve` is a self-contained read-only fixture.
+Pass `--camera <recorded.jpg>` to exercise real JPEG decoding (metadata timing
+is replayed), `--camera-state disabled|pending|failed|broken|stale|image` for
+camera states, or `--offline` for saved-map fallback. These previews identify
+fixtures visibly; recorded images do not establish a live outcome. Mutations
+are refused inside the document, with no credentials or network fallback.
+From a native browser console, `await renkiPreview.check()` checks controls,
+all layers/exports, simulated keyboard pan/zoom, task/history drilldown,
+scroll/focus reachability, image decode and camera transitions, and offline
+fog/rejoin. Supply `--camera` to include the full image checks. Existing
+`--status`, `--map`, `--atlas` and `--map-only` work with recorded map bundles.
+`just vm map-snapshot` still calls this same preview path.
+
+Keyboard: Tab to links/buttons/disclosure summaries; Enter/Space activate them.
+The map itself accepts arrows to pan, +/− to zoom and C to follow the bot.
+Inventory items have keyboard focus and accessible item descriptions. The
+native task dialog supports Escape and returns focus to its task link.

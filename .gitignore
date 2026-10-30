@@ -20,3 +20,6 @@ obj/
 scripts/vm/bot.local.psd1
 scripts/vm/logs/
 vm.local
+
+# Locked frontend dependencies (generated embedded assets are committed)
+/panel/node_modules/
