@@ -94,6 +94,22 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['scouting']['returnHint'], dict(trailPoints=4, returnDistance=20))
         self.assertEqual(len(summary['scouting']['examples']), 6)
 
+    def test_footing_and_death_diagnostics_keep_only_latest_matching_task_evidence(self):
+        def trace(message, data, task='trial'):
+            return dict(frame=dict(type='trace', source='combat', task=task, msg=message, data=data))
+        refusal = dict(pos=[1, 2, 3], grounded=False, swimming=False, encumbered=False, supportGap=.6)
+        rows = [trace('scout_settle', {})] * 3
+        rows += [trace('footing_refused', dict(supportGap=9), 'old'), trace('footing_refused', refusal)]
+        rows += [trace('death_observed', dict(entity='selected', evidence='owner_callback', ignored='omit')),
+                 trace('death_observed', dict(entity='other'), 'old')]
+        with tempfile.TemporaryDirectory() as directory:
+            audit = Path(directory) / 'audit.jsonl'
+            audit.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+            summary = trial.ground_diagnostics(audit, 'trial')
+        self.assertEqual(summary['modes'], ['scout_settle'])
+        self.assertEqual(summary['footing'], dict(settles=3, lastRefusal=refusal))
+        self.assertEqual(summary['death'], dict(entity='selected', evidence='owner_callback'))
+
     def test_direct_mode_requires_an_explicit_target_and_no_lure_or_harvest_options(self):
         for arguments in (['--direct'], ['--direct', '--entity', 'greyling', '--at', '0', '0', '0'], ['--direct', '--entity', 'greyling', '--harvest-tree']):
             with self.subTest(arguments=arguments), mock.patch.object(trial.sys, 'argv', ['combat-trial', *arguments]), mock.patch.object(trial.subprocess, 'run') as run, contextlib.redirect_stderr(io.StringIO()):
