@@ -8,6 +8,7 @@ import http.server
 import json,pathlib,math
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--suite',action='store_true',help='Deterministic recorded UI suite, local font and read-only API; requires just panel install')
 parser.add_argument('--status')
 parser.add_argument('--map')
 parser.add_argument('--camera',help='Recorded JPEG, replayed with fixture timing; never a live capture')
@@ -22,6 +23,11 @@ args = parser.parse_args()
 if bool(args.status) != bool(args.map):
  parser.error('--status and --map must be supplied together')
 root=pathlib.Path(__file__).resolve().parent.parent
+if args.suite:
+ args.status=str(root/'panel/fixtures/status.json')
+ args.map=str(root/'panel/fixtures/mapped.json')
+ args.atlas=str(root/'panel/fixtures/atlas.json')
+ args.camera=str(root/'panel/fixtures/camera.jpg')
 status=dict(connected=True,connection=1,character='Tasleroch',world='DizzysHellheim',phase='in_world',hp=25,hpMax=25,biome='Meadows',pos=[-36.72,36.09,8.03],yaw=40,perceptionRadius=40,flags=['grounded','in_shelter'],location=dict(groundHeight=33.2,support='structure',inWater=False,waterDepth=0),owners=['Nimah'],home=dict(pos=[-35.9,37.66,6.53],distance=2))
 tiles=[]
 for tz in range(-3,4):
@@ -84,32 +90,39 @@ const packed=Uint8Array.from(atob('PACKED'),c=>c.charCodeAt(0));
 window.renkiPreview=await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
 const preview=window.renkiPreview;
 preview.temporaryExpires=Date.now()+30000;
+preview.cameraSequence=1;
+preview.setCamera=(state)=>{preview.cameraState=state;preview.cameraSequence++;};
+
 const cameraPath='/api/'+'camera.jpg';
 window.addEventListener('error',e=>preview.errors.push(e.message));
 window.addEventListener('unhandledrejection',e=>preview.errors.push(String(e.reason)));
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 window.fetch=async(path,options={})=>{
- preview.requests.push({path,method:options.method || 'GET'});
- if (options.method && options.method!=='GET') return reply({text:'Read-only preview: actions are refused'},405);
+ const request={path:String(path),method:options.method || 'GET',headers:options.headers || {},body:options.body || null,status:200};
+ preview.requests.push(request);
+ const respond=(value,status=200)=>{request.status=status;return reply(value,status);};
+ if (options.method && options.method!=='GET') return respond({text:'Read-only preview: actions are refused'},405);
  const url=new URL(path,location.href);
+ if(url.origin!==location.origin){const message='External fixture fetch refused: '+url.origin;preview.errors.push(message);throw Error(message);}
  switch(url.pathname){
- case '/api/status': return reply(preview.status);
- case '/api/map': return reply(preview.mapped);
- case '/api/atlas/worlds': return reply(preview.worlds);
- case '/api/atlas/map': return reply(preview.atlas);
- case '/api/task': return reply(preview.records);
- case '/api/settings': return reply(preview.settings);
- case '/api/models': return reply(['fixture-model']);
- case '/api/days': return reply([{day:'2026-10-30',bytes:150000}]);
- case '/api/timeline': return reply({events:preview.records,more:!url.searchParams.has('before')});
- case '/api/inventory': return reply({world:preview.status.world,connection:preview.status.connection,weight:42,weightMax:300,inventory:preview.frames.find(f=>f.type==='inventory')});
+ case '/api/status': return respond(preview.status);
+ case '/api/map': return respond(preview.mapped);
+ case '/api/atlas/worlds': return respond(preview.worlds);
+ case '/api/atlas/map': return respond(preview.atlas);
+ case '/api/task': return respond(preview.records);
+ case '/api/settings': return respond(preview.settings);
+ case '/api/models': return respond({models:['fixture-model']});
+ case '/api/days': return respond([{day:'2026-10-30',bytes:150000}]);
+ case '/api/timeline': return respond({events:preview.records,more:!url.searchParams.has('before')});
+ case '/api/inventory': return respond({world:preview.status.world,connection:preview.status.connection,weight:42,weightMax:300,inventory:preview.frames.find(f=>f.type==='inventory')});
  case '/api/camera': {
-  if(preview.cameraState==='failed')return reply({text:'Fixture camera unavailable'},503);
+  if(preview.cameraState==='failed')return respond({text:'Fixture camera unavailable'},503);
+  if(preview.cameraState==='temporary' && Date.now()>=preview.temporaryExpires)preview.cameraState='image';
   const available=!!preview.jpeg && !['disabled','pending'].includes(preview.cameraState);
-  return reply({available,config:{enabled:preview.cameraState!=='disabled' && !!preview.jpeg,intervalS:preview.cameraState==='temporary'?1:5},baseConfig:{enabled:!!preview.jpeg,intervalS:5},override:preview.cameraState==='temporary'?{id:'fixture-override',config:{enabled:true,intervalS:1},expiresAt:new Date(preview.temporaryExpires).toISOString(),connection:preview.status.connection,worldUid:preview.status.worldUid}:null,ageS:preview.cameraState==='stale'?60:2,imageUrl:cameraPath+'?connection='+preview.status.connection+'&seq=1',frame:{...preview.status,seq:1,capturedAt:new Date(Date.now()-(preview.cameraState==='stale'?65000:3000)).toISOString(),width:960,height:540,captureMs:4.3,task:'fixture replay'}});
+  return respond({available,config:{enabled:preview.cameraState!=='disabled' && !!preview.jpeg,intervalS:preview.cameraState==='temporary'?1:5},baseConfig:{enabled:!!preview.jpeg,intervalS:5},override:preview.cameraState==='temporary'?{id:'fixture-override',config:{enabled:true,intervalS:1},expiresAt:new Date(preview.temporaryExpires).toISOString(),connection:preview.status.connection,worldUid:preview.status.worldUid}:null,ageS:preview.cameraState==='stale'?60:2,imageUrl:cameraPath+'?connection='+preview.status.connection+'&seq='+preview.cameraSequence,frame:{...preview.status,seq:preview.cameraSequence,capturedAt:new Date(Date.now()-(preview.cameraState==='stale'?65000:3000)).toISOString(),width:960,height:540,captureMs:4.3,task:'fixture replay'}});
  }
  case cameraPath: return new Response(new Blob([Uint8Array.from(atob(preview.cameraState==='broken'?'aW52YWxpZA==':preview.jpeg),c=>c.charCodeAt(0))],{type:'image/jpeg'}));
- default: return reply([]);
+ default: {const message='Unexpected fixture request: '+url.pathname;preview.errors.push(message);throw Error(message);}
  }
 };
 window.EventSource=class{
@@ -128,9 +141,26 @@ html=html.replace('<script src="/app.js" defer></script>','')
 notice='Recorded game assets · read-only fixture replay (not live)' if args.status or args.camera else 'Fixture terrain · read-only preview (not live)'
 html=html.replace('<body>','<body><aside class="preview-notice" style="padding:8px 16px;color:#d2dfc6;background:#35452b;font:12px system-ui">'+notice+'</aside>')
 checks='''<script>window.renkiPreviewReady.then(()=>setTimeout(()=>{try{const shot=window.renkiSnapshots.map({maxWidth:640,quality:.8});console.log(JSON.stringify({snapshot:shot.metadata,errors:renkiPreview.errors,canvas:document.getElementById('map').getBoundingClientRect().toJSON()}));const layer=document.querySelector('[data-layer=terrain]');layer.click();if(window.renkiSnapshots.map().metadata.layers.terrain!==false)throw Error('Terrain toggle failed');layer.click();console.log('Shared renderer and layer controls passed');}catch(e){renkiPreview.errors.push(e.message);console.error(e);}},250));</script>'''
+if args.suite:
+ checks='' # Automation owns interactions; no delayed self-check can toggle its controls.
 html=html.replace('</body>','<script>window.renkiPreviewReady.then(()=>{'+(root/'panel/preview-checks.js').read_text()+'\n'+(root/'internal/panel/static/app.js').read_text()+'\n}).catch(error=>{document.getElementById("app").textContent="Preview could not load: "+error.message;console.error(error)});</script>'+checks+'</body>')
 if args.map_only:
  html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,#feed-pane,#camera,.observation-column,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
+if args.suite:
+ font=root/'panel/node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2'
+ if not font.exists():
+  raise SystemExit('UI fixture needs its locked font: run just panel install')
+ # Date is frozen but normal timers continue. advance() moves only fixture time.
+ stable='''<script>
+ const NativeDate=Date;let fixtureNow=Date.parse('2026-10-30T19:00:00Z');
+ window.Date=class extends NativeDate {constructor(...a){super(...(a.length?a:[fixtureNow]));}static now(){return fixtureNow;}};
+ window.renkiFixtureAdvance=ms=>{fixtureNow+=ms;};
+ let fixtureSeed=102;Math.random=()=>{fixtureSeed=(1664525*fixtureSeed+1013904223)>>>0;return fixtureSeed/4294967296;};
+ </script>'''
+ css="@font-face{font-family:FixtureInter;src:url(data:font/woff2;base64,"+base64.b64encode(font.read_bytes()).decode()+");font-weight:100 900}*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important}body,button,input,select,textarea{font-family:FixtureInter,sans-serif!important}.preview-notice{position:fixed;top:0;left:0;right:0;z-index:10000;text-align:center;height:44px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:4px 12px!important;font-size:11px!important;line-height:14px}body{padding-top:44px}.topbar{top:44px!important}"
+ html=html.replace('<head>','<head>'+stable+'<style>'+css+'</style>')
+ html=html.replace("connect-src \'self\';", "connect-src \'self\'; font-src data:;")
+ html=html.replace('Recorded game assets · read-only fixture replay (not live)','FIXTURE · NOT LIVE · recorded map/JPEG + simulated events and timing')
 out=pathlib.Path(args.output) if args.output else root/'.checks/map-ui-preview.html'
 out.parent.mkdir(parents=True,exist_ok=True)
 out.write_text(html)
@@ -138,7 +168,7 @@ print(out,flush=True)
 if args.serve:
  class Handler(http.server.BaseHTTPRequestHandler):
   def do_GET(self):
-   if self.path != '/':
+   if self.path.split('?')[0] != '/':
     self.send_error(404);return
    data=out.read_bytes()
    self.send_response(200)

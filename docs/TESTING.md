@@ -890,3 +890,14 @@ an in-world bot with normal five-second capture enabled; it always logs out,
 stops the game and leaves the controller/panel online. If the saved normal rate
 was different, record it before `just vm camera-rate 5` and restore it after the
 trial. The diagnostic itself never changes saved settings.
+
+## Deterministic Preact browser checks
+
+See [PANEL-UI-TESTING.md](PANEL-UI-TESTING.md) for `just panel ui-install`,
+`just panel fixture`, `just check panel ui-test`, `just check panel examples`
+and compact artifact inspection. The actual built panel/shared renderer runs
+against recorded fixtures with a locked browser/font and no game requests.
+The browser suite is required by `just check ci`; missing prerequisites fail.
+Screenshots and structured diagnostics live in `.checks/`, with a separate
+visual-review checklist that never treats a passing assertion as design approval.
+
