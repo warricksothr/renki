@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T00:17:50Z
+updated_at: 2026-10-30T00:36:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -105,3 +105,11 @@ Installed 5d51fc8: t-1 again reached the stump from inside home, but final appro
 PR #38 installed as 4f50bb9; deployment hashes verified. Final approach stayed on terrain beside stump 1:39764; t-1 swung with axe wear97→96, then stopped when Nimah entered the character exclusion radius. No successful stump destruction/collection is claimed. Evidence .checks/task-hfu96y62.json and .checks/audit-window-kbls0F.jsonl. Necks subsequently appeared; automatic flee superseded the return attempt and reached25m safety. Minimum health93.6 before food regeneration; logged out and stopped, rejoined after owner offered to clear the site, and t-1 return home passed (.checks/task-ub7udn16.json).
 
 Owner requested PvP-aware proximity: verified ordinary attack filtering plus victim damage rejection in installed game source. Implement nullable PvP observations for self/nearby players and relax player exclusion only for stationary stumps/small trees with normal tools, valid known PvP on both players and at least one disabled. Keep unknown/both-enabled, animals, pieces, full trees/logs and mining protected. Truth-table regressions and explicit false/true shared fixtures added. just check ci passed (20261030T001656Z-NmDT0n.log). Live PvP guard and full from-home delivery loop remain pending.
+
+**agent:codex/renki-resume** at 2026-10-30T00:36:46Z
+
+Build a1a1a41 completed the unstaged raised-home stump benchmark on 2026-10-30 UTC. t-6 started from [-39.56,36.09,7.02] inside home, approached Beech_Stub 1:39764 on supported outdoor terrain, landed four attributed hits, broke it and collected 2 new Wood. Final resource stance [-30.55,32.49,32.06] remained beside the stump; the former jump-on-stump failure did not recur. Axe durability96→92. t-7 returned to the saved home storage waypoint; t-8 deposited exactly the 2 new Wood into1:30595 (chest67→69); t-9 returned home. Original Wood2, BeechSeeds15 and AxeFlint1 remain. Final health112/112, sheltered at [-37.56,36.09,7.3], no active task. Health tracked declining food maximum; no damage event in this window. Active meals refreshed automatically earlier, consuming the three previously carried spares normally.
+
+Receipts .checks/task-3kbvjvot.json, .checks/task-68smxtw6.json, .checks/task-xrezsg2b.json and .checks/task-zqclusoo.json. Exact full loop .checks/audit-window-8he1ZH.jsonl. The initial house exit still needed Jump/Strafe/Repath recovery around [-41.3,36.09,12.4] before the successful terrain approach, so this is a positive bounded check rather than a claim of ideal navigation. It used no manual outdoor staging.
+
+Own PvP false is observed; no nearby Nimah was present, so the protected-bystander live check remains open. Full-tree falling escape, descendant log splitting, rock mining, collect:false live behavior and the complete compound criteria are still unverified. Do not reuse destroyed stump1:39764. The other stump1:39765 was still present in the last live map.
