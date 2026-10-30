@@ -12,3 +12,4 @@ tickets, and the next fix pass overwrites it.
 | [TKT-01M62VXYQB6ZDBQE4E6ERGN83C](draft/TKT-01M62VXYQB6ZDBQE4E6ERGN83C.md) | Behaviours: templates and instances the bot runs on its own | draft |
 | [TKT-01M62VXZ2FWDX3D4Z6XX1MB5A6](draft/TKT-01M62VXZ2FWDX3D4Z6XX1MB5A6.md) | Base upkeep: fuel, machines and chest assignments | draft |
 | [TKT-01M62VXZA33E8JR5BR2RJD6AC1](draft/TKT-01M62VXZA33E8JR5BR2RJD6AC1.md) | Agent: tools, events and autonomy for the LLM | draft |
+| [TKT-01M66PFAYA1NTW2JHNRDKBK42E](draft/TKT-01M66PFAYA1NTW2JHNRDKBK42E.md) | Exploration goals after M2 and M3 | draft |
