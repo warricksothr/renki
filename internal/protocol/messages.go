@@ -153,6 +153,7 @@ type State struct {
 	Vel        Vec3              `json:"vel"`
 	HP         float64           `json:"hp"`
 	HPMax      float64           `json:"hpMax"`
+	PVP        *bool             `json:"pvp,omitempty"`
 	Food       *FoodStatus       `json:"food,omitempty"`
 	Stamina    float64           `json:"stamina"`
 	StaminaMax float64           `json:"staminaMax"`
@@ -229,6 +230,7 @@ type PerceivedCharacter struct {
 	Prefab      string  `json:"prefab,omitempty"`
 	Pos         Vec3    `json:"pos"`
 	HPFrac      float64 `json:"hpFrac"`
+	PVP         *bool   `json:"pvp,omitempty"`
 	Stars       int     `json:"stars,omitempty"`
 	Hostile     bool    `json:"hostile,omitempty"`
 	TargetingMe bool    `json:"targetingMe,omitempty"`

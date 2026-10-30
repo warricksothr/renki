@@ -173,6 +173,7 @@ namespace Renki.Protocol
         [JsonProperty("vel")] public double[] Vel = new double[3];
         [JsonProperty("hp")] public double Hp;
         [JsonProperty("hpMax")] public double HpMax;
+        [JsonProperty("pvp", NullValueHandling = NullValueHandling.Ignore)] public bool? Pvp;
         [JsonProperty("food", NullValueHandling = NullValueHandling.Ignore)] public FoodStatus Food;
         [JsonProperty("stamina")] public double Stamina;
         [JsonProperty("staminaMax")] public double StaminaMax;
@@ -198,6 +199,7 @@ namespace Renki.Protocol
         [JsonProperty("prefab", NullValueHandling = NullValueHandling.Ignore)] public string Prefab;
         [JsonProperty("pos")] public double[] Pos = new double[3];
         [JsonProperty("hpFrac")] public double HpFrac;
+        [JsonProperty("pvp", NullValueHandling = NullValueHandling.Ignore)] public bool? Pvp;
         [JsonProperty("stars", NullValueHandling = NullValueHandling.Ignore)] public int? Stars;
         [JsonProperty("hostile", NullValueHandling = NullValueHandling.Ignore)] public bool? Hostile;
         [JsonProperty("targetingMe", NullValueHandling = NullValueHandling.Ignore)] public bool? TargetingMe;

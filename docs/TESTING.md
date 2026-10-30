@@ -523,6 +523,12 @@ For stumps, verify Tas stays beside the resource, aims down from the tool's
 attack height and does not use jump/climb recovery during the final approach.
 After a restart, active food prefabs must remain stable rather than becoming
 localized name tokens; eligible spares should still be recognized as refreshes.
+PvP policy checks cover both states enabled, either disabled, unknown state
+and environmental hazards. In game, confirm Tas and nearby Nimah expose
+their actual `pvp` flags. A stationary stump/small-tree swing may continue
+near a player with known PvP protection; full trees/logs, mining, animals and
+player structures retain their proximity guard. Do not stage damaging PvP
+hits to validate the guard.
 
 First verify no-tool refusal on a loaded mineable rock while Tas has an axe
 and no pickaxe. Then use a small isolated tree away from the home/players,

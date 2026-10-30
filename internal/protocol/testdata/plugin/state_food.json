@@ -71,5 +71,6 @@
         "canEat": true
       }
     ]
-  }
+  },
+  "pvp": false
 }
