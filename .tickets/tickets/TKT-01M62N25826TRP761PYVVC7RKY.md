@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T19:15:48Z
+updated_at: 2026-10-30T19:33:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -230,3 +230,11 @@ Installed 635f4e9 includes M2 approach and native scouting preparation. Trial .c
 **agent:codex/renki-milestones** at 2026-10-30T19:15:48Z
 
 On installed 5a5f5c9, trial .checks/combat-trial-20261030T190620683729Z moved 5.9 m through the raised house toward its doorway, then failed unsafe footing. Audit .checks/audit-window-CN2Lzf.jsonl shows a validated 48-waypoint local route, followed by normal Walker Jump recovery at [-39.83,36.09,11.33]; the combat-wide IsOnGround guard aborted that ordinary movement immediately. No damage occurred; cleanup succeeded. Camera .checks/camera-20261030T190727849372Z.jpg confirms the doorway scene. Follow-up should retain normal movement recovery during preparation while keeping dry/unburdened/health/creature/time/travel guards and requiring grounded clear terrain before search or combat.
+
+**agent:codex/renki-milestones** at 2026-10-30T19:33:52Z
+
+On installed b536179 (PR100), ordinary movement recovery successfully left the raised house. Trial .checks/combat-trial-20261030T191852726557Z covered 20.7m, then stopped safely when the scouting route changed near structures. Audit .checks/audit-window-639Dxw.jsonl and camera .checks/camera-20261030T192014303228Z.jpg confirm egress; zero damage.
+
+The subsequent persistent trial .checks/combat-trial-20261030T192119356202Z/summary.json covered 227.9m across three native attempts, then goal fb340b7325e19de9e0282b7d entered needs_plan after repeated native route refusals. The final task made eleven outbound route commitments. Rejections include sharp_change, scouting_route_limit, character_near_route, structure_near_route, wet_or_unloaded and blocked. Audit .checks/audit-window-0hjdQA.jsonl records no damage; final HP76.5/76.5 at [10.71,30.32,47.3]. Cleanup logged Tas out, stopped the game, restored combat off and left the panel online. Camera .checks/camera-20261030T192412092997Z.jpg retains the final scene. No kill/block/dodge proof earned.
+
+Owner observed pauses between legs. TKT-01M674C36AET3YJMR7AFQZB6AD — Design cancellable look-ahead between movement steps records investigation of bounded provisional next-step preparation, route freshness and immediate stop/retreat/owner displacement. Do not infer a controller delay from visible native holds without measuring.

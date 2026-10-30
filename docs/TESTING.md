@@ -867,3 +867,14 @@ The panel should clear old scenes, and a pinned superseded image URL should
 return409. Ordinary audit/event responses must contain metadata without image
 bytes. Verify capture with the game unfocused and record whether minimized
 rendering supplies new frames before relying on it in unattended diagnostics.
+
+
+Use `just vm camera-diagnostic 1 15` for a bounded fast-capture check, followed
+by `just vm camera` for JPEG evidence and `just vm camera-config` for scope and
+expiry. Keep the game/connection online throughout: observe normal five-second
+frames, one-second frames during the override, then five-second frames after
+automatic restoration. Confirm persisted settings do not change. Test early
+release, a stale release ID, conflicting pins, and an explicit normal settings
+change displacing the override. Disconnect/world replacement must clear the
+lease without configuring a replacement connection. Focused regression coverage
+runs through `just check controller test-packages ./internal/app ./internal/session ./internal/panel`.

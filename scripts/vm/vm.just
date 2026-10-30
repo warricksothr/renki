@@ -307,6 +307,34 @@ camera: need-target
     @scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/camera.ps1" "{{target}}:/{{dir}}/camera.ps1"
     @{{ssh}} "{{ps}} -File {{dir}}/camera.ps1" | python3 -B "{{justfile_directory()}}/scripts/vm/camera-save.py"
 
+# Inspect effective/base camera settings, or send a bounded authenticated command.
+[positional-arguments]
+camera-config JSON='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "$1" ]; then
+        just --justfile "{{justfile()}}" vm panel GET /api/camera
+    else
+        just --justfile "{{justfile()}}" vm panel POST /api/camera "$1"
+    fi
+
+# Temporarily enable diagnostic captures; controller restores base automatically.
+# INTERVAL is seconds per capture (1 fastest); duration is bounded to 1–300s.
+[positional-arguments]
+camera-diagnostic INTERVAL='1' SECONDS='30':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body=$(python3 -c 'import json,sys; print(json.dumps(dict(action="temporary",intervalS=float(sys.argv[1]),durationS=float(sys.argv[2]),enabled=True),allow_nan=False))' "$1" "$2")
+    just --justfile "{{justfile()}}" vm camera-config "$body"
+
+# Change the normal capture interval live using agent permissions and pins.
+[positional-arguments]
+camera-rate INTERVAL='5':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body=$(python3 -c 'import json,sys; print(json.dumps(dict(action="set",key="intervalS",value=float(sys.argv[1])),allow_nan=False))' "$1")
+    just --justfile "{{justfile()}}" vm camera-config "$body"
+
 # Capture read-only map data and the actual panel renderer for image tools.
 [positional-arguments]
 map-snapshot *ARGS:

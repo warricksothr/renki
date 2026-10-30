@@ -163,6 +163,7 @@ func Handler(o Options) http.Handler {
 	}
 	if o.Camera != nil {
 		authed.Handle("GET /api/camera", o.Camera)
+		authed.Handle("POST /api/camera", o.Camera)
 		authed.Handle("GET /api/camera.jpg", o.Camera)
 	}
 	if o.PlayerMemory != nil {

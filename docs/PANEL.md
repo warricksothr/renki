@@ -217,6 +217,35 @@ retry rather than attach a new scene to old metadata. Images are cleared on
 connection/world/menu changes and disabled capture, and are kept only in memory.
 Offline capture is unavailable; a retained file is historical evidence.
 
+Runtime camera tools work while the same game connection stays online:
+
+- `just vm camera-config` reports effective `config`, normal `baseConfig`, and
+  an active `override` (ID, expiry, world UID and connection) or `null`.
+- `just vm camera-rate 5` changes the normal interval using agent permissions.
+  The interval is **seconds per capture**: 1 is fastest, 5 default, 300 slowest.
+- `just vm camera-diagnostic 1 30` enables one-second capture for 30 seconds.
+  The controller automatically restores normal settings on expiry. Both the
+  interval and duration are bounded to 1–300 seconds. No diagnostic setting is
+  persisted; reconnect/restart receives normal settings.
+- `just vm camera-config '{"action":"release","id":"<override-id>"}'` ends that
+  diagnostic early. A stale ID cannot cancel a newer diagnostic.
+- `just vm camera-config '{"action":"temporary","enabled":false,"durationS":30}'`
+  temporarily disables capture to diagnose overhead.
+
+Authenticated `POST /api/camera` requires `X-Renki-Act`, like other panel
+mutations. Besides `temporary`/`release`, it accepts
+`{"action":"set","key":"intervalS","value":5}` or
+`{"action":"reset","key":"intervalS"}`; keys are `intervalS`, `enabled`,
+`width` and `quality`. Agent changes honor pinned settings. Temporary diagnostics
+require an in-world connection with a stable world UID, refuse overlapping
+leases, and end on world/connection changes or a conflicting camera pin (checked
+at most one second later). Any successful normal runtime setting update,
+including a same-value or unrelated setting update, displaces the diagnostic;
+cleanup restores the latest normal settings rather than overwriting a user's
+new choice. Restores target the original connection so they cannot leak to its
+replacement. A successful API response means the config was sent; subsequent
+frame metadata proves the plugin's actual capture rate.
+
 Use `just vm camera` to save the latest JPEG and matching metadata in `.checks/`
 for vision debugging. Image bytes stay outside ordinary audit/event streams and
 model context; the audit retains capture metadata only. Tools can inspect a
