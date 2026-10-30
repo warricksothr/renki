@@ -549,6 +549,15 @@ Post-incident health/proximity guards and first-hit retreat still need live
 validation. Recover with normal food before another harvest; task success,
 delivery/return, full-tree escape, log splits and mining remain open.
 
+On 2026-10-30 UTC, build a1a1a41 completed an unstaged raised-home stump
+loop: approach Beech_Stub 1:39764 from inside, break it after four observed
+local hits, collect two new Wood, return to the named home storage waypoint,
+deposit exactly those two Wood and return home. Original Wood 2, seeds 15
+and the axe remained in the pack; the chest reached Wood 69. Tas stayed on
+terrain beside the stump. The house exit still needed stuck recovery and
+replanning; full-tree escape, log splits and mining remain unverified. Exact
+task receipts and audit windows are recorded on the harvest ticket.
+
 ### Places and zones
 
 Use `just check controller test-packages ./internal/home ./internal/chat
@@ -572,3 +581,11 @@ restart, deletion does not respawn an automatic role, and a named move reaches
 its saved floor. Confirm cooking equipment is visible as a station. Creating
 a zone must not start harvesting. Keep full harvesting/log/rock benchmarks
 and unverified game cases on their tickets.
+
+The a1a1a41 live check on 2026-10-30 UTC observed automatic storage,
+cooking, flint and stone places. Create/rename/move/resize, persistence over
+controller restart, suppression of a deleted automatic storage role,
+remembered nearby chest contents and publishing places on the map passed.
+Named movement reached the raised indoor floor; saved-place Go also passed.
+Temporary test places were deleted. The retained home storage zone is
+centered on its accessible indoor approach. Zone edits started no harvest.
