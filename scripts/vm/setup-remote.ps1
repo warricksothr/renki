@@ -57,9 +57,14 @@ if (Get-Service sshd -ErrorAction SilentlyContinue) {
     Write-Host 'sshd is already installed'
 } else {
     $cap = Get-WindowsCapability -Online -Name 'OpenSSH.Server*' | Select-Object -First 1
+    if (-not $cap) { throw 'Windows did not report an OpenSSH Server capability. Install the official OpenSSH MSI, then run this script again.' }
     Write-Host "installing $($cap.Name) through Windows Update; this can take a long time."
     Write-Host 'If it hangs, stop it (Ctrl+C), install the OpenSSH MSI instead, and run this again.'
-    Add-WindowsCapability -Online -Name $cap.Name | Out-Null
+    $installed = Add-WindowsCapability -Online -Name $cap.Name
+    if (-not (Get-Service sshd -ErrorAction SilentlyContinue)) {
+        $current = Get-WindowsCapability -Online -Name $cap.Name | Select-Object -First 1
+        throw "OpenSSH capability returned but sshd is still missing. Capability state: $($current.State); RestartNeeded: $($installed.RestartNeeded). If a restart is required, restart Windows first. Otherwise install the official OpenSSH MSI (ADDLOCAL=Server), then run this script again."
+    }
 }
 Set-Service -Name sshd -StartupType Automatic
 Start-Service sshd

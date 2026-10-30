@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T03:49:12Z
+updated_at: 2026-10-30T04:11:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -142,3 +142,7 @@ The install recipe previously treated any failed SSH process probe as a running 
 **agent:codex/renki-resume** at 2026-10-30T03:49:12Z
 
 in-progress to blocked: Live validation requires the bot VM: SSH to 192.168.1.174 times out, local Hyper-V access is denied, and current VM state/address awaits owner clarification.
+
+**agent:codex/renki-resume** at 2026-10-30T04:11:43Z
+
+Owner confirmed BLIGHT at 192.168.1.174 has the existing C:\renki bot settings and bootstrap script. Ping/RDP work, but no sshd service/listener exists. The enabled SSH rule is currently Private/Any. The existing bootstrap tried Add-WindowsCapability and then failed at Set-Service because no service was created. Capture and report the capability result, resulting capability state and RestartNeeded, and refuse further setup before service-dependent operations when sshd remains absent. Document the official server-only MSI recovery route and its logging/exit codes. The official GitHub release API currently offers OpenSSH-Win64-v10.4.0.0.msi (10.4.0.0p1-Preview); downloaded artifact SHA-256 matches the release digest 788d8643464a01eb63640a2fd746f9ed23d106b5a901a35f88dc8cd40e446ac9. Official MSI documentation confirms ADDLOCAL=Server. The existing bootstrap can be rerun after MSI installation to preserve settings and restore key/scheduled-task setup. Validate script syntax and CI, review/land the diagnostic correction, and give the owner the concrete MSI recovery commands needed while SSH remains unavailable. No service operation can yet be run remotely on BLIGHT. Resume deployed native ground testing once SSH is restored.
