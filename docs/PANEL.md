@@ -80,7 +80,9 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   up to 512 nearest remembered landmarks; the page refreshes it every 5 s.
   Terrain is bounded to 256 cached tiles, resets on controller/plugin
   reconnect or world/menu changes, and repopulates from the plugin. Persistent
-  exploration is separate work. A map request failure retains the last
+  exploration is separate work. [ATLAS.md](ATLAS.md) proposes durable terrain,
+  saved-world viewing and age/provenance styling; these are not implemented yet.
+  A map request failure retains the last
   scoped view until a later successful refresh.
 - **Voice:** the model the bot's chat replies use, who chose it and when,
   and a list of what the backend offers (its `/models`, for an
