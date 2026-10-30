@@ -690,7 +690,7 @@ Notes:
   past the last waypoint of a partial path toward the original goal.
 - **Local routing:** when the navmesh has no path, ends more than 1.5 m short
   across the ground, crosses a known wall, or stuck recovery asks for another
-  route, run local A* on 0.75 m cells. Ground probes preserve floors and
+  route, run local A* on 0.5 m cells. Ground probes preserve floors and
   enforce a 0.6 m maximum step; capsule probes check clearance.
   Point movement accepts a supported arrival inside the task's requested
   stopping distance, rather than requiring an occupied target's exact centre.
