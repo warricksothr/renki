@@ -821,6 +821,10 @@ If rejoin has already started the configured outage return, preparation may
 wait up to 120 s for that exact native task to finish. Its outgoing request must
 name the known same-world home; another order, changed scope or damage aborts.
 Preparation never replaces the active task to get control of the body.
+A remembered food chest whose ID is no longer visible can suggest a unique
+currently perceived chest within 0.4 m in three dimensions. Ambiguous matches
+are skipped; old contents never prove current stock. The transfer still needs
+the exact current chest/task receipt and newer inventory evidence.
 
 During a trial, `just vm trial-status` reads the newest local evidence directory
 and prints only position, observed travel, health, food, task and observation

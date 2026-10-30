@@ -42,6 +42,17 @@ class Resupply(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'no known home'):
             resupply.candidates(dict(self.status(), home={}), mapped, {})
 
+    def test_stale_chest_hint_can_select_only_a_unique_live_position_match(self):
+        mapped = self.mapped()
+        mapped['perception'] = dict(structures=[dict(id='new', kind='container', pos=[1, 0, 0])])
+        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {})}, {'new'})
+        mapped['perception']['structures'].append(dict(id='ambiguous', kind='container', pos=[1.1, 0, 0]))
+        self.assertEqual(resupply.candidates(self.status(), mapped, {}), [])
+        mapped['perception']['structures'] = [dict(id='upstairs', kind='container', pos=[1, 3, 0])]
+        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {})}, {'chest'})
+        mapped['perception']['structures'].append(dict(id='chest', kind='container', pos=[1, 0, 0]))
+        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {})}, {'chest'})
+
     def test_resupply_requires_task_matched_receipts_and_fresh_inventory(self):
         for mode in ('valid', 'wrong_receipt', 'stale_inventory', 'damaged', 'new_connection'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as folder:

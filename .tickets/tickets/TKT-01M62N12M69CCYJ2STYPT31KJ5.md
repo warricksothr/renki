@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T17:40:24Z
+updated_at: 2026-10-30T17:45:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -90,3 +90,7 @@ The progressive-routing resupply trial travelled about 384 m under one native mo
 **agent:codex/renki-milestones** at 2026-10-30T17:40:24Z
 
 PR #88 merged as 3a14359. Next resupply attempt .checks/resupply-trial-20261030T173600325122Z aborted before issuing tasks because configured after-outage home movement was already active on rejoin. Native audit .checks/audit-window-CoMssT.jsonl confirms 22 HP and zero damage events; final position [-42.69,33.8,8.3]. No withdrawal occurred. Add passive preparation wait (<=120 s) only for an exact outgoing same-world home move_to request matching the current task ID. Preserve that task; changed orders, scope or health loss abort. Tests cover finish, damage, owner takeover and connection changes; no task replacement is dispatched. Do not mislabel intentional logout's retained interrupted flag as a new route failure. The earlier native route change did traverse the 375 m hill; remaining work is actual safe house entry and food receipt.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:45:00Z
+
+PR #89 merged as 19c5045. Third resupply trial reached the correct raised-home floor at [-36.98,36.09,8.03], HP22 throughout and zero native damage events, but old chest 1:30600 rejected two food requests as nonexistent. Current perception shows chest 1:48788 at exactly the remembered food location [-37.09,36.09,3.42]. Evidence .checks/resupply-trial-20261030T174058591938Z and /home/sothr/.t3/worktrees/renki/t3-b9d91179/.checks/audit-window-te22hp.jsonl. Fix candidate selection to use a unique currently perceived container within 0.4 m in 3D when the remembered ID is not visible. Keep old contents as a hint only; require the fresh entity/task receipt plus newer inventory as before. Skip ambiguous position matches and skip all remaining requests for a chest rejected as gone without a transfer receipt. Native/owner orders, safety and overall attempt bounds remain unchanged. No food withdrawal success yet.
