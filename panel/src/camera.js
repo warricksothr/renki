@@ -47,6 +47,7 @@ export class CameraSession {
       this.busy = false;
       this.clear({
         scope: next,
+        override: null,
         phase: next ? "pending" : "offline",
         message: next
           ? "Waiting for a frame from this world…"
@@ -80,7 +81,11 @@ export class CameraSession {
       if (!response.ok) throw Error("Camera status unavailable. Retrying…");
       const data = await response.json();
       if (!valid()) return;
-      this.update({ config: data.config });
+      this.update({
+        config: data.config,
+        baseConfig: data.baseConfig || data.config,
+        override: data.override || null,
+      });
       if (!online(this.status))
         return this.clear({
           phase: "offline",
@@ -191,8 +196,17 @@ export class CameraSession {
   }
 }
 export function cameraPresentation(state, now) {
+  const temporary = state.override
+    ? {
+        remainingS: Math.max(
+          0,
+          Math.ceil((Date.parse(state.override.expiresAt) - now) / 1000),
+        ),
+        expiresAt: state.override.expiresAt,
+      }
+    : null;
   if (state.phase !== "image")
-    return { label: state.phase, message: state.message };
+    return { label: state.phase, message: state.message, temporary };
   const receiptAge = Math.max(0, (now - state.received) / 1000);
   const captureAge = Math.max(
     0,
@@ -205,6 +219,7 @@ export function cameraPresentation(state, now) {
     label: stale ? "stale" : state.loaded ? "latest frame" : "loading image",
     receiptAge,
     captureAge,
+    temporary,
     stale,
     message: stale
       ? "No recent frame · this scene is out of date"

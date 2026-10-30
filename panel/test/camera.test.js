@@ -126,3 +126,32 @@ test("setting refusal preserves server authority and reports failure without unh
   assert.equal(c.state.saving, false);
   assert.equal(c.state.url, null);
 });
+
+test("temporary effective config exposes its base and expiry without editing the base", async () => {
+  const override = {
+    id: "temporary-1",
+    config: { enabled: true, intervalS: 1 },
+    expiresAt: "2026-10-30T18:00:30Z",
+    connection: status.connection,
+    worldUid: status.worldUid,
+  };
+  const { c } = camera(async (path) =>
+    path === "/api/camera"
+      ? json({
+          ...metadata,
+          config: { enabled: true, intervalS: 1 },
+          baseConfig: metadata.config,
+          override,
+        })
+      : { ok: true, blob: async () => new Blob(["image"]) },
+  );
+  await c.poll();
+  assert.equal(c.state.config.intervalS, 1);
+  assert.equal(c.state.baseConfig.intervalS, 5);
+  assert.equal(
+    cameraPresentation(c.state, c.env.now()).temporary.remainingS,
+    27,
+  );
+  c.setStatus({ ...status, worldUid: "another-world" });
+  assert.equal(c.state.override, null);
+});

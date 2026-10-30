@@ -11,6 +11,7 @@ window.renkiPreview.check = async () => {
   await wait(150);
   const initial = { ...fixture.status };
   const initialCamera = fixture.cameraState;
+  fixture.temporaryExpires = Date.now() + 30000;
   const map = () => window.renkiSnapshots.map({ maxWidth: 640, quality: 0.8 });
   const canvas = document.getElementById("map");
   const initialShot = map();
@@ -144,12 +145,27 @@ window.renkiPreview.check = async () => {
       "failed",
       "broken",
       "stale",
+      "temporary",
       "image",
     ]) {
       fixture.cameraState = phase;
       await wait(1200);
       const label = document.querySelector(".camera-badge").textContent;
-      if (phase === "image")
+      if (phase === "temporary") {
+        assert(
+          document
+            .querySelector(".camera-override")
+            ?.textContent.includes("base every 5s"),
+          "Temporary capture shows effective and base intervals",
+        );
+        assert(
+          document
+            .querySelector(".camera-override")
+            ?.textContent.includes("Ends in") &&
+            document.getElementById("camera-interval").value === "5",
+          "Temporary expiry preserves the base setting editor",
+        );
+      } else if (phase === "image")
         assert(
           document.getElementById("camera-image")?.naturalWidth > 0 &&
             label === "latest frame",

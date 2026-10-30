@@ -41,26 +41,30 @@ plugin DLL is skipped by the existing gate when no Valheim assemblies are
 configured. No game actions, deployment or live VM checks were performed for
 this redesign.
 
-Native browser fixture checks passed at 1440×900 and 390×844 with 33 assertions:
+Native browser fixture checks passed at 1440×900 and 390×844 with 35 assertions:
 all layers/export viewport, keyboard handlers, task dialog, historical paging,
 settings focus/scroll, inventory, actual JPEG decoding, disabled/pending/error/
-broken-image/stale/offline transitions, saved fog/rejoin and mutation refusal.
+broken-image/stale/offline transitions, temporary effective/base intervals and
+expiry, saved fog/rejoin and mutation refusal.
 The recorded map bundle renders 134 terrain tiles and its grouped chest hover
 retains observed contents/unknown distinctions. JPEG `naturalWidth` is 960 and
 `naturalHeight` is 540. These recorded assets and replayed timing are fixture
 evidence, not a new live game outcome. `html_preview` also rendered the complete
-self-contained workspace with the image policy intact.
+self-contained workspace with the image policy intact. Compressed fixture
+transport reduced the recorded standalone map HTML from 513,266 to about
+166,000 bytes, within the native preview tool limit; decompression preserves
+the exact JSON data and uses the browser’s built-in DecompressionStream.
 
 Build measurements against main cf59e5d (terrain renderer asset unchanged):
 
 | Embedded asset | Before | After |
 | --- | ---: | ---: |
-| JavaScript | 75,230 B | 83,706 B |
-| CSS | 13,050 B | 32,147 B |
+| JavaScript | 75,230 B | 84,358 B |
+| CSS | 13,050 B | 32,340 B |
 | HTML shell | 11,484 B | 469 B |
-| Total | 99,764 B | 116,322 B |
+| Total | 99,764 B | 117,167 B |
 
-Total raw asset growth is 16,558 bytes. Gzip measurement is 29,396 → 35,741
+Total raw asset growth is 17,403 bytes. Gzip measurement is 29,396 → 35,986
 bytes across these files; this is a size comparison, not a claim that the
 controller negotiates compression. Preact is bundled locally and no CDN is
 required. Node.js 20+ and npm are now build/CI prerequisites. Generated embedded

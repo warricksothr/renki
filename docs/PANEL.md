@@ -296,7 +296,8 @@ session. Logging the bot out still asks for confirmation.
 
 Game camera stays prominent without opening a disclosure. Capture defaults
 remain off, five seconds, with a one-second minimum. Enable capture with its
-checkbox; edit **Every … seconds**, then **Apply**. Width, quality, pins and
+checkbox; edit **Base interval … seconds**, then **Apply**. Temporary capture overrides
+show the effective interval, base interval and expiry beside these controls. Width, quality, pins and
 reset remain in Settings. The panel shows loading, disabled, pending, offline,
 failed/decode-error and stale states. It reports both receipt age and capture
 age, and dims images older than three capture intervals (at least 15 seconds).

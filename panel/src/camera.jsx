@@ -10,8 +10,11 @@ export function Camera() {
   });
   const [intervalValue, setIntervalValue] = useState("5");
   useEffect(() => {
-    if (state.config) setIntervalValue(String(state.config.intervalS));
-  }, [state.config?.intervalS]);
+    if (state.config)
+      setIntervalValue(
+        String(state.baseConfig?.intervalS ?? state.config.intervalS),
+      );
+  }, [state.baseConfig?.intervalS, state.config?.intervalS]);
   const [now, setNow] = useState(Date.now());
   const session = useRef();
   useEffect(() => {
@@ -93,6 +96,17 @@ export function Camera() {
           </span>
         )}
       </div>
+      {presentation.temporary && (
+        <p class="camera-override" role="status">
+          Temporary capture · every {state.config?.intervalS}s · base every{" "}
+          {state.baseConfig?.intervalS}s<br />
+          Ends{" "}
+          {presentation.temporary.remainingS > 0
+            ? `in ${presentation.temporary.remainingS}s`
+            : "shortly"}{" "}
+          at {new Date(presentation.temporary.expiresAt).toLocaleTimeString()}
+        </p>
+      )}
       <div class="camera-controls">
         <label class="switch-label">
           <input
@@ -121,7 +135,7 @@ export function Camera() {
           }}
         >
           <label>
-            Every{" "}
+            Base interval{" "}
             <input
               id="camera-interval"
               type="number"
@@ -138,7 +152,9 @@ export function Camera() {
             disabled={
               !state.config ||
               state.saving ||
-              Number(intervalValue) === state.config.intervalS
+              (!state.override &&
+                Number(intervalValue) ===
+                  (state.baseConfig?.intervalS ?? state.config.intervalS))
             }
           >
             Apply

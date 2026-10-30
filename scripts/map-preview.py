@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--status')
 parser.add_argument('--map')
 parser.add_argument('--camera',help='Recorded JPEG, replayed with fixture timing; never a live capture')
-parser.add_argument('--camera-state',choices=['image','disabled','pending','stale','failed','broken'],default='image')
+parser.add_argument('--camera-state',choices=['image','disabled','pending','stale','failed','broken','temporary'],default='image')
 parser.add_argument('--offline',action='store_true')
 parser.add_argument('--serve', action='store_true')
 parser.add_argument('--output')
@@ -60,7 +60,7 @@ mapped['worldKey']=atlas_key
 saved_map=json.loads(pathlib.Path(args.atlas).read_text()) if args.atlas else dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
 # Everything below embeds the built production assets, including the Preact
 # workspace and the same renderer used by window.renkiSnapshots.map().
-import base64
+import base64,gzip
 camera_jpeg=base64.b64encode(pathlib.Path(args.camera).read_bytes()).decode() if args.camera else ''
 frames.append(dict(type='inventory',size=[8,4],items=[dict(slot=[0,0],prefab='AxeBronze',stack=1,durability=84,durabilityMax=100,equipped=True),dict(slot=[1,0],prefab='CookedDeerMeat',stack=9,stackMax=20),dict(slot=[2,0],prefab='Wood',stack=12,stackMax=50)]))
 if not args.status:
@@ -74,11 +74,16 @@ fixtures=dict(status=status,mapped=mapped,frames=frames,atlas=saved_map,worlds=[
  dict(kind='frame',cat='trace',task='t-preview',at='2026-10-30T18:50:01Z',frame=dict(type='trace',msg='stuck recovery',source='walker',data=dict(attempt=2)),line='18:50:01 trace task=t-preview source=walker msg="stuck recovery" data={"attempt":2}')])
 
 def embedded(value):
- return json.dumps(value,separators=(',',':')).replace('<','\\u003c')
+ return json.dumps(value,separators=(',',':'))
 
+# Compress only fixture transport. Decompression changes no map data or renderer.
+packed=base64.b64encode(gzip.compress(embedded(fixtures).encode(),mtime=0)).decode()
 bootstrap='''<script>
-window.renkiPreview=FIXTURES;
+window.renkiPreviewReady=(async()=>{
+const packed=Uint8Array.from(atob('PACKED'),c=>c.charCodeAt(0));
+window.renkiPreview=await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
 const preview=window.renkiPreview;
+preview.temporaryExpires=Date.now()+30000;
 const cameraPath='/api/'+'camera.jpg';
 window.addEventListener('error',e=>preview.errors.push(e.message));
 window.addEventListener('unhandledrejection',e=>preview.errors.push(String(e.reason)));
@@ -101,7 +106,7 @@ window.fetch=async(path,options={})=>{
  case '/api/camera': {
   if(preview.cameraState==='failed')return reply({text:'Fixture camera unavailable'},503);
   const available=!!preview.jpeg && !['disabled','pending'].includes(preview.cameraState);
-  return reply({available,config:{enabled:preview.cameraState!=='disabled' && !!preview.jpeg,intervalS:5},ageS:preview.cameraState==='stale'?60:2,imageUrl:cameraPath+'?connection='+preview.status.connection+'&seq=1',frame:{...preview.status,seq:1,capturedAt:new Date(Date.now()-(preview.cameraState==='stale'?65000:3000)).toISOString(),width:960,height:540,captureMs:4.3,task:'fixture replay'}});
+  return reply({available,config:{enabled:preview.cameraState!=='disabled' && !!preview.jpeg,intervalS:preview.cameraState==='temporary'?1:5},baseConfig:{enabled:!!preview.jpeg,intervalS:5},override:preview.cameraState==='temporary'?{id:'fixture-override',config:{enabled:true,intervalS:1},expiresAt:new Date(preview.temporaryExpires).toISOString(),connection:preview.status.connection,worldUid:preview.status.worldUid}:null,ageS:preview.cameraState==='stale'?60:2,imageUrl:cameraPath+'?connection='+preview.status.connection+'&seq=1',frame:{...preview.status,seq:1,capturedAt:new Date(Date.now()-(preview.cameraState==='stale'?65000:3000)).toISOString(),width:960,height:540,captureMs:4.3,task:'fixture replay'}});
  }
  case cameraPath: return new Response(new Blob([Uint8Array.from(atob(preview.cameraState==='broken'?'aW52YWxpZA==':preview.jpeg),c=>c.charCodeAt(0))],{type:'image/jpeg'}));
  default: return reply([]);
@@ -112,7 +117,8 @@ window.EventSource=class{
  addEventListener(name,fn){this.handlers[name]=fn;}
  emit(name,value){if(name==='status')preview.status=value;this.handlers[name]?.({data:JSON.stringify(value)});}
 };
-</script>'''.replace('FIXTURES',embedded(fixtures))
+})();
+</script>'''.replace('PACKED',packed)
 html=(root/'internal/panel/static/index.html').read_text()
 # Mirror the production image policy so blob-image regressions are visible.
 html=html.replace('<head>','<head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src \'self\' data: blob:; connect-src \'self\';">')
@@ -121,8 +127,8 @@ html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script
 html=html.replace('<script src="/app.js" defer></script>','')
 notice='Recorded game assets · read-only fixture replay (not live)' if args.status or args.camera else 'Fixture terrain · read-only preview (not live)'
 html=html.replace('<body>','<body><aside class="preview-notice" style="padding:8px 16px;color:#d2dfc6;background:#35452b;font:12px system-ui">'+notice+'</aside>')
-checks='''<script>setTimeout(()=>{try{const shot=window.renkiSnapshots.map({maxWidth:640,quality:.8});console.log(JSON.stringify({snapshot:shot.metadata,errors:renkiPreview.errors,canvas:document.getElementById('map').getBoundingClientRect().toJSON()}));const layer=document.querySelector('[data-layer=terrain]');layer.click();if(window.renkiSnapshots.map().metadata.layers.terrain!==false)throw Error('Terrain toggle failed');layer.click();console.log('Shared renderer and layer controls passed');}catch(e){renkiPreview.errors.push(e.message);console.error(e);}},250);</script>'''
-html=html.replace('</body>','<script>'+(root/'panel/preview-checks.js').read_text()+'</script><script>'+(root/'internal/panel/static/app.js').read_text()+'</script>'+checks+'</body>')
+checks='''<script>window.renkiPreviewReady.then(()=>setTimeout(()=>{try{const shot=window.renkiSnapshots.map({maxWidth:640,quality:.8});console.log(JSON.stringify({snapshot:shot.metadata,errors:renkiPreview.errors,canvas:document.getElementById('map').getBoundingClientRect().toJSON()}));const layer=document.querySelector('[data-layer=terrain]');layer.click();if(window.renkiSnapshots.map().metadata.layers.terrain!==false)throw Error('Terrain toggle failed');layer.click();console.log('Shared renderer and layer controls passed');}catch(e){renkiPreview.errors.push(e.message);console.error(e);}},250));</script>'''
+html=html.replace('</body>','<script>window.renkiPreviewReady.then(()=>{'+(root/'panel/preview-checks.js').read_text()+'\n'+(root/'internal/panel/static/app.js').read_text()+'\n}).catch(error=>{document.getElementById("app").textContent="Preview could not load: "+error.message;console.error(error)});</script>'+checks+'</body>')
 if args.map_only:
  html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,#feed-pane,#camera,.observation-column,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
 out=pathlib.Path(args.output) if args.output else root/'.checks/map-ui-preview.html'
