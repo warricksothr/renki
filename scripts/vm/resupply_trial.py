@@ -13,14 +13,27 @@ def candidates(status, mapped, supplied):
     if home.get('world') != status.get('world') or not home.get('pos'):
         raise RuntimeError('no known home in the current world')
     choices = []
+    visible = [s for s in (mapped.get('perception') or {}).get('structures', [])
+               if s.get('kind') == 'container' and s.get('id') and s.get('pos')]
+    visible_ids = {s['id'] for s in visible}
     for chest in mapped.get('containers', []):
         if math.dist(chest['pos'], home['pos']) > 32:
             continue
+        entity = chest['entity']
+        # Last-known contents are only a hint. Rebuilt/reidentified storage
+        # may have a fresh entity at the same measured location. Bind the
+        # request to that unique live chest, never infer a successful move.
+        if entity not in visible_ids:
+            replacements = [s for s in visible if math.dist(s['pos'], chest['pos']) <= .4]
+            if len(replacements) == 1:
+                entity = replacements[0]['id']
+            elif len(replacements) > 1:
+                continue
         for item in chest.get('items', []):
             prefab = item.get('prefab')
             if prefab in FOODS and prefab not in supplied and item.get('stack', 0) > 0:
-                choices.append((FOODS.index(prefab), math.dist(status['pos'], chest['pos']), chest['entity'], prefab, min(4, item['stack'])))
-    return sorted(choices)
+                choices.append((FOODS.index(prefab), math.dist(status['pos'], chest['pos']), entity, prefab, min(4, item['stack'])))
+    return sorted(set(choices))
 
 
 def count(pack, prefab):
@@ -94,12 +107,13 @@ def run(summary, call, observe, terminal, saved):
         result, status, mapped, _ = task('move_to', dict(to=home['pos'], stopDistance=2, run=home_run(status)), 270)
         if result['status'] != 'succeeded' or math.dist(status['pos'], home['pos']) > 3:
             raise RuntimeError('native return home did not complete: ' + str(result.get('detail') or result.get('reason')))
-    attempted = set()
+    attempted, missing_chests = set(), set()
     for _ in range(4):
         if len(summary['supplied']) >= 2:
             break
         status, mapped = checked_observe()
-        options = [c for c in candidates(status, mapped, summary['supplied']) if (c[2], c[3]) not in attempted]
+        options = [c for c in candidates(status, mapped, summary['supplied'])
+                   if (c[2], c[3]) not in attempted and c[2] not in missing_chests]
         if not options:
             break
         _, _, chest, prefab, amount = options[0]
@@ -112,6 +126,8 @@ def run(summary, call, observe, terminal, saved):
         history = history.get('value', []) if isinstance(history, dict) else history
         receipts = [r.get('frame', {}) for r in history if r.get('frame', {}).get('type') == 'container']
         receipt = next((c for c in receipts if c.get('entity') == chest and c.get('task') == summary['tasks'][-1]['id'] and c.get('direction') == 'withdraw'), None)
+        if receipt is None and result.get('reason') in ('invalid_target', 'target_lost'):
+            missing_chests.add(chest)
         moved = (receipt or {}).get('moved', {}).get(prefab, 0)
         pack = pack_snapshot(call, scope)
         # Auto-eating may race the pack delta; the exact withdrawal receipt is
