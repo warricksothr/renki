@@ -34,6 +34,18 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
    `OpenSSH-Win64-v*.msi` from
    [Win32-OpenSSH releases](https://github.com/PowerShell/Win32-OpenSSH/releases),
    and run the script again: it skips the install when `sshd` already exists.
+   The script also stops if the capability command returns without creating
+   `sshd`, reporting the capability state and `RestartNeeded`. Complete a
+   required restart before retrying. If the service is still absent, use the
+   official 64-bit MSI instead of repeating the capability command:
+
+       msiexec.exe /i C:\path\OpenSSH-Win64-vVERSION.msi ADDLOCAL=Server /qn /norestart /L*v C:\renki\openssh-install.log
+
+   Wait for the installer to finish and check its exit code: 0 succeeds, 3010
+   succeeds with a required restart, and other codes require the installer
+   log. After any required restart, rerun `setup-remote.ps1` to restore the
+   existing key, firewall scope and scheduled tasks. Existing bot settings
+   are retained.
 
    Add `-AllowFrom 192.168.1.0/24` (your LAN) to limit who may reach SSH. It
    ends by printing the account and the addresses; keep them.
