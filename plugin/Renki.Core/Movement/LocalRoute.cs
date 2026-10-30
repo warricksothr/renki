@@ -13,6 +13,8 @@ namespace Renki.Movement
         public const double Cell = .75;
         public const int MaxNodes = 4096;
         public const double Range = 48;
+        public const double FrontierDistance = 16;
+        public const double FrontierProgress = 8;
 
         sealed class Node
         {
@@ -25,6 +27,7 @@ namespace Renki.Movement
 
         readonly V3 start, goal;
         readonly double within;
+        readonly double initialDistance;
         readonly Func<V3, V3, V3?> probe;
         readonly Dictionary<(int, int, int), double> costs = new Dictionary<(int, int, int), double>();
         readonly SortedSet<Node> open = new SortedSet<Node>(Comparer<Node>.Create((a, b) =>
@@ -37,6 +40,8 @@ namespace Renki.Movement
         public IReadOnlyList<V3> Path { get; private set; }
         public int Expanded { get; private set; }
         public int Probes { get; private set; }
+        /// <summary>A found path is only a checked leg, not arrival at the destination.</summary>
+        public bool ProgressLeg { get; }
 
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25)
         {
@@ -44,9 +49,9 @@ namespace Renki.Movement
             this.goal = goal;
             this.probe = probe;
             this.within = within;
+            initialDistance = V3.FlatDistance(start, goal);
+            ProgressLeg = initialDistance > FrontierDistance * 1.5;
             Add(new Node { Pos = start });
-            if (Math.Abs(goal.X - start.X) > Range || Math.Abs(goal.Z - start.Z) > Range)
-                Status = RouteStatus.NoRoute;
         }
 
         public RouteStatus Advance(int budget = 8)
@@ -59,6 +64,15 @@ namespace Renki.Movement
                 if (costs[Key(node)] < node.Cost) { i--; continue; }
                 Expanded++;
                 if (Arrival.Reached(node.Pos, goal, within))
+                {
+                    Complete(node, node.Pos);
+                    break;
+                }
+                // Plan only through loaded, probed ground. A distant goal's
+                // height may belong to an unloaded hill or raised floor;
+                // intermediate legs follow support, never that final height.
+                if (ProgressLeg && V3.FlatDistance(start, node.Pos) >= FrontierDistance &&
+                    initialDistance - V3.FlatDistance(node.Pos, goal) >= FrontierProgress)
                 {
                     Complete(node, node.Pos);
                     break;

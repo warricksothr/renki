@@ -692,6 +692,16 @@ Notes:
   48 m from its start on each axis, and 8 s. It advances at most eight nodes
   per physics step, with a 2 ms target budget, holding movement and the stuck
   clock meanwhile. Traces record probes and actual total/worst-frame time.
+  For destinations more than 24 m away horizontally, a search may instead
+  finish a supported leg at least 16 m from its start that reduces the
+  remaining horizontal distance by at least 8 m. The final destination is
+  preserved: reaching a leg endpoint triggers another plan, not task success.
+  Intermediate heights follow live support; the final floor is still required
+  for arrival. This permits progress toward unloaded distant destinations
+  without enlarging the local search or trusting an unchecked straight line.
+  A search that exhausts early waits at least 1.25 s to allow a retry of
+  asynchronously requested navmesh tiles. The task's overall timeout still
+  bounds travel, and obstructed or unknown ground can still stop the trip.
   Failure is `unreachable`, or `deep_water` if the original straight line
   crossed deep water. A swimming bot seeks shore before failing. Current
   physics overrides assumptions; local cells are not persisted across tasks

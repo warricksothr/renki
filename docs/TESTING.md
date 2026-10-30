@@ -168,6 +168,15 @@ straight drive through the remaining wall. These checks need the game: the
 Core regression uses the measured house walls but cannot establish physical
 support, stair clearance or door response.
 
+For distant cold-start routing, use `just check vm resupply-food` when Tas is
+away from home and needs food. Local-route traces may show `progressLeg:true`
+with a short checked `end`; the `to` remains the real destination. Verify
+measurable travel and repeated replanning, then actual final-floor arrival,
+task-matched food withdrawals and observed eating. A short leg alone is not a
+successful home return. The deterministic regression covers the recorded
+375 m hillside trip, a wall detour, enclosed starts and unknown support; native
+terrain, tile availability, doors and the raised home still require this check.
+
 ### First wall-route check, 2026-10-29
 
 On `fe9384a`, come-here task `t-1` started at 17:57:37Z from
