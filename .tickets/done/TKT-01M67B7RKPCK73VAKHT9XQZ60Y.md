@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M67B7RKPCK73VAKHT9XQZ60Y
 title: Research safe OBS broadcasting and offline profile tooling
 type: spike
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/streaming-research
-  branch: t3/research-twitch-streaming
-  worktree: /home/sothr/.t3/worktrees/renki/t3-bf3847ce
-  commit: 3ccd07d710e7c289f9bd46c8055f9c6ceaa7c8b3
-  session: null
-  claimed_at: 2026-10-30T21:25:50Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T21:25:16Z
-updated_at: 2026-10-30T21:32:00Z
+updated_at: 2026-10-30T21:33:10Z
 created_by:
   id: agent:codex/streaming-research
   name: ""
@@ -47,9 +40,9 @@ Compare OBS/obs-websocket, FFmpeg and browser composition against current camera
 
 ## Acceptance criteria
 
-- [ ] Compare capture options, privacy boundaries, recovery and setup prerequisites in durable design
-- [ ] Provide secret-free offline profile validation and OBS planning with meaningful mock tests
-- [ ] Pass just check ci and review committed changes; open a PR without deployment
+- [x] Compare capture options, privacy boundaries, recovery and setup prerequisites in durable design
+- [x] Provide secret-free offline profile validation and OBS planning with meaningful mock tests
+- [x] Pass just check ci and review committed changes; open a PR without deployment
 
 ## Implementation plan
 
@@ -75,3 +68,11 @@ Remaining later game checks: GPU/driver/encoder capability and headroom; Game/Wi
 Validation: just check broadcast-test passed initially; final just check ci passed in 104 seconds with 13 offline broadcast tests, required panel desktop/mobile browser scenarios, controller race/vet/build checks, 368 plugin tests and ticket validation. Full gate log: .checks/20261030T212949Z-1Tvn08.log. just broadcast-plan --response scripts/fixtures/broadcast/obs-response.json emitted only the expected typed synthetic summary, with captureHealth explicitly unverified. git diff --check passed. No new UI, so no new screenshots are claimed. Game plugin DLL compilation was skipped by the existing recipe because this worktree has no game assemblies.
 
 The implementation rejects unknown CLI arguments without echoing values, unknown nested config fields, duplicate keys, non-finite input and oversized JSON. Diagnostic output excludes arbitrary OBS comments and payload strings. Next: commit review and PR handoff, then close this scoped research ticket; live integration remains later separately authorized work.
+
+**agent:codex/streaming-research** at 2026-10-30T21:33:10Z
+
+Committed implementation b976d37 passed just check review with no findings (run 20261030-213201-3b470d; .checks/20261030T213200Z-oL4yOO.log). Opened and immediately linked https://github.com/warricksothr/renki/pull/112 against main; GitHub reports mergeable. This closes the requested research/offline slice only. OBS setup, capture-health proof, adapter/overlay implementation and every live game/account check listed in the earlier note and docs/STREAMING.md remain future separately authorized work. No deployment, stream or merge occurred.
+
+## Summary
+
+Delivered source-backed OBS/FFmpeg/browser comparison and safe broadcasting design in docs/STREAMING.md, plus secret-free offline profile validation, read-only obs-websocket v5 diagnostic request planning, allowlisted response summaries and 13 synthetic tests. CI passed; committed implementation review had no findings. PR: https://github.com/warricksothr/renki/pull/112 (main base; isolated t3/research-twitch-streaming from 3ccd07d). Actual GPU/session capture behavior, reliable capture freshness, optional public overlay/adapter and owner-run Twitch setup remain explicitly unverified and are not claimed by this research ticket.
