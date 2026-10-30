@@ -138,5 +138,19 @@ namespace Renki.Tests
             Assert.Equal(3, Scouting.RouteDistance(V3.Zero, new V3(10, 0, 0), new V3(13, 0, 0)), 5);
             Assert.Equal(3, Scouting.RouteDistance(V3.Zero, V3.Zero, new V3(0, 3, 0)), 5);
         }
+
+        [Fact]
+        public void TravelCanPassPlayersButCannotEndOnThemOrApproachCreatures()
+        {
+            Assert.True(Scouting.TravelSeparated(2.2, player: true, hostile: false, destination: false));
+            Assert.True(Scouting.TravelSeparated(1, player: true, hostile: true, destination: false));
+            Assert.False(Scouting.TravelSeparated(1, player: true, hostile: false, destination: true));
+            foreach (var destination in new[] { false, true })
+            {
+                Assert.False(Scouting.TravelSeparated(14, player: false, hostile: true, destination: destination));
+                Assert.False(Scouting.TravelSeparated(7, player: false, hostile: false, destination: destination));
+                Assert.False(Scouting.TravelSeparated(double.NaN, player: true, hostile: false, destination: destination));
+            }
+        }
     }
 }
