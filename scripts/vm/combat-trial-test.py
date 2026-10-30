@@ -36,7 +36,7 @@ class CombatTrialTests(unittest.TestCase):
 
     def test_ground_summary_filters_tasks_counts_failures_and_bounds_examples(self):
         def row(task, reason, stage=None):
-            data = dict(candidate=[1, 32, 2], reason=reason, segment=3, angle=34, previousAngle=22)
+            data = dict(candidate=[1, 32, 2], reason=reason, segment=3, angle=34, previousAngle=22, roughness=.2)
             if stage:
                 data.update(probeStage=stage, collider='Beech1/stem', probeAt=[2, 32, 2])
             return dict(frame=dict(type='trace', task=task, source='combat', msg='ground_rejected', data=data))
@@ -53,6 +53,7 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['probeStages'], {'body_cast': 20})
         self.assertEqual(len(summary['examples']), 6)
         self.assertEqual(summary['examples'][0]['angle'], 34)
+        self.assertEqual(summary['examples'][0]['roughness'], .2)
         self.assertEqual(summary['examples'][1]['collider'], 'Beech1/stem')
 
     def test_runner_stops_and_restores_gate_after_success_or_additional_attacker(self):

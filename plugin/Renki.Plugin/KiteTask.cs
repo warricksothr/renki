@@ -287,6 +287,7 @@ namespace Renki.Plugin
                 if (groundFailure.Supported.HasValue) data["supported"] = groundFailure.Supported.Value.ToArray();
                 if (groundFailure.Angle.HasValue) data["angle"] = Math.Round(groundFailure.Angle.Value, 2);
                 if (groundFailure.PreviousAngle.HasValue) data["previousAngle"] = Math.Round(groundFailure.PreviousAngle.Value, 2);
+                if (groundFailure.Roughness.HasValue) data["roughness"] = Math.Round(groundFailure.Roughness.Value, 3);
             }
             var physical = probe.LastFailure;
             if (physical != null)

@@ -145,6 +145,10 @@ audit-summary SINCE UNTIL:
 panel-setup PORT="8780": need-target
     {{ssh}} "{{ps}} -File {{dir}}/setup-panel.ps1 -Port {{PORT}}"
 
+# Read only the panel address, without printing its login token.
+panel-address: need-target
+    @{{ssh}} "\$c = Get-Content '{{dir}}/controller.local.json' -Raw | ConvertFrom-Json; if (-not \$c.panel.listen) { 'The panel is off: run just vm panel-setup'; exit 1 }; 'http://' + \$c.panel.listen + '/'"
+
 # Prints to this terminal only; it is the panel's login.
 [doc("Print the control panel's address and login token.")]
 panel-token: need-target
@@ -184,6 +188,11 @@ task-check TASK ARGS='{}' TIMEOUT='60':
 [positional-arguments]
 combat-trial *ARGS:
     python3 "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
+
+# Read a retained audit without starting the game; print counts and six examples.
+[positional-arguments]
+combat-evidence AUDIT TASK_ID:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-evidence.py" "$1" "$2"
 
 test-combat-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial-test.py"

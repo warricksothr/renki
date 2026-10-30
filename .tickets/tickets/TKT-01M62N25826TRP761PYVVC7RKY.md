@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: blocked
-status_reason: "Live validation requires the bot VM: SSH to 192.168.1.174 times out, local Hyper-V access is denied, and current VM state/address awaits owner clarification."
+status: in-progress
+status_reason: null
 priority: normal
 due_on: null
 labels:
@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T04:11:43Z
+updated_at: 2026-10-30T04:35:09Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,9 @@ extensions: {}
 
 ## Implementation plan
 
-Continue native encounter ground selection from the retained 34-candidate refusal audit. Add precise failure evidence: the corridor segment, supported point, current/previous inclination, and the physical probe stage/collider when support or body clearance fails. Inspect the installed terrain APIs: Heightmap.GetWorldHeight selects a nearby vertex, so replace its use as exact ground with bounded terrain-only projection onto the actual loaded surface where appropriate. Keep local grade/roughness limits unchanged until measured failures justify a policy change. Add meaningful regressions for diagnostic positions/angles and measured false-rejection fixes. Preserve native ownership, encounter budgets and automatic logout/stop/combat-off cleanup. Run just check ci, committed just check review, land and install, then run a supervised normal-controls attempt and inspect the retained bounded diagnostics. Positive pursuit/strike/block/dodge criteria remain open unless observed.
+The restored live attempt on clean deployed 8b8e500 completed its native survey and failed without acquiring an enemy. Evidence .checks/combat-trial-20261030T042328367788Z/summary.json and .checks/audit-window-ZAlffd.jsonl: 34 checks, 9 physical failures (7 actual Beech body casts, one midpoint and one endpoint support failure), 19 grade refusals (30.14 to 46.48 degrees), and 6 sharp-change refusals. All six sharp-change refusals were mild mesh joins: adjacent inclinations differed by roughly 15.1 to 16.4 degrees. Their half-metre height residuals are below 0.15m. Last perception contained a Boar and no Greyling; positive combat may remain unavailable even after ground is accepted.
+
+Use measured physical roughness in addition to the angle threshold: classify a join as sharp only when its inclination changes by more than 15 degrees AND its height deviates by more than 0.15m from the previous segment's continuation. Retain the 30-degree inclination cap, half-metre physical support/body-clearance checks and existing encounter bounds. Existing sharp-crest/dip and 0.2m ledge regressions must continue rejecting. Add regressions using the observed mild joins, expose the roughness value in failure evidence, and document the rule. Add a read-only just vm combat-evidence recipe for bounded repeated audit inspection. Validate, review, land, install and run another autonomous trial; record stage progress and cleanup honestly even if no eligible Greyling is present.
 
 ## Notes
 
@@ -146,3 +148,17 @@ in-progress to blocked: Live validation requires the bot VM: SSH to 192.168.1.17
 **agent:codex/renki-resume** at 2026-10-30T04:11:43Z
 
 Owner confirmed BLIGHT at 192.168.1.174 has the existing C:\renki bot settings and bootstrap script. Ping/RDP work, but no sshd service/listener exists. The enabled SSH rule is currently Private/Any. The existing bootstrap tried Add-WindowsCapability and then failed at Set-Service because no service was created. Capture and report the capability result, resulting capability state and RestartNeeded, and refuse further setup before service-dependent operations when sshd remains absent. Document the official server-only MSI recovery route and its logging/exit codes. The official GitHub release API currently offers OpenSSH-Win64-v10.4.0.0.msi (10.4.0.0p1-Preview); downloaded artifact SHA-256 matches the release digest 788d8643464a01eb63640a2fd746f9ed23d106b5a901a35f88dc8cd40e446ac9. Official MSI documentation confirms ADDLOCAL=Server. The existing bootstrap can be rerun after MSI installation to preserve settings and restore key/scheduled-task setup. Validate script syntax and CI, review/land the diagnostic correction, and give the owner the concrete MSI recovery commands needed while SSH remains unavailable. No service operation can yet be run remotely on BLIGHT. Resume deployed native ground testing once SSH is restored.
+
+**agent:codex/renki-resume** at 2026-10-30T04:23:29Z
+
+Owner restored OpenSSH using the official MSI (installer exit 0), then reran the existing bootstrap with the development host address. SSH to BLIGHT at Admin@192.168.1.174 now succeeds, with RenkiStart/RenkiStop ready (.checks/20261030T042200Z-xw9TfQ.log). The infrastructure blocker is resolved; return this ticket to in-progress.
+
+just check vm install successfully deployed clean main 8b8e500 and verified controller/plugin package checksums (.checks/20261030T042248Z-30Wd3H.log). The game was not running during installation. This includes actual terrain projection, rotated survey coverage, exact segment/physical diagnostics and compact trial evidence. Started just check vm combat-trial --wait-s 60 for one supervised normal-controls attempt; retain actual outcome and automatic cleanup evidence before claiming any positive combat result.
+
+**agent:codex/renki-resume** at 2026-10-30T04:35:09Z
+
+The deployed 8b8e500 trial failed during native survey, with no enemy acquired or damage observed. Minimum HP 75.5 tracked the food-derived maximum; the final perception contained only a Boar. Summary .checks/combat-trial-20261030T042328367788Z/summary.json; complete audit .checks/audit-window-ZAlffd.jsonl; command .checks/20261030T042328Z-p9fBX5.log. Automatic cleanup reported no errors. Follow-up just check vm status and just check vm combat confirmed game/controller stopped and combat false (.checks/20261030T042631Z-7X9bfr.log, .checks/20261030T042633Z-3rma33.log).
+
+Measured all six sharp-change refusals: 15.11 to 16.39 degrees across half-metre segments, producing height residuals below 0.15m. Added the physical residual test alongside the angle threshold, accepting ordinary terrain faceting while retaining the 30-degree slope cap and physical support/clearance. Sharp 0.2m ledges and crest/dip regressions still reject. Exact roughness values are retained in failure evidence. Focused GroundCorridorTests passed all 20 cases (.checks/20261030T043016Z-cT8krf.log), and just check ci passed with 297 plugin tests and four supervisor tests (.checks/20261030T043144Z-IrR1Ol.log).
+
+Added just vm combat-evidence for repeated bounded read-only audit inspection, resolving relative paths from the repository root. Added just vm panel-address to read the actual configured web URL without exposing its token. Owner asked to watch; the configured URL is http://100.101.221.77:8780/ on BLIGHT's controller, available when the controller runs. Final gate/review, deployment and another automated trial follow. Positive encounter criteria remain open.

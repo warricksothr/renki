@@ -67,7 +67,7 @@ def ground_diagnostics(audit, task_id):
             if kind not in seen and len(examples) < 6:
                 seen.add(kind)
                 examples.append({k: data[k] for k in ('candidate', 'reason', 'segment', 'from', 'desired',
-                                'supported', 'angle', 'previousAngle', 'probeStage', 'probeAt', 'collider',
+                                'supported', 'angle', 'previousAngle', 'roughness', 'probeStage', 'probeAt', 'collider',
                                 'colliderCenter') if k in data})
     return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), examples=examples)
 

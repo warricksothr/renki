@@ -13,6 +13,7 @@ On the VM, once:
     just vm panel-setup     # Tailscale address, firewall rule, a random token
     just vm restart
     just vm panel-token     # the address and the token, printed here only
+    just vm panel-address   # just the address, without printing the token
 
 Then open the address from any device on the tailnet and log in with the
 token. The login lasts 30 days on that browser; **Log out** ends it.

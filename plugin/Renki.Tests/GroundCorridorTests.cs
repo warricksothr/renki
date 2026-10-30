@@ -63,6 +63,21 @@ namespace Renki.Tests
             Assert.Equal("sharp_change", reason);
         }
 
+        [Theory]
+        [InlineData(11.85, -3.26)]
+        [InlineData(3.32, 19.66)]
+        [InlineData(16.12, .74)]
+        [InlineData(14.66, -1.73)]
+        [InlineData(16.27, .01)]
+        public void ObservedMildTerrainJoinsAreNotPhysicallySharp(double firstAngle, double secondAngle)
+        {
+            var firstGrade = Math.Tan(firstAngle * Math.PI / 180);
+            var secondGrade = Math.Tan(secondAngle * Math.PI / 180);
+            var probe = Terrain((x, _) => x <= .5 ? x * firstGrade : .5 * firstGrade + (x - .5) * secondGrade);
+            Assert.True(Math.Abs(secondAngle - firstAngle) > GroundCorridor.MaxBend);
+            Assert.True(GroundCorridor.Check(V3.Zero, new V3(1, 0, 0), probe, out var reason), reason);
+        }
+
         [Fact]
         public void BlockedUnsupportedOrWetIntermediateGroundIsNeverSkipped()
         {
@@ -106,6 +121,7 @@ namespace Renki.Tests
             Assert.InRange(failure.PreviousAngle.Value, -21.9, -21.7);
             Assert.InRange(failure.Angle.Value, 21.7, 21.9);
             Assert.Equal(new V3(.5, .2, 0), failure.Supported.Value);
+            Assert.InRange(failure.Roughness.Value, .399, .401);
         }
 
         [Fact]

@@ -26,8 +26,11 @@ Attacks preserve stamina for defense plus 10 for escape. Dodges require a new
 observed attack window and a supported, clear 5 m corridor. A missing roll
 corridor selects block when affordable. No timed-parry guarantee is made.
 Ground need not be flat: dodge corridors follow support every 0.5 m, allowing
-up to 30 degrees of inclination and at most 15 degrees of change between
-adjacent segments. Dry footing and body clearance are still required.
+up to 30 degrees of inclination. A change between adjacent segments is sharp
+when it exceeds 15 degrees and its height deviates by more than 0.15 m from
+the previous segment's continuation. This accepts mild terrain mesh joins
+while rejecting abrupt ledges and ridges. Dry footing and body clearance
+are still required.
 
 An explicit target outside 12 m first enters `closing`: supported walking
 within 30 m of the starting position, at most 12 seconds, with at least
@@ -127,15 +130,15 @@ the same 34-check budget; the starting center is retried once. Each candidate
 must have dry supported terrain, clear body routes
 within a 6 m radius, no nearby buildings or bystanders, and a usable approach.
 Four full diameters sample support every 0.5 m, including across the center.
-They use the same 30-degree grade and 15-degree adjacent-change limits as
+They use the same 30-degree grade and angle/height roughness checks as
 dodging, allowing gradual hillsides while rejecting steep ground and sharp
 crests, dips or ledges at that sampling resolution. The installed game's
 player sliding threshold is 38 degrees; 30 leaves margin for combat.
 Terrain projection uses the game's terrain-only raycast, not the nearby mesh
 vertex returned by `Heightmap.GetWorldHeight`. Rejected candidates emit
 `combat/ground_rejected` traces with their location, attempt and reason. Profile
-failures include the exact segment, supported point and current/previous
-inclination. Physical failures distinguish support, body casts/overlaps, cached
+failures include the exact segment, supported point, current/previous
+inclination and height residual. Physical failures distinguish support, body casts/overlaps, cached
 bounds, remembered walls and water; collider names/centers accompany live hits.
 Detailed physical diagnostics are enabled only for this survey.
 It moves to the checked ground before searching. Preparation is capped at

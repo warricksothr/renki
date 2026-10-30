@@ -7,6 +7,7 @@ namespace Renki.Movement
     public static class GroundCorridor
     {
         public const double Spacing = .5, MaxIncline = 30, MaxBend = 15, MaxLength = 12;
+        public const double MaxRoughness = .15;
 
         public sealed class Failure
         {
@@ -14,13 +15,14 @@ namespace Renki.Movement
             public readonly int Segment;
             public readonly V3 From, Desired;
             public readonly V3? Supported;
-            public readonly double? Angle, PreviousAngle;
+            public readonly double? Angle, PreviousAngle, Roughness;
 
             internal Failure(string reason, int segment, V3 from, V3 desired, V3? supported = null,
-                double? angle = null, double? previousAngle = null)
+                double? angle = null, double? previousAngle = null, double? roughness = null)
             {
                 Reason = reason; Segment = segment; From = from; Desired = desired;
                 Supported = supported; Angle = angle; PreviousAngle = previousAngle;
+                Roughness = roughness;
             }
         }
 
@@ -50,10 +52,16 @@ namespace Renki.Movement
                 var result = probe(previous, desired);
                 if (!result.HasValue || !Finite(result.Value)) return new Failure("blocked_or_unsupported", i, previous, desired);
                 var next = result.Value;
-                var angle = Math.Atan2(next.Y - previous.Y, V3.FlatDistance(previous, next)) * 180 / Math.PI;
+                var run = V3.FlatDistance(previous, next);
+                var rise = next.Y - previous.Y;
+                var angle = Math.Atan2(rise, run) * 180 / Math.PI;
                 if (Math.Abs(angle) > MaxIncline + .01) return new Failure("grade", i, previous, desired, next, angle, previousAngle);
-                if (previousAngle.HasValue && Math.Abs(angle - previousAngle.Value) > MaxBend + .01)
-                    return new Failure("sharp_change", i, previous, desired, next, angle, previousAngle);
+                // Terrain triangles can meet at a noticeable angle while the
+                // actual rise change is small. Reject physically sharp joins,
+                // not ordinary faceting of otherwise walkable ground.
+                var roughness = previousAngle.HasValue ? Math.Abs(rise - Math.Tan(previousAngle.Value * Math.PI / 180) * run) : 0;
+                if (previousAngle.HasValue && Math.Abs(angle - previousAngle.Value) > MaxBend + .01 && roughness > MaxRoughness + .00001)
+                    return new Failure("sharp_change", i, previous, desired, next, angle, previousAngle, roughness);
                 previous = next; previousAngle = angle;
             }
             return null;

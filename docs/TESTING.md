@@ -625,7 +625,10 @@ kiting or melee. Evidence: `.checks/combat-trial-20261030T021553504234Z/summary.
 and `.checks/audit-window-qI99Fo.jsonl`. This exposed an unintended flat-ground
 requirement: the full corridor inherited a single-step height limit. The
 corrected validator follows support every 0.5 m, permits up to 30 degrees of
-inclination, and rejects changes over 15 degrees between adjacent segments.
+inclination, and rejects adjacent inclination changes over 15 degrees when
+their height residual exceeds 0.15 m. The residual is the next support height's
+deviation from the previous segment's continuation. This distinguishes mild
+mesh joins observed in the game from physically sharp ledges and ridges.
 Fighting-ground diameters and dodge corridors share this policy, with
 candidate rejection traces for live diagnosis. Use `just check plugin test-core
 GroundCorridorTests` for gradual uphill/downhill terrain, changing grade,
@@ -638,6 +641,9 @@ The console prints only counts and the terminal task reason; exact segment
 positions, inclinations and collider evidence stay in the retained summary and
 audit. Failures in this optional diagnostic projection are recorded separately
 and do not replace the encounter result or interfere with cleanup.
+Use `just vm combat-evidence AUDIT TASK_ID` to print the same bounded projection
+from a retained audit without starting the game. Relative audit paths resolve
+from the repository root.
 
 The corrected build (33cd427) also returned `unreachable` from the same hillside
 on 2026-10-30 UTC. Its 34 candidate traces reported 16 grade refusals, 8 sharp
