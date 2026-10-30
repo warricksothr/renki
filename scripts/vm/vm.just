@@ -36,6 +36,10 @@ panel-start: need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/start-bot.ps1" "{{justfile_directory()}}/scripts/vm/start-panel.ps1" "{{target}}:/{{dir}}/"
     {{ssh}} "{{ps}} -File {{dir}}/start-panel.ps1"
 
+# Stop a controller that keeps the panel available while Valheim is offline.
+panel-stop: need-target
+    {{ssh}} ". '{{dir}}/common.ps1'; \$controllers = @(Get-Controller (Read-BotSettings)); \$controllers | Stop-Process; \$controllers | Wait-Process -Timeout 10"
+
 # Start the bot in the VM's desktop session and wait for it to be in the world.
 start MINUTES="5": need-target
     #!/usr/bin/env bash
@@ -91,6 +95,8 @@ install: need-target
         fi
         just --justfile "{{justfile()}}" vm stop
     fi
+    # Controller-only panel sessions also lock controller.exe on Windows.
+    just --justfile "{{justfile()}}" vm panel-stop
     {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}' | Out-Null"
     scp -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/{{dir}}/"
     {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
