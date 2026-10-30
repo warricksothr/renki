@@ -10,7 +10,10 @@ namespace Renki.Movement
     /// node identity, so a floor and the ground below it stay distinct.</summary>
     public sealed class LocalRoute
     {
-        public const double Cell = .75;
+        // Keep a cardinal step below the host's 0.6 m support-height bound.
+        // A 0.75 m sample skips three 0.25 m stair treads on a 45-degree
+        // staircase and falsely disconnects its upper and lower floors.
+        public const double Cell = .5;
         public const int MaxNodes = 4096;
         public const double Range = 48;
         public const double FrontierDistance = 16;

@@ -19,15 +19,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/progressive-home-routing
+  branch: t3/local-stair-resolution
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 8d746974e69c49dc9878555b3114a1e327c0665e
+  commit: b484e0059ddbe377a2dcc209c7defba65c280274
   session: null
   claimed_at: 2026-10-30T17:24:39Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-30T17:30:03Z
+updated_at: 2026-10-30T23:50:59Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -52,7 +52,7 @@ Follow should also not count it as stuck when it is already within its distance 
 
 ## Implementation plan
 
-Continue the owner's autonomous M2/M3 work by fixing the prerequisite long-distance return-home failure. The retained resupply audit shows a 375 m goal handed to the 48 m local planner with zero expansions or probes after the initial navmesh query failed. Keep local CPU, support, water and clearance bounds. For distant goals, permit a fully probed short frontier leg that makes measurable progress toward the actual destination, preserving the destination and replanning at the leg endpoint. Heights must follow live support rather than interpolating toward an unloaded floor. Wait briefly for asynchronously requested navmesh tiles even if the local search finishes without a route. Test distant sloped trips, obstacle detours, enclosed starts, unknown support/water, bounded work and final-floor arrival; then run just check ci, commit, just check review, land and deploy. Repeat just vm resupply-food and record actual travel, transfer, eating and cleanup evidence. Keep unrelated close-follow and terrain-mutation criteria open.
+Resolve the raised-house exit that now blocks autonomous M2/M3 testing. On b484e00, native search preparation exhausted eight candidates, including three local plans that expanded222nodes each but never moved; audit .checks/audit-window-rud4oZ.jsonl, trial .checks/combat-trial-20261030T234338632221Z/summary.json. Tas remained at[-37.57,36.09,6.36], zero damage, final84/84HP and successful cleanup. The planner's0.75m grid stride exceeds the physical probe's0.6m step-height allowance on a45-degree stair flight, so it can skip three0.25m treads and disconnect a physically traversable staircase. Change local grid spacing to0.5m while retaining the0.6m support limit, height-aware nodes, complete current wall/body/water checks,4096-node cap and incremental per-frame budgets. Add ascent/descent regressions where the old stride refuses the first sample; keep existing real-house, multi-floor, distant-progress, enclosure and support/water checks. Run focused checks, full CI and committed review, land/deploy, then retry native house egress once on the changed build. This is a supported geometric hypothesis; actual live egress remains unproven until observed. Keep unrelated close-follow acceptance open.
 
 ## Notes
 
@@ -128,3 +128,7 @@ claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
 **agent:codex/renki-milestones** at 2026-10-30T17:30:03Z
 
 PR #86 landed as 41110b0 after just check plugin test-core LocalRouteTests, just check ci (.checks/20261030T172544Z-89u0RN.log) and committed just check review (.checks/20261030T172624Z-lzd7cQ.log). Installed with checksum verification (.checks/20261030T172737Z-ocaU3K.log); initial install hit a transient controller.exe image lock despite process exit, and a later retry passed. Adding a non-mutating executable-write-access wait to stop-panel.ps1 so full package uploads do not race that lock. The new resupply run .checks/resupply-trial-20261030T172751293533Z is in progress: one native move_to has travelled about 87 m without damage, compared with the prior zero-probe refusal. No final home/food success claimed yet. Adding just vm trial-status to project compact ongoing position, observed travel, health, food and exact final outcomes from retained local evidence, reducing testing context without extra VM requests.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:50:59Z
+
+Changed local grid spacing0.75m ->0.5m without loosening support, wall, body, water or floor checks, and without raising node/frame bounds. Fourteen focused LocalRouteTests passed, including new quarter-metre stair ascent/descent cases in which the former stride exceeds the0.6m support-height limit (.checks/20261030T234746Z-HFKv15.log). Full just check ci passed, including390C# checks and42browser scenarios (.checks/20261030T234822Z-qXdT0z.log). This establishes the geometric regression, not live house egress. Next: committed review, PR, checksum install and one native trial from the same sheltered pose.

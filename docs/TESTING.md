@@ -474,7 +474,11 @@ The flint loop proves bounded recovery, not efficient direct chest routing:
 Tas still approached the underside before using home. The path planner
 retains floor heights; the follower now also requires level-aware arrival
 for intermediate/final waypoints and replans when standing below one.
-`just check plugin test-core LocalRouteTests` covers stacked-floor arrival.
+`just check plugin test-core LocalRouteTests` covers stacked-floor arrival and
+stair ascent/descent. Local planning uses 0.5 m cells, keeping cardinal samples
+below the physical probe's unchanged 0.6 m height limit. This avoids skipping
+three quarter-metre treads in one sample on a 45-degree staircase. The finer
+grid can require more expansions; the node and per-frame CPU bounds remain.
 Repeated unattended routes, full/warded and multi-chest overflow checks,
 deliberate-drop detection, and leader/site
 resumption remain open. Tree cutting and mining primitives are described below; crafting remains unimplemented.

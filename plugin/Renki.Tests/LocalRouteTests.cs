@@ -57,6 +57,31 @@ namespace Renki.Tests
             Assert.Empty(WallRoute.Prefix(new V3(-36, 34, 6), goal, new[] { end }, Array.Empty<Wall>()));
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void QuarterMetreStairsConnectFloorsInBothDirectionsWithinPhysicalStepLimit(bool descending)
+        {
+            var start = new V3(0, descending ? 4 : 0, 0);
+            var goal = new V3(4, descending ? 0 : 4, 0);
+            V3? Probe(V3 from, V3 to)
+            {
+                // A narrow supported stair flight; stepping off it or
+                // skipping too many treads must still refuse.
+                if (to.X < 0 || to.X > 4 || Math.Abs(to.Z) > .3) return null;
+                var height = Math.Floor(to.X * 4 + 1e-6) * .25;
+                if (descending) height = 4 - height;
+                return Math.Abs(height - from.Y) <= .6 ? new V3(to.X, height, to.Z) : (V3?)null;
+            }
+            // The former stride cannot enter the first three-tread sample.
+            Assert.Null(Probe(start, new V3(.75, start.Y, 0)));
+            var route = new LocalRoute(start, goal, Probe);
+            Assert.Equal(RouteStatus.Found, Finish(route));
+            Assert.True(Arrival.Reached(route.Path.Last(), goal, .25));
+            for (var i = 1; i < route.Path.Count; i++)
+                Assert.Equal(route.Path[i], Probe(route.Path[i - 1], route.Path[i]));
+        }
+
         [Fact]
         public void WallsRespectFloorHeightAndBodyClearance()
         {

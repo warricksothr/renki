@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T23:42:04Z
+updated_at: 2026-10-30T23:50:59Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -278,3 +278,9 @@ Next hypothesis: IsOnGround can briefly drop between sampled states during an or
 **agent:codex/renki-milestones** at 2026-10-30T23:42:04Z
 
 Implemented enemy-free scouting settling: at most0.5s, within0.4m of current dry projected terrain, with no steering or acquisition. Unsupported/high/long airborne states and airborne engagement still refuse; water, encumbrance, health, stamina and area guards retain precedence. Footing-refusal traces retain exact pose/grounded/swimming/encumbered/support-gap facts. Compact combat evidence now projects settling count, final footing refusal and exact owner-callback death evidence, scoped to the task. Nine focused footing checks passed (.checks/20261030T233006Z-LZzeK3.log), existing ScoutingTests passed (.checks/20261030T233009Z-e9MBdL.log), and compact evidence/supervisor tests passed (.checks/20261030T233955Z-SfFQ00.log). Full CI is running with the related M2 resupply supervisor changes; live footing recovery and kill/block/dodge remain open until the changed-build trial.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:50:59Z
+
+PR116 merged asb484e00 after full CI (.checks/20261030T233955Z-QfnoG4.log) and clean committed review (.checks/20261030T234226Z-rTXWU6.log), with checksum installation .checks/20261030T234325Z-9sEtqt.log. Its native trial .checks/combat-trial-20261030T234338632221Z/summary.json failed before scouting: 'no reachable clear search origin after bounded travel preparation'. Three egress plans each expanded222nodes without movement; five other endpoints correctly refused. Audit .checks/audit-window-rud4oZ.jsonl, console .checks/20261030T234338Z-3Xq1CZ.log. No settling or death-callback evidence occurred, no acquired enemy, zero damage, final84/84HP at sheltered[-37.57,36.09,6.36], cleanup successful.
+
+The shared local routing prerequisite is now being fixed on TKT-01M638V1XC9DX4XJ2ZV1EKGNRS (Follow: stuck outside a wall, the leader inside, path straight through):0.75m grid steps can skip three quarter-metre stair treads beyond the0.6m support bound. A0.5m stride passes ascent/descent and existing route regressions without relaxing physical clearance. Land/deploy that changed build before retrying the same origin. M3 kill/block/dodge and live settling remain open.
