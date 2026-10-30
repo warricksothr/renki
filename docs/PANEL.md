@@ -340,3 +340,13 @@ Keyboard: Tab to links/buttons/disclosure summaries; Enter/Space activate them.
 The map itself accepts arrows to pan, +/− to zoom and C to follow the bot.
 Inventory items have keyboard focus and accessible item descriptions. The
 native task dialog supports Escape and returns focus to its task link.
+
+### Optional local video
+
+The Camera integration now shows native WebRTC video with a shared Renki standby
+card. Video is optional and off until configured; safe gameplay presentation
+requires fresh, scoped capture-health assertions. Diagnostic JPEG controls and
+periodic image viewing are under **Diagnostic images & capture settings** and
+are only polled while those details are open. Agent JPEG/map APIs and rate limits
+are unchanged. See [LOCAL-VIDEO.md](LOCAL-VIDEO.md) for local recipes, architecture,
+health/transport separation and the unimplemented Windows OBS adapter.

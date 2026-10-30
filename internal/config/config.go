@@ -13,6 +13,7 @@ import (
 	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/video"
 )
 
 // Config is the controller's configuration file. Every field has a default,
@@ -67,6 +68,7 @@ type Config struct {
 
 // Panel configures the web control panel.
 type Panel struct {
+	Video video.Config `json:"video"`
 	// Listen is the panel's address, such as the VM's Tailscale address
 	// and a port. Empty turns the panel off.
 	Listen string `json:"listen"`

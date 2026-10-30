@@ -69,6 +69,7 @@ type Options struct {
 	// Dispatch sends an explicit task through normal capability/safety checks.
 	Dispatch func(context.Context, TaskCommand) (string, error)
 	// Behaviours serves engine controls behind the panel's authentication.
+	Video           http.Handler
 	Camera          http.Handler
 	Goals           http.Handler
 	Behaviours      http.Handler
@@ -161,6 +162,11 @@ func Handler(o Options) http.Handler {
 			_ = json.NewEncoder(w).Encode(o.LandmarkMemory())
 		})
 	}
+	if o.Video != nil {
+		authed.Handle("GET /api/video", o.Video)
+		authed.Handle("POST /api/video/whep", o.Video)
+		authed.Handle("DELETE /api/video/session/{id}", o.Video)
+	}
 	if o.Camera != nil {
 		authed.Handle("GET /api/camera", o.Camera)
 		authed.Handle("POST /api/camera", o.Camera)
@@ -250,7 +256,7 @@ func (p *panel) dispatch(w http.ResponseWriter, r *http.Request) {
 func headers(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; frame-ancestors 'none'")
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; frame-ancestors 'none'")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")

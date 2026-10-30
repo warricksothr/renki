@@ -94,6 +94,22 @@ preview.cameraSequence=1;
 preview.setCamera=(state)=>{preview.cameraState=state;preview.cameraSequence++;};
 
 const cameraPath='/api/'+'camera.jpg';
+preview.videoState='disabled';
+preview.setVideo=state=>{preview.videoState=state;};
+window.RTCPeerConnection=class {
+ constructor(){this.connectionState='new';this.iceGatheringState='complete';}
+ addTransceiver(){} addEventListener(){} removeEventListener(){}
+ async createOffer(){return {type:'offer',sdp:'fixture-only-sdp'};}
+ async setLocalDescription(d){this.localDescription=d;}
+ async setRemoteDescription(){
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+  const ctx=canvas.getContext('2d');let n=0;
+  const draw=()=>{if(preview.videoState==='stalled')return;ctx.fillStyle='#30483b';ctx.fillRect(0,0,640,360);ctx.fillStyle='#e9dfb3';ctx.font='24px monospace';ctx.fillText('SYNTHETIC VIDEO • NOT GAME CAPTURE',30,130);ctx.fillText('Local decoded frame '+(++n),30,180);ctx.fillRect((n*5)%620,240,20,30);};
+  draw();this.stream=canvas.captureStream(30);this.timer=setInterval(draw,33);
+  this.connectionState='connected';this.ontrack?.({streams:[this.stream]});this.onconnectionstatechange?.();
+ }
+ close(){clearInterval(this.timer);this.stream?.getTracks().forEach(t=>t.stop());this.connectionState='closed';}
+};
 window.addEventListener('error',e=>preview.errors.push(e.message));
 window.addEventListener('unhandledrejection',e=>preview.errors.push(String(e.reason)));
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
@@ -101,10 +117,13 @@ window.fetch=async(path,options={})=>{
  const request={path:String(path),method:options.method || 'GET',headers:options.headers || {},body:options.body || null,status:200};
  preview.requests.push(request);
  const respond=(value,status=200)=>{request.status=status;return reply(value,status);};
+ if (String(path)==='/api/video/whep' && options.method==='POST') return new Response('fixture-answer',{status:preview.videoState==='no-source'?503:201,headers:{Location:'/api/video/session/12345678-1234-1234-1234-123456789abc'}});
+ if (String(path).startsWith('/api/video/session/') && options.method==='DELETE')return new Response(null,{status:204});
  if (options.method && options.method!=='GET') return respond({text:'Read-only preview: actions are refused'},405);
  const url=new URL(path,location.href);
  if(url.origin!==location.origin){const message='External fixture fetch refused: '+url.origin;preview.errors.push(message);throw Error(message);}
  switch(url.pathname){
+ case '/api/video': return respond({enabled:preview.videoState!=='disabled',content:['gameplay','stalled','no-source'].includes(preview.videoState)?'gameplay':'standby',reason:preview.videoState==='disabled'?'Video is not configured':'Waiting for verified game capture',scope:preview.status.connection+':'+preview.status.world+':'+(preview.status.worldUid||'')});
  case '/api/status': return respond(preview.status);
  case '/api/map': return respond(preview.mapped);
  case '/api/atlas/worlds': return respond(preview.worlds);
@@ -134,7 +153,7 @@ window.EventSource=class{
 </script>'''.replace('PACKED',packed)
 html=(root/'internal/panel/static/index.html').read_text()
 # Mirror the production image policy so blob-image regressions are visible.
-html=html.replace('<head>','<head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src \'self\' data: blob:; connect-src \'self\';">')
+html=html.replace('<head>','<head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src \'self\' data: blob:; media-src blob:; connect-src \'self\';">')
 html=html.replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')
 html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script>'+(root/'internal/panel/static/terrain.js').read_text()+'</script>')
 html=html.replace('<script src="/app.js" defer></script>','')
