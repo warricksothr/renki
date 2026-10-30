@@ -1034,7 +1034,7 @@ main {
   justify-content: space-between;
   gap: 16px;
   align-items: end;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .eyebrow {
   display: block;
@@ -1071,10 +1071,10 @@ nav {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #18241fe6;
-  margin-bottom: 22px;
+  margin-bottom: 12px;
 }
 .metric {
-  padding: 16px 20px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1111,9 +1111,9 @@ nav {
 }
 .visual-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 .card,
 #map-pane {
@@ -1137,7 +1137,20 @@ section {
   border-bottom: 1px solid var(--line);
 }
 .map-heading {
-  padding: 18px 20px 12px;
+  padding: 14px 16px 10px;
+}
+.map-heading > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.map-heading .eyebrow {
+  width: 100%;
+  margin-bottom: 0;
+}
+.map-heading #map-world {
+  display: inline;
 }
 .map-heading strong {
   font-size: 18px;
@@ -1178,14 +1191,19 @@ section {
 }
 #map {
   display: block;
-  flex: none;
+  flex: 1 0 260px;
   width: 100%;
-  height: 430px;
-  min-height: 320px;
+  height: 260px;
+  min-height: 260px;
 }
 #map-pane {
+  display: flex;
+  flex-direction: column;
   position: relative;
   overflow: visible;
+}
+#map-pane > :not(#map) {
+  flex-shrink: 0;
 }
 .map-bar {
   padding: 8px 14px;
@@ -1218,7 +1236,12 @@ section {
   padding: 10px;
 }
 .camera {
+  display: flex;
+  flex-direction: column;
   padding: 0 !important;
+}
+.camera > :not(.camera-stage) {
+  flex-shrink: 0;
 }
 .camera-badge {
   padding: 4px 9px;
@@ -1234,7 +1257,8 @@ section {
   color: #f0c389;
 }
 .camera-stage {
-  aspect-ratio: 16/10;
+  flex: 1 0 auto;
+  aspect-ratio: 16/9;
   position: relative;
   overflow: hidden;
   background: #0c1211;
@@ -1308,30 +1332,30 @@ section {
 }
 .operations {
   display: grid;
-  grid-template-columns: 1.1fr 1.1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
   margin: 20px 0;
 }
-.operations details {
+.operations > .card > details {
   padding: 12px 16px !important;
   margin: 0 !important;
   border-top: 0 !important;
   border-bottom: 1px solid var(--line);
 }
-.operations details:last-child {
+.operations > .card > details:last-child {
   border-bottom: 0;
 }
-.operations summary {
+.operations > .card > details > summary {
   padding: 0 !important;
   color: var(--text) !important;
   cursor: pointer;
   font-size: 13px;
 }
-.operations details[open] > summary {
+.operations > .card > details[open] > summary {
   margin-bottom: 12px;
 }
-.operations details[open] {
+.operations > .card > details[open] {
   max-height: none !important;
   overflow: visible;
 }
@@ -1421,10 +1445,25 @@ section {
   font-size: 12px;
 }
 .timeline {
-  margin-top: 20px;
+  margin-top: 0;
 }
-.say-row {
-  padding: 16px 20px;
+.goal-jump {
+  width: fit-content;
+  color: var(--accent);
+  font-size: 12px;
+}
+.command-bar {
+  background: var(--pane);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.command-bar #say-text {
+  min-width: 0;
+}
+.say-row.command-bar {
+  padding: 10px 14px;
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -1547,14 +1586,6 @@ footer {
 [id] {
   scroll-margin-top: 110px;
 }
-@media (min-width: 1500px) {
-  #map {
-    height: 510px;
-  }
-  .camera-stage {
-    aspect-ratio: 16/10.5;
-  }
-}
 @media (max-width: 1100px) {
   .topbar {
     padding: 12px 18px;
@@ -1578,18 +1609,13 @@ footer {
   .operations {
     grid-template-columns: 1fr 1fr;
   }
-  .preferences {
-    grid-column: 1/-1;
-  }
   .visual-workspace {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }
   #map {
+    flex: none;
     height: 370px;
-  }
-  .map-bar label {
-    width: 100%;
   }
   .workspace-title {
     align-items: start;
@@ -1685,6 +1711,7 @@ footer {
     width: 100%;
   }
   #map {
+    flex: none;
     height: 370px;
     min-height: 300px;
   }
@@ -1708,6 +1735,9 @@ footer {
   }
   .map-bar {
     gap: 6px;
+  }
+  .map-bar label {
+    width: 100%;
   }
   #atlas-world {
     max-width: 230px;
@@ -1784,48 +1814,19 @@ footer {
   background: transparent;
   padding: 0;
 }
-.observation-column {
-  min-width: 0;
-  width: 100%;
-}
-.observation-column #feed,
-.observation-column .feed {
-  max-height: 240px;
-}
-.observation-column .event-row {
+.timeline .event-row {
   flex-wrap: wrap;
   gap: 5px 10px;
 }
-.observation-column .event-copy {
+.timeline .event-copy {
   order: 3;
   flex-basis: 100%;
 }
-.observation-column .event-row .task-link {
+.timeline .event-row .task-link {
   margin-left: auto;
 }
-.observation-column .event-details {
+.timeline .event-details {
   margin-left: 0;
-}
-.observation-column .say-row {
-  padding: 12px 16px;
-}
-.observation-column .say-row > label {
-  width: 100%;
-}
-.observation-column #say-text {
-  min-width: 100px;
-  width: 1px;
-}
-.observation-column .timeline .section-heading {
-  gap: 5px;
-}
-.observation-column .timeline .section-heading > .muted {
-  width: 100%;
-}
-@media (min-width: 1101px) {
-  #map {
-    height: 540px;
-  }
 }
 
 /* Document scrolling keeps every control reachable; long panels scroll locally. */

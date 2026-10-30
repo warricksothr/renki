@@ -287,10 +287,16 @@ Camera, food/current-goal overview and activity records use Preact components.
 The map, its hover content, terrain layers and `window.renkiSnapshots.map`
 share that renderer; standalone previews embed the same built assets.
 
-The page scrolls as a document. Activity, long goals, settings and place editors
-have bounded independent scrolling; expanding one does not clip other controls.
-Section links jump to Map, Camera, Places, Kit & goals, Activity and Preferences.
-On narrow screens the map, camera, activity and control cards stack. Stop, Go
+The page scrolls as a document. The command field sits beside current status,
+with a direct link from current work to goal controls. Map and camera share a
+balanced desktop row; the map grows into available height, while the camera
+preserves the whole image. Activity and Kit & objectives follow in two columns.
+Places & storage and People & preferences form a separate reference row.
+Inventory and the place editor start collapsed; their summaries retain counts
+and pack status. Goals stay expanded. Activity, long goals, settings and place
+editors have bounded independent scrolling; expanding one does not clip other
+controls. Section links follow the reading order. Below 1101px the map and camera
+stack; below 761px the control cards stack too. Stop, Go
 home and Log bot out remain in the safety bar (a fixed bottom dock on mobile); **Sign out** ends only the panel
 session. Logging the bot out still asks for confirmation.
 

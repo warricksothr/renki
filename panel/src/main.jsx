@@ -6,6 +6,7 @@ import {
   Places,
   Preferences,
   Timeline,
+  CommandBar,
 } from "./workspace.jsx";
 import { Camera } from "./camera.jsx";
 import { startController } from "./controller.jsx";
@@ -100,9 +101,9 @@ function App() {
           <nav aria-label="Workspace sections">
             <a href="#map-pane">Map</a>
             <a href="#camera">Camera</a>
-            <a href="#navigation">Places</a>
-            <a href="#supplies">Kit &amp; goals</a>
             <a href="#feed-pane">Activity</a>
+            <a href="#supplies">Kit &amp; goals</a>
+            <a href="#navigation">Places</a>
             <a href="#preferences">Preferences</a>
           </nav>
         </div>
@@ -120,6 +121,9 @@ function App() {
             <span class="eyebrow">CURRENT WORK</span>
             <strong id="task">Waiting for status</strong>
             <Objective />
+            <a class="goal-jump" href="#supplies">
+              Manage goals →
+            </a>
           </div>
           <div class="metric">
             <span class="eyebrow">SAFETY &amp; RETURN</span>
@@ -128,15 +132,16 @@ function App() {
             <span id="load" class="chip" />
           </div>
         </div>
+        <CommandBar />
         <div class="visual-workspace">
           <MapWorkspace />
-          <div class="observation-column">
-            <Camera />
-            <Timeline />
-          </div>
+          <Camera />
         </div>
         <div class="operations">
+          <Timeline />
           <Supplies />
+        </div>
+        <div class="operations reference-workspace">
           <Places />
           <Preferences />
         </div>
