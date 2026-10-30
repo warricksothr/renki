@@ -43,6 +43,23 @@ namespace Renki.Tasks
         public static bool Hurt(double started, double current, double maximum) => current < Math.Min(started, maximum) - .01;
     }
 
+    public static class HarvestEscape
+    {
+        public const int CandidateLimit = 7;
+
+        // Outward then alternating sides, through 90 degrees. Every segment
+        // increases distance from the resource; none crosses toward the trunk.
+        public static V3 Candidate(V3 resource, V3 feet, int attempt)
+        {
+            if (attempt < 0 || attempt >= CandidateLimit) throw new ArgumentOutOfRangeException(nameof(attempt));
+            var away = (feet - resource).Flat.Normalized;
+            if (away.Length < .01) throw new ArgumentException("escape needs a side of the resource");
+            var angle = ((attempt + 1) / 2) * (attempt % 2 == 1 ? 1 : -1) * Math.PI / 6;
+            var side = new V3(-away.Z, 0, away.X);
+            return feet + (away * Math.Cos(angle) + side * Math.Sin(angle)) * 6;
+        }
+    }
+
     /// <summary>Require two quiet seconds, including remotely simulated
     /// motion. Compare to the quiet anchor so slow drift accumulates.</summary>
     public sealed class HarvestStillness

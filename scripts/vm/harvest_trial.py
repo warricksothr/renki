@@ -1,8 +1,42 @@
 """One full beech and newly observed nearby logs, through normal harvest tasks."""
 import datetime
+from collections import Counter
 import json
 import math
 import time
+
+
+def diagnostics(audit, task_ids):
+    """A bounded projection of matching harvest traces; raw evidence stays on disk."""
+    fields = {
+        'physical strike contact visible': ('entity', 'contact', 'origin', 'reach'),
+        'approaching physical contact': ('contact', 'goal', 'reach', 'attackHeight'),
+        'resource broke after local hit': ('entity', 'hits'),
+        'protected collider': ('collider', 'radius', 'center', 'boundsDistance', 'character', 'piece'),
+        'safety scan': ('phase', 'radius', 'previousCapacity', 'capacity', 'count', 'complete'),
+        'escape route rejected': ('attempt', 'goal', 'stage', 'collider'),
+        'escape route selected': ('attempt', 'from', 'goal'),
+    }
+    tasks = {key: dict(messages=Counter(), last={}) for key in list(dict.fromkeys(task_ids))[:5]}
+    damage_events = 0
+    with open(audit, encoding='utf-8-sig') as lines:
+        for line in lines:
+            if not line.strip():
+                continue
+            frame = json.loads(line).get('frame', {})
+            if frame.get('type') == 'event' and frame.get('event') == 'damaged':
+                damage_events += 1
+            if frame.get('type') != 'trace' or frame.get('source') != 'harvest':
+                continue
+            task = tasks.get(frame.get('task'))
+            message = frame.get('msg')
+            if task is None or message not in fields:
+                continue
+            data = frame.get('data') or {}
+            task['messages'][message] += 1
+            task['last'][message] = {key: (data[key][:160] if isinstance(data[key], str) else data[key])
+                                     for key in fields[message] if key in data}
+    return dict(damageEvents=damage_events, tasks=tasks)
 
 
 def distance(a, b):

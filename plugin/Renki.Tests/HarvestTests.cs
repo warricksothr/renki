@@ -126,6 +126,31 @@ namespace Renki.Tests
             Assert.False(quiet.Observe(new V3(.03, 0, 0), up, new V3(.02, 0, .9998), true, 7));
         }
 
+        [Fact]
+        public void AlternativeTrunkEscapesNeverInitiallyApproachOrCrossTheResource()
+        {
+            var resource = new V3(175.46, 86.65, -265.53);
+            var feet = new V3(175.83, 86, -263.24);
+            var goals = new HashSet<V3>();
+            for (var attempt = 0; attempt < HarvestEscape.CandidateLimit; attempt++)
+            {
+                var goal = HarvestEscape.Candidate(resource, feet, attempt);
+                Assert.True(goals.Add(goal));
+                Assert.InRange((goal - feet).Length, 5.999, 6.001);
+                Assert.Equal(feet.Y, goal.Y);
+                var previous = V3.FlatDistance(feet, resource);
+                for (var step = 1; step <= 12; step++)
+                {
+                    var distance = V3.FlatDistance(feet + (goal - feet) * (step / 12.0), resource);
+                    Assert.True(distance >= previous - .00001);
+                    previous = distance;
+                }
+                Assert.True(previous >= 6);
+            }
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestEscape.Candidate(resource, feet, 7));
+            Assert.Throws<System.ArgumentException>(() => HarvestEscape.Candidate(resource, resource, 0));
+        }
+
         sealed class Tool
         {
             public int Tier;
