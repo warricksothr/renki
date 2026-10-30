@@ -162,6 +162,14 @@ namespace Renki.Protocol
         [JsonProperty("canEat")] public bool CanEat;
     }
 
+    public sealed class CombatStatus
+    {
+        [JsonProperty("id")] public string Id;
+        [JsonProperty("entity")] public string Entity;
+        [JsonProperty("mode")] public string Mode;
+        [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;
+    }
+
     public sealed class State : Message
     {
         public override string MessageType => Wire.State;
@@ -175,6 +183,7 @@ namespace Renki.Protocol
         [JsonProperty("hpMax")] public double HpMax;
         [JsonProperty("pvp", NullValueHandling = NullValueHandling.Ignore)] public bool? Pvp;
         [JsonProperty("food", NullValueHandling = NullValueHandling.Ignore)] public FoodStatus Food;
+        [JsonProperty("combat", NullValueHandling = NullValueHandling.Ignore)] public CombatStatus Combat;
         [JsonProperty("stamina")] public double Stamina;
         [JsonProperty("staminaMax")] public double StaminaMax;
         [JsonProperty("eitr")] public double Eitr;

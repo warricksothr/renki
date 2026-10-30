@@ -52,7 +52,7 @@ namespace Renki.Tasks
                 // Drops at the bot's feet, never what it has equipped.
                 case "drop": return AllowDrop;
                 case "attack":
-                case "guard": return AllowCombat;
+                case "guard": return AllowCombat && AllowMovement;
                 case "controls": return AllowRawControls;
                 default: return false;
             }

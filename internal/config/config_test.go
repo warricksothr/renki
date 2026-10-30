@@ -50,7 +50,7 @@ func TestLANNeedsToken(t *testing.T) {
 }
 
 func TestUnknownTaskRefused(t *testing.T) {
-	if _, err := Load(write(t, `{"allowedTasks":["stop","attack"]}`)); err == nil {
+	if _, err := Load(write(t, `{"allowedTasks":["stop","teleport"]}`)); err == nil {
 		t.Fatal("want an error for a task the controller does not know")
 	}
 }

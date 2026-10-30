@@ -29,6 +29,8 @@ namespace Renki.Plugin
                 throw new TaskRefused(stranded.Reason, stranded.Detail);
             switch (args)
             {
+                case AttackArgs attack:
+                    return new MeleeTask(req.Id, attack, FindEntity(attack.Entity));
                 case HarvestArgs harvest:
                     return new HarvestTask(harvest, FindEntity(harvest.Entity));
                 case TransferArgs transfer:

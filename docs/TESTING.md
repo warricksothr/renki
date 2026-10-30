@@ -589,3 +589,25 @@ remembered nearby chest contents and publishing places on the map passed.
 Named movement reached the raised indoor floor; saved-place Go also passed.
 Temporary test places were deleted. The retained home storage zone is
 centered on its accessible indoor approach. Zone edits started no harvest.
+
+### Explicit melee
+
+Use `just check plugin test-core MeleeTests` for encounter policy, stamina
+reserves, target eligibility and the attack task's runner cancellation paths.
+Use `just check controller test-packages ./internal/retreat ./internal/protocol
+./internal/app` for attack/retreat arbitration and protocol checks. Shared
+fixtures include task_attack and state_combat. These do not prove real strike
+contact, animation timing, block effectiveness or roll displacement.
+
+Read the plugin gate with `just vm combat`. First deploy with it off, allow
+attack in the controller's allowedTasks and verify a command is rejected by
+the plugin. For an owner-staged live check, use `just vm combat true` before
+restarting the game, provide food and a usable melee weapon, and keep one
+ordinary unstarred Greyling in clear open ground with the owner ready to
+clear it. Use `just vm task-check attack '{"entity":"<live-greyling-id>",
+"style":"melee"}' 90` and `just vm audit-summary` to retain exact evidence.
+The first slice refuses players/tamed creatures/other species and keeps
+combat off by default. Verify normal aim/contact, block and supported dodge,
+bounded escape on deteriorating conditions, stop/reconnect cleanup and a
+separate return to shelter. Do not deliberately damage Tas for a threshold.
+Keep unobserved cases open on the attack and retreat tickets.

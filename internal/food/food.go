@@ -101,7 +101,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	if now.Before(k.next) || slices.Contains(st.Flags, protocol.FlagAttacking) || slices.Contains(st.Flags, protocol.FlagSleeping) ||
-		st.Task != nil && st.Task.Task == protocol.TaskFlee {
+		st.Task != nil && (st.Task.Task == protocol.TaskFlee || st.Task.Task == protocol.TaskAttack) {
 		return
 	}
 	if item := Choose(st.Food); item != "" {

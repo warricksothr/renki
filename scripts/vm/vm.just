@@ -174,6 +174,17 @@ task TASK ARGS='{}' TIMEOUT='60':
 task-check TASK ARGS='{}' TIMEOUT='60':
     python3 "{{justfile_directory()}}/scripts/vm/task-check.py" "$1" "$2" "$3"
 
+# Read AllowCombat, or set true/false before a staged encounter and restart.
+[positional-arguments]
+combat VALUE='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/combat.ps1" "{{target}}:/{{dir}}/combat.ps1"
+    valuearg=()
+    [ -z "$1" ] || valuearg=(-Value "$1")
+    {{ssh}} "{{ps}} -File {{dir}}/combat.ps1 ${valuearg[*]}"
+
 # Read AllowGather, or set true/false before restarting the game.
 [positional-arguments]
 gather VALUE='': need-target

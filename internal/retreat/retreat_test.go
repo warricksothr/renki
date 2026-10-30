@@ -46,6 +46,71 @@ func (c *clock) now() time.Time { return c.t }
 
 var quiet = slog.New(slog.NewTextHandler(io.Discard, nil))
 
+func fighting() *fake {
+	f := scene(25)
+	f.st.World, f.st.Stamina = "one", 50
+	f.seen.Characters = f.seen.Characters[1:2]
+	f.seen.Characters[0].HPFrac = 1
+	f.st.Task = &protocol.TaskRef{ID: "a-1", Task: protocol.TaskAttack, Status: protocol.StatusRunning}
+	f.st.Combat = &protocol.CombatStatus{ID: "a-1", Entity: "0:7", Mode: "block"}
+	return f
+}
+
+func TestHealthyExplicitMeleeIsNotCancelledOnEveryConfirmedHit(t *testing.T) {
+	f := fighting()
+	r := New(f, func() []string { return nil }, nil, quiet, nil)
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+	r.Tick(context.Background())
+	if len(f.sent) != 0 {
+		t.Fatal(f.sent)
+	}
+	// The same confirmed attacker now requires escape, even above old Low.
+	f.st.HP = 19
+	r.Tick(context.Background())
+	if len(f.sent) != 2 || !strings.HasPrefix(f.sent[0], "flee 0:7") {
+		t.Fatal(f.sent)
+	}
+}
+
+func TestUnsafeOrStaleAttackCannotSuppressRetreat(t *testing.T) {
+	for _, change := range []string{"stamina", "stale id", "unknown mode", "stronger target", "additional attacker", "stop"} {
+		t.Run(change, func(t *testing.T) {
+			f := fighting()
+			r := New(f, func() []string { return nil }, nil, quiet, nil)
+			r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+			switch change {
+			case "stamina":
+				f.st.Stamina = 9
+			case "stale id":
+				f.st.Combat.ID = "old"
+			case "unknown mode":
+				f.st.Combat.Mode = "unknown"
+			case "stronger target":
+				f.seen.Characters[0].Stars = 1
+			case "additional attacker":
+				f.seen.Characters = append(f.seen.Characters, protocol.PerceivedCharacter{ID: "0:99", Kind: protocol.CharacterCreature, Prefab: "Greyling", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{3, 30, 0}})
+			case "stop":
+				f.st.Task = nil
+			}
+			r.Tick(context.Background())
+			if len(f.sent) != 2 || !strings.HasPrefix(f.sent[0], "flee 0:7") {
+				t.Fatal(f.sent)
+			}
+		})
+	}
+}
+
+func TestPluginFallbackFleeIsNotRepeatedlyReplaced(t *testing.T) {
+	f := fighting()
+	f.st.HP, f.st.Stamina, f.st.Combat.Mode = 5, 5, "retreat"
+	r := New(f, func() []string { return nil }, nil, quiet, nil)
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 3})
+	r.Tick(context.Background())
+	if len(f.sent) != 0 {
+		t.Fatal(f.sent)
+	}
+}
+
 // The bot at home, a Greyling after it: what killed it on 2026-10-29.
 func scene(hp float64) *fake {
 	return &fake{

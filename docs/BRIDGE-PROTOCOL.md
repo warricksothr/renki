@@ -617,8 +617,19 @@ Notes:
   `target_lost`. Cancelling clears held attack and any pending pickup.
   Choosing a tree and chaining newly spawned logs/stumps are the controller's
   job; this primitive does not silently harvest neighbouring resources.
-- `attack` includes blocking and dodging. Choosing *whether* to fight is the
-  controller's job.
+- `attack` currently implements explicit bounded melee against one unstarred
+  hostile Greyling. `style` defaults to `melee`; `auto` also selects melee;
+  ranged is not yet supported. AllowCombat and AllowMovement must both be on.
+  It uses carried ordinary melee weapons, moving-target aim, stamina-aware
+  block/dodge and supported movement. Players/tamed creatures are refused.
+  It starts at 80% health, with a 12 m pursuit leash, 45 s work budget and
+  12 s without observed target-health progress. Unsafe conditions trigger an
+  ordinary bounded flee inside the same task; the encounter still fails and
+  reports the escape result. Target unloading is target_lost, not a kill.
+  Choosing whether to start a fight remains the controller/owner's job.
+  Optional state.combat gives the attack task id, entity, mode and reason;
+  matching IDs let retreat coordinate with the active encounter and fallback.
+  See SELF_DEFENSE.md for current limits and the remaining automatic policies.
 - `controls` exists for debugging and later RL experiments. It's gated by
   `allowRawControls` and expires on its own, so a lost connection can't leave
   a key held down.

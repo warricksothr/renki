@@ -5,7 +5,40 @@ delivery and return. Its aiming, contact checks, normal attack input and
 cancellation provide useful foundations for combat. A moving creature also
 requires facing, blocking, stamina management and a decision to disengage.
 
-This is a development plan. Combat is not implemented or enabled by it.
+The first explicit bounded melee task is implemented. Its staged game check
+is pending; combat remains disabled by default. Automatic self-defense and
+owner guarding below are subsequent work.
+
+## Current attack task
+
+An explicit `attack` accepts `entity` and optional `style` (`melee` or `auto`,
+which currently selects melee). This build accepts only one unstarred hostile
+Greyling, within 12 m, starting at 80% health or higher. Players, tame creatures,
+other species, ranged style and unusable weapons are refused. Combat and
+movement permissions are both required.
+
+The task chooses a carried melee weapon using character damage rather than
+harvest damage. Normal game controls supply aiming, swings, blocks and dodges.
+Attack, block and dodge costs use the installed game's methods/modifiers;
+blocking reserves the conservative full stamina drain, not an assumed parry.
+Attacks preserve stamina for defense plus 10 for escape. Dodges require a new
+observed attack window and a supported, clear 5 m corridor. A missing roll
+corridor selects block when affordable. No timed-parry guarantee is made.
+
+An encounter has a 12 m leash, 45 s work limit and 12 s no-progress limit.
+Low health/stamina, lost equipment, another nearby creature or unsafe scenery
+selects a bounded ordinary flee. That escape stays part of the attack task;
+its final result reports the failed encounter and the escape outcome. The
+controller recognizes matching combat/task IDs and lets healthy melee or an
+active fallback flee run, while stale/unsafe attack state still allows retreat.
+Only observed target death succeeds; unloading reports target_lost. Stop,
+replacement, timeout and session cancellation clear held inputs and pending
+attack/dodge queues. An already-started swing or roll follows normal animation.
+
+The panel shows stamina and combat mode/reason. Use `just vm combat` to read
+the plugin gate; changing it requires a game restart. An owner must separately
+allow attack in controller settings. No autonomous attacker selection, job
+resumption, ranged combat or owner-guard behavior is installed by this slice.
 
 ## What is already available
 
@@ -15,11 +48,13 @@ This is a development plan. Combat is not implemented or enabled by it.
   events when a remotely simulated creature's target is unavailable.
 - Normal movement, aiming and held primary attack are wired through Driver.
 - The task runner cancels replaced work and enforces the dead-man rule.
-- AllowCombat exists and defaults off. Attack is documented, but has no
-  implemented protocol arguments, plugin task or controller dispatcher yet.
+- AllowCombat defaults off. Explicit melee has matching Go/C# protocol
+  arguments, plugin implementation and controller dispatch support.
 
 Two existing behaviors matter for the design. Retreat now flees on a confirmed
 hit at any health, so an independent attack loop would be canceled repeatedly.
+The explicit melee integration now coordinates matching active encounters;
+automatic fight selection still needs the shared policy described below.
 Also, the game can report wildlife such as Deer as hostile. Hostility alone
 must never start autonomous combat.
 

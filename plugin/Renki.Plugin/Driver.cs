@@ -24,6 +24,7 @@ namespace Renki.Plugin
         // Harvest is the only task that holds normal primary attack input.
         // Stand/cancel clears it; no queued click survives task replacement.
         internal static bool HarvestAttack;
+        internal static bool MeleeAttack, Block, Dodge;
 
         /// <summary>Jump on the next physics step; cleared once used.</summary>
         public static bool Jump;
@@ -49,6 +50,7 @@ namespace Renki.Plugin
             Run = false;
             Jump = false;
             HarvestAttack = false;
+            MeleeAttack = Block = Dodge = false;
             LookOriginHeight = null;
         }
 
@@ -72,10 +74,28 @@ namespace Renki.Plugin
             }
 
             var local = Controls.ToLocal(Convert.ToV3(Move), Convert.ToV3(player.m_lookDir));
-            player.SetControls(new Vector3((float)local.X, 0, (float)local.Z),
-                attack: false, attackHold: HarvestAttack, secondaryAttack: false, secondaryAttackHold: false,
-                block: false, blockHold: false, jump: Jump, crouch: false, run: Run, autoRun: false, dodge: false);
-            Jump = false;
+            // The user's toggle-block preference must not latch bot blocking.
+            var toggleBlock = player.ToggleBlock;
+            player.ToggleBlock = false;
+            try
+            {
+                player.SetControls(new Vector3((float)local.X, 0, (float)local.Z),
+                    attack: false, attackHold: HarvestAttack || MeleeAttack, secondaryAttack: false, secondaryAttackHold: false,
+                    block: false, blockHold: Block, jump: Jump, crouch: false, run: Run, autoRun: false, dodge: Dodge);
+            }
+            finally { player.ToggleBlock = toggleBlock; }
+            Jump = Dodge = false;
+        }
+
+        internal static void ClearCombat()
+        {
+            Stand(); LookAt = null; LookUntil = 0;
+            var p = Player.m_localPlayer;
+            if (p == null) return;
+            // Normal input queues a dodge for up to half a second. Replacement
+            // must not execute it after a new task or an owner's stop.
+            p.m_queuedDodgeTimer = p.m_queuedAttackTimer = p.m_queuedSecondAttackTimer = 0;
+            p.m_attack = p.m_attackHold = p.m_secondaryAttack = p.m_secondaryAttackHold = p.m_blocking = false;
         }
     }
 

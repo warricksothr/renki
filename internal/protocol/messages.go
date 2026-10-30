@@ -142,6 +142,13 @@ type CarriedFood struct {
 	CanEat bool    `json:"canEat"`
 }
 
+type CombatStatus struct {
+	ID     string `json:"id"`
+	Entity string `json:"entity"`
+	Mode   string `json:"mode"`
+	Reason string `json:"reason,omitempty"`
+}
+
 // State is the bot's own body, streamed at stateHz (6.1).
 type State struct {
 	Envelope
@@ -155,6 +162,7 @@ type State struct {
 	HPMax      float64           `json:"hpMax"`
 	PVP        *bool             `json:"pvp,omitempty"`
 	Food       *FoodStatus       `json:"food,omitempty"`
+	Combat     *CombatStatus     `json:"combat,omitempty"`
 	Stamina    float64           `json:"stamina"`
 	StaminaMax float64           `json:"staminaMax"`
 	Eitr       float64           `json:"eitr"`
