@@ -595,7 +595,8 @@ centered on its accessible indoor approach. Zone edits started no harvest.
 `just vm harvest-trial --wait-s 60` uses normal native harvest tasks with combat
 disabled, without owner staging. It requires active food, 80% health, 40 stamina,
 a usable carried axe, four spare slots and 60 spare carry weight. It selects one
-nearby tier-zero full Beech1, with clearance from all characters and structures.
+nearby tier-zero full Beech1, with a conservative 32 m falling exclusion from
+all characters and structures (8 m for settled logs), plus 15 m around the bot.
 The native task owns approaching, aiming, swinging, falling-trunk escape and
 collecting. The supervisor issues no movement tasks.
 

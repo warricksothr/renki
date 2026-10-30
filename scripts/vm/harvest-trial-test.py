@@ -30,9 +30,13 @@ class HarvestTrialTests(unittest.TestCase):
                                      dict(self.tree, id='birch', prefab='Birch1', minTool=1)])
         self.assertEqual(harvest.select_resource(self.status, perception)['id'], 'tree')
         for occupied in (dict(characters=[dict(pos=[6, 32, 0], kind='player', pvp=False)]),
+                         dict(characters=[dict(pos=[25, 32, 0], kind='creature')]),
                          dict(characters=[dict(pos=[6, 32, 0], kind='creature', hostile=False)]),
                          dict(structures=[dict(pos=[7, 32, 0])])):
             self.assertIsNone(harvest.select_resource(self.status, dict(perception, **occupied)))
+        # A nearby standing tree needs the full falling exclusion; splitting
+        # a settled log does not inherit that tall-tree radius.
+        self.assertTrue(harvest.worksite_clear(self.status, dict(characters=[dict(pos=[25, 32, 0])]), self.log['pos'], False))
 
     def test_only_new_nearby_same_family_logs_are_eligible_and_unsafe_logs_remain_unfinished(self):
         old = dict(self.log, id='old')

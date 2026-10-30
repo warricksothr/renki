@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T05:54:00Z
+updated_at: 2026-10-30T05:56:22Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -131,3 +131,7 @@ PR #58 landed as e36e366, and just check vm install verified package hashes (.ch
 Harvesting now tests sight from the axe-height origin to the measured physical contact using normal terrain-aware attack layers and first-solid-target policy. Self/triggers are ignored, saturated queries refuse, and actual occlusion at an in-range stance fails explicitly rather than initiating another endless approach. Generic chest/door interaction sight is unchanged. A first-visible-contact trace retains exact origin/contact/range for the next attempt. Physical reach/aim/threat guards and falling escape stay in place.
 
 Focused just check plugin test-core HarvestTests passed18 cases (.checks/20261030T055132Z-qRSq8W.log). Initial CI caught only the later trace initializer's whitespace; corrected before final just check ci passed with325 plugin tests, five combat and four harvest supervisor tests (.checks/20261030T055319Z-tCKLIH.log). Review/landing/deployment and the same autonomous benchmark follow. No acceptance criterion was checked from approach-only evidence.
+
+**agent:codex/renki-resume** at 2026-10-30T05:56:22Z
+
+Before retrying, aligned the benchmark's candidate exclusion with the native full-tree fall guard's maximum32m radius. Settled logs use8m rather than inheriting a standing tree's fall radius;15m around the bot remains clear. This reduces predictable refused candidates while preserving native guards. Added a regression distinguishing a creature25m away from full-tree versus log work. Final just check ci passed325 plugin tests, five combat and four harvest supervisor tests (.checks/20261030T055533Z-AyIAtv.log). The already committed strike-sight fix reviewed without findings; review the combined commits again before pushing this follow-up.
