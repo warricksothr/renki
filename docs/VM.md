@@ -1,5 +1,9 @@
 # Setting up the bot VM for remote control
 
+For independent OBS capture, standby scenes and private HTTPS video, see
+[WINDOWS-VIDEO.md](WINDOWS-VIDEO.md). Streaming tasks are separate from the game
+and controller lifecycle; they use this same SSH and interactive console setup.
+
 The bot plays on a Windows VM with its own GPU. Once this page is done, the
 repository's tooling can deploy, start, stop and inspect the bot over SSH
 with `just vm …`, and nobody needs to be at the VM.

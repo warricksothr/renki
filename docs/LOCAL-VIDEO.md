@@ -1,9 +1,10 @@
 # Local game video and standby
 
-This is a local proof of concept stacked above PR #112. It adds native browser
-video to the existing `Camera` component without depending on layout PR #110.
-No recipe deploys to the gaming VM, starts Valheim, contacts Twitch or configures
-an external output. Audio is off. Diagnostic JPEG/map APIs remain independent.
+This document describes the original loopback proof, now integrated with the
+panel layout. The subsequent [Windows implementation](WINDOWS-VIDEO.md) adds
+approved BLIGHT deployment, OBS capture verification and private HTTPS viewing.
+The loopback recipes below do not deploy a VM or contact an external destination.
+Diagnostic JPEG/map APIs remain independent.
 
 ## Architecture and ownership
 
@@ -64,8 +65,9 @@ releases readers if HTTP cleanup fails.
 Neither `RTCPeerConnection.connectionState`, decoded video, OBS `GetSourceActive`
 nor OBS renderer FPS proves fresh **game** frames. Standby frames also decode.
 The controller therefore defaults to covered content until an independent local
-capture adapter provides a fresh assertion. A real Windows adapter is **not
-implemented or validated** in this slice. Optional configured playback without
+capture adapter provides a fresh assertion. The later Windows adapter uses an
+opt-in changing in-game marker; see WINDOWS-VIDEO.md for evidence and remaining
+desktop checks. Optional configured playback without
 such an adapter remains safely on the slate. The synthetic proof supplies a
 clearly labelled test assertion; never use that writer with real game capture.
 
@@ -106,7 +108,7 @@ seconds, malformed/oversize/missing files and mismatched scope fail closed.
 Keep the path on a local regular filesystem, writable only by that adapter and
 readable by the controller; do not use a pipe, device or network mount.
 
-Windows follow-up must implement the authenticated obs-websocket v5 connection,
+The Windows implementation provides the authenticated obs-websocket v5 connection,
 verified specific-window source mapping, reliable fresh-capture evidence and
 scene reconciliation. Start on `Renki Offline`; return to `Renki Gameplay` only
 after several verified checks in the new scope. On uncertainty select the slate,

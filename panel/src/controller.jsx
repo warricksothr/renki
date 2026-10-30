@@ -1,6 +1,7 @@
 import { render as renderComponent } from "preact";
 import { TimelineRecord } from "./timeline.jsx";
 import { publishStatus } from "./status.js";
+import { subscribeEvents } from "./events.js";
 
 // Compatibility adapter for the established panel controls and the single map
 // renderer. Only start after Preact has synchronously mounted the workspace.
@@ -2085,35 +2086,36 @@ export function startController() {
   // ---- the stream ----
 
   function connect() {
-    const es = new EventSource("/api/events");
-    es.onopen = () => {
-      mapGeneration++;
-      mapFetchedAt = 0;
-    };
-    es.addEventListener("record", (e) => onRecord(JSON.parse(e.data)));
-    es.addEventListener("status", (e) => onStatus(JSON.parse(e.data)));
-    es.onerror = async () => {
-      chip("link", "reconnecting…", "off");
-      publishStatus(null);
-      inventoryScope = "";
-      inventoryVersion++;
-      inventory = null;
-      $("inv-grid").replaceChildren();
-      $("inv-summary").textContent =
-        "Connection interrupted · inventory unavailable";
-      for (const button of document.querySelectorAll("button.act"))
-        button.disabled = true;
-      $("goal-combat").disabled = true;
-      chip("hp", "Health unknown");
-      chip("stamina", "");
-      chip("task", "Status unavailable");
-      chip("home", "Home unknown");
-      chip("combat", "");
-      chip("load", "");
-      // EventSource retries by itself, unless the login has gone.
-      const res = await fetch("/api/status").catch(() => null);
-      if (res && res.status === 401) location.href = "/login";
-    };
+    subscribeEvents({
+      opened: () => {
+        mapGeneration++;
+        mapFetchedAt = 0;
+      },
+      record: (e) => onRecord(JSON.parse(e.data)),
+      status: (e) => onStatus(JSON.parse(e.data)),
+      interrupted: async () => {
+        chip("link", "reconnecting…", "off");
+        publishStatus(null);
+        inventoryScope = "";
+        inventoryVersion++;
+        inventory = null;
+        $("inv-grid").replaceChildren();
+        $("inv-summary").textContent =
+          "Connection interrupted · inventory unavailable";
+        for (const button of document.querySelectorAll("button.act"))
+          button.disabled = true;
+        $("goal-combat").disabled = true;
+        chip("hp", "Health unknown");
+        chip("stamina", "");
+        chip("task", "Status unavailable");
+        chip("home", "Home unknown");
+        chip("combat", "");
+        chip("load", "");
+        // Native transient retries and explicit CLOSED recovery share one stream.
+        const res = await fetch("/api/status").catch(() => null);
+        if (res && res.status === 401) location.href = "/login";
+      },
+    });
   }
 
   // ---- named places and circular zones ----

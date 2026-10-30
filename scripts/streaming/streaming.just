@@ -4,6 +4,37 @@ set working-directory := '../..'
 install:
     python3 scripts/streaming/local.py install
 
+# Pinned official releases, verified on both ends; no external video destination.
+windows-downloads:
+    python3 scripts/streaming/windows.py downloads
+
+windows-setup: windows-slate-file
+    python3 scripts/streaming/windows.py setup
+
+windows-status:
+    python3 scripts/streaming/windows.py status
+
+# Fixed local actions only; never accepts an external destination URL.
+[positional-arguments]
+windows-action action:
+    python3 scripts/streaming/windows.py "$1"
+
+windows-start:
+    python3 scripts/streaming/windows.py start
+
+# OBS sends a silent AAC track even with all audio inputs disabled. Match it in
+# the relay fallback; browser negotiation still requests video only.
+windows-slate-file: prepare
+    mkdir -p .checks/streaming/windows
+    ffmpeg -hide_banner -loglevel error -y -i .checks/streaming/standby.mp4 -f lavfi -i anullsrc=r=48000:cl=stereo -shortest -c:v copy -c:a aac -b:a 96k .checks/streaming/windows/standby-obs.mp4
+
+windows-slate: windows-slate-file
+    python3 scripts/streaming/windows.py slate
+
+windows-adapter:
+    GOOS=windows GOARCH=amd64 go build -buildvcs=false -trimpath -o dist/obs-adapter.exe ./cmd/obs-adapter
+    python3 scripts/streaming/windows.py adapter
+
 # Render the shared browser slate once; encode a matching H264 offline segment.
 prepare:
     just --justfile justfile panel build

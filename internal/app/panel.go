@@ -24,6 +24,7 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
+	CaptureProof  *protocol.CaptureProof `json:"captureProof,omitempty"`
 	SharePosition *bool                  `json:"sharePosition,omitempty"`
 	Presence      config.Presence        `json:"presence"`
 	Players       access.Rules           `json:"players"`
@@ -86,6 +87,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		ps.WorldUID = s.WorldUID
+		ps.CaptureProof = s.CaptureProof
 		ps.InjurySeq = a.Session.InjurySequence()
 		ps.Location, ps.Flags, ps.Yaw = s.Location, s.Flags, s.Yaw
 		ps.Food = s.Food
