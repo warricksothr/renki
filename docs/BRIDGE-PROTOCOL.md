@@ -659,7 +659,8 @@ Notes:
   Starting near buildings or on raised support first uses bounded ordinary
   floor-aware travel to dry open ground: eight candidates, 60 seconds and
   64 m total travel, within the search radius. No acquisition or swings occur
-  during preparation; nearby characters stop it. Arena checks still apply
+  during preparation; nearby creatures stop it. Ordinary travel can pass
+  players, with 2 m separation at its destination. Arena checks still apply
   after discovery. A search that completes no checked leg reports unreachable,
   rather than claiming that no eligible creature was found.
   The same task ID and safety gates apply throughout. See SELF_DEFENSE.md

@@ -85,6 +85,10 @@ namespace Renki.Tasks
         static bool Finite(V3 at) => Finite(at.X) && Finite(at.Y) && Finite(at.Z);
         static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
+        // Travel has no swings/acquisition. Combat uses its separate buffers.
+        public static bool TravelSeparated(double distance, bool player, bool hostile, bool destination) =>
+            Finite(distance) && distance >= (player ? destination ? 2 : 0 : hostile ? 15 : 8);
+
         public static V3 Candidate(V3 origin, int attempt, double radius = 60)
         {
             if (attempt < 0 || attempt >= CandidateLimit) throw new ArgumentOutOfRangeException(nameof(attempt));

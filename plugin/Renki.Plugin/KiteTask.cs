@@ -261,7 +261,7 @@ namespace Renki.Plugin
             preparationTravel += Vector3.Distance(pos, preparationLast); preparationLast = pos;
             if (Time.unscaledTime - preparationBegan >= 60 || preparationTravel > 64 || Vector3.Distance(origin, pos) > searchRadius + .25)
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search travel preparation exhausted its time or travel budget"));
-            if (!ClearCharacters(p, null, pos)) return Abort(p, "another character is too close during search travel preparation");
+            if (!ClearTravelCharacters(p, pos, false)) return Abort(p, "a creature is too close during search travel preparation");
             if (preparation == null)
             {
                 if (preparationAttempts >= 8)
@@ -269,7 +269,7 @@ namespace Renki.Plugin
                 var angle = preparationAttempts++ * Math.PI / 4;
                 var candidate = origin + new Vector3((float)Math.Cos(angle), 0, (float)Math.Sin(angle)) * (float)Math.Min(16, searchRadius - 1);
                 if (!Ground(candidate, out preparationGoal) || Vector3.Distance(origin, preparationGoal) > searchRadius ||
-                    !ClearScenery(preparationGoal) || !ClearCharacters(p, null, preparationGoal))
+                    !ClearScenery(preparationGoal) || !ClearTravelCharacters(p, preparationGoal, true))
                 {
                     Tracer.Emit("combat", "search_egress_rejected", new Dictionary<string, object>
                     { ["goal"] = Convert.ToArray(candidate), ["reason"] = "endpoint_not_dry_clear_or_separated", ["attempt"] = preparationAttempts });
@@ -282,7 +282,7 @@ namespace Renki.Plugin
                 Tracer.Emit("combat", "search_egress_route", new Dictionary<string, object>
                 { ["goal"] = Convert.ToArray(preparationGoal), ["attempt"] = preparationAttempts });
             }
-            if (!ClearScenery(preparationGoal) || !ClearCharacters(p, null, preparationGoal))
+            if (!ClearScenery(preparationGoal) || !ClearTravelCharacters(p, preparationGoal, true))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search preparation destination became unsafe"));
             var ended = Time.unscaledTime - preparationLegAt >= 25
                 ? Outcome.Failed(Wire.ReasonTimeout, "search travel leg time limit") : preparation.Tick(dt);
@@ -393,6 +393,20 @@ namespace Renki.Plugin
             if (!result.HasValue) return null;
             return ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f
                 ? result : probe.Refuse("wet_ground", result.Value);
+        }
+
+        bool ClearTravelCharacters(Player p, Vector3 at, bool destination)
+        {
+            foreach (var c in Character.GetAllCharacters())
+            {
+                if (c == null || c == p || c.IsDead()) continue;
+                // Ordinary movement can pass players inside a house. There
+                // are no swings or acquisition in this phase; normal body
+                // collision/stuck handling still governs the walk. Avoid
+                // deliberately ending the walk on another player.
+                if (!Scouting.TravelSeparated(Vector3.Distance(at, c.transform.position), c is Player, BaseAI.IsEnemy(p, c), destination)) return false;
+            }
+            return true;
         }
 
         bool ClearCharacters(Player p, Character allowed, Vector3 at)

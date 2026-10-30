@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T18:58:55Z
+updated_at: 2026-10-30T19:04:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -222,3 +222,7 @@ PR #83 merged as 61c2ea5 and deployed with verified package checksums. Full CI a
 On installed 3d07700, a fed persistent-goal trial from raised home ended needs_plan after one failed native attack and the unchanged-observation wait budget. Evidence .checks/combat-trial-20261030T181230758083Z/summary.json; native audit minimum/final HP79.9 with zero damage. Observed travel0 m, final[-36.87,36.09,6.25]. Cleanup succeeded: logout/game stop, combat off, panel online. No combat success or M3 criterion earned.
 
 Exact t-1 retained frames in .checks/scout-task-reconciliation-check.json contain24 scout rejections:21 no_complete_navmesh_route and3 wet_or_unloaded_terrain. Native result was invalid_target, 'no eligible single Greyling after bounded local scouting and return', but no route was accepted and no scouting movement occurred. KiteTask.ScoutRoute currently requires complete Pathfinding.GetPath and projects onto terrain, bypassing ordinary Walker's validated local-route fallback; starting on the raised home floor exposes this gap. Do not increase radius or repeat the unchanged search. Next implementation should distinguish zero-covered-route/unreachable from actual negative target search, and permit a checked ordinary travel preparation or equivalent validated egress before open-ground scouting. Keep route, water, structure and combat-safety checks; no owner repositioning is needed. The final supervisor's encounters projection omitted scout diagnostics although the exact task endpoint retained them; improve compact evidence capture alongside the next trial change. This case was shared with the procedure research agent for diagnosis-tool design. The research branch remains separate and unmerged for later review.
+
+**agent:codex/renki-milestones** at 2026-10-30T19:04:00Z
+
+Installed 635f4e9 includes M2 approach and native scouting preparation. Trial .checks/combat-trial-20261030T190055024923Z stopped safely before movement: jarl was 2.2 m from Tas, and the new travel phase reused the 8 m combat bystander buffer. Native audit showed zero damage; cleanup succeeded. Camera .checks/camera-20261030T190158640464Z.jpg confirms both players inside home and provides the same scene as structured perception. Follow-up permits ordinary no-swing travel past players, keeps space at destinations and retains creature guards plus unchanged combat spacing. Do not count this as successful egress or combat.
