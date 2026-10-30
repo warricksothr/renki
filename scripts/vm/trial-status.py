@@ -47,10 +47,10 @@ def report(folder, now=None):
         except ValueError:
             final = None
         if final:
-            for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors'):
+            for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors', 'mode', 'logsHarvested', 'woodGain', 'deposited', 'returned'):
                 if key in final:
                     result[key] = final[key]
-            result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: t.get('result', {}).get(k)
+            result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: (t.get('result') or {}).get(k)
                                for k in ('status', 'reason', 'detail')}) for t in final.get('tasks', [])[-6:]]
     return result
 
@@ -59,7 +59,7 @@ def main():
     if len(sys.argv) > 1:
         folder = Path(sys.argv[1])
     else:
-        choices = [p for pattern in ('combat-trial-*', 'harvest-trial-*', 'resupply-trial-*')
+        choices = [p for pattern in ('combat-trial-*', 'harvest-trial-*', 'resupply-trial-*', 'gather-trial-*')
                    for p in (ROOT / '.checks').glob(pattern) if p.is_dir()]
         if not choices:
             raise SystemExit('No retained trial evidence')

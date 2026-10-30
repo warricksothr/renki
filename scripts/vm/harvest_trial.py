@@ -62,7 +62,7 @@ def worksite_clear(status, perception, at, falling=True):
     return all(distance(piece['pos'], at) >= radius for piece in perception.get('structures', []))
 
 
-def select_resource(status, perception, baseline=None, center=None, completed=()):
+def select_resource(status, perception, baseline=None, center=None, completed=(), max_distance=18):
     candidates = []
     for r in perception.get('resources', []):
         if not r.get('id') or r['id'] in completed or r.get('minTool') != 0:
@@ -72,7 +72,7 @@ def select_resource(status, perception, baseline=None, center=None, completed=()
         else:
             eligible = (r.get('kind') == 'log' and r.get('prefab', '').lower().startswith('beech')
                         and r['id'] not in baseline and distance(r['pos'], center) <= 20)
-        if eligible and distance(r['pos'], status['pos']) <= 18 and worksite_clear(status, perception, r['pos'], r['kind'] == 'tree'):
+        if eligible and distance(r['pos'], status['pos']) <= max_distance and worksite_clear(status, perception, r['pos'], r['kind'] == 'tree'):
             candidates.append(r)
     return min(candidates, key=lambda r: distance(r['pos'], status['pos']), default=None)
 

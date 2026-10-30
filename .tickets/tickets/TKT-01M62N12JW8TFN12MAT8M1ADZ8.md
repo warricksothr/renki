@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T19:06:21Z
+updated_at: 2026-10-30T20:22:23Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -57,7 +57,7 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-Continue the existing bounded gather-template plan and autonomous M2 benchmark. Code inspection found that entering a broad site radius marked arrival, even with central trees beyond the native 18 m acquisition radius. Approach within min(site radius, 12 m) of the explicit work point before choosing the first tree. Keep resource/worksite radius, supported native movement, permissions, food/tool/health/capacity guards, gains-only storage and optional return unchanged. Add a regression starting 25 m from the center inside a 30 m site, then verify movement precedes harvesting, plus preservation of smaller site radii. Run focused behavior checks, just check ci, committed just check review and deploy after the active resupply check. Then prepare the controller-level full-tree -> logs -> inventory gains -> chest receipt -> return-site benchmark. Site inference/chat commands and repeated hauling remain open; no acceptance criterion is earned merely from this approach fix.
+Validate the existing controller gather template with one bounded autonomous full-tree -> new logs -> observed product gains -> exact home-chest deposit receipts -> return-site cycle. Add just vm gather-trial using a uniquely named manual once-only behavior; native tasks own movement and work. Require stable world/connection, supplied axe/capacity/food, isolated tree and remembered home storage, and abort on health loss, nearby hostiles, scope changes or bounds. Stop/delete the temporary behavior even after a lost response, then logout/stop and keep the offline panel available. Verify exact behavior-attributed requests, distinct resource IDs/local-hit breaks, preservation of original products, measured gains/receipts and final return. Cover forged/incomplete proof and supervisor failure/cleanup paths with focused checks, then run just check ci and committed just check review before landing. Diagnose the first live outcome using compact retained evidence; do not repeat unchanged failures or ask for owner staging. Site inference/chat, repeated hauling and broad M2 acceptance remain open.
 
 ## Notes
 
@@ -82,3 +82,11 @@ claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
 **agent:codex/renki-milestones** at 2026-10-30T19:06:21Z
 
 PR #96 merged the broad-site approach regression/fix. Focused behavior checks, just check ci (.checks/20261030T185100Z-mTlVk9.log) and committed just check review (.checks/20261030T185134Z-uPodSM.log) passed. Deployed in 635f4e9 and retained in installed 5a5f5c9; checksum-verified installation .checks/20261030T190549Z-IPaAzz.log. Full controller tree -> logs -> gain-only chest receipt -> return proof remains open, along with site inference/chat and repeated hauling. The previous pending approach stash was removed only after its exact implementation landed.
+
+**agent:codex/renki-milestones** at 2026-10-30T20:22:23Z
+
+Added a controller-owned gather benchmark with exact instance/native step attribution, distinct tree/new-log break proof, measured gain-only chest receipts, preserved starting products and return-site pose/task verification. Supervisor checks cover lost behavior-save responses, bad/missing audit proof, damage between polls and cleanup failure; temporary definitions are stopped/deleted and the game is stopped with combat off and offline panel online. Compact trial-status now finds gather runs and tolerates missing terminal results.
+
+First live attempt against installed a525b18 aborted before any task: no isolated full beech in the native selector's 18 m radius. .checks/gather-trial-20261030T201912076800Z/summary.json and .checks/20261030T201912Z-pBuX0o.log retain evidence. No damage events, no travel/work, final66.2/66.2 HP and successful cleanup. Detailed observations show nearest three trees11.9–13.7 m away were close to a Boar/structures; tree1:61548 was18.48 m away but only30.5 m from the Boar, still inside32 m falling protection. No currently observed full beech passed protection even when considering farther trees. This is a correct refusal, not gathering proof or an owner-clearance request.
+
+The controller benchmark now considers observed sites up to60 m away because gather can approach before its18 m native acquisition; unchanged falling/character/structure guards remain authoritative. Bounded nearest-candidate diagnostics explain subsequent refusals without broad perception dumps. Focused benchmark/native regression checks passed; final CI/review follow. Full delivery, chat/site selection and repeated hauling remain open. Do not rerun the same protected site until a new safe-site acquisition strategy or changed observations justify it.

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -184,6 +185,54 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertEqual(prepare.call_count, 1 if mode == 'finished' else 0)
                 self.assertFalse(any(c[0] == 'task' for c in commands))
                 self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
+
+    def test_gather_dispatch_proof_and_cleanup_survive_partial_failures(self):
+        for mode in ('success', 'lost_save_response', 'bad_proof', 'missing_audit', 'missing_proof', 'cleanup_failure', 'audit_damage'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                commands = []
+                audit = Path(directory) / 'audit.jsonl'
+                audit.write_text(json.dumps(dict(frame=dict(type='event', event='damaged', amount=1))) + '\n' if mode == 'audit_damage' else '')
+                status = dict(self.status, food=dict(active=[dict(prefab='CookedDeerMeat')]))
+
+                def run(command, **kwargs):
+                    args = command[2:]
+                    commands.append(args)
+                    value = ''
+                    if args[:3] == ['panel', 'GET', '/api/status']:
+                        value = status
+                    elif args[:3] == ['panel', 'GET', '/api/map']:
+                        value = dict(perception={})
+                    elif args[0] == 'audit-window':
+                        value = str(audit) if mode != 'missing_audit' else str(audit.parent / 'missing')
+                    elif mode == 'cleanup_failure' and args[:3] == ['panel', 'POST', '/api/behaviours'] and json.loads(args[3])['action'] == 'stop':
+                        return subprocess.CompletedProcess(command, 1, '', 'stop response lost')
+                    return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
+
+                def gather_run(summary, call, observe, saved):
+                    summary['behaviourName'] = 'unique-test'
+                    if mode == 'lost_save_response':
+                        raise RuntimeError('save response lost')
+                    summary['outcome'] = 'awaiting_proof'
+
+                def verify(path, summary):
+                    if mode == 'bad_proof':
+                        raise RuntimeError('missing receipt')
+                    return {} if mode in ('missing_proof', 'lost_save_response') else dict(outcome='succeeded')
+
+                module = types.SimpleNamespace(run=mock.Mock(side_effect=gather_run), verify=mock.Mock(side_effect=verify))
+                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--gather-tree', '--wait-s', '0']), mock.patch.dict(trial.sys.modules, gather_trial=module), contextlib.redirect_stdout(io.StringIO()):
+                    code = trial.main()
+                self.assertEqual(code, 0 if mode == 'success' else 1)
+                module.run.assert_called_once()
+                self.assertNotIn(['combat', 'true'], commands)
+                self.assertFalse(any(c[0] == 'task' for c in commands))
+                actions = [json.loads(c[3]) for c in commands if c[:3] == ['panel', 'POST', '/api/behaviours']]
+                self.assertEqual(actions, [dict(action=a, name='unique-test') for a in ('stop', 'delete')])
+                self.assertEqual(commands[-5:-1], [['panel', 'POST', '/api/act/logout', '{}'], ['stop'], ['combat', 'false'], ['panel-start']])
+                summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
+                self.assertNotEqual(summary['outcome'], 'awaiting_proof')
+                if mode == 'missing_audit':
+                    module.verify.assert_not_called()
 
 
 if __name__ == '__main__':
