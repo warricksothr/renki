@@ -20,15 +20,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/m2-m3-completion
+  branch: t3/scout-travel-preparation
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 9117f039f899b68984511cd89fa623dc59eccee0
+  commit: 8a7248dc0c953b760997fabf5bd3f3581480ed19
   session: null
   claimed_at: 2026-10-30T16:47:08Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T18:17:01Z
+updated_at: 2026-10-30T18:58:55Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-The first discovery build (PR #83, installed 61c2ea5) made five native attempts without owner staging. It scouted but repeatedly returned within the same 12 m patch; no creatures or damage were observed. The owner explicitly requested a much larger search area, confirmed by the panel track screenshot. Replace per-point out-and-back scouting with a progressive checked search (default 60 m radius, configurable 12–80 m), finite route candidates, checked intermediate legs, total distance/time/stamina bounds and a checked return when search ends. Native C# keeps all movement/selection authority. On acquisition away from the original arena, survey local fighting ground and anchor the existing short kiting encounter there. Keep the overall search envelope separate from the unchanged local combat leash. Expose and validate searchRadius in both protocol implementations; the host derives it from remaining goal scope with combat/escape reserve, with new trial/panel goals explicitly using a 200 m work area. Final native receipts continue binding actual targets and observed death. Add expanded-search, return, scope and handoff regressions, then CI/review/deploy and a bounded live check. M2/M3 remain open; no combat success is claimed from search progress.
+The zero-coverage failure is caused by trying to scout directly from raised building support using terrain-only combat-route validation. Add a bounded native travel preparation only when starting near a structure or on a different supporting level. Select dry, clear, character-separated open-ground endpoints inside the existing search radius, use the ordinary floor-aware MoveTo/Walker for doorway/stair/local routing, and monitor health, stamina, footing, nearby characters, travel and time throughout. Acquisition and swings start only after actual arrival at clear terrain; fighting-area checks remain unchanged. Exhausted preparation or zero completed scout legs returns unreachable, not a negative creature-search claim. Record preparation mode/rejections and include bounded scout reasons/examples in compact goal-trial output. Verify core coverage regression, native build, CI, committed review and a bounded live no-owner-assistance trial. Positive kill/block/dodge remain open until directly observed.
 
 ## Notes
 

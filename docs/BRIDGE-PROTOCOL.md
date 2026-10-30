@@ -653,9 +653,15 @@ Notes:
   Optional `kite:true` makes `entity` optional and delegates local ground and
   target selection, drawing, kiting and melee handoff to C#. Optional `at`
   names preferred nearby ground as an [x,y,z] position and requires kite=true.
-  Native preparation is capped at 25 s; acquisition waits at most 8 s once
+  Encounter ground survey is capped at 25 s; acquisition waits at most 8 s once
   positioned. Kiting has a 40 m/40 s bound and confirms actual following.
-  Modes include survey, position, search, draw, kite and hold before melee.
+  Modes include prepare_search, survey, position, search, draw, kite and hold before melee.
+  Starting near buildings or on raised support first uses bounded ordinary
+  floor-aware travel to dry open ground: eight candidates, 60 seconds and
+  64 m total travel, within the search radius. No acquisition or swings occur
+  during preparation; nearby characters stop it. Arena checks still apply
+  after discovery. A search that completes no checked leg reports unreachable,
+  rather than claiming that no eligible creature was found.
   The same task ID and safety gates apply throughout. See SELF_DEFENSE.md
   for pacing, geometry checks, aborts and the remaining automatic policies.
 - `controls` exists for debugging and later RL experiments. It's gated by

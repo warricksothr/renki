@@ -25,6 +25,7 @@ namespace Renki.Tests
             }
             Assert.Equal(60, bot.X);
             Assert.Equal(3, s.Attempts);
+            Assert.True(s.CompletedLegs > 0);
         }
 
         [Fact]
@@ -35,6 +36,7 @@ namespace Renki.Tests
                 Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 2 + i * .1, _ => { probes++; return null; }));
             Assert.Equal(ScoutAction.Done, s.Decide(V3.Zero, 60, true, 5, _ => throw new Exception("already home")));
             Assert.Equal(Scouting.CandidateLimit, probes);
+            Assert.Equal(0, s.CompletedLegs);
         }
 
         [Theory]
@@ -55,6 +57,18 @@ namespace Renki.Tests
                 bot = s.Goal;
             }
             Assert.Equal(ScoutAction.Done, s.Decide(bot, 60, true, now, Clear));
+        }
+
+        [Fact]
+        public void AcceptedRouteAloneDoesNotEstablishSearchCoverage()
+        {
+            var s = Search();
+            Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 2, Clear));
+            Assert.Equal(0, s.CompletedLegs);
+            Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 3, Clear));
+            Assert.Equal(0, s.CompletedLegs);
+            Assert.Equal(ScoutAction.Walk, s.Decide(s.Goal, 60, true, 4, Clear));
+            Assert.Equal(1, s.CompletedLegs);
         }
 
         [Fact]

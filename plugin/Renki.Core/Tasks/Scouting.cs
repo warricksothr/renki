@@ -19,6 +19,7 @@ namespace Renki.Tasks
         public V3 Goal { get; private set; }
         public bool Returning { get; private set; }
         public int Attempts { get; private set; }
+        public int CompletedLegs { get; private set; }
         public double Travel { get; private set; }
         public string Reason { get; private set; }
 
@@ -44,7 +45,7 @@ namespace Renki.Tasks
                 Returning = true; hasGoal = false; hasDestination = true; destination = area;
             }
             if (Returning && (bot - area).Length <= 1.5) return ScoutAction.Done;
-            if (hasGoal && (bot - Goal).Length <= 1.5) hasGoal = false;
+            if (hasGoal && (bot - Goal).Length <= 1.5) { CompletedLegs++; hasGoal = false; }
             if (!hasGoal)
             {
                 if (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5)
