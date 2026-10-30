@@ -15,6 +15,7 @@ namespace Renki.Plugin
         readonly string entity, id;
         Vector3 start;
         readonly MeleeEncounter encounter;
+        readonly CharacterDeathObservation death;
         readonly Walker walker = new Walker();
         readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe();
         readonly List<Character> characters = new List<Character>();
@@ -29,7 +30,7 @@ namespace Renki.Plugin
 
         internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
 
-        public MeleeTask(string id, AttackArgs args, GameObject obj)
+        public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null)
         {
             this.id = id; entity = args.Entity;
             enemy = obj != null ? obj.GetComponent<Character>() : null;
@@ -47,6 +48,7 @@ namespace Renki.Plugin
             encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance);
             if (!encounter.Engaged) mode = "closing";
             walker.ResetStuck(start);
+            death = observation ?? new CharacterDeathObservation(enemy, entity);
             Active = this;
         }
 
@@ -87,6 +89,7 @@ namespace Renki.Plugin
                 return ended == null ? null : Finish(Outcome.Failed(ended.Status == Wire.StatusSucceeded ? Wire.ReasonRefused : ended.Reason,
                     reason + "; retreat: " + (ended.Detail ?? ended.Reason)));
             }
+            if (death.Observed) return Finish(Outcome.Succeeded("observed Greyling death"));
             var valid = enemy != null && enemy.m_nview != null && enemy.m_nview.IsValid() && enemy.gameObject.activeInHierarchy;
             if (!valid) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!Eligible(p, enemy)) return Retreat(p, "target is no longer an eligible hostile");
@@ -209,6 +212,7 @@ namespace Renki.Plugin
 
         Outcome Retreat(Player p, string why)
         {
+            death.Dispose();
             Driver.ClearCombat(); SetMode("retreat", why); escapingAt = Time.unscaledTime;
             escape = new FleeTask(new FleeArgs { From = new Target { Entity = entity }, Distance = 25 },
                 enemy != null ? enemy.transform.position : start, enemy != null ? enemy.gameObject : null, null, null);
@@ -225,7 +229,7 @@ namespace Renki.Plugin
         Outcome Finish(Outcome result) { result.Entity = entity; Cancel(); return result; }
         public void Cancel()
         {
-            cancelled = true; escape?.Cancel();
+            cancelled = true; death?.Dispose(); escape?.Cancel();
             if (ReferenceEquals(Active, this)) Active = null;
             Driver.ClearCombat();
         }

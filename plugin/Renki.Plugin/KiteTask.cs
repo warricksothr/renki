@@ -31,6 +31,7 @@ namespace Renki.Plugin
         string groundRegion;
         V3? escapeEnd;
         MeleeTask melee;
+        CharacterDeathObservation death;
         FleeTask escape;
         MoveToTask preparation;
         Vector3 preparationGoal, preparationLast;
@@ -96,6 +97,7 @@ namespace Renki.Plugin
                 var ended = escape.Tick(dt);
                 return ended == null ? null : Finish(Outcome.Failed(Wire.ReasonRefused, reason + "; retreat: " + (ended.Detail ?? ended.Reason)));
             }
+            if (death?.Observed == true) return Finish(Outcome.Succeeded("observed Greyling death"));
             if (entity != "" && (enemy == null || enemy.m_nview == null || !enemy.m_nview.IsValid() || !enemy.gameObject.activeInHierarchy))
                 return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
@@ -170,6 +172,7 @@ namespace Renki.Plugin
                     return Scout(p);
                 walking = false;
                 entity = enemy.m_nview.GetZDO().m_uid.ToString();
+                death = new CharacterDeathObservation(enemy, entity);
                 encounterOrigin = p.transform.position;
                 if (!areaChecked || Kiting.NeedsLocalArea(Convert.ToV3(encounterOrigin), Convert.ToV3(area), args.At.HasValue))
                 {
@@ -217,15 +220,20 @@ namespace Renki.Plugin
             {
                 if (!TryArea(p, area, out _, out var rejected)) return Abort(p, "fighting ground became unsafe before engagement: " + rejected);
                 Driver.ClearCombat();
-                try { melee = new MeleeTask(id, new AttackArgs { Entity = entity, Style = args.Style }, enemy.gameObject); }
+                try
+                {
+                    melee = new MeleeTask(id, new AttackArgs { Entity = entity, Style = args.Style }, enemy.gameObject, death);
+                    death = null; // Melee owns the same subscription from here.
+                }
                 catch (TaskRefused refused) { return Abort(p, refused.Message); }
                 Mode("engage");
                 return null;
             }
-            Mode(action == KiteAction.Lead ? "kite" : action.ToString().ToLowerInvariant());
+            var holdAtArea = action == KiteAction.Lead && Vector3.Distance(pos, area) <= 2;
+            Mode(holdAtArea ? "hold" : action == KiteAction.Lead ? "kite" : action.ToString().ToLowerInvariant());
             Driver.LookAt = target + Vector3.up; Driver.LookUntil = Time.time + .2f;
             if (action == KiteAction.Hold) { walking = false; return null; }
-            if (action == KiteAction.Lead && Vector3.Distance(pos, area) <= 2) { walking = false; Mode("hold"); return null; }
+            if (holdAtArea) { walking = false; return null; }
             var goal = Convert.ToVector3(policy.Goal(frame, action));
             if (!Ground(goal, out goal)) return Abort(p, "no supported kiting destination");
             if (!walking || Time.unscaledTime >= nextAim && Vector3.Distance(walkGoal, goal) > 1)
@@ -534,6 +542,7 @@ namespace Renki.Plugin
 
         Outcome Abort(Player p, string why)
         {
+            death?.Dispose();
             Driver.ClearCombat();
             Mode("retreat", why);
             // A distant lost follower is no reason to start another long chase.
@@ -562,7 +571,7 @@ namespace Renki.Plugin
         Outcome Finish(Outcome result) { result.Entity = string.IsNullOrEmpty(entity) ? null : entity; Cancel(); return result; }
         public void Cancel()
         {
-            cancelled = true; melee?.Cancel(); escape?.Cancel(); preparation?.Cancel();
+            cancelled = true; death?.Dispose(); melee?.Cancel(); escape?.Cancel(); preparation?.Cancel();
             if (ReferenceEquals(Active, this)) Active = null;
             Driver.ClearCombat();
         }

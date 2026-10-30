@@ -20,15 +20,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/scout-travel-preparation
+  branch: t3/windows-obs-capture
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 8a7248dc0c953b760997fabf5bd3f3581480ed19
+  commit: 36d1feac0555bb93e3f2f673ef9b2ae842c4f884
   session: null
   claimed_at: 2026-10-30T16:47:08Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T21:27:16Z
+updated_at: 2026-10-30T23:25:36Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Next: fix exact-target death observation, based on the live3ccd07d acquisition/lure/melee run retained in .checks/audit-window-rzYDSG.jsonl. The bounded command was just check vm combat-trial --wait-s 60 (the preceding note's missing space in --wait-s60 is a prose typo). Current polling can miss Character.OnDeath immediately followed by destruction and report target_lost. Determine local versus remote owner callback coverage from the installed game API, latch authoritative observed death for the exact selected Character/ZDO while the task owns it, consume it before invalid-view refusal, and unsubscribe on every cancel/finish/transition. Do not infer a kill from disappearance, attack input, recent low HP, or drops. Retain ordinary unload, unrelated-target, owner cancellation, world/connection and retreat safety exits. Add meaningful policy and native build checks for callback/deletion timing, nondeath unload, wrong target and cancellation. Emit only the effective kiting mode per tick to eliminate the observed90 kite/90 hold trace oscillation without changing control behavior. Run focused checks, just check ci, committed just check review, then land/deploy and retry only when a fresh eligible encounter is available. Preserve prior successful bounded scouting-return evidence. Full M3 kill/block/dodge acceptance remains open.
+Latch the selected Character's authoritative owner-side m_onDeath callback before ZNetScene.Destroy resets its ZDO. Bind observation to the exact Character/ZDO, local player, ZNet and scene; consume it before invalid-target checks, keep it across kite-to-melee handoff, and unsubscribe/clear it on cancellation, retreat and completion. Character.CheckDeath/OnDeath are owner-only; the installed DestroyZDO RPC carries IDs without death reasons, so remote deletion alone remains target_lost. Do not add network ownership changes or infer death from disappearance, damage or drops. Cover death-then-destruction, ordinary unload, wrong source, changed identity/scope, handoff and late callbacks after disposal using the same subscription/latch used by native code. Emit only the effective kite/hold mode. Run focused tests, native build, full just check ci and committed just check review; land and deploy. Run one bounded autonomous combat trial on the changed build, then proceed to the M2 gathering/storage benchmark only when its actual guards permit. Keep unobserved live kill/block/dodge and broad milestone criteria open.
 
 ## Notes
 
@@ -260,3 +260,9 @@ On installed3ccd07d, a new Greyling sighting that correctly blocked tree felling
 Zero Tas damage events; minimum/final57.2HP at the decaying food maximum, final[53.67,33.89,34.37]. Cleanup had no errors: Tas logged out, game stopped, AllowCombat=false, controller/panel online. Final camera .checks/camera-20261030T212335011358Z.jpg retains the scene. The run proves native discovery/ground selection/lure-to-melee progression under these conditions; full M3 AC remain open.
 
 Read the installed Character source through just check plugin game-source Character (.checks/20261030T212501Z-dfAAX0.log). Character.OnDeath invokes m_onDeath immediately before ZNetScene.Destroy; current MeleeTask checks nview validity before polling IsDead, so a real death can disappear between physics polls. Next fix should capture exact-target death evidence during the supported callback/appropriate network-owner path and release subscriptions on every finish/cancel, while ordinary unload remains target_lost. Do not infer a kill merely from recent attack input, low HP, drops, or disappearance. Cover cancellation, unrelated targets and target replacement/reconnect. The audit also shows90 kite/90 hold traces caused by setting kite then overriding hold within the same tick; emit only the effective final mode to reduce diagnostic noise without changing controls.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:25:36Z
+
+Implemented exact selected Character/ZDO owner-death subscription with player/network/scene/world scope, retaining its latch after immediate view reset. The same subscription transfers from KiteTask to MeleeTask, and cancellation/retreat/completion dispose it. A task-scoped death_observed trace identifies owner_callback evidence when consumed, outside the game callback. Remote DestroyZDO carries IDs only, so unobserved remote deletion still reports target_lost. Kiting now emits the effective hold/kite mode once per tick.
+
+Focused just check plugin test-core DeathObservationTests passed 11 lifecycle/identity/scope checks (.checks/20261030T232240Z-L3ndpP.log); just check plugin test-core MeleeTests passed (.checks/20261030T232307Z-JV55Sa.log). Installed-game native build passed and full just check ci passed, including 42 browser scenarios (.checks/20261030T232309Z-gJicT5.log). Live kill/block/dodge remain unproven; next steps are committed review, PR landing, checksum installation and one bounded autonomous native encounter on the changed build.
