@@ -164,6 +164,7 @@ namespace Renki.Plugin
             replaying = false;
             replayWaypoint = null;
             path.Reach = 1;
+            path.FinalReach = arrivalWithin;
             var target = approach.Target is V3 via
                 ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : goal;
             if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&

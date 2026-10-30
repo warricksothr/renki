@@ -172,6 +172,14 @@ namespace Renki.Plugin
                     walker.SetGoal(p.transform.position, goal, .15f);
                     walker.ResetStuck(p.transform.position);
                     walkGoal = goal; walking = true; retreatReady = false;
+                    Tracer.Emit("harvest", "approaching physical contact", new Dictionary<string, object>
+                    {
+                        ["contact"] = Convert.ToArray(surface),
+                        ["goal"] = Convert.ToArray(goal),
+                        ["reach"] = reach,
+                        ["attackHeight"] = attackHeight,
+                        ["attackRange"] = tool.m_shared.m_attack.m_attackRange,
+                    });
                 }
                 if (walker.Unreachable(p.transform.position, .15f) is Outcome no) return Finish(no);
                 if (walker.Refused() is Outcome refused) return Finish(refused);

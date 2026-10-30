@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:58:14Z
+updated_at: 2026-10-30T00:03:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -91,3 +91,7 @@ This is a successful staged small-tree chop/collect/deliver/return slice, not cl
 **agent:codex/renki-resume** at 2026-10-29T23:58:14Z
 
 Implemented physical Collider.Raycast contact at attack height, support projection anchored at resource elevation, tight stand-off approach and one bounded closer retry after missed swings. Added captured-coordinate regressions for raised home versus outdoor support and actual strike reach. just check ci passed (20261029T235737Z-Wj8non.log), including both protocol fixture suites and plugin build/tests. Not yet deployed or live verified; all compound harvest criteria remain open. Next live check must begin inside raised home without manual staging, then collect/deposit only measured gains and return.
+
+**agent:codex/renki-resume** at 2026-10-30T00:03:46Z
+
+Installed dc981d1: t-5 harvest from raised home reached outdoor stump 1:39764 directly without manual staging and without health loss, but never swung. Evidence .checks/task-9fx2jr97.json and .checks/audit-window-gZ6auq.jsonl: navmesh follower stopped within its default final half-metre tolerance while harvesting still needed a tighter physical-contact stance. Cancelled with t-6 return-home, which passed, then just vm stop succeeded. Corrected PathFollower with an optional tighter final tolerance, wired from Walker arrivalWithin; intermediate waypoints and partial-path ends retain existing semantics. Added a regression using the actual stopped position plus bounded contact/goal/tool-range traces. just check ci passed (20261030T000304Z-mQg7u4.log, 198 plugin tests). Retrying live after review/deploy; no stump success is claimed yet.
