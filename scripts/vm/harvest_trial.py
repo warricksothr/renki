@@ -16,6 +16,7 @@ def diagnostics(audit, task_ids):
         'safety scan': ('phase', 'radius', 'previousCapacity', 'capacity', 'count', 'complete'),
         'escape route rejected': ('attempt', 'goal', 'stage', 'collider'),
         'escape route selected': ('attempt', 'from', 'goal'),
+        'unsupported physical contact': ('entity', 'resource', 'contact', 'feet', 'probeTop'),
     }
     tasks = {key: dict(messages=Counter(), last={}) for key in list(dict.fromkeys(task_ids))[:5]}
     damage_events = 0

@@ -668,6 +668,15 @@ failures refuse. Selected/rejected corridors retain bounded geometry diagnostics
 regressions. Prior refusal: `.checks/audit-window-VVI6C2.jsonl`; no damage or
 cleanup errors. Post-change log splitting remains pending until a live result.
 
+The subsequent log-only run passed three native harvests and collected 20 Wood
+without damage or cleanup errors (audit `.checks/audit-window-4KNHu1.jsonl`).
+A fresh full-tree run felled another beech but refused a log whose pivot was
+about 7 m above Tas. Log contact now probes at actual strike height, and support
+projection uses the lower of pivot/contact elevation; high contact still fails
+actual reach checks. Unsupported-stance diagnostics retain the pivot, contact,
+feet and projection top. The bounded gather behavior and its remaining live
+checks are described in [BEHAVIOURS.md](BEHAVIOURS.md).
+
 ### Explicit melee
 
 Use `just check plugin test-core MeleeTests` for encounter policy, stamina

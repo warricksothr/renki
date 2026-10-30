@@ -166,7 +166,8 @@ namespace Renki.Plugin
             }
             var attackHeight = tool.m_shared.m_attack.m_attackHeight;
             var eye = p.transform.position + Vector3.up * attackHeight;
-            if (!HarvestApproach.Contact(targetColliders, origin, p.transform.position, attackHeight, out var surface))
+            var contactBaseHeight = rolling && !tallTree ? p.transform.position.y : origin.y;
+            if (!HarvestApproach.Contact(targetColliders, contactBaseHeight, p.transform.position, attackHeight, out var surface))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
             if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
@@ -177,7 +178,17 @@ namespace Renki.Plugin
             {
                 if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position,
                     (float)HarvestReach.StandOff(reach, contactRetries > 0), out var goal))
+                {
+                    Tracer.Emit("harvest", "unsupported physical contact", new Dictionary<string, object>
+                    {
+                        ["entity"] = args.Entity,
+                        ["resource"] = Convert.ToArray(origin),
+                        ["contact"] = Convert.ToArray(surface),
+                        ["feet"] = Convert.ToArray(p.transform.position),
+                        ["probeTop"] = HarvestReach.GroundProbeTop(origin.y, surface.y),
+                    });
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported, water-safe position beside the resource"));
+                }
                 if (!walking || Vector3.Distance(walkGoal, goal) > .45f)
                 {
                     walker.SetGoal(p.transform.position, goal, .15f);

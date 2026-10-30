@@ -20,6 +20,10 @@ namespace Renki.Tasks
         public static double Range(double attackRange) => Math.Min(1.4, attackRange * .65);
         public static double StandOff(double reach, bool closer) => Math.Min(closer ? .65 : .95, reach * .7);
 
+        // Rotated logs can have a high pivot and a low reachable end. Never
+        // begin support projection above both the pivot and measured contact.
+        public static double GroundProbeTop(double pivotY, double contactY) => Math.Min(pivotY, contactY) + 2;
+
         public static V3 StandAt(V3 resource, V3 contact, V3 from, double standOff)
         {
             var away = (from - contact).Flat.Normalized;
