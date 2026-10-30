@@ -1,7 +1,7 @@
 """Build a read-only preview of the real panel assets, optionally serving it.
 
 Default terrain is a fixture. --status/--map use captured API snapshots.
-No credentials, game tasks, external requests or third-party dependencies.
+No credentials, game tasks or external requests; embeds the production bundle.
 """
 import argparse
 import http.server
@@ -10,6 +10,9 @@ import json,pathlib,math
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--status')
 parser.add_argument('--map')
+parser.add_argument('--camera',help='Recorded JPEG, replayed with fixture timing; never a live capture')
+parser.add_argument('--camera-state',choices=['image','disabled','pending','stale','failed','broken'],default='image')
+parser.add_argument('--offline',action='store_true')
 parser.add_argument('--serve', action='store_true')
 parser.add_argument('--output')
 parser.add_argument('--atlas')
@@ -55,34 +58,87 @@ for tile in saved_tiles:
  tile.setdefault('stale',[tile['x'] < -4]*25)
 mapped['worldKey']=atlas_key
 saved_map=json.loads(pathlib.Path(args.atlas).read_text()) if args.atlas else dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
-html=(root/'internal/panel/static/index.html').read_text().replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')
-def embedded(value):
- return json.dumps(value,separators=(',',':')).replace('<', '\\u003c')
+# Everything below embeds the built production assets, including the Preact
+# workspace and the same renderer used by window.renkiSnapshots.map().
+import base64
+camera_jpeg=base64.b64encode(pathlib.Path(args.camera).read_bytes()).decode() if args.camera else ''
+frames.append(dict(type='inventory',size=[8,4],items=[dict(slot=[0,0],prefab='AxeBronze',stack=1,durability=84,durabilityMax=100,equipped=True),dict(slot=[1,0],prefab='CookedDeerMeat',stack=9,stackMax=20),dict(slot=[2,0],prefab='Wood',stack=12,stackMax=50)]))
+if not args.status:
+ status.update(hp=74,hpMax=100,stamina=65,staminaMax=90,food=dict(active=[dict(prefab='CookedDeerMeat',remainingS=740),dict(prefab='Raspberry',remainingS=350)],carried=[]),task=dict(task='move_to',id='t-preview'),combat=dict(mode='off',reason='combat disabled'))
+status.setdefault('owners',['Nimah'])
+if args.offline:
+ status=dict(connected=False,connection=status.get('connection',1),owners=status['owners'],phase='menu')
+fixtures=dict(status=status,mapped=mapped,frames=frames,atlas=saved_map,worlds=[saved_world],jpeg=camera_jpeg,cameraState=args.camera_state,settings=[dict(key=key,value=value,config=value) for key,value in [('voice',False),('owners',['Nimah']),('screenshot.enabled',bool(camera_jpeg)),('screenshot.intervalS',5),('screenshot.width',960),('screenshot.quality',70),('presence.sharePosition',False),('players.profiles',{}),('home.afterDeath','home')]],errors=[],requests=[],records=[
+ dict(kind='frame',cat='task',task='t-preview',at='2026-10-30T18:50:00Z',frame=dict(type='task',re='t-preview',task='move_to',status='failed',reason='path_blocked'),line='18:50:00 task t-preview move_to failed reason=path_blocked trace={"navmesh":false}'),
+ dict(kind='log',cat='chat',at='2026-10-30T18:50:02Z',msg='Tas: The path is blocked. I stopped safely.',line='18:50:02 said to the panel text="The path is blocked. I stopped safely."'),
+ dict(kind='frame',cat='trace',task='t-preview',at='2026-10-30T18:50:01Z',frame=dict(type='trace',msg='stuck recovery',source='walker',data=dict(attempt=2)),line='18:50:01 trace task=t-preview source=walker msg="stuck recovery" data={"attempt":2}')])
 
-bootstrap='''<script>const previewStatus=STATUS, previewMap=MAPPED, previewFrames=FRAMES, previewAtlas=ATLAS, previewWorlds=WORLDS;
-window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/camera'?({available:false,config:{enabled:false,intervalS:5}}):path==='/api/map'?previewMap:path==='/api/atlas/worlds'?previewWorlds:path.startsWith('/api/atlas/map?')?previewAtlas:path==='/api/status'?previewStatus:[]});
-window.EventSource=class{constructor(){this.handlers={};setTimeout(()=>{this.onopen?.();this.handlers.status?.({data:JSON.stringify(previewStatus)});for(const frame of previewFrames)this.handlers.record?.({data:JSON.stringify({kind:'frame',cat:'perception',frame})});},20)}addEventListener(n,fn){this.handlers[n]=fn}};</script>'''.replace('STATUS',embedded(status)).replace('MAPPED',embedded(mapped)).replace('FRAMES',embedded(frames)).replace('ATLAS',embedded(saved_map)).replace('WORLDS',embedded([saved_world]))
-html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script>'+(root/'internal/panel/static/terrain.js').read_text()+'</script>').replace('<script src="/app.js" defer></script>','')
-notice='Recorded game snapshot · read-only preview' if args.status else 'Fixture terrain · read-only preview'
-html=html.replace('<body>', '<body><div style="padding:5px 12px;color:#c3cbd1;background:#273039;font-size:12px">'+notice+'</div>')
-checks='''<script>setTimeout(()=>{console.log(JSON.stringify({terrain:world.tiles.size,landmarks:world.landmarks.length,biome:document.getElementById('biome').textContent,surface:document.getElementById('surface').textContent,height:document.getElementById('height').textContent,errors:window.previewErrors||[]}));const first=document.querySelector('[data-layer=terrain]');first.click();if(layers.terrain!==false)throw Error('Terrain toggle failed');first.click();if(layers.terrain!==true)throw Error('Terrain toggle restore failed');console.log('Layer controls passed');},80);</script>'''
-html=html.replace('</body>','<script>window.previewErrors=[];window.addEventListener("error",e=>previewErrors.push(e.message));</script><script>'+(root/'internal/panel/static/app.js').read_text()+'</script>'+checks+'</body>')
+def embedded(value):
+ return json.dumps(value,separators=(',',':')).replace('<','\\u003c')
+
+bootstrap='''<script>
+window.renkiPreview=FIXTURES;
+const preview=window.renkiPreview;
+const cameraPath='/api/'+'camera.jpg';
+window.addEventListener('error',e=>preview.errors.push(e.message));
+window.addEventListener('unhandledrejection',e=>preview.errors.push(String(e.reason)));
+const reply=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+window.fetch=async(path,options={})=>{
+ preview.requests.push({path,method:options.method || 'GET'});
+ if (options.method && options.method!=='GET') return reply({text:'Read-only preview: actions are refused'},405);
+ const url=new URL(path,location.href);
+ switch(url.pathname){
+ case '/api/status': return reply(preview.status);
+ case '/api/map': return reply(preview.mapped);
+ case '/api/atlas/worlds': return reply(preview.worlds);
+ case '/api/atlas/map': return reply(preview.atlas);
+ case '/api/task': return reply(preview.records);
+ case '/api/settings': return reply(preview.settings);
+ case '/api/models': return reply(['fixture-model']);
+ case '/api/days': return reply([{day:'2026-10-30',bytes:150000}]);
+ case '/api/timeline': return reply({events:preview.records,more:!url.searchParams.has('before')});
+ case '/api/inventory': return reply({world:preview.status.world,connection:preview.status.connection,weight:42,weightMax:300,inventory:preview.frames.find(f=>f.type==='inventory')});
+ case '/api/camera': {
+  if(preview.cameraState==='failed')return reply({text:'Fixture camera unavailable'},503);
+  const available=!!preview.jpeg && !['disabled','pending'].includes(preview.cameraState);
+  return reply({available,config:{enabled:preview.cameraState!=='disabled' && !!preview.jpeg,intervalS:5},ageS:preview.cameraState==='stale'?60:2,imageUrl:cameraPath+'?connection='+preview.status.connection+'&seq=1',frame:{...preview.status,seq:1,capturedAt:new Date(Date.now()-(preview.cameraState==='stale'?65000:3000)).toISOString(),width:960,height:540,captureMs:4.3,task:'fixture replay'}});
+ }
+ case cameraPath: return new Response(new Blob([Uint8Array.from(atob(preview.cameraState==='broken'?'aW52YWxpZA==':preview.jpeg),c=>c.charCodeAt(0))],{type:'image/jpeg'}));
+ default: return reply([]);
+ }
+};
+window.EventSource=class{
+ constructor(){this.handlers={};preview.stream=this;setTimeout(()=>{this.onopen?.();for(const frame of preview.frames)this.emit('record',{kind:'frame',cat:'perception',frame});for(const record of preview.records)this.emit('record',record);this.emit('status',preview.status);},20);}
+ addEventListener(name,fn){this.handlers[name]=fn;}
+ emit(name,value){if(name==='status')preview.status=value;this.handlers[name]?.({data:JSON.stringify(value)});}
+};
+</script>'''.replace('FIXTURES',embedded(fixtures))
+html=(root/'internal/panel/static/index.html').read_text()
+# Mirror the production image policy so blob-image regressions are visible.
+html=html.replace('<head>','<head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src \'self\' data: blob:; connect-src \'self\';">')
+html=html.replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')
+html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script>'+(root/'internal/panel/static/terrain.js').read_text()+'</script>')
+html=html.replace('<script src="/app.js" defer></script>','')
+notice='Recorded game assets · read-only fixture replay (not live)' if args.status or args.camera else 'Fixture terrain · read-only preview (not live)'
+html=html.replace('<body>','<body><aside class="preview-notice" style="padding:8px 16px;color:#d2dfc6;background:#35452b;font:12px system-ui">'+notice+'</aside>')
+checks='''<script>setTimeout(()=>{try{const shot=window.renkiSnapshots.map({maxWidth:640,quality:.8});console.log(JSON.stringify({snapshot:shot.metadata,errors:renkiPreview.errors,canvas:document.getElementById('map').getBoundingClientRect().toJSON()}));const layer=document.querySelector('[data-layer=terrain]');layer.click();if(window.renkiSnapshots.map().metadata.layers.terrain!==false)throw Error('Terrain toggle failed');layer.click();console.log('Shared renderer and layer controls passed');}catch(e){renkiPreview.errors.push(e.message);console.error(e);}},250);</script>'''
+html=html.replace('</body>','<script>'+(root/'panel/preview-checks.js').read_text()+'</script><script>'+(root/'internal/panel/static/app.js').read_text()+'</script>'+checks+'</body>')
 if args.map_only:
- html=html.replace('</head>','<style>body{height:760px}header,#feed-pane,#places,.map-key{display:none!important}main{display:block}#map-pane{height:730px}#map{flex:1 0 440px;min-height:440px}</style></head>')
+ html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,#feed-pane,#camera,.observation-column,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
 out=pathlib.Path(args.output) if args.output else root/'.checks/map-ui-preview.html'
-out.parent.mkdir(exist_ok=True)
+out.parent.mkdir(parents=True,exist_ok=True)
 out.write_text(html)
-print(out, flush=True)
+print(out,flush=True)
 if args.serve:
  class Handler(http.server.BaseHTTPRequestHandler):
   def do_GET(self):
    if self.path != '/':
-    self.send_error(404); return
+    self.send_error(404);return
    data=out.read_bytes()
    self.send_response(200)
    self.send_header('Content-Type','text/html; charset=utf-8')
    self.send_header('Content-Length',str(len(data)))
-   self.end_headers(); self.wfile.write(data)
-  def log_message(self, *_): pass
- print(f'http://127.0.0.1:{args.port}/', flush=True)
+   self.end_headers();self.wfile.write(data)
+  def log_message(self,*_):pass
+ print(f'http://127.0.0.1:{args.port}/',flush=True)
  http.server.HTTPServer(('127.0.0.1',args.port),Handler).serve_forever()

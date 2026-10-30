@@ -58,11 +58,14 @@ local inspection; do not commit or redistribute those files.
 Use `just check controller test-map` for interpolation, negative grid positions,
 unknown samples and shoreline clipping, and `just check plugin test-core TerrainCacheTests`
 for cache reuse, bounded per-step sampling, refresh, invalidation and resend.
-Both are included in `just check ci`; Node.js 20+ is needed for the panel maths.
+Both are included in `just check ci`; Node.js 20+ and npm are needed for the Preact panel and map maths.
 
 `just controller preview-map --serve` opens a read-only fixture preview at
 127.0.0.1:18780 using the actual panel assets. `--status <status.json> --map
 <map.json>` uses captured `/api/status` and `/api/map` snapshots instead.
+Add `--camera <recorded.jpg>` to exercise real image decode, or `--offline` for
+saved-map fallback. Run `await renkiPreview.check()` in the native browser
+console for fixture-only responsive/control checks (see PANEL.md).
 It creates `.checks/map-ui-preview.html`, works without Valheim or credentials,
 and rejects task actions. Use the browser console for bounded fixture checks.
 

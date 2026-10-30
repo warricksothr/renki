@@ -21,17 +21,17 @@ default:
     @just --list controller
 
 # Build the controller into the repository root (gitignored).
-build:
+build: panel-assets
     go build {{buildvcs}} -trimpath -ldflags "{{ldflags}}" -o controller ./cmd/controller
     @echo "built ./controller ({{version}})"
 
 # Cross-compile the controller for the Windows VM into dist/.
-build-windows:
+build-windows: panel-assets
     GOOS=windows GOARCH=amd64 go build {{buildvcs}} -trimpath -ldflags "{{ldflags}}" -o dist/controller.exe ./cmd/controller
     @echo "built dist/controller.exe ({{version}})"
 
 # Run the controller, with controller.local.json as its config when present.
-run *ARGS:
+run *ARGS: panel-assets
     #!/usr/bin/env bash
     set -euo pipefail
     cfg=()
@@ -67,7 +67,7 @@ test-map:
 
 # Read-only real-assets preview; pass --serve, or captured --status/--map JSON.
 [positional-arguments]
-preview-map *ARGS:
+preview-map *ARGS: panel-assets
     python3 scripts/map-preview.py "$@"
 
 # Run go vet.
@@ -109,3 +109,7 @@ clean:
 # Measure durable atlas batch writes and actual SQLite bytes per sample.
 benchmark-atlas:
     go test ./internal/atlas -run '^$' -bench BenchmarkAtlasIngest -benchtime=500x -count=1
+
+# Keep Go embedding and standalone previews reproducible from frontend sources.
+panel-assets:
+    just --justfile "{{justfile_directory()}}/justfile" panel build

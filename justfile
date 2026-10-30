@@ -12,6 +12,9 @@
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+# Preact assets, built before the controller embeds them.
+mod panel
+
 # The Go controller. Its recipes are in controller.just, beside go.mod.
 mod controller 'controller.just'
 
@@ -23,7 +26,7 @@ mod vm 'scripts/vm/vm.just'
 
 # The components the verbs route to, in order. Adding a component means a
 # `mod` line above and its name here.
-components := "controller plugin"
+components := "panel controller plugin"
 
 # List the recipes.
 default:
