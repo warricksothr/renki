@@ -643,6 +643,19 @@ blocked escape rings, central steep/sharp/unsupported terrain, gradual slopes,
 missing dry projections and obstruction changes. These policy checks do not
 prove real dodging or retreat; actual moves retain their own clearance checks.
 
+The deployed directional-ground build (7d61e9b) accepted its first candidate
+on the same hillside on 2026-10-30 UTC: center [174.1,84.69,-246.99], checked
+escape endpoint [180.1,83.91,-246.99]. Native preparation reached search and
+ended `invalid_target` because no eligible single Greyling was available;
+the last perception contained only a Boar. Minimum HP 74.3 matched the
+food-derived maximum, without observed damage. This verifies ground selection
+and stage progress, not pursuit or melee. Automatic logout/shutdown restored
+combat off, independently confirmed by status/gate checks. Evidence:
+`.checks/combat-trial-20261030T045020394084Z/summary.json` and
+`.checks/audit-window-ysrr4a.jsonl`. The next acquisition improvement is bounded
+native scouting; repeatedly searching from the same spot cannot establish a
+positive encounter when an eligible target is absent.
+
 Each trial's `summary.json` also projects matching-task ground-rejection counts,
 physical probe stages and at most six representative failures from its audit.
 The console prints only counts and the terminal task reason; exact segment

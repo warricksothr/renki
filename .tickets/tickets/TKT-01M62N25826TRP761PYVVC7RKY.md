@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T04:49:25Z
+updated_at: 2026-10-30T04:53:28Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -170,3 +170,13 @@ The 4f7b519 live trial completed without acquiring an enemy: 34 survey candidate
 Implemented a three-metre stance region checked by four complete diameters, plus at least one six-metre escape corridor among eight directions. This removes the requirement that every outer direction be usable. Stance crests/dips, incline/physical roughness, dry support and body clearance remain checked; actual movement/dodge/flee still validate their chosen routes. A checked exit is space availability, not a guarantee that it leads away from a live enemy. Region diagnostics distinguish stance and escape failures, and selection traces retain the chosen exit. Physical diagnostics from earlier failed alternatives cannot leak onto later projection failures.
 
 just check plugin test-core FightingGroundTests initially passed 11 cases (.checks/20261030T044730Z-GbyCLA.log). Added steep-exit/work-budget coverage; just check ci passed with 309 plugin tests, controller checks/builds and four Python supervisor tests (.checks/20261030T044835Z-15l2f3.log). Existing GroundCorridor sharpness regressions remain green. Review, landing, deployment and another autonomous live trial follow; broad combat acceptance criteria stay open.
+
+**agent:codex/renki-resume** at 2026-10-30T04:53:28Z
+
+PR #55 landed as 7d61e9b after just check ci (309 plugin tests and four supervisor tests, .checks/20261030T044835Z-15l2f3.log) and just check review (no findings, .checks/20261030T044931Z-HiP6VQ.log). just check vm install verified deployed package hashes (.checks/20261030T045004Z-JggDVi.log).
+
+The autonomous normal-controls trial on deployed 7d61e9b accepted the first ground candidate at [174.1,84.69,-246.99], with a checked escape endpoint at [180.1,83.91,-246.99]. No candidate rejection occurred. Native mode advanced to position/search and ended invalid_target after its bounded search: no eligible single Greyling. Last perception contained only a hostile Boar at [175.86,76.74,-225.81]. Minimum observed HP 74.3 matched the food-derived maximum; no damage or actual melee was observed. This is positive ground-selection/stage-progress evidence, not a successful encounter, strike, block, dodge or retreat check.
+
+Evidence .checks/combat-trial-20261030T045020394084Z/summary.json, .checks/audit-window-ysrr4a.jsonl, and .checks/20261030T045020Z-N4TAj9.log. Automatic logout/stop/combat-off cleanup reported no errors. Independent just check vm status and just check vm combat confirmed game/controller stopped and AllowCombat=false (.checks/20261030T045300Z-RvzFg9.log, .checks/20261030T045300Z-uwhjKk.log). The panel is consequently offline until the controller runs again.
+
+Next useful slice: native bounded scouting when local acquisition finds no eligible enemy, preserving checked fighting ground and escape/stamina/travel limits rather than asking the owner to stage or clear threats. Do not increase slope limits or repeat the same stationary trial without new evidence. Actual pursuit, contact, block/dodge, worsening-condition escape and post-encounter return remain unverified; both broad acceptance criteria remain unchecked.
