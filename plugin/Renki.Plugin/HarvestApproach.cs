@@ -29,11 +29,27 @@ namespace Renki.Plugin
                     hit.collider.transform.IsChildOf(player.transform), hit.collider.transform.IsChildOf(target.transform))));
         }
 
-        internal static bool Contact(Collider[] colliders, float baseHeight, Vector3 from, float height, out Vector3 contact)
+        internal static bool Contact(Collider[] colliders, float baseHeight, Vector3 from, float height, bool nearest, out Vector3 contact, out string method)
         {
             contact = default;
+            method = "horizontal_ray";
             var best = float.PositiveInfinity;
             var eye = new Vector3(from.x, baseHeight + height, from.z);
+            if (nearest)
+            {
+                foreach (var c in colliders)
+                {
+                    if (c == null || !c.enabled || c.isTrigger || !c.gameObject.activeInHierarchy) continue;
+                    // Unity cannot query the closest point on nonconvex mesh
+                    // colliders. Do not use their loose bounds as a substitute.
+                    if (!(c is BoxCollider || c is SphereCollider || c is CapsuleCollider || c is MeshCollider mesh && mesh.convex)) continue;
+                    var point = c.ClosestPoint(eye);
+                    var distance = (point - eye).sqrMagnitude;
+                    if (distance >= best) continue;
+                    best = distance; contact = point;
+                }
+                if (!float.IsPositiveInfinity(best)) { method = "closest_surface"; return true; }
+            }
             foreach (var c in colliders)
             {
                 if (c == null || !c.enabled || c.isTrigger || !c.gameObject.activeInHierarchy) continue;
@@ -55,6 +71,7 @@ namespace Renki.Plugin
             // height. Probe through its physical centre in 3D as a fallback;
             // only Collider.Raycast contact may establish a strike point.
             eye = from + Vector3.up * height;
+            method = "center_ray";
             foreach (var c in colliders)
             {
                 if (c == null || !c.enabled || c.isTrigger || !c.gameObject.activeInHierarchy) continue;
