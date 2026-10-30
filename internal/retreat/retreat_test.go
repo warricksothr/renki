@@ -111,6 +111,35 @@ func TestPluginFallbackFleeIsNotRepeatedlyReplaced(t *testing.T) {
 	}
 }
 
+func TestNativeKitingKeepsOwnershipButCannotHideEmergencies(t *testing.T) {
+	for _, mode := range []string{"draw", "kite", "hold"} {
+		for _, change := range []string{"healthy", "low health", "stamina", "stale", "extra attacker"} {
+			t.Run(mode+"/"+change, func(t *testing.T) {
+				f := fighting()
+				f.st.Combat.Mode = mode
+				f.seen.Characters[0].Pos = protocol.Vec3{14, 30, 0}
+				r := New(f, func() []string { return nil }, nil, quiet, nil)
+				r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+				switch change {
+				case "low health":
+					f.st.HP = 19
+				case "stamina":
+					f.st.Stamina = 9
+				case "stale":
+					f.st.Combat.ID = "old"
+				case "extra attacker":
+					f.seen.Characters = append(f.seen.Characters, protocol.PerceivedCharacter{ID: "boar", Kind: protocol.CharacterCreature, Prefab: "Boar", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{8, 30, 0}})
+					r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "boar", Amount: 1})
+				}
+				r.Tick(context.Background())
+				if (len(f.sent) == 0) != (change == "healthy") {
+					t.Fatal(f.sent)
+				}
+			})
+		}
+	}
+}
+
 func TestExplicitClosingOwnsTheHealthyTargetBeforeStrikeRange(t *testing.T) {
 	for _, mode := range []string{"closing", "approach", "block", "unknown"} {
 		t.Run(mode, func(t *testing.T) {

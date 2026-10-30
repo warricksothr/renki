@@ -12,7 +12,8 @@ owner guarding below are subsequent work.
 ## Current attack task
 
 An explicit `attack` accepts `entity` and optional `style` (`melee` or `auto`,
-which currently selects melee). This build accepts only one unstarred hostile
+which currently selects melee). Native preparation is available with `kite=true`
+and optional preferred `at` ground. This build accepts only one unstarred hostile
 Greyling, within 30 m, starting at 80% health or higher. Players, tame creatures,
 other species, ranged style and unusable weapons are refused. Combat and
 movement permissions are both required.
@@ -42,8 +43,9 @@ attack/dodge queues. An already-started swing or roll follows normal animation.
 
 The panel shows stamina and combat mode/reason. Use `just vm combat` to read
 the plugin gate; changing it requires a game restart. An owner must separately
-allow attack in controller settings. No autonomous attacker selection, job
-resumption, ranged combat or owner-guard behavior is installed by this slice.
+allow attack in controller settings. Local target acquisition runs only inside
+an explicitly requested native goal. Automatic self-defense, job resumption,
+ranged combat and owner guarding remain future work.
 
 ## What is already available
 
@@ -111,41 +113,47 @@ protection. After combat, leave interrupted jobs paused until their target,
 route and required items are revalidated. Stale continuations must not resume
 after an owner order, reconnect or world change.
 
-## Next: native kiting and encounter preparation
+## Native kiting and encounter preparation
 
-Prioritize a reusable C# routine that finds one suitable nearby enemy and
-draws it toward checked fighting ground. This is useful gameplay behavior
-for melee, later ranged combat and tactical repositioning. An isolated test
-world is optional later tooling, not a prerequisite for this work.
+`attack` with `kite=true` delegates one complete local encounter to C#.
+`entity` is optional in this mode; omission selects the nearest eligible single
+ordinary Greyling. Optional `at: [x,y,z]` supplies preferred fighting ground
+within 12 m. Without it, the routine surveys the starting point and rings at
+6 and 12 m. Each candidate must have dry supported terrain, clear body routes
+across a 6 m area, no nearby buildings or bystanders, and a usable approach.
+It moves to the checked ground before searching. Preparation is capped at
+25 seconds; local enemy acquisition waits at most 8 seconds once positioned.
 
-The controller behavior supplies a bounded search area, preferred fighting
-area, allowed enemy profile and stop conditions. One plugin body task owns
-ground validation, target acquisition, drawing attention, leading, waiting
-for the follower, engaging and emergency escape. Its handoff to melee must
-retain body ownership. Goal changes or owner stop must remain authoritative;
-the controller must not implement kiting through successive move_to orders.
+One body task owns survey, position, search, draw, kite, hold, melee and escape.
+The world-scoped controller `combat` behavior submits one such goal and waits;
+editing/stopping uses the existing engine cancellation rules. The Python trial
+runner also submits one goal, without selecting enemies or issuing movement.
+No background combat behavior is installed or enabled automatically.
 
-Kiting preserves pursuit rather than maximizing separation. Check actual
-target displacement toward Tas; remotely owned AI may not expose a target.
-Walk when clearance permits, run when the enemy gets too close and stamina
-permits, and slow or hold if it lags. Failure to follow is a bounded failure,
-not a reason to run farther. Use time, travel and progress limits, and retain
-defense/escape reserves. Unknown additional attackers, lost equipment, poor
-footing, low health/stamina or bystanders can end the attempt.
+Acquisition is restricted to loaded ordinary hostile Greylings within 30 m
+of both the bot and its starting area, with clearance from other characters.
+Kiting confirms actual target movement toward Tas on half-second samples;
+it does not require a replicated AI targeting flag or force the creature's AI.
+It draws toward 8 m separation, leads toward the area once pursuit is observed,
+waits if the enemy lags, walks normally and sprints only below 5 m separation
+with at least 30 stamina. Below 30 stamina it holds when at least 6 m clear;
+below 10, or too close to preserve the reserve, it aborts.
 
-Validate dry supported ground, nearby structures/characters, approach and
-escape routes before drawing an enemy. Recheck changing conditions locally;
-a saved waypoint is only a preferred location. Start with one ordinary
-Greyling and local observations rather than unrestricted searching. Keep
-healthy controlled kiting coordinated with retreat while preserving genuine
-emergency escape.
+The lure has a 40 second budget and a 40 m travel bound, with explicit loss
+of pursuit and progress limits. It routes sideways when the destination lies
+past the enemy, checks the actual route and aborts if a close step would cross
+into the enemy. Fighting ground is rechecked every second and before melee.
+When Tas is within 2 m of its center and the following target is within 6 m,
+it hands directly to the existing melee task under the same attack ID.
+Only observed target death succeeds. Additional creatures, bystanders,
+changed ground, lost equipment, low health/stamina or owner stop end the attempt.
+A close-threat abort uses a bounded 30 second flee; a distant lost follower
+ends the attempt without starting another long chase. Melee retains its own
+existing budgets and fallback rules.
 
-Move enemy selection from the Python trial runner into this native routine.
-The harness should submit one combat goal and retain phases, distance,
-stamina, contact and outcome. Deterministic policy/replay tests cover pacing,
-follower loss, bounds and cancellation; real trials establish whether the
-enemy actually follows and whether the melee handoff works. This routine is
-planned, not implemented or live-verified yet.
+Policy tests cover pacing, pursuit evidence, bounds, cancellation and retreat
+coordination. Successful live attraction, kiting and melee handoff remain to
+be observed. The isolated test world remains optional later tooling.
 
 ## Owner protection and the web view
 
@@ -178,15 +186,15 @@ clearing attack/block/dodge inputs. Include dead-man and reconnect behavior.
 
 Use `just vm combat-trial` for one automatic normal-controls encounter when a
 safe ordinary Greyling is available nearby. It restarts with combat enabled,
-checks food, health, stamina, bystanders and observed structures, chooses one
-eligible target, records task/state/perception/audit evidence, and always logs
+checks food, health and stamina, submits one native kiting goal, records
+task/state/perception/audit evidence, and always logs
 out and stops the game, restoring the combat config to false. It aborts on
 lost body ownership, another nearby creature, health below 70%, escape stamina
 below 10 or travel beyond 40 m. It never requests owner clearance. No suitable
 encounter produces an explicit aborted result, not a passing combat test.
 The runner does not spawn enemies, reset the character, scout unseen terrain,
-or prove return-to-shelter. Native kiting above is the next development step
-to prepare natural encounters without owner staging. It cannot guarantee that
+or prove return-to-shelter. Native kiting above prepares natural encounters
+without owner staging. It cannot guarantee that
 a suitable enemy is available; isolated-world staging/reset remains optional
 tooling for guaranteed fixture availability.
 Verify defending and disengagement from actual evidence; do not deliberately

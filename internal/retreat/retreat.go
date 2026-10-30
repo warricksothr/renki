@@ -192,6 +192,8 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	switch c.Mode {
 	case "closing":
 		rangeLimit = 30
+	case "draw", "kite", "hold":
+		rangeLimit = 40
 	case "approach", "strike", "block", "dodge", "wait":
 	default:
 		return false

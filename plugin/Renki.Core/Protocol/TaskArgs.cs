@@ -92,6 +92,8 @@ namespace Renki.Protocol
     {
         public string Entity;
         public string Style = "melee";
+        public bool Kite;
+        public V3? At;
     }
 
     public sealed class PickupArgs
@@ -249,11 +251,21 @@ namespace Renki.Protocol
                 case TaskNames.Attack:
                     {
                         var entity = Str(a, "entity");
-                        if (string.IsNullOrWhiteSpace(entity)) throw new BadArgsException("`entity` is required");
+                        var kite = Bool(a, "kite", false);
+                        if (string.IsNullOrWhiteSpace(entity) && !kite) throw new BadArgsException("`entity` is required");
+                        V3? at = null;
+                        if (a["at"] != null)
+                        {
+                            if (!kite) throw new BadArgsException("`at` requires kite=true");
+                            at = Target.Parse(a["at"], "at").Pos;
+                            if (!at.HasValue) throw new BadArgsException("`at` requires an [x,y,z] position");
+                            foreach (var coordinate in new[] { at.Value.X, at.Value.Y, at.Value.Z })
+                                if (double.IsNaN(coordinate) || double.IsInfinity(coordinate)) throw new BadArgsException("`at` requires finite coordinates");
+                        }
                         var style = Str(a, "style") ?? "melee";
                         if (style == "") style = "melee";
                         if (style != "melee" && style != "auto") throw new BadArgsException("this build supports melee or auto attack style");
-                        return new AttackArgs { Entity = entity, Style = style };
+                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at };
                     }
                 case TaskNames.Harvest:
                     {

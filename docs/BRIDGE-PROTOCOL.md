@@ -632,7 +632,14 @@ Notes:
   Choosing whether to start a fight remains the controller/owner's job.
   Optional state.combat gives the attack task id, entity, mode and reason;
   matching IDs let retreat coordinate with the active encounter and fallback.
-  See SELF_DEFENSE.md for current limits and the remaining automatic policies.
+  Optional `kite:true` makes `entity` optional and delegates local ground and
+  target selection, drawing, kiting and melee handoff to C#. Optional `at`
+  names preferred nearby ground as an [x,y,z] position and requires kite=true.
+  Native preparation is capped at 25 s; acquisition waits at most 8 s once
+  positioned. Kiting has a 40 m/40 s bound and confirms actual following.
+  Modes include survey, position, search, draw, kite and hold before melee.
+  The same task ID and safety gates apply throughout. See SELF_DEFENSE.md
+  for pacing, geometry checks, aborts and the remaining automatic policies.
 - `controls` exists for debugging and later RL experiments. It's gated by
   `allowRawControls` and expires on its own, so a lost connection can't leave
   a key held down.
