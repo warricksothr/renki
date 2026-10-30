@@ -29,12 +29,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T06:45:16Z
+updated_at: 2026-10-30T17:34:54Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -116,3 +116,7 @@ Require positive perceived creature HP during retreat threat selection. Previous
 **agent:codex/renki-resume** at 2026-10-30T06:45:16Z
 
 PR #63 merged23248bb; its dead-attacker threat correction is installed in cd08433. CI and committed review passed (.checks/20261030T062338Z-PagRsJ.log, .checks/20261030T062503Z-Z6z3Hp.log). Living actual attackers still trigger retreat; zero-health former attackers do not. No positive live flee/block/dodge is newly claimed. Latest harvested-area perception contained only Deer, with no eligible ordinary Greyling, so another unchanged combat trial was not run. Combat remains off by default; owner staging/clearance is not a development prerequisite.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:34:54Z
+
+Unstaged return-home trial on 41110b0 supplied partial retreat evidence: Greyling 1:43163 hit Tas for 2.98 at 17:31:25Z near [-40.56,31.99,1.83]. At 17:31:26Z the controller replaced move_to t-1 with flee t-2 and said it was getting away. Native states show movement west/south to [-48.73,33.75,17.06], HP22/25, before the resupply supervisor logged out. This proves hit attribution, survival preemption and some movement; it does not prove a completed escape or low-health fallback. Evidence .checks/audit-window-V6dJ5V.jsonl. Existing retreat AC remains open.

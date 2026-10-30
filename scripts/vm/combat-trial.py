@@ -47,6 +47,23 @@ def terminal(value, task_id):
     return None
 
 
+def vital_diagnostics(audit):
+    """Include native frames missed between operator polls, even during cleanup."""
+    result = dict(damageEvents=0)
+    with Path(audit).open(encoding='utf-8-sig') as lines:
+        for line in lines:
+            frame = json.loads(line).get('frame', {})
+            if frame.get('type') == 'event' and frame.get('event') == 'damaged':
+                result['damageEvents'] += 1
+            if frame.get('type') == 'state' and frame.get('phase') == 'in_world':
+                hp = frame.get('hp')
+                if isinstance(hp, (int, float)) and math.isfinite(hp):
+                    result['minimumHP'] = min(result.get('minimumHP', hp), hp)
+                    result['finalNativeHP'] = hp
+                    result['finalNativePos'] = frame.get('pos')
+    return result
+
+
 def ground_diagnostics(audit, task_id):
     """Bounded projection of one native goal; full traces remain in the audit."""
     reasons, stages, regions = Counter(), Counter(), Counter()
@@ -266,6 +283,10 @@ def main():
         try:
             audit = call('audit-window', since, until, timeout=60).strip()
             summary['audit'] = audit
+            vitals = vital_diagnostics(audit)
+            if 'minimumHP' in vitals:
+                vitals['minimumHP'] = min(summary.get('minimumHP', vitals['minimumHP']), vitals['minimumHP'])
+            summary.update(vitals)
             if harvesting:
                 try:
                     from harvest_trial import diagnostics
@@ -288,7 +309,7 @@ def main():
         except Exception as e:
             summary['auditError'] = str(e)
         (saved / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
-    report = {k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'evidence', 'cleanupErrors') if k in summary}
+    report = {k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'damageEvents', 'finalNativeHP', 'evidence', 'cleanupErrors') if k in summary}
     if summary.get('result'):
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
     if summary.get('goalId'):
