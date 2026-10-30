@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T23:25:36Z
+updated_at: 2026-10-30T23:42:04Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -266,3 +266,15 @@ Read the installed Character source through just check plugin game-source Charac
 Implemented exact selected Character/ZDO owner-death subscription with player/network/scene/world scope, retaining its latch after immediate view reset. The same subscription transfers from KiteTask to MeleeTask, and cancellation/retreat/completion dispose it. A task-scoped death_observed trace identifies owner_callback evidence when consumed, outside the game callback. Remote DestroyZDO carries IDs only, so unobserved remote deletion still reports target_lost. Kiting now emits the effective hold/kite mode once per tick.
 
 Focused just check plugin test-core DeathObservationTests passed 11 lifecycle/identity/scope checks (.checks/20261030T232240Z-L3ndpP.log); just check plugin test-core MeleeTests passed (.checks/20261030T232307Z-JV55Sa.log). Installed-game native build passed and full just check ci passed, including 42 browser scenarios (.checks/20261030T232309Z-gJicT5.log). Live kill/block/dodge remain unproven; next steps are committed review, PR landing, checksum installation and one bounded autonomous native encounter on the changed build.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:29:43Z
+
+PR115 merged as2e52531; committed review passed (.checks/20261030T232536Z-uc8IAe.log). First installation hit a transient Windows executable-open failure after process exit; a subsequent write-access probe succeeded and checksum installation passed (.checks/20261030T232654Z-9BzvAY.log).
+
+The changed-build autonomous combat trial stopped before acquisition on 'unsafe footing' while walking its first checked scouting leg. Audit .checks/audit-window-BVfcQ3.jsonl shows grounded samples at[66.96,35.47,35.03] just before refusal and[67.42,35.62,35.09] just afterward, with terrain around35.5m; no sampled water, no damage events, final51.9/51.9HP. Summary .checks/combat-trial-20261030T232711060766Z/summary.json; console .checks/20261030T232711Z-3FhAq6.log. Cleanup had no errors, game stopped, combat off, panel and continuous video standby remain available. This does not prove kill/block/dodge or callback live success.
+
+Next hypothesis: IsOnGround can briefly drop between sampled states during an ordinary walk over shallow terrain/obstacles. Add a bounded no-input settling wait only during enemy-free scouting, only within0.4m of currently projected dry terrain, at most0.5seconds. Never acquire/steer/strike while settling; unsupported/high/long airborne states, water, encumbrance and engaged combat retain refusal. Add exact footing diagnostics to prevent repeating an ambiguous failure. Verify meaningful timing/support/combat-boundary tests, CI/review/land before one changed-build retry. Prepare M2 meanwhile through the existing bounded food-resupply routine, not manual staging.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:42:04Z
+
+Implemented enemy-free scouting settling: at most0.5s, within0.4m of current dry projected terrain, with no steering or acquisition. Unsupported/high/long airborne states and airborne engagement still refuse; water, encumbrance, health, stamina and area guards retain precedence. Footing-refusal traces retain exact pose/grounded/swimming/encumbered/support-gap facts. Compact combat evidence now projects settling count, final footing refusal and exact owner-callback death evidence, scoped to the task. Nine focused footing checks passed (.checks/20261030T233006Z-LZzeK3.log), existing ScoutingTests passed (.checks/20261030T233009Z-e9MBdL.log), and compact evidence/supervisor tests passed (.checks/20261030T233955Z-SfFQ00.log). Full CI is running with the related M2 resupply supervisor changes; live footing recovery and kill/block/dodge remain open until the changed-build trial.

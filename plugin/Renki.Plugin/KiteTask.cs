@@ -17,6 +17,7 @@ namespace Renki.Plugin
         readonly float began;
         readonly double searchRadius;
         readonly Walker walker = new Walker();
+        readonly ScoutFooting footing = new ScoutFooting();
         readonly WorldNavigation.PlanningProbe probe = new WorldNavigation.PlanningProbe(diagnostics: true);
         readonly List<Character> characters = new List<Character>();
         readonly List<Vector3> approachPath = new List<Vector3>();
@@ -102,10 +103,23 @@ namespace Renki.Plugin
                 return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
                 return Abort(p, "health, stamina or equipment no longer supports kiting");
-            // Ordinary travel owns its normal bounded step/jump recovery.
-            // Requiring grounded every physics tick would cancel its first
-            // jump at a doorway; combat still requires grounded footing.
-            if ((!preparing && !p.IsOnGround()) || p.IsSwimming() || p.IsEncumbered()) return Abort(p, "unsafe footing");
+            if (p.IsSwimming() || p.IsEncumbered()) return UnsafeFooting(p, double.NaN);
+            // Ordinary entrance travel owns its normal step/jump recovery.
+            // Enemy-free scouting may pause briefly over shallow dry support;
+            // neither steering nor acquisition runs during that pause.
+            if (!preparing)
+            {
+                var grounded = p.IsOnGround();
+                var supported = false;
+                var gap = double.NaN;
+                if (!grounded && Ground(p.transform.position, out var support))
+                {
+                    supported = true; gap = p.transform.position.y - support.y;
+                }
+                var next = footing.Decide(Time.unscaledTime, grounded, enemy == null && scouting != null, supported, gap);
+                if (next == ScoutFootingAction.Abort) return UnsafeFooting(p, gap);
+                if (next == ScoutFootingAction.Wait) { Mode("scout_settle"); return null; }
+            }
             if (Vector3.Distance(origin, p.transform.position) > searchRadius + Kiting.TravelLimit)
                 return Abort(p, "overall search and encounter travel limit");
             if (preparing) return PrepareSearch(p, dt);
@@ -552,6 +566,20 @@ namespace Renki.Plugin
             escape = new FleeTask(new FleeArgs { From = new Target { Entity = entity }, Distance = 25 },
                 enemy.transform.position, enemy.gameObject, null, null);
             return null;
+        }
+
+        Outcome UnsafeFooting(Player p, double gap)
+        {
+            var data = new Dictionary<string, object>
+            {
+                ["pos"] = Convert.ToArray(p.transform.position),
+                ["grounded"] = p.IsOnGround(),
+                ["swimming"] = p.IsSwimming(),
+                ["encumbered"] = p.IsEncumbered(),
+            };
+            if (!double.IsNaN(gap)) data["supportGap"] = gap;
+            Tracer.Emit("combat", "footing_refused", data);
+            return Abort(p, "unsafe footing");
         }
 
         void Mode(string value, string why = null)

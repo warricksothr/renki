@@ -71,6 +71,8 @@ def ground_diagnostics(audit, task_id):
     modes, selected, scout_examples = [], None, []
     scout_reasons, scout_routes, scout_recoveries = Counter(), Counter(), Counter()
     return_hint = None
+    footing = dict(settles=0, lastRefusal=None)
+    death = None
     with Path(audit).open() as lines:
         for line in lines:
             row = json.loads(line)
@@ -80,9 +82,15 @@ def ground_diagnostics(audit, task_id):
                 continue
             data = frame.get('data') or {}
             message = frame.get('msg')
-            if message in ('prepare_search', 'position', 'search', 'scout', 'scout_return', 'draw', 'kite', 'hold',
+            if message in ('prepare_search', 'position', 'search', 'scout', 'scout_return', 'scout_settle', 'draw', 'kite', 'hold',
                            'engage', 'approach', 'strike', 'block', 'dodge', 'wait', 'retreat') and message not in modes:
                 modes.append(message)
+            if message == 'scout_settle':
+                footing['settles'] += 1
+            if message == 'footing_refused':
+                footing['lastRefusal'] = {k: data[k] for k in ('pos', 'grounded', 'swimming', 'encumbered', 'supportGap') if k in data}
+            if message == 'death_observed':
+                death = {k: data[k] for k in ('entity', 'evidence') if k in data}
             if message == 'ground_selected':
                 selected = {k: data[k] for k in ('area', 'escape', 'stanceRadius') if k in data}
             if message == 'scout_route':
@@ -112,7 +120,7 @@ def ground_diagnostics(audit, task_id):
                                 'supported', 'angle', 'previousAngle', 'roughness', 'probeStage', 'probeAt', 'collider',
                                 'colliderCenter') if k in data})
     return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), regions=dict(regions), examples=examples,
-                selected=selected, modes=modes, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons),
+                selected=selected, modes=modes, footing=footing, death=death, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons),
                 recoveries=dict(scout_recoveries), returnHint=return_hint, examples=scout_examples))
 
 
@@ -386,10 +394,10 @@ def main():
         if summary.get('harvest'):
             report['harvest'] = summary['harvest']
     if args.resupply_food:
-        report.update({k: summary[k] for k in ('supplied', 'activeFood') if k in summary})
+        report.update({k: summary[k] for k in ('supplied', 'activeFood', 'checkedChests', 'searchChests', 'requests') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))
     if summary.get('ground'):
-        report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected')}
+        report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected', 'footing', 'death')}
         report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons', 'recoveries', 'returnHint')}
     print(json.dumps(report, indent=2))
     return 0 if summary['outcome'] == 'succeeded' and not summary.get('cleanupErrors') else 1

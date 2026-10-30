@@ -74,7 +74,7 @@ def run(summary, call, observe, terminal, saved):
     scope = (status['world'], status.get('connection'))
     previous_health = status
     deadline = time.monotonic() + 420
-    summary.update(origin=status['pos'], tasks=[], supplied={})
+    summary.update(origin=status['pos'], tasks=[], supplied={}, checkedChests=0, requests=0)
 
     def checked_observe():
         nonlocal previous_health
@@ -106,6 +106,19 @@ def run(summary, call, observe, terminal, saved):
             result = terminal(history, task_id)
             if result:
                 summary['tasks'][-1]['result'] = result
+                # The task may finish while history is fetched, after the pose
+                # above was sampled. Require its subsequent idle body state.
+                settled_until = min(deadline, time.monotonic() + 5)
+                while True:
+                    st, mp = checked_observe()
+                    active = (st.get('task') or {}).get('id')
+                    if not active:
+                        break
+                    if active != task_id:
+                        raise RuntimeError('resupply lost body ownership after task completion')
+                    if time.monotonic() >= settled_until:
+                        raise RuntimeError('resupply completion state remained stale')
+                    time.sleep(.1)
                 return result, st, mp, history
             if (st.get('task') or {}).get('id') != task_id:
                 raise RuntimeError('resupply lost body ownership')
@@ -117,16 +130,20 @@ def run(summary, call, observe, terminal, saved):
         if result['status'] != 'succeeded' or math.dist(status['pos'], home['pos']) > 3:
             raise RuntimeError('native return home did not complete: ' + str(result.get('detail') or result.get('reason')))
     attempted, missing_chests, opened = set(), set(), {}
-    for _ in range(4):
-        if len(summary['supplied']) >= 2:
-            break
+    # Freeze the eligible area for this search. Each chest/food pair is tried
+    # once; the finite chest set and ordinary-food allowlist bound the work.
+    # An inspection and a subsequent verified withdrawal can share one chest.
+    search_chests = {c[2] for c in candidates(status, mapped, {})}
+    summary['searchChests'] = len(search_chests)
+    while len(summary['supplied']) < 2:
         status, mapped = checked_observe()
         options = [c for c in candidates(status, mapped, summary['supplied'], opened)
-                   if (c[2], c[3]) not in attempted and c[2] not in missing_chests]
+                   if c[2] in search_chests and (c[2], c[3]) not in attempted and c[2] not in missing_chests]
         if not options:
             break
         _, _, chest, prefab, amount = options[0]
         attempted.add((chest, prefab))
+        summary['requests'] = len(attempted)
         before = pack_snapshot(call, scope)
         if (before.get('size', [0, 0])[0] * before.get('size', [0, 0])[1] - len(before.get('items', []))) < 2:
             raise RuntimeError('resupply needs two free slots')
@@ -137,6 +154,7 @@ def run(summary, call, observe, terminal, saved):
         receipt = next((c for c in receipts if c.get('entity') == chest and c.get('task') == summary['tasks'][-1]['id'] and c.get('direction') == 'withdraw'), None)
         if receipt is not None:
             opened[chest] = receipt
+            summary['checkedChests'] = len(opened)
         elif result['status'] != 'succeeded':
             missing_chests.add(chest)
         moved = (receipt or {}).get('moved', {}).get(prefab, 0)

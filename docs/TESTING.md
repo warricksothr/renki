@@ -762,6 +762,12 @@ from the origin. A refused return or unsafe body state still exits immediately.
 Return legs do not count as outbound search coverage. Compact trial reports
 retain recovery-reason counts and the latest trail length/point count; raw
 traces remain on disk. No eligible enemy after returning remains a failed trial. Use
+`just check plugin test-core ScoutFootingTests` for brief ground-contact loss:
+enemy-free scouting pauses all movement/acquisition for at most 0.5 seconds
+within 0.4 m of current dry terrain support. Longer or unsupported airborne
+states and airborne engagement still refuse. Reports retain settling counts,
+exact footing refusals and any owner-callback death evidence for the task.
+Use
 `just check plugin test-core KitingTests` for pursuit/pacing/bounds and
 `just check vm test-combat-trial` for single-goal dispatch, interruption and cleanup;
 these are included in `just check ci`. A repeatable isolated test arena remains
@@ -859,8 +865,8 @@ and the automated trial backstops above; it proves no swing/block/dodge outcome.
 ## Persistent combat objective
 
 `just check vm resupply-food` prepares Tas through normal native controls with
-combat off: return to the known home within 500 m, try up to four ordinary-food
-withdrawals from remembered nearby storage, request at most four each of two
+combat off: return to the known home within 500 m, search the unique eligible
+chests in the observed home area, and request at most four each of two
 food types, and observe automatic eating. Every claimed transfer requires a
 task-matched chest receipt and newer scoped inventory; memory only selects
 candidates. Damage, unsafe water, loss of ownership, world/connection changes
@@ -878,10 +884,18 @@ currently perceived chest within 0.4 m in three dimensions. Ambiguous matches
 are skipped; old contents never prove current stock. The transfer still needs
 the exact current chest/task receipt and newer inventory evidence.
 If a hinted food is missing, the returned chest snapshot overrides that hint.
-Within the same four-request budget, preparation can check other visible home
+Within that area, preparation can check other visible home
 chests through a one-item ordinary-food request. Missing food still returns the
 actual chest contents, allowing the next request to use that observation.
 Only verified moved food counts as resupply; a missing item is a search outcome.
+After a task receipt, preparation refreshes scope/health and waits at most five
+seconds for its idle body state before judging arrival or issuing another task.
+A newer task or persistently stale state aborts. Compact results include how
+many distinct chests were checked against the initial eligible area set. Each
+chest/food pair is tried once; discovering contents and withdrawing a different
+observed food can require two requests to one chest. Likely matches go first,
+and supply stops when two types are verified. There is no fixed chest-count
+cutoff; the seven-minute, travel, health and ownership limits still apply.
 
 During a trial, `just vm trial-status` reads the newest local evidence directory
 and prints only position, observed travel, health, food, task and observation

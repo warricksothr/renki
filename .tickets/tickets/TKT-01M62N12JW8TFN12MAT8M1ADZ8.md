@@ -25,15 +25,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/gather-site-ready
+  branch: t3/scout-footing-settle
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: db85ea9744ea663b4137578c1090ca45b9cd8587
+  commit: 2e525311e5e34a3c4ddd2eb03ccb663f761cbc49
   session: null
   claimed_at: 2026-10-30T17:46:20Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T21:23:37Z
+updated_at: 2026-10-30T23:42:15Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -57,9 +57,7 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-PR108 landed food-refresh/injury evidence as7700a93; CI, committed review and checksum-verified installation passed. The changed-build gather attempt reached beech1:61548 but timed out in native approach with no physical strike/hit: measured contacts were40.14–41.87m high while feet/support were about31m. Audit .checks/audit-window-1FNOLW.jsonl and summary .checks/gather-trial-20261030T210820019368Z/summary.json show zero damage, final57.9HP and successful cleanup. Native horizontal probes currently aim through each collider AABB centre; a full-tree canopy can shift that centre away from the narrow trunk slice and force a high centre-ray fallback. Approach then walks repeatedly toward unreachable ground below that contact.
-
-Add a pivot-centred physical horizontal ray before the existing collider-centre/fallback probes, preserving Collider.Raycast as contact evidence. Check physical contact reach from the proposed supported standing position before issuing movement, returning a concise refusal rather than spending180seconds underneath an unreachable point. Include probe method/pivot/feet in compact approach diagnostics. Verify a canopy-offset narrow-trunk regression, high contact refusal and existing tilted-log/raised-floor/occlusion policies, then focused checks, full CI and committed review. Land/deploy and run one changed-build trial; record exact outcome without rerunning unchanged or owner staging. Full delivery, repeated hauling and positive M3 combat remain open.
+Complete the bounded controller tree/log/collected-gains/storage/return trial on the deployed pivot-contact build. Prepare food through native home travel and verified storage transfers. The first resupply return succeeded but the supervisor rejected an older pre-completion pose; refresh scoped, injury-checked status after a terminal receipt and wait at most five seconds for that task to clear before assessing arrival or starting another task. A different task, changed scope, damage or stale completion still aborts. Cover the observation/history race and stale/new-order cases, then focused checks and the full CI/review gate. Land alongside the bounded scouting-footing recovery needed by M3, deploy, and run one changed-build combat check followed by the full M2 gather benchmark when eligible. Preserve gains-only storage proof and all falling-tree/bystander/health guards. Keep broad M2 acceptance open until full delivery, site inference and repeated hauling are observed.
 
 ## Notes
 
@@ -124,3 +122,21 @@ PR109 merged the pivot-ray/contact-support reach fix as3ccd07d. Full just check 
 The next bounded gather trial selected beech1:61671 at[45.74,33.83,35.34], initially24.17m away and clear. Native move_to t-1 succeeded, but fresh perception during approach found a Greyling30.12m from that tree, inside the unchanged32m falling protection. Controller gathering correctly refused before harvest with 'no nearby isolated tier-zero full beech at the site'. No cuts or contact-ray test occurred; do not count the pivot-ray fix as live-proven. Summary .checks/gather-trial-20261030T211928271209Z/summary.json; exact audit .checks/audit-window-WM1Kpz.jsonl; trial log .checks/20261030T211928Z-J9To8D.log. Zero damage, minimum/final57.6HP, final[44.92,33.59,34.16], no cleanup errors. Tas was logged out, game stopped, combat restored off and panel online. Starting Wood22/BeechSeeds17/Feathers2 were not harvested or deposited.
 
 Do not rerun protected gathering unchanged or ask the owner to clear it. The new local Greyling sighting justifies one autonomous M3 acquisition/kiting/melee trial on this build, using existing health/terrain/character/retreat guards. M2 full delivery, live pivot-contact proof, remembered/chat site selection and repeated hauling stay open.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:37:30Z
+
+M2 preparation exposed two supervisor limits. The long native return t-1 succeeded from[67.35,35.6,35.14] to[-36.94,36.09,8.03], within3m of home, with zero damage. Its supervisor used the earlier status at[-43.55,35.45,10.92] fetched before the terminal history and incorrectly aborted 'native return home did not complete: None'. Evidence .checks/resupply-trial-20261030T232916874513Z/summary.json, console .checks/20261030T232916Z-HBiENa.log. Do not claim this as food supply success.
+
+A new at-home run checked four distinct chests, received exact empty-food snapshots and correctly aborted without transferring anything. Eleven home chests were visible; four requests cannot establish that food is unavailable. Evidence .checks/resupply-trial-20261030T233237899868Z/summary.json, console .checks/20261030T233237Z-aLt8hc.log, zero damage, final48.7/48.7HP, cleanup successful.
+
+Implemented post-receipt scoped/health-checked refresh with at most5seconds for the completed task to clear. A different body task or stale completion refuses. Raised the finite supply search from4 to12 requests for this11-chest home, preserving the7-minute deadline,525m travel bound, injury protection, two food types and at most4 units per verified withdrawal. Reports retain distinct checked chest count and request budget. Focused just check vm test-resupply-food passes the real completion-order race, newer task refusal, permanent stale-state bound, seven-chest positive search and twelve-request cap (.checks/20261030T233606Z-mv62ur.log). A changed-supervisor supply run is now checking home under these bounds; full-tree/haul criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:41:10Z
+
+The broader live supply run passed: .checks/resupply-trial-20261030T233626047846Z/summary.json, console .checks/20261030T233626Z-1NKTSz.log. Exact native receipts verified CookedDeerMeat1 and NeckTailGrilled4; automatic eating recovered Tas to84.6/84.6HP, with zero damage events and successful cleanup. This is supply evidence, not a tree-to-storage pass.
+
+The user requested bounding searches by unique chests in the area instead of an arbitrary lower count. This supersedes the previous note's twelve-request implementation paragraph: each run now fixes its initially observed eligible chest set, checks likely stock first, stops after two verified food types, and never repeats a chest/food pair. Current contents still override memory; probing and withdrawing different observed food can require separate requests to one chest. The finite set/ordinary-food allowlist plus existing time/travel/injury/ownership guards bound work. Reports distinguish initial unique search chests, checked chests and requests. Focused tests pass14-chest success beyond the old count,14-chest exhaustion, completion-order/new-order/stale-state cases (.checks/20261030T233955Z-dKttdI.log). Full CI reruns for this user-directed default change. Tas is now fed; one full controller gather/storage/return trial is running on the already deployed native harvesting build, independently of the pending scouting fix.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:42:15Z
+
+The first freshly fed full gather trial started from home and found zero currently perceived full beech trees. It correctly refused before submitting any native work: .checks/gather-trial-20261030T234022610220Z/summary.json, console .checks/20261030T234022Z-hBCgUQ.log. Zero damage events, final84.3/84.3HP and successful cleanup. This is an eligibility refusal, not a harvesting pass or evidence that no trees exist outside current perception. Do not repeat from the same view. After the changed-build native combat scouting trial, inspect its fresh view for an eligible M2 site. General remembered-site discovery and multi-trip work remain open.
