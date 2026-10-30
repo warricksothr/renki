@@ -797,6 +797,20 @@ and the automated trial backstops above; it proves no swing/block/dodge outcome.
 
 ## Persistent combat objective
 
+`just check vm resupply-food` prepares Tas through normal native controls with
+combat off: return to the known home within 500 m, try up to four ordinary-food
+withdrawals from remembered nearby storage, request at most four each of two
+food types, and observe automatic eating. Every claimed transfer requires a
+task-matched chest receipt and newer scoped inventory; memory only selects
+candidates. Damage, unsafe water, loss of ownership, world/connection changes
+and time/travel limits abort. Evidence and cleanup use the shared trial harness,
+which always logs out/stops and leaves the panel available. It is an explicit
+operator preparation check, not a background supply policy.
+
+Task histories now include the chest receipts naming that task, so the panel's
+task view and preparation supervisor can inspect exact moved/remaining counts
+without reading a complete audit window.
+
 `just check vm goal-trial` submits one durable `combat_trial` goal and follows it
 across failed native tasks. It retains compact progress, the final goal record
 and full observations in `.checks/`. A changed target or a close confirmed

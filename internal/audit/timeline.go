@@ -106,7 +106,7 @@ func TaskID(r Record) string {
 		switch env.Type {
 		case protocol.TypeTask:
 			return cmp.Or(env.ID, env.Re)
-		case protocol.TypeTrace:
+		case protocol.TypeTrace, protocol.TypeContainer:
 			t, _ := env.Task.(string)
 			return t
 		}
@@ -218,8 +218,8 @@ func names(r Record, id string) bool {
 			return true
 		}
 		switch t := env.Task.(type) {
-		case string: // a trace's task
-			return t == id && frameType(r) == protocol.TypeTrace
+		case string: // traces and exact chest-transfer receipts
+			return t == id && (frameType(r) == protocol.TypeTrace || frameType(r) == protocol.TypeContainer)
 		case map[string]any: // a state's running task
 			return t["id"] == id
 		}

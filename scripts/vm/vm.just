@@ -272,6 +272,14 @@ goal-trial *ARGS:
 test-goal-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/goal-trial-test.py"
 
+# Return home, verify food withdrawals and let the food keeper replenish meals.
+[positional-arguments]
+resupply-food *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --resupply-food "$@"
+
+test-resupply-food:
+    python3 -B "{{justfile_directory()}}/scripts/vm/resupply-trial-test.py"
+
 # With Tas online, verify native on/off marker telemetry and preserve the selected final state.
 [positional-arguments]
 marker-check FINAL='restore':

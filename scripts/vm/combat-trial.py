@@ -135,6 +135,7 @@ def main():
     harvest_mode = parser.add_mutually_exclusive_group()
     harvest_mode.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
     harvest_mode.add_argument('--harvest-logs', type=float, nargs=3, help='retry existing nearby beech logs around this center; no full-tree claim')
+    harvest_mode.add_argument('--resupply-food', action='store_true', help='return home and replenish ordinary carried food from known storage')
     parser.add_argument('--persistent', action='store_true', help='submit and monitor one durable goal through failed native tasks')
     parser.add_argument('--direct', action='store_true', help='test native closing/melee without lure; requires --entity')
     parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
@@ -142,11 +143,11 @@ def main():
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     args = parser.parse_args()
     harvesting = args.harvest_tree or args.harvest_logs is not None
-    if args.persistent and (harvesting or args.direct or args.entity or args.at):
+    if args.persistent and (harvesting or args.resupply_food or args.direct or args.entity or args.at):
         parser.error('--persistent chooses its own target and area; cannot combine with other trial modes')
-    if args.direct and (not args.entity or args.at or harvesting):
+    if args.direct and (not args.entity or args.at or harvesting or args.resupply_food):
         parser.error('--direct requires --entity and cannot combine with --at or harvesting')
-    if harvesting and (args.entity or args.at):
+    if (harvesting or args.resupply_food) and (args.entity or args.at):
         parser.error('harvest mode selects its own eligible nearby work site')
     if args.harvest_logs and not all(math.isfinite(v) for v in args.harvest_logs):
         parser.error('--harvest-logs must contain finite coordinates')
@@ -154,7 +155,7 @@ def main():
         parser.error('--at must contain finite coordinates')
     if not math.isfinite(args.wait_s) or not 0 <= args.wait_s <= 120:
         parser.error('--wait-s must be between 0 and 120')
-    saved = ROOT / '.checks' / (('harvest-trial-' if harvesting else 'combat-trial-') + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+    saved = ROOT / '.checks' / (('resupply-trial-' if args.resupply_food else 'harvest-trial-' if harvesting else 'combat-trial-') + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     saved.mkdir(parents=True)
     summary = {'outcome': 'not_started', 'evidence': str(saved)}
     since = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -179,9 +180,9 @@ def main():
         return status, mapped
 
     try:
-        print('Preparing one bounded ' + ('harvest' if harvesting else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
+        print('Preparing one bounded ' + ('resupply' if args.resupply_food else 'harvest' if harvesting else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
         call('stop', timeout=200)
-        call('combat', 'false' if harvesting else 'true')
+        call('combat', 'false' if harvesting or args.resupply_food else 'true')
         call('start', timeout=330)
         deadline = time.monotonic() + args.wait_s
         while True:
@@ -195,7 +196,7 @@ def main():
                 raise RuntimeError('another task is active; trial will not replace it')
             ready = (status.get('hp', 0) >= status.get('hpMax', 1) * .8
                      and status.get('stamina', 0) >= 40 and status.get('food', {}).get('active'))
-            if ready:
+            if ready or args.resupply_food:
                 break
             if any(c.get('hostile') and c.get('kind') == 'creature' and c.get('hpFrac', 0) > 0
                    and distance(c['pos'], status['pos']) < 15 for c in chars):
@@ -203,7 +204,11 @@ def main():
             if time.monotonic() >= deadline:
                 raise RuntimeError('no fed, rested, safe single-Greyling encounter available')
             time.sleep(1)
-        if args.persistent:
+        if args.resupply_food:
+            from resupply_trial import run
+            print('Returning home for a bounded food resupply', flush=True)
+            run(summary, call, observe, terminal, saved)
+        elif args.persistent:
             run_persistent_goal(summary, call, observe, saved)
         elif harvesting:
             from harvest_trial import run
@@ -296,6 +301,9 @@ def main():
         report['tasks'] = len(summary.get('tasks', []))
         if summary.get('harvest'):
             report['harvest'] = summary['harvest']
+    if args.resupply_food:
+        report.update({k: summary[k] for k in ('supplied', 'activeFood') if k in summary})
+        report['tasks'] = len(summary.get('tasks', []))
     if summary.get('ground'):
         report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected')}
         report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons')}

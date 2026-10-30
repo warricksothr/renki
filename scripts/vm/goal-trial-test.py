@@ -71,7 +71,7 @@ class Goals(unittest.TestCase):
                 self.assertEqual(commands[-2], ['panel-start'])
 
     def test_persistent_mode_disallows_conflicting_modes(self):
-        for arguments in (['--direct', '--entity', 'greyling'], ['--entity', 'greyling'], ['--harvest-tree'], ['--at', '0', '0', '0']):
+        for arguments in (['--direct', '--entity', 'greyling'], ['--entity', 'greyling'], ['--harvest-tree'], ['--resupply-food'], ['--at', '0', '0', '0']):
             with self.subTest(arguments=arguments), mock.patch.object(trial.sys, 'argv', ['trial', '--persistent', *arguments]), mock.patch.object(trial.subprocess, 'run') as run, contextlib.redirect_stderr(io.StringIO()):
                 with self.assertRaises(SystemExit):
                     trial.main()
