@@ -194,6 +194,11 @@ combat-trial *ARGS:
 harvest-trial *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-tree "$@"
 
+# Retry already fallen beech logs without felling another tree; always stop.
+[positional-arguments]
+harvest-logs X Y Z *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-logs "$1" "$2" "$3" "${@:4}"
+
 test-harvest-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/harvest-trial-test.py"
 

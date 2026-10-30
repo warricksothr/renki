@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:08:48Z
+updated_at: 2026-10-30T06:13:41Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -141,3 +141,9 @@ Before retrying, aligned the benchmark's candidate exclusion with the native ful
 The cb0192a retry passed physical strike sight but refused before a swing. Evidence: .checks/harvest-trial-20261030T055804421383Z/summary.json and .checks/audit-window-fsiaZG.jsonl. That build conflates a full 256-collider buffer with an actual character/structure exclusion; saturation is a hypothesis until new trace evidence establishes the cause.
 
 Implemented complete-result safety scans with reusable 256-to-2048 bounded growth, explicit dense-scene refusal and exact blocker traces, preserving protection/settling radii, layers and PvP rules. Focused ScanBufferTests passed (.checks/20261030T060427Z-Hdd7nT.log). Full just check ci passed (.checks/20261030T060547Z-Xhdxv1.log). Review, landing, deployment and autonomous retry follow; no additional acceptance criterion is verified yet.
+
+**agent:codex/renki-resume** at 2026-10-30T06:13:41Z
+
+PR #60 installed as 53a27dc; just check vm harvest-trial --wait-s 60 positively felled full Beech1 1:24194 after seven local hits. Safety trace establishes old-buffer saturation: protection radius32m, 281 complete colliders after256-to512 growth, no blocker. Tas moved from the trunk to about[177.25,84.14,-244.98] before returning for collection; seeds15->17 and Feathers0->2. All observed HP equalled decaying maximum80.9->80.4; no damaged event or cleanup error. Subsequent native harvest of newly observed beech_log1462070434:49 at[175.46,86.65,-265.53] failed unreachable/no physical contact before approach. No log split or Wood gain is claimed. Evidence .checks/harvest-trial-20261030T060943568520Z/summary.json and .checks/audit-window-LxVrpf.jsonl; installation .checks/20261030T060931Z-TXC7sB.log.
+
+Next preserve the successful standing-tree contact probe and add a full3D collider-centre ray fallback for tilted logs whose horizontal pivot-height slice is empty. Actual Collider.Raycast hit, fresh strike visibility, ground support and all safety guards remain mandatory. Add a log-only autonomous retry mode to use the fallen trunk without felling another tree, explicitly reporting partial log coverage rather than full-tree benchmark success.

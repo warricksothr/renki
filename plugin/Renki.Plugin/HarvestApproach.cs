@@ -50,6 +50,23 @@ namespace Renki.Plugin
                 if (distance >= best) continue;
                 best = distance; contact = hit.point;
             }
+            if (!float.IsPositiveInfinity(best)) return true;
+            // A tilted log can have an empty horizontal slice near its pivot
+            // height. Probe through its physical centre in 3D as a fallback;
+            // only Collider.Raycast contact may establish a strike point.
+            eye = from + Vector3.up * height;
+            foreach (var c in colliders)
+            {
+                if (c == null || !c.enabled || c.isTrigger || !c.gameObject.activeInHierarchy) continue;
+                var bounds = c.bounds;
+                var direction = (bounds.center - eye).normalized;
+                if (direction.sqrMagnitude < .0001f) direction = Vector3.forward;
+                var span = bounds.extents.magnitude + 2;
+                if (!c.Raycast(new Ray(bounds.center - direction * span, direction), out var hit, span * 2)) continue;
+                var distance = (hit.point - eye).sqrMagnitude;
+                if (distance >= best) continue;
+                best = distance; contact = hit.point;
+            }
             return !float.IsPositiveInfinity(best);
         }
 
