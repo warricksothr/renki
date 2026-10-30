@@ -168,6 +168,27 @@ func TestATripHomeStaysHomewardAfterItEnds(t *testing.T) {
 	}
 }
 
+func TestCombatOutageReturnsHomeWithoutResumingAttack(t *testing.T) {
+	store := Memory()
+	k, f, _ := keeper(t, store)
+	ctx := context.Background()
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{}, nil))
+	k.SetHome(protocol.Vec3{50, 0, 0}, "Nimah")
+	k.Tick(ctx)
+	f.set(f.hello, inWorld(protocol.Vec3{20, 0, 0}, &protocol.TaskRef{ID: "a", Task: protocol.TaskAttack, Status: protocol.StatusRunning}))
+	k.Tick(ctx)
+	if !store.Interrupted() {
+		t.Fatal("combat interruption was not remembered")
+	}
+	f.set(nil, nil)
+	k.Tick(ctx)
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{20, 0, 0}, nil))
+	k.Tick(ctx)
+	if got := f.sent(); len(got) != 2 || got[0] != "move_to" {
+		t.Fatal(got)
+	}
+}
+
 func TestOutageSendsTheBotHome(t *testing.T) {
 	store := Memory()
 	k, f, _ := keeper(t, store)
