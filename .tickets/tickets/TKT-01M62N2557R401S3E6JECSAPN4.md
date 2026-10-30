@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N2557R401S3E6JECSAPN4
 title: "M3: the bot survives danger and stands with its owner"
 type: epic
-status: draft
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,16 +18,23 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-resume
+  branch: t3/milestone-evidence
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 552c491e6b0ec2cac344cbb99a4e38a529ff19ef
+  session: null
+  claimed_at: 2026-10-30T13:45:00Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-29T13:23:51Z
+updated_at: 2026-10-30T13:45:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:codex/renki-resume
+  name: ""
 extensions: {}
 ---
 
@@ -45,4 +52,4 @@ The plugin's safety switch for this (Safety.AllowCombat) is off by default and s
 
 ## Implementation plan
 
-Order of work, set 2026-10-29: flee and retreat when hurt and outmatched (TKT-01M62N256); danger zones from where it was hurt (TKT-01M62N25C); attack with block and dodge behind Safety.AllowCombat, off by default (TKT-01M62N258); guard the owner and defend itself (TKT-01M62N25A). Revenge (TKT-01M62VXZH, TKT-01M62VXZJ) is outside M3's criteria and waits.
+Continue the owner-requested M3 completion. Danger memory/site preference/map layer is implemented and deployed. Native retreat, ground survey, scouting, kiting and gated melee exist. Obtain positive live melee/block/dodge and retreat evidence using bounded automatic supervisors; resolve actual failures without requiring owner staging or clearance. Then implement conservative self/owner defense selection with explicit targeting/damage evidence, species/equipment/health/stamina limits and immediate stop; preserve AllowCombat off by default. Do not infer winnability from hpFrac/stars alone or turn passive wildlife hostility into a fight. Route avoidance beyond target preference and broad milestone acceptance remain open.

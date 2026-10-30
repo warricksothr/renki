@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T13:40:49Z
+updated_at: 2026-10-30T13:47:33Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -198,3 +198,9 @@ Evidence .checks/combat-trial-20261030T053145438919Z/summary.json, .checks/audit
 **agent:codex/renki-resume** at 2026-10-30T13:40:49Z
 
 Live trial .checks/combat-trial-20261030T133251696543Z/summary.json acquired Greyling 1:41096 at 2.24 m after selecting fighting ground [188.3,87.09,-266.1], then refused before its first pursuit sample. Perception already reported targetingMe=true. Ground survey used six candidates (five body-cast failures, one sharp change) and selected a checked escape. The native retreat reached 25 m separation, minimum HP67.8, with no cleanup errors. Evidence .checks/audit-window-cRwBZi.jsonl. This proves ground selection/acquisition/retreat behavior but no melee success, blocking or dodging. The next change handles a confirmed close attacker already inside the surveyed arena rather than weakening distant-lure pursuit evidence.
+
+**agent:codex/renki-resume** at 2026-10-30T13:47:33Z
+
+PR #70 close-attacker handoff was merged and installed at 552c491. The next native lure trial selected clear ground and acquired the Greyling, but it was no longer targeting Tas and moved away during Draw. The target reached the 40 m anchor leash; the task refused with kiting travel limit rather than chasing indefinitely. Minimum HP71.5 (full food maximum), no observed damage, no cleanup errors. Evidence .checks/combat-trial-20261030T134310843680Z/summary.json and .checks/audit-window-tPodds.jsonl. This does not exercise the close-attacker handoff or prove melee/pursuit success.
+
+Added an explicit --direct --entity mode to just vm combat-trial to isolate the existing native closing/melee routine from lure preparation. It retains health/threat/ownership bounds and cleanup, submits one attack with kite:false, and requires an observed target ID. Default mode remains the full native survey/acquisition/lure path. Focused supervisor checks pass for direct/default dispatch, invalid combinations, extra-attacker abort and panel restoration. A direct trial now tests the known Greyling; any success will be labelled direct melee, not kiting.

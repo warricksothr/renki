@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25C1HMQ34QW6CTY05B4W
 title: "Controller: danger zones from where the bot was hurt"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -19,17 +19,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-resume
-  branch: t3/danger-memory
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 1ee38e56f396003389b5453ee886c9cd8d4b0fa9
-  session: null
-  claimed_at: 2026-10-30T13:28:28Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T01:40:46Z
-updated_at: 2026-10-30T13:36:08Z
+updated_at: 2026-10-30T13:43:12Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -62,3 +55,7 @@ Implemented persistent bounded per-world injury memory, decaying danger zones, s
 Focused just checks passed for store restart/decay/bounds/invalid batches/rollback, recorder retries/world/time/overflow/shutdown, fresh connection/event scoping including zero-HP death states, engine memory wiring, safe tree/pickable ranking with decay, and current-world map isolation. just check ci passed (controller race suite, builds, map tests, plugin build/core suite, ticket store, supervisors). Browser preview using actual panel assets showed one fixture danger zone, injury/attacker/time tooltip, working layer off/on, and no page errors. This implements the site/target-preference branch of AC 2; explicit site travel, delivery, return-home and native route avoidance remain unchanged, as documented in docs/MEMORY.md. Missing-object inference on the broader M2 memory dependency remains open because scan omission is not complete-coverage evidence. No intentional live damage/death was required for this memory slice.
 
 Remaining before landing: committed review, PR merge, verified installation. M2 full gather/delivery and positive M3 melee/block/dodge/pursuit still require live evidence.
+
+## Summary
+
+Implemented and merged in PR #68 (8421e67), installed with checksum verification in runtime 552c491. Per-world bounded injury/death memory drives daily-decaying danger zones, safer initial gather/collect selection and the optional map Danger layer. Fresh atomic connection/world/event scoping, retry/rollback/shutdown persistence, bounds/decay and target preference have passing regressions; full CI, committed review and real-assets browser checks passed. Explicit travel/delivery/home/native route avoidance and broader milestone live combat/gathering checks remain separate.

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 title: "M2: the bot hauls and gathers wood with its owner"
 type: epic
-status: draft
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -19,16 +19,23 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-resume
+  branch: t3/milestone-evidence
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 552c491e6b0ec2cac344cbb99a4e38a529ff19ef
+  session: null
+  claimed_at: 2026-10-30T13:45:00Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-10-29T13:23:51Z
+updated_at: 2026-10-30T13:45:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:codex/renki-resume
+  name: ""
 extensions: {}
 ---
 
@@ -55,18 +62,7 @@ No-chop zones (places the owner wants left alone) come later, as do combat (M3) 
 
 ## Implementation plan
 
-Order of work, set 2026-10-29 when the owner asked for M2 and M3 to be carried through autonomously:
-
-1. TKT-01M62G71 drowning on straight-line paths: every haul is a trip.
-2. A panel command box that speaks as an owner, so each step can be checked in the game from the panel.
-3. Plugin tasks: interact (TKT-01M62PRDR), deposit/withdraw (TKT-01M62N12C), equip (TKT-01M62N12D), harvest (TKT-01M62N12F).
-4. Memory: chests and what they hold (TKT-01M62VXYW), work sites and drops (TKT-01M62N12G), on the per-world store (TKT-01M62EP0).
-5. Behaviour engine (TKT-01M62VXYS) on the settings store.
-6. Templates: loot and deliver-when-full (TKT-01M62N12H), stow (TKT-01M62VXYY).
-7. Go chop wood (TKT-01M62N12J).
-8. Chat for instances (TKT-01M62VXYV); the panel's instance half of TKT-01M628X13X.
-
-Each: ci, vuoro review until clean, deploy, check on the VM.
+Continue the owner-requested M2 completion. Native stump harvesting/collection/delivery and primitive chest transfers have positive evidence; full-tree felling/log contact and bounded gather/collect/stow templates are implemented. Complete remaining full-tree gather/store/return live proof, observed owner-work/pile inference and automatic multi-trip hauling, then connect go-chop-wood chat to site/storage selection. Keep tools/crafting outside this milestone as scoped. Close supporting tickets only on their actual criteria, including failure/stop/room/dry-routing checks. Current raised-log retry broke two logs but aborted on Greyling damage before collected Wood, so broad completion remains unearned.
 
 ## Notes
 

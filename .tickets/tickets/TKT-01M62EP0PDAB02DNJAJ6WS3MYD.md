@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-10-29T21:20:17Z
+updated_at: 2026-10-30T13:43:12Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -71,7 +71,7 @@ can say what is near ("there's a chest by the workbench").
 - [x] Structures and notable resources from perception are kept per world across restarts, with when each was last seen
 - [ ] A remembered thing in view that perception no longer reports is marked missing
 - [ ] Each death is recorded with place, cause and time, and makes a danger zone that decays
-- [ ] The panel map draws remembered things and danger zones
+- [x] The panel map draws remembered things and danger zones
 
 ## Implementation plan
 
@@ -122,3 +122,7 @@ Session captures perception world and arrival time atomically, excluding pre-sta
 Focused checks and just check ci passed, including controller race tests, both platform builds, plugin build and 158 C# tests. Regressions cover shared metadata and input/output isolation, restart, world separation, replacement/movement/tag changes, stale frames, bounds and catalogue compaction, failed-save rollback, batch retries/world transitions, reconnect/menu scoping, authenticated API ages and final shutdown persistence. AC 1 is now satisfied; the larger ticket remains in progress. Committed review, landing and controller deployment follow.
 
 Missing-object inference remains deliberately unimplemented: per-kind truncation and resource collider saturation make omission ambiguous until explicit scan coverage is available. Death/danger and panel map rendering are still open. Unknown/modded ore prefabs are excluded by conservative recognition. A crash can lose the pending 30-second batch. New-world collection waits during an old-world save failure. Live route/combat checks remain deferred while the owner is away.
+
+**agent:codex/renki-resume** at 2026-10-30T13:43:12Z
+
+PR #68 and danger ticket TKT-01M62N25C1HMQ34QW6CTY05B4W (Controller: danger zones from where the bot was hurt) complete the persistent injury/danger and map-rendering slice, now installed in 552c491. Exact plugin injury positions and attacker ID/prefab are retained when available; unknown environmental causes remain unidentified. The panel draws remembered landmarks and danger zones, and gather/collect target choice uses their decayed scores. Store/recorder/engine/map/shutdown regressions, CI/review and real-assets browser layer/tooltip checks passed. Missing-object inference still requires explicit complete scan coverage; environmental cause classification and native route avoidance are not claimed.

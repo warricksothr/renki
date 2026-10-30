@@ -77,8 +77,15 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['scouting']['reasons']['blocked_0'], 2)
         self.assertEqual(len(summary['scouting']['examples']), 6)
 
+    def test_direct_mode_requires_an_explicit_target_and_no_lure_or_harvest_options(self):
+        for arguments in (['--direct'], ['--direct', '--entity', 'greyling', '--at', '0', '0', '0'], ['--direct', '--entity', 'greyling', '--harvest-tree']):
+            with self.subTest(arguments=arguments), mock.patch.object(trial.sys, 'argv', ['combat-trial', *arguments]), mock.patch.object(trial.subprocess, 'run') as run, contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    trial.main()
+                run.assert_not_called()
+
     def test_runner_stops_and_restores_gate_after_success_or_additional_attacker(self):
-        for outcome in ('success', 'extra attacker'):
+        for outcome in ('success', 'extra attacker', 'direct'):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as directory:
                 commands = []
                 status = dict(self.status, food=dict(active=[dict(prefab='CookedDeerMeat')]))
@@ -100,26 +107,26 @@ class CombatTrialTests(unittest.TestCase):
                     elif args[0] == 'task':
                         value = dict(id='trial')
                     elif args[:2] == ['panel', 'GET'] and args[2].startswith('/api/task?'):
-                        value = [dict(frame=dict(re='trial', status='succeeded'))] if outcome == 'success' else []
+                        value = [dict(frame=dict(re='trial', status='succeeded'))] if outcome in ('success', 'direct') else []
                     elif args[0] == 'audit-window':
                         value = '/saved/audit.jsonl'
                     return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
 
-                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--wait-s', '0']), contextlib.redirect_stdout(io.StringIO()):
+                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--wait-s', '0', *(['--direct', '--entity', 'greyling'] if outcome == 'direct' else [])]), contextlib.redirect_stdout(io.StringIO()):
                     code = trial.main()
-                self.assertEqual(code, 0 if outcome == 'success' else 1)
+                self.assertEqual(code, 0 if outcome in ('success', 'direct') else 1)
                 self.assertEqual(commands.count(['stop']), 2)
                 sent = [c for c in commands if c[0] == 'task']
                 self.assertEqual(len(sent), 1)
-                self.assertEqual(json.loads(sent[0][2]), {'kite': True, 'style': 'melee'})
+                self.assertEqual(json.loads(sent[0][2]), {'kite': False, 'style': 'melee', 'entity': 'greyling'} if outcome == 'direct' else {'kite': True, 'style': 'melee'})
                 self.assertFalse(any(c[:2] == ['task', 'move_to'] for c in commands))
                 self.assertIn(['combat', 'true'], commands)
                 self.assertIn(['combat', 'false'], commands)
                 self.assertEqual(commands[-3:-1], [['combat', 'false'], ['panel-start']])
                 self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
-                self.assertEqual(summary['outcome'], 'succeeded' if outcome == 'success' else 'aborted')
-                if outcome != 'success':
+                self.assertEqual(summary['outcome'], 'succeeded' if outcome in ('success', 'direct') else 'aborted')
+                if outcome == 'extra attacker':
                     self.assertEqual(summary['reason'], 'additional nearby creature')
 
 
