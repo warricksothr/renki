@@ -882,6 +882,15 @@ change displacing the override. Disconnect/world replacement must clear the
 lease without configuring a replacement connection. Focused regression coverage
 runs through `just check controller test-packages ./internal/app ./internal/session ./internal/panel`.
 
+
+`just vm camera-check` runs the bounded live 5 -> temporary1 -> automatic5
+cycle, captures matching JPEG/map evidence, checks connection/world and health,
+and retains a compact result plus the full audit under `.checks/`. It requires
+an in-world bot with normal five-second capture enabled; it always logs out,
+stops the game and leaves the controller/panel online. If the saved normal rate
+was different, record it before `just vm camera-rate 5` and restore it after the
+trial. The diagnostic itself never changes saved settings.
+
 ## Deterministic Preact browser checks
 
 See [PANEL-UI-TESTING.md](PANEL-UI-TESTING.md) for `just panel ui-install`,
@@ -891,3 +900,4 @@ against recorded fixtures with a locked browser/font and no game requests.
 The browser suite is required by `just check ci`; missing prerequisites fail.
 Screenshots and structured diagnostics live in `.checks/`, with a separate
 visual-review checklist that never treats a passing assertion as design approval.
+
