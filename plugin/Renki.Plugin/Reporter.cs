@@ -17,6 +17,7 @@ namespace Renki.Plugin
         bool wasDead;
         bool lowHealth;
         string lastAttacker;
+        string lastAttackerPrefab;
         string biome;
         HashSet<string> players;
         float nextRoster;
@@ -37,6 +38,8 @@ namespace Renki.Plugin
                     watched.m_onDeath -= OnDeath;
                 }
                 watched = p;
+                lastAttacker = null;
+                lastAttackerPrefab = null;
                 if (p != null)
                 {
                     p.m_onDamaged += OnDamaged;
@@ -97,10 +100,13 @@ namespace Renki.Plugin
         {
             HarvestTask.Active?.Damaged(amount);
             lastAttacker = attacker != null ? attacker.GetZDOID().ToString() : null;
+            lastAttackerPrefab = attacker != null ? Utils.GetPrefabName(attacker.gameObject) : null;
             plugin.Send(new Protocol.Event
             {
                 Name = Wire.EventDamaged,
                 By = lastAttacker ?? "",
+                Prefab = lastAttackerPrefab,
+                Pos = watched != null ? Convert.ToArray(watched.transform.position) : null,
                 Amount = System.Math.Round(amount, 2),
             });
         }
@@ -108,7 +114,13 @@ namespace Renki.Plugin
         void OnDeath()
         {
             wasDead = true;
-            plugin.Send(new Protocol.Event { Name = Wire.EventDied, By = lastAttacker ?? "" });
+            plugin.Send(new Protocol.Event
+            {
+                Name = Wire.EventDied,
+                By = lastAttacker ?? "",
+                Prefab = lastAttackerPrefab,
+                Pos = watched != null ? Convert.ToArray(watched.transform.position) : null,
+            });
             plugin.BotDied();
         }
 

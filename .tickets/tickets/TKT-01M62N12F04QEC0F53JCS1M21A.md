@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T13:23:16Z
+updated_at: 2026-10-30T13:35:27Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -167,3 +167,9 @@ Implemented log contact at actual player strike height and support projection at
 Current checkpoint: six implementation PRs #60–65 are merged and installed as cd08433. Verified full-beech felling and falling escape; earlier stump harvest plus three native log/half harvests yielding Wood2->22 earn AC1/4. Log-only positive evidence: .checks/harvest-trial-20261030T062121409419Z/summary.json and .checks/audit-window-4KNHu1.jsonl. This is not a continuous full-tree benchmark or controller-level delivery pass.
 
 Latest cd08433 retry of elevated log2257601154:44 still refused before a strike: measured contact[168.08,90.57,-281.48], feet[169.22,83.48,-273.67], support top92.57. A lower reachable contact was not found; this does not prove every log surface is inaccessible. No damaged event or cleanup error; minimumHP75 equalled food maximum. Evidence .checks/harvest-trial-20261030T064338283047Z/summary.json, .checks/audit-window-gyS3nC.jsonl, wrapper .checks/20261030T064338Z-D047uN.log. Do not repeat this unchanged probe without a new geometric hypothesis. Next: bounded physical sampling of lower log ends/alternative stances, continuous tree-to-Wood proof, collection:false and inventory-full/target-loss branches. Mining and controller gathering/delivery remain separate. No owner staging/clearance is required for further development. Use compact trial summaries/just vm harvest-evidence; exact history stays on disk and older ticket notes.
+
+**agent:codex/renki-resume** at 2026-10-30T13:35:27Z
+
+PR #67 (nearest physical log surfaces) merged at 1ee38e5 and installed with checksum verification. The logs-only retry at [168.02,90.96,-281.97] reached the formerly troublesome elevated trunk (now reloaded as 1:38783), selected closest_surface contact, and broke it after six local hits. Its new nearby log 821018620:58 then broke after three local hits. The previous unreachable result was not proof the log was suspended or inaccessible.
+
+The supervisor correctly aborted after a Greyling (1:41096, targetingMe) inflicted 4.58 damage. Minimum HP was 68.3; two log breaks, zero measured Wood gain. This is positive contact/break evidence, not a logs-only/full-tree collection pass or delivery proof. Evidence: .checks/harvest-trial-20261030T132814649615Z/summary.json and .checks/audit-window-DNqCSF.jsonl. Independent just check vm status and just check vm combat confirmed both processes stopped and AllowCombat=false. A bounded native combat trial now uses this newly observed ordinary Greyling; no owner staging/clearing is needed.

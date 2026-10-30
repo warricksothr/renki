@@ -4,9 +4,11 @@ import (
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"sort"
+	"time"
 )
 
 type MapSnapshot struct {
+	Danger     []home.DangerZone          `json:"danger"`
 	World      string                     `json:"world"`
 	Connection uint64                     `json:"connection"`
 	Tiles      []protocol.TerrainTile     `json:"tiles"`
@@ -22,6 +24,7 @@ func (a *App) MapSnapshot() any {
 	out := MapSnapshot{World: world, Connection: conn, Tiles: tiles, Landmarks: []home.Landmark{}, Containers: []home.RememberedContainer{}}
 	out.Perception, out.Walls = a.Session.MapObjects(world, conn)
 	if world != "" {
+		out.Danger = a.Memory.Store.DangerZones(world, time.Now())
 		out.Waypoints = a.Memory.Store.Waypoints(world)
 		out.Landmarks = a.Landmarks.Store.Landmarks(world)
 		if state := a.Session.State(); state != nil && state.World == world {

@@ -192,6 +192,12 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		return nil, ErrWait
 	}
 	var best *protocol.PerceivedResource
+	cost := func(pos protocol.Vec3) float64 {
+		if r.targets == 0 {
+			return targetCost(v, pos)
+		}
+		return distance(v.State.Pos, pos)
+	}
 	unfinished := false
 	for _, resource := range v.Perception.Resources {
 		if resource.ID == "" || r.completed[resource.ID] || resource.MinTool == nil || *resource.MinTool != 0 {
@@ -205,7 +211,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		if !eligible || distance(resource.Pos, r.p.Site.Pos) > r.p.Site.Radius || distance(resource.Pos, v.State.Pos) > 18 || !gatherClear(v, resource) {
 			continue
 		}
-		if best == nil || distance(resource.Pos, v.State.Pos) < distance(best.Pos, v.State.Pos) || distance(resource.Pos, v.State.Pos) == distance(best.Pos, v.State.Pos) && resource.ID < best.ID {
+		if best == nil || cost(resource.Pos) < cost(best.Pos) || cost(resource.Pos) == cost(best.Pos) && resource.ID < best.ID {
 			copy := resource
 			best = &copy
 		}

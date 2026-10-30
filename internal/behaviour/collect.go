@@ -198,7 +198,7 @@ func (r *collectRun) Next(v View, result *Result) (*session.Order, error) {
 			if target.Kind != protocol.ResourcePickable && !(r.p.Drops && target.Kind == protocol.ResourceDrop) {
 				continue
 			}
-			if best == nil || distance(v.State.Pos, target.Pos) < distance(v.State.Pos, best.Pos) || distance(v.State.Pos, target.Pos) == distance(v.State.Pos, best.Pos) && target.ID < best.ID {
+			if best == nil || targetCost(v, target.Pos) < targetCost(v, best.Pos) || targetCost(v, target.Pos) == targetCost(v, best.Pos) && target.ID < best.ID {
 				copy := target
 				best = &copy
 			}

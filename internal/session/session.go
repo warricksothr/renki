@@ -107,6 +107,8 @@ type Session struct {
 	orders      uint64
 	conn        *bridge.Conn
 	state       *protocol.State
+	stateAt     time.Time
+	injurySeq   uint64
 	seen        *protocol.Perception
 	seenAt      time.Time
 	seenWorld   string
@@ -174,6 +176,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	}
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.seenAt, s.seenWorld = time.Time{}, ""
+	s.injurySeq = 0
 	s.terrain, s.terrainSeq = nil, 0
 	s.layout = nil
 	s.automation = nil
@@ -234,6 +237,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 				s.layout = nil
 			}
 			s.state = m
+			s.stateAt = time.Now().UTC()
 		}
 		s.mu.Unlock()
 	case *protocol.TaskStatus:
@@ -241,7 +245,17 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 	case *protocol.Chat:
 		s.listener.Chat(m)
 	case *protocol.Event:
-		s.listener.Event(m)
+		if observer, ok := s.listener.(InjuryListener); ok {
+			if observation, valid := s.ObserveInjury(c, m, time.Now().UTC()); valid {
+				observer.Injury(m, observation)
+			}
+		}
+		s.mu.Lock()
+		current := s.conn == c
+		s.mu.Unlock()
+		if current {
+			s.listener.Event(m)
+		}
 	case *protocol.Perception:
 		s.mu.Lock()
 		if s.conn == c && (s.seen == nil || m.Seq > s.seen.Seq) {

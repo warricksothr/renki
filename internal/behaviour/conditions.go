@@ -1,6 +1,7 @@
 package behaviour
 
 import (
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"math"
 	"slices"
@@ -17,6 +18,7 @@ type View struct {
 	Containers []*protocol.Container
 	Owners     []string
 	Home       *protocol.Vec3
+	Danger     []home.DangerZone
 	Idle       bool
 }
 
@@ -88,4 +90,10 @@ func (c Conditions) Match(v View) bool {
 
 func distance(a, b protocol.Vec3) float64 {
 	return math.Sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2]))
+}
+
+// targetCost expresses remembered harm as extra travel, so safer nearby work
+// wins while a decayed memory remains a preference rather than a permanent ban.
+func targetCost(v View, pos protocol.Vec3) float64 {
+	return distance(v.State.Pos, pos) + 60*home.DangerRisk(v.Danger, pos)
 }

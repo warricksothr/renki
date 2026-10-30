@@ -36,6 +36,7 @@ type App struct {
 	Behaviours *behaviour.Engine
 	Memory     *memory.Containers
 	Landmarks  *memory.Landmarks
+	Danger     *memory.Danger
 	Bridge     *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
@@ -95,6 +96,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Owners:     func() []string { return set.Values().Owners },
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
+		Danger:     homes.DangerZones,
 		Notify: func(ctx context.Context, line string) {
 			_, err := s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}, TimeoutS: 5})
 			if err != nil {
@@ -104,7 +106,8 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Logger: log.With("part", "behaviour")})
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
-	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours})
+	a.Danger = &memory.Danger{Store: homes, Logger: log.With("part", "memory")}
+	s.SetListener(&listeners{brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -120,10 +123,14 @@ type listeners struct {
 	brain      *chat.Brain
 	retreat    *retreat.Retreat
 	behaviours *behaviour.Engine
+	danger     *memory.Danger
 }
 
 func (l *listeners) Chat(c *protocol.Chat)    { l.brain.Chat(c) }
 func (l *listeners) TaskDone(t *session.Task) { l.brain.TaskDone(t) }
+func (l *listeners) Injury(e *protocol.Event, observation session.InjuryObservation) {
+	l.danger.Observe(e, observation)
+}
 func (l *listeners) Event(e *protocol.Event) {
 	l.retreat.Event(e)
 	l.behaviours.Event(e.Event)
@@ -146,10 +153,12 @@ func Welcome(cfg config.Config, v settings.Values) *protocol.Welcome {
 func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	ctx, cancel := context.WithCancel(ctx)
 	landmarksDone := make(chan struct{})
+	dangerDone := make(chan struct{})
 	defer func() {
 		cancel()
 		// Let the recorder persist its final batch before main can exit.
 		<-landmarksDone
+		<-dangerDone
 	}()
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
@@ -158,6 +167,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.discoverWaypoints(ctx)
 	go a.Behaviours.Run(ctx)
 	go a.Memory.Run(ctx)
+	go func() { defer close(dangerDone); a.Danger.Run(ctx) }()
 	go func() {
 		defer close(landmarksDone)
 		a.Landmarks.Run(ctx)

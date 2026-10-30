@@ -29,6 +29,7 @@ type Options struct {
 	Owners     func() []string
 	Home       func() (protocol.Vec3, bool)
 	Containers func(world string) []home.RememberedContainer
+	Danger     func(world string, now time.Time) []home.DangerZone
 	Logger     *slog.Logger
 	Now        func() time.Time
 	Notify     func(context.Context, string)
@@ -317,6 +318,9 @@ func (e *Engine) Run(ctx context.Context) {
 }
 func (e *Engine) view() View {
 	v := View{Now: e.o.Now(), State: e.o.Session.State(), Inventory: e.o.Session.Inventory(), Perception: e.o.Session.Perception(), Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	if e.o.Danger != nil && v.State != nil {
+		v.Danger = e.o.Danger(v.State.World, v.Now)
+	}
 	if e.o.Containers != nil && v.State != nil {
 		// Live contents supersede the entire old observation, including an
 		// empty chest. Never satisfy a condition from an older duplicate.
