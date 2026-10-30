@@ -54,7 +54,12 @@ namespace Renki.Plugin
                 full = RenderTexture.GetTemporary(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
                 small = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
                 ScreenCapture.CaptureScreenshotIntoRenderTexture(full);
-                Graphics.Blit(full, small);
+                // D3D screen captures have top-origin GPU rows, whereas
+                // ReadPixels/JPEG use the texture's bottom-origin rows.
+                // Flip during the existing resize, without another readback.
+                Graphics.Blit(full, small,
+                    new Vector2(1, SystemInfo.graphicsUVStartsAtTop ? -1 : 1),
+                    new Vector2(0, SystemInfo.graphicsUVStartsAtTop ? 1 : 0));
                 RenderTexture.active = small;
                 pixels = new Texture2D(width, height, TextureFormat.RGB24, false);
                 pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);

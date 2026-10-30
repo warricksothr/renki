@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-30T18:30:10Z
-updated_at: 2026-10-30T18:44:50Z
+updated_at: 2026-10-30T18:48:54Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -61,3 +61,7 @@ Add a bounded screenshot message and shared capture config; Unity end-of-frame G
 **agent:codex/renki-milestones** at 2026-10-30T18:44:50Z
 
 Implementation and fixture checks pass: just check ci (.checks/20261030T184419Z-Hlr3s2.log). Actual panel-renderer fixture rendered through native HTML preview without console errors. Live VM verification remains open; no completion claimed before deployment.
+
+**agent:codex/renki-milestones** at 2026-10-30T18:48:54Z
+
+PR #94 merged and deployed as ec7908c. Live JPEG: 960x540, 58,348 bytes, 15.7 ms capture work; viewing it revealed a D3D vertical orientation error. Follow-up corrects the GPU resize orientation. Live browser map snapshot API returned matching scope and 98 terrain tiles, 26 structures, 7 remembered container snapshots. Standalone map exceeded the native HTML tool input limit; narrowing atlas coverage to the default viewport and compacting JSON before repeating. Logout cleared the panel camera while retained terrain remained available.
