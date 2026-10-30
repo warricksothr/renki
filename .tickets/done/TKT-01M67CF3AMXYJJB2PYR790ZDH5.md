@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M67CF3AMXYJJB2PYR790ZDH5
 title: Add local panel video and persistent standby scene
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/local-streaming
-  branch: t3/local-streaming-standby
-  worktree: /home/sothr/.t3/worktrees/renki/t3-52079701
-  commit: d7ee89f04e17a7d505173a5649b78e5fe1a39deb
-  session: null
-  claimed_at: 2026-10-30T21:47:23Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T21:46:44Z
-updated_at: 2026-10-30T22:10:49Z
+updated_at: 2026-10-30T22:14:03Z
 created_by:
   id: agent:codex/local-streaming
   name: ""
@@ -48,7 +41,7 @@ Implement the explicitly authorized local-only streaming proof above PR112, pres
 - [x] Optional authenticated video uses bounded private signaling; JPEG diagnostics remain independent
 - [x] Shared original standby screen and player recovery hide untrusted or stalled game frames
 - [x] Loopback synthetic end-to-end evidence and fixture screenshots distinguish implemented behavior from Windows OBS follow-up
-- [ ] Full CI and committed review pass; stacked PR documents architecture and remaining checks
+- [x] Full CI and committed review pass; stacked PR documents architecture and remaining checks
 
 ## Implementation plan
 
@@ -73,3 +66,13 @@ Actual Windows OBS capture freshness and automatic scene switching remain unimpl
 Actual H264 local proof passed through T3 preview: 1280x720 decode, encoded slate before source, moving synthetic FFmpeg source, bot offline covering with identical MediaStream, source killed -> slate advancing 1075 to1165 frames in3s, restored source at1511 frames with exactly one WHEP POST. Evidence .checks/streaming/proof-h264/result.json and matching PNGs. Stronger automated VP9 proof passed five checks including distinct moving source pixels, matching encoded fallback and independent relay-outage recovery (.checks/streaming/proof-vp9/result.json; log .checks/20261030T220241Z-bh8Jzk.log). Bundled Chromium lacks H264; explicit H264 proof recipe correctly reports that limitation. No VM, OBS, actual game, Twitch or external destination was used.
 
 Full just check ci passed (.checks/20261030T220538Z-zyE8PK.log). Subsequent mobile visual review identified aspect-ratio/min-height width expansion; explicit width and a fitting assertion corrected it. All ten focused video cases passed again in .checks/video-ui-final, with reviewed screenshot copy visual-review-reviewed.json. Final complete gate is running before implementation commit. Keep AC4 pending until committed review and PR handoff.
+
+## Summary
+
+Delivered the scoped local-only streaming proof in PR113 (Add local panel video and continuous standby slate), stacked above PR112 (Research safe OBS broadcasting and offline profile tooling). Merged both PR112 commits into parent 06d915b, preserving M2/M3 ticket evidence. Existing Camera export is compatible with the separate unmerged layout PR110. No VM, game, OBS settings, external destination, deployment or merge was touched.
+
+Implemented optional native WebRTC video, bounded authenticated loopback WHEP proxy, capture-health/scope trust boundary, independent lazy JPEG diagnostic UI, original shared standby artwork/standalone OBS page, private pinned MediaMTX tooling and encoded no-publisher fallback. Emergency body stop remains independent, including a test while all media signaling slots are occupied. Game logout covers content without destroying transport. Production remains on standby until a real capture adapter provides fresh matching assertions; that Windows adapter/scene-switch validation remains draft TKT-01M67DWFX7H0ZSGX4WWG2NVYCC (Validate Windows OBS freshness and persistent standby scenes).
+
+Actual H264 end-to-end proof through T3 browser retained one MediaStream and one WHEP POST through source/no-source/Tas-offline/publisher restart. The encoded standby continued at30fps during source loss. Automated explicit VP9 proof also passed actual moving-picture, publisher-liveness, encoded-slate matching and separate relay-outage recovery assertions. Bundled Chromium lacks H264; do not conflate VP9 or synthetic H264 with OBS/Windows/Twitch proof. Final mobile layout was visually inspected after fixing clipping and width expansion.
+
+Implementation just check ci passed (.checks/20261030T220931Z-MwUUKt.log), including40 UI scenarios. Committed just check review t3/research-twitch-streaming...HEAD passed without findings at7b79711 (.checks/20261030T221241Z-pt6CW3.log). PR113 is pushed and describes exact evidence/limits. H264 evidence .checks/streaming/proof-h264/result.json; VP9 .checks/streaming/proof-vp9/result.json (run log .checks/20261030T220241Z-bh8Jzk.log); final fixture screenshots and reviewed visual copy .checks/video-ui-final/. docs/LOCAL-VIDEO.md retains design, recipes, LAN/Tailscale ICE/HTTPS and viewer/bitrate considerations. Ticket closure receives its own required CI/committed-review gate before final push.
