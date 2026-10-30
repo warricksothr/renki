@@ -78,10 +78,15 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   object inside it was reported.
   Authenticated `GET /api/map` supplies current-world/connection terrain and
   up to 512 nearest remembered landmarks; the page refreshes it every 5 s.
-  Terrain is bounded to 256 cached tiles, resets on controller/plugin
-  reconnect or world/menu changes, and repopulates from the plugin. Persistent
-  exploration is separate work. [ATLAS.md](ATLAS.md) proposes durable terrain,
-  saved-world viewing and age/provenance styling; these are not implemented yet.
+  The hot cache holds 256 tiles; the durable atlas accumulates measured terrain
+  across reconnects and restarts under stable world/epoch identity. The **Map**
+  selector opens a saved world's terrain while offline. Stale cells fade; hover
+  shows measurement age, source and spacing. Saved viewing clears live actors
+  and objects. Viewport requests are bounded to 512 m per side; wider views show
+  a central detail region. [ATLAS.md](ATLAS.md) documents retention, quotas and
+  the read-only `/api/atlas/worlds` and `/api/atlas/map` endpoints. Older plugins
+  without trustworthy identity/freshness remain session-only. Exploration is
+  separate work.
   A map request failure retains the last
   scoped view until a later successful refresh.
 - **Voice:** the model the bot's chat replies use, who chose it and when,

@@ -60,6 +60,12 @@ namespace Renki.Plugin
                 "Where the controller listens (docs/BRIDGE-PROTOCOL.md section 2).");
             token = Config.Bind("Bridge", "Token", "",
                 "Sent in hello. Required when the controller listens on anything but loopback.");
+            terrain.Namespace = Config.Bind("Mapping", "Namespace", "local",
+                "Stable server/save namespace for atlas data; use a distinct value for unrelated save copies.").Value;
+            terrain.Epoch = Config.Bind("Mapping", "Epoch", "1",
+                "Change after restoring, resetting or forking a save to keep incompatible maps separate.").Value;
+            terrain.Source = Config.Bind("Mapping", "Source", System.Guid.NewGuid().ToString("N"),
+                "Persistent observer ID for map provenance.").Value;
             safety.Enabled = Config.Bind("Safety", "Enabled", true,
                 "Master switch. Off, the plugin accepts no task at all.").Value;
             safety.AllowMovement = Config.Bind("Safety", "AllowMovement", true, "move_to, follow, look_at.").Value;

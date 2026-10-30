@@ -1,12 +1,12 @@
 # Durable world atlas: proposed storage and exchange design
 
-Status: design/backlog, tracked by TKT-01M66Q5SFWV99JCGJXVARVRJH7 — Durable
-versioned world atlas and portable mapping data. Nothing here changes runtime
-retention, starts exploration, imports data or publishes a map. The first
-implementation should persist the existing terrain backdrop; broader mapping
-exchange and exploration build on that foundation.
+Status: initial terrain persistence implemented under
+TKT-01M66Q5SFWV99JCGJXVARVRJH7 — Durable versioned world atlas and portable mapping
+data. Stable capture identity, bounded SQLite storage and saved terrain viewing
+are implemented. Portable export/import and the broader formats/layers below
+remain design/backlog. Exploration remains separate after M2/M3.
 
-## Current behavior and gaps
+## Implemented terrain atlas
 
 The plugin samples only loaded heightmaps: 16 m tiles, 25 corner measurements
 at 4 m spacing, row-major toward +z. It reports height rounded to 0.1 m, biome
@@ -16,21 +16,96 @@ samples after 30 seconds and missing samples after five seconds, and invalidates
 nearby tiles after heightmap regeneration. This measures loaded terrain, not
 personal visual coverage or route safety.
 
-Both plugin and controller retain at most 256 tiles. The session resets its
-terrain on reconnect/world/menu transitions; the panel reloads this session
-snapshot. Thus the terrain backdrop does not accumulate durably across runs.
-Landmarks, container contents, danger, player encounters and waypoints already
-have separate persistent memory and retention policies in [MEMORY.md](MEMORY.md).
+Each terrain batch includes a `scope` manifest with decimal-string world UID,
+namespace, save epoch, persistent observer ID, stream ID, game/generator version
+and a fingerprint of installed plugin IDs/versions. This fingerprint does not
+cover every mod setting. The producer supplies `capturedAt` and each corner's
+`measuredAt` in monotonic seconds. Unchanged fresh measurements are reported;
+resends and unloaded carried corners retain their original timestamps. The
+controller derives measurement age from the difference and first receipt time,
+without trusting the VM wall clock. Transport delay remains uncertainty; these
+are receipt-based measurement estimates, not synchronized survey timestamps.
 
-Two capture details matter before adding persistent expiry:
+Plugin configuration in `Mapping` defaults to namespace `local`, epoch `1`
+and an automatically generated persistent `Source`. Give unrelated save copies
+different namespaces; change the epoch after a restore/reset/fork. World names
+are display metadata only. A changed generator version under the same identity
+requires a new epoch. Optional `state.worldUid` scopes the live map too. Older
+producers without identity and per-corner timestamps remain session-only.
 
-- Identical resampled tiles are suppressed. Receiving no change is not evidence
-  that a particular tile was freshly checked, nor that it was forgotten.
-- Unloaded samples carry their previous values forward. A resend or changed
-  corner must not refresh the timestamps of those unobserved old values.
+Both plugin and controller retain a 256-tile hot cache, reset across live
+connection/world/menu transitions. Accepted measurements also enter a bounded
+2048-tile queue. A worker drains it once a second into `dataDir/atlas.sqlite`,
+with no disk work on bridge callbacks. Failed batches keep original metadata
+for retry; queue overflow is logged. Graceful shutdown attempts a final bounded
+flush; abrupt termination or an unsuccessful final flush can lose queued data.
+SQLite transactions keep the previously committed atlas intact.
 
-A durable atlas therefore needs measurement freshness/confirmation metadata,
-not just timestamps attached to incoming complete-looking tile payloads.
+The schema stores canonical global 4 m samples, current values and bounded
+changed revisions, reconciling shared transport borders. Equal fresh confirmations
+renew the accepted measurement time without adding history. Duplicate producer
+ticks cannot renew age on resend/reconnect. Producer stream manifests remain
+while current/history evidence references them. The existing JSON memories are
+unchanged; saved terrain viewing currently shows terrain alone.
+
+Controller `atlas` settings (omitted properties inherit configuration defaults):
+
+```json
+"atlas": {
+  "staleDays": 30,
+  "keepDays": 180,
+  "historyDays": 30,
+  "revisions": 8,
+  "maxSamples": 250000,
+  "maxHistory": 100000,
+  "maxBytes": 134217728
+}
+```
+
+Expired/future-dated samples are omitted on reads. Maintenance runs every 30 s
+and at startup, removes expired/excess evidence and reclaims pages incrementally.
+Capacity eviction can occur before age expiry. The disk budget reserves roughly
+half for the main database and half for WAL/frame/maintenance overhead, with
+checkpoints after batches and proactive eviction under pressure. Thus actual
+sample capacity may be below `maxSamples`. An existing file too large for a
+newly reduced disk budget is refused rather than silently exceeding that limit.
+Schema version 1 is migrated transactionally; unknown future versions are refused.
+Use SQLite backup tooling for live backups, or stop the controller before copying
+its database files.
+
+The authenticated read-only panel endpoints are:
+
+- `GET /api/atlas/worlds`: up to 256 retained world manifests/keys and last receipt
+  positions. A manifest's `seen` is last batch receipt, not every sample's freshness.
+- `GET /api/atlas/map?world=KEY&minX=...&maxX=...&minZ=...&maxZ=...`: retained
+  terrain in a finite viewport at most 512 m per side, with per-corner `observedAt`,
+  `sources` and `stale`. `world=live` resolves current stable identity and checks
+  the connection again before replying. Saved requests never establish live task scope.
+- Existing `GET /api/map` remains the live session/object snapshot, now with optional
+  `worldUid` and `worldKey`. The page combines retained terrain with this snapshot.
+
+The map selector explicitly opens saved terrain while Tas is offline. Stale cells
+fade; hovering reports the oldest contributing corner's measurement estimate,
+observer IDs and 4 m spacing. Unknown holes remain unknown. Queries refresh after
+panning/zooming and periodically; views wider than 512 m show a bounded central
+detail region. Coarse overviews, historical time sliders and import/export are
+future work. Saved viewing clears live actors/objects and does not edit waypoints.
+
+`just check controller test-packages ./internal/atlas ./internal/session ./internal/app`
+checks restart/merge/age/history/TTL/quota/recovery, identity and authenticated reads.
+`just check plugin test-core TerrainCacheTests` checks sampling/confirmation budgets
+and partial carried values. `just check controller test-map` checks visual sampling
+and merging. `just check controller benchmark-atlas` measures real SQLite overhead;
+a local 12,500-sample run measured about 403 bytes/sample and 7.6 ms per 25-sample
+batch, including durable writes and indexes. This is an indicative local workload,
+not a throughput or compression guarantee. `just controller preview-map --serve`
+provides the read-only saved/live UI fixture.
+
+## Broader architecture and exchange proposal
+
+The remaining sections describe the design direction beyond the implemented
+terrain layer. Landmarks, containers, danger, player encounters and waypoints
+continue their existing separate policies in [MEMORY.md](MEMORY.md).
 
 ## How Valheim changes
 
@@ -93,7 +168,7 @@ collision geometry, navigation and directed route evidence remain separate.
 
 ## Storage decision
 
-Use a separate local **SQLite** atlas, proposed as `atlas.sqlite`, rather than
+Use a separate local **SQLite** atlas, `atlas.sqlite`, rather than
 adding an ever-growing raster to the whole-file `memory.json` rewrite path.
 Keep the existing small memory stores during the first slice and join selected
 layers for display/export; do not migrate every subsystem at once.
@@ -176,8 +251,8 @@ and merge policy are explicit; no distributed CRDT framework is needed initially
 
 ## Retention policy to validate
 
-Use per-layer settings, with a hard overall byte/record budget. Suggested initial
-values for the atlas implementation, **not runtime defaults installed now**:
+Use per-layer settings, with a hard overall byte/record budget. Terrain values below are the implemented defaults; proposed policies for other
+layers still need their own implementation:
 
 - Current terrain/biome samples: mark stale after 30 days without actual fresh
   confirmation, hard-expire after 180 days. Preserve unchanged confirmed samples
@@ -250,13 +325,13 @@ for one bot's local atlas.
 
 ## Incremental delivery and proof
 
-1. Extend capture with stable world/epoch metadata and honest per-sample freshness
+1. Implemented: extend capture with stable world/epoch metadata and honest per-sample freshness
    or refresh confirmations. Older producers without those guarantees stay
    session-only; do not silently persist by display name or reset their age.
-2. Add the local SQLite atlas and bounded batch ingestion, merge/history/retention,
+2. Implemented: add the local SQLite atlas and bounded batch ingestion, merge/history/retention,
    migrations, quotas and recovery. Keep the current session cache as the hot
    working set; the atlas is the durable source behind it.
-3. Add bounded viewport/overview queries, remembered/stale styling, per-point
+3. Implemented for bounded viewports (overviews deferred): add viewport queries, remembered/stale styling, per-point
    age/source hover and explicit saved-world selection while Tas is offline.
    A selected saved atlas is not a live connection; route tasks continue to use
    their existing live-world and native checks.
@@ -278,7 +353,7 @@ Persistent mapping is useful before exploration goals and does not itself start
 them. [EXPLORATION.md](EXPLORATION.md) still defers expedition behavior until M2
 and M3, and distinguishes imported/map knowledge from personal survey success.
 
-The implementation backlog remains draft, in dependency order:
+Delivery tickets, in dependency order (the export/import ticket remains draft):
 
 - TKT-01M66QF9EH8W2EG78AKKKF05PP — Report stable world identity and truthful terrain freshness.
 - TKT-01M66QF9G576JFCQ0JBP3RWR2E — Persist a bounded world atlas with merge and expiry; depends on capture.

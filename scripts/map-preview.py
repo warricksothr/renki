@@ -39,13 +39,24 @@ if args.status:
  status=json.loads(pathlib.Path(args.status).read_text())
  mapped=json.loads(pathlib.Path(args.map).read_text())
  frames=[]
+# Preview an accumulated saved map independently of the live connection.
+import copy,datetime
+atlas_key='a'*64
+saved_world=dict(key=atlas_key,name=status.get('world','Saved world'),scope=dict(namespace='preview',worldUid='9223372036854775807',epoch='1'),center=[-36,8])
+saved_tiles=copy.deepcopy(mapped.get('tiles',[]))
+for tile in saved_tiles:
+ tile['observedAt']=['2026-10-01T12:00:00Z']*25
+ tile['sources']=['preview-observer']*25
+ tile['stale']=[tile['x'] < -4]*25
+mapped['worldKey']=atlas_key
+saved_map=dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
 html=(root/'internal/panel/static/index.html').read_text().replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')
 def embedded(value):
  return json.dumps(value).replace('<', '\\u003c')
 
-bootstrap='''<script>const previewStatus=STATUS, previewMap=MAPPED, previewFrames=FRAMES;
-window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/map'?previewMap:path==='/api/status'?previewStatus:[]});
-window.EventSource=class{constructor(){this.handlers={};setTimeout(()=>{this.onopen?.();this.handlers.status?.({data:JSON.stringify(previewStatus)});for(const frame of previewFrames)this.handlers.record?.({data:JSON.stringify({kind:'frame',cat:'perception',frame})});},20)}addEventListener(n,fn){this.handlers[n]=fn}};</script>'''.replace('STATUS',embedded(status)).replace('MAPPED',embedded(mapped)).replace('FRAMES',embedded(frames))
+bootstrap='''<script>const previewStatus=STATUS, previewMap=MAPPED, previewFrames=FRAMES, previewAtlas=ATLAS, previewWorlds=WORLDS;
+window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/map'?previewMap:path==='/api/atlas/worlds'?previewWorlds:path.startsWith('/api/atlas/map?')?previewAtlas:path==='/api/status'?previewStatus:[]});
+window.EventSource=class{constructor(){this.handlers={};setTimeout(()=>{this.onopen?.();this.handlers.status?.({data:JSON.stringify(previewStatus)});for(const frame of previewFrames)this.handlers.record?.({data:JSON.stringify({kind:'frame',cat:'perception',frame})});},20)}addEventListener(n,fn){this.handlers[n]=fn}};</script>'''.replace('STATUS',embedded(status)).replace('MAPPED',embedded(mapped)).replace('FRAMES',embedded(frames)).replace('ATLAS',embedded(saved_map)).replace('WORLDS',embedded([saved_world]))
 html=html.replace('<script src="/terrain.js" defer></script>',bootstrap+'<script>'+(root/'internal/panel/static/terrain.js').read_text()+'</script>').replace('<script src="/app.js" defer></script>','')
 notice='Recorded game snapshot · read-only preview' if args.status else 'Fixture terrain · read-only preview'
 html=html.replace('<body>', '<body><div style="padding:5px 12px;color:#c3cbd1;background:#273039;font-size:12px">'+notice+'</div>')

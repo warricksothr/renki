@@ -34,7 +34,8 @@ for (const b of document.querySelectorAll("[data-layer]")) b.addEventListener("c
   b.setAttribute("aria-pressed", String(layers[key]));
   draw();
 });
-let mapWorld = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, mapFetchedAt = 0;
+let selectedAtlas = "", savedWorlds = [], atlasListFetchedAt = 0;
+let mapWorld = "", mapUID = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, mapFetchedAt = 0;
 
 function resetMap() {
   mapGeneration++;
@@ -45,29 +46,78 @@ function resetMap() {
   $("terrain-status").textContent = "Waiting for terrain";
 }
 
-async function loadMap() {
-  if (!mapWorld || mapLoading) return;
-  mapLoading = true;
-  const generation = mapGeneration;
+async function loadAtlasWorlds() {
+  atlasListFetchedAt = Date.now();
   try {
-    const res = await fetch("/api/map", { cache: "no-store" });
+    const res = await fetch("/api/atlas/worlds", { cache: "no-store" });
     if (!res.ok) return;
     const data = await res.json();
-    if (generation !== mapGeneration || data.world !== mapWorld || data.connection !== mapConnection) return;
-    world.tiles = new Map((data.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]));
-    world.landmarks = data.landmarks || [];
-    world.danger = data.danger || [];
-    world.waypoints = data.waypoints || [];
-    syncPlaceList();
-    world.containers = new Map((data.containers || []).map((c) => [c.entity, c]));
-    if (data.perception) {
-      world.structures = data.perception.structures || [];
-      world.resources = data.perception.resources || [];
-      world.characters = data.perception.characters || [];
+    if (!Array.isArray(data)) return;
+    savedWorlds = data;
+    const select = $("atlas-world");
+    select.replaceChildren(Object.assign(document.createElement("option"), { value: "", textContent: "Live world" }));
+    for (const w of data) select.append(Object.assign(document.createElement("option"), {
+      value: w.key, textContent: `${w.name} · ${w.scope.namespace} · epoch ${w.scope.epoch} · ${w.scope.worldUid}` }));
+    if (selectedAtlas && !data.some(w => w.key === selectedAtlas)) select.append(Object.assign(document.createElement("option"), {value:selectedAtlas,textContent:"Atlas no longer retained"}));
+    select.value = selectedAtlas;
+  } catch { /* A transient list failure leaves the current selection alone. */ }
+}
+
+$("atlas-world").addEventListener("change", () => {
+  selectedAtlas = $("atlas-world").value;
+  resetMap(); mapWorld = ""; mapUID = ""; mapConnection = 0;
+  const saved = savedWorlds.find((w) => w.key === selectedAtlas);
+  if (saved) {
+    view.centre = saved.center; view.followBot = false; view.zoomed = true;
+    $("follow-bot").checked = false;
+    $("map-world").textContent = `${saved.name} · saved atlas`;
+    $("map-name").textContent = "Remembered terrain";
+    loadMap();
+  }
+  draw();
+});
+
+async function loadMap() {
+  if ((!mapWorld && !selectedAtlas) || mapLoading) return;
+  mapLoading = true;
+  const generation = mapGeneration, selected = selectedAtlas;
+  const centre = !selected && view.followBot && world.bot ? [world.bot[0], world.bot[2]] : view.centre;
+  const rect = $("map").getBoundingClientRect();
+  const halfX = Math.min(256, rect.width / (2 * view.scale) + 16), halfZ = Math.min(256, rect.height / (2 * view.scale) + 16);
+  const params = new URLSearchParams({ world: selected || "live", minX: centre[0]-halfX, maxX: centre[0]+halfX,
+    minZ: centre[1]-halfZ, maxZ: centre[1]+halfZ });
+  try {
+    const [liveResponse, atlasResponse] = await Promise.all([
+      selected ? null : fetch("/api/map", { cache: "no-store" }),
+      fetch("/api/atlas/map?" + params, { cache: "no-store" }),
+    ]);
+    const data = liveResponse?.ok ? await liveResponse.json() : null;
+    const atlas = atlasResponse.ok ? await atlasResponse.json() : null;
+    if (generation !== mapGeneration || selected !== selectedAtlas) return;
+    if (selected) {
+      if (atlasResponse.status === 404) { world.tiles.clear(); $("terrain-status").textContent="Atlas no longer retained"; draw(); return; }
+      if (!atlas || atlas.worldKey !== selected) return;
+      world.tiles = new Map((atlas.tiles || []).map((t) => [RenkiTerrain.key(t.x,t.z), t]));
+    } else {
+      if (!data || data.world !== mapWorld || data.connection !== mapConnection || (data.worldUid || "") !== mapUID) return;
+      const saved = atlas && atlas.connection === mapConnection && atlas.worldKey === data.worldKey ? atlas.tiles || [] : [];
+      world.tiles = RenkiTerrain.merge(data.tiles || [], saved);
+      world.landmarks = data.landmarks || [];
+      world.danger = data.danger || [];
+      world.waypoints = data.waypoints || [];
+      syncPlaceList();
+      world.containers = new Map((data.containers || []).map((c) => [c.entity, c]));
+      if (data.perception) {
+        world.structures = data.perception.structures || [];
+        world.resources = data.perception.resources || [];
+        world.characters = data.perception.characters || [];
+      }
+      world.walls = data.walls || [];
     }
-    world.walls = data.walls || [];
     mapFetchedAt = Date.now();
-    $("terrain-status").textContent = world.tiles.size ? "Terrain sampled every 4 m" : "Waiting for terrain";
+    $("terrain-status").textContent = world.tiles.size
+      ? `${selected ? "Saved terrain" : "Terrain"} · 4 m samples · faded = stale${halfX === 256 || halfZ === 256 ? " · detail within 512 m" : ""}`
+      : selected ? "No retained samples here" : "Waiting for terrain";
     draw();
   } catch { /* Keep the last scoped snapshot through a transient request failure. */ }
   finally { mapLoading = false; }
@@ -278,10 +328,11 @@ function onRecord(ev) {
     loadSettings();
   const f = ev.frame;
   if (!f) return;
+  if (selectedAtlas && f.type !== "inventory") return;
   switch (f.type) {
     case "state":
       if (f.phase !== "in_world") return;
-      if (mapWorld && f.world !== mapWorld) return;
+      if (mapWorld && (f.world !== mapWorld || (f.worldUid || "") !== mapUID)) return;
       world.bot = f.pos;
       world.yaw = f.yaw || 0;
       const last = world.trail[world.trail.length - 1];
@@ -397,17 +448,19 @@ function onStatus(s) {
   const storage = $("storage-needed");
   storage.hidden = needs.length === 0;
   storage.textContent = needs.map(n => `Storage needed: ${Object.entries(n.items).map(([name, count]) => `${count} ${name}`).join(", ")}. ${n.reason}`).join(" · ");
-  const active = s.connected && s.phase === "in_world" && s.world;
+  const active = !selectedAtlas && s.connected && s.phase === "in_world" && s.world;
+  const nextUID = active ? s.worldUid || "" : "";
   const nextWorld = active ? s.world : "", nextConnection = active ? s.connection || 0 : 0;
-  if (nextWorld !== mapWorld || nextConnection !== mapConnection) {
-    resetMap(); mapWorld = nextWorld; mapConnection = nextConnection;
+  if (nextWorld !== mapWorld || nextUID !== mapUID || nextConnection !== mapConnection) {
+    resetMap(); mapWorld = nextWorld; mapUID = nextUID; mapConnection = nextConnection;
   }
   if (active) {
     world.bot = s.pos || world.bot; world.yaw = s.yaw || 0;
-    if (Date.now() - mapFetchedAt > 5000) loadMap();
   }
-  $("map-name").textContent = active ? s.character || "Location" : "Location";
-  $("map-world").textContent = active ? s.world : "Not in the world";
+  if (Date.now() - atlasListFetchedAt > 30000) loadAtlasWorlds();
+  if (Date.now() - mapFetchedAt > 5000) loadMap();
+  $("map-name").textContent = selectedAtlas ? "Remembered terrain" : active ? s.character || "Location" : "Location";
+  $("map-world").textContent = selectedAtlas ? `${savedWorlds.find(w => w.key === selectedAtlas)?.name || "Saved world"} · saved atlas` : active ? s.world : "Not in the world";
   chip("biome", active ? plain(s.biome || "Biome unknown") : "");
   const loc = active ? s.location : null, flags = active ? s.flags || [] : [];
   const support = { terrain: "On terrain", structure: "On a structure", ship: "On a ship", other: "Grounded",
@@ -841,6 +894,7 @@ function grid(w, h, sx, sy) {
 function zoom(f) {
   view.zoomed = true;
   view.scale = Math.min(40, Math.max(0.25, view.scale * f));
+  mapFetchedAt = 0; loadMap();
   draw();
 }
 
@@ -880,6 +934,7 @@ canvas.addEventListener("pointerup", (e) => {
     if (marker) editPlace(world.waypoints.find(p => "waypoint:" + p.name === marker.key));
   }
   drag = null;
+  mapFetchedAt = 0; loadMap();
 });
 
 // Hovering a marker says what it is: every item of a group.
@@ -911,9 +966,10 @@ function hover(x, y) {
     const wx = view.centre[0] + (x - rect.width / 2) / view.scale;
     const wz = view.centre[1] - (y - rect.height / 2) / view.scale;
     const s = RenkiTerrain.sample(world.tiles, wx, wz);
-    const text = s ? `${plain(s.biome || "Biome unknown")} · terrain ${s.height.toFixed(1)} m${s.water > s.height ? ` · water depth ${(s.water - s.height).toFixed(1)} m` : " · above water level"}` : "Unknown terrain · no loaded sample";
+    const text = s ? `${plain(s.biome || "Biome unknown")} · terrain ${s.height.toFixed(1)} m${s.water > s.height ? ` · water depth ${(s.water - s.height).toFixed(1)} m` : " · above water level"}` : "Unknown terrain · no retained sample";
     const danger = layers.danger ? world.danger.filter((z) => Math.hypot(wx-z.pos[0], wz-z.pos[2]) <= z.radius) : [];
-    const lines = [text, ...danger.slice(0, 3).map((z) => `Remembered danger · ${z.hits} injuries · ${z.deaths} deaths · score ${z.score.toFixed(2)} · height ${z.pos[1].toFixed(1)} m · ${z.prefab ? plain(z.prefab) : z.by || "cause unknown"} · last hurt ${new Date(z.at).toLocaleString()}`)];
+    const age = s?.observedAt ? `${s.stale ? "Stale" : "Remembered"} · oldest corner ${new Date(s.observedAt).toLocaleString()} · source ${s.sources.join(", ")} · 4 m spacing` : s ? "Session terrain · measurement age unavailable" : "";
+    const lines = [text, ...(age ? [age] : []), ...danger.slice(0, 3).map((z) => `Remembered danger · ${z.hits} injuries · ${z.deaths} deaths · score ${z.score.toFixed(2)} · height ${z.pos[1].toFixed(1)} m · ${z.prefab ? plain(z.prefab) : z.by || "cause unknown"} · last hurt ${new Date(z.at).toLocaleString()}`)];
     tip.replaceChildren(...lines.map((line) => Object.assign(document.createElement("div"), { textContent: line })));
   } else {
     tip.replaceChildren(...describe(best).map((t) => Object.assign(document.createElement("div"), { textContent: t })));
@@ -1248,7 +1304,7 @@ $("settings").addEventListener("toggle", () => $("settings").open && loadSetting
 
 function connect() {
   const es = new EventSource("/api/events");
-  es.onopen = () => { resetMap(); mapWorld = ""; mapConnection = 0; };
+  es.onopen = () => { if (!selectedAtlas) { resetMap(); mapWorld = ""; mapUID = ""; mapConnection = 0; } };
   es.addEventListener("record", (e) => onRecord(JSON.parse(e.data)));
   es.addEventListener("status", (e) => onStatus(JSON.parse(e.data)));
   es.onerror = async () => {

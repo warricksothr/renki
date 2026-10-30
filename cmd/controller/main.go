@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/warricksothr/renki/internal/app"
+	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
@@ -116,7 +117,14 @@ func run() int {
 		log.Error("goals", "err", err)
 		return 2
 	}
+	maps, err := atlas.Open(filepath.Join(cfg.DataDir, "atlas.sqlite"), cfg.Atlas)
+	if err != nil {
+		log.Error("atlas", "err", err)
+		return 2
+	}
+	defer maps.Close()
 	a := app.New(cfg, voice, log, trail, homes, set, goals)
+	a.SetAtlas(maps, log.With("part", "atlas"))
 	go a.ServePanel(ctx, trail, version, log.With("part", "panel"))
 	if err := a.Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)

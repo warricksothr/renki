@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"github.com/warricksothr/renki/internal/access"
+	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
@@ -21,6 +22,7 @@ type Presence struct {
 	MarcoPolo     bool `json:"marcoPolo"`
 }
 type Config struct {
+	Atlas    atlas.Policy `json:"atlas"`
 	Players  access.Rules `json:"players"`
 	Presence Presence     `json:"presence"`
 	// Listen is the address the bridge serves on. Anything but loopback
@@ -150,6 +152,7 @@ func Default() Config {
 		AllowedTasks: slices.Clone(KnownTasks),
 		Audit:        Audit{Dir: "audit", KeepDays: 14},
 		DataDir:      "data",
+		Atlas:        atlas.Defaults(),
 		Home:         HomeRules{WhenLost: true, WhenStuck: true, AfterOutage: true, IdleMinutes: 10, AfterDeath: AfterDeathHome},
 		Overload:     Overload{Drop: true},
 	}
@@ -178,6 +181,9 @@ func Load(path string) (Config, error) {
 
 // Validate refuses a configuration that would be unsafe or cannot work.
 func (c Config) Validate() error {
+	if err := c.Atlas.Validate(); err != nil {
+		return err
+	}
 	if err := c.Players.Validate(); err != nil {
 		return err
 	}

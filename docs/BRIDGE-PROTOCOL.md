@@ -412,7 +412,7 @@ success before a failure. The bot's pack is also reported immediately.
 Session snapshots reset on a new connection or world; they are observations,
 not a claim that an unseen chest still has those contents.
 
-### 6.11 `terrain` (changed loaded-heightmap tiles, at most once a second)
+### 6.11 `terrain` (loaded-heightmap measurements, at most once a second)
 
 `terrain` carries `world` and `tiles`. Each tile has signed integer `x` and
 `z` indices in a 16 m grid (use floor division for negative positions),
@@ -426,9 +426,21 @@ One plugin update samples at most one tile (25 loaded-heightmap lookups).
 The bounded cache prioritizes nearby/ahead tiles, refreshes known samples
 after 30 s and missing samples after 5 s, and invalidates affected tiles
 after heightmap regeneration. Unloading a heightmap preserves previous
-measurements. Identical tiles are not sent again until `welcome` requests
-a resend. The plugin/controller each retain at most 256 tiles; this is a
-session cache, not persistent exploration or evidence of a safe route.
+measurements. Identical freshly sampled tiles are sent as confirmations; a
+cached resend retains its original measurement times. The plugin/controller each
+retain a 256-tile session cache; accepted measured data also feeds a separate
+durable atlas, not exploration coverage or evidence of a safe route.
+
+New producers include `scope` (`namespace`, decimal-string `worldUid`, `epoch`,
+`source`, `stream`, `game`, integer `generator`, plugin/version fingerprint `mods`),
+`capturedAt` in producer monotonic seconds and each tile's 25-element `measuredAt`
+array in the same clock. Unknown corners have null times; carried loaded values
+keep their original times. Times must be finite, nonnegative and no later than
+`capturedAt`. The receiver estimates observation time from receipt minus elapsed
+producer age. Repeated producer ticks never renew stored freshness. Optional
+`state.worldUid` must match the scope; a same-name UID change clears live map
+state. Legacy terrain without a manifest is accepted for the session only.
+See `testdata/plugin/terrain-atlas.json` and [ATLAS.md](ATLAS.md).
 
 `state.location` is optional for older plugins. It includes optional
 `groundHeight` (terrain below the character), `support` (`terrain`,

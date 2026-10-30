@@ -61,8 +61,8 @@ explored, extending its design with separate kinds of evidence:
   a remembered traversal is a candidate for revalidation, not a permanent route.
 
 Resources, useful structures, player encounters and injuries continue using
-their existing memory stores and precision/age policies. Terrain is currently
-session-only; [ATLAS.md](ATLAS.md) proposes its durable storage and exchange,
+their existing memory stores and precision/age policies. Terrain now has
+bounded durable storage in [ATLAS.md](ATLAS.md), with exchange still proposed,
 without starting exploration or equating loaded terrain with personal coverage.
 Exploration references those observations rather than duplicating them in every
 checkpoint.

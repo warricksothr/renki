@@ -103,29 +103,32 @@ type Session struct {
 	log      *slog.Logger
 	listener Listener
 
-	mu            sync.Mutex
-	dispatchMu    sync.Mutex // serialize wire order and automation ownership
-	automation    *Automation
-	orders        uint64
-	conn          *bridge.Conn
-	state         *protocol.State
-	stateAt       time.Time
-	injurySeq     uint64
-	playerChatSeq uint64
-	seen          *protocol.Perception
-	seenAt        time.Time
-	seenWorld     string
-	carried       *protocol.Inventory
-	containers    map[string]*protocol.Container
-	containerAt   map[string]time.Time
-	terrain       map[[2]int]protocol.TerrainTile
-	terrainSeq    uint64
-	layout        *protocol.Layout
-	allowed       []string
-	permit        func(task string) bool
-	movePlace     func(world, name string) (protocol.Vec3, error)
-	tasks         map[string]*Task
-	nextTask      uint64
+	mu             sync.Mutex
+	dispatchMu     sync.Mutex // serialize wire order and automation ownership
+	automation     *Automation
+	orders         uint64
+	conn           *bridge.Conn
+	state          *protocol.State
+	stateAt        time.Time
+	injurySeq      uint64
+	playerChatSeq  uint64
+	seen           *protocol.Perception
+	seenAt         time.Time
+	seenWorld      string
+	carried        *protocol.Inventory
+	containers     map[string]*protocol.Container
+	containerAt    map[string]time.Time
+	terrain        map[[2]int]protocol.TerrainTile
+	terrainSeq     uint64
+	terrainScope   *protocol.TerrainScope
+	terrainPending []TerrainObservation
+	terrainDropped uint64
+	layout         *protocol.Layout
+	allowed        []string
+	permit         func(task string) bool
+	movePlace      func(world, name string) (protocol.Vec3, error)
+	tasks          map[string]*Task
+	nextTask       uint64
 }
 
 // New returns a session that reports to l.
@@ -182,6 +185,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	s.injurySeq = 0
 	s.playerChatSeq = 0
 	s.terrain, s.terrainSeq = nil, 0
+	s.terrainScope = nil
 	s.layout = nil
 	s.automation = nil
 	s.containers = make(map[string]*protocol.Container)
@@ -225,11 +229,12 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 	case *protocol.State:
 		s.mu.Lock()
 		if s.conn == c && (s.state == nil || m.Seq > s.state.Seq) {
-			if s.state != nil && s.state.World != m.World {
+			if s.state != nil && (s.state.World != m.World || s.state.WorldUID != m.WorldUID) {
 				s.containers = make(map[string]*protocol.Container)
 				s.containerAt = make(map[string]time.Time)
 				s.seen, s.carried, s.automation = nil, nil, nil
 				s.terrain, s.terrainSeq = nil, 0
+				s.terrainScope = nil
 				s.layout = nil
 			}
 			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
@@ -238,6 +243,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			if m.Phase != protocol.PhaseInWorld {
 				s.seenWorld = ""
 				s.terrain, s.terrainSeq = nil, 0
+				s.terrainScope = nil
 				s.layout = nil
 			}
 			s.state = m

@@ -105,3 +105,7 @@ ci: lint test-race test-map build build-windows
 clean:
     rm -f ./controller
     rm -rf ./dist
+
+# Measure durable atlas batch writes and actual SQLite bytes per sample.
+benchmark-atlas:
+    go test ./internal/atlas -run '^$' -bench BenchmarkAtlasIngest -benchtime=500x -count=1

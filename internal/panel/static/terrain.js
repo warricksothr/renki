@@ -5,6 +5,19 @@ const RenkiTerrain = (() => {
   const colours = { Meadows: "#344a36", BlackForest: "#233b30", Swamp: "#404631", Mountain: "#717c82",
     Plains: "#686344", AshLands: "#513d3b", DeepNorth: "#7a8b92", Ocean: "#304b49", Mistlands: "#41434e" };
   const key = (x, z) => `${x},${z}`;
+  // Durable corners have their own ages; filling a hole from the live cache
+  // must not replace known durable corners with a complete-looking old tile.
+  function merge(live, saved) {
+    const out = new Map(live.map(t => [key(t.x,t.z), t]));
+    for (const t of saved) {
+      const old = out.get(key(t.x,t.z));
+      if (!old) { out.set(key(t.x,t.z), t); continue; }
+      const heights = t.heights.map((h,i) => h ?? old.heights[i]);
+      const biomes = t.biomes.map((b,i) => b ?? old.biomes[i]);
+      out.set(key(t.x,t.z), { ...t, heights, biomes });
+    }
+    return out;
+  }
   function sample(tiles, x, z) {
     const tx = Math.floor(x / 16), tz = Math.floor(z / 16), tile = tiles.get(key(tx, tz));
     if (!tile) return null;
@@ -13,8 +26,11 @@ const RenkiTerrain = (() => {
     const i = iz * 5 + ix, hs = [tile.heights[i], tile.heights[i + 1], tile.heights[i + 5], tile.heights[i + 6]];
     if (!hs.every(Number.isFinite)) return null;
     const a = gx - ix, b = gz - iz;
+    const ids = [i,i+1,i+5,i+6], times = ids.map(j => tile.observedAt?.[j]);
     return { height: (hs[0] * (1 - a) + hs[1] * a) * (1 - b) + (hs[2] * (1 - a) + hs[3] * a) * b,
-      biome: tile.biomes[i], water: tile.waterLevel };
+      biome: tile.biomes[i], water: tile.waterLevel,
+      observedAt: times.every(Boolean) ? times.reduce((a,b) => a < b ? a : b) : null,
+      stale: ids.some(j => tile.stale?.[j]), sources: [...new Set(ids.map(j => tile.sources?.[j]).filter(Boolean))] };
   }
   function crossing(a, b, level) {
     const t = (level - a.h) / (b.h - a.h);
@@ -56,6 +72,7 @@ const RenkiTerrain = (() => {
       for (let z = 0; z < 4; z++) for (let x = 0; x < 4; x++) {
         const i = z * 5 + x, ids = [i, i + 1, i + 6, i + 5];
         if (!ids.every((j) => Number.isFinite(tile.heights[j]))) continue;
+        ctx.globalAlpha = ids.some(j => tile.stale?.[j]) ? 0.45 : 1;
         const ps = ids.map((j) => ({ x: tile.x * 16 + (j % 5) * 4, z: tile.z * 16 + Math.floor(j / 5) * 4, h: tile.heights[j] }));
         const biome = colours[tile.biomes[i]] || "#414847";
         if (layers.terrain) polygon(ps, biome);
@@ -77,6 +94,6 @@ const RenkiTerrain = (() => {
     }
     ctx.restore();
   }
-  return { key, sample, contour, submerged, draw, colours };
+  return { key, sample, contour, submerged, draw, colours, merge };
 })();
 if (typeof module !== "undefined") module.exports = RenkiTerrain;

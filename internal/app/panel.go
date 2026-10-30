@@ -31,6 +31,7 @@ type PanelStatus struct {
 	Connected     bool                   `json:"connected"`
 	Character     string                 `json:"character,omitempty"`
 	World         string                 `json:"world,omitempty"`
+	WorldUID      string                 `json:"worldUid,omitempty"`
 	Phase         string                 `json:"phase,omitempty"`
 	Task          *protocol.TaskRef      `json:"task,omitempty"`
 	HP            float64                `json:"hp,omitempty"`
@@ -82,6 +83,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		Voice:            a.Voice != nil && a.Settings.Values().Voice, Model: a.Settings.Values().Model}
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
+		ps.WorldUID = s.WorldUID
 		ps.Location, ps.Flags, ps.Yaw = s.Location, s.Flags, s.Yaw
 		ps.Food = s.Food
 		ps.Combat, ps.Stamina, ps.StaminaMax = s.Combat, s.Stamina, s.StaminaMax
@@ -230,6 +232,7 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			LandmarkMemory:  a.LandmarkMemory,
 			PlayerMemory:    a.PlayerMemory,
 			Map:             a.MapSnapshot,
+			Atlas:           a.AtlasHandler(),
 			Inventory:       func() any { return a.Session.PackSnapshot() },
 			Waypoints:       a.WaypointHandler(),
 			Logger:          log,

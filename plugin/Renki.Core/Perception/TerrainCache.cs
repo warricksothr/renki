@@ -66,7 +66,7 @@ namespace Renki.Perception
                 old.Sent = true;
                 return old.Tile;
             }
-            var tile = new TerrainTile { X = chosen.Item1, Z = chosen.Item2, WaterLevel = water };
+            var tile = new TerrainTile { X = chosen.Item1, Z = chosen.Item2, WaterLevel = water, MeasuredAt = new double?[25] };
             var complete = true;
             for (var iz = 0; iz < 5; iz++)
                 for (var ix = 0; ix < 5; ix++)
@@ -78,6 +78,7 @@ namespace Renki.Perception
                     {
                         tile.Heights[i] = Math.Round(at.Value.Height, 1);
                         tile.Biomes[i] = at.Value.Biome;
+                        tile.MeasuredAt[i] = now;
                     }
                     else
                     {
@@ -85,6 +86,7 @@ namespace Renki.Perception
                         // An unloaded heightmap does not erase earlier knowledge.
                         tile.Heights[i] = old?.Tile.Heights[i];
                         tile.Biomes[i] = old?.Tile.Biomes[i];
+                        tile.MeasuredAt[i] = old?.Tile.MeasuredAt[i];
                     }
                 }
             Builds++;
@@ -97,8 +99,10 @@ namespace Renki.Perception
                     Math.Pow(k.Item1 - cx, 2) + Math.Pow(k.Item2 - cz, 2)).First();
                 entries.Remove(farthest);
             }
-            if (!changed) return null;
-            Changes++;
+            if (changed) Changes++;
+            // Equal freshly measured values confirm freshness without extra
+            // sampling. Completely unloaded unchanged tiles need no receipt.
+            if (!changed && tile.MeasuredAt.SequenceEqual(old.Tile.MeasuredAt)) return null;
             return tile;
         }
     }

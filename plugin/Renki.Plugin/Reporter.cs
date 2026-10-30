@@ -132,6 +132,7 @@ namespace Renki.Plugin
             s.Character = p.GetPlayerName();
             if (phase == Wire.PhaseInWorld && ZNet.instance != null) s.SharePosition = ZNet.instance.IsReferencePositionPublic();
             s.World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
+            s.WorldUid = ZNet.instance != null ? ZNet.instance.GetWorldUID().ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
             s.Pos = Convert.ToArray(p.transform.position);
             s.Yaw = System.Math.Round(p.transform.rotation.eulerAngles.y, 1);
             s.Vel = Convert.ToArray(p.GetVelocity());

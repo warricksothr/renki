@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/bridge"
@@ -30,23 +31,25 @@ import (
 
 // App is a configured controller.
 type App struct {
-	Presence     *presence.Manager
-	Players      *memory.Players
-	Goals        *goal.Store
-	goalTemplate *goal.Template
-	goalMu       sync.Mutex
-	Config       config.Config
-	Session      *session.Session
-	Brain        *chat.Brain
-	Home         *home.Keeper
-	Burden       *burden.Unloader
-	Retreat      *retreat.Retreat
-	Food         *food.Keeper
-	Behaviours   *behaviour.Engine
-	Memory       *memory.Containers
-	Landmarks    *memory.Landmarks
-	Danger       *memory.Danger
-	Bridge       *bridge.Server
+	Atlas         *atlas.Store
+	atlasRecorder *atlas.Recorder
+	Presence      *presence.Manager
+	Players       *memory.Players
+	Goals         *goal.Store
+	goalTemplate  *goal.Template
+	goalMu        sync.Mutex
+	Config        config.Config
+	Session       *session.Session
+	Brain         *chat.Brain
+	Home          *home.Keeper
+	Burden        *burden.Unloader
+	Retreat       *retreat.Retreat
+	Food          *food.Keeper
+	Behaviours    *behaviour.Engine
+	Memory        *memory.Containers
+	Landmarks     *memory.Landmarks
+	Danger        *memory.Danger
+	Bridge        *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
 	Settings *settings.Store
@@ -205,12 +208,20 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	landmarksDone := make(chan struct{})
 	dangerDone := make(chan struct{})
 	playersDone := make(chan struct{})
+	atlasDone := make(chan struct{})
 	defer func() {
 		cancel()
 		// Let the recorder persist its final batch before main can exit.
 		<-landmarksDone
 		<-dangerDone
 		<-playersDone
+		<-atlasDone
+	}()
+	go func() {
+		defer close(atlasDone)
+		if a.atlasRecorder != nil {
+			a.atlasRecorder.Run(ctx)
+		}
 	}()
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
@@ -234,4 +245,10 @@ func cooldown(cfg config.Config) time.Duration {
 		return 0
 	}
 	return time.Duration(cfg.LLM.CooldownS * float64(time.Second))
+}
+
+// SetAtlas attaches the durable visual atlas before Serve/ServePanel begin.
+func (a *App) SetAtlas(store *atlas.Store, log *slog.Logger) {
+	a.Atlas = store
+	a.atlasRecorder = &atlas.Recorder{Store: store, Session: a.Session, Logger: log}
 }

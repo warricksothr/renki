@@ -7,6 +7,7 @@
   "allowedTasks": ["stop", "move_to", "follow", "look_at", "say", "emote", "pickup", "drop"],
   "audit": { "dir": "audit", "keepDays": 14 },
   "dataDir": "data",
+  "atlas": { "staleDays": 30, "keepDays": 180, "historyDays": 30, "revisions": 8, "maxSamples": 250000, "maxHistory": 100000, "maxBytes": 134217728 },
   "home": { "whenLost": true, "whenStuck": true, "afterOutage": true, "idleMinutes": 10, "afterDeath": "home" },
   "overload": { "drop": true },
   "llm": {
