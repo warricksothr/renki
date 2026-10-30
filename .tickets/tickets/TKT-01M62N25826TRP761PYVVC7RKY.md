@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T01:26:52Z
+updated_at: 2026-10-30T01:30:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -82,3 +82,11 @@ Exact evidence: .checks/audit-window-7K058z.jsonl and .checks/melee-range-watch.
 Implemented an explicit closing phase up to 30 m, bounded by 12 seconds, the initial 30 m area and 0.5 m distance progress every 4 seconds. At first entry to 12 m, anchor the encounter and reset combat budgets; all health/stamina/equipment/geometry checks remain active. Matching closing/task metadata coordinates retreat, including regression coverage for known damage, stale IDs, stronger/additional threats and worsening conditions. No autonomous combat selection was enabled.
 
 The owner then requested replacing recurring manual test prerequisites with tools and loops. Added just vm combat-trial: restart/temporarily enable combat, check fed/rested state, select an observed safe single ordinary Greyling, send normal attack, retain task/status/perception/audit evidence, and always logout/stop/restore combat off. It aborts on another creature, task takeover, 40 m travel, low health or exhausted escape rather than requesting owner clearance. Selection and orchestration/cleanup checks are part of just check ci. A naturally unavailable encounter is aborted, never a positive pass; isolated-world fixture/reset remains separate follow-up. Focused policy/arbitration checks and just check ci passed before the documentation/ticket follow-up; final gate/review and deployed automatic trial follow. Tas remains offline at the saved northeast position.
+
+**agent:codex/renki-resume** at 2026-10-30T01:30:44Z
+
+PR #45 landed as 6ba8e99. just check ci passed with 245 plugin tests, Go checks/builds and automatic-trial selection/orchestration/cleanup checks (.checks/20261030T012652Z-dugfxm.log). Committed just check review passed with no findings (.checks/20261030T012713Z-Sfe8sW.log). just check vm install verified the installed package (.checks/20261030T012748Z-dXEi4d.log).
+
+Ran just check vm combat-trial --wait-s 0 without owner staging or clearance (.checks/20261030T012816Z-5MpagM.log). The runner correctly reported aborted/no fed, rested, safe single-Greyling encounter available, exit 1; this is not a passing combat test. Live preflight saw active meat meals, 76.1/76.6 HP, only 36.5 stamina (below its 40 minimum), a Greyling just outside 30 m at a lower elevation, and a Boar near that target. No attack command was sent. It automatically logged out, stopped the game and restored combat config false, with no cleanup errors. Evidence and full audit: .checks/combat-trial-20261030T012816512053Z/summary.json and .checks/audit-window-bU7lMF.jsonl. No swing/block/dodge result or successful live closing is claimed; acceptance criteria remain open.
+
+Owner-independent live trial selection/recording/backstops now exist, but guaranteeing a positive repeatable encounter still needs a disposable local arena and reset. Filed draft TKT-01M656NE4C71PNAJMK025TB6FW (Repeatable isolated combat trials with automatic reset) for that remaining setup, preserving production saves. Tas remains offline at the northeast saved position; do not request owner clearance as the default next step.
