@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T05:43:13Z
+updated_at: 2026-10-30T13:40:49Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Continue TKT-01M62N25826TRP761PYVVC7RKY — Plugin: attack task with blocking and dodging. The deployed 7d61e9b trial accepted local ground but found no eligible Greyling while stationary. Add native bounded scouting to that same attack goal: short out-and-back excursions around checked fighting ground, scanning while walking, no external movement puppeting. Preserve the original anchor and the 40m encounter bound; acquire within 30m of the bot and 40m of the original anchor. Validate supported dry grade/clearance, complete navmesh approach and character separation along candidate routes, and recheck during walking. Bound candidate attempts, work time, accumulated travel and lack of progress; preserve stamina for returning and terminate if return cannot be validated. Never suppress normal retreat for unowned/scouting threats. Keep cancellation/body ownership behavior unchanged and add pure scouting regressions plus task-scoped compact evidence. Validate, review, land, deploy and run one autonomous trial. Actual melee and retreat criteria remain open absent positive observations.
+Use the newly observed lone Greyling to validate native combat without owner staging. The 1ee38e5 trial surveyed clear ground and reached it, acquired the targeting Greyling at 2.24 m, then immediately refused because the first half-second movement sample had not occurred. Preserve motion-based pursuit for luring; permit direct melee only when a live eligible enemy explicitly targets Tas, is within 4 m, and both Tas and enemy are already inside the checked fighting area. Keep all existing health/stamina/weapon/footing/clearance/travel/time checks before that decision, and revalidate the arena and melee eligibility at handoff. Add policy regressions for this direct defensive case, unconfirmed/nonlocal enemies and emergency bounds. Gate, commit/review, land/install and run one bounded native trial; do not tick positive melee criteria until observed.
 
 ## Notes
 
@@ -194,3 +194,7 @@ PR #57 landed as 0e7a320 after just check ci (323 plugin tests and five supervis
 The autonomous trial accepted the first fighting-ground candidate, made five outbound scouting routes and five returns, and rejected three candidates for grade. Native position/search/scout/scout_return modes were observed. It ended invalid_target: no eligible single Greyling after bounded local scouting and return. Minimum HP73.4; the retained audit contains no damaged events. Automatic food upkeep refreshed the carried meat meals after the attack ended, raising the food-derived health maximum; do not interpret that later HP/max gap as combat damage. No enemy was acquired or pursuit/melee outcome observed. Both broad criteria remain unchecked.
 
 Evidence .checks/combat-trial-20261030T053145438919Z/summary.json, .checks/audit-window-ARGS1J.jsonl and .checks/20261030T053145Z-1YzoJZ.log. Automatic cleanup reported no errors. Independent just check vm status and just check vm combat confirm game/controller stopped and AllowCombat=false (.checks/20261030T053942Z-I9LbqU.log, .checks/20261030T053944Z-cK4lTC.log). Repeating this same local search without an environmental change is not useful; broader exploration/encounter discovery remains separate from the now positively observed local scouting/return routine. Continue M2's supplied-axe full-tree/log benchmark while real combat remains unverified.
+
+**agent:codex/renki-resume** at 2026-10-30T13:40:49Z
+
+Live trial .checks/combat-trial-20261030T133251696543Z/summary.json acquired Greyling 1:41096 at 2.24 m after selecting fighting ground [188.3,87.09,-266.1], then refused before its first pursuit sample. Perception already reported targetingMe=true. Ground survey used six candidates (five body-cast failures, one sharp change) and selected a checked escape. The native retreat reached 25 m separation, minimum HP67.8, with no cleanup errors. Evidence .checks/audit-window-cRwBZi.jsonl. This proves ground selection/acquisition/retreat behavior but no melee success, blocking or dodging. The next change handles a confirmed close attacker already inside the surveyed arena rather than weakening distant-lure pursuit evidence.

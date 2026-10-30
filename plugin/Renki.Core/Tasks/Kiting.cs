@@ -9,7 +9,7 @@ namespace Renki.Tasks
     {
         public V3 Bot, Enemy;
         public double Hp, HpMax, Stamina;
-        public bool Valid = true, Eligible = true, Weapon = true, Safe = true, Following;
+        public bool Valid = true, Eligible = true, Weapon = true, Safe = true, Following, Targeting;
     }
 
     /// <summary>Bounded local lure. The host measures pursuit and validates all movement.</summary>
@@ -55,6 +55,11 @@ namespace Renki.Tasks
             if ((f.Bot - start).Length > TravelLimit || (f.Enemy - start).Length > TravelLimit) return Abort("kiting travel limit");
             if (now - began >= WorkLimit) return Abort("kiting time limit");
             var gap = V3.FlatDistance(f.Bot, f.Enemy);
+            // A confirmed attacker already at our checked fighting stance needs
+            // no lure. Hostility or proximity alone still cannot skip pursuit.
+            if (!drawn && f.Targeting && gap <= 4 &&
+                V3.FlatDistance(f.Bot, area) <= 2 && V3.FlatDistance(f.Enemy, area) <= AreaRadius)
+                return KiteAction.Engage;
             if (f.Following)
             {
                 if (!drawn) { drawn = true; progressAt = now; bestAreaDistance = V3.FlatDistance(area, f.Enemy); }

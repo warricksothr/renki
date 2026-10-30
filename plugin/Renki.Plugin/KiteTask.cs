@@ -157,6 +157,7 @@ namespace Renki.Plugin
                 Eligible = MeleeTask.Eligible(p, enemy),
                 Safe = ClearCharacters(p, enemy, pos) && ClearCharacters(p, enemy, target) && ClearScenery(pos),
                 Following = Time.unscaledTime < followingUntil,
+                Targeting = enemy.GetBaseAI() != null && enemy.GetBaseAI().GetTargetCreature() == p,
             };
             var action = policy.Decide(frame, Time.unscaledTime);
             if (action == KiteAction.Retreat) return Abort(p, policy.Reason);
