@@ -37,6 +37,7 @@ const (
 	TaskDeposit  = "deposit"
 	TaskWithdraw = "withdraw"
 	TaskHarvest  = "harvest"
+	TaskAttack   = "attack"
 	TaskUseItem  = "use_item"
 )
 
@@ -112,6 +113,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &TransferArgs{}
 	case TaskHarvest:
 		args = &HarvestArgs{}
+	case TaskAttack:
+		args = &AttackArgs{}
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownTask, r.Task)
 	}
@@ -183,6 +186,22 @@ func (a *TransferArgs) validate() error {
 type StopArgs struct{}
 
 func (*StopArgs) validate() error { return nil }
+
+// AttackArgs starts the bounded melee encounter; auto currently selects melee.
+type AttackArgs struct {
+	Entity string `json:"entity"`
+	Style  string `json:"style,omitempty"`
+}
+
+func (a *AttackArgs) validate() error {
+	if strings.TrimSpace(a.Entity) == "" {
+		return errors.New("`entity` is required")
+	}
+	if a.Style != "" && a.Style != "melee" && a.Style != "auto" {
+		return errors.New("this build supports melee or auto attack style")
+	}
+	return nil
+}
 
 // HarvestArgs operates on one resource; descendants remain separate targets.
 // Nil Collect means true, matching the plugin default.

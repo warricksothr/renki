@@ -18,8 +18,8 @@ namespace Renki.Protocol
 
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
-        public const string Harvest = "harvest", UseItem = "use_item";
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest, UseItem };
+        public const string Harvest = "harvest", UseItem = "use_item", Attack = "attack";
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest, UseItem, Attack };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -86,6 +86,12 @@ namespace Renki.Protocol
     public sealed class EmoteArgs
     {
         public string Name;
+    }
+
+    public sealed class AttackArgs
+    {
+        public string Entity;
+        public string Style = "melee";
     }
 
     public sealed class PickupArgs
@@ -239,6 +245,15 @@ namespace Renki.Protocol
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
                         return new PickupArgs { Entity = entity };
+                    }
+                case TaskNames.Attack:
+                    {
+                        var entity = Str(a, "entity");
+                        if (string.IsNullOrWhiteSpace(entity)) throw new BadArgsException("`entity` is required");
+                        var style = Str(a, "style") ?? "melee";
+                        if (style == "") style = "melee";
+                        if (style != "melee" && style != "auto") throw new BadArgsException("this build supports melee or auto attack style");
+                        return new AttackArgs { Entity = entity, Style = style };
                     }
                 case TaskNames.Harvest:
                     {

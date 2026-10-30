@@ -423,6 +423,8 @@ function onStatus(s) {
   chip("task", s.task ? `${s.task.task} (${s.task.id})` : s.connected ? "idle" : "");
   if (s.perceptionRadius) view.radius = s.perceptionRadius;
   chip("hp", s.hpMax ? `hp ${Math.round(s.hp)}/${Math.round(s.hpMax)}` : "");
+  chip("stamina", s.staminaMax ? `stamina ${Math.round(s.stamina || 0)}/${Math.round(s.staminaMax)}` : "");
+  chip("combat", s.combat ? `combat: ${s.combat.mode}${s.combat.reason ? " · " + s.combat.reason : ""}` : "");
   world.left = active ? s.leftBehind || [] : [];
   if (active && s.home) {
     world.home = s.home.pos;

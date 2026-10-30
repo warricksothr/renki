@@ -127,6 +127,9 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning {
 		return
 	}
+	if r.controlledAttack(st, seen) {
+		return
+	}
 	threat := r.threat(st, seen, st.HP/st.HPMax >= Low)
 	if threat == nil {
 		return
@@ -170,6 +173,45 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if _, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}}); err != nil {
 		r.log.Warn("could not say so", "err", err)
 	}
+}
+
+// The plugin owns a bounded explicit melee encounter and its fallback flee.
+// Match the task ID so stale combat metadata cannot suppress ordinary retreat.
+func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception) bool {
+	c := st.Combat
+	if c == nil || st.Task == nil || st.Task.Task != protocol.TaskAttack || st.Task.Status != protocol.StatusRunning || c.ID == "" || c.ID != st.Task.ID {
+		return false
+	}
+	if c.Mode == "retreat" {
+		return true
+	}
+	if st.HP < st.HPMax*.8 || st.Stamina < 10 {
+		return false
+	}
+	switch c.Mode {
+	case "approach", "strike", "block", "dodge", "wait":
+	default:
+		return false
+	}
+	found := false
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, other := range seen.Characters {
+		if other.ID == c.Entity {
+			found = other.Kind == protocol.CharacterCreature && other.Hostile && other.Prefab == "Greyling" && other.Stars == 0 && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) <= 12
+			continue
+		}
+		if other.Kind != protocol.CharacterCreature || !other.Hostile || other.HPFrac <= 0 {
+			continue
+		}
+		d := st.Pos.FlatDistance(other.Pos)
+		hit, hurt := r.hurt[other.ID]
+		hurt = hurt && hit.world == st.World && r.now().Before(hit.until)
+		if d <= 6 || d <= Near && (other.TargetingMe || hurt) {
+			return false
+		}
+	}
+	return found
 }
 
 // pastThreatCos is the cosine of 60°: a place within that angle of the
