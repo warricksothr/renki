@@ -7,8 +7,8 @@ tickets, and the next fix pass overwrites it.
 | Epic | Title | Status |
 |---|---|---|
 | [TKT-01M628X106RD9FFR8YBXV7K5HT](tickets/TKT-01M628X106RD9FFR8YBXV7K5HT.md) | Web control panel to watch and steer the bot | in-progress |
-| [TKT-01M62MZN7QMTJ3ST0KRZH15DXZ](draft/TKT-01M62MZN7QMTJ3ST0KRZH15DXZ.md) | M2: the bot hauls and gathers wood with its owner | draft |
-| [TKT-01M62N2557R401S3E6JECSAPN4](draft/TKT-01M62N2557R401S3E6JECSAPN4.md) | M3: the bot survives danger and stands with its owner | draft |
+| [TKT-01M62MZN7QMTJ3ST0KRZH15DXZ](tickets/TKT-01M62MZN7QMTJ3ST0KRZH15DXZ.md) | M2: the bot hauls and gathers wood with its owner | in-progress |
+| [TKT-01M62N2557R401S3E6JECSAPN4](tickets/TKT-01M62N2557R401S3E6JECSAPN4.md) | M3: the bot survives danger and stands with its owner | in-progress |
 | [TKT-01M62VXYQB6ZDBQE4E6ERGN83C](draft/TKT-01M62VXYQB6ZDBQE4E6ERGN83C.md) | Behaviours: templates and instances the bot runs on its own | draft |
 | [TKT-01M62VXZ2FWDX3D4Z6XX1MB5A6](draft/TKT-01M62VXZ2FWDX3D4Z6XX1MB5A6.md) | Base upkeep: fuel, machines and chest assignments | draft |
 | [TKT-01M62VXZA33E8JR5BR2RJD6AC1](draft/TKT-01M62VXZA33E8JR5BR2RJD6AC1.md) | Agent: tools, events and autonomy for the LLM | draft |

@@ -97,11 +97,14 @@ def main():
     harvest_mode = parser.add_mutually_exclusive_group()
     harvest_mode.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
     harvest_mode.add_argument('--harvest-logs', type=float, nargs=3, help='retry existing nearby beech logs around this center; no full-tree claim')
+    parser.add_argument('--direct', action='store_true', help='test native closing/melee without lure; requires --entity')
     parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     args = parser.parse_args()
     harvesting = args.harvest_tree or args.harvest_logs is not None
+    if args.direct and (not args.entity or args.at or harvesting):
+        parser.error('--direct requires --entity and cannot combine with --at or harvesting')
     if harvesting and (args.entity or args.at):
         parser.error('harvest mode selects its own eligible nearby work site')
     if args.harvest_logs and not all(math.isfinite(v) for v in args.harvest_logs):
@@ -164,7 +167,7 @@ def main():
             print('Testing native ' + ('existing logs' if args.harvest_logs else 'full-tree/log harvesting'), flush=True)
             run(summary, call, observe, terminal, saved, log_center=args.harvest_logs)
         else:
-            goal = {'kite': True, 'style': 'melee'}
+            goal = {'kite': not args.direct, 'style': 'melee'}
             if args.entity:
                 goal['entity'] = args.entity
             if args.at:
@@ -175,7 +178,7 @@ def main():
             dispatched = call('task', 'attack', json.dumps(goal), '150', as_json=True)
             task_id = dispatched['id']
             summary['task'] = task_id
-            print('Testing one native acquisition/kiting/melee goal', flush=True)
+            print('Testing one native ' + ('closing/melee' if args.direct else 'acquisition/kiting/melee') + ' goal', flush=True)
             anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
             deadline = time.monotonic() + 155
             while time.monotonic() < deadline:

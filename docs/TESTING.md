@@ -664,6 +664,13 @@ Use `just check controller test-packages ./internal/retreat ./internal/protocol
 fixtures include task_attack and state_combat. These do not prove real strike
 contact, animation timing, block effectiveness or roll displacement.
 
+To isolate native closing/melee from lure preparation, use
+`just vm combat-trial --direct --entity ID --wait-s 30`. This requires an explicit
+observed Greyling ID and preserves the same health, threat, ownership and cleanup
+supervision. It submits one native attack with `kite:false`; success proves the
+direct encounter, not pursuit or kiting. It cannot combine with preferred ground
+or harvest options.
+
 `just vm combat-trial` performs one automated live attempt with normal controls
 and no owner staging/clearance prerequisite. It restarts Tas, temporarily enables
 combat, delegates local ground/target selection and kiting to C#, requires active
