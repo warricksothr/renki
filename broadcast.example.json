@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "video": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "bitrateKbps": 3000,
+    "keyframeSeconds": 2
+  },
+  "audio": { "source": "off", "bitrateKbps": 160 },
+  "capture": { "method": "game", "encoder": "hardware-h264" },
+  "overlay": { "enabled": false }
+}
