@@ -189,6 +189,9 @@ func TestNothingWithoutLoggingIn(t *testing.T) {
 	if res.Header.Get("Content-Security-Policy") == "" || res.Header.Get("X-Frame-Options") != "DENY" {
 		t.Errorf("security headers missing: %v", res.Header)
 	}
+	if !strings.Contains(res.Header.Get("Content-Security-Policy"), "img-src 'self' data: blob:") {
+		t.Errorf("camera blob images are blocked by CSP: %s", res.Header.Get("Content-Security-Policy"))
+	}
 }
 
 func TestLoginLogout(t *testing.T) {
