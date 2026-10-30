@@ -719,6 +719,13 @@ See [BEHAVIOURS.md](BEHAVIOURS.md) for the bounded `gather` template.
 
 Use `just check plugin test-core MeleeTests` for encounter policy, stamina
 reserves, target eligibility and the attack task's runner cancellation paths.
+Use `just check plugin test-core DeathObservationTests` for exact-target callback
+retention across immediate destruction and stage handoff, ordinary unload,
+unrelated deaths, scope changes and cancellation. Native attack observes the
+selected Character's owner-side death callback before its view is reset. The
+same subscription transfers from kiting to melee and is revoked on retreat or
+cancellation. The installed game sends remote deletion IDs without a death
+reason; remote disappearance alone still fails with `target_lost`.
 Use `just check controller test-packages ./internal/retreat ./internal/protocol
 ./internal/app` for attack/retreat arbitration and protocol checks. Shared
 fixtures include task_attack and state_combat. These do not prove real strike
