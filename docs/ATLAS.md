@@ -84,8 +84,12 @@ The authenticated read-only panel endpoints are:
 - Existing `GET /api/map` remains the live session/object snapshot, now with optional
   `worldUid` and `worldKey`. The page combines retained terrain with this snapshot.
 
-The map selector explicitly opens saved terrain while Tas is offline. Stale cells
-fade; hovering reports the oldest contributing corner's measurement estimate,
+The map defaults to **Follow Tas · last map offline**: live while he is in-world,
+then his last atlas under a fog/dimming overlay while offline. A fresh offline
+page opens the most recently received saved world. Rejoining automatically
+restores live mode; an explicitly selected saved world stays pinned. Saved views
+keep unknown areas dark and clear live actors/objects. Stale cells fade further;
+hovering reports the oldest contributing corner's measurement estimate,
 observer IDs and 4 m spacing. Unknown holes remain unknown. Queries refresh after
 panning/zooming and periodically; views wider than 512 m show a bounded central
 detail region. Coarse overviews, historical time sliders and import/export are
@@ -99,7 +103,9 @@ and merging. `just check controller benchmark-atlas` measures real SQLite overhe
 a local 12,500-sample run measured about 403 bytes/sample and 7.6 ms per 25-sample
 batch, including durable writes and indexes. This is an indicative local workload,
 not a throughput or compression guarantee. `just controller preview-map --serve`
-provides the read-only saved/live UI fixture.
+provides the read-only saved/live UI fixture. `just vm atlas-check` captures
+bounded live evidence; pass its saved path as `--baseline` after reconnect or
+logout to check canonical sample retention and measurement age.
 
 ## Broader architecture and exchange proposal
 

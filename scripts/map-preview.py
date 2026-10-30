@@ -41,13 +41,15 @@ if args.status:
  frames=[]
 # Preview an accumulated saved map independently of the live connection.
 import copy,datetime
-atlas_key='a'*64
-saved_world=dict(key=atlas_key,name=status.get('world','Saved world'),scope=dict(namespace='preview',worldUid='9223372036854775807',epoch='1'),center=[-36,8])
+manifest=mapped.get('manifest') or {}
+atlas_key=manifest.get('key') or mapped.get('worldKey') or 'a'*64
+position=status.get('pos') or [-36,0,8]
+saved_world=dict(key=atlas_key,name=manifest.get('name') or status.get('world') or mapped.get('world') or 'Saved world',scope=manifest.get('scope') or dict(namespace='preview',worldUid='9223372036854775807',epoch='1'),center=manifest.get('center') or [position[0],position[2]])
 saved_tiles=copy.deepcopy(mapped.get('tiles',[]))
 for tile in saved_tiles:
- tile['observedAt']=['2026-10-01T12:00:00Z']*25
- tile['sources']=['preview-observer']*25
- tile['stale']=[tile['x'] < -4]*25
+ tile.setdefault('observedAt',['2026-10-01T12:00:00Z']*25)
+ tile.setdefault('sources',['preview-observer']*25)
+ tile.setdefault('stale',[tile['x'] < -4]*25)
 mapped['worldKey']=atlas_key
 saved_map=dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
 html=(root/'internal/panel/static/index.html').read_text().replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')

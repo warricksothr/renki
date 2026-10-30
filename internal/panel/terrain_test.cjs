@@ -38,3 +38,20 @@ test('remembered corners retain their ages when merged with complete-looking liv
   assert.equal(live.heights[0],5);
   assert.equal(saved.heights[24],null);
 });
+
+test('offline fog dims known terrain without painting unknown cells', () => {
+  const { draw } = require('./static/terrain.js');
+  const tile={x:0,z:0,waterLevel:30,heights:Array(25).fill(40),biomes:Array(25).fill('Meadows')};
+  tile.heights[0]=null;
+  function paint(fog){
+    const alpha=[];
+    const ctx={save(){},restore(){},beginPath(){},lineTo(){},moveTo(){},closePath(){},stroke(){},fill(){alpha.push(this.globalAlpha)}};
+    draw(ctx,new Map([[key(0,0),tile]]),x=>x,z=>32-z,{terrain:true,elevation:false},32,32,fog);
+    return alpha;
+  }
+  const live=paint(false),offline=paint(true);
+  assert.equal(live.length,15);
+  assert.equal(offline.length,15);
+  assert(live.every(a=>a===1));
+  assert(offline.every(a=>a>0 && a<1));
+});

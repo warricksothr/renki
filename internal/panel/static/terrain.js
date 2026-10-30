@@ -55,7 +55,7 @@ const RenkiTerrain = (() => {
     });
     return out.length === 2 ? out : [];
   }
-  function draw(ctx, tiles, sx, sy, layers, width, height) {
+  function draw(ctx, tiles, sx, sy, layers, width, height, fog = false) {
     function polygon(ps, fill) {
       if (ps.length < 3) return;
       ctx.beginPath(); ps.forEach((p, i) => i ? ctx.lineTo(sx(p.x), sy(p.z)) : ctx.moveTo(sx(p.x), sy(p.z)));
@@ -72,7 +72,7 @@ const RenkiTerrain = (() => {
       for (let z = 0; z < 4; z++) for (let x = 0; x < 4; x++) {
         const i = z * 5 + x, ids = [i, i + 1, i + 6, i + 5];
         if (!ids.every((j) => Number.isFinite(tile.heights[j]))) continue;
-        ctx.globalAlpha = ids.some(j => tile.stale?.[j]) ? 0.45 : 1;
+        ctx.globalAlpha = (ids.some(j => tile.stale?.[j]) ? 0.45 : 1) * (fog ? 0.65 : 1);
         const ps = ids.map((j) => ({ x: tile.x * 16 + (j % 5) * 4, z: tile.z * 16 + Math.floor(j / 5) * 4, h: tile.heights[j] }));
         const biome = colours[tile.biomes[i]] || "#414847";
         if (layers.terrain) polygon(ps, biome);

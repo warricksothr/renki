@@ -279,3 +279,11 @@ marker-check FINAL='restore':
 
 test-marker-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/marker-check-test.py"
+
+# Capture measured terrain, or compare a saved viewport after reconnect/logout.
+[positional-arguments]
+atlas-check *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/atlas-check.py" "$@"
+
+test-atlas-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/atlas-check-test.py"
