@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: in-progress
-status_reason: null
+status: blocked
+status_reason: "Live validation requires the bot VM: SSH to 192.168.1.174 times out, local Hyper-V access is denied, and current VM state/address awaits owner clarification."
 priority: normal
 due_on: null
 labels:
@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T03:41:36Z
+updated_at: 2026-10-30T03:49:12Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -130,3 +130,15 @@ Inspected the installed terrain APIs and retained refusal audit. Heightmap.GetWo
 GroundCorridor now exposes exact failure segments/points and current/previous angles. The survey opts into physical stage/collider diagnostics, distinguishing endpoint/midpoint support, water, wall memory, cached bounds, live body casts/overlaps and saturated buffers. Ordinary navigation does not allocate these detailed diagnostics. Trial summaries stream the matching-task audit into counts and at most six representative failures; console output stays compact and full traces remain retained. Optional diagnostic errors do not replace encounter results or interfere with cleanup.
 
 Focused diagnostic tests passed (.checks/20261030T033639Z-jsVjo6.log, .checks/20261030T033643Z-qHpD8D.log). Initial CI caught only initializer whitespace, corrected before the passing gate. Final just check ci passed with 292 plugin tests, controller checks/builds and four supervisor tests (.checks/20261030T034042Z-I9gecF.log). Committed review, landing, installation and a normal-controls live attempt follow. Positive combat criteria remain unchecked. The two reported environment restarts did not lose the working changes or test evidence.
+
+**agent:codex/renki-resume** at 2026-10-30T03:48:38Z
+
+Ground projection/coverage/diagnostics landed in PR #51 as 6612eb1. just check ci passed with 292 plugin tests and four supervisor tests (.checks/20261030T034042Z-I9gecF.log); committed just check review passed without findings (.checks/20261030T034136Z-NquIfO.log).
+
+Deployment could not reach the bot VM at Admin@192.168.1.174: just check vm install failed with SSH exit 255 before copying any files (.checks/20261030T034229Z-ZtQtCP.log). A separate just check vm check reproduced the connection timeout (.checks/20261030T034515Z-jMOlzS.log). Local Hyper-V inventory also denied this account access to host TEHBEAST; available Tailscale peer evidence did not establish another address for this VM. The owner was asked asynchronously for the VM's state/current address. No live trial was started, no new installed-runtime claim is made, and remote game/gate state cannot currently be reverified. Last successfully installed runtime remains 33cd427; last confirmed game/controller state was stopped and combat false.
+
+The install recipe previously treated any failed SSH process probe as a running game and invoked stop. Correct its probe to use a distinct remote exit 10 for a running game and fail immediately on connection/other errors, before copying or stop attempts. This avoids obscuring the infrastructure blocker with another remote action. Live continuation needs restored VM reachability; once available, run just check vm install, one just check vm combat-trial --wait-s 60, inspect the bounded ground summary and record exact segment/collider evidence. Keep positive combat criteria unchecked.
+
+**agent:codex/renki-resume** at 2026-10-30T03:49:12Z
+
+in-progress to blocked: Live validation requires the bot VM: SSH to 192.168.1.174 times out, local Hyper-V access is denied, and current VM state/address awaits owner clarification.

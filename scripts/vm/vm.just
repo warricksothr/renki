@@ -76,9 +76,14 @@ install: need-target
     #!/usr/bin/env bash
     set -euo pipefail
     just --justfile "{{justfile()}}" package
-    if {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 1 }" >/dev/null 2>&1; then
+    if {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 10 }" >/dev/null; then
         echo "the game is not running"
     else
+        probe_status=$?
+        if [ "$probe_status" -ne 10 ]; then
+            echo "cannot inspect the VM (SSH exit $probe_status); installation stopped before copying or stopping anything" >&2
+            exit "$probe_status"
+        fi
         just --justfile "{{justfile()}}" vm stop
     fi
     {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}' | Out-Null"
