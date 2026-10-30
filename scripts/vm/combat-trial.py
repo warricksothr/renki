@@ -16,33 +16,6 @@ def distance(a, b):
     return math.dist(a, b)
 
 
-def candidates(status, mapped, entity=None):
-    pos = status.get('pos')
-    if not pos:
-        return []
-    seen = mapped.get('perception') or {}
-    characters = seen.get('characters', [])
-    pieces = seen.get('structures', [])
-    result = []
-    for target in characters:
-        if entity and target.get('id') != entity:
-            continue
-        if (target.get('kind') != 'creature' or target.get('prefab') != 'Greyling'
-                or target.get('stars', 0) != 0 or target.get('tamed', False)
-                or not target.get('hostile') or target.get('hpFrac', 0) <= 0
-                or distance(pos, target['pos']) > 30):
-            continue
-        # The plugin checks actual colliders every physics step as well.
-        origins = (pos, target['pos'])
-        if any(min(distance(c['pos'], p) for p in origins) < (15 if c.get('hostile') and c.get('kind') == 'creature' else 8)
-               for c in characters if c['id'] != target['id'] and c.get('hpFrac', 0) > 0):
-            continue
-        if any(min(distance(c['pos'], p) for p in origins) < 6 for c in pieces):
-            continue
-        result.append(target)
-    return sorted(result, key=lambda c: distance(pos, c['pos']))
-
-
 def abort_reason(status, origin=None, characters=(), target=None):
     if not status.get('connected') or status.get('phase') != 'in_world':
         return 'not in the world'
@@ -75,9 +48,12 @@ def terminal(value, task_id):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--entity', help='optional exact target; otherwise select a safe ordinary Greyling')
+    parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
+    parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     args = parser.parse_args()
+    if args.at and not all(math.isfinite(v) for v in args.at):
+        parser.error('--at must contain finite coordinates')
     if not math.isfinite(args.wait_s) or not 0 <= args.wait_s <= 120:
         parser.error('--wait-s must be between 0 and 120')
     saved = ROOT / '.checks' / ('combat-trial-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
@@ -121,9 +97,7 @@ def main():
                 raise RuntimeError('another task is active; trial will not replace it')
             ready = (status.get('hp', 0) >= status.get('hpMax', 1) * .8
                      and status.get('stamina', 0) >= 40 and status.get('food', {}).get('active'))
-            choices = candidates(status, mapped, args.entity)
-            if ready and choices:
-                target = choices[0]
+            if ready:
                 break
             if any(c.get('hostile') and c.get('kind') == 'creature' and c.get('hpFrac', 0) > 0
                    and distance(c['pos'], status['pos']) < 15 for c in chars):
@@ -131,15 +105,20 @@ def main():
             if time.monotonic() >= deadline:
                 raise RuntimeError('no fed, rested, safe single-Greyling encounter available')
             time.sleep(1)
-        summary['entity'] = target['id']
+        goal = {'kite': True, 'style': 'melee'}
+        if args.entity:
+            goal['entity'] = args.entity
+        if args.at:
+            goal['at'] = args.at
+        summary['goal'] = goal
         summary['origin'] = status['pos']
         summary['outcome'] = 'running'
-        dispatched = call('task', 'attack', json.dumps({'entity': target['id'], 'style': 'melee'}), '90', as_json=True)
+        dispatched = call('task', 'attack', json.dumps(goal), '150', as_json=True)
         task_id = dispatched['id']
         summary['task'] = task_id
-        print('Testing explicit melee against ' + target['id'], flush=True)
+        print('Testing one native acquisition/kiting/melee goal', flush=True)
         anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
-        deadline = time.monotonic() + 95
+        deadline = time.monotonic() + 155
         while time.monotonic() < deadline:
             status, mapped = observe()
             result = call('panel', 'GET', '/api/task?id=' + task_id + '&at=' + anchor, as_json=True)
@@ -150,7 +129,10 @@ def main():
                 break
             if (status.get('task') or {}).get('id') != task_id:
                 raise RuntimeError('trial attack lost body ownership')
-            reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), target['id'])
+            combat = status.get('combat') or {}
+            if combat.get('id') == task_id and combat.get('entity'):
+                summary['entity'] = combat['entity']
+            reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), summary.get('entity'))
             if reason:
                 raise RuntimeError(reason)
             time.sleep(.5)

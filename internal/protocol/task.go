@@ -189,13 +189,42 @@ func (*StopArgs) validate() error { return nil }
 
 // AttackArgs starts the bounded melee encounter; auto currently selects melee.
 type AttackArgs struct {
-	Entity string `json:"entity"`
+	Entity string `json:"entity,omitempty"`
 	Style  string `json:"style,omitempty"`
+	Kite   bool   `json:"kite,omitempty"`
+	At     *Vec3  `json:"at,omitempty"`
+}
+
+func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
+	var wire struct {
+		Entity string          `json:"entity"`
+		Style  string          `json:"style"`
+		Kite   bool            `json:"kite"`
+		At     json.RawMessage `json:"at"`
+	}
+	if err := json.Unmarshal(raw, &wire); err != nil {
+		return err
+	}
+	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite}
+	if wire.At != nil {
+		var values []*float64
+		if err := json.Unmarshal(wire.At, &values); err != nil {
+			return err
+		}
+		if len(values) != 3 || values[0] == nil || values[1] == nil || values[2] == nil {
+			return errors.New("`at` requires an [x,y,z] position")
+		}
+		a.At = &Vec3{*values[0], *values[1], *values[2]}
+	}
+	return nil
 }
 
 func (a *AttackArgs) validate() error {
-	if strings.TrimSpace(a.Entity) == "" {
+	if strings.TrimSpace(a.Entity) == "" && !a.Kite {
 		return errors.New("`entity` is required")
+	}
+	if a.At != nil && !a.Kite {
+		return errors.New("`at` requires kite=true")
 	}
 	if a.Style != "" && a.Style != "melee" && a.Style != "auto" {
 		return errors.New("this build supports melee or auto attack style")

@@ -601,14 +601,17 @@ contact, animation timing, block effectiveness or roll displacement.
 
 `just vm combat-trial` performs one automated live attempt with normal controls
 and no owner staging/clearance prerequisite. It restarts Tas, temporarily enables
-combat, selects an observed ordinary Greyling in clear ground, requires active
+combat, delegates local ground/target selection and kiting to C#, requires active
 food/80% health/40 stamina, and records evidence under `.checks/combat-trial-*`.
 It always logs out/stops/restores combat off. Additional creatures, unsafe
 health, exhausted escape, lost task ownership and more than 40 m travel abort
 the trial. No eligible encounter is an aborted trial, never a pass. Optional
-`--entity` restricts target selection and `--wait-s` bounds preparation to 0..120 s.
-It does not spawn/reset targets or automatically scout out of shelter. Use
-`just check vm test-combat-trial` for selection, interruption and cleanup checks;
+`--entity` restricts native target selection, `--at X Y Z` names preferred nearby
+fighting ground, and `--wait-s` bounds food/stamina preparation to 0..120 s.
+It does not spawn/reset targets or scout beyond its bounded local area. Native
+preparation may walk out to checked ground before acquisition. Use
+`just check plugin test-core KitingTests` for pursuit/pacing/bounds and
+`just check vm test-combat-trial` for single-goal dispatch, interruption and cleanup;
 these are included in `just check ci`. A repeatable isolated test arena remains
 future work; positive contact/block/dodge checks still require actual observations.
 

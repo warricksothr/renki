@@ -183,3 +183,28 @@ still take incidental items along a route. Automatic owner-drop inference,
 work-site discovery, leader detours/resumption, resource exploration, tool
 swings and chat shortcuts remain separate work. This template is suitable
 for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
+
+## Combat
+
+The `combat` template delegates one bounded native encounter to C#:
+
+```json
+{
+  "template": "combat",
+  "params": {"world": "DizzysHellheim"},
+  "trigger": {"kind": "manual"},
+  "repeat": {"mode": "once"},
+  "priority": 20,
+  "enabled": false
+}
+```
+
+It requires the current world and active food. Optional params `at: [x,y,z]`
+prefer nearby fighting ground; optional `entity` restricts native acquisition.
+It dispatches one `attack` with `kite=true` and a 150 second timeout. C# owns
+survey, positioning, target acquisition, drawing, kiting, waiting, melee and
+escape; phase reports never produce extra movement orders from this template.
+The controller and plugin must separately allow combat. Editing an active
+instance cancels it through the normal lease/stop handshake; a new manual
+start validates the new goal. No instance is installed or enabled by default.
+See SELF_DEFENSE.md for the current single-Greyling limits and live-test status.

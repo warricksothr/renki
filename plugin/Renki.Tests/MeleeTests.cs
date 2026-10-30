@@ -159,18 +159,24 @@ namespace Renki.Tests
         }
 
         [Theory]
-        [InlineData("stop")]
-        [InlineData("replacement")]
-        [InlineData("timeout")]
-        [InlineData("deadman")]
-        [InlineData("reconnect")]
-        [InlineData("death")]
-        public void AttackUsesTheBodyCancellationLifecycle(string end)
+        [InlineData("stop", false)]
+        [InlineData("replacement", false)]
+        [InlineData("timeout", false)]
+        [InlineData("deadman", false)]
+        [InlineData("reconnect", false)]
+        [InlineData("death", false)]
+        [InlineData("stop", true)]
+        [InlineData("replacement", true)]
+        [InlineData("timeout", true)]
+        [InlineData("deadman", true)]
+        [InlineData("reconnect", true)]
+        [InlineData("death", true)]
+        public void AttackUsesTheBodyCancellationLifecycle(string end, bool kite)
         {
             var host = new FakeHost(); var reports = new List<TaskStatus>();
             var runner = new TaskRunner(new SafetyConfig { AllowCombat = true }, TaskNames.Supported, host, reports.Add, () => 0);
             runner.Welcome(TaskNames.Supported);
-            runner.Handle(new TaskRequest { Id = "a", Task = "attack", Args = JObject.Parse("{\"entity\":\"1:2\"}"), TimeoutS = 1 });
+            runner.Handle(new TaskRequest { Id = "a", Task = "attack", Args = kite ? JObject.Parse("{\"kite\":true}") : JObject.Parse("{\"entity\":\"1:2\"}"), TimeoutS = 1 });
             var body = Assert.Single(host.Bodies);
             if (end == "stop") runner.Handle(new TaskRequest { Id = "s", Task = "stop" });
             if (end == "replacement") runner.Handle(new TaskRequest { Id = "b", Task = "attack", Args = JObject.Parse("{\"entity\":\"1:3\"}") });

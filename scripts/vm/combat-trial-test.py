@@ -19,24 +19,6 @@ class CombatTrialTests(unittest.TestCase):
         self.enemy = dict(id='greyling', kind='creature', prefab='Greyling', pos=[25, 32, 0], hpFrac=1, hostile=True)
         self.mapped = dict(perception=dict(characters=[self.enemy], structures=[]))
 
-    def test_only_eligible_single_target_in_clear_area(self):
-        self.assertEqual(trial.candidates(self.status, self.mapped), [self.enemy])
-        for field, value in [('stars', 1), ('tamed', True), ('hpFrac', 0), ('hostile', False), ('prefab', 'Boar'), ('kind', 'player'), ('pos', [31, 32, 0])]:
-            with self.subTest(field=field):
-                enemy = dict(self.enemy, **{field: value})
-                self.assertEqual(trial.candidates(self.status, dict(perception=dict(characters=[enemy]))), [])
-
-    def test_bystanders_and_structures_at_either_end_prevent_trial(self):
-        for pos in ([1, 32, 0], [24, 32, 0]):
-            with self.subTest(pos=pos):
-                bystander = dict(id='owner', kind='player', hpFrac=1, pos=pos)
-                self.mapped['perception']['characters'] = [self.enemy, bystander]
-                self.assertEqual(trial.candidates(self.status, self.mapped), [])
-                self.mapped['perception']['characters'] = [self.enemy]
-                self.mapped['perception']['structures'] = [dict(pos=pos)]
-                self.assertEqual(trial.candidates(self.status, self.mapped), [])
-                self.mapped['perception']['structures'] = []
-
     def test_low_health_exhausted_escape_and_long_chases_abort(self):
         self.assertIsNone(trial.abort_reason(self.status, [0, 32, 0]))
         self.assertEqual(trial.abort_reason(dict(self.status, hp=55)), 'health below trial floor')
@@ -66,7 +48,7 @@ class CombatTrialTests(unittest.TestCase):
                     value = ''
                     if args[:3] == ['panel', 'GET', '/api/status']:
                         observed += 1
-                        value = dict(status, **({'task': dict(id='trial', task='attack')} if observed > 1 else {}))
+                        value = dict(status, **({'task': dict(id='trial', task='attack'), 'combat': dict(id='trial', entity='greyling', mode='kite')} if observed > 1 else {}))
                     elif args[:3] == ['panel', 'GET', '/api/map']:
                         chars = [self.enemy]
                         if observed > 1 and outcome == 'extra attacker':
@@ -84,6 +66,10 @@ class CombatTrialTests(unittest.TestCase):
                     code = trial.main()
                 self.assertEqual(code, 0 if outcome == 'success' else 1)
                 self.assertEqual(commands.count(['stop']), 2)
+                sent = [c for c in commands if c[0] == 'task']
+                self.assertEqual(len(sent), 1)
+                self.assertEqual(json.loads(sent[0][2]), {'kite': True, 'style': 'melee'})
+                self.assertFalse(any(c[:2] == ['task', 'move_to'] for c in commands))
                 self.assertIn(['combat', 'true'], commands)
                 self.assertIn(['combat', 'false'], commands)
                 self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)

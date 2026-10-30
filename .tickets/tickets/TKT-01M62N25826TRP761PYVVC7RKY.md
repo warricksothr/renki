@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T01:44:10Z
+updated_at: 2026-10-30T02:10:06Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -96,3 +96,13 @@ PR #45 landed as 6ba8e99. just check ci passed with 245 plugin tests, Go checks/
 Ran just check vm combat-trial --wait-s 0 without owner staging or clearance (.checks/20261030T012816Z-5MpagM.log). The runner correctly reported aborted/no fed, rested, safe single-Greyling encounter available, exit 1; this is not a passing combat test. Live preflight saw active meat meals, 76.1/76.6 HP, only 36.5 stamina (below its 40 minimum), a Greyling just outside 30 m at a lower elevation, and a Boar near that target. No attack command was sent. It automatically logged out, stopped the game and restored combat config false, with no cleanup errors. Evidence and full audit: .checks/combat-trial-20261030T012816512053Z/summary.json and .checks/audit-window-bU7lMF.jsonl. No swing/block/dodge result or successful live closing is claimed; acceptance criteria remain open.
 
 Owner-independent live trial selection/recording/backstops now exist, but guaranteeing a positive repeatable encounter still needs a disposable local arena and reset. Filed draft TKT-01M656NE4C71PNAJMK025TB6FW (Repeatable isolated combat trials with automatic reset) for that remaining setup, preserving production saves. Tas remains offline at the northeast saved position; do not request owner clearance as the default next step.
+
+**agent:codex/renki-resume** at 2026-10-30T01:50:53Z
+
+Start implementation of the approved native kiting plan. Extend attack with kite=true and optional preferred at point; target omission in this mode delegates bounded local Greyling acquisition to C#. Preserve existing explicit melee args. Add testable kiting phases, observed follower movement, stamina/gap pacing, bounds and failure reasons. Add native area validation, target acquisition, navigation and direct MeleeTask handoff under the same attack ID; report phases and coordinate retreat for the selected target. Update the trial harness to send one native goal rather than select enemies. Validate policy, protocol, cancellation, retreat integration and supervisor ownership/cleanup. Land after just check ci and committed just check review; install with combat disabled. Positive live kiting/strike/defense checks remain open until observed.
+
+**agent:codex/renki-resume** at 2026-10-30T02:10:06Z
+
+Implemented attack kite=true (optional target and preferred at point), a native C# survey/position/search/draw/kite/hold/engage routine, and testable pursuit/pacing policy. It validates dry supported clear terrain and escape corridors, moves to checked ground, acquires one ordinary Greyling locally, observes actual movement toward Tas, preserves separation/stamina, bounds preparation/search/luring and hands directly to MeleeTask with the same attack ID. It revalidates ground and characters and retains cancellation/escape paths. No forced enemy AI or frame-by-frame controller movement orders.
+
+Added a world-scoped combat behavior template that submits one goal and waits; active goal edits use the existing cancel/stop acknowledgement before a replacement starts. Added protocol fixture/argument validation, native-phase retreat arbitration and lifecycle/policy/behavior regressions. Python trial runner now delegates acquisition and kiting to C# and only supervises/records/stops. Focused policy, behavior/protocol/retreat and supervisor checks pass, and the plugin builds against installed game APIs. An initial full CI build caught a C# local-variable shadow after the positioning step was added; renamed it and verified the plugin build. Final CI, committed review and installed trial follow. Live attraction, pursuit, pacing and melee handoff remain unverified; broad acceptance criteria stay open.

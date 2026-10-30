@@ -50,7 +50,7 @@ namespace Renki.Plugin
             Active = this;
         }
 
-        static bool Eligible(Player p, Character c) => c != null && c.m_nview != null && c.m_nview.IsValid() &&
+        internal static bool Eligible(Player p, Character c) => c != null && c.m_nview != null && c.m_nview.IsValid() &&
             MeleeEncounter.Eligible(c.m_nview.GetPrefabName(), c.GetLevel(), c is Player, c.IsTamed(), BaseAI.IsEnemy(p, c));
 
         static bool Usable(ItemDrop.ItemData item)
@@ -62,7 +62,7 @@ namespace Renki.Plugin
                 a.m_attackEitr <= 0 && a.m_attackHealth <= 0 && a.m_attackHealthPercentage <= 0 && !a.m_attackKillsSelf && a.m_attackUseAdrenaline <= 0;
         }
 
-        static ItemDrop.ItemData Best(Player p)
+        internal static ItemDrop.ItemData Best(Player p)
         {
             ItemDrop.ItemData best = null; float power = 0;
             foreach (var item in p.GetInventory().GetAllItems())

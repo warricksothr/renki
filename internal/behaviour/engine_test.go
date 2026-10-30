@@ -45,7 +45,7 @@ type fixture struct {
 	log   bytes.Buffer
 }
 
-func setup(t *testing.T) *fixture {
+func setup(t *testing.T, extraTasks ...string) *fixture {
 	t.Helper()
 	f := &fixture{now: time.Unix(1000, 0), path: filepath.Join(t.TempDir(), "settings.json")}
 	quiet := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -55,10 +55,11 @@ func setup(t *testing.T) *fixture {
 		t.Fatal(err)
 	}
 	f.s = session.New(listener{}, quiet)
+	tasks := append([]string{"stop", "move_to", "flee", "deposit", "pickup", "interact", "say"}, extraTasks...)
 	url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome {
-		return &protocol.Welcome{AllowedTasks: []string{"stop", "move_to", "flee", "deposit", "pickup", "interact", "say"}}
+		return &protocol.Welcome{AllowedTasks: tasks}
 	}}, f.s)
-	f.p = bridgetest.Connect(t, url, []string{"stop", "move_to", "flee", "deposit", "pickup", "interact", "say"})
+	f.p = bridgetest.Connect(t, url, tasks)
 	f.p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25, HPMax: 25, WeightMax: 300})
 	wait(t, func() bool { return f.s.State() != nil })
 	f.e = New(Options{Session: f.s, Store: f.store, Now: func() time.Time { return f.now }, Owners: func() []string { return []string{"Nimah"} }, Templates: map[string]Template{"two_steps": twoSteps{}}, Logger: slog.New(slog.NewJSONHandler(&f.log, nil))})

@@ -30,6 +30,7 @@ namespace Renki.Plugin
             switch (args)
             {
                 case AttackArgs attack:
+                    if (attack.Kite) return new KiteTask(req.Id, attack);
                     return new MeleeTask(req.Id, attack, FindEntity(attack.Entity));
                 case HarvestArgs harvest:
                     return new HarvestTask(harvest, FindEntity(harvest.Entity));
