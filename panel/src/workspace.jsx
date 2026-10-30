@@ -171,7 +171,7 @@ export function Supplies() {
         <p id="goal-result" role="status"></p>
         <div id="goal-list"></div>
       </details>
-      <details id="inventory" open>
+      <details id="inventory">
         <summary>
           Inventory <span id="inv-summary">not yet seen</span>
         </summary>
@@ -195,7 +195,7 @@ export function Places() {
           <h2>Places &amp; storage</h2>
         </div>
       </div>{" "}
-      <details id="places" open>
+      <details id="places">
         <summary>
           Places &amp; zones <span id="place-count"></span>
         </summary>
@@ -380,6 +380,28 @@ export function Preferences() {
     </section>
   );
 }
+export function CommandBar() {
+  return (
+    <form
+      id="say-form"
+      class="say-row command-bar"
+      autocomplete="off"
+      aria-label="Speak to Tas"
+    >
+      <label>
+        Say as <select id="say-as"></select>
+      </label>
+      <input
+        id="say-text"
+        type="text"
+        placeholder="a command, such as: follow me, go home, status"
+        aria-label="What to say to the bot"
+      />
+      <button>Say</button>
+      <span id="say-result" role="status"></span>
+    </form>
+  );
+}
 export function Timeline() {
   return (
     <section class="card timeline" id="feed-pane">
@@ -390,19 +412,6 @@ export function Timeline() {
         </div>
         <span class="muted">Tasks &amp; chat · details on demand</span>
       </div>{" "}
-      <form id="say-form" class="say-row" autocomplete="off">
-        <label>
-          Say as <select id="say-as"></select>
-        </label>
-        <input
-          id="say-text"
-          type="text"
-          placeholder="a command, such as: follow me, go home, status"
-          aria-label="What to say to the bot"
-        />
-        <button>Say</button>
-        <span id="say-result" role="status"></span>
-      </form>
       <details class="timeline-options">
         <summary>Filters &amp; history</summary>
         <div class="filters">

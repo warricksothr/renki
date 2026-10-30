@@ -17,7 +17,7 @@ lint: install
 fmt: install
     npx --no-install prettier --write src build.mjs measure.mjs preview-checks.js test ui
 
-ci: lint verify test ui-test
+ci: lint verify test (ui-test "--port" "0")
 
 # CI checks committed assets before any Go recipe can regenerate them.
 verify: install

@@ -31,6 +31,8 @@ nonzero exit status; there is no browser skip that can make CI green.
   relative to `panel/`, where its just module runs. `--port 0` chooses an
   available loopback port; the suite otherwise owns **18792**, never the live
   panel port. It starts/stops its own fixture server and fresh browser contexts.
+  The panel CI recipe always selects an available port so isolated worktrees
+  can run their gates concurrently.
 - `just check panel examples` runs the same assertions for a curated feature
   set and writes `.checks/panel-examples/`, including `contact-sheet.html` and
   `contact-sheet.png`. `--viewport`, `--scenario`, `--output` and `--port` also
@@ -51,6 +53,7 @@ and the contact sheet enumerate only the current run's artifacts. Use
 | Name | Behavior and evidence |
 | --- | --- |
 | `overview` | Actual JPEG decode and dimensions, recorded terrain count, interval validation, top-of-panel example |
+| `layout-monitoring` | Arrival command/goal access, title and anchor clearance, balanced desktop views with no map-side gap, two-column work cards, tablet/mobile stacking and safety dock; expanded view details, inventory and places. Additional 1920, 1024 and 768px screenshots on the desktop run |
 | `shared-regression` | Reuses PR #102's 35 fixture assertions: layers, keyboard, history, task failures, settings scroll/focus, inventory, camera phases, offline/rejoin and action refusal |
 | `map-layers-export` | All layer controls update ARIA and shared export state; actual button downloads JPEG + matching JSON, exported JPEG decodes |
 | `offline-fog` | Saved atlas with observation ages/fog, no live actors/image/inventory, safety actions disabled |
@@ -69,6 +72,15 @@ change any game state. Camera responses replay the current `config`,
 `baseConfig`, and `override {id, config, expiresAt, connection, worldUid}` contract.
 No suite step contacts a VM, game, credentials store or owner staging service.
 Unexpected browser network traffic is blocked and reported as a failure.
+
+For a focused layout review, run
+`just check panel ui-test --scenario layout-monitoring --port 0 --output ../.checks/layout-review`.
+The `arrival`, `views`, `work`, `expanded-views`, `inventory` and `places` PNGs
+cover both standard viewports; `views-1920`, `views-1024` and `views-768` cover
+the desktop and tablet breakpoints. The fixture banner reserves its own space;
+it offsets only the sticky desktop header, leaving the mobile header in normal
+flow. Geometry assertions supplement visual inspection, including after
+expanding view details. They do not approve the design automatically.
 
 ## Reading results and reviewing visuals
 
