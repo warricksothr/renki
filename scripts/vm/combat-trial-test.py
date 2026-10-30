@@ -58,6 +58,25 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['examples'][0]['region'], 'stance')
         self.assertEqual(summary['examples'][1]['collider'], 'Beech1/stem')
 
+    def test_scouting_summary_retains_only_matching_goal_and_bounded_diagnostics(self):
+        def trace(message, data, task='trial'):
+            return dict(frame=dict(type='trace', source='combat', task=task, msg=message, data=data))
+        rows = [trace('scout', {}, 'old'), trace('ground_selected', dict(area=[1, 2, 3], escape=[7, 2, 3], stanceRadius=3))]
+        rows += [trace('scout', {})] * 20 + [trace('scout_return', {})]
+        rows += [trace('scout_route', dict(returning=False)), trace('scout_route', dict(returning=True))]
+        rows += [trace('scout_rejected', dict(goal=[1, 2, 3], reason='blocked_' + str(i))) for i in range(10)]
+        rows += [trace('scout_rejected', dict(reason='blocked_0'))]
+        with tempfile.TemporaryDirectory() as directory:
+            audit = Path(directory) / 'audit.jsonl'
+            audit.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+            summary = trial.ground_diagnostics(audit, 'trial')
+        self.assertEqual(summary['candidates'], 0)
+        self.assertEqual(summary['selected']['escape'], [7, 2, 3])
+        self.assertEqual(summary['modes'], ['scout', 'scout_return'])
+        self.assertEqual(summary['scouting']['routes'], {'outbound': 1, 'return': 1})
+        self.assertEqual(summary['scouting']['reasons']['blocked_0'], 2)
+        self.assertEqual(len(summary['scouting']['examples']), 6)
+
     def test_runner_stops_and_restores_gate_after_success_or_additional_attacker(self):
         for outcome in ('success', 'extra attacker'):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as directory:

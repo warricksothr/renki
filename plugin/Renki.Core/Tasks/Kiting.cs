@@ -36,9 +36,12 @@ namespace Renki.Tasks
         public bool Run { get; private set; }
 
         public Kiting(V3 start, V3 area, V3 enemy, double now)
+            : this(start, area, enemy, start, now) { }
+
+        public Kiting(V3 start, V3 area, V3 enemy, V3 bot, double now)
         {
             this.start = start; this.area = area; began = progressAt = lastFollow = now;
-            bestGap = V3.FlatDistance(start, enemy); bestAreaDistance = V3.FlatDistance(area, enemy);
+            bestGap = V3.FlatDistance(bot, enemy); bestAreaDistance = V3.FlatDistance(area, enemy);
         }
 
         public KiteAction Decide(KiteFrame f, double now)

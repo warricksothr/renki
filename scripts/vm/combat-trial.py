@@ -51,14 +51,31 @@ def ground_diagnostics(audit, task_id):
     """Bounded projection of one native goal; full traces remain in the audit."""
     reasons, stages, regions = Counter(), Counter(), Counter()
     examples, seen = [], set()
+    modes, selected, scout_examples = [], None, []
+    scout_reasons, scout_routes = Counter(), Counter()
     with Path(audit).open() as lines:
         for line in lines:
             row = json.loads(line)
             frame = row.get('frame', {})
             if (frame.get('type') != 'trace' or frame.get('task') != task_id
-                    or frame.get('source') != 'combat' or frame.get('msg') != 'ground_rejected'):
+                    or frame.get('source') != 'combat'):
                 continue
             data = frame.get('data') or {}
+            message = frame.get('msg')
+            if message in ('position', 'search', 'scout', 'scout_return', 'draw', 'kite', 'hold',
+                           'engage', 'approach', 'strike', 'block', 'dodge', 'wait', 'retreat') and message not in modes:
+                modes.append(message)
+            if message == 'ground_selected':
+                selected = {k: data[k] for k in ('area', 'escape', 'stanceRadius') if k in data}
+            if message == 'scout_route':
+                scout_routes['return' if data.get('returning') else 'outbound'] += 1
+            if message == 'scout_rejected':
+                reason = data.get('reason', 'unknown')
+                if reason not in scout_reasons and len(scout_examples) < 6:
+                    scout_examples.append({k: data[k] for k in ('goal', 'reason') if k in data})
+                scout_reasons[reason] += 1
+            if message != 'ground_rejected':
+                continue
             reasons[data.get('reason', 'unknown')] += 1
             if data.get('region'):
                 regions[data['region']] += 1
@@ -71,7 +88,8 @@ def ground_diagnostics(audit, task_id):
                 examples.append({k: data[k] for k in ('candidate', 'reason', 'region', 'segment', 'from', 'desired',
                                 'supported', 'angle', 'previousAngle', 'roughness', 'probeStage', 'probeAt', 'collider',
                                 'colliderCenter') if k in data})
-    return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), regions=dict(regions), examples=examples)
+    return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), regions=dict(regions), examples=examples,
+                selected=selected, modes=modes, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons), examples=scout_examples))
 
 
 def main():
@@ -191,7 +209,8 @@ def main():
     if summary.get('result'):
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
     if summary.get('ground'):
-        report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages')}
+        report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected')}
+        report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons')}
     print(json.dumps(report, indent=2))
     return 0 if summary['outcome'] == 'succeeded' and not summary.get('cleanupErrors') else 1
 

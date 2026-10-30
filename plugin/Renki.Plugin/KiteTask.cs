@@ -24,6 +24,8 @@ namespace Renki.Plugin
         string entity = "", mode = "survey", reason;
         Vector3 area, lastEnemy, walkGoal;
         Kiting policy;
+        Scouting scouting;
+        ScoutAction scoutAction;
         GroundCorridor.Failure groundFailure;
         string groundRegion;
         V3? escapeEnd;
@@ -31,7 +33,7 @@ namespace Renki.Plugin
         FleeTask escape;
         int survey;
         bool hasArea, positioned, walking, cancelled;
-        float nextSurvey, nextAreaCheck, nextSample, followingUntil, nextAim, escapeAt, searchAt, nextSearch;
+        float nextSurvey, nextAreaCheck, nextSample, followingUntil, nextAim, escapeAt, nextSearch, nextScout;
 
         internal CombatStatus Status => melee != null ? melee.Status :
             new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
@@ -68,7 +70,7 @@ namespace Renki.Plugin
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
                 return Abort(p, "health, stamina or equipment no longer supports kiting");
             if (!p.IsOnGround() || p.IsSwimming() || p.IsEncumbered()) return Abort(p, "unsafe footing");
-            if (policy == null && Time.unscaledTime - began >= 25)
+            if (!positioned && Time.unscaledTime - began >= 25)
                 return Finish(Outcome.Failed(Wire.ReasonTimeout, "local encounter preparation time limit"));
             if (!hasArea)
             {
@@ -118,20 +120,20 @@ namespace Renki.Plugin
                         if (!walker.Steer(stagingPosition, false, climbObstacles: false)) return Abort(p, "cannot reach fighting ground");
                         return null;
                     }
-                    positioned = true; walking = false; searchAt = Time.unscaledTime; Mode("search");
+                    positioned = true; walking = false; Mode("search");
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime);
                 }
-                if (Time.unscaledTime < nextSearch) return null;
-                nextSearch = Time.unscaledTime + .5f;
-                Acquire(p);
-                if (enemy == null)
+                if (Time.unscaledTime >= nextSearch)
                 {
-                    if (Time.unscaledTime - searchAt >= 8)
-                        return Finish(Outcome.Failed(Wire.ReasonInvalidTarget, "no eligible single Greyling in the local search area"));
-                    return null;
+                    nextSearch = Time.unscaledTime + .5f;
+                    Acquire(p);
                 }
+                if (enemy == null)
+                    return Scout(p);
+                walking = false;
                 entity = enemy.m_nview.GetZDO().m_uid.ToString();
                 lastEnemy = enemy.transform.position; nextSample = Time.unscaledTime + .5f;
-                policy = new Kiting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(lastEnemy), Time.unscaledTime);
+                policy = new Kiting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(lastEnemy), Convert.ToV3(p.transform.position), Time.unscaledTime);
                 Mode("draw");
             }
             if (enemy == null || enemy.m_nview == null || !enemy.m_nview.IsValid() || !enemy.gameObject.activeInHierarchy)
@@ -194,12 +196,92 @@ namespace Renki.Plugin
             {
                 if (!MeleeTask.Eligible(p, c) || c.IsDead() || c.m_nview.GetZDO() == null) continue;
                 if (!string.IsNullOrWhiteSpace(args.Entity) && c.m_nview.GetZDO().m_uid.ToString() != args.Entity) continue;
-                if (Vector3.Distance(origin, c.transform.position) > Kiting.SearchRange) continue;
+                if (Vector3.Distance(origin, c.transform.position) > Kiting.TravelLimit) continue;
                 if (!ClearCharacters(p, c, c.transform.position) || !ClearCharacters(p, c, p.transform.position)) continue;
                 var distance = Vector3.Distance(p.transform.position, c.transform.position);
                 if (distance < best) { selected = c; best = distance; }
             }
             enemy = selected;
+        }
+
+        Outcome Scout(Player p)
+        {
+            var pos = p.transform.position;
+            if (Time.unscaledTime >= nextScout)
+            {
+                nextScout = Time.unscaledTime + .5f;
+                scoutAction = scouting.Decide(Convert.ToV3(pos), p.GetStamina(), ClearCharacters(p, null, pos),
+                    Time.unscaledTime, goal => ScoutRoute(p, goal));
+                if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
+                if (scoutAction == ScoutAction.Done)
+                    return Finish(Outcome.Failed(Wire.ReasonInvalidTarget, "no eligible single Greyling after bounded local scouting and return"));
+                if (scoutAction == ScoutAction.Wait) { walking = false; Mode("search"); return null; }
+                var goal = Convert.ToVector3(scouting.Goal);
+                if (!walking || Vector3.Distance(walkGoal, goal) > .2f)
+                {
+                    walkGoal = goal; walking = true;
+                    walker.SetGoal(pos, goal, 1); walker.ResetStuck(pos);
+                    Tracer.Emit("combat", "scout_route", new Dictionary<string, object>
+                    { ["goal"] = Convert.ToArray(goal), ["returning"] = scouting.Returning, ["attempts"] = scouting.Attempts });
+                }
+                Mode(scouting.Returning ? "scout_return" : "scout");
+            }
+            if (scoutAction != ScoutAction.Walk) return null;
+            if (walker.Refused() is Outcome refused) return Abort(p, refused.Detail ?? refused.Reason);
+            if (!walker.Steer(pos, false, climbObstacles: false)) return Abort(p, "cannot follow the scouting route");
+            return null;
+        }
+
+        V3? ScoutRoute(Player p, V3 desired)
+        {
+            string rejected = "wet_or_unloaded_terrain";
+            if (!Ground(Convert.ToVector3(desired), out var goal)) return RejectScout(desired, rejected);
+            approachPath.Clear();
+            if (Pathfinding.instance == null || !Pathfinding.instance.GetPath(p.transform.position, goal, approachPath,
+                Pathfinding.AgentType.Humanoid, true, true, false) || approachPath.Count == 0 || approachPath.Count > 32 ||
+                Vector3.Distance(approachPath[approachPath.Count - 1], goal) > 1.5f)
+                return RejectScout(desired, "no_complete_navmesh_route");
+            probe.BeginSlice();
+            var previous = Convert.ToV3(p.transform.position);
+            double length = 0;
+            // Include the exact destination after the navmesh endpoint.
+            for (var i = 0; i <= approachPath.Count; i++)
+            {
+                var point = i == approachPath.Count ? goal : approachPath[i];
+                if (!Ground(point, out var supported) || Math.Abs(point.y - supported.y) > 1)
+                    return RejectScout(desired, "unsupported_navmesh_corner");
+                var next = Convert.ToV3(supported);
+                length += (next - previous).Length;
+                if (length > 18 || Vector3.Distance(supported, area) > Scouting.Leash ||
+                    Vector3.Distance(supported, origin) > Kiting.TravelLimit)
+                    return RejectScout(desired, "scouting_route_limit");
+                foreach (var c in Character.GetAllCharacters())
+                {
+                    if (c == null || c == p || c.IsDead()) continue;
+                    if (Scouting.RouteDistance(previous, next, Convert.ToV3(c.transform.position)) < (BaseAI.IsEnemy(p, c) ? 15 : 8))
+                        return RejectScout(desired, "character_near_route");
+                }
+                var failure = GroundCorridor.Inspect(previous, next, DryProbe);
+                if (failure != null) return RejectScout(desired, failure.Reason);
+                if (!ClearScenery(supported)) return RejectScout(desired, "structure_near_route");
+                previous = next;
+            }
+            return Convert.ToV3(goal);
+        }
+
+        V3? RejectScout(V3 goal, string why)
+        {
+            Tracer.Emit("combat", "scout_rejected", new Dictionary<string, object>
+            { ["goal"] = goal.ToArray(), ["reason"] = why });
+            return null;
+        }
+
+        V3? DryProbe(V3 from, V3 desired)
+        {
+            var result = probe.Probe(from, desired);
+            if (!result.HasValue) return null;
+            return ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f
+                ? result : probe.Refuse("wet_ground", result.Value);
         }
 
         bool ClearCharacters(Player p, Character allowed, Vector3 at)
@@ -243,13 +325,6 @@ namespace Renki.Plugin
             rejected = "different_ground_level";
             if (Math.Abs(at.y - grounded.y) > 1) return false;
             var center = Convert.ToV3(grounded);
-            V3? DryProbe(V3 from, V3 desired)
-            {
-                var result = probe.Probe(from, desired);
-                if (!result.HasValue) return null;
-                return ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f
-                    ? result : probe.Refuse("wet_ground", result.Value);
-            }
             V3? Project(V3 point) => Ground(Convert.ToVector3(point), out var support) ? Convert.ToV3(support) : (V3?)null;
             groundFailure = FightingGround.Inspect(center, Project, DryProbe, out groundRegion, out escapeEnd);
             if (groundFailure != null) { rejected = groundFailure.Reason; return false; }

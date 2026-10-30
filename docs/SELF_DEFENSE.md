@@ -147,17 +147,28 @@ failures include the exact segment, supported point, current/previous
 inclination and height residual. Physical failures distinguish support, body casts/overlaps, cached
 bounds, remembered walls and water; collider names/centers accompany live hits.
 Detailed physical diagnostics are enabled only for this survey.
-It moves to the checked ground before searching. Preparation is capped at
-25 seconds; local enemy acquisition waits at most 8 seconds once positioned.
+It moves to the checked ground before searching; survey/positioning are capped
+at 25 seconds. If no target is initially visible, native scouting makes short
+out-and-back excursions from that ground while checking for targets every
+half-second. Six- and ten-metre candidate rings offer at most 16 routes.
+Each route needs complete navmesh support, dry incremental grade/body checks
+and clearance from other characters along the path; live routes are rechecked.
+Scouting stays within 12 m of its fighting ground and the original 40 m
+encounter bound. It stops exploring after 25 seconds, 50 m of accumulated
+travel or stamina below 30, and returns to the checked ground. A 35-second
+search/return deadline, 65 m hard travel cap and four-second progress watchdog
+prevent indefinite searching. A blocked return ends with an explicit refusal.
+These modes do not suppress ordinary controller retreat. The task's overall
+timeout still bounds the complete encounter.
 
-One body task owns survey, position, search, draw, kite, hold, melee and escape.
+One body task owns survey, position, search/scout/return, draw, kite, hold, melee and escape.
 The world-scoped controller `combat` behavior submits one such goal and waits;
 editing/stopping uses the existing engine cancellation rules. The Python trial
 runner also submits one goal, without selecting enemies or issuing movement.
 No background combat behavior is installed or enabled automatically.
 
 Acquisition is restricted to loaded ordinary hostile Greylings within 30 m
-of both the bot and its starting area, with clearance from other characters.
+of the bot and 40 m of its original starting point, with clearance from other characters.
 Kiting confirms actual target movement toward Tas on half-second samples;
 it does not require a replicated AI targeting flag or force the creature's AI.
 It draws toward 8 m separation, leads toward the area once pursuit is observed,
