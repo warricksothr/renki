@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 )
@@ -189,23 +190,25 @@ func (*StopArgs) validate() error { return nil }
 
 // AttackArgs starts the bounded melee encounter; auto currently selects melee.
 type AttackArgs struct {
-	Entity string `json:"entity,omitempty"`
-	Style  string `json:"style,omitempty"`
-	Kite   bool   `json:"kite,omitempty"`
-	At     *Vec3  `json:"at,omitempty"`
+	Entity       string   `json:"entity,omitempty"`
+	Style        string   `json:"style,omitempty"`
+	Kite         bool     `json:"kite,omitempty"`
+	At           *Vec3    `json:"at,omitempty"`
+	SearchRadius *float64 `json:"searchRadius,omitempty"`
 }
 
 func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 	var wire struct {
-		Entity string          `json:"entity"`
-		Style  string          `json:"style"`
-		Kite   bool            `json:"kite"`
-		At     json.RawMessage `json:"at"`
+		Entity       string          `json:"entity"`
+		Style        string          `json:"style"`
+		Kite         bool            `json:"kite"`
+		At           json.RawMessage `json:"at"`
+		SearchRadius *float64        `json:"searchRadius"`
 	}
 	if err := json.Unmarshal(raw, &wire); err != nil {
 		return err
 	}
-	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite}
+	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, SearchRadius: wire.SearchRadius}
 	if wire.At != nil {
 		var values []*float64
 		if err := json.Unmarshal(wire.At, &values); err != nil {
@@ -220,6 +223,12 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 }
 
 func (a *AttackArgs) validate() error {
+	if a.SearchRadius != nil && (!a.Kite || math.IsNaN(*a.SearchRadius) || math.IsInf(*a.SearchRadius, 0) || *a.SearchRadius < 12 || *a.SearchRadius > 80) {
+		return errors.New("`searchRadius` requires kite=true and a radius between 12 and 80 m")
+	}
+	if a.At != nil && a.SearchRadius != nil && *a.SearchRadius > 12 {
+		return errors.New("a fixed fighting area limits `searchRadius` to 12 m")
+	}
 	if strings.TrimSpace(a.Entity) == "" && !a.Kite {
 		return errors.New("`entity` is required")
 	}

@@ -14,8 +14,10 @@ $s = Read-BotSettings
 $valheim = Get-Valheim
 if ($valheim) {
     $st = Get-BotStatus $s
-    if ($st -and $st.connected -and $st.phase -eq 'in_world') {
-        Invoke-Control $s 'POST' '/control/logout' | Out-Null
+    if ($st -and $st.connected -and $st.phase -in @('in_world', 'logging_out')) {
+        if ($st.phase -eq 'in_world') {
+            Invoke-Control $s 'POST' '/control/logout' | Out-Null
+        }
         Write-Host 'bot: logging out'
         $deadline = (Get-Date).AddSeconds($WaitSeconds)
         do {

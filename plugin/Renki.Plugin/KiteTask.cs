@@ -15,6 +15,7 @@ namespace Renki.Plugin
         readonly AttackArgs args;
         readonly Vector3 origin;
         readonly float began;
+        readonly double searchRadius;
         readonly Walker walker = new Walker();
         readonly WorldNavigation.PlanningProbe probe = new WorldNavigation.PlanningProbe(diagnostics: true);
         readonly List<Character> characters = new List<Character>();
@@ -22,7 +23,7 @@ namespace Renki.Plugin
         readonly Collider[] nearby = new Collider[256];
         Character enemy;
         string entity = "", mode = "survey", reason;
-        Vector3 area, lastEnemy, walkGoal;
+        Vector3 area, lastEnemy, walkGoal, surveyOrigin, encounterOrigin;
         Kiting policy;
         Scouting scouting;
         ScoutAction scoutAction;
@@ -32,8 +33,9 @@ namespace Renki.Plugin
         MeleeTask melee;
         FleeTask escape;
         int survey;
-        bool hasArea, positioned, walking, cancelled;
+        bool hasArea, areaChecked, positioned, walking, cancelled;
         float nextSurvey, nextAreaCheck, nextSample, followingUntil, nextAim, escapeAt, nextSearch, nextScout;
+        float surveyBegan;
 
         internal CombatStatus Status => melee != null ? melee.Status :
             new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
@@ -43,12 +45,25 @@ namespace Renki.Plugin
             this.id = id; this.args = args;
             var p = Player.m_localPlayer;
             origin = p.transform.position; began = Time.unscaledTime;
+            surveyOrigin = encounterOrigin = origin; surveyBegan = began;
+            searchRadius = args.SearchRadius ?? (string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue ? 60 : 12);
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 40)
                 throw new TaskRefused(Wire.ReasonRefused, "recover to 80% health and 40 stamina before drawing an enemy");
             if (MeleeTask.Best(p) == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable melee weapon");
             if (args.At.HasValue && Vector3.Distance(origin, Convert.ToVector3(args.At.Value)) > 12)
                 throw new TaskRefused(Wire.ReasonRefused, "preferred fighting ground must be within 12 m");
-            walker.ResetStuck(origin); Active = this;
+            walker.ResetStuck(origin);
+            if (string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue)
+            {
+                // Searching needs a safe walking route, not an arena at the
+                // starting spot. Survey combat ground only after discovery.
+                if (!Ground(origin, out area))
+                    throw new TaskRefused(Wire.ReasonUnreachable, "no dry supported search origin");
+                hasArea = positioned = true;
+                scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius);
+                Mode("search");
+            }
+            Active = this;
         }
 
         public Outcome Tick(double dt)
@@ -67,10 +82,14 @@ namespace Renki.Plugin
                 var ended = escape.Tick(dt);
                 return ended == null ? null : Finish(Outcome.Failed(Wire.ReasonRefused, reason + "; retreat: " + (ended.Detail ?? ended.Reason)));
             }
+            if (entity != "" && (enemy == null || enemy.m_nview == null || !enemy.m_nview.IsValid() || !enemy.gameObject.activeInHierarchy))
+                return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
                 return Abort(p, "health, stamina or equipment no longer supports kiting");
             if (!p.IsOnGround() || p.IsSwimming() || p.IsEncumbered()) return Abort(p, "unsafe footing");
-            if (!positioned && Time.unscaledTime - began >= 25)
+            if (Vector3.Distance(origin, p.transform.position) > searchRadius + Kiting.TravelLimit)
+                return Abort(p, "overall search and encounter travel limit");
+            if (!positioned && Time.unscaledTime - surveyBegan >= 25)
                 return Finish(Outcome.Failed(Wire.ReasonTimeout, "local encounter preparation time limit"));
             if (!hasArea)
             {
@@ -80,13 +99,13 @@ namespace Renki.Plugin
                 if (args.At.HasValue) candidate = Convert.ToVector3(args.At.Value);
                 else
                 {
-                    candidate = Convert.ToVector3(Kiting.SurveyPoint(Convert.ToV3(origin), survey));
+                    candidate = Convert.ToVector3(Kiting.SurveyPoint(Convert.ToV3(surveyOrigin), survey));
                     if (Ground(candidate, out var projected)) candidate = projected;
                 }
                 survey++;
                 if (TryArea(p, candidate, out area, out var rejected))
                 {
-                    hasArea = true; nextAreaCheck = Time.unscaledTime + 1;
+                    hasArea = areaChecked = true; nextAreaCheck = Time.unscaledTime + 1;
                     Tracer.Emit("combat", "ground_selected", new Dictionary<string, object>
                     {
                         ["area"] = Convert.ToArray(area),
@@ -103,26 +122,27 @@ namespace Renki.Plugin
                 }
                 return null;
             }
-            if (Time.unscaledTime >= nextAreaCheck)
+            if (Time.unscaledTime >= nextAreaCheck && (enemy != null || !positioned))
             {
                 nextAreaCheck = Time.unscaledTime + 1;
                 if (!TryArea(p, area, out _, out var rejected)) return Abort(p, "fighting ground changed or became unsafe: " + rejected);
             }
+            if (!positioned)
+            {
+                var stagingPosition = p.transform.position;
+                if (Vector3.Distance(stagingPosition, area) > 2)
+                {
+                    if (!walking) { walker.SetGoal(stagingPosition, area, 1); walker.ResetStuck(stagingPosition); walking = true; }
+                    if (walker.Refused() is Outcome no) return Abort(p, no.Detail ?? no.Reason);
+                    if (!walker.Steer(stagingPosition, false, climbObstacles: false)) return Abort(p, "cannot reach fighting ground");
+                    return null;
+                }
+                positioned = true; walking = false; Mode("search");
+                if (enemy == null)
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius);
+            }
             if (enemy == null && policy == null)
             {
-                if (!positioned)
-                {
-                    var stagingPosition = p.transform.position;
-                    if (Vector3.Distance(stagingPosition, area) > 2)
-                    {
-                        if (!walking) { walker.SetGoal(stagingPosition, area, 1); walker.ResetStuck(stagingPosition); walking = true; }
-                        if (walker.Refused() is Outcome no) return Abort(p, no.Detail ?? no.Reason);
-                        if (!walker.Steer(stagingPosition, false, climbObstacles: false)) return Abort(p, "cannot reach fighting ground");
-                        return null;
-                    }
-                    positioned = true; walking = false; Mode("search");
-                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime);
-                }
                 if (Time.unscaledTime >= nextSearch)
                 {
                     nextSearch = Time.unscaledTime + .5f;
@@ -132,8 +152,22 @@ namespace Renki.Plugin
                     return Scout(p);
                 walking = false;
                 entity = enemy.m_nview.GetZDO().m_uid.ToString();
+                encounterOrigin = p.transform.position;
+                if (!areaChecked || Kiting.NeedsLocalArea(Convert.ToV3(encounterOrigin), Convert.ToV3(area), args.At.HasValue))
+                {
+                    // Search can range widely; the lure stays local to the
+                    // discovery rather than dragging enemies back to spawn.
+                    surveyOrigin = encounterOrigin; surveyBegan = Time.unscaledTime;
+                    hasArea = positioned = false; survey = 0; nextSurvey = 0;
+                    Mode("survey", "choose fighting ground near the discovered enemy");
+                    return null;
+                }
+            }
+            if (policy == null && enemy != null)
+            {
+                if (!TryArea(p, area, out _, out var rejected)) return Abort(p, "fighting ground became unsafe before drawing: " + rejected);
                 lastEnemy = enemy.transform.position; nextSample = Time.unscaledTime + .5f;
-                policy = new Kiting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(lastEnemy), Convert.ToV3(p.transform.position), Time.unscaledTime);
+                policy = new Kiting(Convert.ToV3(encounterOrigin), Convert.ToV3(area), Convert.ToV3(lastEnemy), Convert.ToV3(p.transform.position), Time.unscaledTime);
                 Mode("draw");
             }
             if (enemy == null || enemy.m_nview == null || !enemy.m_nview.IsValid() || !enemy.gameObject.activeInHierarchy)
@@ -197,7 +231,7 @@ namespace Renki.Plugin
             {
                 if (!MeleeTask.Eligible(p, c) || c.IsDead() || c.m_nview.GetZDO() == null) continue;
                 if (!string.IsNullOrWhiteSpace(args.Entity) && c.m_nview.GetZDO().m_uid.ToString() != args.Entity) continue;
-                if (Vector3.Distance(origin, c.transform.position) > Kiting.TravelLimit) continue;
+                if (Vector3.Distance(origin, c.transform.position) > searchRadius + Kiting.SearchRange) continue;
                 if (!ClearCharacters(p, c, c.transform.position) || !ClearCharacters(p, c, p.transform.position)) continue;
                 var distance = Vector3.Distance(p.transform.position, c.transform.position);
                 if (distance < best) { selected = c; best = distance; }
@@ -243,7 +277,8 @@ namespace Renki.Plugin
                 Vector3.Distance(approachPath[approachPath.Count - 1], goal) > 1.5f)
                 return RejectScout(desired, "no_complete_navmesh_route");
             probe.BeginSlice();
-            var previous = Convert.ToV3(p.transform.position);
+            if (!Ground(p.transform.position, out var supportedStart)) return RejectScout(desired, "unsupported_start");
+            var previous = Convert.ToV3(supportedStart);
             double length = 0;
             // Include the exact destination after the navmesh endpoint.
             for (var i = 0; i <= approachPath.Count; i++)
@@ -253,8 +288,7 @@ namespace Renki.Plugin
                     return RejectScout(desired, "unsupported_navmesh_corner");
                 var next = Convert.ToV3(supported);
                 length += (next - previous).Length;
-                if (length > 18 || Vector3.Distance(supported, area) > Scouting.Leash ||
-                    Vector3.Distance(supported, origin) > Kiting.TravelLimit)
+                if (length > 24 || Vector3.Distance(supported, origin) > searchRadius + .25)
                     return RejectScout(desired, "scouting_route_limit");
                 foreach (var c in Character.GetAllCharacters())
                 {
@@ -262,7 +296,7 @@ namespace Renki.Plugin
                     if (Scouting.RouteDistance(previous, next, Convert.ToV3(c.transform.position)) < (BaseAI.IsEnemy(p, c) ? 15 : 8))
                         return RejectScout(desired, "character_near_route");
                 }
-                var failure = GroundCorridor.Inspect(previous, next, DryProbe);
+                var failure = (next - previous).Length < .05 ? null : GroundCorridor.Inspect(previous, next, DryProbe);
                 if (failure != null) return RejectScout(desired, failure.Reason);
                 if (!ClearScenery(supported)) return RejectScout(desired, "structure_near_route");
                 previous = next;

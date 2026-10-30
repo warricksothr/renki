@@ -13,6 +13,21 @@ namespace Renki.Tests
         static Kiting Policy() => new Kiting(V3.Zero, Area, new V3(20, 0, 0), 0);
 
         [Fact]
+        public void DistantDiscoverySelectsLocalGroundAndKeepsTheCombatLeash()
+        {
+            Assert.True(Kiting.NeedsLocalArea(new V3(60, 0, 0), V3.Zero, false));
+            Assert.False(Kiting.NeedsLocalArea(new V3(60, 0, 0), V3.Zero, true));
+            Assert.False(Kiting.NeedsLocalArea(new V3(10, 0, 0), V3.Zero, false));
+            var at = new V3(60, 0, 0);
+            var p = new Kiting(at, at, at + new V3(3, 0, 0), 0);
+            var f = Frame(60, 63); f.Targeting = true;
+            Assert.Equal(KiteAction.Engage, p.Decide(f, 0));
+            f.Enemy = new V3(101, 0, 0);
+            Assert.Equal(KiteAction.Retreat, p.Decide(f, 1));
+            Assert.Equal("kiting travel limit", p.Reason);
+        }
+
+        [Fact]
         public void SecondSurveyPassCoversNewGroundWithinTheSameBudgetAndRadius()
         {
             var origin = new V3(100, 50, 100);

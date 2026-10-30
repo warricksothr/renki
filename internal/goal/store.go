@@ -243,7 +243,7 @@ func terminal(status string) bool {
 	return status == "succeeded" || status == "cancelled" || status == "needs_plan"
 }
 func validateRecord(r Record) error {
-	if r.ID == "" || len(r.ID) > 64 || r.Kind != "combat_trial" || r.World == "" || len(r.World) > 200 || r.Radius < 60 || r.Radius > 150 || !finite(r.Radius) {
+	if r.ID == "" || len(r.ID) > 64 || r.Kind != "combat_trial" || r.World == "" || len(r.World) > 200 || r.Radius < 60 || r.Radius > 250 || !finite(r.Radius) {
 		return errors.New("invalid goal identity/world/area")
 	}
 	for _, n := range r.Center {

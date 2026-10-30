@@ -130,7 +130,9 @@ after an owner order, reconnect or world change.
 `attack` with `kite=true` delegates one complete local encounter to C#.
 `entity` is optional in this mode; omission selects the nearest eligible single
 ordinary Greyling. Optional `at: [x,y,z]` supplies preferred fighting ground
-within 12 m. Without it, the routine surveys the starting point and rings at
+within 12 m. Discovery without an explicit target starts with checked walking
+routes, and surveys fighting ground near the bot only after finding an enemy.
+For a named target or preferred ground, it surveys first. Survey rings are at
 6 and 12 m. The second pass rotates by 22.5 degrees to cover new centers within
 the same 34-check budget; the starting center is retried once. Each candidate
 must have dry supported terrain, a clear 3 m stance region, at least one
@@ -153,19 +155,26 @@ failures include the exact segment, supported point, current/previous
 inclination and height residual. Physical failures distinguish support, body casts/overlaps, cached
 bounds, remembered walls and water; collider names/centers accompany live hits.
 Detailed physical diagnostics are enabled only for this survey.
-It moves to the checked ground before searching; survey/positioning are capped
-at 25 seconds. If no target is initially visible, native scouting makes short
-out-and-back excursions from that ground while checking for targets every
-half-second. Six- and ten-metre candidate rings offer at most 16 routes.
-Each route needs complete navmesh support, dry incremental grade/body checks
-and clearance from other characters along the path; live routes are rechecked.
-Scouting stays within 12 m of its fighting ground and the original 40 m
-encounter bound. It stops exploring after 25 seconds, 50 m of accumulated
-travel or stamina below 30, and returns to the checked ground. A 35-second
-search/return deadline, 65 m hard travel cap and four-second progress watchdog
-prevent indefinite searching. A blocked return ends with an explicit refusal.
-These modes do not suppress ordinary controller retreat. The task's overall
-timeout still bounds the complete encounter.
+Survey/positioning are capped at 25 seconds. Discovery uses a progressive
+60 m search radius by default (120 m across), configurable as `searchRadius`
+from 12 to 80 m. A named target or fixed `at` defaults to 12 m; a fixed arena
+cannot combine with a larger radius. Up to 24 frontier candidates advance
+outward on successive bearings. Each committed leg is at most 16 m, with a
+complete navmesh route of at most 24 m, dry incremental grade/body checks and
+character/structure clearance. Routes are rechecked while walking. Support
+checks start on projected ground, so the player's foot offset does not create
+an artificial vertical segment.
+
+Scouting stops exploring after 90 seconds, a reserved share of its 300 m total
+travel budget, stamina below 30, or exhausting candidates. Return uses the same
+checked intermediate legs. A 150-second search/return deadline and four-second
+progress watchdog prevent indefinite searching. A blocked return explicitly
+refuses; it never substitutes unchecked movement. Search polls acquisition every
+half-second. When a creature is found far from the initial area, a new local
+arena is surveyed and the existing 40 m kiting bound is anchored at discovery.
+Search does not enlarge the melee leash or relax species/terrain checks. These
+modes do not suppress ordinary controller retreat. The task's overall timeout
+bounds the complete encounter.
 
 One body task owns survey, position, search/scout/return, draw, kite, hold, melee and escape.
 The world-scoped controller `combat` behavior submits one such goal and waits;
@@ -174,7 +183,8 @@ runner also submits one goal, without selecting enemies or issuing movement.
 No background combat behavior is installed or enabled automatically.
 
 Acquisition is restricted to loaded ordinary hostile Greylings within 30 m
-of the bot and 40 m of its original starting point, with clearance from other characters.
+of the bot and within the search radius plus 30 m of the original starting
+point, with clearance from other characters.
 Kiting confirms actual target movement toward Tas on half-second samples;
 it does not require a replicated AI targeting flag or force the creature's AI.
 It draws toward 8 m separation, leads toward the area once pursuit is observed,
@@ -233,10 +243,9 @@ checks food, health and stamina, submits one native kiting goal, records
 task/state/perception/audit evidence, and always logs
 out and stops the game, restoring the combat config to false. It aborts on
 lost body ownership, another nearby creature, health below 70%, escape stamina
-below 10 or travel beyond 40 m. It never requests owner clearance. No suitable
+below 10 or travel beyond the search/combat envelope (112 m by default). It never requests owner clearance. No suitable
 encounter produces an explicit aborted result, not a passing combat test.
-The runner does not spawn enemies, reset the character, scout unseen terrain,
-or prove return-to-shelter. Native kiting above prepares natural encounters
+The runner does not spawn enemies, reset the character or prove return-to-shelter. Native kiting above prepares natural encounters
 without owner staging. It cannot guarantee that
 a suitable enemy is available; isolated-world staging/reset remains optional
 tooling for guaranteed fixture availability.

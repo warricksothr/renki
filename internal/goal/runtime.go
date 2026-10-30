@@ -359,10 +359,11 @@ func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage,
 		ctx["target"], ctx["changed"], ctx["params"] = true, true, p
 		return ctx, raw, fp
 	}
-	if !discoveryBlocked {
+	searchRadius := math.Min(60, g.Radius-distance(v.State.Pos, g.Center)-52)
+	if !discoveryBlocked && searchRadius >= 12 {
 		fp := fmt.Sprintf("search:%d:%d:%d:%d", int(math.Floor(v.State.Pos[0]/2)), int(math.Floor(v.State.Pos[2]/2)), int(v.State.HP/10), int(v.State.Stamina/20))
 		if fp != g.LastFingerprint {
-			p := map[string]any{"world": g.World}
+			p := map[string]any{"world": g.World, "searchRadius": searchRadius}
 			raw, _ := json.Marshal(p)
 			ctx["target"], ctx["changed"], ctx["discovery"], ctx["params"] = true, true, true, p
 			return ctx, raw, fp

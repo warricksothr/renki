@@ -3,6 +3,7 @@ package goal
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -269,6 +270,33 @@ func TestDiscoveryBindsOnlyTheNativeFinalReceipt(t *testing.T) {
 				}
 			} else if g.Status != "succeeded" || g.Proof == nil || g.Proof.Entity != entity {
 				t.Fatal(g)
+			}
+		})
+	}
+}
+
+func TestDiscoveryRadiusLeavesRoomForLocalCombatAndEscape(t *testing.T) {
+	for _, test := range []struct{ radius, offset, want float64 }{{200, 0, 60}, {100, 0, 48}, {200, 120, 28}, {200, 140, 0}} {
+		t.Run(fmt.Sprintf("radius=%g/offset=%g", test.radius, test.offset), func(t *testing.T) {
+			host, r, v, id := fixture(t)
+			if err := host.Store.update(id, func(g *Record) error { g.Radius = test.radius; return nil }); err != nil {
+				t.Fatal(err)
+			}
+			v.State.Pos[0] = test.offset
+			v.Perception.Characters = nil
+			order, _ := r.Next(v, nil)
+			if test.want == 0 {
+				if order != nil {
+					t.Fatal("search escaped remaining scope", order)
+				}
+				return
+			}
+			if order == nil {
+				t.Fatal("no discovery")
+			}
+			args := order.Args.(*protocol.AttackArgs)
+			if args.SearchRadius == nil || *args.SearchRadius != test.want || *args.SearchRadius+test.offset+52 > test.radius {
+				t.Fatal(args)
 			}
 		})
 	}

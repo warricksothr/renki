@@ -18,6 +18,9 @@ namespace Renki.Tasks
         public const double SearchRange = 30, AreaRadius = 6, TravelLimit = 40, WorkLimit = 40;
         public const int SurveyAttempts = 34;
 
+        public static bool NeedsLocalArea(V3 bot, V3 area, bool fixedArea) =>
+            !fixedArea && (bot - area).Length > 12;
+
         public static V3 SurveyPoint(V3 origin, int attempt)
         {
             if (attempt < 0 || attempt >= SurveyAttempts) throw new ArgumentOutOfRangeException(nameof(attempt));
