@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M67175263Z2YDVHSMRN6WWRF
 title: Capture bounded game-camera JPEGs for visual debugging
 type: task
-status: in-progress
-status_reason: "User reported missing panel image: CSP blocks blob URLs; earlier live checks established capture and API but did not verify actual browser image decoding."
+status: done
+status_reason: null
 priority: normal
 due_on: null
 labels:
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/live-visual-scout-evidence
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 5a5f5c9cf4ad68b69b1fa11c766846cb9646110c
-  session: null
-  claimed_at: 2026-10-30T19:13:27Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T18:30:10Z
-updated_at: 2026-10-30T19:13:27Z
+updated_at: 2026-10-30T19:18:44Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -49,7 +42,7 @@ The owner requests an updated JPEG of the bot's rendered game view every five se
 - [x] Rendered camera JPEG capture defaults to five seconds and never starts more than once per second, with bounded dimensions/bytes and no accumulating queue
 - [x] Authenticated latest-image API and panel show capture time, scope and task; stale session images do not appear current
 - [x] Runtime enable/interval/quality/size controls validate bounds; image blobs stay outside routine audit and model context
-- [ ] Core, protocol, session, panel and live VM checks verify capture and debugging retrieval with no owner setup
+- [x] Core, protocol, session, panel and live VM checks verify capture and debugging retrieval with no owner setup
 - [x] Users and agent tools export the actual panel map renderer with matching scoped data; read-only standalone rendering works without an open panel
 
 ## Implementation plan
@@ -80,6 +73,10 @@ done to in-progress: User reported missing panel image: CSP blocks blob URLs; ea
 
 Reopened after user reported no displayed screenshot. Native capture and authenticated JPEG retrieval were verified, but browser rendering was not: CSP img-src omitted blob: despite the client using object URLs. The prior completion note overstates panel-image verification; it remains valid for API/JPEG/cadence/map checks. Correct image-only policy and visible load errors, then verify actual browser naturalWidth and rendered scene before closing again.
 
+**agent:codex/renki-milestones** at 2026-10-30T19:18:28Z
+
+PR #99 merged the image-only CSP correction and visible camera load-error handling. Live authenticated browser reproduced blocked blob images before the fix, then loaded them after deployment. Actual camera img decoded naturalWidth960/naturalHeight540, hidden=false, displayed619x348 at x650/y149 inside a1280x800 viewport. The browser reported a current13-16ms camera frame and no console errors. This corrects the earlier gap: real browser display is now verified, as well as native/API capture. Screenshot /home/sothr/.t3/userdata/browser-artifacts/browser-screenshot-100-101-221-77-mvvcsyye-7bbc6d95.png; matching native JPEG .checks/camera-20261030T191650040559Z.jpg. Logout cleared it normally. Users need to reload a document opened before deployment because CSP belongs to the loaded page. Broader Preact panel redesign is delegated separately on an isolated branch; it includes prominent camera state, bounded sections and scrollable controls. The earlier minimized-window limitation still stands.
+
 ## Summary
 
-Landed PRs #94/#95; deployed and live-verified upright bounded camera JPEGs and actual panel map snapshots. Cadence, runtime bounds/off, audit byte exclusion and logout clearing verified. Full live evidence and minimized-window limitation are recorded in the latest note.
+PRs #94/#95 implement bounded camera and shared actual-renderer map snapshots. PR #99 fixes CSP-blocked browser images. Native capture, API, cadence/settings, audit byte exclusion, scoped map rendering, actual authenticated browser JPEG decode/display and logout clearing are verified; latest note records artifacts and explicitly untested minimized rendering.

@@ -14,19 +14,20 @@ func (a *App) CameraHandler() http.Handler {
 	mux.HandleFunc("GET /api/camera", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
-		cfg := a.Settings.Values().Screenshot
+		cfg, base, override := a.cameraSettings()
 		frame := a.Session.Screenshot()
 		if !cfg.Enabled || frame == nil {
-			_ = json.NewEncoder(w).Encode(map[string]any{"available": false, "config": cfg})
+			_ = json.NewEncoder(w).Encode(map[string]any{"available": false, "config": cfg, "baseConfig": base, "override": override})
 			return
 		}
 		frame.JPEG = nil
-		_ = json.NewEncoder(w).Encode(map[string]any{"available": true, "config": cfg, "frame": frame, "ageS": time.Since(frame.ReceivedAt).Seconds(), "imageUrl": fmt.Sprintf("/api/camera.jpg?connection=%d&seq=%d", frame.Connection, frame.Seq)})
+		_ = json.NewEncoder(w).Encode(map[string]any{"available": true, "config": cfg, "baseConfig": base, "override": override, "frame": frame, "ageS": time.Since(frame.ReceivedAt).Seconds(), "imageUrl": fmt.Sprintf("/api/camera.jpg?connection=%d&seq=%d", frame.Connection, frame.Seq)})
 	})
 	mux.HandleFunc("GET /api/camera.jpg", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		image := a.Session.Screenshot()
-		if !a.Settings.Values().Screenshot.Enabled || image == nil {
+		cfg, _, _ := a.cameraSettings()
+		if !cfg.Enabled || image == nil {
 			http.Error(w, "No current camera image", http.StatusNotFound)
 			return
 		}
@@ -41,5 +42,6 @@ func (a *App) CameraHandler() http.Handler {
 		w.Header().Set("X-Renki-Captured-At", image.CapturedAt.Format(time.RFC3339Nano))
 		_, _ = w.Write(image.JPEG)
 	})
+	mux.HandleFunc("POST /api/camera", a.cameraCommand)
 	return mux
 }

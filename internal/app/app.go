@@ -31,25 +31,28 @@ import (
 
 // App is a configured controller.
 type App struct {
-	Atlas         *atlas.Store
-	atlasRecorder *atlas.Recorder
-	Presence      *presence.Manager
-	Players       *memory.Players
-	Goals         *goal.Store
-	goalTemplate  *goal.Template
-	goalMu        sync.Mutex
-	Config        config.Config
-	Session       *session.Session
-	Brain         *chat.Brain
-	Home          *home.Keeper
-	Burden        *burden.Unloader
-	Retreat       *retreat.Retreat
-	Food          *food.Keeper
-	Behaviours    *behaviour.Engine
-	Memory        *memory.Containers
-	Landmarks     *memory.Landmarks
-	Danger        *memory.Danger
-	Bridge        *bridge.Server
+	Atlas          *atlas.Store
+	atlasRecorder  *atlas.Recorder
+	Presence       *presence.Manager
+	Players        *memory.Players
+	Goals          *goal.Store
+	goalTemplate   *goal.Template
+	goalMu         sync.Mutex
+	cameraMu       sync.Mutex
+	cameraOverride *CameraOverride
+	cameraLog      *slog.Logger
+	Config         config.Config
+	Session        *session.Session
+	Brain          *chat.Brain
+	Home           *home.Keeper
+	Burden         *burden.Unloader
+	Retreat        *retreat.Retreat
+	Food           *food.Keeper
+	Behaviours     *behaviour.Engine
+	Memory         *memory.Containers
+	Landmarks      *memory.Landmarks
+	Danger         *memory.Danger
+	Bridge         *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
 	// allowedTasks, the voice switch, the home rules and overload.drop.
 	Settings *settings.Store
@@ -104,23 +107,22 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Logger:   log.With("part", "chat"),
 	}, s)
 	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice, Players: players, Presence: playerPresence,
-		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
+		cameraLog: log.With("part", "camera"),
+		Burden:    burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
 	var markerRequested atomic.Bool
 	markerRequested.Store(set.Values().Presence.SharePosition)
-	initialCapture := set.Values().Screenshot
-	var captureRequested atomic.Pointer[protocol.ScreenshotConfig]
-	captureRequested.Store(&initialCapture)
-	set.OnChange(func(v settings.Values) {
-		if *captureRequested.Swap(&v.Screenshot) == v.Screenshot {
+	captureRequested := set.Values().Screenshot // guarded by cameraMu
+	set.OnChange(func(_ settings.Values) {
+		a.cameraMu.Lock()
+		defer a.cameraMu.Unlock()
+		capture := set.Values().Screenshot
+		changed := captureRequested != capture
+		captureRequested = capture
+		if !changed && a.cameraOverride == nil {
 			return
 		}
-		s.ClearScreenshot()
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		capture := v.Screenshot
-		if err := s.Configure(ctx, protocol.Config{Screenshot: &capture}); err != nil {
-			log.Debug("camera update waits for connection", "err", err)
-		}
+		a.stopCameraOverrideLocked("runtime settings changed")
+		_ = a.sendCameraLocked(capture, 0)
 	})
 	set.OnChange(func(v settings.Values) {
 		if markerRequested.Swap(v.Presence.SharePosition) == v.Presence.SharePosition {
