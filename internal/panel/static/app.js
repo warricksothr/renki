@@ -1559,7 +1559,14 @@ $("profile-form").addEventListener("submit", (event) => {
 });
 
 // Image bytes are fetched separately and never enter the event/timeline feed.
-let cameraBusy = false, cameraURL = "", cameraGeneration = 0;
+let cameraBusy = false, cameraURL = "", cameraGeneration = 0, cameraDisplayError = "";
+$("camera-image").addEventListener("error", () => {
+  cameraDisplayError = "Image could not be displayed; retrying";
+  cameraURL = "";
+  $("camera-image").hidden = true;
+  $("camera-status").textContent = cameraDisplayError;
+});
+$("camera-image").addEventListener("load", () => { cameraDisplayError = ""; });
 async function refreshCamera() {
   if (cameraBusy || document.hidden || !$("camera").open) return;
   cameraBusy = true;
@@ -1572,6 +1579,7 @@ async function refreshCamera() {
     $("camera-enabled").checked = !!data.config.enabled;
     if (document.activeElement !== $("camera-interval")) $("camera-interval").value = data.config.intervalS;
     if (!data.available) {
+      cameraDisplayError = "";
       const previous = $("camera-image").src;
       $("camera-image").hidden = true; $("camera-image").removeAttribute("src"); cameraURL = "";
       if (previous.startsWith("blob:")) URL.revokeObjectURL(previous);
@@ -1579,7 +1587,7 @@ async function refreshCamera() {
       return;
     }
     const frame = data.frame;
-    $("camera-status").textContent = `${data.ageS.toFixed(1)} s since received · captured ${new Date(frame.capturedAt).toLocaleTimeString()} · ${frame.width}×${frame.height} · ${frame.captureMs.toFixed(1)} ms · ${frame.task || "idle"}`;
+    $("camera-status").textContent = `${data.ageS.toFixed(1)} s since received · captured ${new Date(frame.capturedAt).toLocaleTimeString()} · ${frame.width}×${frame.height} · ${frame.captureMs.toFixed(1)} ms · ${frame.task || "idle"}${cameraDisplayError ? " · " + cameraDisplayError : ""}`;
     if (data.imageUrl !== cameraURL) {
       const image = await fetch(data.imageUrl, {cache:"no-store"});
       if (!image.ok) return; // Superseded image: refresh metadata next tick.

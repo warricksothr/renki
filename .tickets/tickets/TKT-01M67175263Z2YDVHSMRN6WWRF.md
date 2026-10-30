@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M67175263Z2YDVHSMRN6WWRF
 title: Capture bounded game-camera JPEGs for visual debugging
 type: task
-status: done
-status_reason: null
+status: in-progress
+status_reason: "User reported missing panel image: CSP blocks blob URLs; earlier live checks established capture and API but did not verify actual browser image decoding."
 priority: normal
 due_on: null
 labels:
@@ -20,10 +20,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/live-visual-scout-evidence
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 5a5f5c9cf4ad68b69b1fa11c766846cb9646110c
+  session: null
+  claimed_at: 2026-10-30T19:13:27Z
+  expires_at: null
 archive: null
 created_at: 2026-10-30T18:30:10Z
-updated_at: 2026-10-30T18:57:19Z
+updated_at: 2026-10-30T19:13:27Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -42,7 +49,7 @@ The owner requests an updated JPEG of the bot's rendered game view every five se
 - [x] Rendered camera JPEG capture defaults to five seconds and never starts more than once per second, with bounded dimensions/bytes and no accumulating queue
 - [x] Authenticated latest-image API and panel show capture time, scope and task; stale session images do not appear current
 - [x] Runtime enable/interval/quality/size controls validate bounds; image blobs stay outside routine audit and model context
-- [x] Core, protocol, session, panel and live VM checks verify capture and debugging retrieval with no owner setup
+- [ ] Core, protocol, session, panel and live VM checks verify capture and debugging retrieval with no owner setup
 - [x] Users and agent tools export the actual panel map renderer with matching scoped data; read-only standalone rendering works without an open panel
 
 ## Implementation plan
@@ -64,6 +71,14 @@ PR #94 merged and deployed as ec7908c. Live JPEG: 960x540, 58,348 bytes, 15.7 ms
 PR #94 and orientation/scope fix PR #95 are merged. Installed db85ea9 verified upright 960x540 JPEG (56,247 bytes, 12.8 ms capture work); image .checks/camera-20261030T185145079776Z.jpg with matching metadata. Audit .checks/audit-window-V6xP73.jsonl records 39 camera frames: five-second default and approximately one-second fast cadence (clock-stamped captures vary by milliseconds), 12.5-18.7 ms capture work and no jpeg fields. Native scheduler tests enforce capture-start spacing. Runtime 0.5-second interval was rejected; capture-off immediately returned unavailable. Full cadence/settings evidence .checks/camera-live-cadence-20261030T185257Z.json. Restored enabled capture with five-second interval.
 
 The live browser map snapshot API returned the actual canvas plus viewport, layers, matching world UID/connection and displayed objects. Standalone just vm map-snapshot rendered successfully through native HTML preview: 134 merged terrain tiles, 512 bounded remembered landmarks, biome/support/height and layer controls, no console errors. Bundle .checks/map-snapshot-20261030T185145123989Z/. Fixed live-atlas scope and limited payload now fits the native rendering tool. Browser offline export retained fogged terrain and correct saved-world metadata; the camera cleared after logout. Native capture works unattended; explicitly minimized-window rendering has not been tested and is not established by these checks. CI/review logs are recorded in PRs #94/#95. Visual evidence supports diagnosis and does not replace task receipts.
+
+**agent:codex/renki-milestones** at 2026-10-30T19:13:27Z
+
+done to in-progress: User reported missing panel image: CSP blocks blob URLs; earlier live checks established capture and API but did not verify actual browser image decoding.
+
+**agent:codex/renki-milestones** at 2026-10-30T19:13:27Z
+
+Reopened after user reported no displayed screenshot. Native capture and authenticated JPEG retrieval were verified, but browser rendering was not: CSP img-src omitted blob: despite the client using object URLs. The prior completion note overstates panel-image verification; it remains valid for API/JPEG/cadence/map checks. Correct image-only policy and visible load errors, then verify actual browser naturalWidth and rendered scene before closing again.
 
 ## Summary
 
