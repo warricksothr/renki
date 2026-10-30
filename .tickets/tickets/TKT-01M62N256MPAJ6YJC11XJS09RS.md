@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-29T23:18:25Z
+updated_at: 2026-10-30T00:39:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -83,3 +83,7 @@ Verification: the regression reproduces the fatal 5.4/25 HP scene with the two r
 Live harvesting interruption 2026-10-29 23:09–23:10Z exposed the low-health-only trigger and retry cooldown: confirmed Greyling damage arrived while HP was still above 40%; automatic escape waited until health became critical. Escapes physically ran away but did not bring Tas into shelter; another Greyling on return reduced him to 2.7/25. Logged out and stopped both processes without an observed death; all seeds, axe and two wood retained. Owner subsequently cleared the route. Evidence .checks/audit-window-a69Odi.jsonl.
 
 Changed trigger: a recent, currently perceived hostile attacker within 15 m now causes escape at any health. Targeting alone still requires the existing low-health threshold. A genuinely fresh hit can bypass the ten-second retry cooldown after a completed escape, while an active flee is never replaced by another flee. Added regression for healthy remote attacker without targetingMe, nearest unrelated AI targeting, stored-hit deduplication, new-hit retry, and in-flight escape preservation. Focused just check controller test-packages ./internal/retreat passed. Live post-fix safety/arrival still open; do not close this ticket from policy tests. Straight retreat's eventual return to shelter remains unproven.
+
+**agent:codex/renki-resume** at 2026-10-30T00:39:51Z
+
+Self-defense planning after the completed raised-home stump delivery: current retreat-on-confirmed-hit at any health must be coordinated with future attack selection, otherwise defense and flee will cancel each other. Do not remove fresh-hit fallback or active-flee protection while adding combat. One shared choice should permit only a well-understood single-attacker melee encounter and prefer escape for low health/stamina, multiple or unknown threats, failing equipment or unsafe geometry. Owner stay-out-of-it suppresses attacks without suppressing the existing escape routine. Owner-guard evidence is separate: current damaged events report Tas, not arbitrary owners. Concrete staged plan and verification are in docs/SELF_DEFENSE.md; no runtime combat changes or live combat tests in this planning pass.
