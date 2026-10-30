@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T05:43:13Z
+updated_at: 2026-10-30T05:56:22Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,9 +56,9 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Implementation plan
 
-Continue TKT-01M62N12F04QEC0F53JCS1M21A — Plugin: harvest task: chop, split and break with the best tool. Add a just vm harvest-trial supervisor using existing normal native harvest tasks, not movement puppeting. Share the combat trial's connection/evidence/always-logout-stop infrastructure. Keep combat disabled. Select one nearby tier-zero full Beech1 with active meals, usable carried axe, health/stamina, spare carrying capacity, and clearance from all characters/structures at the bot and work site. Refuse unsafe/unavailable work rather than asking the owner to clear or reposition anything.
+The first deployed autonomous full-tree benchmark on e36e366 reached the measured stance beside Beech1 but kept trying to approach without hitting. Live trace: contact [176.21,84.97,-250.22], goal [175.69,84.46,-249.43], axe reach1.4/attackHeight0.8; observed feet around [175.83,84.45,-249.43] are already within strike range. The remaining approach condition is generic UseReach.Near. For nonconvex MeshColliders that helper cannot use ClosestPoint and instead checks bounds.center; the standing Beech's tall collider center is many metres overhead. Generic interaction sight therefore cannot establish melee contact even at a valid strike stance.
 
-Capture initial resources and inventory. After the selected full tree, process only newly observed same-family logs near that tree (bounded tasks/travel/time); do not reuse pre-existing logs or claim spawn lineage from proximity alone. Keep exact task receipts and inventory delta and require actual native local-hit/break evidence plus observed collected Wood to report a positive benchmark. Missing logs, changed world, takeover, damage, nearby characters, unsupported routes and collection failures remain failures/aborts. Retain compact harvest traces and stop automatically on every path. Validate orchestration/selection/cleanup with mocks and run the full gate/review before landing. Deploy and attempt the live check after the current combat trial cleans up; keep compound acceptance criteria open for any unverified falling/splitting/mining/collect:false cases.
+Let the running bounded benchmark terminate/clean up. Replace only harvesting's generic interaction condition with a ray from the actual axe-height origin to the measured physical contact, using the normal solid/character/terrain attack layers, ignoring self and triggers, failing closed on buffer saturation and requiring the target to be the first solid hit. Keep physical reach/aim, threat/structure guards and falling escape unchanged. Retain existing generic interaction behavior for chests/doors/etc. Add policy regressions using the observed stance/contact, overhead center, occluders, missing target and character offsets. Validate, review, land/deploy, then retry the same autonomous benchmark and record actual outcome. Do not mark tree/log/mining criteria from positioning alone.
 
 ## Notes
 
@@ -123,3 +123,15 @@ Added just vm harvest-trial for one owner-independent full Beech1 and newly obse
 A positive benchmark requires matching native local-hit/break evidence for each successful task, at least two new log harvests, collected Wood confirmed by exact pack delta, and no observed unfinished new nearby beech logs. Initial log IDs remain excluded. Proximity does not prove spawn lineage. Five tasks/eight minutes/40m bound the attempt. Does not claim mining, crafting, home delivery or indefinite harvesting.
 
 Added authenticated read-only GET /api/inventory with one-lock live world/connection/weight/pack scope; unknown/menu/disconnected inventory is never presented as current. This avoids downloading broad audit history just to verify pack counts. Focused controller session/panel/app checks passed (.checks/20261030T053749Z-moxuXl.log). just check vm test-harvest-trial passed (.checks/20261030T053902Z-75yVzI.log); full just check ci passed including 323 plugin tests, five combat supervisor tests and four harvest supervisor tests with nine integration scenarios (.checks/20261030T054200Z-4eMCez.log). Remaining review/landing/deployment/live trial follow. Harvest acceptance criteria remain open until actual evidence earns them.
+
+**agent:codex/renki-resume** at 2026-10-30T05:54:00Z
+
+PR #58 landed as e36e366, and just check vm install verified package hashes (.checks/20261030T054425Z-VkEzpH.log). First autonomous just check vm harvest-trial --wait-s60 failed timeout after native180s without a hit (.checks/20261030T054510Z-L0OtQs.log). Tree Beech1 1:24194 at [175.55,84.17,-250.77]; initial pack AxeFlint1/BeechSeeds15/Wood2. Retained observations/approach trace put feet at [175.83,84.45,-249.43], measured contact [176.21,84.97,-250.22], attackHeight0.8 and reach1.4: physical strike range already passed, but generic UseReach.Near could not see the tall nonconvex tree through its overhead bounds center. Walker kept trying a stance only0.14m away. No damaged event or cleanup error occurred. Summary .checks/harvest-trial-20261030T054510700197Z/summary.json; audit .checks/audit-window-fk9shF.jsonl.
+
+Harvesting now tests sight from the axe-height origin to the measured physical contact using normal terrain-aware attack layers and first-solid-target policy. Self/triggers are ignored, saturated queries refuse, and actual occlusion at an in-range stance fails explicitly rather than initiating another endless approach. Generic chest/door interaction sight is unchanged. A first-visible-contact trace retains exact origin/contact/range for the next attempt. Physical reach/aim/threat guards and falling escape stay in place.
+
+Focused just check plugin test-core HarvestTests passed18 cases (.checks/20261030T055132Z-qRSq8W.log). Initial CI caught only the later trace initializer's whitespace; corrected before final just check ci passed with325 plugin tests, five combat and four harvest supervisor tests (.checks/20261030T055319Z-tCKLIH.log). Review/landing/deployment and the same autonomous benchmark follow. No acceptance criterion was checked from approach-only evidence.
+
+**agent:codex/renki-resume** at 2026-10-30T05:56:22Z
+
+Before retrying, aligned the benchmark's candidate exclusion with the native full-tree fall guard's maximum32m radius. Settled logs use8m rather than inheriting a standing tree's fall radius;15m around the bot remains clear. This reduces predictable refused candidates while preserving native guards. Added a regression distinguishing a creature25m away from full-tree versus log work. Final just check ci passed325 plugin tests, five combat and four harvest supervisor tests (.checks/20261030T055533Z-AyIAtv.log). The already committed strike-sight fix reviewed without findings; review the combined commits again before pushing this follow-up.

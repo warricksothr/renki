@@ -16,14 +16,15 @@ def counts(pack):
     return result
 
 
-def worksite_clear(status, perception, at):
+def worksite_clear(status, perception, at, falling=True):
     # Include neutral creatures and owners: trunks/rolling logs can damage them.
+    radius = 32 if falling else 8
     for c in perception.get('characters', []):
         if c.get('hpFrac', 1) <= 0:
             continue
-        if distance(c['pos'], status['pos']) < 15 or distance(c['pos'], at) < 20:
+        if distance(c['pos'], status['pos']) < 15 or distance(c['pos'], at) < radius:
             return False
-    return all(distance(piece['pos'], at) >= 20 for piece in perception.get('structures', []))
+    return all(distance(piece['pos'], at) >= radius for piece in perception.get('structures', []))
 
 
 def select_resource(status, perception, baseline=None, center=None, completed=()):
@@ -36,7 +37,7 @@ def select_resource(status, perception, baseline=None, center=None, completed=()
         else:
             eligible = (r.get('kind') == 'log' and r.get('prefab', '').lower().startswith('beech')
                         and r['id'] not in baseline and distance(r['pos'], center) <= 20)
-        if eligible and distance(r['pos'], status['pos']) <= 18 and worksite_clear(status, perception, r['pos']):
+        if eligible and distance(r['pos'], status['pos']) <= 18 and worksite_clear(status, perception, r['pos'], r['kind'] == 'tree'):
             candidates.append(r)
     return min(candidates, key=lambda r: distance(r['pos'], status['pos']), default=None)
 
@@ -108,7 +109,7 @@ def run(summary, call, observe, terminal, saved):
         status, mapped = snapshot()
         if status.get('task'):
             raise RuntimeError('another task is active; harvest will not replace it')
-        if not worksite_clear(status, mapped.get('perception') or {}, target['pos']):
+        if not worksite_clear(status, mapped.get('perception') or {}, target['pos'], target['kind'] == 'tree'):
             raise RuntimeError('a character or structure is too close to the harvest site')
         anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
         remaining = min(195, deadline - time.monotonic())
@@ -143,7 +144,7 @@ def run(summary, call, observe, terminal, saved):
                 break
             if (status.get('task') or {}).get('id') != task_id:
                 raise RuntimeError('harvest lost body ownership')
-            if not worksite_clear(status, mapped.get('perception') or {}, target['pos']):
+            if not worksite_clear(status, mapped.get('perception') or {}, target['pos'], target['kind'] == 'tree'):
                 raise RuntimeError('a character approached the harvest route or falling area')
             time.sleep(.5)
         completed.add(target['id'])

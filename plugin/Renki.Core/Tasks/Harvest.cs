@@ -30,6 +30,11 @@ namespace Renki.Tasks
         }
         public static bool InRange(V3 feet, V3 contact, double height, double reach) =>
             (contact - (feet + new V3(0, height, 0))).Length <= reach;
+
+        // Sight is measured toward physical strike contact, never the center
+        // of a tall collider's bounds. Walls and other first hits still block.
+        public static bool CanStrike(V3 feet, V3 contact, double height, double reach, IEnumerable<SightHit> hits) =>
+            InRange(feet, contact, height, reach) && InteractionSight.Visible(hits);
     }
 
     public static class HarvestHealth

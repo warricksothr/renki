@@ -595,7 +595,8 @@ centered on its accessible indoor approach. Zone edits started no harvest.
 `just vm harvest-trial --wait-s 60` uses normal native harvest tasks with combat
 disabled, without owner staging. It requires active food, 80% health, 40 stamina,
 a usable carried axe, four spare slots and 60 spare carry weight. It selects one
-nearby tier-zero full Beech1, with clearance from all characters and structures.
+nearby tier-zero full Beech1, with a conservative 32 m falling exclusion from
+all characters and structures (8 m for settled logs), plus 15 m around the bot.
 The native task owns approaching, aiming, swinging, falling-trunk escape and
 collecting. The supervisor issues no movement tasks.
 
@@ -615,6 +616,17 @@ prints a bounded outcome with task/log counts and Wood gain. Use `just check vm
 test-harvest-trial` for selection, scoped inventory, native-goal sequencing,
 evidence requirements, failure and cleanup checks; it is part of `just check ci`.
 This does not establish mining, crafting, delivery home or indefinite harvesting.
+
+The first deployed benchmark (e36e366) reached full Beech1 `1:24194` but
+timed out without a strike. Its measured contact was within axe range; generic
+interaction sight instead tested the center of a tall nonconvex mesh, overhead
+and outside interaction reach. Harvesting now checks the measured contact from
+axe height, requiring the resource before any other solid on normal attack
+layers. Self is ignored; triggers are ignored and saturated queries refuse.
+`just check plugin test-core HarvestTests` includes the observed pose/contact
+and blocked/missing-target regressions. Evidence for the unsuccessful attempt:
+`.checks/harvest-trial-20261030T054510700197Z/summary.json` and
+`.checks/audit-window-fk9shF.jsonl`. No damaged event or cleanup error occurred.
 
 ### Explicit melee
 
