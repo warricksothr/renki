@@ -88,7 +88,8 @@ func (s *Store) Landmarks(world string) []Landmark {
 }
 
 // RememberLandmarks rounds locations to half metres and replaces observations
-// by entity. Older frames cannot overwrite newer knowledge. Pruning also
+// by entity, reconciling uniquely matched superseded IDs from newer positive
+// observations. Older frames cannot overwrite newer knowledge. Pruning also
 // compacts the catalogue, so unused prefab metadata cannot accumulate.
 func (s *Store) RememberLandmarks(world string, observations []Landmark, now time.Time) error {
 	if world == "" {
@@ -130,6 +131,15 @@ func (s *Store) RememberLandmarks(world string, observations []Landmark, now tim
 			o.Pos[i] = math.Round(o.Pos[i]*2) / 2
 		}
 		next.Entities[o.Entity] = landmarkRecord{Type: i, Pos: o.Pos, At: o.At, Tag: o.Tag}
+	}
+	aliases := supersededLandmarks(next, observations)
+	containerAliases := map[string]string{}
+	for id, current := range aliases {
+		r := next.Entities[id]
+		if next.Types[r.Type].Kind == protocol.StructureContainer {
+			containerAliases[id] = current
+		}
+		delete(next.Entities, id)
 	}
 	for id, r := range next.Entities {
 		if now.Sub(r.At) > KeepLandmarks || r.Type < 0 || r.Type >= len(next.Types) {
@@ -176,8 +186,15 @@ func (s *Store) RememberLandmarks(world string, observations []Landmark, now tim
 	}
 	worlds[world] = next
 	s.mem.Landmarks = worlds
+	previousContainers := s.mem.Containers
+	if len(containerAliases) > 0 && len(previousContainers[world]) > 0 {
+		containers := maps.Clone(previousContainers)
+		containers[world] = reconcileContainers(previousContainers[world], containerAliases)
+		s.mem.Containers = containers
+	}
 	if err := s.save(); err != nil {
 		s.mem.Landmarks = previous
+		s.mem.Containers = previousContainers
 		return err
 	}
 	return nil

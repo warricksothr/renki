@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T17:45:00Z
+updated_at: 2026-10-30T17:51:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -94,3 +94,7 @@ PR #88 merged as 3a14359. Next resupply attempt .checks/resupply-trial-20261030T
 **agent:codex/renki-milestones** at 2026-10-30T17:45:00Z
 
 PR #89 merged as 19c5045. Third resupply trial reached the correct raised-home floor at [-36.98,36.09,8.03], HP22 throughout and zero native damage events, but old chest 1:30600 rejected two food requests as nonexistent. Current perception shows chest 1:48788 at exactly the remembered food location [-37.09,36.09,3.42]. Evidence .checks/resupply-trial-20261030T174058591938Z and /home/sothr/.t3/worktrees/renki/t3-b9d91179/.checks/audit-window-te22hp.jsonl. Fix candidate selection to use a unique currently perceived container within 0.4 m in 3D when the remembered ID is not visible. Keep old contents as a hint only; require the fresh entity/task receipt plus newer inventory as before. Skip ambiguous position matches and skip all remaining requests for a chest rejected as gone without a transfer receipt. Native/owner orders, safety and overall attempt bounds remain unchanged. No food withdrawal success yet.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:51:51Z
+
+Autonomous resupply passed after PR #90 (9433ba9): .checks/resupply-trial-20261030T174523565524Z/summary.json. Exact current chest/task receipts report CookedDeerMeat3 and NeckTailGrilled1 withdrawn; newer inventory and active-food observations verify both, with automatic recovery from 22/25 to 78/84.4 HP. Native audit reports zero damage events during this run, and cleanup logged out/stopped Valheim with combat off and panel online. The next M3 run can start fed, without owner preparation. The owner now reports all remembered/live objects doubled; prioritizing durable memory reconciliation under TKT-01M62EP0PDAB02DNJAJ6WS3MYD (Controller: remember where things are and should be, per world), then returning to combat and M2 checks. This does not earn the unrelated low-health owner-warning criterion.

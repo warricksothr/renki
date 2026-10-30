@@ -169,6 +169,9 @@ observation; another player may since have changed the chest. An unopened
 chest shows “Contents unknown”, while an observed empty chest is labelled
 “Empty when last opened”. Groups show a bounded preview; zoom in to inspect
 individual chests. Seeing a chest again does not refresh its contents.
+Matching newer observations reconcile old network IDs in the shared memory,
+including beds, doors and stations. Contents inherited from a previous chest
+at that place are labelled “needs checking” until the current chest is opened.
 
 The map's **Places & zones** editor manages persistent named points and
 circular areas. Tas marks evidenced storage/cooking/harvesting purposes;

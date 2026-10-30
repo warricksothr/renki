@@ -84,6 +84,41 @@ func TestDangerIsWorldScopedInMap(t *testing.T) {
 	}
 }
 
+func TestMapAndSharedMemoryReconcileOldIDsAndKeepContentsAsHints(t *testing.T) {
+	store := home.Memory()
+	now := time.Now().Add(-time.Minute)
+	pos := protocol.Vec3{-37.09, 36.09, 3.42}
+	if err := store.RememberLandmarks("world", []home.Landmark{{Entity: "old", Kind: protocol.StructureContainer,
+		Prefab: "piece_chest_wood", Pos: pos, At: now}}, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.RememberContainers("world", []home.RememberedContainer{{Entity: "old", Kind: protocol.StructureContainer,
+		Prefab: "piece_chest_wood", Pos: pos, Size: [2]int{8, 4}, At: now,
+		Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 20}}}}, now); err != nil {
+		t.Fatal(err)
+	}
+	a := New(config.Default(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, nil)
+	c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+	a.Session.Connected(c)
+	a.Session.Message(c, &protocol.State{Phase: protocol.PhaseInWorld, World: "world", HP: 25})
+	a.Session.Message(c, &protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: "current",
+		Kind: protocol.StructureContainer, Prefab: "piece_chest_wood", Pos: pos}}})
+	a.Landmarks.Tick()
+	if !a.Landmarks.Flush() {
+		t.Fatal("flush failed")
+	}
+	mapped := a.MapSnapshot().(MapSnapshot)
+	if len(mapped.Landmarks) != 1 || mapped.Landmarks[0].Entity != "current" || len(mapped.Containers) != 1 ||
+		mapped.Containers[0].Entity != "current" || mapped.Containers[0].ObservedEntity != "old" {
+		t.Fatal("map still contains the superseded marker", mapped)
+	}
+	shared := a.ContainerMemory().(ContainerMemoryStatus)
+	if len(shared.Containers) != 1 || shared.Containers[0].Entity != "current" || shared.Containers[0].Inventory().Count("Wood") != 20 ||
+		!shared.Containers[0].At.Equal(now) || shared.Containers[0].ObservedEntity != "old" {
+		t.Fatal("map and planning memory disagree", shared)
+	}
+}
+
 func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	store := home.Memory()
 	now := time.Now().Add(-time.Minute)

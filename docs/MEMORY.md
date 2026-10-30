@@ -26,6 +26,16 @@ Updates prune entries older than 30 days, evict the oldest excess and
 remove unused catalogue metadata. Missing entities in a snapshot do not
 erase remembered places or refresh their last-seen time.
 
+New positive observations can reconcile changed network IDs at the same place.
+An older record must match kind, prefab, tool metadata and a unique newer
+counterpart within 0.45 m in three dimensions. That tolerance covers the old
+half-metre rounding error. A spatial index bounds candidate lookup; co-observed
+IDs, different floors and ambiguous matches remain separate. Reconciliation
+removes superseded records from the shared store, so the panel and planning see
+the same current entity address after restart. This is an observed place match,
+not a guarantee that a rebuilt object is the original object. It neither infers
+destruction from missing perception nor rewrites arbitrary old job parameters.
+
 `GET /api/memory/landmarks`, behind panel authentication, returns the current
 world and expanded `landmarks` with `entity`, `kind`, `prefab`, `pos`, `at`,
 `ageS`, optional `minTool` and optional `tag`. A negative age means a
@@ -58,6 +68,12 @@ and evict the oldest excess records. Observation history is not kept.
 world and its remembered containers with `at` and `ageS`. A negative age
 means the observation is future-dated relative to the current clock.
 These are remembered contents; players may have changed a chest since.
+When a chest's landmark is reconciled, its previous contents can remain a hint
+under the current entity ID with `observedEntity` naming the old source. The
+original `at` is preserved. The panel labels this as needing a check, and stock
+conditions cannot use it as current-object evidence. An actual fresh snapshot,
+including an empty one, replaces the hint and clears that provenance marker.
+Landmark and contents reconciliation commit together or both roll back.
 Room calculations reuse `Inventory.Room`, with the same upper-bound
 limitations for differing item qualities; they do not account for weight.
 

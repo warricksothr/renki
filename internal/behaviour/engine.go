@@ -344,7 +344,7 @@ func (e *Engine) view() View {
 		}
 		for _, c := range e.o.Containers(v.State.World) {
 			age := e.o.Now().Sub(c.At)
-			if live[c.Entity] || c.At.IsZero() || age < 0 {
+			if live[c.Entity] || c.At.IsZero() || age < 0 || c.ObservedEntity != "" && c.ObservedEntity != c.Entity {
 				continue
 			}
 			v.Containers = append(v.Containers, &protocol.Container{Envelope: protocol.Envelope{T: v.State.T - age.Seconds()}, Entity: c.Entity, Pos: c.Pos, Size: c.Size, Items: c.Items})

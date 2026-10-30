@@ -825,6 +825,11 @@ A remembered food chest whose ID is no longer visible can suggest a unique
 currently perceived chest within 0.4 m in three dimensions. Ambiguous matches
 are skipped; old contents never prove current stock. The transfer still needs
 the exact current chest/task receipt and newer inventory evidence.
+If a hinted food is missing, the returned chest snapshot overrides that hint.
+Within the same four-request budget, preparation can check other visible home
+chests through a one-item ordinary-food request. Missing food still returns the
+actual chest contents, allowing the next request to use that observation.
+Only verified moved food counts as resupply; a missing item is a search outcome.
 
 During a trial, `just vm trial-status` reads the newest local evidence directory
 and prints only position, observed travel, health, food, task and observation

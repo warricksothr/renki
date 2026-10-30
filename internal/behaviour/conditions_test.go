@@ -125,3 +125,15 @@ func TestRememberedStockUsesItsAgeAndLiveEmptyChestWins(t *testing.T) {
 		t.Fatal("old memory overruled live empty chest")
 	}
 }
+
+func TestContentsInheritedFromAnotherObjectCannotSatisfyStock(t *testing.T) {
+	f := setup(t)
+	f.e.o.Containers = func(string) []home.RememberedContainer {
+		return []home.RememberedContainer{{Entity: "current", ObservedEntity: "old", At: f.now,
+			Size: [2]int{2, 2}, Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 20}}}}
+	}
+	c := Conditions{Stock: []Stock{{Container: "current", Prefab: "Wood", MinCount: 10, MaxAgeS: 5}}}
+	if c.Match(f.e.view()) {
+		t.Fatal("unverified old contents satisfied current stock")
+	}
+}

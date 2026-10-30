@@ -51,7 +51,11 @@ func TestLandmarkRecorderBatchesAndPreservesWorldAndTimeAcrossFailures(t *testin
 	}
 	r := Landmarks{Session: s, Store: store, Logger: log}
 	frame := func(id string) *protocol.Perception {
-		return &protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: id, Kind: protocol.StructureContainer, Prefab: "piece_chest_wood"}}}
+		pos := protocol.Vec3{}
+		if id == "b" {
+			pos[0] = 10 // Distinct places; identity reconciliation is tested separately.
+		}
+		return &protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: id, Kind: protocol.StructureContainer, Prefab: "piece_chest_wood", Pos: pos}}}
 	}
 	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "one", HP: 25})
 	p.Send(frame("a"))

@@ -13,16 +13,19 @@ import (
 const MaxContainers = 4096
 const KeepContainers = 30 * 24 * time.Hour
 
-// RememberedContainer is an exact observation, not a claim about current
-// contents. At is wall time so its age survives controller restarts.
+// RememberedContainer retains an observation, including its source when a
+// reconciled place now has another object. At never advances on reconciliation.
 type RememberedContainer struct {
-	Entity string                   `json:"entity"`
-	Kind   string                   `json:"kind"`
-	Prefab string                   `json:"prefab,omitempty"`
-	Pos    protocol.Vec3            `json:"pos"`
-	Size   [2]int                   `json:"size"`
-	Items  []protocol.InventoryItem `json:"items"`
-	At     time.Time                `json:"at"`
+	Entity string `json:"entity"`
+	// ObservedEntity is set when contents came from a superseded network
+	// object at this place. They remain a hint until this entity is opened.
+	ObservedEntity string                   `json:"observedEntity,omitempty"`
+	Kind           string                   `json:"kind"`
+	Prefab         string                   `json:"prefab,omitempty"`
+	Pos            protocol.Vec3            `json:"pos"`
+	Size           [2]int                   `json:"size"`
+	Items          []protocol.InventoryItem `json:"items"`
+	At             time.Time                `json:"at"`
 }
 
 func (c RememberedContainer) Inventory() *protocol.Inventory {
@@ -33,7 +36,7 @@ func (c RememberedContainer) Room(prefab string, stackMax int) int {
 }
 func (c RememberedContainer) Fresh(now time.Time, maxAge time.Duration) bool {
 	age := now.Sub(c.At)
-	return !c.At.IsZero() && age >= 0 && age <= maxAge
+	return (c.ObservedEntity == "" || c.ObservedEntity == c.Entity) && !c.At.IsZero() && age >= 0 && age <= maxAge
 }
 
 // RememberedContainers returns independent observations, newest first.

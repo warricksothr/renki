@@ -47,11 +47,22 @@ class Resupply(unittest.TestCase):
         mapped['perception'] = dict(structures=[dict(id='new', kind='container', pos=[1, 0, 0])])
         self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {})}, {'new'})
         mapped['perception']['structures'].append(dict(id='ambiguous', kind='container', pos=[1.1, 0, 0]))
-        self.assertEqual(resupply.candidates(self.status(), mapped, {}), [])
+        self.assertTrue(all(c[0] == len(resupply.FOODS) for c in resupply.candidates(self.status(), mapped, {})))
         mapped['perception']['structures'] = [dict(id='upstairs', kind='container', pos=[1, 3, 0])]
-        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {})}, {'chest'})
+        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {}) if c[0] < len(resupply.FOODS)}, {'chest'})
         mapped['perception']['structures'].append(dict(id='chest', kind='container', pos=[1, 0, 0]))
-        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {})}, {'chest'})
+        self.assertEqual({c[2] for c in resupply.candidates(self.status(), mapped, {}) if c[0] < len(resupply.FOODS)}, {'chest'})
+
+    def test_opened_contents_override_hoped_for_food_and_other_boxes_are_candidates(self):
+        mapped = self.mapped()
+        mapped['perception'] = dict(structures=[dict(id='chest', kind='container', pos=[1, 0, 0]),
+                                                dict(id='another', kind='container', pos=[2, 0, 0])])
+        opened = dict(chest=dict(entity='chest', items=[dict(prefab='Stone', stack=20)]))
+        choices = resupply.candidates(self.status(), mapped, {}, opened)
+        self.assertEqual([(c[2], c[3], c[4]) for c in choices], [('another', 'CookedDeerMeat', 1)])
+        opened['chest']['items'].append(dict(prefab='Blueberries', stack=8))
+        choices = resupply.candidates(self.status(), mapped, {}, opened)
+        self.assertEqual(choices[0][2:], ('chest', 'Blueberries', 4))
 
     def test_resupply_requires_task_matched_receipts_and_fresh_inventory(self):
         for mode in ('valid', 'wrong_receipt', 'stale_inventory', 'damaged', 'new_connection'):
@@ -81,7 +92,9 @@ class Resupply(unittest.TestCase):
                         inventory['seq'] += 1
                         inventory['items'].append(dict(prefab=prefab, stack=3))
                         status['food']['active'].append(dict(prefab=prefab))
-                        history = [dict(frame=dict(type='container', entity='chest', task='wrong' if mode == 'wrong_receipt' else active_task,
+                        history = [dict(frame=dict(type='container', entity='chest', pos=[1, 0, 0],
+                                                   items=[dict(prefab='Honey', stack=4), dict(prefab='Raspberry', stack=8)],
+                                                   task='wrong' if mode == 'wrong_receipt' else active_task,
                                                    direction='withdraw', moved={prefab: 4})),
                                    dict(frame=dict(type='task', re=active_task, status='succeeded'))]
                         return dict(id=active_task)
@@ -102,6 +115,45 @@ class Resupply(unittest.TestCase):
                     with self.assertRaises(RuntimeError):
                         resupply.run(summary, call, observe, terminal, Path(folder))
                     self.assertNotEqual(summary.get('outcome'), 'succeeded')
+
+    def test_missing_food_refreshes_the_hint_and_searches_another_box(self):
+        status = self.status()
+        mapped = dict(containers=[dict(entity='wrong', pos=[1, 0, 0], items=[dict(prefab='Honey', stack=4)])],
+                      perception=dict(structures=[dict(id='wrong', kind='container', pos=[1, 0, 0]),
+                                                  dict(id='food', kind='container', pos=[2, 0, 0])]))
+        inventory, requests, history = dict(seq=1, size=[8, 4], items=[]), [], []
+
+        def call(*args, **kwargs):
+            nonlocal history
+            if args[:3] == ('panel', 'GET', '/api/inventory'):
+                return dict(world='one', connection=1, inventory=copy.deepcopy(inventory))
+            if args[0] == 'task':
+                import json
+                request = json.loads(args[2])
+                chest, prefab = request['container'], request['items'][0]['prefab']
+                requests.append((chest, prefab))
+                task = 't-' + str(len(requests))
+                found = chest == 'food' and prefab == 'Honey'
+                if found:
+                    inventory.update(seq=2, items=[dict(prefab='Honey', stack=3)])
+                    status['food']['active'] = [dict(prefab='Honey')]
+                history = [dict(frame=dict(type='container', entity=chest, task=task, direction='withdraw',
+                                           pos=[1 if chest == 'wrong' else 2, 0, 0],
+                                           items=[dict(prefab='Stone' if chest == 'wrong' else 'Honey', stack=20 if chest == 'wrong' else 4)],
+                                           moved=dict(Honey=4) if found else {})),
+                           dict(frame=dict(type='task', re=task, status='succeeded' if found else 'failed', reason='invalid_target'))]
+                return dict(id=task)
+            if args[:2] == ('panel', 'GET') and args[2].startswith('/api/task?'):
+                return history
+            raise AssertionError(args)
+
+        with tempfile.TemporaryDirectory() as folder:
+            summary = {}
+            resupply.run(summary, call, lambda: (copy.deepcopy(status), mapped),
+                         lambda rows, task: rows[-1]['frame'], Path(folder))
+        self.assertEqual(requests, [('wrong', 'Honey'), ('food', 'CookedDeerMeat'), ('food', 'Honey')])
+        self.assertEqual(summary['outcome'], 'succeeded')
+        self.assertEqual(summary['supplied'], dict(Honey=4))
 
 
 if __name__ == '__main__':
