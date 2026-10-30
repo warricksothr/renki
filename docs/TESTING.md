@@ -616,6 +616,17 @@ test-harvest-trial` for selection, scoped inventory, native-goal sequencing,
 evidence requirements, failure and cleanup checks; it is part of `just check ci`.
 This does not establish mining, crafting, delivery home or indefinite harvesting.
 
+The first deployed benchmark (e36e366) reached full Beech1 `1:24194` but
+timed out without a strike. Its measured contact was within axe range; generic
+interaction sight instead tested the center of a tall nonconvex mesh, overhead
+and outside interaction reach. Harvesting now checks the measured contact from
+axe height, requiring the resource before any other solid on normal attack
+layers. Self is ignored; triggers are ignored and saturated queries refuse.
+`just check plugin test-core HarvestTests` includes the observed pose/contact
+and blocked/missing-target regressions. Evidence for the unsuccessful attempt:
+`.checks/harvest-trial-20261030T054510700197Z/summary.json` and
+`.checks/audit-window-fk9shF.jsonl`. No damaged event or cleanup error occurred.
+
 ### Explicit melee
 
 Use `just check plugin test-core MeleeTests` for encounter policy, stamina

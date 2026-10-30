@@ -72,6 +72,31 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void FullBeechUsesMeasuredTrunkContactRatherThanOverheadMeshCenter()
+        {
+            var feet = new V3(175.83, 84.45, -249.43);
+            var contact = new V3(176.21, 84.97, -250.22);
+            var boundsCenter = new V3(176.24, 101.99, -249.88);
+            var hits = new[] { new SightHit(.1, true, false), new SightHit(.92, false, true) };
+            Assert.False(HarvestReach.InRange(feet, boundsCenter, .8, 2.5));
+            Assert.True(HarvestReach.CanStrike(feet, contact, .8, 1.4, hits));
+            Assert.False(HarvestReach.CanStrike(feet + new V3(0, 3, 0), contact, .8, 1.4, hits));
+            Assert.False(HarvestReach.CanStrike(feet, contact, .8, .5, hits));
+        }
+
+        [Fact]
+        public void PhysicalStrikeContactStillNeedsTheTargetBeforeAnyOtherSolid()
+        {
+            var feet = V3.Zero; var contact = new V3(1, .8, 0);
+            Assert.False(HarvestReach.CanStrike(feet, contact, .8, 1.4, new[]
+                { new SightHit(1, false, true), new SightHit(.5, false, false) }));
+            Assert.False(HarvestReach.CanStrike(feet, contact, .8, 1.4, new SightHit[0]));
+            Assert.False(HarvestReach.CanStrike(feet, contact, .8, 1.4, new[] { new SightHit(.1, true, false) }));
+            Assert.True(HarvestReach.CanStrike(feet, contact, .8, 1.4, new[]
+                { new SightHit(1.3, false, false), new SightHit(1, false, true) }));
+        }
+
+        [Fact]
         public void HarvestWaitsForRecoveryAndCancelsOnTheFirstHealthLoss()
         {
             Assert.True(HarvestHealth.Ready(25, 25));

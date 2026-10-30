@@ -35,7 +35,7 @@ namespace Renki.Plugin
         float nextThreatCheck;
         ItemDrop.ItemData tool;
         Vector3 origin, walkGoal, retreat;
-        bool walking, retreatReady, retreated, broken, cancelled, injured, forceApproach;
+        bool walking, retreatReady, retreated, broken, cancelled, injured, forceApproach, strikeLogged;
         float brokeAt, quietSince = -1, nextCollect, swingSince = -1;
         int hitsAtSwingStart, collected, contactRetries;
         PickupTask pickup;
@@ -163,7 +163,10 @@ namespace Renki.Plugin
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
             if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
-            if (forceApproach || !HarvestReach.InRange(Convert.ToV3(p.transform.position), Convert.ToV3(surface), attackHeight, reach) || !UseReach.Near(p, target, 2.5f))
+            var inRange = HarvestReach.InRange(Convert.ToV3(p.transform.position), Convert.ToV3(surface), attackHeight, reach);
+            if (inRange && !forceApproach && !HarvestApproach.ClearStrike(p, target, surface, attackHeight, reach))
+                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the measured strike contact is occluded or unavailable"));
+            if (forceApproach || !inRange)
             {
                 if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position,
                     (float)HarvestReach.StandOff(reach, contactRetries > 0), out var goal))
@@ -190,6 +193,17 @@ namespace Renki.Plugin
                 return null;
             }
             walking = false;
+            if (!strikeLogged)
+            {
+                strikeLogged = true;
+                Tracer.Emit("harvest", "physical strike contact visible", new Dictionary<string, object>
+                {
+                    ["entity"] = args.Entity,
+                    ["contact"] = Convert.ToArray(surface),
+                    ["origin"] = Convert.ToArray(eye),
+                    ["reach"] = reach,
+                });
+            }
             if (Protected(p, tallTree ? Mathf.Clamp(targetColliders.Where(Alive).Max(c => c.bounds.max.y) - origin.y + 2, 8, 32) : 0))
                 return Finish(Outcome.Failed(Wire.ReasonRefused, "a character or player structure is too close to harvest safely"));
             if (rolling && !retreatReady)

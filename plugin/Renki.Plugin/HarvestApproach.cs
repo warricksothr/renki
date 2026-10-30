@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Renki.Tasks;
 using UnityEngine;
 
@@ -10,6 +11,23 @@ namespace Renki.Plugin
     {
         static readonly int GroundMask = LayerMask.GetMask("Default", "Default_small", "static_solid", "piece", "terrain");
         static readonly RaycastHit[] groundHits = new RaycastHit[64];
+        // Same solid/character layers as the game's terrain-aware attack mask.
+        static readonly int StrikeMask = LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "piece_nonsolid",
+            "terrain", "character", "character_net", "character_ghost", "hitbox", "character_noenv", "vehicle");
+        static readonly RaycastHit[] strikeHits = new RaycastHit[64];
+
+        internal static bool ClearStrike(Player player, GameObject target, Vector3 contact, float height, float reach)
+        {
+            var feet = player.transform.position;
+            if (!HarvestReach.InRange(Convert.ToV3(feet), Convert.ToV3(contact), height, reach)) return false;
+            var origin = feet + Vector3.up * height;
+            var count = Physics.RaycastNonAlloc(origin, (contact - origin).normalized, strikeHits, reach + .05f,
+                StrikeMask, QueryTriggerInteraction.Ignore);
+            if (count == strikeHits.Length) return false;
+            return HarvestReach.CanStrike(Convert.ToV3(feet), Convert.ToV3(contact), height, reach,
+                strikeHits.Take(count).Select(hit => new SightHit(hit.distance,
+                    hit.collider.transform.IsChildOf(player.transform), hit.collider.transform.IsChildOf(target.transform))));
+        }
 
         internal static bool Contact(Collider[] colliders, Vector3 resource, Vector3 from, float height, out Vector3 contact)
         {
