@@ -22,13 +22,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-10-30T15:25:32Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:codex/renki-exploration
+  name: ""
 extensions: {}
 ---
 
@@ -45,3 +45,11 @@ explored cells and a fixture. The controller keeps it per world.
 
 - [ ] The plugin reports explored map cells when they change, with a protocol fixture
 - [ ] The controller keeps the explored area per world and can say whether a straight route crosses unexplored land
+
+## Notes
+
+**agent:codex/renki-exploration** at 2026-10-30T15:25:32Z
+
+Reused as the coverage foundation for TKT-01M66PFAYA1NTW2JHNRDKBK42E — Exploration goals after M2 and M3. docs/EXPLORATION.md proposes distinguishing minimap/shared knowledge, actual observation coverage, visited ground and directed route evidence, with provenance, age, height and incomplete-scan handling. A revealed minimap cell alone is not personal survey, object absence or proof of a safe traversable route.
+
+The new exploration implementation tickets depend on both milestone epics and remain draft. This existing ticket retains its parent, acceptance criteria and draft status; no exploration runtime or automatic behavior is enabled by the design work.

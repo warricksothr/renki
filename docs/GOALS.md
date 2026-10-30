@@ -148,3 +148,12 @@ Use `just check controller test-packages ./internal/goal ./internal/app ./intern
 for focused replay coverage and `just check vm goal-trial`
 for a bounded supervised live run. The supervisor watches the goal through
 individual native failures and cancels an unfinished goal during cleanup.
+
+## Proposed exploration follow-on
+
+After M2 and M3, [exploration goals](EXPLORATION.md) will extend this host with
+coverage/frontier evidence, expedition preparation, bounded travel/survey and
+return routines. The proposal is tracked as draft work; `combat_trial` remains
+the only implemented goal kind. Map knowledge, observed coverage, visited ground
+and revalidated routes are distinct evidence, and discovery plus verified return
+will be required for the initial bounded land expedition.
