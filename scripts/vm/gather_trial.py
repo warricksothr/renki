@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 import time
 
-from harvest_trial import counts, pack_ready, select_resource, worksite_clear
+from harvest_trial import counts, pack_ready, select_resource, worksite_clear, health_loss
 
 PRODUCTS = ('Wood', 'BeechSeeds', 'Resin', 'Feathers')
 
@@ -77,7 +77,7 @@ def run(summary, call, observe, saved):
     summary['behaviourName'] = name
     call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=name, definition=definition)), as_json=True)
     call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='start', name=name)), as_json=True)
-    previous_hp = status['hp']
+    previous_health = status
     deadline = time.monotonic() + 490
     while time.monotonic() < deadline:
         current, mp = observe()
@@ -85,9 +85,9 @@ def run(summary, call, observe, saved):
             raise RuntimeError('controller gather connection/world changed')
         if (mp.get('world'), mp.get('connection')) != (scope[0], scope[2]):
             raise RuntimeError('controller gather observations are stale')
-        if current['hp'] < min(previous_hp, current['hpMax']) - .15 or current['hp'] < current['hpMax'] * .8:
+        if health_loss(previous_health, current) or current['hp'] < current['hpMax'] * .8:
             raise RuntimeError('observed health loss during controller gather')
-        previous_hp = current['hp']
+        previous_health = current
         if current.get('location', {}).get('inWater') or 'swimming' in current.get('flags', []) or math.dist(current['pos'], summary['origin']) > 180:
             raise RuntimeError('controller gather footing/travel guard')
         if any(c.get('hostile') and c.get('hpFrac', 0) > 0 and math.dist(c['pos'], current['pos']) < 10

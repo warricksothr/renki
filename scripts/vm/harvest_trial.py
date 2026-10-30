@@ -51,6 +51,20 @@ def counts(pack):
     return result
 
 
+def health_loss(before, after):
+    """Keep injury evidence across slow polls and distinguish a refreshed meal."""
+    old_seq, new_seq = before.get('injurySeq'), after.get('injurySeq')
+    if type(old_seq) is int:
+        if type(new_seq) is not int or old_seq != new_seq:
+            return True
+        if after.get('hpMax', 0) > before.get('hpMax', 0):
+            foods = {f['prefab']: f.get('remainingS', 0) for f in (before.get('food') or {}).get('active', [])}
+            if any(f['prefab'] not in foods or f.get('remainingS', 0) > foods[f['prefab']] + 1
+                   for f in (after.get('food') or {}).get('active', [])):
+                return False
+    return after.get('hp', 0) < min(before.get('hp', 0), after.get('hpMax', 0)) - .15
+
+
 def worksite_clear(status, perception, at, falling=True):
     # Include neutral creatures and owners: trunks/rolling logs can damage them.
     radius = 32 if falling else 8
@@ -101,7 +115,7 @@ def run(summary, call, observe, terminal, saved, log_center=None):
         raise RuntimeError('harvest needs a live world/connection scope')
     summary.update(origin=origin, world=world, connection=connection, tasks=[])
     deadline = time.monotonic() + 480
-    previous_health = status.get('hp', 0)
+    previous_health = status
 
     def snapshot():
         nonlocal previous_health
@@ -113,9 +127,9 @@ def run(summary, call, observe, terminal, saved, log_center=None):
                 or st.get('location', {}).get('inWater') or distance(st['pos'], origin) > 40
                 or 'encumbered' in st.get('flags', [])):
             raise RuntimeError('harvest health, footing, weight or travel guard')
-        if st['hp'] < min(previous_health, st['hpMax']) - .15:
+        if health_loss(previous_health, st):
             raise RuntimeError('observed health loss during harvest trial')
-        previous_health = st['hp']
+        previous_health = st
         if time.monotonic() >= deadline:
             raise RuntimeError('harvest trial time limit')
         return st, mp

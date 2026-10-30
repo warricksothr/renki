@@ -283,8 +283,8 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			s.listener.Chat(m)
 		}
 	case *protocol.Event:
-		if observer, ok := s.listener.(InjuryListener); ok {
-			if observation, valid := s.ObserveInjury(c, m, time.Now().UTC()); valid {
+		if observation, valid := s.ObserveInjury(c, m, time.Now().UTC()); valid {
+			if observer, ok := s.listener.(InjuryListener); ok {
 				observer.Injury(m, observation)
 			}
 		}

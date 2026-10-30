@@ -335,6 +335,7 @@ func (e *Engine) view() View {
 		perceptionAt = time.Time{}
 	}
 	v := View{StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	v.InjurySeq = e.o.Session.InjurySequence()
 	if e.o.Danger != nil && v.State != nil {
 		v.Danger = e.o.Danger(v.State.World, v.Now)
 	}

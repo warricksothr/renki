@@ -5,9 +5,20 @@ import tempfile
 import unittest
 
 import gather_trial as gather
+from harvest_trial import health_loss
 
 
 class GatherEvidence(unittest.TestCase):
+    def test_food_refresh_needs_unchanged_injury_evidence_and_never_hides_a_hit(self):
+        before = dict(hp=60.7, hpMax=60.7, injurySeq=0, food=dict(active=[dict(prefab='CookedDeerMeat', remainingS=603)]))
+        after = dict(hp=60, hpMax=66.1, injurySeq=0, food=dict(active=[dict(prefab='CookedDeerMeat', remainingS=1197)]))
+        self.assertFalse(health_loss(before, after))
+        self.assertTrue(health_loss(before, dict(after, injurySeq=100)))
+        self.assertTrue(health_loss(before, dict(after, hp=66.1, injurySeq=100)))
+        self.assertTrue(health_loss(before, dict(after, injurySeq=None)))
+        self.assertTrue(health_loss(dict(before, injurySeq=None), after))
+        self.assertTrue(health_loss(before, dict(after, food=before['food'])))
+
     def test_controller_can_approach_a_distant_observed_site_without_relaxing_protection(self):
         status = dict(pos=[0, 30, 0])
         tree = dict(id='tree', kind='tree', prefab='Beech1', minTool=0, pos=[30, 30, 0])

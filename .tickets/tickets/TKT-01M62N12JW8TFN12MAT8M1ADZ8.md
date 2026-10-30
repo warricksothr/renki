@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T20:31:03Z
+updated_at: 2026-10-30T21:05:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -57,7 +57,7 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-Add owner-authorized deterministic chop wood/gather wood chat commands that queue the existing bounded controller gather template. Use fresh scoped state/perception/inventory, existing tool/food/health/capacity/character guards and explicit permissions before saving or starting anything. Prefer the previous command's persisted same-world worksite when fresh safe trees confirm it, or use a distant remembered site as a travel hint that must be revalidated on arrival; otherwise choose a nearby currently observed isolated beech with danger-aware cost. Choose ordered remembered/current home chests as hints, retaining exact native storage receipts. Persist one identifiable manual once-only command instance; refuse collisions with user-authored instances, active tasks and queued work. Normal stop/owner takeover must cancel without later steps. Verify planner refusals, permission/chat routing, persisted-site reuse and cancellation; run focused checks, CI and committed review. Keep full live delivery, repeated hauling and M3 kill/block/dodge acceptance open. The protected-tree live refusal from the benchmark is retained; do not ask for owner staging or rerun unchanged.
+Fix the observed M2 food-refresh false injury before retrying full delivery. The scoped native audit shows no damage while HP decayed60.7->60, then a meal refresh raised maximum66.1 between supervisor polls. Expose the existing accepted injury-event sequence through session/view/panel status and observe it even without a memory listener. Controller gather and VM health checks must stop on changed/missing known injury evidence, including a hit hidden by regeneration, and retain conservative HP fallback without that marker. Only a confirmed refreshed food timer plus increased maximum and unchanged known injury marker can explain this food transition. Native harvest keeps its actual-damage latch, compares consecutive food/health samples and enforces the80% floor. Verify the recorded sequence, coincident/hidden hit, legacy/missing marker, reconnect and unexplained losses; run focused checks, CI and committed review, then land/deploy and retry one bounded controller tree/log/gain-only deposit/return cycle. Record exact proof or diagnose the next failure; no owner staging. Repeated hauling, broader site discovery, mining/crafting and positive M3 combat proof remain open.
 
 ## Notes
 
@@ -98,3 +98,11 @@ Implemented owner/command-profile grammar go chop wood, chop wood and gather woo
 Focused behavior/chat/app checks passed: .checks/20261030T202955Z-Xx77CT.log. Coverage includes distant approach without relaxed protection, foreign/unsafe-local site exclusion, confirmed remembered-site preference, missing axe/food/capacity/stamina/home/storage/fresh perception, unauthorized chat, permission refusal, user-definition preservation, persisted non-resumption, queued owner stop and a newer stop arriving during planning. The latter binds the queued work to the original control revision so a settings save cannot resurrect an older order. A separate existing player-presence test timed out once in an earlier focused run; its targeted rerun and the subsequent full focused suites passed (.checks/20261030T202804Z-sTD8Ls.log and .checks/20261030T202909Z-tfOVFK.log). No presence change was made merely to hide that timeout.
 
 Final CI/review/landing/deployment follow. All broad M2 AC remain unticked until required live proof is earned. This command is one bounded tree cycle, not repeated multi-tree hauling, mining or crafting. M3 positive kill/block/dodge proof also remains open.
+
+**agent:codex/renki-milestones** at 2026-10-30T21:05:17Z
+
+The live gather trial on28a488f selected full beech1:61548 at[23.62,31.37,33.53],18.24m away, then stopped before harvesting on a false health-loss guard. Summary .checks/gather-trial-20261030T205338134340Z/summary.json and exact audit .checks/audit-window-6n9U03.jsonl show zero damage events: HP/max decayed60.7/60.7 through60.0/60.0, then refreshed CookedDeerMeat raised max66.4 between supervisor polls. Food remaining rose from about603 to1197seconds. Cleanup succeeded; final64HP at[11.11,31.71,27.38]. No gathering proof earned.
+
+Implemented accepted injury-event sequence in session/view/panel without a wire change, including listener-independent tracking. Gather and VM supervisors require unchanged known injury evidence, increased maximum and a refreshed food timer to tolerate this transition; real or regenerated hits, lost evidence and unexplained losses still stop. Legacy status retains conservative HP fallback. Native harvest keeps its actual-damage latch, compares consecutive food/health samples and checks the80% floor throughout. Cleanup now stops/deletes this trial's behavior or active goal before diagnostic image transfer, preventing continued automation during a slow camera fetch.
+
+Focused Go checks passed .checks/20261030T210040Z-tDAgV3.log; VM gather/harvest/resupply/combat checks passed .checks/20261030T210045Z-{vi7Sp6,1W8AfD,bzPKFQ,3KQxfh}.log (see individual saved check logs for exact generated names). Native HarvestTests passed .checks/20261030T210145Z-xTN19W.log and native build .checks/20261030T210148Z-hofUeq.log. Latest cleanup-order combat/goal checks passed .checks/20261030T210331Z-e1aWJJ.log and .checks/20261030T210331Z-T0y9K0.log. Full CI, committed review, landing/deployment and one changed-build live retry follow. Broad M2 acceptance remains open.

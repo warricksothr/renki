@@ -34,7 +34,8 @@ namespace Renki.Plugin
         readonly bool rock, tallTree, rolling;
         readonly string prefab;
         readonly float startedAt = Time.unscaledTime;
-        readonly float initialHealth;
+        float previousHealth, previousMaximum;
+        readonly Dictionary<string, float> foodTimes = new Dictionary<string, float>();
         float nextThreatCheck;
         ItemDrop.ItemData tool;
         Vector3 origin, walkGoal, retreat;
@@ -84,8 +85,9 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             tool = Best(p);
             if (tool == null) throw new TaskRefused(Wire.ReasonNoTool, $"need a usable {(rock ? "pickaxe" : "axe")} of tier {minimum}");
-            initialHealth = p.GetHealth();
-            if (!HarvestHealth.Ready(initialHealth, p.GetMaxHealth()))
+            previousHealth = p.GetHealth(); previousMaximum = p.GetMaxHealth();
+            RefreshedFood(p);
+            if (!HarvestHealth.Ready(previousHealth, previousMaximum))
                 throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before harvesting");
             if (ThreatNear(p)) throw new TaskRefused(Wire.ReasonRefused, "an enemy is within 15 m; clear the work site before harvesting");
             if (args.Collect)
@@ -125,13 +127,28 @@ namespace Renki.Plugin
             Driver.HarvestAttack = false;
         }
 
+        bool RefreshedFood(Player p)
+        {
+            var foods = p.GetFoods();
+            var refreshed = false;
+            foreach (var food in foods)
+                if (!foodTimes.TryGetValue(food.m_name, out var remaining) || food.m_time > remaining + 1) refreshed = true;
+            foodTimes.Clear();
+            foreach (var food in foods) foodTimes[food.m_name] = food.m_time;
+            return refreshed;
+        }
+
         public Outcome Tick(double dt)
         {
             Driver.Stand();
             var p = Player.m_localPlayer;
             if (cancelled || p == null || p.IsDead()) return Finish(Outcome.Failed(Wire.ReasonStopped, "not in the world"));
             if (Time.unscaledTime - startedAt > 180) return Finish(Outcome.Failed(Wire.ReasonTimeout, "harvest reached its 180 s work limit"));
-            if (injured || HarvestHealth.Hurt(initialHealth, p.GetHealth(), p.GetMaxHealth())) return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
+            var health = p.GetHealth(); var maximum = p.GetMaxHealth();
+            if (HarvestHealth.Interrupted(injured, previousHealth, previousMaximum, health, maximum, RefreshedFood(p)))
+                return Finish(Outcome.Failed(Wire.ReasonStopped, "took damage; harvesting cancelled"));
+            previousHealth = health; previousMaximum = maximum;
+            if (!HarvestHealth.Ready(health, maximum)) return Finish(Outcome.Failed(Wire.ReasonRefused, "health below the harvesting floor"));
             if (Time.unscaledTime >= nextThreatCheck)
             {
                 nextThreatCheck = Time.unscaledTime + .25f;

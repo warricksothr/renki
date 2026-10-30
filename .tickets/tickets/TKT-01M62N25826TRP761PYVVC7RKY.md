@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T20:47:01Z
+updated_at: 2026-10-30T21:02:23Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -244,3 +244,11 @@ Owner observed pauses between legs. TKT-01M674C36AET3YJMR7AFQZB6AD — Design ca
 The retained audit distinguishes outbound route changes (t-1/t-3) and a refused newly planned return (t-2), all previously reported as refused. Implemented a shared four-event outbound route/Walker/no-progress recovery allowance. A rejected leg stops, advances to the next search bearing and retains the existing candidate/time/travel budgets. Exhaustion initiates return. Return planning uses up to160 actual outbound position samples and current route validation for every connector; a winding-trail distance reserves return travel before the old radial estimate would. Return failures, unsafe body/threat conditions and owner cancellation remain exits. Only completed outbound legs count as search coverage. No speculative planning or weaker physics/grade/clearance guard was added.
 
 Focused policy checks passed (.checks/20261030T204525Z-hxURqx.log), including alternate bearings, finite Walker failures/no false coverage, bent retracing, return-travel reservation, changed return refusal and immediate threat priority. Native DLL build passed (.checks/20261030T204617Z-hD3gQE.log). Compact trial projection checks passed (.checks/20261030T204549Z-CeH0K7.log and .checks/20261030T204614Z-5PyYR9.log); reports retain recovery reason counts and last trail point/distance hints without broad trace output. CI/review/landing/deployment and one bounded live trial follow. Positive kill/block/dodge AC stay open.
+
+**agent:codex/renki-milestones** at 2026-10-30T21:02:23Z
+
+PR #107 landed the bounded scout recovery/return-trail change as28a488f. just check ci passed (.checks/20261030T204701Z-NXMDUO.log), committed just check review passed (.checks/20261030T204907Z-DqZFzL.log), and checksum-verified install passed (.checks/20261030T205001Z-P4f6zG.log).
+
+The live native trial completed scouting AND a checked return near its original position, then failed invalid_target because no eligible Greyling was found. Exact native audit .checks/audit-window-ms7bC3.jsonl contains321 in-world state frames,126.6m summed travel, five outbound route commitments and eighteen return commitments. Final[11.09,30.27,46.68], minimum/final62HP at the food-derived maximum, zero damage events and no cleanup errors. Summary .checks/combat-trial-20261030T205013729701Z/summary.json. The slower supervisor observations measured110.7m;126.6m is the denser native-state measure. This run exercised the new return trail, but did not emit scout_recovery; bounded recovery branches remain policy-tested rather than live-proven. No kill/block/dodge acceptance earned.
+
+New tree observations during this run justified an M2 gather attempt. That attempt selected safe tree1:61548 but aborted on a false health-loss interpretation across a food refresh; zero audit damage events. The M2 ticket records that separate fix. Tas remains offline between supervised attempts; combat=false and the panel online after cleanup.

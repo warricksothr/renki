@@ -21,6 +21,18 @@ type InjuryListener interface {
 	Injury(*protocol.Event, InjuryObservation)
 }
 
+// InjurySequence is a connection-scoped marker of accepted injury events.
+// Zero is known no injury; nil means no current in-world body observation.
+func (s *Session) InjurySequence() *uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.conn == nil || s.state == nil || s.state.Phase != protocol.PhaseInWorld {
+		return nil
+	}
+	seq := s.injurySeq
+	return &seq
+}
+
 // ObserveInjury attaches an injury event to fresh current-world state. Events
 // carry precise position on new plugins; older plugins use the last state.
 // No store or disk work is done under the session lock.

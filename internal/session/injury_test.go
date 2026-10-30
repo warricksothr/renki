@@ -86,3 +86,24 @@ func TestInjuryContextFreshnessReconnectAndEventSource(t *testing.T) {
 		t.Fatal("captured observation changed after reconnect")
 	}
 }
+
+func TestInjuryMarkerWorksWithoutRecorderAndIsUnavailableAcrossReconnect(t *testing.T) {
+	s := New(&listener{}, nil)
+	c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+	s.Connected(c)
+	if s.InjurySequence() != nil {
+		t.Fatal("unobserved body has an injury baseline")
+	}
+	s.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 10, T: 10}, Phase: protocol.PhaseInWorld, World: "one", HP: 25})
+	if seq := s.InjurySequence(); seq == nil || *seq != 0 {
+		t.Fatal(seq)
+	}
+	s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 11, T: 10.1}, Event: protocol.EventDamaged, Amount: 1})
+	if seq := s.InjurySequence(); seq == nil || *seq != 11 {
+		t.Fatal(seq)
+	}
+	s.Connected(&bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}})
+	if s.InjurySequence() != nil {
+		t.Fatal("old injury marker crossed a reconnect")
+	}
+}

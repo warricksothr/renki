@@ -131,6 +131,43 @@ func TestGatherStopsOnHealthLossBetweenNativeTasksButAllowsFoodDecay(t *testing.
 	}
 }
 
+func TestGatherDistinguishesFoodRefreshFromDamageEvenWhenHealthRegenerates(t *testing.T) {
+	for _, mode := range []string{"refresh", "hit", "regenerated hit", "no marker", "lost marker", "unexplained loss"} {
+		t.Run(mode, func(t *testing.T) {
+			r, v := gathering(t)
+			seq := uint64(0)
+			if mode != "no marker" {
+				v.InjurySeq = &seq
+			}
+			v.State.HP, v.State.HPMax = 60.7, 60.7
+			v.State.Food.Active[0].RemainingS = 603
+			nextTask(t, r, v, nil, protocol.TaskHarvest)
+			v.State.HP, v.State.HPMax = 60, 66.1
+			v.State.Food.Active[0].RemainingS = 1197
+			if mode == "hit" || mode == "regenerated hit" {
+				seq = 100
+			}
+			if mode == "regenerated hit" {
+				v.State.HP = 66.1
+			}
+			if mode == "lost marker" {
+				v.InjurySeq = nil
+			}
+			if mode == "unexplained loss" {
+				v.State.Food.Active[0].RemainingS = 600
+			}
+			_, err := r.Next(v, success("tree"))
+			if mode == "refresh" {
+				if !errors.Is(err, ErrWait) {
+					t.Fatal(err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), "health loss") {
+				t.Fatal(mode, err)
+			}
+		})
+	}
+}
+
 func TestGatherRefusesUnsafeDescendantsWithoutCuttingAnotherTree(t *testing.T) {
 	for _, scenario := range []string{"character", "structure", "too far", "no log", "no wood", "old only"} {
 		t.Run(scenario, func(t *testing.T) {
