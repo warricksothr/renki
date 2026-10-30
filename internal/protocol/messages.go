@@ -453,6 +453,7 @@ type TaskStatus struct {
 	Status string `json:"status"`
 	Reason string `json:"reason,omitempty"`
 	Detail string `json:"detail,omitempty"`
+	Entity string `json:"entity,omitempty"` // Native-selected target, when known.
 }
 
 func (*TaskStatus) MessageType() string { return TypeTask }

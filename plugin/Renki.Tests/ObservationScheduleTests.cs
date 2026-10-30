@@ -6,6 +6,21 @@ namespace Renki.Tests
     public sealed class ObservationScheduleTests
     {
         [Fact]
+        public void LogoutPublishesUnloadingAndMenuWithoutClearingTheLogoutLatch()
+        {
+            var schedule = new ObservationSchedule(); var player = new object();
+            Assert.True(schedule.Due(0, SessionPhase.Resolve(false, true, true, false), "A", player, 5, out _));
+            Assert.Equal("logging_out", SessionPhase.Resolve(true, true, true, false));
+            Assert.True(schedule.Due(.1, SessionPhase.Resolve(true, true, true, false), "A", player, 5, out _));
+            Assert.Equal("logging_out", SessionPhase.Resolve(true, false, true, false));
+            Assert.Equal("menu", SessionPhase.Resolve(true, false, false, false));
+            Assert.True(schedule.Due(.2, SessionPhase.Resolve(true, false, false, false), "", null, 5, out _));
+            // A lingering logout latch must keep even a newly present body
+            // outside in_world until this game process is restarted.
+            Assert.Equal("logging_out", SessionPhase.Resolve(true, true, true, false));
+        }
+
+        [Fact]
         public void EnteringAWorldBetweenPeriodicTicksForcesScopeBeforeInventory()
         {
             var schedule = new ObservationSchedule();

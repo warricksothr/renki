@@ -70,6 +70,12 @@ against an eligible ordinary Greyling while Tas remains healthy, within an
 explicit world/area. Only the existing `combat` runner and bounded observation
 waits are exposed initially. Fresh, observed targets within 30 m use native
 survey/scouting/kiting; direct melee is an alternative only for a close confirmed attacker.
+When fresh perception contains no live unsupported threat or unchanged eligible
+target, the host can instead offer native local discovery. C# surveys ground,
+scouts and selects the enemy under its existing bounds. An unchanged search
+failure waits for materially changed observations rather than repeating on
+advancing timestamps. Discovery success requires the final native task receipt
+to bind its selected entity as well as report observed death.
 The script can retry after fresh, materially changed observations, reacquire
 another eligible target or wait for readiness. It cannot turn a refused task,
 unloaded target or missing perception into a kill. The host retains the exact

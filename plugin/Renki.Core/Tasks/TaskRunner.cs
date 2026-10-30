@@ -11,6 +11,7 @@ namespace Renki.Tasks
         public string Status;
         public string Reason;
         public string Detail;
+        public string Entity;
 
         public static Outcome Succeeded(string detail = null) =>
             new Outcome { Status = Wire.StatusSucceeded, Detail = detail };
@@ -218,7 +219,7 @@ namespace Renki.Tasks
             current = null;
             body = null;
             host.Idle();
-            Reply(finished, o.Status, o.Reason, o.Detail);
+            Reply(finished, o.Status, o.Reason, o.Detail, o.Entity);
         }
 
         /// <summary>The bot died: the body task fails with <c>died</c>.</summary>
@@ -248,7 +249,7 @@ namespace Renki.Tasks
             if (reportIt) Reply(cancelled, Wire.StatusCancelled, reason, detail);
         }
 
-        void Reply(TaskRequest req, string status, string reason = null, string detail = null) =>
-            report(new TaskStatus { Re = req.Id, Status = status, Reason = reason, Detail = detail });
+        void Reply(TaskRequest req, string status, string reason = null, string detail = null, string entity = null) =>
+            report(new TaskStatus { Re = req.Id, Status = status, Reason = reason, Detail = detail, Entity = entity });
     }
 }

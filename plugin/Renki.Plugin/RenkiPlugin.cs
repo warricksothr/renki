@@ -5,6 +5,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using Renki.Bridge;
+using Renki.Perception;
 using Renki.Protocol;
 using Renki.Tasks;
 using UnityEngine;
@@ -130,12 +131,14 @@ namespace Renki.Plugin
             // Inventory is sent on change, often as soon as the player
             // appears between periodic state ticks. Establish its world
             // first, then resend observations on phase/world/player changes.
-            if (runner.InSession && stateSchedule.Due(now, phase, world, player,
+            // Logout revokes control before the game finishes unloading. Keep
+            // reporting that transition so the controller can observe menu.
+            if ((runner.InSession || loggingOut) && stateSchedule.Due(now, phase, world, player,
                 1 / Math.Max(0.2, stateHz), out var scopeChanged))
             {
                 var state = reporter.State(phase, runner.Current);
                 if (state != null) Send(state);
-                if (scopeChanged)
+                if (scopeChanged && runner.InSession)
                 {
                     inventory.Resend(); perceiver.Resend(); terrain.Resend();
                     nextPerception = 0;
@@ -173,6 +176,8 @@ namespace Renki.Plugin
             switch (msg)
             {
                 case Welcome w:
+                    // Reconnecting the bridge must not undo an explicit logout.
+                    if (loggingOut) { stateSchedule.Reset(); break; }
                     welcome = w;
                     sharePosition = w.SharePosition;
                     stateHz = w.Rates.StateHz > 0 ? w.Rates.StateHz : 5;
@@ -183,7 +188,6 @@ namespace Renki.Plugin
                     perceiver.Resend();
                     terrain.Resend();
                     stateSchedule.Reset();
-                    loggingOut = false;
                     Driver.Active = true;
                     var name = w.AgentName != "" ? w.AgentName : "the character's name";
                     Logger.LogInfo($"session started, answering to {name}; owners {string.Join(", ", w.Owners)}; " +
@@ -241,10 +245,8 @@ namespace Renki.Plugin
 
         internal string Phase()
         {
-            if (loggingOut) return Wire.PhaseLoggingOut;
             var p = Player.m_localPlayer;
-            if (p == null) return ZNet.instance != null ? Wire.PhaseConnecting : Wire.PhaseMenu;
-            return p.IsDead() ? Wire.PhaseDead : Wire.PhaseInWorld;
+            return SessionPhase.Resolve(loggingOut, p != null, ZNet.instance != null, p != null && p.IsDead());
         }
 
         Hello BuildHello() => new Hello

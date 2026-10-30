@@ -152,6 +152,30 @@ func TestOwnerOrderCancelsRunningAndQueuedGoalsWithoutStoppingNewOrder(t *testin
 		})
 	}
 }
+
+func TestDiscoveryGoalCompletesWithNativeBoundEntity(t *testing.T) {
+	a, p, call, _ := goalFixture(t)
+	p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 100}})
+	until := time.Now().Add(time.Second)
+	for len(a.Session.Perception().Characters) != 0 && time.Now().Before(until) {
+		time.Sleep(time.Millisecond)
+	}
+	if len(a.Session.Perception().Characters) != 0 {
+		t.Fatal("discovery perception not received")
+	}
+	g := createdGoal(t, call("POST", startGoal, true, true))
+	a.Behaviours.Tick(context.Background())
+	request := p.NextTask()
+	var args protocol.AttackArgs
+	if err := json.Unmarshal(request.Args, &args); err != nil || request.Task != "attack" || !args.Kite || args.Entity != "" {
+		t.Fatal(request, err)
+	}
+	p.Send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: request.ID}, Status: "succeeded", Detail: "observed Greyling death", Entity: "native-grey"})
+	g = tickUntilGoal(t, a, g.ID, func(g goal.Record) bool { return g.Status == "succeeded" })
+	if g.Proof == nil || g.Proof.TaskID != request.ID || g.Proof.Entity != "native-grey" {
+		t.Fatal(g)
+	}
+}
 func TestGoalPermissionFailureAndOfflineStopRemainSafe(t *testing.T) {
 	a, p, call, _ := goalFixture(t)
 	g := createdGoal(t, call("POST", startGoal, true, true))

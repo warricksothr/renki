@@ -329,6 +329,12 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 `status` moves through `accepted` → `running` → one of `succeeded`, `failed`,
 `cancelled`. `rejected` is the only reply when a task never starts.
 
+A final receipt may include `entity`, the exact native-selected target ID.
+For an acquisition/kiting attack this binds the enemy selected after dispatch.
+Successful combat requires `detail: "observed Greyling death"` and a bound
+target; disappearance or unloading does not prove death. An explicitly named
+target cannot be substituted by another receipt entity.
+
 | `reason` | When |
 |---|---|
 | `unsupported` | Not in `capabilities`. |

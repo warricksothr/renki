@@ -74,6 +74,21 @@ func TestDispatchAndLifecycle(t *testing.T) {
 	}
 }
 
+func TestFinalReceiptBindsEntityAndIgnoresLateSubstitution(t *testing.T) {
+	s, _, p := setup(t, []string{"follow"}, nil)
+	task, err := s.Dispatch(context.Background(), Order{Task: "follow", Args: &protocol.FollowArgs{Player: "Sothr"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.NextTask()
+	p.Send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: task.ID}, Status: protocol.StatusSucceeded, Detail: "observed Greyling death", Entity: "native-grey"})
+	waitFor(t, func() bool { st, _, _ := task.Status(); return st == protocol.StatusSucceeded })
+	s.taskStatus(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: task.ID}, Status: protocol.StatusSucceeded, Entity: "other"})
+	if task.Entity() != "native-grey" {
+		t.Fatal(task.Entity())
+	}
+}
+
 func TestDispatchRefusesOutsideCapabilitiesAndAllowed(t *testing.T) {
 	// The controller allows emote, but the plugin cannot do it; the plugin
 	// can move_to, but the controller does not allow it.

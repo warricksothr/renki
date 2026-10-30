@@ -120,6 +120,9 @@ def run_persistent_goal(summary, call, observe, saved):
             summary.update(outcome=goal['status'], reason=goal.get('reason', ''))
             return
         target = (goal.get('pending') or {}).get('entity')
+        combat = status.get('combat') or {}
+        if combat.get('id') == (goal.get('pending') or {}).get('taskId') and combat.get('entity'):
+            target = combat['entity']
         reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), target)
         if reason:
             raise RuntimeError(reason)
@@ -268,6 +271,14 @@ def main():
                     summary['ground'] = ground_diagnostics(audit, summary['task'])
                 except Exception as e:
                     summary['diagnosticError'] = str(e)
+            if summary.get('goalId'):
+                try:
+                    attempts = summary.get('goal', {}).get('history', [])[-6:]
+                    summary['encounters'] = [dict(taskId=attempt['taskId'], status=attempt['status'],
+                        reason=attempt.get('reason'), entity=attempt.get('entity'),
+                        ground=ground_diagnostics(audit, attempt['taskId'])) for attempt in attempts if attempt.get('taskId')]
+                except Exception as e:
+                    summary['diagnosticError'] = str(e)
         except Exception as e:
             summary['auditError'] = str(e)
         (saved / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
@@ -276,6 +287,9 @@ def main():
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
     if summary.get('goalId'):
         report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof')}
+        report['encounters'] = [dict(taskId=e['taskId'], status=e['status'], reason=e['reason'],
+            entity=e['entity'], modes=e['ground']['modes'], scouting=e['ground']['scouting']['routes'])
+            for e in summary.get('encounters', [])]
     if harvesting:
         report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))

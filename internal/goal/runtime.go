@@ -172,7 +172,13 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 			return r.need("native receipt does not match pending action")
 		}
 		outcome := Outcome{Status: last.Status, Reason: last.Reason, Detail: truncate(last.Detail, 512), TaskID: last.TaskID, Entity: g.Pending.Entity, At: v.Now}
-		verified := last.Status == protocol.StatusSucceeded && last.Detail == "observed Greyling death" && g.Pending.Template == "combat" && g.Pending.Entity != ""
+		if last.Entity != "" {
+			outcome.Entity = last.Entity
+		}
+		// Discovery has no target at dispatch. Only the native final receipt
+		// can bind it; a later perception snapshot is never death evidence.
+		bound := outcome.Entity != "" && (g.Pending.Entity == "" || outcome.Entity == g.Pending.Entity)
+		verified := last.Status == protocol.StatusSucceeded && last.Detail == "observed Greyling death" && g.Pending.Template == "combat" && bound
 		if last.Status == protocol.StatusSucceeded && !verified {
 			outcome.Status = "failed"
 			outcome.Reason = "unverified_success"
@@ -322,7 +328,7 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 	return nil, errors.New("unhandled policy directive")
 }
 func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage, string) {
-	ctx := map[string]any{"ready": v.State.HPMax > 0 && v.State.HP/v.State.HPMax >= 0.8 && v.State.Stamina >= 40, "target": false, "changed": false, "params": nil}
+	ctx := map[string]any{"ready": v.State.HPMax > 0 && v.State.HP/v.State.HPMax >= 0.8 && v.State.Stamina >= 40, "target": false, "changed": false, "discovery": false, "params": nil}
 	if v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 3*time.Second || v.Perception == nil || v.State.T-v.Perception.T < 0 || v.State.T-v.Perception.T > 3 {
 		return ctx, nil, ""
 	}
@@ -330,7 +336,13 @@ func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage,
 	sort.Slice(targets, func(i, j int) bool {
 		return distance(v.State.Pos, targets[i].Pos) < distance(v.State.Pos, targets[j].Pos)
 	})
+	discoveryBlocked := false
 	for _, c := range targets {
+		// An unsupported or unchanged live threat calls for observation,
+		// not replacing a refused targeted encounter with blind acquisition.
+		if c.Kind == protocol.CharacterCreature && c.Hostile && c.HPFrac > 0 && c.Prefab != "Deer" {
+			discoveryBlocked = true
+		}
 		if c.Kind != protocol.CharacterCreature || c.Prefab != "Greyling" || c.Stars != 0 || !c.Hostile || c.HPFrac <= 0 || distance(c.Pos, g.Center) > g.Radius-52 || distance(c.Pos, v.State.Pos) > 30 {
 			continue
 		}
@@ -346,6 +358,15 @@ func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage,
 		} // Prefer a changed/alternate target over repeating a refusal.
 		ctx["target"], ctx["changed"], ctx["params"] = true, true, p
 		return ctx, raw, fp
+	}
+	if !discoveryBlocked {
+		fp := fmt.Sprintf("search:%d:%d:%d:%d", int(math.Floor(v.State.Pos[0]/2)), int(math.Floor(v.State.Pos[2]/2)), int(v.State.HP/10), int(v.State.Stamina/20))
+		if fp != g.LastFingerprint {
+			p := map[string]any{"world": g.World}
+			raw, _ := json.Marshal(p)
+			ctx["target"], ctx["changed"], ctx["discovery"], ctx["params"] = true, true, true, p
+			return ctx, raw, fp
+		}
 	}
 	return ctx, nil, ""
 }
