@@ -76,6 +76,49 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void CloseConfirmedAttackerAtCheckedStanceDoesNotNeedALure()
+        {
+            var f = Frame(-6, -3); f.Targeting = true;
+            Assert.Equal(KiteAction.Engage, Policy().Decide(f, 0));
+            f.Targeting = false;
+            Assert.Equal(KiteAction.Retreat, Policy().Decide(f, 0));
+        }
+
+        [Fact]
+        public void DirectDefenseRequiresBothCharactersAtCheckedGround()
+        {
+            var f = Frame(0, 3); f.Targeting = true;
+            Assert.Equal(KiteAction.Retreat, Policy().Decide(f, 0));
+            f = Frame(-4, 0.1); f.Targeting = true;
+            Assert.NotEqual(KiteAction.Engage, Policy().Decide(f, 0));
+            f = Frame(-6, -1); f.Targeting = true;
+            Assert.NotEqual(KiteAction.Engage, Policy().Decide(f, 0));
+        }
+
+        [Theory]
+        [InlineData("health")]
+        [InlineData("stamina")]
+        [InlineData("weapon")]
+        [InlineData("unsafe")]
+        [InlineData("lost")]
+        [InlineData("ineligible")]
+        [InlineData("travel")]
+        [InlineData("time")]
+        public void DirectDefenseCannotBypassSafetyAndWorkBounds(string cause)
+        {
+            var f = Frame(-6, -3); f.Targeting = true; var now = 0.0;
+            if (cause == "health") f.Hp = 63;
+            if (cause == "stamina") f.Stamina = 9;
+            if (cause == "weapon") f.Weapon = false;
+            if (cause == "unsafe") f.Safe = false;
+            if (cause == "lost") f.Valid = false;
+            if (cause == "ineligible") f.Eligible = false;
+            if (cause == "travel") f.Enemy = new V3(41, 0, 0);
+            if (cause == "time") now = 40;
+            Assert.Equal(KiteAction.Retreat, Policy().Decide(f, now));
+        }
+
+        [Fact]
         public void LeadPacesDistanceAndPreservesStaminaInsteadOfAlwaysSprinting()
         {
             var p = Policy(); var f = Frame(0, 8); f.Following = true;

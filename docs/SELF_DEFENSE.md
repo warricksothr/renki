@@ -16,7 +16,13 @@ which currently selects melee). Native preparation is available with `kite=true`
 and optional preferred `at` ground. This build accepts only one unstarred hostile
 Greyling, within 30 m, starting at 80% health or higher. Players, tame creatures,
 other species, ranged style and unusable weapons are refused. Combat and
-movement permissions are both required.
+movement permissions are both required. A confirmed Greyling already targeting
+Tas within 4 m can enter melee immediately when Tas is within 2 m of the
+surveyed fighting-ground center and the enemy is within its 6 m area. This
+handles an attacker that arrives during positioning, before the first pursuit
+sample. Both the arena and melee eligibility are revalidated at handoff;
+all preparation safety/work limits still apply. Other encounters continue to
+require observed pursuit for the lure.
 
 The task chooses a carried melee weapon using character damage rather than
 harvest damage. Normal game controls supply aiming, swings, blocks and dodges.
