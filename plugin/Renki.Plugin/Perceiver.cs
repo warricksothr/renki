@@ -248,6 +248,7 @@ namespace Renki.Plugin
             if (p.TryGetComponent<Door>(out var door)) (kind, part) = (Wire.StructureDoor, door);
             else if (p.TryGetComponent<Bed>(out var bed)) (kind, part) = (Wire.StructureBed, bed);
             else if (p.TryGetComponent<TeleportWorld>(out var portal)) (kind, part) = (Wire.StructurePortal, portal);
+            else if (p.TryGetComponent<CookingStation>(out var cooking)) (kind, part) = (Wire.StructureStation, cooking);
             else if (p.TryGetComponent<CraftingStation>(out var station)) (kind, part) = (Wire.StructureStation, station);
             else if (p.TryGetComponent<Smelter>(out var smelter)) (kind, part) = (Wire.StructureSmelter, smelter);
             else if (p.TryGetComponent<Fireplace>(out var fire)) (kind, part) = (Wire.StructureFire, fire);

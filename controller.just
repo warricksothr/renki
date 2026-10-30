@@ -77,6 +77,7 @@ vet:
 # Check formatting, then vet.
 lint:
     @test -z "$(gofmt -l . | tee /dev/stderr)" || { echo "gofmt issues (run \`just fmt\`)" >&2; exit 1; }
+    node --check internal/panel/static/app.js
     go vet ./...
 
 # Format all Go sources.

@@ -154,3 +154,10 @@ observation; another player may since have changed the chest. An unopened
 chest shows “Contents unknown”, while an observed empty chest is labelled
 “Empty when last opened”. Groups show a bounded preview; zoom in to inspect
 individual chests. Seeing a chest again does not refresh its contents.
+
+The map's **Places & zones** editor manages persistent named points and
+circular areas. Tas marks evidenced storage/cooking/harvesting purposes;
+owners can add, rename, move, resize and delete them. Your changes take
+precedence over automatic discovery. **What's nearby?** shares Tas's
+last-known object and chest memory. See [Places and zones](WAYPOINTS.md) for
+height handling, chat commands, named movement and the API.

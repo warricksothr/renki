@@ -66,8 +66,15 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	s := session.New(nil, log.With("part", "session"))
 	s.SetPermit(func(task string) bool { return slices.Contains(set.Values().AllowedTasks, task) })
 	keeper := home.NewLive(homes, func() config.HomeRules { return set.Values().Home }, s, log.With("part", "home"), nil)
+	s.SetMovePlace(func(world, name string) (protocol.Vec3, error) {
+		if place, ok := homes.Waypoint(world, name); ok {
+			return place.Pos, nil
+		}
+		return protocol.Vec3{}, home.ErrNoWaypoint
+	})
 	brain := chat.New(chat.Options{
 		Home:      keeper,
+		Places:    homes,
 		AgentName: cfg.AgentName,
 		Live: func() chat.Live {
 			v := set.Values()
@@ -148,6 +155,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Burden.Run(ctx)
 	go a.Retreat.Run(ctx)
 	go a.Food.Run(ctx)
+	go a.discoverWaypoints(ctx)
 	go a.Behaviours.Run(ctx)
 	go a.Memory.Run(ctx)
 	go func() {

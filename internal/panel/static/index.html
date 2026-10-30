@@ -74,6 +74,41 @@
         <li><i class="stuck"></i>stuck recovery</li>
         <li><i class="path"></i>planned path</li>
       </ul></details>
+      <details id="places">
+        <summary>Places &amp; zones <span id="place-count"></span></summary>
+        <div class="place-toolbar">
+          <select id="place-list" aria-label="Saved places"><option value="">Choose a place</option></select>
+          <button id="place-new" type="button">Add place</button>
+        </div>
+        <form id="place-form">
+          <div class="place-fields">
+            <label>Name <input id="place-name" maxlength="64" required autocomplete="off"></label>
+            <label>Purpose <select id="place-kind">
+              <option value="place">General</option><option value="storage">Storage</option><option value="cooking">Cooking</option>
+              <option value="wood">Wood</option><option value="stone">Stone</option><option value="flint">Flint</option>
+              <option value="berries">Berries</option><option value="ore">Ore</option>
+            </select></label>
+            <label>X <input id="place-x" type="number" step="0.1" required></label>
+            <label>Height (Y) <input id="place-y" type="number" step="0.1" required></label>
+            <label>Z <input id="place-z" type="number" step="0.1" required></label>
+            <label>Zone radius (m) <input id="place-radius" type="number" min="0" max="100" step="0.5" value="0" required></label>
+          </div>
+          <div class="place-toolbar">
+            <button id="place-bot" type="button">Use Tas’s position</button>
+            <button id="place-pick" type="button" aria-pressed="false">Place on map</button>
+            <label><input id="place-ground" type="checkbox"> Use terrain height</label>
+          </div>
+          <p class="place-help">Radius 0 marks a point. A larger radius marks a circular zone. Keep the height of raised floors when moving places inside a building.</p>
+          <p id="place-source"></p>
+          <div class="place-toolbar">
+            <button type="submit">Save</button><button id="place-go" type="button">Go to saved place</button>
+            <button id="place-delete" type="button">Delete</button><button id="place-near" type="button">What’s nearby?</button>
+          </div>
+        </form>
+        <p id="place-result" role="status"></p>
+        <div id="place-nearby"></div>
+        <p class="place-help">Tas marks standard locations from things he observes. Your changes take precedence; deleted automatic places stay deleted. Nearby contents are last known.</p>
+      </details>
     </section>
     <section id="feed-pane">
       <details id="voice">

@@ -12,6 +12,7 @@ type MapSnapshot struct {
 	Tiles      []protocol.TerrainTile     `json:"tiles"`
 	Containers []home.RememberedContainer `json:"containers"`
 	Landmarks  []home.Landmark            `json:"landmarks"`
+	Waypoints  []home.Waypoint            `json:"waypoints"`
 	Perception *protocol.Perception       `json:"perception,omitempty"`
 	Walls      []protocol.Wall            `json:"walls"`
 }
@@ -21,6 +22,7 @@ func (a *App) MapSnapshot() any {
 	out := MapSnapshot{World: world, Connection: conn, Tiles: tiles, Landmarks: []home.Landmark{}, Containers: []home.RememberedContainer{}}
 	out.Perception, out.Walls = a.Session.MapObjects(world, conn)
 	if world != "" {
+		out.Waypoints = a.Memory.Store.Waypoints(world)
 		out.Landmarks = a.Landmarks.Store.Landmarks(world)
 		if state := a.Session.State(); state != nil && state.World == world {
 			sort.Slice(out.Landmarks, func(i, j int) bool {

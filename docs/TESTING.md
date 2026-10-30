@@ -548,3 +548,27 @@ BeechSeeds 15 and Wood 2 preserved. The owner subsequently cleared the route.
 Post-incident health/proximity guards and first-hit retreat still need live
 validation. Recover with normal food before another harvest; task success,
 delivery/return, full-tree escape, log splits and mining remain open.
+
+### Places and zones
+
+Use `just check controller test-packages ./internal/home ./internal/chat
+./internal/session ./internal/app ./internal/behaviour` for world-scoped
+persistence, owner commands, deletion suppression, save rollback, stale edit
+conflicts, evidenced standard-place selection, remembered nearby contents
+and named movement resolution before bridge dispatch. World changes during
+resolution must send nothing. `just check ci` also checks panel JS syntax.
+
+`just controller preview-map --serve` includes automatic storage and an
+owner-managed woodlot. In the browser, open Places & zones, select a marker,
+rename/resize it, and preserve a raised floor's Y while changing X/Z. Add a
+zone with map placement, both preserving height and using measured terrain.
+Verify nearby known/empty/unknown chests, save/delete/go requests, an unsaved
+edit surviving a map refresh, and a delayed save response discarded after a
+world change. The preview remains read-only; isolate mocked API responses
+in the browser for edit-flow checks. Never send fixture tasks to the game.
+
+In game, confirm observed purposes are created, owner edits survive controller
+restart, deletion does not respawn an automatic role, and a named move reaches
+its saved floor. Confirm cooking equipment is visible as a station. Creating
+a zone must not start harvesting. Keep full harvesting/log/rock benchmarks
+and unverified game cases on their tickets.

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -117,6 +118,7 @@ type Session struct {
 	layout      *protocol.Layout
 	allowed     []string
 	permit      func(task string) bool
+	movePlace   func(world, name string) (protocol.Vec3, error)
 	tasks       map[string]*Task
 	nextTask    uint64
 }
@@ -131,6 +133,14 @@ func New(l Listener, log *slog.Logger) *Session {
 
 // SetListener replaces the listener. Call it before the bridge starts.
 func (s *Session) SetListener(l Listener) { s.listener = l }
+
+// SetMovePlace resolves controller-owned waypoint names before a move goes
+// on the bridge. Entity IDs contain a colon and keep their wire semantics.
+func (s *Session) SetMovePlace(resolve func(world, name string) (protocol.Vec3, error)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.movePlace = resolve
+}
 
 // SetPermit narrows what may be sent, read on every Dispatch: a task must
 // also pass permit, such as the runtime settings' allowedTasks. What the
@@ -393,14 +403,39 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	}
 	s.nextTask++
 	id := fmt.Sprintf("t-%d", s.nextTask)
+	resolve := s.movePlace
+	world, phase := "", ""
+	if s.state != nil {
+		world, phase = s.state.World, s.state.Phase
+	}
 	s.mu.Unlock()
 
 	req, err := protocol.NewTask(id, o.Task, o.Args, o.TimeoutS)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := req.DecodeArgs(); err != nil {
+	decoded, err := req.DecodeArgs()
+	if err != nil {
 		return nil, err
+	}
+	resolved := false
+	if args, ok := decoded.(*protocol.MoveToArgs); ok && resolve != nil && args.To.Entity != "" && !strings.Contains(args.To.Entity, ":") {
+		if world == "" || phase != protocol.PhaseInWorld {
+			return nil, errors.New("join a world before using a waypoint")
+		}
+		pos, err := resolve(world, args.To.Entity)
+		if err != nil {
+			return nil, err
+		}
+		args.To = protocol.Target{Pos: &pos}
+		req, err = protocol.NewTask(id, o.Task, args, o.TimeoutS)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := req.DecodeArgs(); err != nil {
+			return nil, err
+		}
+		resolved = true
 	}
 	t := &Task{ID: id, Name: o.Task, Origin: o.Origin, done: make(chan struct{})}
 
@@ -408,6 +443,10 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	if s.conn != conn {
 		s.mu.Unlock()
 		return nil, ErrNotConnected
+	}
+	if resolved && (s.state == nil || s.state.World != world || s.state.Phase != protocol.PhaseInWorld) {
+		s.mu.Unlock()
+		return nil, errors.New("world changed while resolving the waypoint")
 	}
 	if automation != nil && s.automation != automation {
 		s.mu.Unlock()

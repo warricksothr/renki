@@ -60,6 +60,7 @@ type memory struct {
 	Shunned    []string                                  `json:"shunned,omitempty"`
 	Containers map[string]map[string]RememberedContainer `json:"containers,omitempty"`
 	Landmarks  map[string]landmarkWorld                  `json:"landmarks,omitempty"`
+	Waypoints  map[string]waypointWorld                  `json:"waypoints,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file

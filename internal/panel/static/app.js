@@ -22,6 +22,7 @@ const world = {
   stuck: [], // {pos, attempt}
   tiles: new Map(),
   landmarks: [],
+  waypoints: [],
   containers: new Map(),
 };
 
@@ -37,7 +38,8 @@ let mapWorld = "", mapConnection = 0, mapGeneration = 0, mapLoading = false, map
 function resetMap() {
   mapGeneration++;
   Object.assign(world, { bot: null, trail: [], characters: [], structures: [], resources: [], walls: [],
-    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [], containers: new Map() });
+    home: null, left: [], path: null, stuck: [], tiles: new Map(), landmarks: [], waypoints: [], containers: new Map() });
+  resetPlaceEditor();
   mapFetchedAt = 0;
   $("terrain-status").textContent = "Waiting for terrain";
 }
@@ -53,6 +55,8 @@ async function loadMap() {
     if (generation !== mapGeneration || data.world !== mapWorld || data.connection !== mapConnection) return;
     world.tiles = new Map((data.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]));
     world.landmarks = data.landmarks || [];
+    world.waypoints = data.waypoints || [];
+    syncPlaceList();
     world.containers = new Map((data.containers || []).map((c) => [c.entity, c]));
     if (data.perception) {
       world.structures = data.perception.structures || [];
@@ -433,6 +437,7 @@ function onStatus(s) {
 // ---- map ----
 
 const canvas = $("map");
+new ResizeObserver(() => draw()).observe(canvas);
 const ctx = canvas.getContext("2d");
 const css = getComputedStyle(document.documentElement);
 const colour = (name) => css.getPropertyValue("--" + name).trim();
@@ -464,6 +469,14 @@ function render() {
 
   RenkiTerrain.draw(ctx, world.tiles, sx, sy, layers, w, h);
   grid(w, h, sx, sy);
+
+  for (const p of world.waypoints) {
+    if (!(p.radius > 0)) continue;
+    ctx.save(); ctx.strokeStyle = "#d4a6ff90"; ctx.fillStyle = "#b08cff0b";
+    ctx.setLineDash(p.source === "bot" ? [3, 5] : [8, 4]);
+    ctx.beginPath(); ctx.arc(sx(p.pos[0]), sy(p.pos[2]), p.radius * view.scale, 0, 2 * Math.PI);
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  }
 
   if (world.bot && view.radius) {
     ctx.save(); ctx.strokeStyle = "#96bdd850"; ctx.setLineDash([3, 6]); ctx.lineWidth = 1;
@@ -657,6 +670,11 @@ function collect(sx, sy) {
     out.push({ key: "home", look: { shape: "square", colour: colour("home"), size: 6, one: "home" },
       items: [{ what: "home", pos: world.home }], x: sx(world.home[0]), y: sy(world.home[2]), prio: 20, label: "home" });
   }
+  for (const p of world.waypoints) {
+    out.push({ key: "waypoint:" + p.name, look: { shape: "hollow-diamond", colour: "#d4a6ff", size: 7, one: "place" },
+      items: [{ ...p, what: p.name, detail: `${p.kind} · ${p.radius ? p.radius + " m zone" : "point"} · ${p.source === "bot" ? "automatic" : "owner"}` }],
+      x: sx(p.pos[0]), y: sy(p.pos[2]), prio: 19, label: p.name });
+  }
   for (const c of world.left) {
     const what = Object.entries(c.items).sort((a, b) => b[1] - a[1]).map(([p, n]) => `${n} ${plain(p)}`).join(", ");
     out.push({ key: "left", look: { shape: "hollow-diamond", colour: colour("home"), size: 6, one: "left behind" },
@@ -827,6 +845,7 @@ $("follow-bot").addEventListener("change", (e) => {
 // Dragging pans, and stops following the bot.
 let drag = null;
 canvas.addEventListener("pointerdown", (e) => {
+  if (placePicking) { pickPlace(e); return; }
   drag = { x: e.clientX, y: e.clientY, centre: view.centre.slice() };
   canvas.setPointerCapture(e.pointerId);
 });
@@ -840,7 +859,15 @@ canvas.addEventListener("pointermove", (e) => {
   view.centre = [drag.centre[0] - dx, drag.centre[1] + dz];
   draw();
 });
-canvas.addEventListener("pointerup", () => (drag = null));
+canvas.addEventListener("pointerup", (e) => {
+  if (drag && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) {
+    const rect = canvas.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const marker = hit.filter(m => m.key.startsWith("waypoint:") && Math.hypot(m.x-x, m.y-y) < 12)
+      .sort((a,b) => Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];
+    if (marker) editPlace(world.waypoints.find(p => "waypoint:" + p.name === marker.key));
+  }
+  drag = null;
+});
 
 // Hovering a marker says what it is: every item of a group.
 const tip = $("map-tip");
@@ -1215,3 +1242,108 @@ function connect() {
 connect();
 loadDays();
 draw();
+
+// ---- named places and circular zones ----
+let placeOriginal = "", placeExpected = null, placePicking = false;
+function placeResult(text, error = false) {
+  $("place-result").textContent = text;
+  $("place-result").classList.toggle("error", error);
+}
+function syncPlaceList() {
+  const list = $("place-list");
+  list.replaceChildren(Object.assign(document.createElement("option"), { value: "", textContent: "Choose a place" }));
+  for (const p of world.waypoints) list.append(Object.assign(document.createElement("option"), { value: p.name,
+    textContent: `${p.name} · ${p.kind}${p.source === "bot" ? " · automatic" : ""}` }));
+  list.value = placeOriginal;
+  $("place-count").textContent = world.waypoints.length ? `(${world.waypoints.length})` : "";
+}
+function resetPlaceEditor() {
+  placeOriginal = ""; placeExpected = null; placePicking = false;
+  $("place-form").reset(); $("place-nearby").replaceChildren();
+  $("place-source").textContent = ""; placeResult("");
+  $("place-pick").setAttribute("aria-pressed", "false");
+  $("map").classList.remove("picking-place"); syncPlaceList();
+  for (const id of ["place-go", "place-delete", "place-near"]) $(id).disabled = true;
+}
+function editPlace(p) {
+  if (!p) return;
+  placeOriginal = p.name; placeExpected = p.at;
+  $("places").open = true; $("place-list").value = p.name;
+  $("place-name").value = p.name; $("place-kind").value = p.kind;
+  ["x", "y", "z"].forEach((key, i) => $("place-" + key).value = p.pos[i].toFixed(1));
+  $("place-radius").value = p.radius;
+  $("place-source").textContent = `${p.source === "bot" ? "Automatic" : "Set by " + p.setBy} · ${new Date(p.at).toLocaleString()}${p.evidence ? " · " + p.evidence : ""}`;
+  $("place-nearby").replaceChildren(); placeResult("");
+  for (const id of ["place-go", "place-delete", "place-near"]) $(id).disabled = false;
+}
+function useBotPlace() {
+  if (!world.bot) { placeResult("Tas must be in the world to use his position.", true); return; }
+  ["x", "y", "z"].forEach((key, i) => $("place-" + key).value = world.bot[i].toFixed(1));
+}
+function pickPlace(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = view.centre[0] + (e.clientX - rect.left - rect.width / 2) / view.scale;
+  const z = view.centre[1] - (e.clientY - rect.top - rect.height / 2) / view.scale;
+  if ($("place-ground").checked) {
+    const sample = RenkiTerrain.sample(world.tiles, x, z);
+    if (!sample) { placeResult("Terrain height is unknown here. Set the height explicitly or use Tas’s position.", true); return; }
+    $("place-y").value = sample.height.toFixed(1);
+  }
+  $("place-x").value = x.toFixed(1); $("place-z").value = z.toFixed(1);
+  placePicking = false; canvas.classList.remove("picking-place"); $("place-pick").setAttribute("aria-pressed", "false");
+  placeResult("Position selected. Save to keep it.");
+}
+async function writePlace(action) {
+  if (!mapWorld) { placeResult("Tas must join a world before editing its places.", true); return; }
+  const selectedWorld = mapWorld, generation = mapGeneration;
+  const command = { action, world: selectedWorld, name: placeOriginal, expectedAt: placeExpected };
+  if (action === "set") command.waypoint = { name: $("place-name").value, kind: $("place-kind").value,
+    pos: ["x", "y", "z"].map(key => Number($("place-" + key).value)), radius: Number($("place-radius").value) };
+  try {
+    const response = await fetch("/api/waypoints", { method: "POST", headers: { "Content-Type": "application/json", "X-Renki-Act": "1" }, body: JSON.stringify(command) });
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
+    if (mapWorld !== selectedWorld || mapGeneration !== generation) return;
+    world.waypoints = data.waypoints || []; syncPlaceList(); draw();
+    if (action === "set") {
+      const name = command.waypoint.name.trim().toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").replace(/^(?:the )+/, "");
+      editPlace(world.waypoints.find(p => p.name === name)); placeResult("Saved.");
+    } else if (action === "delete") { resetPlaceEditor(); placeResult("Deleted. Automatic discovery will not recreate this purpose."); }
+    else placeResult("Heading to the saved place.");
+  } catch (error) { if (mapWorld === selectedWorld && mapGeneration === generation) placeResult(error.message, true); }
+}
+$("place-list").addEventListener("change", e => editPlace(world.waypoints.find(p => p.name === e.target.value)));
+$("place-new").addEventListener("click", () => { resetPlaceEditor(); $("places").open = true; useBotPlace(); $("place-name").focus(); });
+$("place-bot").addEventListener("click", useBotPlace);
+$("place-pick").addEventListener("click", () => {
+  placePicking = !placePicking; canvas.classList.toggle("picking-place", placePicking);
+  $("place-pick").setAttribute("aria-pressed", String(placePicking));
+  if (placePicking) canvas.scrollIntoView({block: "nearest"});
+  placeResult(placePicking ? "Click the map to choose a position, then save." : "");
+});
+$("place-form").addEventListener("submit", e => { e.preventDefault(); writePlace("set"); });
+$("place-delete").addEventListener("click", () => writePlace("delete"));
+$("place-go").addEventListener("click", () => writePlace("go"));
+$("place-near").addEventListener("click", async () => {
+  const name = placeOriginal, selectedWorld = mapWorld, generation = mapGeneration;
+  try {
+    const response = await fetch("/api/waypoints?" + new URLSearchParams({world: selectedWorld, name}), {cache: "no-store"});
+    if (!response.ok) throw new Error(await response.text());
+    const data = await response.json();
+    if (generation !== mapGeneration || name !== placeOriginal) return;
+    const lines = (data.nearby || []).map(n => {
+      const distance = world.waypoints.find(p => p.name === name)?.pos;
+      const metres = distance ? Math.round(Math.hypot(n.pos[0]-distance[0],n.pos[2]-distance[2])) + " m · " : "";
+      let text = `${metres}${plain(n.prefab || n.kind)} · ${n.source === "current" ? "currently seen" : "last seen " + new Date(n.at).toLocaleString()}`;
+      if (n.kind === "container") {
+        const counts = new Map();
+        for (const item of n.contents?.items || []) counts.set(item.prefab, (counts.get(item.prefab) || 0) + item.stack);
+        text += n.contents ? ` · contents last checked ${new Date(n.contents.at).toLocaleString()}: ` + ([...counts].map(([p,c]) => `${c} ${plain(p)}`).join(", ") || "empty") : " · contents unknown";
+      }
+      return Object.assign(document.createElement("p"), {textContent: text});
+    });
+    $("place-nearby").replaceChildren(...(lines.length ? lines : [Object.assign(document.createElement("p"), {textContent: "No recorded observations within this zone. Coverage may be incomplete."})]));
+    placeResult("Up to 24 nearby observations; this is not a complete resource survey.");
+  } catch (error) { if (generation === mapGeneration) placeResult(error.message, true); }
+});
+resetPlaceEditor();

@@ -123,6 +123,8 @@ type Options struct {
 	Live func() Live
 	// Home keeps the bot's home. Nil means it has none.
 	Home Home
+	// Places is the same per-world waypoint memory used by the map.
+	Places *home.Store
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -305,8 +307,12 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	from := origin{player: c.From.Name, channel: replyChannel(c.Channel)}
 	owners := b.live().Owners
 	owner := slices.Contains(owners, c.From.Name)
-	cmd, ok := parse(b.strip(c.Text))
+	text := b.strip(c.Text)
+	cmd, ok := parse(text)
 	if !ok {
+		if b.waypointCommand(text, c, from, owner) {
+			return
+		}
 		b.opts.Logger.Debug("not a command", "from", c.From.Name, "voice", b.voice() != nil)
 		b.converse(c, from, owner)
 		return
