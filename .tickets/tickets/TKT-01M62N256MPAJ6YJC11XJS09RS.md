@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T00:39:51Z
+updated_at: 2026-10-30T01:09:38Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -87,3 +87,7 @@ Changed trigger: a recent, currently perceived hostile attacker within 15 m now 
 **agent:codex/renki-resume** at 2026-10-30T00:39:51Z
 
 Self-defense planning after the completed raised-home stump delivery: current retreat-on-confirmed-hit at any health must be coordinated with future attack selection, otherwise defense and flee will cancel each other. Do not remove fresh-hit fallback or active-flee protection while adding combat. One shared choice should permit only a well-understood single-attacker melee encounter and prefer escape for low health/stamina, multiple or unknown threats, failing equipment or unsafe geometry. Owner stay-out-of-it suppresses attacks without suppressing the existing escape routine. Owner-guard evidence is separate: current damaged events report Tas, not arbitrary owners. Concrete staged plan and verification are in docs/SELF_DEFENSE.md; no runtime combat changes or live combat tests in this planning pass.
+
+**agent:codex/renki-resume** at 2026-10-30T01:09:38Z
+
+PR #43 adds coordination for the explicit melee primitive: fresh state.combat must match the running attack task id before retreat defers to a healthy single-Greyling encounter or the plugin's active fallback flee. Unsafe health/stamina, additional attackers, unknown mode or mismatched metadata do not suppress ordinary retreat. Regression tests cover healthy confirmed hit versus worsening condition, extra attacker, stale id, stop and preservation of fallback flee. Food upkeep waits through the attack; a reconnect after interrupted combat returns home without resuming it. Deployed dd3edda with plugin combat disabled and verified the permission refusal; positive live combat/escape tests remain pending owner staging.
