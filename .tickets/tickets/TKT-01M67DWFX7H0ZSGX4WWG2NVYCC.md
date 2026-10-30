@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M67DWFX7H0ZSGX4WWG2NVYCC
 title: Validate Windows OBS freshness and persistent standby scenes
 type: task
-status: in-progress
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -20,17 +20,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/windows-obs-capture
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 2c18cf13ec31b7dd9e13c85ce960ade7f897e0ec
-  session: null
-  claimed_at: 2026-10-30T22:42:29Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T22:11:32Z
-updated_at: 2026-10-30T23:07:24Z
+updated_at: 2026-10-30T23:14:43Z
 created_by:
   id: agent:codex/local-streaming
   name: ""
@@ -73,3 +66,13 @@ Actual Windows NVENC output verified baseline H264/720p30/3Mb/s/keyint60/no B fr
 Live source-loss trial passed (.checks/20261030T230200Z-ZDWJ2O.log); adapter-kill watchdog trial passed (.checks/20261030T230206Z-f9uAVA.log); body stop returned200 while video continued; logout passed (.checks/20261030T230258Z-UlrPU4.log). Same browser MediaStream and unchanged WHEP request count2 through these checks (earlier relay provisioning created the second session). Logout evidence: menu/standby,7780 decoded frames. OBS output duration increased throughout. Tas stayed healthy; only natural food maximum decline, then logged out and game closed (.checks/20261030T230436Z-Xw5lal.log).
 
 Deployment exposed EventSource CLOSED after proxy502 during controller restart: native EventSource does not always retry. Added bounded explicit CLOSED-source recovery while preserving native transient retries; tests cover duplicate/obsolete events and shutdown. Final combined CI/review/deployment follows. AC3 deliberately remains open: RDP/lock/unlock/minimize/GPU-loss and actual forced render-freeze transitions have not been live-validated; frozen-image policy is covered by decoded-image/scoped-telemetry tests. No manual desktop interruption or user credentials requested.
+
+## Summary
+
+Core implementation delivered in PR114 (Add verified Windows OBS video and independent standby recovery) and deployed on BLIGHT at70c6e6f. Approved portable OBS33.0.1/MediaMTX1.21.3, private authenticated adapter/watchdog, changing in-game beacon, NVENC baseline720p30 local output, matched silent-AAC fallback, private ICE and Tailscale HTTPS are working. No external destination/account configured.
+
+Full just check ci passed (.checks/20261030T230745Z-Cngr2g.log), including42 UI scenarios; committed just check review passed with no findings (.checks/20261030T231034Z-9SPtP6.log). Final installed package/checksums passed (.checks/20261030T231105Z-fiXKME.log); adapter deploy .checks/20261030T231122Z-GnqMBw.log. Core source-loss/watchdog/body-stop/logout proof is retained in the prior note and docs/WINDOWS-VIDEO.md.
+
+The deployed panel recovered automatically from real controller downtime/proxy502 using CLOSED-source recreation: header returned from reconnecting to no plugin, then showed connecting and in-world normally on the next game launch. Actual final GUI displayed gameplay with visible video and matching current52.4/52.4 health. Live screenshot /home/sothr/.t3/userdata/browser-artifacts/browser-screenshot-blight-raccoon-grue-ts-net-mvvl92zw-d0102123.png. Final logout showed menu/standby, same MediaStream,3510 decoded frames and unchanged single WHEP request. OBS output remained active. Final game checks .checks/20261030T231216Z-W46LEn.log and .checks/20261030T231329Z-VQ9tkr.log; game then stopped and panel remains available independently.
+
+AC1 and AC2 are satisfied. AC3 remains unchecked for actual RDP/lock/unlock/minimization/GPU-loss/forced game-render-freeze tests and sustained encoder contention. Returned this partially completed ticket to ready with AC3 open, rather than declaring those desktop transitions verified. No user action currently needed; do not lock the working console without a recovery method. Claim released at handoff; remaining tests can resume later.
