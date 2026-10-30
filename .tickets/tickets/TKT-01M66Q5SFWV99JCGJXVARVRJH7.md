@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-30T15:34:39Z
-updated_at: 2026-10-30T16:08:49Z
+updated_at: 2026-10-30T16:12:05Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
@@ -64,3 +64,7 @@ PR #79 merged as 1561eb5. Initial installation found Valheim stopped but the pan
 **agent:codex/renki-atlas** at 2026-10-30T16:04:17Z
 
 The first three children are implemented: identity/freshness, durable terrain storage and saved-map viewing. The explicit portable export/import child remains draft; no shared publication or imported evidence is enabled. docs/ATLAS.md now distinguishes implemented runtime from the broader format/layer proposal. Local CI, interop, Windows builds and browser fixture checks passed; live deployment proof follows.
+
+**agent:codex/renki-atlas** at 2026-10-30T16:12:05Z
+
+Supersedes the earlier panel-stop success claim in the deployment plan/PR #80 validation: the inline SSH PowerShell command returned exit 0 despite execution-policy errors, so it did not stop the controller. Moved the step into stop-panel.ps1, invoked with the standard -NoProfile -ExecutionPolicy Bypass path and terminating errors. A real controller-start/stop check now reports exit verified, followed by just vm status confirming both controller and game stopped. Also handle brief stale process records after Wait-Process with a bounded 10-second poll. Full installer and atlas live checks continue below.

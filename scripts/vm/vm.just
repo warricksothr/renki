@@ -38,7 +38,8 @@ panel-start: need-target
 
 # Stop a controller that keeps the panel available while Valheim is offline.
 panel-stop: need-target
-    {{ssh}} ". '{{dir}}/common.ps1'; \$controllers = @(Get-Controller (Read-BotSettings)); \$controllers | Stop-Process; \$controllers | Wait-Process -Timeout 10"
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/stop-panel.ps1" "{{target}}:/{{dir}}/stop-panel.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/stop-panel.ps1"
 
 # Start the bot in the VM's desktop session and wait for it to be in the world.
 start MINUTES="5": need-target
