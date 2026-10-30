@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M66Q5SFWV99JCGJXVARVRJH7
 title: Durable versioned world atlas and portable mapping data
 type: epic
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -20,10 +20,17 @@ dependencies: []
 blocks_on: children
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-atlas
+  branch: t3/atlas-deployment
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 1561eb53c7644a30fed28e7f54df81ed1e16fe45
+  session: null
+  claimed_at: 2026-10-30T16:08:49Z
+  expires_at: null
 archive: null
 created_at: 2026-10-30T15:34:39Z
-updated_at: 2026-10-30T16:04:47Z
+updated_at: 2026-10-30T16:08:49Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
@@ -47,6 +54,10 @@ Sharing remains a future explicit export/import capability: prefer GeoPackage/lo
 - [ ] Changed observations retain bounded history; freshness, logical expiry, quotas and physical storage maintenance are explicit and tested
 - [ ] Panel distinguishes current, remembered/stale, unknown and imported evidence without claiming exploration or navigability
 - [ ] Portable mapping representation defines local coordinates, provenance, compatibility and selected shareable layers; exchange remains explicit
+
+## Implementation plan
+
+PR #79 merged as 1561eb5. Initial installation found Valheim stopped but the panel controller still held controller.exe open, so SCP could not replace it. Add reusable just vm panel-stop with bounded process wait, and make the full installer call it even when Valheim is already offline. Then land the tooling fix, install, collect a live measured atlas and verify it survives controller reconnect and offline panel viewing. Retain full API evidence in .checks with bounded summaries.
 
 ## Notes
 
