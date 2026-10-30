@@ -31,6 +31,7 @@ import (
 // App is a configured controller.
 type App struct {
 	Presence     *presence.Manager
+	Players      *memory.Players
 	Goals        *goal.Store
 	goalTemplate *goal.Template
 	goalMu       sync.Mutex
@@ -81,10 +82,16 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		}
 		return protocol.Vec3{}, home.ErrNoWaypoint
 	})
+	players := &memory.Players{Session: s, Store: homes, Logger: log.With("part", "players")}
+	playerPresence := presence.New(presence.Options{Session: s, Players: players, Live: func() presence.Live {
+		v := set.Values()
+		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
+	}, Logger: log.With("part", "presence")})
 	brain := chat.New(chat.Options{
-		Home:      keeper,
-		Places:    homes,
-		AgentName: cfg.AgentName,
+		PlayerQuery: playerPresence.PanelQuery,
+		Home:        keeper,
+		Places:      homes,
+		AgentName:   cfg.AgentName,
 		Live: func() chat.Live {
 			v := set.Values()
 			return chat.Live{Owners: v.Players.Commanders(v.Owners), Nicknames: v.Nicknames, Voice: v.Voice}
@@ -93,12 +100,8 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Cooldown: cooldown(cfg),
 		Logger:   log.With("part", "chat"),
 	}, s)
-	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice,
+	a := &App{Config: cfg, Session: s, Brain: brain, Home: keeper, Settings: set, Voice: voice, Players: players, Presence: playerPresence,
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
-	a.Presence = presence.New(presence.Options{Session: s, Live: func() presence.Live {
-		v := set.Values()
-		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
-	}, Logger: log.With("part", "presence")})
 	var markerRequested atomic.Bool
 	markerRequested.Store(set.Values().Presence.SharePosition)
 	set.OnChange(func(v settings.Values) {
@@ -137,7 +140,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Danger = &memory.Danger{Store: homes, Logger: log.With("part", "memory")}
-	s.SetListener(&listeners{presence: a.Presence, brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger})
+	s.SetListener(&listeners{players: players, presence: a.Presence, brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -150,11 +153,18 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 
 // listeners fan out session events without doing blocking work on the bridge.
 type listeners struct {
+	players    *memory.Players
 	presence   *presence.Manager
 	brain      *chat.Brain
 	retreat    *retreat.Retreat
 	behaviours *behaviour.Engine
 	danger     *memory.Danger
+}
+
+func (l *listeners) PlayerChat(c *protocol.Chat, observation session.PlayerChatObservation) {
+	if l.players != nil {
+		l.players.ObserveChat(c, observation)
+	}
 }
 
 func (l *listeners) Chat(c *protocol.Chat) {
@@ -194,11 +204,13 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	ctx, cancel := context.WithCancel(ctx)
 	landmarksDone := make(chan struct{})
 	dangerDone := make(chan struct{})
+	playersDone := make(chan struct{})
 	defer func() {
 		cancel()
 		// Let the recorder persist its final batch before main can exit.
 		<-landmarksDone
 		<-dangerDone
+		<-playersDone
 	}()
 	go a.Home.Run(ctx)
 	go a.Burden.Run(ctx)
@@ -206,6 +218,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Food.Run(ctx)
 	go a.discoverWaypoints(ctx)
 	go a.Presence.Run(ctx)
+	go func() { defer close(playersDone); a.Players.Run(ctx) }()
 	go a.Behaviours.Run(ctx)
 	go a.Memory.Run(ctx)
 	go func() { defer close(dangerDone); a.Danger.Run(ctx) }()

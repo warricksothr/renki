@@ -73,6 +73,7 @@ type Options struct {
 	Behaviours      http.Handler
 	ContainerMemory func() any
 	LandmarkMemory  func() any
+	PlayerMemory    func() any
 	Map             func() any
 	Inventory       func() any
 	Waypoints       http.Handler
@@ -153,6 +154,12 @@ func Handler(o Options) http.Handler {
 		authed.HandleFunc("GET /api/memory/landmarks", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(o.LandmarkMemory())
+		})
+	}
+	if o.PlayerMemory != nil {
+		authed.HandleFunc("GET /api/memory/players", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(o.PlayerMemory())
 		})
 	}
 	if o.Goals != nil {
