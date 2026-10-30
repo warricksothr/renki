@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:19:47Z
+updated_at: 2026-10-30T06:34:27Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,10 +49,10 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Acceptance criteria
 
-- [ ] harvest fells a tree, splits a log and breaks a stump or rock by id with the best tool it carries
+- [x] harvest fells a tree, splits a log and breaks a stump or rock by id with the best tool it carries
 - [ ] It collects the drops within a few metres unless collect is false
 - [ ] It fails with no_tool, inventory_full or target_lost as 6.6 names them
-- [ ] It does not stand under a falling trunk
+- [x] It does not stand under a falling trunk
 
 ## Implementation plan
 
@@ -153,3 +153,9 @@ Next preserve the successful standing-tree contact probe and add a full3D collid
 PR #61 installed b0d4538 and log-only trial passed physical contact acquisition/approach on the tilted beech_log1462070434:49. Contact[175.61,86.71,-264.56], strike origin[175.83,86.8,-263.24], reach1.4. It then refused its one outward escape before swinging. No damage/cleanup errors; minimumHP79.8 equalled current food maximum. Evidence .checks/harvest-trial-20261030T061605556575Z/summary.json and .checks/audit-window-VVI6C2.jsonl. Log splitting remains unverified.
 
 Add up to seven outward six-metre escape candidates, alternating30-degree offsets through90 degrees, one candidate per physics tick. Each corridor moves monotonically away from the resource, validates support/water/wall/body clearance every half metre and retains physical refusal diagnostics; no candidate means refusal. Tests exercise the actual failed log coordinates and prove distance monotonicity, bounded travel and invalid input refusal. Also automate bounded harvest evidence projection in trial summaries and just vm harvest-evidence, so future iterations read exact matching contact/scan/escape/break details without broad logs. Raw audits remain retained.
+
+**agent:codex/renki-resume** at 2026-10-30T06:34:15Z
+
+39b0b2c log-only trial PASSED: beech_log1462070434:49 split after5hits, new beech_log_half1761239627:42 broke after6hits and1761239627:43 after4hits. Original escape candidates1/2 hit Bush01/model; candidate3 passed and was used. Wood2->22, original seeds17/feathers2 preserved, no unfinished observed nearby logs. No damaged events or cleanup errors; minimumHP76.7 tracked food maximum. Summary .checks/harvest-trial-20261030T062121409419Z/summary.json; audit .checks/audit-window-4KNHu1.jsonl; wrapper .checks/20261030T062121Z-zj7uf5.log. Together with prior supplied-axe stump and full-tree trials this verifies tree/log/stump operation by ID and falling escape on the exercised cases. Compound collection:false and inventory-full/target-loss branches remain open.
+
+23248bb fresh full-tree trial felled Beech1 1:24184 after6hits and escaped via the first validated corridor, without damaged events or cleanup errors. It then failed the new log's single ground stance: no supported, water-safe position beside resource. This is NOT a complete continuous tree-to-Wood pass. Summary .checks/harvest-trial-20261030T062610751657Z/summary.json. Next geometry improvement should try bounded alternative supported stances around a tilted log rather than its single observer-facing contact, retaining actual strike reach/sight and obstacle checks. The compact automatic harvest evidence identified this without broad history dumps.

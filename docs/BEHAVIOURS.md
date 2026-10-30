@@ -6,9 +6,9 @@ parameters, trigger, conditions, repeat policy, priority and enabled flag.
 The engine validates the definition and the template's parameters before
 saving. Invalid definitions found on disk are logged and skipped.
 
-The initial `move_to` template takes the same parameters as the body task
-and has a 60-second timeout. Loot and stow are separate upcoming templates;
-this engine alone does not collect or store items.
+The `move_to` template takes the same parameters as the body task and has a
+60-second timeout. Bounded `collect`, `gather`, `stow` and `combat` templates
+use the same engine, permissions and body ownership rules described below.
 
 ## Control API
 
@@ -183,6 +183,41 @@ still take incidental items along a route. Automatic owner-drop inference,
 work-site discovery, leader detours/resumption, resource exploration, tool
 swings and chat shortcuts remain separate work. This template is suitable
 for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
+
+## Bounded beech gathering
+
+`gather` visits an explicit world/site, fells one nearby isolated tier-zero
+full beech, harvests newly observed nearby beech logs, and stows only the
+products gained during that run. For example, use these template parameters:
+
+```json
+{"site":{"world":"DizzysHellheim","pos":[175,84,-260],"radius":30},
+ "to":["<destination-chest-id>"],"return":true}
+```
+
+No instance is installed or enabled automatically. Configure a disabled
+definition with a manual trigger and a single run, then start it through the
+authenticated behavior API after selecting a real site and storage destination.
+The site radius is at most 40 m. It requires active food, 80% health, dry footing,
+a usable carried axe, four free slots and 60 spare carry weight; initial stamina
+must be at least 40. Native C# owns every approach, strike, falling-log escape and
+collection. Protection distances remain 32 m for standing trees, 8 m for logs,
+and 15 m around Tas, with authoritative native checks before swings.
+
+At most five harvest tasks and eight minutes are allowed. Existing resource IDs
+are excluded from the log chain; nearby new IDs are candidates, not proof of
+spawn lineage. A successful native task must be followed by fresh inventory and
+perception, with its target gone. Missing/unsafe logs stop the run. It requires
+at least two log harvests and measured Wood gain before delivery. Baseline Wood,
+BeechSeeds, Resin and Feathers are retained; only gains in those products enter
+the existing ordered-chest stow routine. Optional return revisits the site's
+center. Storage failures keep items in the pack and use stow's shortfall status.
+
+Owner orders, stop, permissions and session/world changes revoke the run through
+the engine. This slice does not infer owner work sites, choose remembered trees,
+provide a chat shortcut, mine rocks, craft tools or loop across multiple trees.
+Focused checks: `just check controller test-packages ./internal/behaviour`.
+Controller-level full gathering/delivery remains a separate live check.
 
 ## Combat
 
