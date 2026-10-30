@@ -1505,7 +1505,7 @@ async function goalCommand(body) {
 }
 $("goal-combat").addEventListener("click", () => {
   const s = goalSnapshot;
-  if (s?.connected && s.phase === "in_world" && s.pos) goalCommand({action:"start", spec:{kind:"combat_trial", world:s.world, center:s.pos, radius:100}});
+  if (s?.connected && s.phase === "in_world" && s.pos) goalCommand({action:"start", spec:{kind:"combat_trial", world:s.world, center:s.pos, radius:200}});
 });
 
 // ---- player profiles and map presence ----

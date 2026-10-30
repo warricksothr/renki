@@ -12,10 +12,11 @@ import (
 // Combat delegates one whole local encounter to C#; no movement or target-selection loop lives here.
 type Combat struct{}
 type combatParams struct {
-	World  string          `json:"world"`
-	Entity string          `json:"entity,omitempty"`
-	Direct bool            `json:"direct,omitempty"`
-	At     json.RawMessage `json:"at,omitempty"`
+	World        string          `json:"world"`
+	Entity       string          `json:"entity,omitempty"`
+	Direct       bool            `json:"direct,omitempty"`
+	At           json.RawMessage `json:"at,omitempty"`
+	SearchRadius *float64        `json:"searchRadius,omitempty"`
 }
 
 func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error) {
@@ -35,6 +36,9 @@ func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error)
 	}
 	if p.At != nil {
 		args["at"] = p.At
+	}
+	if p.SearchRadius != nil {
+		args["searchRadius"] = *p.SearchRadius
 	}
 	encoded, err := json.Marshal(args)
 	if err != nil {
@@ -73,5 +77,5 @@ func (r *combatRun) Next(v View, _ *Result) (*session.Order, error) {
 		return nil, errors.New("eat before starting combat")
 	}
 	r.sent = true
-	return &session.Order{Task: protocol.TaskAttack, Args: r.args, TimeoutS: 150}, nil
+	return &session.Order{Task: protocol.TaskAttack, Args: r.args, TimeoutS: 270}, nil
 }

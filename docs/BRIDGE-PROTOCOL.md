@@ -971,3 +971,12 @@ it off. `state.sharePosition` reports the observed native setting while in-world
 This is session configuration, so it neither replaces body tasks nor invalidates
 automation. The plugin applies it only in a controlled session with its master
 switch enabled, using the same game setting as the map's visibility checkbox.
+
+### Bounded encounter search
+
+A kiting `attack` accepts optional `searchRadius` (12–80 m). Native discovery
+defaults to 60 m; a named target or fixed preferred `at` defaults to 12 m. A
+fixed `at` cannot combine with a search radius above 12 m. Search uses checked
+short walking legs; acquisition farther from the initial area triggers a local
+fighting-ground survey. The local 40 m lure bound and melee leash remain
+unchanged. The final receipt binds the selected entity as described in 6.6.

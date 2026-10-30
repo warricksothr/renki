@@ -86,8 +86,11 @@ three-consecutive-failure limit and 120 seconds of total observation/recovery
 waits. Waits are at most 30 seconds each. Budgets persist through resume. A
 2 m position bucket, target identity/targeting state and readiness buckets
 distinguish changed observations; advancing timestamps alone never enables a
-retry. Host work scope is a 60–150 m sphere, retaining 52 m for native
-kiting/melee travel before each new attempt. Emergency native retreats may
+retry. Host work scope is a 60–250 m sphere; new panel/trial goals explicitly use
+200 m. Discovery receives up to 60 m of search radius, reduced by distance
+from the goal center and a 52 m reserve for local combat/escape. Named-target
+encounters keep the existing local envelope. The host never passes a search
+radius below 12 m or expands an existing goal scope. Emergency native retreats may
 leave that work sphere; the next attempt then requires a new plan. Recovery
 never silently expands the authorized area or species. Native retreats are outcomes to inspect; low
 health/stamina waits for recovery. Missing food/equipment, permission failures,
@@ -132,7 +135,7 @@ as their host predicates, rather than trusting a script's claim of completion.
 `POST /api/goals` uses panel authentication and `X-Renki-Act: 1`:
 
 ```json
-{"action":"start","spec":{"kind":"combat_trial","world":"DizzysHellheim","center":[184,82,-289],"radius":100}}
+{"action":"start","spec":{"kind":"combat_trial","world":"DizzysHellheim","center":[184,82,-289],"radius":200}}
 ```
 
 It returns the durable record with its generated `id`. Subsequent commands are

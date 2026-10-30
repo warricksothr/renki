@@ -17,14 +17,14 @@ def distance(a, b):
     return math.dist(a, b)
 
 
-def abort_reason(status, origin=None, characters=(), target=None):
+def abort_reason(status, origin=None, characters=(), target=None, travel_limit=40):
     if not status.get('connected') or status.get('phase') != 'in_world':
         return 'not in the world'
     if status.get('hpMax', 0) <= 0 or status.get('hp', 0) < status['hpMax'] * .7:
         return 'health below trial floor'
     if status.get('location', {}).get('inWater') or 'swimming' in status.get('flags', []):
         return 'unsafe water'
-    if origin and distance(origin, status['pos']) > 40:
+    if origin and distance(origin, status['pos']) > travel_limit:
         return 'trial travel limit'
     if target and any(c['id'] != target and c.get('kind') == 'creature'
                       and c.get('hostile') and c.get('hpFrac', 0) > 0
@@ -95,7 +95,7 @@ def ground_diagnostics(audit, task_id):
 def run_persistent_goal(summary, call, observe, saved):
     """One durable objective; a child-task failure is an outcome, not the end."""
     status, _ = observe()
-    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=100)
+    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=200)
     created = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)), as_json=True)
     goal_id = created['id']
     summary.update(goalId=goal_id, origin=status['pos'], outcome='running')
@@ -123,7 +123,7 @@ def run_persistent_goal(summary, call, observe, saved):
         combat = status.get('combat') or {}
         if combat.get('id') == (goal.get('pending') or {}).get('taskId') and combat.get('entity'):
             target = combat['entity']
-        reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), target)
+        reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), target, spec['radius'])
         if reason:
             raise RuntimeError(reason)
         time.sleep(2)
@@ -218,12 +218,13 @@ def main():
             summary['goal'] = goal
             summary['origin'] = status['pos']
             summary['outcome'] = 'running'
-            dispatched = call('task', 'attack', json.dumps(goal), '150', as_json=True)
+            task_timeout = 150 if args.direct else 270
+            dispatched = call('task', 'attack', json.dumps(goal), str(task_timeout), as_json=True)
             task_id = dispatched['id']
             summary['task'] = task_id
             print('Testing one native ' + ('closing/melee' if args.direct else 'acquisition/kiting/melee') + ' goal', flush=True)
             anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
-            deadline = time.monotonic() + 155
+            deadline = time.monotonic() + task_timeout + 5
             while time.monotonic() < deadline:
                 status, mapped = observe()
                 result = call('panel', 'GET', '/api/task?id=' + task_id + '&at=' + anchor, as_json=True)
@@ -237,7 +238,7 @@ def main():
                 combat = status.get('combat') or {}
                 if combat.get('id') == task_id and combat.get('entity'):
                     summary['entity'] = combat['entity']
-                reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), summary.get('entity'))
+                reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), summary.get('entity'), 40 if args.direct else 112)
                 if reason:
                     raise RuntimeError(reason)
                 time.sleep(.5)
