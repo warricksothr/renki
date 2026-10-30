@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T17:06:44Z
+updated_at: 2026-10-30T18:17:01Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -216,3 +216,9 @@ claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
 **agent:codex/renki-milestones** at 2026-10-30T17:06:44Z
 
 PR #83 merged as 61c2ea5 and deployed with verified package checksums. Full CI and committed review passed. Live goal 9d565cd40e86af07ab6a0f3f retained attempts across native failures and entered scouting, but six dispatched attempts stayed in the original small patch. The owner requested a substantially larger search area while watching the live track, so I stopped that goal for the expanded-search correction. Five completed results report route-change refusal or no eligible Greyling after local scouting; the final cancelled pending intent remains uncertain and will not resume. No creatures, observed damage, kill, block or dodge proof. Falling food maximum explains the minimum 35 HP. Cleanup succeeded, restored combat off and left the panel available. Evidence: .checks/combat-trial-20261030T165304312270Z/summary.json and .checks/audit-window-xggaKd.jsonl. The audit also confirms explicit logout at 16:56:20.421Z followed by menu at 16:56:21.859Z (about 1.44 s), fixing the prior 60-second phase wait. Remaining live prerequisites include replenishing carried food from known storage without owner staging.
+
+**agent:codex/renki-milestones** at 2026-10-30T18:17:01Z
+
+On installed 3d07700, a fed persistent-goal trial from raised home ended needs_plan after one failed native attack and the unchanged-observation wait budget. Evidence .checks/combat-trial-20261030T181230758083Z/summary.json; native audit minimum/final HP79.9 with zero damage. Observed travel0 m, final[-36.87,36.09,6.25]. Cleanup succeeded: logout/game stop, combat off, panel online. No combat success or M3 criterion earned.
+
+Exact t-1 retained frames in .checks/scout-task-reconciliation-check.json contain24 scout rejections:21 no_complete_navmesh_route and3 wet_or_unloaded_terrain. Native result was invalid_target, 'no eligible single Greyling after bounded local scouting and return', but no route was accepted and no scouting movement occurred. KiteTask.ScoutRoute currently requires complete Pathfinding.GetPath and projects onto terrain, bypassing ordinary Walker's validated local-route fallback; starting on the raised home floor exposes this gap. Do not increase radius or repeat the unchanged search. Next implementation should distinguish zero-covered-route/unreachable from actual negative target search, and permit a checked ordinary travel preparation or equivalent validated egress before open-ground scouting. Keep route, water, structure and combat-safety checks; no owner repositioning is needed. The final supervisor's encounters projection omitted scout diagnostics although the exact task endpoint retained them; improve compact evidence capture alongside the next trial change. This case was shared with the procedure research agent for diagnosis-tool design. The research branch remains separate and unmerged for later review.

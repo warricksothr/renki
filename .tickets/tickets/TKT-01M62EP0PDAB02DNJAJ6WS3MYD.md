@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-10-30T17:51:51Z
+updated_at: 2026-10-30T18:12:31Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -126,3 +126,7 @@ PR #68 and danger ticket TKT-01M62N25C1HMQ34QW6CTY05B4W (Controller: danger zone
 **agent:codex/renki-milestones** at 2026-10-30T17:51:14Z
 
 claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
+
+**agent:codex/renki-milestones** at 2026-10-30T18:12:31Z
+
+PR #91 merged as 3d07700 and deployed. Live shared-memory verification passed: .checks/reconciliation-live-20261030T181201Z/summary.json. Current perception's 26 home structures (14 containers, 3 beds, 3 stations, 5 fires, 1 door) all have current landmark IDs; no older matching counterparts remain within the reconciliation tolerance. The map and shared container API agree on IDs. Six inherited content records preserve old source IDs/timestamps as hints, while the directly opened food chest retains its exact observation without inherited provenance. Tas is idle inside home at [-36.87,36.09,6.25], 83/83 HP. CI .checks/20261030T180541Z-zboyoT.log and committed review .checks/20261030T180647Z-GLNFqT.log passed, including current-empty-contents precedence. Installation's first attempt hit a transient Windows file lock despite the executable-release probe; retry passed (.checks/20261030T180907Z-u3zP2c.log). Missing-in-view and death-recording criteria remain unearned; reconciliation is positive observation only. Research/procedure design continues separately on t3/procedure-research for later review, without changing native behavior.
