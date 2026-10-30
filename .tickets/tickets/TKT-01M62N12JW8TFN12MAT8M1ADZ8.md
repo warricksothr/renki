@@ -24,21 +24,21 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:codex/renki-resume
-  branch: t3/gather-behaviour
+  actor: agent:codex/renki-milestones
+  branch: t3/gather-site-ready
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 23248bbf83b4e439bb51629ae205bd4155e6c4ce
+  commit: db85ea9744ea663b4137578c1090ca45b9cd8587
   session: null
-  claimed_at: 2026-10-30T06:28:18Z
+  claimed_at: 2026-10-30T17:46:20Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:45:16Z
+updated_at: 2026-10-30T18:51:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -57,9 +57,7 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-Continue the owner's autonomous M2 request with a bounded gather template on the existing behavior engine. First slice: one explicit world/site (radius<=40m), one isolated tier-zero full beech, then newly observed nearby beech logs, with at most five native harvest tasks/eight minutes. Native C# retains approach/strike/falling escape/collection ownership; the controller only chooses subsequent resources. Initial IDs exclude pre-existing logs and proximity is not claimed as spawn lineage. Require active food, healthy dry footing, usable carried axe, capacity reserve, fresh perception/inventory, matching successful tasks and final observed Wood gain. Preserve baseline product counts, stow only gains through the existing task-receipt runner into explicit ordered chests, optionally return to the site. Failed/unsafe/unavailable descendant logs stop rather than moving to another tree. Owner stop, permissions, disconnect and world changes retain engine revocation semantics. No default background job is enabled.
-
-Validate sequencing through log halves, stale observations, unrelated/old logs, unsafe characters/structures, tool/capacity/health guards, bounded targets/time, measured gain and baseline-preserving deposit/return. Run focused behavior checks, CI, committed review and deploy. Keep chat-driven site inference, remembered owner work sites, continuous hauling and all unearned compound acceptance criteria open. The just vm harvest-trial benchmark remains the autonomous low-level game check; a controller-level gathering/delivery check requires a safe known site/chest route and must not be represented as passed from component tests alone.
+Continue the existing bounded gather-template plan and autonomous M2 benchmark. Code inspection found that entering a broad site radius marked arrival, even with central trees beyond the native 18 m acquisition radius. Approach within min(site radius, 12 m) of the explicit work point before choosing the first tree. Keep resource/worksite radius, supported native movement, permissions, food/tool/health/capacity guards, gains-only storage and optional return unchanged. Add a regression starting 25 m from the center inside a 30 m site, then verify movement precedes harvesting, plus preservation of smaller site radii. Run focused behavior checks, just check ci, committed just check review and deploy after the active resupply check. Then prepare the controller-level full-tree -> logs -> inventory gains -> chest receipt -> return-site benchmark. Site inference/chat commands and repeated hauling remain open; no acceptance criterion is earned merely from this approach fix.
 
 ## Notes
 
@@ -76,3 +74,7 @@ Focused just check controller test-packages ./internal/behaviour ./internal/app 
 **agent:codex/renki-resume** at 2026-10-30T06:45:16Z
 
 PR #64 merged as67e2e1e; bounded gather is installed in cd08433. Final just check ci passed (.checks/20261030T063721Z-QwtwVM.log), committed just check review passed (.checks/20261030T063806Z-tbpNBn.log), and package checksums verified (.checks/20261030T064329Z-WRdP6W.log). No gather instance was installed or enabled. Deterministic tree/log/halves/gain-only-stow/return and owner-takeover checks pass. Controller-level live delivery, site inference, chat controls and repeated multi-tree hauling remain open; component harvesting success does not close these AC. Use docs/BEHAVIOURS.md for current parameters and bounds rather than rereading implementation history.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:46:20Z
+
+claim taken from agent:codex/renki-resume by agent:codex/renki-milestones

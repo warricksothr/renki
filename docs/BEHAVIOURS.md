@@ -198,6 +198,9 @@ products gained during that run. For example, use these template parameters:
 No instance is installed or enabled automatically. Configure a disabled
 definition with a manual trigger and a single run, then start it through the
 authenticated behavior API after selecting a real site and storage destination.
+The bot first approaches within 12 m of the site's center (or the site radius,
+if smaller), so merely standing inside a broad zone cannot skip the approach
+and then fail because its central trees are beyond native acquisition range.
 The site radius is at most 40 m. It requires active food, 80% health, dry footing,
 a usable carried axe, four free slots and 60 spare carry weight; initial stamina
 must be at least 40. Native C# owns every approach, strike, falling-log escape and

@@ -217,6 +217,22 @@ func TestGatherSiteTravelBoundsAndValidation(t *testing.T) {
 	}
 }
 
+func TestGatherApproachesWorkPointFromInsideABroadZone(t *testing.T) {
+	r, v := gathering(t)
+	v.State.Pos[0] = 25 // Inside the 30 m zone, beyond reach of its central tree.
+	order := nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if got := order.Args.(*protocol.MoveToArgs).To.Pos; got == nil || *got != r.p.Site.Pos {
+		t.Fatal("did not approach work point", order)
+	}
+	v.State.Pos = r.p.Site.Pos
+	nextTask(t, r, v, &Result{Status: protocol.StatusSucceeded}, protocol.TaskHarvest)
+
+	r, v = gathering(t)
+	r.p.Site.Radius = 5
+	v.State.Pos[0] = 6 // A small zone keeps its tighter arrival boundary.
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+}
+
 func TestGatherEngineDoesNotContinueAfterOwnerTakesTheBody(t *testing.T) {
 	f := setup(t, protocol.TaskHarvest)
 	_, v := gathering(t)
