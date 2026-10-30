@@ -57,7 +57,7 @@ mapped['worldKey']=atlas_key
 saved_map=json.loads(pathlib.Path(args.atlas).read_text()) if args.atlas else dict(worldKey=atlas_key,world=status.get('world',''),connection=status.get('connection',0),tiles=saved_tiles)
 html=(root/'internal/panel/static/index.html').read_text().replace('<link rel="stylesheet" href="/style.css">','<style>'+(root/'internal/panel/static/style.css').read_text()+'</style>')
 def embedded(value):
- return json.dumps(value).replace('<', '\\u003c')
+ return json.dumps(value,separators=(',',':')).replace('<', '\\u003c')
 
 bootstrap='''<script>const previewStatus=STATUS, previewMap=MAPPED, previewFrames=FRAMES, previewAtlas=ATLAS, previewWorlds=WORLDS;
 window.fetch=async(path,options={})=>options.method==='POST'?({ok:false,status:405,text:async()=> 'Read-only preview',json:async()=>({text:'Read-only preview'})}):({ok:true,status:200,json:async()=>path==='/api/camera'?({available:false,config:{enabled:false,intervalS:5}}):path==='/api/map'?previewMap:path==='/api/atlas/worlds'?previewWorlds:path.startsWith('/api/atlas/map?')?previewAtlas:path==='/api/status'?previewStatus:[]});
