@@ -290,6 +290,13 @@ func (l *Log) Frame(conn uint64, dir string, data []byte) {
 		return
 	}
 	switch env.Type {
+	case "screenshot":
+		var metadata map[string]json.RawMessage
+		if json.Unmarshal(data, &metadata) != nil {
+			return
+		}
+		delete(metadata, "jpeg")
+		data, _ = json.Marshal(metadata)
 	case "ping", "pong":
 		return
 	case "hello":

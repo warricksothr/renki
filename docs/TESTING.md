@@ -854,3 +854,16 @@ native “observed Greyling death” receipt; orchestration progress alone does 
 close melee/block/dodge checks. Cleanup cancels unfinished goals, logs out and
 stops the game, restores combat off and starts the controller/panel alone.
 See [GOALS.md](GOALS.md) for restart uncertainty and policy boundaries.
+
+## Game-camera debugging
+
+Enable Game camera in the panel, then use `just vm camera` to save a JPEG and
+matching metadata under `.checks/`. Inspect the image for a concrete navigation,
+aiming or pose hypothesis; keep structured task receipts as completion proof.
+Check default five-second delivery, then the one-second minimum interval and
+capture cost on the VM. Zero/subsecond intervals must be refused. Check settings
+changes, capture off, disconnect/menu/world replacement and unavailable images.
+The panel should clear old scenes, and a pinned superseded image URL should
+return409. Ordinary audit/event responses must contain metadata without image
+bytes. Verify capture with the game unfocused and record whether minimized
+rendering supplies new frames before relying on it in unattended diagnostics.

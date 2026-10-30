@@ -301,3 +301,13 @@ atlas-check *ARGS:
 
 test-atlas-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/atlas-check-test.py"
+
+# Save the latest rendered JPEG and its scoped metadata under .checks/.
+camera: need-target
+    @scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/camera.ps1" "{{target}}:/{{dir}}/camera.ps1"
+    @{{ssh}} "{{ps}} -File {{dir}}/camera.ps1" | python3 -B "{{justfile_directory()}}/scripts/vm/camera-save.py"
+
+# Capture read-only map data and the actual panel renderer for image tools.
+[positional-arguments]
+map-snapshot *ARGS:
+    @python3 -B "{{justfile_directory()}}/scripts/vm/map-snapshot.py" "$@"

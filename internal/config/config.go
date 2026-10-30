@@ -22,9 +22,10 @@ type Presence struct {
 	MarcoPolo     bool `json:"marcoPolo"`
 }
 type Config struct {
-	Atlas    atlas.Policy `json:"atlas"`
-	Players  access.Rules `json:"players"`
-	Presence Presence     `json:"presence"`
+	Screenshot protocol.ScreenshotConfig `json:"screenshot"`
+	Atlas      atlas.Policy              `json:"atlas"`
+	Players    access.Rules              `json:"players"`
+	Presence   Presence                  `json:"presence"`
 	// Listen is the address the bridge serves on. Anything but loopback
 	// needs a Token.
 	Listen string `json:"listen"`
@@ -146,6 +147,7 @@ var KnownTasks = []string{
 func Default() Config {
 	return Config{
 		Listen:       "127.0.0.1:8765",
+		Screenshot:   protocol.DefaultScreenshotConfig(),
 		Presence:     Presence{MarcoPolo: true},
 		Rates:        protocol.Rates{StateHz: 5, PerceptionHz: 1},
 		Perception:   protocol.PerceptionConfig{Radius: 40, MaxPerKind: 24},
@@ -181,6 +183,9 @@ func Load(path string) (Config, error) {
 
 // Validate refuses a configuration that would be unsafe or cannot work.
 func (c Config) Validate() error {
+	if err := c.Screenshot.Validate(); err != nil {
+		return err
+	}
 	if err := c.Atlas.Validate(); err != nil {
 		return err
 	}

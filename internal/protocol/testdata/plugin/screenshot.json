@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "type": "screenshot",
+  "seq": 10,
+  "t": 100,
+  "world": "test",
+  "worldUid": "42",
+  "capturedAt": "2026-10-30T18:00:00Z",
+  "pos": [
+    1,
+    2,
+    3
+  ],
+  "cameraPos": [
+    1,
+    3,
+    0
+  ],
+  "cameraAngles": [
+    10,
+    20,
+    0
+  ],
+  "task": "t-1",
+  "width": 8,
+  "height": 4,
+  "captureMs": 2,
+  "jpeg": "/9j/4AAQSkZJRgABAgAAAQABAAD//gAQTGF2YzYwLjMxLjEwMgD/2wBDAAgEBAQEBAUFBQUFBQYGBgYGBgYGBgYGBgYHBwcICAgHBwcGBgcHCAgICAkJCQgICAgJCQoKCgwMCwsODg4RERT/xABLAAEBAAAAAAAAAAAAAAAAAAAACAEBAAAAAAAAAAAAAAAAAAAAABABAAAAAAAAAAAAAAAAAAAAABEBAAAAAAAAAAAAAAAAAAAAAP/AABEIAAQACAMBIgACEQADEQD/2gAMAwEAAhEDEQA/AJ/AB//Z"
+}

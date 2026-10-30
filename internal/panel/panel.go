@@ -69,6 +69,7 @@ type Options struct {
 	// Dispatch sends an explicit task through normal capability/safety checks.
 	Dispatch func(context.Context, TaskCommand) (string, error)
 	// Behaviours serves engine controls behind the panel's authentication.
+	Camera          http.Handler
 	Goals           http.Handler
 	Behaviours      http.Handler
 	ContainerMemory func() any
@@ -159,6 +160,10 @@ func Handler(o Options) http.Handler {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(o.LandmarkMemory())
 		})
+	}
+	if o.Camera != nil {
+		authed.Handle("GET /api/camera", o.Camera)
+		authed.Handle("GET /api/camera.jpg", o.Camera)
 	}
 	if o.PlayerMemory != nil {
 		authed.HandleFunc("GET /api/memory/players", func(w http.ResponseWriter, r *http.Request) {

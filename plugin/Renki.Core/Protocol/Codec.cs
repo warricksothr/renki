@@ -47,6 +47,7 @@ namespace Renki.Protocol
             [Wire.Bye] = () => new Bye(),
             [Wire.Error] = () => new Error(),
             [Wire.Trace] = () => new Trace(),
+            [Wire.Screenshot] = () => new Screenshot(),
         };
 
         static readonly Dictionary<string, Func<Message>> FromController = new Dictionary<string, Func<Message>>

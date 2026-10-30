@@ -49,6 +49,7 @@
       <div class="map-bar">
         <span id="pos"></span>
         <label><input type="checkbox" id="follow-bot" checked> Centre on the bot</label>
+        <button id="map-export" title="Save the displayed map and matching data">Save map snapshot</button>
         <button id="zoom-in" title="Zoom in">+</button>
         <button id="zoom-out" title="Zoom out">−</button>
       </div>
@@ -115,6 +116,13 @@
       </details>
     </section>
     <section id="feed-pane">
+      <details id="camera" open>
+        <summary>Game camera</summary>
+        <div class="camera-controls"><label><input id="camera-enabled" type="checkbox"> Capture images</label>
+        <label>Every <input id="camera-interval" type="number" min="1" max="300" step="1" value="5"> seconds</label></div>
+        <p id="camera-status" role="status">Waiting for camera status</p>
+        <img id="camera-image" alt="Latest rendered game view from Tas’s camera" hidden>
+      </details>
       <details id="goals" open>
         <summary>Goals <span id="goal-count"></span></summary>
         <p>Keep an objective through failed attempts and bounded recovery.</p>

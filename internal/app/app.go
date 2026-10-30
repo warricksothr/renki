@@ -107,6 +107,21 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Burden: burden.New(func() bool { return set.Values().Overload.Drop }, s, homes, log.With("part", "burden"), nil)}
 	var markerRequested atomic.Bool
 	markerRequested.Store(set.Values().Presence.SharePosition)
+	initialCapture := set.Values().Screenshot
+	var captureRequested atomic.Pointer[protocol.ScreenshotConfig]
+	captureRequested.Store(&initialCapture)
+	set.OnChange(func(v settings.Values) {
+		if *captureRequested.Swap(&v.Screenshot) == v.Screenshot {
+			return
+		}
+		s.ClearScreenshot()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		capture := v.Screenshot
+		if err := s.Configure(ctx, protocol.Config{Screenshot: &capture}); err != nil {
+			log.Debug("camera update waits for connection", "err", err)
+		}
+	})
 	set.OnChange(func(v settings.Values) {
 		if markerRequested.Swap(v.Presence.SharePosition) == v.Presence.SharePosition {
 			return
@@ -195,6 +210,7 @@ func Welcome(cfg config.Config, v settings.Values) *protocol.Welcome {
 	return &protocol.Welcome{
 		AgentName:     cfg.AgentName,
 		SharePosition: &v.Presence.SharePosition,
+		Screenshot:    &v.Screenshot,
 		Owners:        slices.Clone(v.Owners),
 		Rates:         cfg.Rates,
 		Perception:    cfg.Perception,

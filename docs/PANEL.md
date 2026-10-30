@@ -199,3 +199,49 @@ and assigns operator, companion or guest profiles. Observed marker state comes
 from the game; offline changes apply on the next join. Profiles separate chat
 command authority from locating/greeting permissions. See [PLAYERS.md](PLAYERS.md)
 for the permission matrix and the two opposite direction exchanges.
+
+## Game camera
+
+The Game camera panel shows a latest-only JPEG of the rendered game view,
+including the HUD, with capture time, age, dimensions, capture cost and task.
+Enable capture there; the default interval is five seconds. `screenshot.intervalS`
+accepts 1–300 seconds, with a native hard ceiling of one capture start per second.
+`screenshot.width` accepts 320–1280 (default 960); height preserves the screen
+aspect ratio up to 720. JPEG quality accepts 30–90 (default 70). These values
+also appear in Settings. Capture starts disabled in a new configuration.
+
+Authenticated `GET /api/camera` returns availability, config, scoped metadata,
+receipt age and a pinned image URL. `GET /api/camera.jpg` returns the current
+JPEG; the pinned URL refuses superseded frames with 409. Refresh metadata and
+retry rather than attach a new scene to old metadata. Images are cleared on
+connection/world/menu changes and disabled capture, and are kept only in memory.
+Offline capture is unavailable; a retained file is historical evidence.
+
+Use `just vm camera` to save the latest JPEG and matching metadata in `.checks/`
+for vision debugging. Image bytes stay outside ordinary audit/event streams and
+model context; the audit retains capture metadata only. Tools can inspect a
+saved image when a concrete failure needs visual reasoning. A screenshot is
+visual context, not proof of a task's success. Current capture uses the game's
+rendered camera, which can be third person; it does not change the bot's view.
+The native screen framebuffer is capped at 3840×2160, JPEGs at 512 KiB, and only
+one capture can be in flight. Images use a separate latest-only low-priority
+bridge slot; control messages take priority over pending images. GPU readback
+and JPEG encoding costs must be measured on the deployment.
+
+**Save map snapshot** exports the displayed map as a JPEG and a matching JSON
+bundle with rendered-image bytes, map data, world/connection scope, viewport,
+layers and load/capture times. Agent browser tools call
+`window.renkiSnapshots.map({maxWidth:640,quality:0.7})` to obtain the same
+image/metadata/data bundle without clicking or introducing another renderer.
+Retrieve only the image and compact metadata when reasoning visually; the full
+map remains available separately. Saved/offline atlases are labelled as such.
+
+`just vm map-snapshot` captures matching live scope, `/api/map` and saved terrain
+into `.checks/map-snapshot-*/`, then embeds the actual panel assets in a
+self-contained read-only `map.html`. A native HTML preview/screenshot tool can
+render it without a logged-in browser or an open panel. `just vm map-snapshot
+--html` emits that document directly for a rendering tool; do not print its full
+source into model context. This uses the default panel viewport; an exact view
+with the user's pan/zoom/layers comes from the panel export/browser function.
+The capture is sequential and records its scope checks; it is not an atomic
+photograph of a changing world. It cannot infer physical visibility or success.

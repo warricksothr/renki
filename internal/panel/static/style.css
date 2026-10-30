@@ -288,3 +288,10 @@ body.login input { width: 100%; margin-top: 4px; padding: 6px; background: var(-
 #marker-state { color: #aabcc8; font-size: .9em; }
 
 #presence-controls[open] { max-height: 50vh; overflow-y: auto; flex-shrink: 0; }
+
+#camera { padding: 10px; border-bottom: 1px solid var(--line); }
+#camera-image { width: 100%; height: auto; display: block; }
+#camera-image[hidden] { display: none; }
+.camera-controls { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+#camera-interval { width: 5em; }
+#camera-status { color: var(--dim); }

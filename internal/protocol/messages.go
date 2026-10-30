@@ -55,7 +55,8 @@ func (*Hello) MessageType() string { return TypeHello }
 // Welcome answers Hello: controller to plugin. AllowedTasks can only narrow
 // what the plugin's own safety config allows.
 type Welcome struct {
-	SharePosition *bool `json:"sharePosition,omitempty"`
+	SharePosition *bool             `json:"sharePosition,omitempty"`
+	Screenshot    *ScreenshotConfig `json:"screenshot,omitempty"`
 	Envelope
 	AgentName    string           `json:"agentName"`
 	Owners       []string         `json:"owners"`
@@ -117,7 +118,8 @@ func (*Error) MessageType() string { return TypeError }
 // Config changes rates and perception mid-session. A nil field is left as
 // it was.
 type Config struct {
-	SharePosition *bool `json:"sharePosition,omitempty"`
+	SharePosition *bool             `json:"sharePosition,omitempty"`
+	Screenshot    *ScreenshotConfig `json:"screenshot,omitempty"`
 	Envelope
 	Rates      *Rates            `json:"rates,omitempty"`
 	Perception *PerceptionConfig `json:"perception,omitempty"`

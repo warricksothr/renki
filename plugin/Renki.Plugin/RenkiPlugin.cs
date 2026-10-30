@@ -41,6 +41,11 @@ namespace Renki.Plugin
         readonly Perceiver perceiver = new Perceiver();
         readonly TerrainReporter terrain = new TerrainReporter();
         InventoryReporter inventory;
+        readonly CameraReporter cameraReporter = new CameraReporter();
+        internal bool CameraActive => runner.InSession && client.Connected && !loggingOut && Phase() == Wire.PhaseInWorld && Player.m_localPlayer != null;
+        internal int CameraConnection => client.ConnectionId;
+        internal string CameraTask => runner.Current?.Id;
+        internal void SendScreenshot(Screenshot frame, int connection) => client.SendScreenshot(frame, connection);
         Harmony harmony;
 
         Welcome welcome;
@@ -126,6 +131,7 @@ namespace Renki.Plugin
             }
 
             var phase = Phase();
+            cameraReporter.Update(this, CameraActive);
             var player = Player.m_localPlayer;
             var world = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
             // Inventory is sent on change, often as soon as the player
@@ -179,6 +185,8 @@ namespace Renki.Plugin
                     // Reconnecting the bridge must not undo an explicit logout.
                     if (loggingOut) { stateSchedule.Reset(); break; }
                     welcome = w;
+                    cameraReporter.Configure(w.Screenshot);
+                    client.ClearScreenshots();
                     sharePosition = w.SharePosition;
                     stateHz = w.Rates.StateHz > 0 ? w.Rates.StateHz : 5;
                     perceptionHz = w.Rates.PerceptionHz > 0 ? w.Rates.PerceptionHz : 1;
@@ -197,6 +205,7 @@ namespace Renki.Plugin
                     runner.Handle(t);
                     break;
                 case Config c:
+                    if (c.Screenshot != null) { cameraReporter.Configure(c.Screenshot); client.ClearScreenshots(); }
                     if (c.SharePosition.HasValue) sharePosition = c.SharePosition;
                     if (c.Rates != null && c.Rates.StateHz > 0) stateHz = c.Rates.StateHz;
                     if (c.Rates != null && c.Rates.PerceptionHz > 0) perceptionHz = c.Rates.PerceptionHz;
@@ -230,6 +239,8 @@ namespace Renki.Plugin
 
         void EndSession(string why)
         {
+            cameraReporter.Configure(null);
+            client.ClearScreenshots();
             sharePosition = null;
             runner.EndSession(why);
             WorldNavigation.Reset();
