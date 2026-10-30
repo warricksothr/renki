@@ -33,6 +33,21 @@ namespace Renki.Tests
             Assert.InRange(V3.FlatDistance(goal, contact), .649, .651);
             Assert.False(HarvestReach.InRange(fromHouse, contact, .6, 1));
             Assert.True(HarvestReach.InRange(goal, contact, .6, 1));
+            Assert.Equal(resource.Y + 2, HarvestReach.GroundProbeTop(resource.Y, contact.Y));
+        }
+
+        [Fact]
+        public void AHighLogPivotDoesNotExcludeGroundBelowALowerMeasuredContact()
+        {
+            var pivot = new V3(168.02, 90.96, -281.97);
+            var feet = new V3(169.27, 83.51, -273.58);
+            var lowContactY = feet.Y + .8;
+            var top = HarvestReach.GroundProbeTop(pivot.Y, lowContactY);
+            Assert.True(pivot.Y + 2 - 8 > feet.Y); // Previous ray misses this floor.
+            Assert.InRange(feet.Y, top - 8, top);
+            Assert.Equal(lowContactY + 2, top);
+            // An actual high contact remains out of axe range from this floor.
+            Assert.False(HarvestReach.InRange(feet, new V3(feet.X, pivot.Y, feet.Z), .8, 1.4));
         }
 
         [Fact]

@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:34:27Z
+updated_at: 2026-10-30T06:42:20Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,9 +56,9 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Implementation plan
 
-The cb0192a retry positively observed physical strike sight on full Beech1 1:24194, then refused in Protected. The last perception contained only a Deer about37m away and no structures. Protected currently maps both a real collider exclusion and a saturated256-collider all-layer overlap to the same refusal; Settled uses the same fixed buffer and can also wait forever on unrelated dense scenery. Retain exact cause evidence rather than reducing exclusions.
+Tree/log/stump operation and exercised falling escapes are now verified, while collection:false and compound failure cases remain open. The latest full-tree trial's new log has pivot[168.02,90.96,-281.97] versus Tas feet[169.27,83.51,-273.58]. Current contact probing anchors its horizontal slice at resource pivot height and ground projection begins at pivot+2 with an8m ray. On a tilted long log this can miss a reachable lower surface and miss ground below pivot-6; alternatively the trunk may genuinely be suspended. Do not treat the pivot as the physical strike/support elevation.
 
-Use a reusable scan buffer that retries full queries at bounded doubling capacities up to2048 (the existing perception cap). Consume only complete results; at the maximum, refuse explicitly as dense scene. Use it for the existing all-layer Protected and Settled scans, preserving their radii/layers and actual collider checks. Keep the item-drop scan separate. Emit bounded phase/capacity/count/completion metadata on expansion/saturation and exact blocking collider/character/piece evidence on a real exclusion. Stop explicitly if settling cannot be fully scanned. Add tests proving a protected object beyond the old truncation remains visible, exact-capacity retry, reuse with smaller result sets and bounded maximum failure. Validate/review/land/deploy and retry autonomous full-tree/log work; the new trace will establish actual density versus actual hazards.
+For logs, probe the horizontal contact slice at actual player strike height; standing trees/stumps keep their resource-height projection for approaches from raised floors. Retain the3D physical collider fallback. Ground projection starts two metres above the lower of resource pivot and measured contact; keep its bounded8m scan, real support, water checks, navmesh/body route checks and fresh actual strike reach/sight. Add bounded refused-stance diagnostics with pivot/contact/feet/scan top. Numerical regressions use the observed high pivot and low stance, ensuring ordinary raised-home approaches still anchor outdoors. Validate, review, land, deploy and retry only the existing log. A genuinely suspended/inaccessible trunk must still refuse.
 
 ## Notes
 
@@ -159,3 +159,7 @@ Add up to seven outward six-metre escape candidates, alternating30-degree offset
 39b0b2c log-only trial PASSED: beech_log1462070434:49 split after5hits, new beech_log_half1761239627:42 broke after6hits and1761239627:43 after4hits. Original escape candidates1/2 hit Bush01/model; candidate3 passed and was used. Wood2->22, original seeds17/feathers2 preserved, no unfinished observed nearby logs. No damaged events or cleanup errors; minimumHP76.7 tracked food maximum. Summary .checks/harvest-trial-20261030T062121409419Z/summary.json; audit .checks/audit-window-4KNHu1.jsonl; wrapper .checks/20261030T062121Z-zj7uf5.log. Together with prior supplied-axe stump and full-tree trials this verifies tree/log/stump operation by ID and falling escape on the exercised cases. Compound collection:false and inventory-full/target-loss branches remain open.
 
 23248bb fresh full-tree trial felled Beech1 1:24184 after6hits and escaped via the first validated corridor, without damaged events or cleanup errors. It then failed the new log's single ground stance: no supported, water-safe position beside resource. This is NOT a complete continuous tree-to-Wood pass. Summary .checks/harvest-trial-20261030T062610751657Z/summary.json. Next geometry improvement should try bounded alternative supported stances around a tilted log rather than its single observer-facing contact, retaining actual strike reach/sight and obstacle checks. The compact automatic harvest evidence identified this without broad history dumps.
+
+**agent:codex/renki-resume** at 2026-10-30T06:42:20Z
+
+Implemented log contact at actual player strike height and support projection at the lower of pivot/measured-contact elevation, preserving standing-tree/stump resource anchoring, physical3D fallback and all actual reach/sight/support/route protections. Unsupported-contact traces retain exact pivot/contact/feet/projection top and appear in compact trial summaries. Focused HarvestTests passed (.checks/20261030T064124Z-L11T7T.log); full just check ci passed (.checks/20261030T064127Z-V3kqwi.log). The captured high-pivot regression proves the former8m support ray missed the player's floor and that a genuinely high contact remains out of reach. Review/landing/deployment and retry of existing log2257601154:44 at[168.02,90.96,-281.97] follow; no positive result is assumed for a suspended log.

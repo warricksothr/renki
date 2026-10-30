@@ -29,11 +29,11 @@ namespace Renki.Plugin
                     hit.collider.transform.IsChildOf(player.transform), hit.collider.transform.IsChildOf(target.transform))));
         }
 
-        internal static bool Contact(Collider[] colliders, Vector3 resource, Vector3 from, float height, out Vector3 contact)
+        internal static bool Contact(Collider[] colliders, float baseHeight, Vector3 from, float height, out Vector3 contact)
         {
             contact = default;
             var best = float.PositiveInfinity;
-            var eye = new Vector3(from.x, resource.y + height, from.z);
+            var eye = new Vector3(from.x, baseHeight + height, from.z);
             foreach (var c in colliders)
             {
                 if (c == null || !c.enabled || c.isTrigger || !c.gameObject.activeInHierarchy) continue;
@@ -74,9 +74,9 @@ namespace Renki.Plugin
         {
             var desired = HarvestReach.StandAt(Convert.ToV3(resource), Convert.ToV3(contact), Convert.ToV3(from), standOff);
             goal = Convert.ToVector3(desired);
-            // Anchor the scan at the resource's level, never at the starting
-            // player floor. Ignore the resource so its top cannot be support.
-            var top = new Vector3(goal.x, resource.y + 2, goal.z);
+            // Anchor at the pivot or a lower physical contact, never the
+            // starting floor. Ignore the resource so its top is not support.
+            var top = new Vector3(goal.x, (float)HarvestReach.GroundProbeTop(resource.y, contact.y), goal.z);
             var count = Physics.RaycastNonAlloc(top, Vector3.down, groundHits, 8, GroundMask, QueryTriggerInteraction.Ignore);
             if (count == groundHits.Length) return false;
             RaycastHit? best = null;
