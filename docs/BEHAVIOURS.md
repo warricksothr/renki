@@ -195,9 +195,21 @@ products gained during that run. For example, use these template parameters:
  "to":["<destination-chest-id>"],"return":true}
 ```
 
-No instance is installed or enabled automatically. Configure a disabled
-definition with a manual trigger and a single run, then start it through the
-authenticated behavior API after selecting a real site and storage destination.
+An authorized player can say `Tas, go chop wood` (also `chop wood` or `gather
+wood`) in game or through the panel. This creates/starts the manual once-only
+`Owner wood gathering` instance. It reuses its saved same-world work site when
+safe trees confirm it, or travels to a distant saved site and revalidates there.
+Otherwise it chooses an isolated tier-zero beech in current perception within
+60 m, preferring lower remembered danger, and orders known chests within 10 m
+of home. Home and the selected site must remain within the 150 m home range.
+Missing tools, food, capacity, fresh observations, safe trees or storage produce
+an explanation. Existing active or queued work must be stopped first. `Tas,
+stop` cancels through ordinary owner controls. A saved command definition does
+not resume itself after restart. User-authored definitions with that name are
+preserved; rename one before using the command.
+
+Explicit-site callers can also configure a disabled definition with a manual
+trigger and single run, then start it through the authenticated behavior API.
 The bot first approaches within 12 m of the site's center (or the site radius,
 if smaller), so merely standing inside a broad zone cannot skip the approach
 and then fail because its central trees are beyond native acquisition range.
@@ -217,8 +229,9 @@ the existing ordered-chest stow routine. Optional return revisits the site's
 center. Storage failures keep items in the pack and use stow's shortfall status.
 
 Owner orders, stop, permissions and session/world changes revoke the run through
-the engine. This slice does not infer owner work sites, choose remembered trees,
-provide a chat shortcut, mine rocks, craft tools or loop across multiple trees.
+the engine. The command remembers its requested site in the saved behavior;
+it does not infer work sites from watching owners, mine rocks, craft tools or
+loop across multiple trees.
 Focused checks: `just check controller test-packages ./internal/behaviour`.
 Controller-level full gathering/delivery remains a separate live check.
 

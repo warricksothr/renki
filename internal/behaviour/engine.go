@@ -190,6 +190,9 @@ func (e *Engine) put(ctx context.Context, name string, d Definition, by string) 
 func (e *Engine) Action(ctx context.Context, name, action, by string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	return e.action(ctx, name, action, by)
+}
+func (e *Engine) action(ctx context.Context, name, action, by string) error {
 	i := e.instances[name]
 	if i == nil {
 		return fmt.Errorf("unknown instance %q", name)
