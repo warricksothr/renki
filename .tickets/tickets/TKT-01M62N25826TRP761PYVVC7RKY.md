@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T04:53:28Z
+updated_at: 2026-10-30T05:29:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,9 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-The 4f7b519 trial failed during survey: 34 candidates, 22 grade and 12 physical refusals; 21 first-failing samples lay more than 3m from the candidate center. Evidence .checks/combat-trial-20261030T043800769522Z/summary.json and .checks/audit-window-2RYcOu.jsonl. Minimum HP 74.8 tracked full food-derived health; no enemy was acquired. Follow-up just check vm status and just check vm combat confirmed game/controller stopped and AllowCombat=false (.checks/20261030T044139Z-qKiohA.log, .checks/20261030T044139Z-iqvjnC.log).
-
-Replace the all-direction six-metre footprint with four complete diameters through a three-metre stance region and at least one checked six-metre escape corridor among eight directions. Keep half-metre samples, 30-degree incline, physical sharpness/support/body clearance, character/building exclusions, approach validation and per-dodge checks. Recheck the stance and existence of an escape route during preparation/kiting; do not imply the selected corridor dictates a safe flee direction around a live enemy. Extract a core geometry policy with tests for usable clear sectors beside outer obstructions, no escape routes, central steep/sharp/unsupported ground, gradual slopes and projection failure. Trace the region and selected escape endpoint for bounded evidence. Validate, review, land, deploy and run one autonomous trial; leave positive melee criteria open unless actual evidence earns them.
+Continue TKT-01M62N25826TRP761PYVVC7RKY — Plugin: attack task with blocking and dodging. The deployed 7d61e9b trial accepted local ground but found no eligible Greyling while stationary. Add native bounded scouting to that same attack goal: short out-and-back excursions around checked fighting ground, scanning while walking, no external movement puppeting. Preserve the original anchor and the 40m encounter bound; acquire within 30m of the bot and 40m of the original anchor. Validate supported dry grade/clearance, complete navmesh approach and character separation along candidate routes, and recheck during walking. Bound candidate attempts, work time, accumulated travel and lack of progress; preserve stamina for returning and terminate if return cannot be validated. Never suppress normal retreat for unowned/scouting threats. Keep cancellation/body ownership behavior unchanged and add pure scouting regressions plus task-scoped compact evidence. Validate, review, land, deploy and run one autonomous trial. Actual melee and retreat criteria remain open absent positive observations.
 
 ## Notes
 
@@ -180,3 +178,11 @@ The autonomous normal-controls trial on deployed 7d61e9b accepted the first grou
 Evidence .checks/combat-trial-20261030T045020394084Z/summary.json, .checks/audit-window-ysrr4a.jsonl, and .checks/20261030T045020Z-N4TAj9.log. Automatic logout/stop/combat-off cleanup reported no errors. Independent just check vm status and just check vm combat confirmed game/controller stopped and AllowCombat=false (.checks/20261030T045300Z-RvzFg9.log, .checks/20261030T045300Z-uwhjKk.log). The panel is consequently offline until the controller runs again.
 
 Next useful slice: native bounded scouting when local acquisition finds no eligible enemy, preserving checked fighting ground and escape/stamina/travel limits rather than asking the owner to stage or clear threats. Do not increase slope limits or repeat the same stationary trial without new evidence. Actual pursuit, contact, block/dodge, worsening-condition escape and post-encounter return remain unverified; both broad acceptance criteria remain unchecked.
+
+**agent:codex/renki-resume** at 2026-10-30T05:29:52Z
+
+Implemented bounded native scouting inside the same attack goal. After checked ground is reached, acquire while walking short out-and-back routes on six/ten-metre rings; at most 16 candidates. Native selection checks complete navmesh paths, projected dry support, local grade/body clearance and character separation along every path segment. Routes revalidate at half-second intervals; no controller movement loop. Scouting keeps a 12m leash around checked ground and original 40m encounter bound, ends exploration at 25s/50m travel/stamina below30, and returns. Hard bounds are 35s including return, 65m travel and four seconds without distance progress. Changed/blocked return refuses explicitly. Ordinary retreat remains enabled in unassigned scout modes.
+
+Acquisition keeps its 30m bot range but can now use targets inside40m of the original anchor. Pursuit progress initializes from the actual scout position. Trial summaries now retain task-scoped selected geometry, distinct modes, outgoing/return counts and bounded scouting refusal examples; full evidence stays saved locally.
+
+Focused just check plugin test-core ScoutingTests passed (.checks/20261030T052755Z-bU69bM.log). just check ci passed with controller checks/builds, plugin compilation/tests and five supervisor tests (.checks/20261030T052913Z-34paU8.log). Review, landing, deployment and another autonomous trial follow. Positive combat acceptance criteria remain open. The M2 follow-on is an autonomous full-tree/log benchmark with the already supplied axe, within existing harvesting work rather than a crafting dependency.

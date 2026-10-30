@@ -609,7 +609,10 @@ the trial. No eligible encounter is an aborted trial, never a pass. Optional
 `--entity` restricts native target selection, `--at X Y Z` names preferred nearby
 fighting ground, and `--wait-s` bounds food/stamina preparation to 0..120 s.
 It does not spawn/reset targets or scout beyond its bounded local area. Native
-preparation may walk out to checked ground before acquisition. Use
+preparation moves to checked ground and can make short checked out-and-back
+scouting excursions while acquiring. Use `just check plugin test-core ScoutingTests`
+for finite route selection, return, stamina/time/travel/progress bounds and
+route changes. No eligible enemy after returning remains a failed trial. Use
 `just check plugin test-core KitingTests` for pursuit/pacing/bounds and
 `just check vm test-combat-trial` for single-goal dispatch, interruption and cleanup;
 these are included in `just check ci`. A repeatable isolated test arena remains
@@ -658,6 +661,8 @@ positive encounter when an eligible target is absent.
 
 Each trial's `summary.json` also projects matching-task ground-rejection counts,
 physical probe stages and at most six representative failures from its audit.
+It also retains the selected area/escape, distinct native modes, outbound/return
+scouting counts and bounded scouting-refusal examples, scoped to that task.
 The console prints only counts and the terminal task reason; exact segment
 positions, inclinations and collider evidence stay in the retained summary and
 audit. Failures in this optional diagnostic projection are recorded separately

@@ -37,6 +37,15 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void PursuitProgressStartsAtTheActualScoutPosition()
+        {
+            var p = new Kiting(V3.Zero, V3.Zero, new V3(30, 0, 0), new V3(20, 0, 0), 0);
+            var f = Frame(20, 30);
+            Assert.Equal(KiteAction.Retreat, p.Decide(f, 6));
+            Assert.Equal("enemy did not follow", p.Reason);
+        }
+
+        [Fact]
         public void NativeSequenceDrawsObservesPursuitAndLeadsBackBeforeEngaging()
         {
             var p = Policy(); var f = Frame();
