@@ -31,6 +31,11 @@ status LINES="0": need-target
 # The tail of the plugin's and the controller's logs.
 logs LINES="60": (status LINES)
 
+# Keep the web panel available while the game is offline.
+panel-start: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/start-bot.ps1" "{{justfile_directory()}}/scripts/vm/start-panel.ps1" "{{target}}:/{{dir}}/"
+    {{ssh}} "{{ps}} -File {{dir}}/start-panel.ps1"
+
 # Start the bot in the VM's desktop session and wait for it to be in the world.
 start MINUTES="5": need-target
     #!/usr/bin/env bash

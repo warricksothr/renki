@@ -200,8 +200,9 @@ def main():
     except Exception as e:
         summary.update(outcome='aborted', reason=str(e))
     finally:
-        # Always save/logout and stop; a failed trial never requests owner clearance.
-        for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false')]:
+        # Always save/logout, stop the game and restore combat off. Restart only
+        # the controller so monitoring remains available between trials.
+        for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
             try:
                 call(*arguments, timeout=200)
             except Exception as e:

@@ -9,16 +9,16 @@ the character and joins with no clicks, and `-password` answers the server's
 password prompt. The renki plugin dials the controller once the game is up.
 Settings come from bot.local.psd1 beside this script.
 
+.PARAMETER ControllerOnly
+Start only the controller/panel, without joining the game.
+
 .PARAMETER WaitMinutes
 How long to wait for the bot to report itself in the world. 0 returns at once.
 #>
-param([double]$WaitMinutes = 5)
+param([double]$WaitMinutes = 5, [switch]$ControllerOnly)
 
 . (Join-Path $PSScriptRoot 'common.ps1')
 $s = Read-BotSettings
-if (-not (Test-Path -LiteralPath $s.ValheimExe -PathType Leaf)) {
-    throw "ValheimExe in bot.local.psd1 is not a file: [$($s.ValheimExe)]"
-}
 $logs = Join-Path $PSScriptRoot 'logs'
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
@@ -41,6 +41,15 @@ if ($s.ControllerExe) {
         Write-Host "controller: started ($($s.ControllerExe))"
         Start-Sleep -Seconds 1
     }
+}
+
+if ($ControllerOnly) {
+    if (-not $s.ControllerExe) { throw 'The VM does not run a local controller' }
+    return
+}
+
+if (-not (Test-Path -LiteralPath $s.ValheimExe -PathType Leaf)) {
+    throw "ValheimExe in bot.local.psd1 is not a file: [$($s.ValheimExe)]"
 }
 
 if (Get-Valheim) {

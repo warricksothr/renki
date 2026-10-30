@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-29T21:38:43Z
+updated_at: 2026-10-30T13:38:50Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -65,6 +65,8 @@ Build the approved visual hierarchy: biome/water terrain shading, shoreline and 
 
 Run focused just checks, just check ci, committed just check review, then land and deploy the plugin/controller. Keep outstanding staged movement/combat checks deferred; don't turn visual terrain into a route-safety claim. Record live sampling costs and retained limitations here.
 
+Keep the web panel reachable between autonomous tests: add a controller-only start mode and just vm panel-start using an independent scheduled task; have combat/harvest cleanup restore that after logout, game shutdown and combat-off. Verify the task over SSH and HTTP while Valheim remains stopped, plus supervisor cleanup regressions.
+
 ## Notes
 
 **agent:codex/renki-resume** at 2026-10-29T21:38:43Z
@@ -78,3 +80,7 @@ UI adds biome/water backgrounds, interpolated shorelines, 5 m contours, terrain 
 Cache/policy tests, interpolation/clipping tests, scope/bounds/API tests and the shared protocol regressions passed. Full gate passed with race checks, both builds, plugin build and 165 C# tests after repairing the generated epic index through just tickets-fix. Final gate/review and live deployment follow. The broader panel epic remains in progress: behaviour-instance switches are separate work.
 
 Remaining staged game checks: compare a shoreline/contours to the actual terrain, landscape a safe area and verify regeneration refresh, and check wading/swimming/return-to-land labels with the owner present. Terrain is coarse and cannot establish path safety, floors/bridges/caves or actual wave surfaces. Terrain is cached for the session rather than persistent explored-map memory. No harvesting or combat check is performed for this visual change.
+
+**agent:codex/renki-resume** at 2026-10-30T13:38:50Z
+
+The owner reported the tailnet panel was unavailable. Cause: live-test cleanup intentionally stopped both game and controller. Added just vm panel-start, a separate scheduled task that starts only the controller and survives SSH disconnect, plus a ControllerOnly mode reusing normal configuration/secrets handling. It was run successfully; independent tailnet HTTP returned 303 to login while Valheim stayed stopped. Combat/harvest supervisor cleanup now runs it after logout/stop/combat-off. Focused supervisor tests passed for success/failure cleanup ordering; full gate and committed review follow. The web panel will show Tas offline between trials rather than stop responding. Explicit just vm stop still stops both processes.

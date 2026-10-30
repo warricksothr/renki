@@ -9,6 +9,14 @@ the game is never launched that way. SSH starts a scheduled task, and the
 task runs the game in the bot account's own desktop session. That session
 has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
 
+## Monitor while the game is offline
+
+`just vm panel-start` starts only the controller and web panel using a separate
+scheduled task, without launching Valheim. The panel remains available to view
+retained audit history while Tas is offline. Combat and harvest trial cleanup
+logs Tas out, stops the game, restores combat off, then runs this recipe.
+`just vm stop` still stops both the game and controller when explicitly used.
+
 ## Once, at the VM, over Remote Desktop
 
 1. **Install the game.** Install Valheim with the bot's own Steam account
