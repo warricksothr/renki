@@ -535,6 +535,22 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void PreciseFinalArrivalKeepsSteeringPastDefaultStoppingDistance()
+        {
+            var p = new PathFollower { FinalReach = .15 };
+            var goal = new V3(-30.38, 32.39, 32.56);
+            p.Set(new[] { new V3(-31, 32.4, 31), goal });
+            // Intermediate waypoints retain their normal tolerance.
+            Assert.Equal(goal, p.Next(new V3(-31, 32.4, 31.5)));
+            var stoppedBeforeContact = new V3(-30.48, 32.46, 32.2);
+            Assert.Equal(goal, p.Next(stoppedBeforeContact));
+            Assert.True(p.Direction(stoppedBeforeContact).Length > 0);
+            Assert.Null(p.Next(goal + new V3(0, 0, -.1)));
+            // A tighter request must not invent the missing rest of a path.
+            Assert.Equal(V3.Zero, p.Direction(goal + new V3(0, 0, .1)));
+        }
+
+        [Fact]
         public void FollowPaceHysteresis()
         {
             var f = new FollowPace();

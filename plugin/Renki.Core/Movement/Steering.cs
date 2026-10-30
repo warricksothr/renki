@@ -85,6 +85,10 @@ namespace Renki.Movement
         /// <summary>How close counts as reaching a waypoint.</summary>
         public double Reach = 1.0;
 
+        /// <summary>Optional tighter final tolerance for a precise interaction.
+        /// Does not extend a partial path or loosen its existing tolerance.</summary>
+        public double FinalReach = double.PositiveInfinity;
+
         public void Set(IEnumerable<V3> path)
         {
             points.Clear();
@@ -105,7 +109,7 @@ namespace Renki.Movement
             while (index < points.Count)
             {
                 var last = index == points.Count - 1;
-                var within = last ? Reach * 0.5 : Reach;
+                var within = last ? Math.Min(Reach * 0.5, FinalReach) : Reach;
                 if (!Arrival.Reached(pos, points[index], within)) return points[index];
                 if (!last)
                 {

@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:58:14Z
+updated_at: 2026-10-30T00:03:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -46,7 +46,7 @@ The game heals only from food, and the bot never eats: after the fights on 2026-
 ## Acceptance criteria
 
 - [x] use_item eats a food by prefab
-- [ ] The bot keeps its food slots filled from its inventory
+- [x] The bot keeps its food slots filled from its inventory
 - [ ] It asks an owner for food when it has none and its health is low
 
 ## Implementation plan
@@ -66,3 +66,7 @@ Landed primitive in PR #32, main 11c0e8d; final just check ci (193 plugin tests)
 **agent:codex/renki-resume** at 2026-10-29T23:58:14Z
 
 Implemented optional game-reported active/carried food status, exposed it through panel status, and wired automatic upkeep through normal use_item. Empty slots take precedence over refresh; current game eligibility governs consumption. One action waits for new state; failure cooldown, stale state/connection/world guards, permissions and sleep/attack/flee guards are covered. Owner say requests are bounded to five minutes and require low health with no active or usable carried food. just check ci passed (20261029T235737Z-Wj8non.log). Live automatic consumption and naturally occurring foodless low-health request remain unverified; AC2/3 stay open until evidence.
+
+**agent:codex/renki-resume** at 2026-10-30T00:03:46Z
+
+PR #36 merged as dc981d1; just check vm deploy passed with installed hashes. On rejoin at home, automatic t-1/t-2/t-3 consumed exactly the carried CookedDeerMeat, CookedMeat and NeckTailGrilled, with active food confirmation and zero of each left carried. Health regenerated normally from 25 to full 113.7/113.7. T-4 withdrew one spare of each from food chest 1:30600; current food observation correctly marks all three ineligible, with no duplicate consumption. Pack retains AxeFlint1, seeds15 and original Wood2. Evidence .checks/audit-window-G5p4Sh.jsonl and .checks/task-f0u_bp2u.json. AC2 earned. Owner-request policy passes deterministic tests but no natural injured/foodless live case was staged; AC3 remains open.
