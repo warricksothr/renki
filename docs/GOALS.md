@@ -153,6 +153,13 @@ repeat. Automatic reconnect continuation and model-generated revisions are
 future additions. Goal state survives the interruption now, while continuation
 is deliberately explicit.
 
+[Authorable procedures and durable decisions](PROCEDURES.md) records the
+follow-on research: general multistep child execution, a host-owned candidate
+ledger, versioned user/model-authored scripts, replay and promotion into native
+routines. The current runtime extracts one attack from a combat child; it does
+not yet preserve arbitrary multistep children. Starlark remains the recommended
+execution language for those extensions.
+
 Use `just check controller test-packages ./internal/goal ./internal/app ./internal/behaviour`
 for focused replay coverage and `just check vm goal-trial`
 for a bounded supervised live run. The supervisor watches the goal through
