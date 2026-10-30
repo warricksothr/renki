@@ -24,6 +24,16 @@ class Resupply(unittest.TestCase):
         self.assertFalse(resupply.home_run(dict(status, stamina=10)))
         self.assertFalse(resupply.home_run(dict(status, pos=[375, 0, 0])))
 
+    def test_startup_wait_requires_exact_outgoing_home_destination_and_task(self):
+        status = dict(self.status(), task=dict(id='home', task='move_to'))
+        row = dict(dir='out', frame=dict(type='task', id='home', task='move_to', args=dict(to=[0, 0, 0])))
+        self.assertTrue(resupply.startup_home(status, [row]))
+        self.assertTrue(resupply.startup_home(status, dict(value=[row])))
+        for bad in [dict(row, dir='in'), dict(row, frame=dict(row['frame'], id='other')),
+                    dict(row, frame=dict(row['frame'], args=dict(to=[1, 0, 0])))]:
+            self.assertFalse(resupply.startup_home(status, [bad]))
+        self.assertFalse(resupply.startup_home(dict(status, task=dict(id='home', task='follow')), [row]))
+
     def test_selection_is_home_scoped_bounded_and_excludes_arbitrary_items(self):
         mapped = self.mapped()
         mapped['containers'].append(dict(entity='far', pos=[100, 0, 0], items=[dict(prefab='CookedDeerMeat', stack=10)]))

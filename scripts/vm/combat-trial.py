@@ -201,15 +201,38 @@ def main():
         call('stop', timeout=200)
         call('combat', 'false' if harvesting or args.resupply_food else 'true')
         call('start', timeout=330)
-        deadline = time.monotonic() + args.wait_s
+        deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
+        startup_id, startup_hp, startup_scope = None, None, None
         while True:
             status, mapped = observe()
             reason = abort_reason(status)
             if reason:
                 raise RuntimeError(reason)
+            if startup_id:
+                if (status.get('world'), status.get('connection')) != startup_scope or status['hp'] < min(startup_hp, status['hpMax']) - .15:
+                    raise RuntimeError('startup home return changed scope or suffered damage')
+                startup_hp = status['hp']
             chars = (mapped.get('perception') or {}).get('characters', [])
             # Do not wait for regeneration while being chased, or replace an escape.
             if status.get('task'):
+                if args.resupply_food and status['task'].get('task') == 'move_to':
+                    from resupply_trial import startup_home
+                    active_id = status['task']['id']
+                    if startup_id and active_id != startup_id:
+                        raise RuntimeError('startup home return was replaced')
+                    if not startup_id:
+                        anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
+                        history = call('panel', 'GET', '/api/task?id=' + active_id + '&at=' + anchor, as_json=True)
+                        if not startup_home(status, history):
+                            raise RuntimeError('another task is active; trial will not replace it')
+                        startup_id, startup_hp = active_id, status['hp']
+                        startup_scope = (status.get('world'), status.get('connection'))
+                        summary['startupHomeTask'] = active_id
+                        print('Waiting for the existing native return-home task', flush=True)
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError('startup home return preparation time limit')
+                    time.sleep(1)
+                    continue
                 raise RuntimeError('another task is active; trial will not replace it')
             ready = (status.get('hp', 0) >= status.get('hpMax', 1) * .8
                      and status.get('stamina', 0) >= 40 and status.get('food', {}).get('active'))
