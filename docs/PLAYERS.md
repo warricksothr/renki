@@ -93,3 +93,74 @@ terrain lying on the straight line is not evidence of a traversable path.
 The response should distinguish remembered terrain from current observations
 and leave uncovered segments unknown. A request to travel remains a separate,
 authorized command or persistent goal.
+
+## Remembering and locating other players
+
+Tas now remembers where he sees players in fresh local perception and where
+he hears them speak. Normal speech, whispers and shouts all count, including
+Marco/Polo; the line need not address Tas. Map pings, panel text, server join
+rosters and player map markers do not create encounter positions. The record
+stores the player name, world, position, source (`seen` or `heard`) and arrival
+time, rather than the chat's text. Names follow the same exact-name principal
+model as profiles. Local perception is evidence of a sighting, not a physical
+line-of-sight guarantee.
+
+Players with `locate` permission can ask, in normal chat, whispers or shouts:
+
+- `Tas, where is Nimah?`
+- `Tas, where's Sothr?`
+- `Tas, where did you last see Nimah?`
+
+The panel's command box also accepts `where is Nimah?`. These questions use
+deterministic memory lookup, without a language-model call or movement order.
+They work even if automatic Marco/Polo is disabled. In-game replies use the
+question's channel and the same global/per-player throttles as Marco/Polo.
+
+Replies say **last saw** or **last heard from**, how long ago, and the remembered
+area's uncertainty. They always describe a historical position, never assert
+that a player is still there. With an unambiguous case-insensitive name match,
+Tas can resolve a differently capitalized query; ambiguous or missing names
+produce no guessed location. Worlds never share player observations.
+
+The reference point is explicit:
+
+- A requester position observed on this connection in the last 30 seconds
+  gives a distance/direction from **your last known position**. The actual
+  in-game question normally supplies that position.
+- If that requester is within 6 m of Tas, the reply uses **from me**.
+- Without recent current-connection evidence, including after a reconnect or
+  a panel question from an unseen player, Tas uses **from me** and says he
+  does not have a recent position for the requester. Saved history does not
+  qualify as a current requester position.
+
+All offsets are horizontal and straight-line. History distances round to at
+least 10 m, or the memory cell width when greater. If the remembered area
+includes the reference point, Tas describes it as nearby rather than inventing
+a precise compass bearing. Route availability and intervening terrain remain
+future extensions.
+
+Encounter memory fades over real wall-clock time:
+
+| Observation age | Position cell width | Time resolution |
+| --- | --- | --- |
+| Under 10 minutes | 5 m | 1 second |
+| 10 minutes to 6 hours | 25 m | 1 minute |
+| 6 hours to 2 days | 100 m | 15 minutes |
+| 2 to 14 days | 500 m | 1 hour |
+| Over 14 days | Forgotten | Forgotten |
+
+The cell centre is representative; replies report its half-diagonal as the
+horizontal uncertainty. Times round down. Multiple observations of the same
+player/source/time bucket consolidate to its newest representative position.
+Nested cells and buckets prevent rounding drift and never restore precision
+already discarded, including after a backwards clock adjustment. History is
+sampled across age tiers (32 recent, 16 intermediate, 8 older and 8 oldest
+encounters), preserving oldest/newest representatives so frequent new sightings
+can coexist with older encounters. This is a bounded memory, not a full trail.
+
+Memory retains at most 64 encounters per player, 128 players per world and 16
+worlds; excess players/worlds evict by most recent evidence. Reads apply fading
+immediately. A 30-second write batch also physically ages/prunes stored memory,
+including while nobody speaks; graceful shutdown flushes the final batch.
+An abrupt exit can lose the unsaved interval. Failed saves retain bounded
+pending observations with their original scope and times.

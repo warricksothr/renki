@@ -52,3 +52,22 @@ func (a *App) LandmarkMemory() any {
 	}
 	return out
 }
+
+type PlayerMemoryStatus struct {
+	World      string                 `json:"world"`
+	Encounters []home.PlayerEncounter `json:"encounters"`
+}
+
+func (a *App) PlayerMemory() any {
+	out := PlayerMemoryStatus{Encounters: []home.PlayerEncounter{}}
+	st := a.Session.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld {
+		return out
+	}
+	out.World = st.World
+	out.Encounters = a.Players.History(st.World, time.Now())
+	if out.Encounters == nil {
+		out.Encounters = []home.PlayerEncounter{}
+	}
+	return out
+}

@@ -125,6 +125,9 @@ type Options struct {
 	Home Home
 	// Places is the same per-world waypoint memory used by the map.
 	Places *home.Store
+	// PlayerQuery answers read-only location questions from the panel. Game
+	// questions use the presence worker's scoped, throttled reply queue.
+	PlayerQuery func(speaker, text string) (string, bool)
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -305,6 +308,12 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		return
 	}
 	from := origin{player: c.From.Name, channel: replyChannel(c.Channel)}
+	if c.Channel == channelPanel && b.opts.PlayerQuery != nil {
+		if reply, handled := b.opts.PlayerQuery(c.From.Name, c.Text); handled {
+			b.say(from, reply)
+			return
+		}
+	}
 	owners := b.live().Owners
 	owner := slices.Contains(owners, c.From.Name)
 	text := b.strip(c.Text)

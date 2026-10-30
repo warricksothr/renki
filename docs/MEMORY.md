@@ -102,3 +102,25 @@ selection as danger decays. Subsequent tree-splitting tasks still finish the
 selected trunk chain. Explicit site travel, delivery, return-home and native
 navigation do not yet route around danger; a safer target does not prove a
 safe path. Combat remains governed by its existing permission gate.
+
+## Player encounters
+
+Player sighting/heard-location histories share `memory.json` but have their own
+age, precision and retention policy, described in [PLAYERS.md](PLAYERS.md#remembering-and-locating-other-players).
+These observations supplement the static landmark layer; they do not add
+characters to that layer or give it a claim about current player positions.
+The recorder samples new fresh perception once a second, records located
+normal/whisper/shout chat before presence/command handling, and batches disk
+writes and aging sweeps every 30 seconds. Bridge callbacks never do disk IO.
+At most 4096 observations await persistence; overflow drops new history entries
+while retaining the bounded recent-position cache. A current requester position
+expires after 30 seconds and cannot come from disk or a previous connection.
+
+Authenticated `GET /api/memory/players` exposes `world` and bounded
+`encounters`, newest first, including unsaved observations. Each encounter has
+`name`, `pos`, `at`, `source`, `resolutionM` (cell width) and `timeResolutionS`.
+Reads omit future/expired evidence and coarsen older records immediately. This
+is a read-only history endpoint and sends no game tasks. Like the existing
+memory APIs, it reports the current in-world scope, or an empty result offline.
+Fading applies to operational encounter memory; retained audit files remain
+independent diagnostic records, with their original observation precision.

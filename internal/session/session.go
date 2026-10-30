@@ -103,28 +103,29 @@ type Session struct {
 	log      *slog.Logger
 	listener Listener
 
-	mu          sync.Mutex
-	dispatchMu  sync.Mutex // serialize wire order and automation ownership
-	automation  *Automation
-	orders      uint64
-	conn        *bridge.Conn
-	state       *protocol.State
-	stateAt     time.Time
-	injurySeq   uint64
-	seen        *protocol.Perception
-	seenAt      time.Time
-	seenWorld   string
-	carried     *protocol.Inventory
-	containers  map[string]*protocol.Container
-	containerAt map[string]time.Time
-	terrain     map[[2]int]protocol.TerrainTile
-	terrainSeq  uint64
-	layout      *protocol.Layout
-	allowed     []string
-	permit      func(task string) bool
-	movePlace   func(world, name string) (protocol.Vec3, error)
-	tasks       map[string]*Task
-	nextTask    uint64
+	mu            sync.Mutex
+	dispatchMu    sync.Mutex // serialize wire order and automation ownership
+	automation    *Automation
+	orders        uint64
+	conn          *bridge.Conn
+	state         *protocol.State
+	stateAt       time.Time
+	injurySeq     uint64
+	playerChatSeq uint64
+	seen          *protocol.Perception
+	seenAt        time.Time
+	seenWorld     string
+	carried       *protocol.Inventory
+	containers    map[string]*protocol.Container
+	containerAt   map[string]time.Time
+	terrain       map[[2]int]protocol.TerrainTile
+	terrainSeq    uint64
+	layout        *protocol.Layout
+	allowed       []string
+	permit        func(task string) bool
+	movePlace     func(world, name string) (protocol.Vec3, error)
+	tasks         map[string]*Task
+	nextTask      uint64
 }
 
 // New returns a session that reports to l.
@@ -179,6 +180,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.seenAt, s.seenWorld = time.Time{}, ""
 	s.injurySeq = 0
+	s.playerChatSeq = 0
 	s.terrain, s.terrainSeq = nil, 0
 	s.layout = nil
 	s.automation = nil
@@ -245,6 +247,11 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 	case *protocol.TaskStatus:
 		s.taskStatus(m)
 	case *protocol.Chat:
+		if observer, ok := s.listener.(PlayerChatListener); ok {
+			if observation, valid := s.ObservePlayerChat(c, m, time.Now().UTC()); valid {
+				observer.PlayerChat(m, observation)
+			}
+		}
 		s.mu.Lock()
 		current := s.conn == c
 		s.mu.Unlock()

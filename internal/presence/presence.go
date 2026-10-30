@@ -13,6 +13,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -33,12 +34,18 @@ type Live struct {
 }
 type Options struct {
 	Session Session
+	Players PlayerMemory
 	Live    func() Live
 	Now     func() time.Time
 	Logger  *slog.Logger
 }
+type PlayerMemory interface {
+	Last(string, string, time.Time) (home.PlayerEncounter, bool)
+	Reference(string, string, *protocol.Hello, time.Time) (protocol.Vec3, bool)
+}
 type request struct {
 	kind, player, key, world string
+	target, channel          string
 	hello                    *protocol.Hello
 	at                       time.Time
 	pos                      protocol.Vec3
@@ -92,6 +99,30 @@ func (m *Manager) enqueue(r request) {
 // checks happen again at execution, so revocation also drops queued replies.
 func (m *Manager) Chat(c *protocol.Chat) bool {
 	live := m.o.Live()
+	if target, ok := m.queryTarget(c.Text, false); ok && m.o.Players != nil {
+		if !live.Players.Has(live.Owners, c.From.Name, access.Locate) {
+			return true
+		}
+		r, valid := m.scope()
+		if !valid {
+			return true
+		}
+		st, _ := m.o.Session.StateObservation()
+		if st == nil || st.World != r.world || math.IsNaN(c.T) || math.Abs(c.T-st.T) > 5 {
+			return true
+		}
+		switch c.Channel {
+		case protocol.ChannelNormal, protocol.ChannelShout, protocol.ChannelWhisper:
+		default:
+			return true
+		}
+		r.kind, r.player, r.key, r.target, r.channel = "locate", c.From.Name, c.From.PlayerID+":"+c.From.Name, target, c.Channel
+		if len(r.player) > 64 || len(r.key) > 160 {
+			return true
+		}
+		m.enqueue(r)
+		return true
+	}
 	if !live.Presence.MarcoPolo || c.Channel != protocol.ChannelShout {
 		return false
 	}
@@ -210,13 +241,14 @@ func (m *Manager) Tick(ctx context.Context) {
 		}
 	}
 	if !live.Presence.MarcoPolo {
-		m.pending = nil
 		m.marcoUntil = time.Time{}
-		return
 	}
 	pending := m.pending
 	m.pending = nil
 	for _, r := range pending {
+		if r.kind != "locate" && !live.Presence.MarcoPolo {
+			continue
+		}
 		if r.hello != current.hello || r.world != current.world || now.Sub(r.at) < 0 || now.Sub(r.at) > 10*time.Second {
 			continue
 		}
@@ -226,6 +258,11 @@ func (m *Manager) Tick(ctx context.Context) {
 		}
 		text := ""
 		switch r.kind {
+		case "locate":
+			if !live.Players.Has(live.Owners, r.player, access.Locate) || now.Sub(m.replies[r.key]) < 15*time.Second {
+				continue
+			}
+			text = m.locationReply(r.player, r.target, current.hello, current.world, st.Pos, now)
 		case "join":
 			if !live.Players.Has(live.Owners, r.player, access.Greet) || now.Sub(m.joins[r.player]) < 60*time.Second {
 				continue
@@ -270,7 +307,15 @@ func (m *Manager) Tick(ctx context.Context) {
 		if text == "" {
 			continue
 		}
-		if _, err := m.o.Session.DispatchFor(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: text, Channel: protocol.ChannelShout}, TimeoutS: 5, Origin: "presence"}, current.hello, current.world); err != nil {
+		channel := protocol.ChannelShout
+		if r.kind == "locate" {
+			channel = r.channel
+		}
+		args := &protocol.SayArgs{Text: text, Channel: channel}
+		if channel == protocol.ChannelWhisper {
+			args.To = r.player
+		}
+		if _, err := m.o.Session.DispatchFor(ctx, session.Order{Task: protocol.TaskSay, Args: args, TimeoutS: 5, Origin: "presence"}, current.hello, current.world); err != nil {
 			m.o.Logger.Debug("presence reply skipped", "err", err)
 			continue
 		}
