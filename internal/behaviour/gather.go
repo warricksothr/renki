@@ -164,7 +164,10 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 			return nil, err
 		}
 		r.arrived = true
-		if distance(v.State.Pos, r.p.Site.Pos) > r.p.Site.Radius {
+		// Being inside a broad work zone does not put its resources within
+		// the native harvest's 18 m acquisition range. Approach the work
+		// point before choosing a tree, even from the edge of that zone.
+		if distance(v.State.Pos, r.p.Site.Pos) > math.Min(r.p.Site.Radius, 12) {
 			pos := r.p.Site.Pos
 			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}}, TimeoutS: 90}, nil
 		}
