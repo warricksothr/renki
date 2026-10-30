@@ -187,7 +187,15 @@ task-check TASK ARGS='{}' TIMEOUT='60':
 # record results and always log out/stop, restoring combat off afterward.
 [positional-arguments]
 combat-trial *ARGS:
-    python3 "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
+
+# Harvest one isolated full beech and newly observed nearby logs; always stop.
+[positional-arguments]
+harvest-trial *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-tree "$@"
+
+test-harvest-trial:
+    python3 -B "{{justfile_directory()}}/scripts/vm/harvest-trial-test.py"
 
 # Read a retained audit without starting the game; print counts and six examples.
 [positional-arguments]

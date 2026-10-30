@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T05:29:52Z
+updated_at: 2026-10-30T05:43:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -186,3 +186,11 @@ Implemented bounded native scouting inside the same attack goal. After checked g
 Acquisition keeps its 30m bot range but can now use targets inside40m of the original anchor. Pursuit progress initializes from the actual scout position. Trial summaries now retain task-scoped selected geometry, distinct modes, outgoing/return counts and bounded scouting refusal examples; full evidence stays saved locally.
 
 Focused just check plugin test-core ScoutingTests passed (.checks/20261030T052755Z-bU69bM.log). just check ci passed with controller checks/builds, plugin compilation/tests and five supervisor tests (.checks/20261030T052913Z-34paU8.log). Review, landing, deployment and another autonomous trial follow. Positive combat acceptance criteria remain open. The M2 follow-on is an autonomous full-tree/log benchmark with the already supplied axe, within existing harvesting work rather than a crafting dependency.
+
+**agent:codex/renki-resume** at 2026-10-30T05:43:13Z
+
+PR #57 landed as 0e7a320 after just check ci (323 plugin tests and five supervisor tests, .checks/20261030T052913Z-34paU8.log) and committed just check review (no findings, .checks/20261030T052952Z-BfpJz0.log). just check vm install verified deployed hashes (.checks/20261030T053131Z-mxrj4w.log).
+
+The autonomous trial accepted the first fighting-ground candidate, made five outbound scouting routes and five returns, and rejected three candidates for grade. Native position/search/scout/scout_return modes were observed. It ended invalid_target: no eligible single Greyling after bounded local scouting and return. Minimum HP73.4; the retained audit contains no damaged events. Automatic food upkeep refreshed the carried meat meals after the attack ended, raising the food-derived health maximum; do not interpret that later HP/max gap as combat damage. No enemy was acquired or pursuit/melee outcome observed. Both broad criteria remain unchecked.
+
+Evidence .checks/combat-trial-20261030T053145438919Z/summary.json, .checks/audit-window-ARGS1J.jsonl and .checks/20261030T053145Z-1YzoJZ.log. Automatic cleanup reported no errors. Independent just check vm status and just check vm combat confirm game/controller stopped and AllowCombat=false (.checks/20261030T053942Z-I9LbqU.log, .checks/20261030T053944Z-cK4lTC.log). Repeating this same local search without an environmental change is not useful; broader exploration/encounter discovery remains separate from the now positively observed local scouting/return routine. Continue M2's supplied-axe full-tree/log benchmark while real combat remains unverified.

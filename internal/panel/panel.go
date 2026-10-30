@@ -73,6 +73,7 @@ type Options struct {
 	ContainerMemory func() any
 	LandmarkMemory  func() any
 	Map             func() any
+	Inventory       func() any
 	Waypoints       http.Handler
 }
 
@@ -123,6 +124,13 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	if o.Inventory != nil {
+		authed.HandleFunc("GET /api/inventory", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "no-store")
+			_ = json.NewEncoder(w).Encode(o.Inventory())
+		})
+	}
 	if o.Map != nil {
 		authed.HandleFunc("GET /api/map", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
