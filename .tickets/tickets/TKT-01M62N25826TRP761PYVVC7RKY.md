@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T02:19:02Z
+updated_at: 2026-10-30T02:26:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,13 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Prioritize native kiting and encounter preparation after the owner's correction on 2026-10-30. Extend the C# combat routine to own a bounded local sequence: validate/select fighting ground, find one eligible ordinary Greyling, approach to attract attention, observe actual following, lead it back with distance/stamina pacing, then hand directly to melee under the same body ownership. Implement a testable core kiting policy and use live C# navigation, terrain, geometry and normal controls for execution. Reuse it later for ranged combat and tactical repositioning.
-
-The controller behavior supplies intent (search bounds, preferred fighting area, allowed enemy profile and stop conditions), monitors progress and updates/cancels the goal; it must not issue repeated move_to/attack steps. Keep target acquisition local and bounded for the first slice; no roaming the map or arbitrary hostile selection. Arena candidates must have supported dry footing, usable approach/escape routes and clearance from structures/bystanders. Treat a preferred waypoint as a candidate, not proof of safety. Local checks remain inside C# and revalidate when conditions change.
-
-Kiting must preserve pursuit rather than maximize separation: observe target displacement toward Tas, distinguish draw/lead/hold/engage/escape phases, slow or hold when the target lags, walk where possible, and run only when gap/attack timing requires it with stamina reserved for defense/escape. A remote AI targeting flag is optional evidence, not a prerequisite or fabricated certainty. Losing the follower, no progress, stale/unloaded target, extra attackers, bad terrain/equipment, low health/stamina, unsafe ground, time/distance budgets and owner stop all have explicit bounded exits. Do not let ordinary retreat repeatedly replace the controlled healthy kite, and do not suppress genuine emergency escape.
-
-The trial harness supervises one native combat goal and records phase transitions, separation, stamina, hits and outcome; remove its Python-side enemy selection/position sequencing as this moves into C#. Use deterministic policy/replay tests for pacing, follower loss, resource limits, target eligibility, retreat arbitration and cancellation, then opportunistic real-world trials without asking the owner to stage or clear. Passing policy tests do not prove live enemy attraction or pursuit. Keep positive live melee and kiting acceptance criteria open until observed. The isolated-world reset arena is optional later tooling, not the next dependency.
+Owner correction after the first native survey: ordinary terrain should be usable when its grade is reasonable and it has no sharp regions; flat ground is not required. The existing six-metre radial probes incorrectly apply the movement single-step height limit to the entire radius, and dodge clearance also caps total elevation change. Replace those aggregate height checks with half-metre supported corridor samples that bound local slope and adjacent slope changes. Use an initial 30-degree maximum inclination (below the installed player sliding threshold of 38 degrees) and 15-degree maximum change between adjacent samples. Continue validating physical body clearance and dry ground, and retain all existing encounter budgets and bystander gates. Reuse the profile validator for fighting-ground and dodge corridors, with regressions for long uphill/downhill slopes, smooth grade changes, steep ground, sharp ridges/dips, unsupported/blocked segments and nonfinite data. Report per-candidate ground rejection reasons for live diagnosis. Validate, review and land, install offline, then run another normal-controls automated attempt without owner staging. Keep live pursuit/strike/defense criteria open until observed.
 
 ## Notes
 
@@ -114,3 +108,9 @@ Native acquisition/kiting implementation landed in PR #48 as 684504b. just check
 Ran just check vm combat-trial --wait-s 60 with no owner staging, clearing or repositioning (.checks/20261030T021553Z-8sQ8dt.log). C# accepted one attack kite=true goal, surveyed its bounded local candidates and failed unreachable after 8.6 seconds: no supported clear fighting ground with a checked escape corridor. Tas remained near [174.17,84.75,-246.72]; preflight stamina was 67.2, minimum HP 76.1, and no damage was observed. No enemy was acquired and no positive pursuit/strike/block/dodge evidence is claimed. The supervisor correctly returned failure, logged out/stopped, restored combat false and reported no cleanup errors. Summary: .checks/combat-trial-20261030T021553504234Z/summary.json; exact audit: .checks/audit-window-qI99Fo.jsonl.
 
 Keep both broad acceptance criteria open. Next native iteration should expose per-candidate ground rejection reasons and use supported local approach/escape corridors to choose suitable nearby ground on ordinary sloped terrain. Preserve normal controls and bounded resource/time/travel exits; do not require owner clearance or pretend this survey refusal proves a successful encounter. Tas is offline with combat disabled.
+
+**agent:codex/renki-resume** at 2026-10-30T02:26:48Z
+
+Replaced the aggregate elevation restriction with a shared GroundCorridor validator: half-metre physical support/clearance samples, maximum 30-degree inclination and 15-degree adjacent inclination change. Four complete diameters cover the fighting area's center so a sharp crest/dip there is not missed. The melee dodge corridor now uses the same local profile limits instead of a 0.5m total elevation ceiling. Dry ground, structures, characters and navmesh approach checks remain, and failed candidates emit location/attempt/reason traces. The installed Character implementation starts player sliding at 38 degrees, so the 30-degree cap leaves margin.
+
+just check plugin test-core GroundCorridorTests passed 12 meaningful cases for sustained uphill/downhill elevation, gradual grade changes, steep slopes, sharp crests/dips/ledges, unsupported/blocked intermediate ground, character-foot height offset and invalid/unbounded data (.checks/20261030T022447Z-8ZaF9n.log). just check ci passed with 287 plugin tests plus controller and supervisor suites (.checks/20261030T022558Z-OXvjlk.log). Committed review, installation and another automated live attempt follow. No positive combat acceptance criterion has been checked.

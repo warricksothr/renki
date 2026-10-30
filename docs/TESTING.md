@@ -622,8 +622,15 @@ near Tas's hillside position. No enemy was acquired or damage observed;
 minimum HP was 76.1. Automatic logout, shutdown and combat-off reset completed
 without cleanup errors. This verifies the bounded refusal, not successful
 kiting or melee. Evidence: `.checks/combat-trial-20261030T021553504234Z/summary.json`
-and `.checks/audit-window-qI99Fo.jsonl`. Ground-selection diagnostics and a
-positive pursuit/engagement check remain outstanding.
+and `.checks/audit-window-qI99Fo.jsonl`. This exposed an unintended flat-ground
+requirement: the full corridor inherited a single-step height limit. The
+corrected validator follows support every 0.5 m, permits up to 30 degrees of
+inclination, and rejects changes over 15 degrees between adjacent segments.
+Fighting-ground diameters and dodge corridors share this policy, with
+candidate rejection traces for live diagnosis. Use `just check plugin test-core
+GroundCorridorTests` for gradual uphill/downhill terrain, changing grade,
+sharp crests/dips/ledges and unsupported/blocked intermediate ground. Positive
+pursuit/engagement checks still require live evidence.
 
 Read the plugin gate with `just vm combat`. First deploy with it off, allow
 attack in the controller's allowedTasks and verify a command is rejected by

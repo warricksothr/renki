@@ -194,18 +194,17 @@ namespace Renki.Plugin
         bool SupportedDodge(Vector3 from, Vector3 direction)
         {
             if (direction.sqrMagnitude < .1f) return false;
-            dodgeProbe.BeginSlice(); var previous = Convert.ToV3(from);
-            // Validate the whole conservative roll corridor, not just its end.
-            for (float distance = .5f; distance <= 5; distance += .5f)
+            dodgeProbe.BeginSlice();
+            V3? Probe(V3 previous, V3 desired)
             {
-                var next = dodgeProbe.Probe(previous, Convert.ToV3(from + direction * distance));
-                if (!(next is V3 supported) || Math.Abs(supported.Y - from.y) > .5) return false;
+                var next = dodgeProbe.Probe(previous, desired);
+                if (!(next is V3 supported) || ZoneSystem.instance == null || supported.Y <= ZoneSystem.instance.m_waterLevel + .2f) return null;
                 foreach (var c in characters)
                     if (c != null && c != Player.m_localPlayer && !c.IsDead() &&
-                        V3.FlatDistance(supported, Convert.ToV3(c.transform.position)) < 1.5) return false;
-                previous = supported;
+                        V3.FlatDistance(supported, Convert.ToV3(c.transform.position)) < 1.5) return null;
+                return supported;
             }
-            return true;
+            return GroundCorridor.Check(Convert.ToV3(from), Convert.ToV3(from + direction * 5), Probe, out _);
         }
 
         Outcome Retreat(Player p, string why)

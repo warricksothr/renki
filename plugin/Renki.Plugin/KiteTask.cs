@@ -81,19 +81,24 @@ namespace Renki.Plugin
                     if (Ground(candidate, out var projected)) candidate = projected;
                 }
                 survey++;
-                if (TryArea(p, candidate, out area))
+                if (TryArea(p, candidate, out area, out var rejected))
                 {
                     hasArea = true; nextAreaCheck = Time.unscaledTime + 1;
                     Mode("position");
                 }
-                else if (args.At.HasValue ? survey >= 4 : survey >= 34)
-                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported clear fighting ground with a checked escape corridor"));
+                else
+                {
+                    Tracer.Emit("combat", "ground_rejected", new Dictionary<string, object>
+                    { ["candidate"] = Convert.ToArray(candidate), ["reason"] = rejected, ["attempt"] = survey });
+                    if (args.At.HasValue ? survey >= 4 : survey >= 34)
+                        return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported clear fighting ground with a checked escape corridor; last rejection: " + rejected));
+                }
                 return null;
             }
             if (Time.unscaledTime >= nextAreaCheck)
             {
                 nextAreaCheck = Time.unscaledTime + 1;
-                if (!TryArea(p, area, out _)) return Abort(p, "fighting ground changed or became unsafe");
+                if (!TryArea(p, area, out _, out var rejected)) return Abort(p, "fighting ground changed or became unsafe: " + rejected);
             }
             if (enemy == null && policy == null)
             {
@@ -149,7 +154,7 @@ namespace Renki.Plugin
             if (action == KiteAction.Retreat) return Abort(p, policy.Reason);
             if (action == KiteAction.Engage)
             {
-                if (!TryArea(p, area, out _)) return Abort(p, "fighting ground became unsafe before engagement");
+                if (!TryArea(p, area, out _, out var rejected)) return Abort(p, "fighting ground became unsafe before engagement: " + rejected);
                 Driver.ClearCombat();
                 try { melee = new MeleeTask(id, new AttackArgs { Entity = entity, Style = args.Style }, enemy.gameObject); }
                 catch (TaskRefused refused) { return Abort(p, refused.Message); }
@@ -219,34 +224,50 @@ namespace Renki.Plugin
             return true;
         }
 
-        bool TryArea(Player p, Vector3 at, out Vector3 grounded)
+        bool TryArea(Player p, Vector3 at, out Vector3 grounded, out string rejected)
         {
-            if (!Ground(at, out grounded) || Math.Abs(at.y - grounded.y) > 1) return false;
+            rejected = "wet_or_unloaded_terrain";
+            if (!Ground(at, out grounded)) return false;
+            rejected = "different_ground_level";
+            if (Math.Abs(at.y - grounded.y) > 1) return false;
             probe.BeginSlice();
-            // Radials validate the center, a body-width route and a 6 m escape/dodge corridor.
+            // Full diameters catch a sharp crest/dip at the center as well as
+            // validate body-width approaches and six-metre escape corridors.
             var center = Convert.ToV3(grounded);
-            for (var i = 0; i < 8; i++)
+            V3? DryProbe(V3 from, V3 desired)
+            {
+                var result = probe.Probe(from, desired);
+                return result.HasValue && ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f ? result : null;
+            }
+            for (var i = 0; i < 4; i++)
             {
                 var angle = i * Math.PI / 4;
-                var edge = center + new V3(Math.Cos(angle), 0, Math.Sin(angle)) * Kiting.AreaRadius;
-                if (!probe.Probe(center, edge).HasValue) return false;
+                var radius = new V3(Math.Cos(angle), 0, Math.Sin(angle)) * Kiting.AreaRadius;
+                rejected = "wet_or_unloaded_terrain";
+                if (!Ground(Convert.ToVector3(center - radius), out var edge)) return false;
+                if (!GroundCorridor.Check(Convert.ToV3(edge), center + radius, DryProbe, out rejected)) return false;
             }
             var count = Physics.OverlapSphereNonAlloc(grounded + Vector3.up, 8, nearby, ~0, QueryTriggerInteraction.Ignore);
+            rejected = "crowded_geometry";
             if (count == nearby.Length) return false;
             for (var i = 0; i < count; i++)
             {
+                rejected = "structure";
                 if (nearby[i].GetComponentInParent<Piece>() != null) return false;
                 var c = nearby[i].GetComponentInParent<Character>();
+                rejected = "bystander_or_other_creature";
                 if (c != null && c != p && c != enemy && !c.IsDead() && !MeleeTask.Eligible(p, c)) return false;
             }
             // Validate a usable approach before drawing, not just an empty destination.
             if (Vector3.Distance(p.transform.position, grounded) > 2)
             {
                 approachPath.Clear();
+                rejected = "no_navmesh_approach";
                 if (Pathfinding.instance == null || !Pathfinding.instance.GetPath(p.transform.position, grounded, approachPath,
                     Pathfinding.AgentType.Humanoid, true, true, false) || approachPath.Count == 0 || Vector3.Distance(approachPath[approachPath.Count - 1], grounded) > 1.5f)
                     return false;
             }
+            rejected = null;
             return true;
         }
 
