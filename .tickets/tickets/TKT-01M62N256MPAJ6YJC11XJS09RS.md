@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T02:19:02Z
+updated_at: 2026-10-30T06:25:03Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -50,10 +50,7 @@ extensions: {}
 
 ## Implementation plan
 
-### Evidence and approach
-The 2026-10-29T17:14:40Z–17:15:15Z audit window contains 31 perception frames and 68 creature observations, none with targetingMe, although the two perceived hostile Greylings repeatedly appear as damage attackers. At 17:15:00Z Tas had 5.4/25 HP and continued move_to until death. Retreat currently requires targetingMe and silently skips every tick without it.
-
-Verify how Valheim exposes remotely owned AI targets. Add a bounded recent-damage fallback using the actual attacker, keeping environmental damage separate and excluding stale/world-crossing threats. Fix the nearby-owner stop rule so critical health does not leave Tas standing in melee range. Add focused regressions with the recorded scene and check retry/preemption behavior. Run just check controller test-packages for affected packages, just check plugin test-core if policy changes there, then just check ci and just check review before landing/deploying. Keep live criteria open until a real retreat is observed. Use just vm audit-window to retain only the relevant full-fidelity frames locally.
+Retain the existing fresh-attacker, cooldown, active-flee and explicit-combat arbitration. Code inspection found that threat selection, unlike active-combat arbitration, does not exclude zero-health creatures. A recently killed attacker can therefore start another flee while its corpse is still perceived. Require positive perceived creature health before selection, including when a fresh remembered hit exists. Exercise both AI-target and actual-hit evidence at zero versus positive health, retaining emergency retreat for a living attacker. Run focused retreat checks, CI and committed review, land and deploy after the active harvest trial cleans up. This deterministic correction does not establish live fleeing/blocking/dodging success; those checks remain open.
 
 ## Notes
 
@@ -111,3 +108,7 @@ Owner-independent live trial selection/recording/backstops now exist, but guaran
 PR #48 (684504b) adds native draw/kite/hold phases and matching-task retreat arbitration without suppressing low-health, stale-ID, extra-attacker or exhausted-stamina emergencies. Pure policy and integration checks passed under just check ci; committed just check review had no findings. Installed checksum verification passed.
 
 The automated native trial (.checks/combat-trial-20261030T021553504234Z/summary.json; audit .checks/audit-window-qI99Fo.jsonl) failed safely during fighting-ground survey before acquiring an enemy or moving materially. Minimum HP was 76.1 with no observed damage, automatic shutdown/reset had no cleanup errors, and Tas is offline with combat false. This does not supply positive live flee/pursuit/defense evidence; acceptance criteria remain open. No owner staging or clearance was requested.
+
+**agent:codex/renki-resume** at 2026-10-30T06:25:03Z
+
+Require positive perceived creature HP during retreat threat selection. Previously a dead recently confirmed attacker or stale targeting flag could start another flee before its corpse vanished. Regression exercises zero versus positive HP under both targeting-only and recent-hit evidence. Existing living-attacker emergency, native-combat ownership and fallback-flee cases remain passing. Focused just check controller test-packages ./internal/retreat passed (.checks/20261030T062313Z-4HzY85.log); full just check ci passed (.checks/20261030T062338Z-PagRsJ.log). No new live flee/block/dodge evidence is claimed. Review/landing and deployment follow after the active harvesting runner finishes cleanup.

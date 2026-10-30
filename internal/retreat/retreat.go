@@ -251,7 +251,7 @@ func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception, damagedO
 	)
 	for i, c := range seen.Characters {
 		_, hurt := r.hurt[c.ID]
-		if c.Kind != protocol.CharacterCreature || !c.Hostile || (!c.TargetingMe && !hurt) {
+		if c.Kind != protocol.CharacterCreature || !c.Hostile || c.HPFrac <= 0 || (!c.TargetingMe && !hurt) {
 			continue
 		}
 		if damagedOnly && !hurt {

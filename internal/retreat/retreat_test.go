@@ -193,9 +193,9 @@ func scene(hp float64) *fake {
 	return &fake{
 		st: &protocol.State{Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{0, 30, 0}, HP: hp, HPMax: 25},
 		seen: &protocol.Perception{Characters: []protocol.PerceivedCharacter{
-			{ID: "0:9", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{12, 30, 0}, Hostile: true},
-			{ID: "0:7", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{4, 30, 0}, Hostile: true, TargetingMe: true},
-			{ID: "0:8", Kind: protocol.CharacterCreature, Prefab: "Neck", Pos: protocol.Vec3{2, 30, 0}, TargetingMe: true},
+			{ID: "0:9", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{12, 30, 0}, HPFrac: 1, Hostile: true},
+			{ID: "0:7", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{4, 30, 0}, HPFrac: 1, Hostile: true, TargetingMe: true},
+			{ID: "0:8", Kind: protocol.CharacterCreature, Prefab: "Neck", Pos: protocol.Vec3{2, 30, 0}, HPFrac: 1, TargetingMe: true},
 		}},
 	}
 }
@@ -264,8 +264,8 @@ func TestRemoteAttackerWithoutTargetingFlag(t *testing.T) {
 	f := &fake{
 		st: &protocol.State{Phase: protocol.PhaseInWorld, World: "DizzysHellheim", HP: 5.4, HPMax: 25, Pos: protocol.Vec3{-28.81, 34.47, -0.48}},
 		seen: &protocol.Perception{Characters: []protocol.PerceivedCharacter{
-			{ID: "709168501:274", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{-28.5, 34.03, 2.54}, Hostile: true},
-			{ID: "709168501:983", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{-27.4, 34.16, 2.16}, Hostile: true},
+			{ID: "709168501:274", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{-28.5, 34.03, 2.54}, HPFrac: 1, Hostile: true},
+			{ID: "709168501:983", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{-27.4, 34.16, 2.16}, HPFrac: 1, Hostile: true},
 			{ID: "709168501:394", Kind: protocol.CharacterPlayer, Name: "Nimah", Pos: protocol.Vec3{-35.27, 36.09, 8.43}, HPFrac: .3},
 		}},
 	}
@@ -398,5 +398,25 @@ func TestNoThreatNoRetreat(t *testing.T) {
 	r.Tick(context.Background())
 	if len(f.sent) != 0 {
 		t.Fatalf("sent %v", f.sent)
+	}
+}
+
+func TestDeadFormerAttackerCannotRestartRetreat(t *testing.T) {
+	for _, hp := range []float64{0, .1} {
+		for _, confirmedHit := range []bool{false, true} {
+			t.Run(fmt.Sprintf("hp=%g/hit=%v", hp, confirmedHit), func(t *testing.T) {
+				f := scene(5)
+				f.seen.Characters = f.seen.Characters[1:2]
+				f.seen.Characters[0].HPFrac = hp
+				r := New(f, func() []string { return nil }, nil, quiet, nil)
+				if confirmedHit {
+					r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+				}
+				r.Tick(context.Background())
+				if (len(f.sent) > 0) != (hp > 0) {
+					t.Fatalf("retreat after attacker health %g: %v", hp, f.sent)
+				}
+			})
+		}
 	}
 }
