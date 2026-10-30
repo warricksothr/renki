@@ -144,6 +144,177 @@ export const scenarios = {
     await shot("resting");
   },
 
+  "layout-monitoring": async ({ page, check, shot }) => {
+    const original = page.viewportSize();
+    // Native anchor scrolling respects the fixture banner and sticky header;
+    // centring a tall card can leave its title under those fixed elements.
+    const show = (selector) =>
+      page
+        .locator(selector)
+        .evaluate((e) => e.scrollIntoView({ block: "start" }));
+    const geometry = () =>
+      page.evaluate(() => {
+        const box = (s) => {
+          const r = document.querySelector(s).getBoundingClientRect();
+          return {
+            x: r.x,
+            y: r.y + scrollY,
+            width: r.width,
+            height: r.height,
+            bottom: r.bottom + scrollY,
+          };
+        };
+        return Object.fromEntries(
+          [
+            "#say-form",
+            "#map-pane",
+            "#map",
+            "#camera",
+            ".video-stage",
+            "#feed-pane",
+            "#supplies",
+            "#navigation",
+            "#preferences",
+          ].map((s) => [s, box(s)]),
+        );
+      });
+    const aligned = async () => {
+      const g = await geometry();
+      const map = g["#map-pane"],
+        camera = g["#camera"],
+        feed = g["#feed-pane"],
+        goals = g["#supplies"];
+      assert.ok(
+        g["#say-form"].bottom < map.y,
+        "Command bar precedes monitoring",
+      );
+      assert.ok(g["#map"].height >= 260, "Map keeps a useful canvas height");
+      assert.ok(
+        g[".video-stage"].height >= 180,
+        "Camera keeps a useful scene height",
+      );
+      if (page.viewportSize().width > 1100) {
+        assert.ok(Math.abs(map.y - camera.y) < 2, "Map and camera share a row");
+        assert.ok(
+          Math.abs(map.bottom - camera.bottom) < 2,
+          "No map-side dead space below the card",
+        );
+        assert.ok(camera.x >= map.x + map.width, "Visual cards do not overlap");
+        assert.ok(
+          camera.width / map.width > 0.8,
+          "Camera has balanced desktop prominence",
+        );
+        assert.ok(
+          feed.y - map.bottom >= 12 && feed.y - map.bottom <= 24,
+          "Activity starts directly below views",
+        );
+      } else {
+        assert.ok(map.bottom <= camera.y, "Narrow views stack without overlap");
+        assert.ok(camera.bottom <= feed.y, "Activity follows both views");
+      }
+      if (page.viewportSize().width > 760) {
+        assert.ok(
+          Math.abs(feed.y - goals.y) < 2 && goals.x >= feed.x + feed.width,
+          "Activity and goals have two spacious columns",
+        );
+      } else {
+        for (const [a, b] of [
+          [map, camera],
+          [camera, feed],
+          [feed, goals],
+          [goals, g["#navigation"]],
+          [g["#navigation"], g["#preferences"]],
+        ])
+          assert.ok(a.bottom <= b.y, "Mobile cards stack without overlap");
+        for (const button of await page.locator(".acts button").all())
+          await expect(button).toBeInViewport({ ratio: 1 });
+      }
+      assert.ok(
+        g["#navigation"].y >= Math.max(feed.bottom, goals.bottom),
+        "Editors follow current work",
+      );
+      assert.ok(
+        await page.evaluate(() => document.body.scrollWidth <= innerWidth + 1),
+        "No horizontal overflow",
+      );
+    };
+    await check(
+      "Routine command and goal access are visible on arrival",
+      async () => {
+        assert.ok(
+          await page.evaluate(
+            () =>
+              document.querySelector(".workspace-title").getBoundingClientRect()
+                .top >=
+              document.querySelector(".topbar").getBoundingClientRect().bottom,
+          ),
+          "Header does not cover the workspace title",
+        );
+        await expect(page.locator("#say-text")).toBeInViewport({ ratio: 1 });
+        await expect(page.locator(".goal-jump")).toBeInViewport({ ratio: 1 });
+        for (const id of [
+          "inventory",
+          "places",
+          "presence-controls",
+          "voice",
+          "settings",
+        ])
+          await expect(page.locator(`#${id}`)).toHaveJSProperty("open", false);
+        await expect(page.locator("#goals")).toHaveJSProperty("open", true);
+      },
+    );
+    await check("Monitoring geometry and responsive safety controls", aligned);
+    await shot("arrival");
+    await show("#map-pane");
+    await shot("views");
+    await page.locator(".goal-jump").click();
+    await expect(page.locator("#goals > summary")).toBeInViewport();
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const summary = document
+              .querySelector("#goals > summary")
+              .getBoundingClientRect();
+            const cover = document
+              .querySelector(innerWidth > 760 ? ".topbar" : ".preview-notice")
+              .getBoundingClientRect();
+            return summary.top >= cover.bottom;
+          }),
+        { message: "Goal jump clears the header" },
+      )
+      .toBe(true);
+    await shot("work");
+    if (original.width > 760) {
+      for (const width of [1920, 1024, 768]) {
+        await page.setViewportSize({ width, height: 1080 });
+        await check(`Monitoring geometry at ${width}px`, aligned);
+        await show("#map-pane");
+        await shot(`views-${width}`);
+      }
+      await page.setViewportSize(original);
+    }
+    await page.locator(".map-key summary").click();
+    await page.locator(".video-diagnostics > summary").click();
+    await page.locator(".camera-details summary").click();
+    await check(
+      "Expanded view details reflow without covering current work",
+      aligned,
+    );
+    await show("#camera");
+    await shot("expanded-views");
+    await page.locator("#inventory summary").click();
+    await page.locator('#inv-grid [tabindex="0"]').first().focus();
+    await expect(
+      page.locator('#inv-grid [tabindex="0"]').first(),
+    ).toBeInViewport();
+    await shot("inventory");
+    await page.locator("#places summary").click();
+    await page.locator("#place-new").click();
+    await page.locator("#place-name").focus();
+    await expect(page.locator("#place-name")).toBeFocused();
+    await shot("places");
+  },
   overview: async ({ page, check }) => {
     await check("Recorded JPEG really decodes at 960×540", async () => {
       await expect(page.locator("#camera-image")).toHaveJSProperty(
@@ -381,6 +552,7 @@ export const scenarios = {
     await check(
       "Inventory keyboard descriptions, stack and equipped tool",
       async () => {
+        await page.locator("#inventory summary").click();
         await expect(page.locator("#inv-grid .slot")).toHaveCount(32);
         const slot = page.locator('#inv-grid [tabindex="0"]').first();
         await slot.focus();
@@ -466,6 +638,7 @@ export const scenarios = {
     await check(
       "Waypoint editor submits scoped data with action protection to refusing fixture",
       async () => {
+        await page.locator("#places summary").click();
         await page.locator("#place-new").click();
         await expect(page.locator("#place-radius")).toHaveValue("0");
         await page.locator("#place-name").fill("fixture camp");
@@ -514,6 +687,7 @@ export const scenarios = {
 };
 export const examples = [
   "overview",
+  "layout-monitoring",
   "map-layers-export",
   "offline-fog",
   "camera-stale",

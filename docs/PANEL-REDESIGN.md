@@ -1,9 +1,10 @@
 # Preact control room review
 
 The workspace puts observation before configuration: health/food/current work
-and safety actions, then a generous shared map alongside the game camera and
-a compact activity timeline. Inventory/goals, places/storage and preferences
-remain separate cards below. Section links and document scrolling keep them
+and safety actions, then the command field and a balanced map/camera row.
+Activity and Kit & objectives share the next two-column row, followed by
+places/storage and preferences. Inventory and place editing start collapsed;
+goals remain open with direct access from current work. Section links and document scrolling keep them
 reachable; long editors and activity scroll independently. Mobile stacks the
 workspace and provides direct Map/Camera links and a fixed safety dock. A muted green palette and
 quiet borders separate primary observations from supporting detail.
@@ -31,9 +32,14 @@ small changes without introducing another map implementation.
 | Goals and behaviour commands | Existing goal list/actions and owner chat/control APIs retained |
 | Players, roles, marker sharing, Marco/Polo | Players & presence disclosure in Preferences |
 | Voice and every runtime setting | Original model picker/settings adapter, including provenance, reset and pins |
-| Owner chat | Say form beside Activity, using original owner authority |
+| Owner chat | Say form beside current status, using original owner authority |
 | Task failures/history/diagnostics | Readable task reasons; expandable original lines; task modal, categories, pause, day picker and earlier pages retained |
 | Standalone snapshots/previews | Built production assets embedded in self-contained read-only HTML; no separate renderer |
+
+The following measurements and validation describe the original Preact migration.
+For the balanced-layout follow-up, the `layout-monitoring` scenario in
+[PANEL-UI-TESTING.md](PANEL-UI-TESTING.md) generates arrival, monitoring, current
+work and expanded-editor screenshots at desktop, mobile and tablet sizes.
 
 `just check ci` passes, including locked frontend reproducibility, camera state
 and race tests, controller race tests, terrain maths and plugin interop. The

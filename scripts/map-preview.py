@@ -164,7 +164,7 @@ if args.suite:
  checks='' # Automation owns interactions; no delayed self-check can toggle its controls.
 html=html.replace('</body>','<script>window.renkiPreviewReady.then(()=>{'+(root/'panel/preview-checks.js').read_text()+'\n'+(root/'internal/panel/static/app.js').read_text()+'\n}).catch(error=>{document.getElementById("app").textContent="Preview could not load: "+error.message;console.error(error)});</script>'+checks+'</body>')
 if args.map_only:
- html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,#feed-pane,#camera,.observation-column,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
+ html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,#feed-pane,#camera,.command-bar,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
 if args.suite:
  font=root/'panel/node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2'
  if not font.exists():
@@ -176,7 +176,7 @@ if args.suite:
  window.renkiFixtureAdvance=ms=>{fixtureNow+=ms;};
  let fixtureSeed=102;Math.random=()=>{fixtureSeed=(1664525*fixtureSeed+1013904223)>>>0;return fixtureSeed/4294967296;};
  </script>'''
- css="@font-face{font-family:FixtureInter;src:url(data:font/woff2;base64,"+base64.b64encode(font.read_bytes()).decode()+");font-weight:100 900}*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important}body,button,input,select,textarea{font-family:FixtureInter,sans-serif!important}.preview-notice{position:fixed;top:0;left:0;right:0;z-index:10000;text-align:center;height:44px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:4px 12px!important;font-size:11px!important;line-height:14px}body{padding-top:44px}.topbar{top:44px!important}"
+ css="@font-face{font-family:FixtureInter;src:url(data:font/woff2;base64,"+base64.b64encode(font.read_bytes()).decode()+");font-weight:100 900}*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important}body,button,input,select,textarea{font-family:FixtureInter,sans-serif!important}.preview-notice{position:fixed;top:0;left:0;right:0;z-index:10000;text-align:center;height:44px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:4px 12px!important;font-size:11px!important;line-height:14px}body{padding-top:44px}[id]{scroll-margin-top:154px!important}@media(min-width:761px){.topbar{top:44px!important}}"
  html=html.replace('<head>','<head>'+stable+'<style>'+css+'</style>')
  html=html.replace("connect-src \'self\';", "connect-src \'self\'; font-src data:;")
  html=html.replace('Recorded game assets · read-only fixture replay (not live)','FIXTURE · NOT LIVE · recorded map/JPEG + simulated events and timing')

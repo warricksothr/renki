@@ -248,7 +248,10 @@ try {
           await window.renkiPreviewReady;
           await document.fonts.ready;
         });
-        if (!scenario.startsWith("video-")) {
+        if (
+          !scenario.startsWith("video-") &&
+          scenario !== "layout-monitoring"
+        ) {
           await page.locator(".video-diagnostics > summary").click();
           await expect(page.locator(".camera-badge")).toHaveText(
             "latest frame",

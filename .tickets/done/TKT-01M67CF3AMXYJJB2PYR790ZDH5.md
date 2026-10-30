@@ -22,12 +22,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T21:46:44Z
-updated_at: 2026-10-30T22:14:03Z
+updated_at: 2026-10-30T22:31:19Z
 created_by:
   id: agent:codex/local-streaming
   name: ""
 updated_by:
-  id: agent:codex/local-streaming
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -66,6 +66,12 @@ Actual Windows OBS capture freshness and automatic scene switching remain unimpl
 Actual H264 local proof passed through T3 preview: 1280x720 decode, encoded slate before source, moving synthetic FFmpeg source, bot offline covering with identical MediaStream, source killed -> slate advancing 1075 to1165 frames in3s, restored source at1511 frames with exactly one WHEP POST. Evidence .checks/streaming/proof-h264/result.json and matching PNGs. Stronger automated VP9 proof passed five checks including distinct moving source pixels, matching encoded fallback and independent relay-outage recovery (.checks/streaming/proof-vp9/result.json; log .checks/20261030T220241Z-bh8Jzk.log). Bundled Chromium lacks H264; explicit H264 proof recipe correctly reports that limitation. No VM, OBS, actual game, Twitch or external destination was used.
 
 Full just check ci passed (.checks/20261030T220538Z-zyE8PK.log). Subsequent mobile visual review identified aspect-ratio/min-height width expansion; explicit width and a fitting assertion corrected it. All ten focused video cases passed again in .checks/video-ui-final, with reviewed screenshot copy visual-review-reviewed.json. Final complete gate is running before implementation commit. Keep AC4 pending until committed review and PR handoff.
+
+**agent:codex/renki-milestones** at 2026-10-30T22:31:19Z
+
+Owner authorized landing all outstanding project PRs. PR112 streaming research, PR92 procedure/native-policy design and PR110 monitoring layout are merged into main7c92d58. Integrating main into PR113 preserves all four work streams. Resolved generated app.js by rebuilding from merged source, retained both layout and video scenario groups, and updated the layout scenario to exercise the normal video stage with diagnostics initially collapsed. Expanded diagnostic details are explicitly tested afterward. The runner still opens diagnostic JPEGs for the pre-existing image tests, while layout/video scenarios keep the default image-free monitoring path.
+
+Focused just check panel ui-test --scenario layout-monitoring --port 0 --output ../.checks/panel-integration passed (.checks/20261030T223047Z-6M06Tk.log), covering desktop/mobile, additional widths and disclosure reflow. Full integrated CI, committed review, PR113 push and landing follow. Windows OBS capture-health/scene switching and LAN/Tailscale playback remain unimplemented or unvalidated on their existing draft follow-up; no VM or external stream change is part of landing.
 
 ## Summary
 
