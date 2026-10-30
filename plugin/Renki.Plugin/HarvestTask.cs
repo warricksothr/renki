@@ -167,7 +167,7 @@ namespace Renki.Plugin
             var attackHeight = tool.m_shared.m_attack.m_attackHeight;
             var eye = p.transform.position + Vector3.up * attackHeight;
             var contactBaseHeight = rolling && !tallTree ? p.transform.position.y : origin.y;
-            if (!HarvestApproach.Contact(targetColliders, contactBaseHeight, p.transform.position, attackHeight, out var surface))
+            if (!HarvestApproach.Contact(targetColliders, contactBaseHeight, p.transform.position, attackHeight, rolling && !tallTree, out var surface, out var contactMethod))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
             if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
@@ -186,6 +186,13 @@ namespace Renki.Plugin
                         ["contact"] = Convert.ToArray(surface),
                         ["feet"] = Convert.ToArray(p.transform.position),
                         ["probeTop"] = HarvestReach.GroundProbeTop(origin.y, surface.y),
+                        ["probe"] = contactMethod,
+                        ["colliders"] = targetColliders.Where(Alive).Take(3).Select(c => new
+                        {
+                            kind = c.GetType().Name,
+                            min = Convert.ToArray(c.bounds.min),
+                            max = Convert.ToArray(c.bounds.max),
+                        }).ToArray(),
                     });
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported, water-safe position beside the resource"));
                 }
@@ -220,6 +227,7 @@ namespace Renki.Plugin
                     ["contact"] = Convert.ToArray(surface),
                     ["origin"] = Convert.ToArray(eye),
                     ["reach"] = reach,
+                    ["probe"] = contactMethod,
                 });
             }
             if (Protected(p, tallTree ? Mathf.Clamp(targetColliders.Where(Alive).Max(c => c.bounds.max.y) - origin.y + 2, 8, 32) : 0, out var protectedReason))

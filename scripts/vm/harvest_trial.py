@@ -9,14 +9,14 @@ import time
 def diagnostics(audit, task_ids):
     """A bounded projection of matching harvest traces; raw evidence stays on disk."""
     fields = {
-        'physical strike contact visible': ('entity', 'contact', 'origin', 'reach'),
+        'physical strike contact visible': ('entity', 'contact', 'origin', 'reach', 'probe'),
         'approaching physical contact': ('contact', 'goal', 'reach', 'attackHeight'),
         'resource broke after local hit': ('entity', 'hits'),
         'protected collider': ('collider', 'radius', 'center', 'boundsDistance', 'character', 'piece'),
         'safety scan': ('phase', 'radius', 'previousCapacity', 'capacity', 'count', 'complete'),
         'escape route rejected': ('attempt', 'goal', 'stage', 'collider'),
         'escape route selected': ('attempt', 'from', 'goal'),
-        'unsupported physical contact': ('entity', 'resource', 'contact', 'feet', 'probeTop'),
+        'unsupported physical contact': ('entity', 'resource', 'contact', 'feet', 'probeTop', 'probe', 'colliders'),
     }
     tasks = {key: dict(messages=Counter(), last={}) for key in list(dict.fromkeys(task_ids))[:5]}
     damage_events = 0

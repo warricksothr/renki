@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:46:45Z
+updated_at: 2026-10-30T13:23:16Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,9 +56,7 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Implementation plan
 
-Tree/log/stump operation and exercised falling escapes are now verified, while collection:false and compound failure cases remain open. The latest full-tree trial's new log has pivot[168.02,90.96,-281.97] versus Tas feet[169.27,83.51,-273.58]. Current contact probing anchors its horizontal slice at resource pivot height and ground projection begins at pivot+2 with an8m ray. On a tilted long log this can miss a reachable lower surface and miss ground below pivot-6; alternatively the trunk may genuinely be suspended. Do not treat the pivot as the physical strike/support elevation.
-
-For logs, probe the horizontal contact slice at actual player strike height; standing trees/stumps keep their resource-height projection for approaches from raised floors. Retain the3D physical collider fallback. Ground projection starts two metres above the lower of resource pivot and measured contact; keep its bounded8m scan, real support, water checks, navmesh/body route checks and fresh actual strike reach/sight. Add bounded refused-stance diagnostics with pivot/contact/feet/scan top. Numerical regressions use the observed high pivot and low stance, ensuring ordinary raised-home approaches still anchor outdoors. Validate, review, land, deploy and retry only the existing log. A genuinely suspended/inaccessible trunk must still refuse.
+Continue the owner's M2/M3 completion request from the elevated-log refusal. The current Contact only probes through world AABB center slices, which can miss a tilted log's nearest lower end. For logs, prefer Unity's exact Collider.ClosestPoint on supported box/sphere/capsule/convex-mesh colliders; never call it on unsupported nonconvex meshes. Retain physical ray fallback, actual strike sight/reach and supported dry footing. Add bounded collider kind/bounds and probe-method evidence to distinguish genuine suspension from missing lower geometry. Verify deterministic contact eligibility/range and preserve nonconvex tree behavior, then CI/review/land/deploy and retry the existing log once under the new hypothesis. Keep continuous tree-to-Wood, collect:false, compound failure cases and controller delivery checks open until earned.
 
 ## Notes
 
