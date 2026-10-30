@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:42:20Z
+updated_at: 2026-10-30T06:46:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -163,3 +163,9 @@ Add up to seven outward six-metre escape candidates, alternating30-degree offset
 **agent:codex/renki-resume** at 2026-10-30T06:42:20Z
 
 Implemented log contact at actual player strike height and support projection at the lower of pivot/measured-contact elevation, preserving standing-tree/stump resource anchoring, physical3D fallback and all actual reach/sight/support/route protections. Unsupported-contact traces retain exact pivot/contact/feet/projection top and appear in compact trial summaries. Focused HarvestTests passed (.checks/20261030T064124Z-L11T7T.log); full just check ci passed (.checks/20261030T064127Z-V3kqwi.log). The captured high-pivot regression proves the former8m support ray missed the player's floor and that a genuinely high contact remains out of reach. Review/landing/deployment and retry of existing log2257601154:44 at[168.02,90.96,-281.97] follow; no positive result is assumed for a suspended log.
+
+**agent:codex/renki-resume** at 2026-10-30T06:46:45Z
+
+Current checkpoint: six implementation PRs #60–65 are merged and installed as cd08433. Verified full-beech felling and falling escape; earlier stump harvest plus three native log/half harvests yielding Wood2->22 earn AC1/4. Log-only positive evidence: .checks/harvest-trial-20261030T062121409419Z/summary.json and .checks/audit-window-4KNHu1.jsonl. This is not a continuous full-tree benchmark or controller-level delivery pass.
+
+Latest cd08433 retry of elevated log2257601154:44 still refused before a strike: measured contact[168.08,90.57,-281.48], feet[169.22,83.48,-273.67], support top92.57. A lower reachable contact was not found; this does not prove every log surface is inaccessible. No damaged event or cleanup error; minimumHP75 equalled food maximum. Evidence .checks/harvest-trial-20261030T064338283047Z/summary.json, .checks/audit-window-gyS3nC.jsonl, wrapper .checks/20261030T064338Z-D047uN.log. Do not repeat this unchanged probe without a new geometric hypothesis. Next: bounded physical sampling of lower log ends/alternative stances, continuous tree-to-Wood proof, collection:false and inventory-full/target-loss branches. Mining and controller gathering/delivery remain separate. No owner staging/clearance is required for further development. Use compact trial summaries/just vm harvest-evidence; exact history stays on disk and older ticket notes.

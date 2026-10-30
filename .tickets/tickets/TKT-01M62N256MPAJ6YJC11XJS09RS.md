@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T06:25:03Z
+updated_at: 2026-10-30T06:45:16Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -112,3 +112,7 @@ The automated native trial (.checks/combat-trial-20261030T021553504234Z/summary.
 **agent:codex/renki-resume** at 2026-10-30T06:25:03Z
 
 Require positive perceived creature HP during retreat threat selection. Previously a dead recently confirmed attacker or stale targeting flag could start another flee before its corpse vanished. Regression exercises zero versus positive HP under both targeting-only and recent-hit evidence. Existing living-attacker emergency, native-combat ownership and fallback-flee cases remain passing. Focused just check controller test-packages ./internal/retreat passed (.checks/20261030T062313Z-4HzY85.log); full just check ci passed (.checks/20261030T062338Z-PagRsJ.log). No new live flee/block/dodge evidence is claimed. Review/landing and deployment follow after the active harvesting runner finishes cleanup.
+
+**agent:codex/renki-resume** at 2026-10-30T06:45:16Z
+
+PR #63 merged23248bb; its dead-attacker threat correction is installed in cd08433. CI and committed review passed (.checks/20261030T062338Z-PagRsJ.log, .checks/20261030T062503Z-Z6z3Hp.log). Living actual attackers still trigger retreat; zero-health former attackers do not. No positive live flee/block/dodge is newly claimed. Latest harvested-area perception contained only Deer, with no eligible ordinary Greyling, so another unchanged combat trial was not run. Combat remains off by default; owner staging/clearance is not a development prerequisite.

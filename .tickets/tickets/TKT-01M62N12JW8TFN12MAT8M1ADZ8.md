@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T06:37:20Z
+updated_at: 2026-10-30T06:45:16Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -72,3 +72,7 @@ Validate sequencing through log halves, stale observations, unrelated/old logs, 
 Implemented bounded gather template: explicit world/site and ordered destination chests; one full tier-zero beech, then only new nearby beech logs; five harvest targets/eight-minute bound; native harvest owns movement/aim/swing/escape/collection. Requires fresh target removal and inventory after native success, at least two log harvests and measured Wood gain before stow. Existing product counts are preserved and only gained Wood/BeechSeeds/Resin/Feathers enter the task-receipt-based stow runner, optionally returning to the site. No default instance is enabled. Unavailable descendants stop the chain rather than selecting another tree.
 
 Focused just check controller test-packages ./internal/behaviour ./internal/app ./internal/session passed (.checks/20261030T063331Z-UJ1mbC.log); subsequent health-loss/food-decay and pre-travel-character guards passed focused behavior checks (.checks/20261030T063553Z-VCsbxg.log). Tests cover complete tree/log/halves/deposit/return, old-log exclusion, preservation of original inventory, unsafe/unavailable descendants, stale success observations, weight measured from current inventory, tools/food/health/stamina/scope/time/target bounds and owner takeover preventing later steps. Final CI/review/landing/deployment follow. Controller-level gathering/delivery, site inference, remembered owner work sites, continuous multi-tree hauling and chat start/stop remain unverified or unimplemented; all broad AC stay open.
+
+**agent:codex/renki-resume** at 2026-10-30T06:45:16Z
+
+PR #64 merged as67e2e1e; bounded gather is installed in cd08433. Final just check ci passed (.checks/20261030T063721Z-QwtwVM.log), committed just check review passed (.checks/20261030T063806Z-tbpNBn.log), and package checksums verified (.checks/20261030T064329Z-WRdP6W.log). No gather instance was installed or enabled. Deterministic tree/log/halves/gain-only-stow/return and owner-takeover checks pass. Controller-level live delivery, site inference, chat controls and repeated multi-tree hauling remain open; component harvesting success does not close these AC. Use docs/BEHAVIOURS.md for current parameters and bounds rather than rereading implementation history.
