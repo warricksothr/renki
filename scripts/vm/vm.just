@@ -339,3 +339,12 @@ camera-rate INTERVAL='5':
 [positional-arguments]
 map-snapshot *ARGS:
     @python3 -B "{{justfile_directory()}}/scripts/vm/map-snapshot.py" "$@"
+
+# Verify live 5 -> temporary 1 -> automatic 5 cadence, JPEG and map retrieval.
+# Requires an in-world bot and enabled normal 5s camera; always logs out/stops.
+camera-check: need-target
+    @python3 -B "{{justfile_directory()}}/scripts/vm/camera-check.py"
+
+# Check actual-frame cadence analysis without game or network access.
+test-camera-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/camera-check-test.py"

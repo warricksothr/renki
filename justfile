@@ -45,7 +45,7 @@ fmt: (route "fmt")
 clean: (route "clean")
 
 # Everything CI runs: each component's ci, then the ticket store.
-ci: (route "ci") tickets-check check-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food
+ci: (route "ci") tickets-check check-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check
 
 # Retain full output in .checks/; print a summary or the last 80 failure lines.
 # For example: just check ci, just check controller test-packages ./internal/home.
