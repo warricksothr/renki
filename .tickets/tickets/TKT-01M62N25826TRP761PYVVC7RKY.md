@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T19:04:00Z
+updated_at: 2026-10-30T19:15:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -226,3 +226,7 @@ Exact t-1 retained frames in .checks/scout-task-reconciliation-check.json contai
 **agent:codex/renki-milestones** at 2026-10-30T19:04:00Z
 
 Installed 635f4e9 includes M2 approach and native scouting preparation. Trial .checks/combat-trial-20261030T190055024923Z stopped safely before movement: jarl was 2.2 m from Tas, and the new travel phase reused the 8 m combat bystander buffer. Native audit showed zero damage; cleanup succeeded. Camera .checks/camera-20261030T190158640464Z.jpg confirms both players inside home and provides the same scene as structured perception. Follow-up permits ordinary no-swing travel past players, keeps space at destinations and retains creature guards plus unchanged combat spacing. Do not count this as successful egress or combat.
+
+**agent:codex/renki-milestones** at 2026-10-30T19:15:48Z
+
+On installed 5a5f5c9, trial .checks/combat-trial-20261030T190620683729Z moved 5.9 m through the raised house toward its doorway, then failed unsafe footing. Audit .checks/audit-window-CN2Lzf.jsonl shows a validated 48-waypoint local route, followed by normal Walker Jump recovery at [-39.83,36.09,11.33]; the combat-wide IsOnGround guard aborted that ordinary movement immediately. No damage occurred; cleanup succeeded. Camera .checks/camera-20261030T190727849372Z.jpg confirms the doorway scene. Follow-up should retain normal movement recovery during preparation while keeping dry/unburdened/health/creature/time/travel guards and requiring grounded clear terrain before search or combat.
