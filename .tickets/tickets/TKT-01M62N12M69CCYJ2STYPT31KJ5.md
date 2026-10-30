@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T17:11:16Z
+updated_at: 2026-10-30T17:24:40Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -78,3 +78,7 @@ Restart check exposed active meal prefab names as localization tokens because de
 **agent:codex/renki-milestones** at 2026-10-30T17:10:29Z
 
 claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
+
+**agent:codex/renki-milestones** at 2026-10-30T17:24:40Z
+
+PR #85 landed as 8d74697. The first just vm resupply-food aborted safely before any withdrawal: native move_to home (375 m) failed unreachable with zero local expansions/probes. Tas stayed 25/25 HP without food; cleanup stopped Valheim and left the panel online with combat off. Evidence .checks/resupply-trial-20261030T171910672502Z/summary.json and .checks/audit-window-fjlQa2.jsonl. Diagnosed the distant destination exceeding LocalRoute's 48 m bound, preventing the asynchronous navmesh retry. Fixing native progressive routing under TKT-01M638V1XC9DX4XJ2ZV1EKGNRS (Follow: stuck outside a wall, the leader inside, path straight through) before retrying resupply. No positive wider-search/combat evidence yet.

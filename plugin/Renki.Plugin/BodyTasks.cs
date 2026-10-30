@@ -487,7 +487,11 @@ namespace Renki.Plugin
             watch.Stop();
             localMs += watch.Elapsed.TotalMilliseconds;
             localWorstMs = System.Math.Max(localWorstMs, watch.Elapsed.TotalMilliseconds);
-            if (localRoute.Status == RouteStatus.Searching && Time.unscaledTime - localStarted < 8) return true;
+            var elapsed = Time.unscaledTime - localStarted;
+            if (localRoute.Status == RouteStatus.Searching && elapsed < 8) return true;
+            // Even an enclosed start may exhaust the local search before
+            // the navmesh's asynchronous tile request has had one retry.
+            if (localRoute.Status == RouteStatus.NoRoute && elapsed < 1.25f) return true;
             var found = localRoute.Status == RouteStatus.Found;
             Tracer.Emit("walker", found ? "local route found" : "no safe local route", new Dictionary<string, object>
             {
@@ -503,6 +507,8 @@ namespace Renki.Plugin
                 ["ms"] = System.Math.Round(localMs, 2),
                 ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),
                 ["waypoints"] = found ? localRoute.Path.Count : 0,
+                ["progressLeg"] = localRoute.ProgressLeg,
+                ["end"] = found ? localRoute.Path[localRoute.Path.Count - 1].ToArray() : null,
             });
             if (found)
             {

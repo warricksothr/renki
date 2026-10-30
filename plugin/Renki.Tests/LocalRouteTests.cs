@@ -82,6 +82,75 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void DistantHomeAdvancesInCheckedLegsFollowingSlopingSupport()
+        {
+            var origin = new V3(189.51, 82.18, -289.97);
+            var goal = new V3(-35.9, 37.66, 6.53);
+            var distance = V3.FlatDistance(origin, goal);
+            var direction = (goal - origin).Flat.Normalized;
+            V3? Probe(V3 from, V3 to)
+            {
+                var y = origin.Y + V3.Dot((to - origin).Flat, direction) / distance * (goal.Y - origin.Y);
+                return Math.Abs(y - from.Y) <= .6 ? new V3(to.X, y, to.Z) : (V3?)null;
+            }
+            var here = origin;
+            var legs = 0;
+            while (!Arrival.Reached(here, goal, .5) && legs < 32)
+            {
+                var route = new LocalRoute(here, goal, Probe, within: .5);
+                Assert.Equal(RouteStatus.Found, Finish(route));
+                Assert.True(route.Probes > 0);
+                Assert.InRange(route.Expanded, 1, LocalRoute.MaxNodes);
+                Assert.All(route.Path, at => Assert.True(Math.Abs(at.X - here.X) <= LocalRoute.Range &&
+                    Math.Abs(at.Z - here.Z) <= LocalRoute.Range));
+                for (var i = 1; i < route.Path.Count; i++)
+                    Assert.Equal(route.Path[i], Probe(route.Path[i - 1], route.Path[i]));
+                var end = route.Path.Last();
+                if (route.ProgressLeg)
+                {
+                    Assert.False(Arrival.Reached(end, goal, .5));
+                    Assert.True(V3.FlatDistance(here, end) >= LocalRoute.FrontierDistance);
+                    Assert.True(V3.FlatDistance(here, goal) - V3.FlatDistance(end, goal) >= LocalRoute.FrontierProgress);
+                    Assert.InRange(route.Expanded, 1, 512);
+                }
+                here = end;
+                legs++;
+            }
+            Assert.InRange(legs, 20, 32);
+            Assert.True(Arrival.Reached(here, goal, .5));
+        }
+
+        [Fact]
+        public void DistantProgressRoutesAroundMeasuredWallWithoutUsingTheGoalsFloor()
+        {
+            var walls = new[] { Wall(3, -4, 3, 4) };
+            var goal = new V3(375, 50, 0);
+            var route = new LocalRoute(V3.Zero, goal, (a, b) => WallRoute.Clear(a, b, walls) ? b : (V3?)null);
+            Assert.Equal(RouteStatus.Found, Finish(route));
+            Assert.True(route.ProgressLeg);
+            Assert.True(WallRoute.Clear(V3.Zero, route.Path, walls));
+            Assert.Contains(route.Path, at => Math.Abs(at.Z) > 4);
+            Assert.All(route.Path, at => Assert.Equal(0, at.Y));
+            Assert.False(Arrival.Reached(route.Path.Last(), goal, 2));
+        }
+
+        [Fact]
+        public void DistantSearchCannotEscapeEnclosureOrWalkIntoUnprobedGround()
+        {
+            var goal = new V3(375, 0, 0);
+            var walls = new[] { Wall(-2, -2, 2, -2), Wall(2, -2, 2, 2), Wall(2, 2, -2, 2), Wall(-2, 2, -2, -2) };
+            var enclosed = new LocalRoute(V3.Zero, goal, (a, b) => WallRoute.Clear(a, b, walls) ? b : (V3?)null);
+            Assert.Equal(RouteStatus.NoRoute, Finish(enclosed));
+            Assert.True(enclosed.Probes > 0);
+            Assert.Null(enclosed.Path);
+            // The same refusal is used for absent support and unsafe water.
+            var unloaded = new LocalRoute(V3.Zero, goal, (a, b) => b.Flat.Length < 5 ? b : (V3?)null);
+            Assert.Equal(RouteStatus.NoRoute, Finish(unloaded));
+            Assert.Null(unloaded.Path);
+            Assert.True(unloaded.Expanded < LocalRoute.MaxNodes);
+        }
+
+        [Fact]
         public void ACellOnTheUpperFloorIsNotTheCellBeneathIt()
         {
             V3? Probe(V3 from, V3 to)

@@ -18,21 +18,21 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:codex/renki-resume
-  branch: t3/navigation-cache
+  actor: agent:codex/renki-milestones
+  branch: t3/progressive-home-routing
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: bfe3f88dd5fc07bad7e0bd7f6725e63b12dd523c
+  commit: 8d746974e69c49dc9878555b3114a1e327c0665e
   session: null
-  claimed_at: 2026-10-29T17:41:35Z
+  claimed_at: 2026-10-30T17:24:39Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-29T22:55:14Z
+updated_at: 2026-10-30T17:24:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -52,12 +52,7 @@ Follow should also not count it as stuck when it is already within its distance 
 
 ## Implementation plan
 
-### Current slice: reuse successful entrance routes
-Keep a bounded, session/world-scoped memory of actual grounded movement from completed point move_to tasks. Do not memorize failed/cancelled attempts or planned-but-unwalked paths. Retain at most 24 routes and 256 points per trail; prune short backtracking loops and discard oversized trails. Match start/goal with floor-aware bounded joins, support reversal, and select the shortest matching hint.
-
-Before replay, validate the complete joined route against current support, water, measured walls and physical clearance in small physics-frame slices. Resample at sub-metre intervals rather than trusting long old segments. Closed accessible doors still use the normal doorman. Recheck the immediate replay leg while walking; invalidate a blocked hint and return to ordinary bounded planning instead of repeatedly trying it. Clear memory on world/session reset. Never persist geometry as authority or bypass owner stop, survival cancellation, wards or water checks.
-
-Add deterministic regressions for reverse entrance reuse, stacked floors, changed/removed support and blockers, oversized trails, bounded storage/work and safe fallback. Emit bounded reuse/rejection/cost traces. Run focused just checks, just check ci, committed just check review, then land/deploy. Live-check an open-ground trip out and back, repeat it to show reuse, and compare task results/probe work while monitoring HP. Leave destructive geometry/ward staging as explicit remaining checks rather than modifying the owner's house for a test. After routing, proceed to storage checks and the supplied-axe harvesting slice from the owner's approved list.
+Continue the owner's autonomous M2/M3 work by fixing the prerequisite long-distance return-home failure. The retained resupply audit shows a 375 m goal handed to the 48 m local planner with zero expansions or probes after the initial navmesh query failed. Keep local CPU, support, water and clearance bounds. For distant goals, permit a fully probed short frontier leg that makes measurable progress toward the actual destination, preserving the destination and replanning at the leg endpoint. Heights must follow live support rather than interpolating toward an unloaded floor. Wait briefly for asynchronously requested navmesh tiles even if the local search finishes without a route. Test distant sloped trips, obstacle detours, enclosed starts, unknown support/water, bounded work and final-floor arrival; then run just check ci, commit, just check review, land and deploy. Repeat just vm resupply-food and record actual travel, transfer, eating and cleanup evidence. Keep unrelated close-follow and terrain-mutation criteria open.
 
 ## Notes
 
@@ -125,3 +120,7 @@ Owner supplied new flint axe in rag chest 1:30592; t-5 withdrew exactly one AxeF
 **agent:codex/renki-resume** at 2026-10-29T22:55:14Z
 
 Final waypoint-progress build live check 2026-10-29 22:54:47–22:55:03Z: level terrace (-46,33.9,16) outgoing t-5 reused route 3, succeeded in 3.7 s, 45 samples/1.61 ms total/.34 ms worst slice. Reverse chest t-6 reused route 5, crossed west doorway, closed door behind, succeeded in 4.1 s, 48 samples/1.84 ms total/.37 ms worst slice. Neither required fallback; HP stayed 25. Evidence .checks/route-level-out.json and .checks/route-level-return.json. Earlier steep exterior start t-4 legitimately stalled its replay and reverted to normal planning, which completed; .checks/route-corrected-return.json. Do not claim replay handles that slope or a hard 2 ms bound. Final source gate .checks/20261029T225019Z-McEZIK.log; committed review .checks/20261029T225100Z-67FUwU.log: no findings. Route hints still clear on reconnect.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:24:39Z
+
+claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
