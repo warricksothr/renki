@@ -2,8 +2,9 @@
 
 **Local implementation update:** [LOCAL-VIDEO.md](LOCAL-VIDEO.md) supersedes the
 local-viewing, standby and outage-lifecycle parts of this original research.
-The new slice adds authenticated WHEP/player, shared original slate and local
-relay tooling. Windows OBS capture/scene automation and external destinations
+The loopback slice adds authenticated WHEP/player, shared original slate and
+local relay tooling. [WINDOWS-VIDEO.md](WINDOWS-VIDEO.md) documents the subsequent
+OBS adapter, real game capture and private HTTPS deployment. External destinations
 remain future work. The text below records the PR #112 research baseline.
 
 Proposed design, researched 2026-10-30 against base `3ccd07d` (PR #109).

@@ -42,6 +42,9 @@ namespace Renki.Plugin
         readonly TerrainReporter terrain = new TerrainReporter();
         InventoryReporter inventory;
         readonly CameraReporter cameraReporter = new CameraReporter();
+        readonly CaptureBeacon captureBeacon = new CaptureBeacon();
+        bool captureBeaconEnabled;
+        internal CaptureProof CaptureProof => captureBeacon.Proof;
         internal bool CameraActive => runner.InSession && client.Connected && !loggingOut && Phase() == Wire.PhaseInWorld && Player.m_localPlayer != null;
         internal int CameraConnection => client.ConnectionId;
         internal string CameraTask => runner.Current?.Id;
@@ -66,6 +69,8 @@ namespace Renki.Plugin
                 "Where the controller listens (docs/BRIDGE-PROTOCOL.md section 2).");
             token = Config.Bind("Bridge", "Token", "",
                 "Sent in hello. Required when the controller listens on anything but loopback.");
+            captureBeaconEnabled = Config.Bind("Streaming", "CaptureBeacon", false,
+                "Draw a tiny changing in-frame nonce for verified OBS capture. Requires restart.").Value;
             terrain.Namespace = Config.Bind("Mapping", "Namespace", "local",
                 "Stable server/save namespace for atlas data; use a distinct value for unrelated save copies.").Value;
             terrain.Epoch = Config.Bind("Mapping", "Epoch", "1",
@@ -131,6 +136,7 @@ namespace Renki.Plugin
             }
 
             var phase = Phase();
+            captureBeacon.Update(captureBeaconEnabled && CameraActive);
             cameraReporter.Update(this, CameraActive);
             var player = Player.m_localPlayer;
             var world = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
@@ -176,6 +182,8 @@ namespace Renki.Plugin
                 nextPerception = now + (float)(1 / Math.Max(0.1, perceptionHz));
             }
         }
+
+        void OnGUI() { captureBeacon.Draw(); }
 
         void Handle(Message msg)
         {

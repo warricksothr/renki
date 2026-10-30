@@ -1,6 +1,9 @@
 package protocol
 
-import "slices"
+import (
+	"slices"
+	"time"
+)
 
 // Message types, as they appear in `type`.
 const (
@@ -155,7 +158,8 @@ type CombatStatus struct {
 
 // State is the bot's own body, streamed at stateHz (6.1).
 type State struct {
-	SharePosition *bool `json:"sharePosition,omitempty"`
+	CaptureProof  *CaptureProof `json:"captureProof,omitempty"`
+	SharePosition *bool         `json:"sharePosition,omitempty"`
 	Envelope
 	Phase      string            `json:"phase"`
 	Character  string            `json:"character"`
@@ -186,6 +190,13 @@ type State struct {
 }
 
 func (*State) MessageType() string { return TypeState }
+
+// CaptureProof is an opt-in nonce rendered into the game image. Receiving it
+// alone is not capture evidence; OBS must independently observe changing pixels.
+type CaptureProof struct {
+	Token string    `json:"token"`
+	At    time.Time `json:"at"`
+}
 
 // State flags (6.1).
 const (

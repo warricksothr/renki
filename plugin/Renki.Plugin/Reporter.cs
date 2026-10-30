@@ -128,6 +128,7 @@ namespace Renki.Plugin
         {
             var p = Player.m_localPlayer;
             var s = new State { Phase = phase, Task = task };
+            s.CaptureProof = plugin.CaptureProof;
             if (p == null) return s;
             s.Character = p.GetPlayerName();
             if (phase == Wire.PhaseInWorld && ZNet.instance != null) s.SharePosition = ZNet.instance.IsReferencePositionPublic();
