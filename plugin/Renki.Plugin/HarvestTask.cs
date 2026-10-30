@@ -40,7 +40,7 @@ namespace Renki.Plugin
         Vector3 origin, walkGoal, retreat;
         bool walking, retreatReady, retreated, broken, cancelled, injured, forceApproach, strikeLogged;
         float brokeAt, quietSince = -1, nextCollect, swingSince = -1;
-        int hitsAtSwingStart, collected, contactRetries;
+        int hitsAtSwingStart, collected, contactRetries, retreatAttempts;
         PickupTask pickup;
 
         public HarvestTask(HarvestArgs args, GameObject target)
@@ -182,7 +182,7 @@ namespace Renki.Plugin
                 {
                     walker.SetGoal(p.transform.position, goal, .15f);
                     walker.ResetStuck(p.transform.position);
-                    walkGoal = goal; walking = true; retreatReady = false;
+                    walkGoal = goal; walking = true; retreatReady = false; retreatAttempts = 0;
                     Tracer.Emit("harvest", "approaching physical contact", new Dictionary<string, object>
                     {
                         ["contact"] = Convert.ToArray(surface),
@@ -217,9 +217,10 @@ namespace Renki.Plugin
             {
                 var away = p.transform.position - origin; away.y = 0;
                 if (away.sqrMagnitude < .01f) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no clear side to retreat from the trunk"));
-                retreat = origin + away.normalized * 6;
-                retreat.y = p.transform.position.y;
-                var probe = new WorldNavigation.PlanningProbe(); probe.BeginSlice();
+                if (retreatAttempts == HarvestEscape.CandidateLimit)
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported escape from the falling trunk after checking outward alternatives"));
+                retreat = Convert.ToVector3(HarvestEscape.Candidate(Convert.ToV3(origin), Convert.ToV3(p.transform.position), retreatAttempts++));
+                var probe = new WorldNavigation.PlanningProbe(diagnostics: true); probe.BeginSlice();
                 var at = Convert.ToV3(p.transform.position);
                 var end = Convert.ToV3(retreat);
                 var count = (int)Math.Ceiling((end - at).Length / .5);
@@ -227,10 +228,26 @@ namespace Renki.Plugin
                 for (var i = 1; i <= count; i++)
                 {
                     var supported = probe.Probe(at, start + (end - start) * (i / (double)count));
-                    if (!(supported is V3 next)) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported escape from the falling trunk"));
+                    if (!(supported is V3 next))
+                    {
+                        Tracer.Emit("harvest", "escape route rejected", new Dictionary<string, object>
+                        {
+                            ["attempt"] = retreatAttempts,
+                            ["goal"] = Convert.ToArray(retreat),
+                            ["stage"] = probe.LastFailure?.Stage,
+                            ["collider"] = probe.LastFailure?.Collider,
+                        });
+                        return null;
+                    }
                     at = next;
                 }
                 retreat = Convert.ToVector3(at); retreatReady = true;
+                Tracer.Emit("harvest", "escape route selected", new Dictionary<string, object>
+                {
+                    ["attempt"] = retreatAttempts,
+                    ["from"] = Convert.ToArray(p.transform.position),
+                    ["goal"] = Convert.ToArray(retreat),
+                });
             }
             Driver.LookAt = surface;
             Driver.LookOriginHeight = attackHeight;

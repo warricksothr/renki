@@ -199,6 +199,11 @@ harvest-trial *ARGS:
 harvest-logs X Y Z *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-logs "$1" "$2" "$3" "${@:4}"
 
+# Read only matching bounded harvest evidence from a retained audit.
+[positional-arguments]
+harvest-evidence AUDIT +TASK_IDS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/harvest-evidence.py" "$@"
+
 test-harvest-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/harvest-trial-test.py"
 

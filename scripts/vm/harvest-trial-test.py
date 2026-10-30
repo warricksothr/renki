@@ -55,6 +55,27 @@ class HarvestTrialTests(unittest.TestCase):
         self.assertFalse(harvest.pack_ready(dict(self.pack, inventory=dict(size=[8, 4], items=[dict(self.axe, durability=0)]))))
         self.assertFalse(harvest.pack_ready(dict(self.pack, inventory=None)))
 
+    def test_diagnostics_scope_and_bound_repeated_contacts_and_report_saturation(self):
+        def trace(task, message, **data):
+            return dict(frame=dict(type='trace', source='harvest', task=task, msg=message, data=data))
+        rows = [trace('old', 'resource broke after local hit', hits=99)]
+        rows += [trace('trial', 'approaching physical contact', goal=[i, 0, 0]) for i in range(200)]
+        rows += [trace('trial', 'safety scan', phase='protection', capacity=2048, count=2048, complete=False)]
+        rows += [dict(frame=dict(type='event', event='damaged'))]
+        rows += [dict(frame=dict(type='state', task=dict(id='trial', task='harvest')))]
+        with tempfile.TemporaryDirectory() as directory:
+            audit = Path(directory) / 'audit.jsonl'
+            audit.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+            value = harvest.diagnostics(audit, ['trial'])
+        self.assertEqual(list(value['tasks']), ['trial'])
+        self.assertEqual(value['damageEvents'], 1)
+        task = value['tasks']['trial']
+        self.assertEqual(task['messages']['approaching physical contact'], 200)
+        self.assertEqual(task['last']['approaching physical contact']['goal'], [199, 0, 0])
+        self.assertFalse(task['last']['safety scan']['complete'])
+        self.assertNotIn('resource broke after local hit', task['last'])
+        self.assertLess(len(json.dumps(value)), 600)
+
     def test_native_goals_evidence_and_cleanup_for_success_and_failures(self):
         for scenario in ('success', 'logs_only', 'no_site', 'failed', 'missing_hit', 'world_change', 'damage', 'pack_scope', 'no_wood', 'unsafe_log'):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as directory:

@@ -210,6 +210,12 @@ def main():
         try:
             audit = call('audit-window', since, until, timeout=60).strip()
             summary['audit'] = audit
+            if harvesting:
+                try:
+                    from harvest_trial import diagnostics
+                    summary['harvest'] = diagnostics(audit, [t['id'] for t in summary.get('tasks', [])])
+                except Exception as e:
+                    summary['diagnosticError'] = str(e)
             if summary.get('task') and not harvesting:
                 try:
                     summary['ground'] = ground_diagnostics(audit, summary['task'])
@@ -224,6 +230,8 @@ def main():
     if harvesting:
         report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))
+        if summary.get('harvest'):
+            report['harvest'] = summary['harvest']
     if summary.get('ground'):
         report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected')}
         report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons')}

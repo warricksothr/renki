@@ -617,6 +617,12 @@ test-harvest-trial` for selection, scoped inventory, native-goal sequencing,
 evidence requirements, failure and cleanup checks; it is part of `just check ci`.
 This does not establish mining, crafting, delivery home or indefinite harvesting.
 
+Trials also retain a bounded harvest projection in `summary.json`: matching
+contact, safety-scan, escape and break evidence, with damage-event count for the
+whole audit window. Re-read an existing audit with `just vm harvest-evidence
+AUDIT TASK_ID [TASK_ID ...]` (up to five IDs), without fetching broad history or
+starting the game. Repeated messages retain counts and their latest details.
+
 To retry a fallen trunk without felling another tree, use `just vm harvest-logs
 X Y Z --wait-s 60` with the known log area's center. This explicitly considers
 existing nearby tier-zero beech logs, uses the same safety/cleanup bounds, and
@@ -651,6 +657,16 @@ probe now falls back from a horizontal slice to a 3D ray through the collider
 center; an actual collider hit and clear strike sight remain required.
 Evidence: `.checks/harvest-trial-20261030T060943568520Z/summary.json` and
 `.checks/audit-window-LxVrpf.jsonl`. Log splitting remains a pending live check.
+
+The b0d4538 log retry passed contact acquisition and approached the tilted log,
+then refused its single outward escape. Before swinging, harvesting now checks
+up to seven six-metre outward corridors, one per physics tick, alternating sides
+through 90 degrees. None initially approaches the resource or crosses it. Every
+half-metre step still needs live supported, dry, wall/body-clear geometry; all
+failures refuse. Selected/rejected corridors retain bounded geometry diagnostics.
+`just check plugin test-core HarvestTests` includes monotonic distance and bound
+regressions. Prior refusal: `.checks/audit-window-VVI6C2.jsonl`; no damage or
+cleanup errors. Post-change log splitting remains pending until a live result.
 
 ### Explicit melee
 
