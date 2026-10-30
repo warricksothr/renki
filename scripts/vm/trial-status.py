@@ -47,7 +47,7 @@ def report(folder, now=None):
         except ValueError:
             final = None
         if final:
-            for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'cleanupErrors'):
+            for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors'):
                 if key in final:
                     result[key] = final[key]
             result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: t.get('result', {}).get(k)

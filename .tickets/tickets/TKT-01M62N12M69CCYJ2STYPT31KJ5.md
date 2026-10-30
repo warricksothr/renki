@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T17:24:40Z
+updated_at: 2026-10-30T17:34:54Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -82,3 +82,7 @@ claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
 **agent:codex/renki-milestones** at 2026-10-30T17:24:40Z
 
 PR #85 landed as 8d74697. The first just vm resupply-food aborted safely before any withdrawal: native move_to home (375 m) failed unreachable with zero local expansions/probes. Tas stayed 25/25 HP without food; cleanup stopped Valheim and left the panel online with combat off. Evidence .checks/resupply-trial-20261030T171910672502Z/summary.json and .checks/audit-window-fjlQa2.jsonl. Diagnosed the distant destination exceeding LocalRoute's 48 m bound, preventing the asynchronous navmesh retry. Fixing native progressive routing under TKT-01M638V1XC9DX4XJ2ZV1EKGNRS (Follow: stuck outside a wall, the leader inside, path straight through) before retrying resupply. No positive wider-search/combat evidence yet.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:34:54Z
+
+The progressive-routing resupply trial travelled about 384 m under one native move_to and reached 8.4 m from home, but a Greyling hit for 2.98 at [-40.56,31.99,1.83] superseded the task with host retreat t-2. Actual final native HP was 22/25 at [-48.73,33.75,17.06], although the slower operator poll last saw 25; no food was withdrawn. Cleanup succeeded. Evidence .checks/resupply-trial-20261030T172751293533Z and .checks/audit-window-V6dJ5V.jsonl. Adding final audit-derived minimum/final HP and damage-event counts to every trial, so between-poll/cleanup injuries cannot disappear from its report. The short, rested final home approach can run (within 40 m and >=30 stamina); distant or exhausted trips still walk. Survival interruption/damage still aborts instead of replacing a retreat. Retry from west of home after checks; no owner preparation requested.

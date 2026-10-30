@@ -18,6 +18,12 @@ class Resupply(unittest.TestCase):
     def mapped(self):
         return dict(containers=[dict(entity='chest', pos=[1, 0, 0], items=[dict(prefab='Honey', stack=8), dict(prefab='Raspberry', stack=8), dict(prefab='Wood', stack=50)])])
 
+    def test_short_home_approach_runs_only_with_stamina(self):
+        status = dict(self.status(), pos=[30, 0, 0], stamina=40)
+        self.assertTrue(resupply.home_run(status))
+        self.assertFalse(resupply.home_run(dict(status, stamina=10)))
+        self.assertFalse(resupply.home_run(dict(status, pos=[375, 0, 0])))
+
     def test_selection_is_home_scoped_bounded_and_excludes_arbitrary_items(self):
         mapped = self.mapped()
         mapped['containers'].append(dict(entity='far', pos=[100, 0, 0], items=[dict(prefab='CookedDeerMeat', stack=10)]))

@@ -815,6 +815,8 @@ candidates. Damage, unsafe water, loss of ownership, world/connection changes
 and time/travel limits abort. Evidence and cleanup use the shared trial harness,
 which always logs out/stops and leaves the panel available. It is an explicit
 operator preparation check, not a background supply policy.
+Long return trips walk; a final approach within 40 m may run with at least
+30 stamina. Damage and survival preemption still abort preparation.
 
 During a trial, `just vm trial-status` reads the newest local evidence directory
 and prints only position, observed travel, health, food, task and observation
@@ -822,6 +824,9 @@ age. Pass an evidence directory to inspect a particular run. It makes no VM
 requests, and reports success only from the completed supervisor summary.
 Full observations, task histories and audit frames remain on disk; inspect
 specific diagnostics only when this compact progress indicates a problem.
+Final summaries also derive minimum/final HP and damage-event counts from the
+native audit, including frames between supervisor polls and during cleanup.
+An older run's sampled `minimumHP` alone cannot establish that no damage occurred.
 
 Task histories now include the chest receipts naming that task, so the panel's
 task view and preparation supervisor can inspect exact moved/remaining counts

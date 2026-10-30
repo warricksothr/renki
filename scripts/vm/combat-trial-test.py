@@ -34,6 +34,16 @@ class CombatTrialTests(unittest.TestCase):
         result.append(dict(frame=dict(re='trial', status='rejected', reason='refused')))
         self.assertEqual(trial.terminal(dict(value=result), 'trial')['status'], 'rejected')
 
+    def test_audit_vitals_include_damage_between_polls_and_final_cleanup_state(self):
+        frames = [dict(type='state', phase='menu', hp=0), dict(type='state', phase='in_world', hp=25, pos=[0, 0, 0]),
+                  dict(type='event', event='damaged', amount=3),
+                  dict(type='state', phase='in_world', hp=22, pos=[5, 0, 0]), dict(type='state', phase='menu', hp=0)]
+        with tempfile.TemporaryDirectory() as directory:
+            audit = Path(directory) / 'audit.jsonl'
+            audit.write_text(''.join(json.dumps(dict(frame=f)) + '\n' for f in frames))
+            self.assertEqual(trial.vital_diagnostics(audit), dict(damageEvents=1, minimumHP=22,
+                             finalNativeHP=22, finalNativePos=[5, 0, 0]))
+
     def test_ground_summary_filters_tasks_counts_failures_and_bounds_examples(self):
         def row(task, reason, stage=None):
             data = dict(candidate=[1, 32, 2], reason=reason, region='stance', segment=3, angle=34, previousAngle=22, roughness=.2)
