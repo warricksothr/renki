@@ -28,12 +28,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T13:47:33Z
+updated_at: 2026-10-30T14:21:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-goals
   name: ""
 extensions: {}
 ---
@@ -204,3 +204,7 @@ Live trial .checks/combat-trial-20261030T133251696543Z/summary.json acquired Gre
 PR #70 close-attacker handoff was merged and installed at 552c491. The next native lure trial selected clear ground and acquired the Greyling, but it was no longer targeting Tas and moved away during Draw. The target reached the 40 m anchor leash; the task refused with kiting travel limit rather than chasing indefinitely. Minimum HP71.5 (full food maximum), no observed damage, no cleanup errors. Evidence .checks/combat-trial-20261030T134310843680Z/summary.json and .checks/audit-window-tPodds.jsonl. This does not exercise the close-attacker handoff or prove melee/pursuit success.
 
 Added an explicit --direct --entity mode to just vm combat-trial to isolate the existing native closing/melee routine from lure preparation. It retains health/threat/ownership bounds and cleanup, submits one attack with kite:false, and requires an observed target ID. Default mode remains the full native survey/acquisition/lure path. Focused supervisor checks pass for direct/default dispatch, invalid combinations, extra-attacker abort and panel restoration. A direct trial now tests the known Greyling; any success will be labelled direct melee, not kiting.
+
+**agent:codex/renki-goals** at 2026-10-30T14:21:05Z
+
+Latest supervised direct native melee trial (.checks/combat-trial-20261030T134731960624Z/summary.json, audit .checks/audit-window-mNlDHs.jsonl) failed safely: target exceeded the closing area; retreat: 28 m away. Tas stayed at 71.1 full HP, no damage or cleanup errors. No positive melee/block/dodge evidence earned. Repeated one-shot failures prompted owner-authorized TKT-01M66HZZWP4W0WVXN7TBMQ2JFM — Persistent goals with scripted recovery and combat testing. The new durable controller runner will retain the objective through bounded failures, while C# owns movement/combat and exact death proof. Safety/work bounds are not being loosened to force a pass.

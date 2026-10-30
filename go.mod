@@ -4,6 +4,8 @@ go 1.27.0
 
 require (
 	github.com/coder/websocket v1.8.15
+	go.starlark.net v0.0.0-20261021141710-4f4267fb140d
+	golang.org/x/sys v0.48.0
 	terva.sh/terva v0.141.5
 )
 
@@ -34,7 +36,6 @@ require (
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

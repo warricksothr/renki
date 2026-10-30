@@ -92,17 +92,55 @@ def ground_diagnostics(audit, task_id):
                 selected=selected, modes=modes, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons), examples=scout_examples))
 
 
+def run_persistent_goal(summary, call, observe, saved):
+    """One durable objective; a child-task failure is an outcome, not the end."""
+    status, _ = observe()
+    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=100)
+    created = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)), as_json=True)
+    goal_id = created['id']
+    summary.update(goalId=goal_id, origin=status['pos'], outcome='running')
+    print('Monitoring persistent goal ' + goal_id, flush=True)
+    deadline, last_progress = time.monotonic() + 610, None
+    while time.monotonic() < deadline:
+        status, mapped = observe()
+        goals = status.get('goals', [])
+        goal = next((g for g in goals if g['id'] == goal_id), None)
+        if goal is None:
+            raise RuntimeError('persistent goal missing from status')
+        (saved / 'goal.json').write_text(json.dumps(goal, indent=2) + '\n')
+        summary['goal'] = goal
+        progress = (goal['status'], goal.get('attempts', 0), goal.get('reason', ''))
+        if progress != last_progress:
+            print(json.dumps(dict(status=progress[0], attempts=progress[1], reason=progress[2])), flush=True)
+            last_progress = progress
+        if goal['status'] in ('succeeded', 'needs_plan', 'cancelled', 'suspended'):
+            # The host must retain exact native evidence; never trust a script claim.
+            if goal['status'] == 'succeeded' and not goal.get('proof'):
+                raise RuntimeError('successful goal lacks host proof')
+            summary.update(outcome=goal['status'], reason=goal.get('reason', ''))
+            return
+        target = (goal.get('pending') or {}).get('entity')
+        reason = abort_reason(status, summary['origin'], (mapped.get('perception') or {}).get('characters', []), target)
+        if reason:
+            raise RuntimeError(reason)
+        time.sleep(2)
+    raise RuntimeError('persistent goal supervisor time limit')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     harvest_mode = parser.add_mutually_exclusive_group()
     harvest_mode.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
     harvest_mode.add_argument('--harvest-logs', type=float, nargs=3, help='retry existing nearby beech logs around this center; no full-tree claim')
+    parser.add_argument('--persistent', action='store_true', help='submit and monitor one durable goal through failed native tasks')
     parser.add_argument('--direct', action='store_true', help='test native closing/melee without lure; requires --entity')
     parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     args = parser.parse_args()
     harvesting = args.harvest_tree or args.harvest_logs is not None
+    if args.persistent and (harvesting or args.direct or args.entity or args.at):
+        parser.error('--persistent chooses its own target and area; cannot combine with other trial modes')
     if args.direct and (not args.entity or args.at or harvesting):
         parser.error('--direct requires --entity and cannot combine with --at or harvesting')
     if harvesting and (args.entity or args.at):
@@ -162,7 +200,9 @@ def main():
             if time.monotonic() >= deadline:
                 raise RuntimeError('no fed, rested, safe single-Greyling encounter available')
             time.sleep(1)
-        if harvesting:
+        if args.persistent:
+            run_persistent_goal(summary, call, observe, saved)
+        elif harvesting:
             from harvest_trial import run
             print('Testing native ' + ('existing logs' if args.harvest_logs else 'full-tree/log harvesting'), flush=True)
             run(summary, call, observe, terminal, saved, log_center=args.harvest_logs)
@@ -205,7 +245,10 @@ def main():
     finally:
         # Always save/logout, stop the game and restore combat off. Restart only
         # the controller so monitoring remains available between trials.
-        for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
+        cleanup = []
+        if summary.get('goalId') and summary.get('goal', {}).get('status') not in ('succeeded', 'needs_plan', 'cancelled'):
+            cleanup.append(('panel', 'POST', '/api/goals', json.dumps(dict(action='stop', id=summary['goalId']))))
+        for arguments in cleanup + [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
             try:
                 call(*arguments, timeout=200)
             except Exception as e:
@@ -231,6 +274,8 @@ def main():
     report = {k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'evidence', 'cleanupErrors') if k in summary}
     if summary.get('result'):
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
+    if summary.get('goalId'):
+        report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof')}
     if harvesting:
         report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))

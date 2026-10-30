@@ -169,6 +169,9 @@ func (e *Engine) put(ctx context.Context, name string, d Definition, by string) 
 	if _, ok := e.instances[name]; !ok && len(e.instances) >= MaxInstances {
 		return errors.New("instance limit reached")
 	}
+	if e.instances[name] != nil && e.instances[name].pending {
+		e.ended(e.instances[name], "edited")
+	}
 	if e.active == name {
 		if err := e.cancel(ctx, "edited", false); err != nil {
 			return err
@@ -203,9 +206,7 @@ func (e *Engine) Action(ctx context.Context, name, action, by string) error {
 			if err := e.cancel(ctx, "new order", false); err != nil {
 				return err
 			}
-			for _, pending := range e.instances {
-				pending.pending = false
-			}
+			e.clearPending("new order")
 			e.orders = current
 		}
 		hello, _, connected := e.o.Session.Handshake()
@@ -232,6 +233,9 @@ func (e *Engine) Action(ctx context.Context, name, action, by string) error {
 				return err
 			}
 		}
+		if i.pending {
+			e.ended(i, "stopped")
+		}
 		i.pending = false
 		e.o.Logger.Info("behaviour stopped", "instance", name, "by", by)
 	case "enable", "disable":
@@ -242,6 +246,9 @@ func (e *Engine) Action(ctx context.Context, name, action, by string) error {
 		}
 		return e.put(ctx, name, d, by)
 	case "delete":
+		if i.pending {
+			e.ended(i, "deleted")
+		}
 		if e.active == name {
 			if err := e.cancel(ctx, "deleted", false); err != nil {
 				return err
@@ -317,7 +324,14 @@ func (e *Engine) Run(ctx context.Context) {
 	}
 }
 func (e *Engine) view() View {
-	v := View{Now: e.o.Now(), State: e.o.Session.State(), Inventory: e.o.Session.Inventory(), Perception: e.o.Session.Perception(), Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	state, stateAt := e.o.Session.StateObservation()
+	hello, world, perception, perceptionAt := e.o.Session.PerceptionObservation()
+	currentHello, _, _ := e.o.Session.Handshake()
+	if state == nil || hello != currentHello || world != state.World {
+		perception = nil
+		perceptionAt = time.Time{}
+	}
+	v := View{StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
 	if e.o.Danger != nil && v.State != nil {
 		v.Danger = e.o.Danger(v.State.World, v.Now)
 	}
@@ -414,6 +428,22 @@ func (e *Engine) candidate(v View, now time.Time) string {
 	return best
 }
 
+func (e *Engine) ended(i *instance, why string) {
+	if life, ok := e.o.Templates[i.definition.Template].(Lifecycle); ok {
+		if err := life.End(i.definition.Params, why); err != nil {
+			e.o.Logger.Error("behaviour checkpoint failed", "err", err)
+		}
+	}
+}
+func (e *Engine) clearPending(why string) {
+	for _, i := range e.instances {
+		if i.pending {
+			e.ended(i, why)
+		}
+		i.pending = false
+	}
+}
+
 // cancel holds e.mu. A revoked lease must never send stop to the new owner.
 func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 	if e.active == "" {
@@ -430,6 +460,7 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 		}
 	}
 	e.o.Logger.Info("behaviour interrupted", "instance", e.active, "reason", why)
+	e.ended(i, why)
 	i.pending = requeue
 	i.runner = nil
 	i.task = nil
@@ -441,6 +472,7 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 }
 func (e *Engine) finish(success bool, detail string, v View) {
 	i := e.instances[e.active]
+	e.ended(i, detail)
 	i.completed++
 	i.last = detail
 	if success {
@@ -486,9 +518,7 @@ func (e *Engine) Tick(ctx context.Context) {
 	now := e.o.Now()
 	if !connected || v.State == nil || v.State.Phase != protocol.PhaseInWorld || v.State.HP <= 0 {
 		_ = e.cancel(ctx, "unavailable", false)
-		for _, i := range e.instances {
-			i.pending = false
-		}
+		e.clearPending("unavailable")
 		_ = e.drainEvents()
 		return
 	}
@@ -499,6 +529,9 @@ func (e *Engine) Tick(ctx context.Context) {
 		e.drops = nil
 		for _, i := range e.instances {
 			if i.requestConn != hello || i.requestWorld != e.world {
+				if i.pending {
+					e.ended(i, "session/world changed")
+				}
 				i.pending = false
 			}
 			i.timer = now.Add(duration(i.definition.Trigger.EveryS))
@@ -508,18 +541,14 @@ func (e *Engine) Tick(ctx context.Context) {
 	if e.active != "" && !e.lease.Valid() {
 		e.orders = e.o.Session.ControlRevision()
 		_ = e.cancel(ctx, "new order", false)
-		for _, i := range e.instances {
-			i.pending = false
-		}
+		e.clearPending("new order")
 		return
 	}
 	e.triggers(v, now)
 	if revision := e.o.Session.ControlRevision(); revision != e.orders {
 		e.orders = revision
 		_ = e.cancel(ctx, "new order", false)
-		for _, i := range e.instances {
-			i.pending = false
-		}
+		e.clearPending("new order")
 		return
 	}
 	if e.active != "" && !e.instances[e.active].allowed(v) {
@@ -565,6 +594,7 @@ func (e *Engine) Tick(ctx context.Context) {
 			status, reason, detail := i.task.Status()
 			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID}
 			i.task = nil
+			i.waitingSince = time.Time{}
 			if status != protocol.StatusSucceeded {
 				recovery, ok := i.runner.(FailureAware)
 				if !ok || !recovery.Recover(*i.result) {
@@ -589,6 +619,16 @@ func (e *Engine) Tick(ctx context.Context) {
 		}
 	}
 	order, err := i.runner.Next(v, i.result)
+	var delay *Delay
+	if errors.As(err, &delay) {
+		if i.waitingSince.IsZero() {
+			i.waitingSince = now
+		}
+		if delay.Until.After(now.Add(30*time.Second)) || !delay.Until.After(now) {
+			e.finish(false, "invalid or expired bounded wait", v)
+		}
+		return
+	}
 	if errors.Is(err, ErrWait) {
 		if i.waitingSince.IsZero() {
 			i.waitingSince = now
@@ -616,8 +656,19 @@ func (e *Engine) Tick(ctx context.Context) {
 	order.Origin = Origin{e.active, i.step}
 	i.task, err = e.lease.Dispatch(ctx, *order)
 	if err != nil {
+		if !e.lease.Valid() {
+			_ = e.cancel(ctx, "new order", false)
+			e.clearPending("new order")
+			return
+		}
 		e.finish(false, err.Error(), v)
 		return
+	}
+	if started, ok := i.runner.(TaskStarted); ok {
+		if err := started.Dispatched(i.task.ID); err != nil {
+			_ = e.cancel(ctx, "dispatch checkpoint failed: "+err.Error(), false)
+			return
+		}
 	}
 	i.deadline = now.Add(duration(order.TimeoutS) + 5*time.Second)
 	e.o.Logger.Info("behaviour step", "instance", e.active, "step", i.step, "task", order.Task, "id", i.task.ID)

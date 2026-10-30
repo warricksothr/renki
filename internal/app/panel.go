@@ -12,6 +12,7 @@ import (
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
@@ -21,6 +22,7 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
+	Goals      []goal.Record          `json:"goals"`
 	Version    string                 `json:"version"`
 	Connected  bool                   `json:"connected"`
 	Character  string                 `json:"character,omitempty"`
@@ -86,6 +88,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 			ps.Pos = &pos
 		}
 	}
+	ps.Goals = a.Goals.Summaries()
 	ps.LeftBehind = a.Home.LeftBehind()
 	if ps.Connected && ps.Phase == protocol.PhaseInWorld {
 		for _, instance := range a.Behaviours.List() {
@@ -216,6 +219,7 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Say:             a.panelSay,
 			Dispatch:        a.PanelTask,
 			Behaviours:      a.BehaviourHandler(),
+			Goals:           a.GoalHandler(),
 			ContainerMemory: a.ContainerMemory,
 			LandmarkMemory:  a.LandmarkMemory,
 			Map:             a.MapSnapshot,

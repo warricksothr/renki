@@ -256,3 +256,11 @@ secret NAME: need-target
 # An interactive PowerShell on the VM.
 shell: need-target
     ssh {{target}}
+
+# Monitor one durable combat objective across native encounter failures.
+[positional-arguments]
+goal-trial *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --persistent "$@"
+
+test-goal-trial:
+    python3 -B "{{justfile_directory()}}/scripts/vm/goal-trial-test.py"

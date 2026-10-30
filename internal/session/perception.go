@@ -17,3 +17,13 @@ func (s *Session) PerceptionObservation() (*protocol.Hello, string, *protocol.Pe
 	}
 	return s.conn.Hello, s.seenWorld, s.seen, s.seenAt
 }
+
+// StateObservation includes wall arrival time so a stalled stream cannot plan actions.
+func (s *Session) StateObservation() (*protocol.State, time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.conn == nil {
+		return nil, time.Time{}
+	}
+	return s.state, s.stateAt
+}

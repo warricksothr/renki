@@ -276,3 +276,7 @@ body.login input { width: 100%; margin-top: 4px; padding: 6px; background: var(-
 #place-result.error { color: var(--stuck); }
 #place-nearby { max-height: 160px; overflow: auto; font-size: 12px; }
 #map.picking-place { cursor: crosshair; }
+
+.goal-record { padding: .65rem 0; border-top: 1px solid #3c4650; }
+.goal-record p { margin: .35rem 0; overflow-wrap: anywhere; }
+.goal-record button { margin-right: .5rem; }

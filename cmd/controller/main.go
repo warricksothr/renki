@@ -18,6 +18,7 @@ import (
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/settings"
 )
@@ -110,7 +111,12 @@ func run() int {
 	}
 	log.Info("renki controller starting", "version", version, "agent", cfg.AgentName,
 		"owners", set.Values().Owners, "llm", voice != nil, "audit", cfg.Audit.Dir)
-	a := app.New(cfg, voice, log, trail, homes, set)
+	goals, err := goal.Open(filepath.Join(cfg.DataDir, "goals.json"))
+	if err != nil {
+		log.Error("goals", "err", err)
+		return 2
+	}
+	a := app.New(cfg, voice, log, trail, homes, set, goals)
 	go a.ServePanel(ctx, trail, version, log.With("part", "panel"))
 	if err := a.Serve(ctx, ln); err != nil {
 		log.Error("serve", "err", err)
