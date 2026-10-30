@@ -30,6 +30,7 @@ type PanelStatus struct {
 	HP         float64              `json:"hp,omitempty"`
 	HPMax      float64              `json:"hpMax,omitempty"`
 	Food       *protocol.FoodStatus `json:"food,omitempty"`
+	PVP        *bool                `json:"pvp,omitempty"`
 	Pos        *protocol.Vec3       `json:"pos,omitempty"`
 	Biome      string               `json:"biome,omitempty"`
 	Location   *protocol.Location   `json:"location,omitempty"`
@@ -74,6 +75,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		ps.Location, ps.Flags, ps.Yaw = s.Location, s.Flags, s.Yaw
 		ps.Food = s.Food
+		ps.PVP = s.PVP
 		ps.Connection = a.Session.ConnectionID()
 		if s.Phase == protocol.PhaseInWorld {
 			pos := s.Pos

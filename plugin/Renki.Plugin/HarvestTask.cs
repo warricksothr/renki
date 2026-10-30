@@ -260,6 +260,8 @@ namespace Renki.Plugin
             {
                 var c = hits[i];
                 var character = c.GetComponentInParent<Character>();
+                if (character is Player peer && peer != p &&
+                    !HarvestSafety.PlayerBlocks(rolling || rock || tool.m_shared.m_tamedOnly, Perceiver.Pvp(p), Perceiver.Pvp(peer))) continue;
                 if (character != null && character != p || c.GetComponentInParent<Piece>() != null) return true;
             }
             return false;

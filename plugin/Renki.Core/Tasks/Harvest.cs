@@ -4,6 +4,15 @@ using Renki.Movement;
 
 namespace Renki.Tasks
 {
+    public static class HarvestSafety
+    {
+        // PvP only gates ordinary player strikes. Falling trunks and other
+        // environmental hazards retain their exclusion zone.
+        public static bool PlayerBlocks(bool environmentalHazard, bool? attackerPvp, bool? targetPvp) =>
+            environmentalHazard || !attackerPvp.HasValue || !targetPvp.HasValue ||
+            (attackerPvp.Value && targetPvp.Value);
+    }
+
     public static class HarvestReach
     {
         // Leave a real margin within the weapon's attack ray without making

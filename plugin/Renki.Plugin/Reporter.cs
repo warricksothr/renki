@@ -125,6 +125,7 @@ namespace Renki.Plugin
             s.Hp = Round(p.GetHealth());
             s.HpMax = Round(p.GetMaxHealth());
             if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Food = Food(p);
+            if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Pvp = Perceiver.Pvp(p);
             s.Stamina = Round(p.GetStamina());
             s.StaminaMax = Round(p.GetMaxStamina());
             s.Eitr = Round(p.GetEitr());

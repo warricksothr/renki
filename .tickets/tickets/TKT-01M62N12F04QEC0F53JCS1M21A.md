@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T00:08:26Z
+updated_at: 2026-10-30T00:17:50Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -99,3 +99,9 @@ Installed dc981d1: t-5 harvest from raised home reached outdoor stump 1:39764 di
 **agent:codex/renki-resume** at 2026-10-30T00:08:26Z
 
 Installed 5d51fc8: t-1 again reached the stump from inside home, but final approach pressed against its wider base and recovery jumped onto it. Owner screenshot independently confirmed the behavior. Bounded contact trace measured axe range2.2, attackHeight0.8, selected reach1.0 and physical contact [-30.22,33.01,33.2]; terrain stance [-30.52,32.48,32.22] was just outside that unnecessarily restrictive radius. Once above the stump, horizontal-only look also missed the low target. Task failed unreachable; t-2 returned home successfully and just vm stop completed. No products or success claimed. Evidence .checks/task-didvylz4.json, .checks/audit-window-JMurji.jsonl, .checks/audit-window-Eocs7d.jsonl, .checks/task-0jwlx1qp.json. Implemented range-scaled stance with a 1.4m conservative maximum (still within 2.2m axe reach), downward normal attack aim from tool attack height, and disabled jump/climb recovery within3m of the resource. Added actual-coordinate regression and honest suppressed-jump trace. Retrying live after final gate/review/deploy.
+
+**agent:codex/renki-resume** at 2026-10-30T00:17:50Z
+
+PR #38 installed as 4f50bb9; deployment hashes verified. Final approach stayed on terrain beside stump 1:39764; t-1 swung with axe wear97→96, then stopped when Nimah entered the character exclusion radius. No successful stump destruction/collection is claimed. Evidence .checks/task-hfu96y62.json and .checks/audit-window-kbls0F.jsonl. Necks subsequently appeared; automatic flee superseded the return attempt and reached25m safety. Minimum health93.6 before food regeneration; logged out and stopped, rejoined after owner offered to clear the site, and t-1 return home passed (.checks/task-ub7udn16.json).
+
+Owner requested PvP-aware proximity: verified ordinary attack filtering plus victim damage rejection in installed game source. Implement nullable PvP observations for self/nearby players and relax player exclusion only for stationary stumps/small trees with normal tools, valid known PvP on both players and at least one disabled. Keep unknown/both-enabled, animals, pieces, full trees/logs and mining protected. Truth-table regressions and explicit false/true shared fixtures added. just check ci passed (20261030T001656Z-NmDT0n.log). Live PvP guard and full from-home delivery loop remain pending.

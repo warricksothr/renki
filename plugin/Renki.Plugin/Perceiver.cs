@@ -130,6 +130,9 @@ namespace Renki.Plugin
             }
         }
 
+        internal static bool? Pvp(Player p) => p != null && p.m_nview != null && p.m_nview.IsValid()
+            ? p.IsPVPEnabled() : (bool?)null;
+
         static PerceivedCharacter Describe(Character c, Player me)
         {
             var pc = new PerceivedCharacter
@@ -142,6 +145,7 @@ namespace Renki.Plugin
             {
                 pc.Kind = Wire.PerceivedPlayer;
                 pc.Name = p.GetPlayerName();
+                pc.Pvp = Pvp(p);
                 return pc;
             }
             pc.Kind = c.IsTamed() ? Wire.PerceivedTamed : Wire.PerceivedCreature;

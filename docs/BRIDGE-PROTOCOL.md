@@ -186,6 +186,10 @@ game eligibility, including duplicate/full slots and consumption effects.
 Missing `food` means unknown; empty arrays mean observed empty. The panel
 status API exposes the same observation.
 
+Optional `pvp` is the local player's current PvP setting. Player entries in
+`perception.characters` also include `pvp` when their network state is valid.
+Explicit `false` means disabled; omission means unknown.
+
 `encumbered` means `weight` is over `weightMax`. The game then lets the bot
 walk but not run, stops its stamina coming back, and drains stamina while it
 moves. With no stamina left it cannot move at all until it carries less:
@@ -595,7 +599,11 @@ Notes:
   is rechecked every 0.25 s; any health loss cancels work immediately.
   No suitable tool
   yields `no_tool`. Wards, nearby characters and player structures can refuse
-  the operation; a tall tree needs room for its full fall radius and a
+  the operation. For a stationary stump or small tree and an ordinary tool,
+  a nearby player does not block swings when both PvP states are known and
+  either player has PvP disabled. Unknown state, both enabled, animals,
+  structures, mining and moving/falling resource hazards keep the exclusion
+  guard. A tall tree needs room for its full fall radius and a
   supported escape. Moving logs must settle before work resumes; two
   seconds of quiet observed pose are required even with zero local velocity. Felling or
   splitting backs away before collection. New nearby drops matching the

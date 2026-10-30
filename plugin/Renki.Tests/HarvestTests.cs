@@ -9,6 +9,19 @@ namespace Renki.Tests
 {
     public sealed class HarvestTests
     {
+        [Theory]
+        [InlineData(false, false, false, false)]
+        [InlineData(false, true, false, false)]
+        [InlineData(false, false, true, false)]
+        [InlineData(false, true, true, true)]
+        [InlineData(false, null, false, true)]
+        [InlineData(false, false, null, true)]
+        [InlineData(true, false, false, true)]
+        public void PlayerProximityUsesKnownPvpOnlyForOrdinaryStrikes(bool hazard, bool? attacker, bool? target, bool blocks)
+        {
+            Assert.Equal(blocks, HarvestSafety.PlayerBlocks(hazard, attacker, target));
+        }
+
         [Fact]
         public void OutdoorApproachDoesNotInheritRaisedStartingFloor()
         {
