@@ -1,0 +1,88 @@
+{
+  "op": 9,
+  "d": {
+    "requestId": "renki-broadcast-diagnostics",
+    "results": [
+      {
+        "requestId": "renki-version",
+        "requestType": "GetVersion",
+        "requestStatus": {
+          "result": true,
+          "code": 100
+        },
+        "responseData": {
+          "rpcVersion": 1,
+          "obsVersion": "synthetic",
+          "availableRequests": [
+            "GetVersion",
+            "GetVideoSettings",
+            "GetStreamStatus",
+            "GetStats",
+            "GetSourceActive"
+          ]
+        }
+      },
+      {
+        "requestId": "renki-video",
+        "requestType": "GetVideoSettings",
+        "requestStatus": {
+          "result": true,
+          "code": 100
+        },
+        "responseData": {
+          "baseWidth": 1280,
+          "baseHeight": 720,
+          "outputWidth": 1280,
+          "outputHeight": 720,
+          "fpsNumerator": 30,
+          "fpsDenominator": 1
+        }
+      },
+      {
+        "requestId": "renki-stream",
+        "requestType": "GetStreamStatus",
+        "requestStatus": {
+          "result": true,
+          "code": 100
+        },
+        "responseData": {
+          "outputActive": false,
+          "outputReconnecting": false,
+          "outputBytes": 0,
+          "outputDuration": 0,
+          "outputCongestion": 0,
+          "outputSkippedFrames": 0,
+          "outputTotalFrames": 0
+        }
+      },
+      {
+        "requestId": "renki-stats",
+        "requestType": "GetStats",
+        "requestStatus": {
+          "result": true,
+          "code": 100
+        },
+        "responseData": {
+          "activeFps": 30,
+          "averageFrameRenderTime": 1.5,
+          "renderSkippedFrames": 0,
+          "renderTotalFrames": 300,
+          "outputSkippedFrames": 0,
+          "outputTotalFrames": 300
+        }
+      },
+      {
+        "requestId": "renki-capture",
+        "requestType": "GetSourceActive",
+        "requestStatus": {
+          "result": true,
+          "code": 100
+        },
+        "responseData": {
+          "videoActive": true,
+          "videoShowing": false
+        }
+      }
+    ]
+  }
+}

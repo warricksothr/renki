@@ -1,5 +1,9 @@
 # The control panel
 
+For a separate public-safe broadcast design and offline OBS profile tooling, see
+[STREAMING.md](STREAMING.md). The authenticated panel and its map exports are
+operator surfaces and should not be used as streaming browser sources.
+
 A web page, served by the controller, for watching the bot live: where it
 is, what it is doing, and why, with buttons to stop it, send it home or
 log it out. TKT-01M628X106 (Web control panel to watch and steer the bot)
