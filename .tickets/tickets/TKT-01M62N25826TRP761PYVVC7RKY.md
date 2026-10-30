@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T02:10:06Z
+updated_at: 2026-10-30T02:19:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -106,3 +106,11 @@ Start implementation of the approved native kiting plan. Extend attack with kite
 Implemented attack kite=true (optional target and preferred at point), a native C# survey/position/search/draw/kite/hold/engage routine, and testable pursuit/pacing policy. It validates dry supported clear terrain and escape corridors, moves to checked ground, acquires one ordinary Greyling locally, observes actual movement toward Tas, preserves separation/stamina, bounds preparation/search/luring and hands directly to MeleeTask with the same attack ID. It revalidates ground and characters and retains cancellation/escape paths. No forced enemy AI or frame-by-frame controller movement orders.
 
 Added a world-scoped combat behavior template that submits one goal and waits; active goal edits use the existing cancel/stop acknowledgement before a replacement starts. Added protocol fixture/argument validation, native-phase retreat arbitration and lifecycle/policy/behavior regressions. Python trial runner now delegates acquisition and kiting to C# and only supervises/records/stops. Focused policy, behavior/protocol/retreat and supervisor checks pass, and the plugin builds against installed game APIs. An initial full CI build caught a C# local-variable shadow after the positioning step was added; renamed it and verified the plugin build. Final CI, committed review and installed trial follow. Live attraction, pursuit, pacing and melee handoff remain unverified; broad acceptance criteria stay open.
+
+**agent:codex/renki-resume** at 2026-10-30T02:19:02Z
+
+Native acquisition/kiting implementation landed in PR #48 as 684504b. just check ci passed (275 plugin tests plus controller race/check/build and trial-supervisor checks; .checks/20261030T021052Z-bAmoqJ.log). Committed just check review passed without findings (.checks/20261030T021427Z-i6YNUI.log). just check vm install verified deployed controller/plugin checksums (.checks/20261030T021537Z-mlweZs.log).
+
+Ran just check vm combat-trial --wait-s 60 with no owner staging, clearing or repositioning (.checks/20261030T021553Z-8sQ8dt.log). C# accepted one attack kite=true goal, surveyed its bounded local candidates and failed unreachable after 8.6 seconds: no supported clear fighting ground with a checked escape corridor. Tas remained near [174.17,84.75,-246.72]; preflight stamina was 67.2, minimum HP 76.1, and no damage was observed. No enemy was acquired and no positive pursuit/strike/block/dodge evidence is claimed. The supervisor correctly returned failure, logged out/stopped, restored combat false and reported no cleanup errors. Summary: .checks/combat-trial-20261030T021553504234Z/summary.json; exact audit: .checks/audit-window-qI99Fo.jsonl.
+
+Keep both broad acceptance criteria open. Next native iteration should expose per-candidate ground rejection reasons and use supported local approach/escape corridors to choose suitable nearby ground on ordinary sloped terrain. Preserve normal controls and bounded resource/time/travel exits; do not require owner clearance or pretend this survey refusal proves a successful encounter. Tas is offline with combat disabled.
