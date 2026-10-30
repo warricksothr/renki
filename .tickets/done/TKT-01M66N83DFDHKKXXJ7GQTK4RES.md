@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M66N83DFDHKKXXJ7GQTK4RES
 title: Remember player encounters and answer last-known locations
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-player-memory
-  branch: t3/player-memory
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 912e7b607481af066dc6141c049c2fdba6e1304a
-  session: null
-  claimed_at: 2026-10-30T15:01:18Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T15:00:58Z
-updated_at: 2026-10-30T15:13:03Z
+updated_at: 2026-10-30T15:17:59Z
 created_by:
   id: agent:codex/renki-player-memory
   name: ""
@@ -47,7 +40,7 @@ Remember players Tas sees or hears, including ordinary chat and Marco/Polo. Keep
 - [x] Persist bounded world-scoped seen/heard histories with age-based precision loss, consolidation and expiry
 - [x] Capture all located speech and fresh perception without blocking the bridge or refreshing stale sightings
 - [x] Authorized location questions name age/source and use a recent current-session requester position or explicit Tas fallback
-- [ ] Tests cover persistence/aging, scope/freshness, bearings/reference fallback and permission/model/task safety; document and deploy
+- [x] Tests cover persistence/aging, scope/freshness, bearings/reference fallback and permission/model/task safety; document and deploy
 
 ## Implementation plan
 
@@ -66,3 +59,17 @@ Deterministic addressed where-is/last-seen queries reuse locate permission and p
 just check ci passed in 29 seconds: .checks/20261030T151135Z-Cg5rIA.log. Includes race tests, history persistence/rollback/fading/consolidation/limits, stale/replayed/unlocated speech, fresh-frame world scope, requester-reference expiry/reconnect, opposite reference bearings, permissions/revocation/throttles, authenticated API and app query bypass of an enabled fake voice without control revision changes.
 
 Remaining: committed review, land/deploy, and a brief live smoke check of the memory API and deterministic panel query. No imported audit history and no multiplayer staging requirement; real new encounter capture will depend on players being present/heard.
+
+**agent:codex/renki-player-memory** at 2026-10-30T15:17:59Z
+
+Implementation landed in PR #75: https://github.com/warricksothr/renki/pull/75 (merge fdae84a, implementation b9f99d7). just check review passed with no findings (.checks/20261030T151303Z-O9MGzQ.log). just check vm install passed with verified package/installed DLL checksums (.checks/20261030T151446Z-Jitr2G.log).
+
+Live smoke ran the deployed fdae84a in DizzysHellheim. Authenticated /api/memory/players returned matching world and zero encounters. Panel question from Nimah, "where is Sothr?", produced "I have no remembered location for Sothr in this world." Audit confirms no native task in the query window. HP 65.3/65.3, no body task, marker still shared. Evidence: .checks/player-memory-live-summary.json and the audit file named by .checks/player-memory-live-audit-path.txt. The first inspection script expected log fields at the top level; corrected inspection of attrs confirmed the reply from the same retained audit without replaying the action.
+
+No positive live player encounter was observed/staged. Seen/heard capture, persistence/fading, requester reference and positive replies have deterministic replay coverage; this smoke confirms deployed API/query wiring and honest unknown behavior. No audit backfill was performed. Tas logged out, Valheim stopped, controller/panel running after cleanup.
+
+## Summary
+
+Landed/deployed in PR #75 (fdae84a). Durable per-world seen/heard player histories now consolidate, lose spatial/time precision with age and expire after fourteen days. Every located speech channel, including Marco/Polo, and fresh player perception feed bounded memory. Authorized deterministic location questions report last evidence/source/age/uncertainty relative to a current-session requester position no older than thirty seconds, or explicitly Tas. Read-only authenticated history API and documentation included.
+
+Full CI and committed review passed. Live API and unknown-player panel query passed with no native task, healthy Tas and marker sharing preserved. Positive encounter/fading/reference paths have replay coverage; no live multiplayer encounter was staged. Tas is logged out and the game stopped; panel remains running.
