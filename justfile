@@ -48,7 +48,7 @@ fmt: (route "fmt")
 clean: (route "clean")
 
 # Everything CI runs: each component's ci, then the ticket store.
-ci: (route "ci") tickets-check check-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-gather-trial
+ci: (route "ci") tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-gather-trial
 
 # Retain full output in .checks/; print a summary or the last 80 failure lines.
 # For example: just check ci, just check controller test-packages ./internal/home.
@@ -59,6 +59,15 @@ check +ARGS:
 # Verify log retention, bounded output, and failure propagation without builds.
 check-test:
     @bash "{{justfile_directory()}}/scripts/check-test.sh"
+
+# Secret-free profile and OBS request planning; files only, never connects.
+[positional-arguments]
+broadcast-plan *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/broadcast.py" "$@"
+
+# Synthetic OBS diagnostics, profile bounds and redaction without VM/services.
+broadcast-test:
+    python3 -B "{{justfile_directory()}}/scripts/broadcast-test.py"
 
 # The plugin goes in BepInEx/plugins/renki there; the rest in one folder.
 [doc("Assemble dist/renki-vm/: everything the Windows VM needs.")]
