@@ -20,21 +20,21 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:codex/renki-resume
-  branch: t3/food-recovery
+  actor: agent:codex/renki-milestones
+  branch: t3/food-resupply-check
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 3e3402d2d486e9a904ceeae2c278929145db785d
+  commit: 8ea7742547d7393576f1e93697345ce1423082a6
   session: null
-  claimed_at: 2026-10-29T23:21:07Z
+  claimed_at: 2026-10-30T17:10:29Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T00:08:26Z
+updated_at: 2026-10-30T17:11:16Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -51,7 +51,7 @@ The game heals only from food, and the bot never eats: after the fights on 2026-
 
 ## Implementation plan
 
-Report optional food status in state: active meals and remaining time, plus unique usable carried foods with health/regen and game CanEat eligibility. Add a controller food keeper that fills empty slots before refreshing eligible meals through instant use_item, respects capabilities/current permissions, waits for post-action observations, backs off failures, avoids stale/disconnected/menu/dead/sleep/attack/flee states and never replaces a body task. Ask configured owners once per bounded cooldown only when injured with no active or usable carried food. Keep consumption entirely in the normal game path; add protocol fixtures and controller policy/lifecycle tests, then observe live automatic recovery alongside a from-home harvesting loop.
+Continue carried-food maintenance and the owner's request to remove manual testing prerequisites with a bounded resupply check. Use existing native movement and chest-transfer tasks: return to the known home (at most 500 m), inspect remembered/fresh nearby storage, request at most four each of two known ordinary foods, verify exact task-matched withdrawal receipts and inventory gains, and wait for the existing food keeper to eat. Never infer current contents or successful transfer from memory alone. Stop on damage, unsafe water, changed world/connection, lost body ownership or time limits; always log out, restore combat off and leave the panel available. Add one reusable just vm resupply-food recipe with retained evidence and focused supervisor/selection tests. This enables the next native combat and full-tree runs without asking the owner to feed or stage Tas; it does not claim automatic background supply planning or the unrelated owner-warning live criterion.
 
 ## Notes
 
@@ -74,3 +74,7 @@ PR #36 merged as dc981d1; just check vm deploy passed with installed hashes. On 
 **agent:codex/renki-resume** at 2026-10-30T00:08:26Z
 
 Restart check exposed active meal prefab names as localization tokens because deserialized Food.m_item lacks m_dropPrefab. Report the game Food.m_name, its persisted prefab identifier, so empty-slot-before-refresh priority remains consistent across restart. The game eligibility already prevented duplicate consumption. Normal food maintenance and recovery stay verified; owner request live case remains open.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:10:29Z
+
+claim taken from agent:codex/renki-resume by agent:codex/renki-milestones

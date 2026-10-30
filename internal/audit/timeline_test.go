@@ -57,6 +57,16 @@ func TestTaskFilterTellsTheTasksStory(t *testing.T) {
 	}
 }
 
+func TestTransferReceiptAppearsOnlyInItsOwnTaskStory(t *testing.T) {
+	receipt := Record{Kind: KindFrame, At: time.Now(), Frame: json.RawMessage(`{"v":1,"type":"container","task":"t-6","entity":"chest","direction":"withdraw","moved":{"Honey":4}}`)}
+	if TaskID(receipt) != "t-6" || len((Filter{Task: "t-6"}).Apply([]Record{receipt})) != 1 {
+		t.Fatal("matching transfer receipt hidden")
+	}
+	if len((Filter{Task: "t-7"}).Apply([]Record{receipt})) != 0 {
+		t.Fatal("unrelated transfer receipt included")
+	}
+}
+
 func TestStateIsHiddenUnlessAskedForAndSampled(t *testing.T) {
 	recs := session(t)
 	if strings.Contains(lines(Filter{}.Apply(recs)), "state") {
