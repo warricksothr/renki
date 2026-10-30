@@ -26,8 +26,10 @@ you remove them; avoid dumping whole logs into an agent conversation.
   locally. Review exit 1 means findings; exit 3 means the review failed.
 
 Keep routine investigation narrow: use a file/line search first, read the
-relevant function, and query audit logs for one task with
-`just vm audit 1 -task t-3`. Keep durable decisions and remaining game checks
+relevant function, and inspect retained task/trial summaries before fetching
+another audit window. Do not tail a trial's `commands.log`: one line can contain
+a large map or history response. Use bounded evidence recipes below instead.
+Keep durable decisions and remaining game checks
 on the ticket so a resumed session can read those instead of old transcripts.
 Rerun checks after changes or new evidence, rather than repeating passing
 suites while waiting for the game. The complete gate is still required.
@@ -629,53 +631,27 @@ existing nearby tier-zero beech logs, uses the same safety/cleanup bounds, and
 reports `mode: logs_only`. A pass requires a log break, collected Wood and no
 observed unfinished nearby logs; it does not claim a full-tree benchmark.
 
-The first deployed benchmark (e36e366) reached full Beech1 `1:24194` but
-timed out without a strike. Its measured contact was within axe range; generic
-interaction sight instead tested the center of a tall nonconvex mesh, overhead
-and outside interaction reach. Harvesting now checks the measured contact from
-axe height, requiring the resource before any other solid on normal attack
-layers. Self is ignored; triggers are ignored and saturated queries refuse.
-`just check plugin test-core HarvestTests` includes the observed pose/contact
-and blocked/missing-target regressions. Evidence for the unsuccessful attempt:
-`.checks/harvest-trial-20261030T054510700197Z/summary.json` and
-`.checks/audit-window-fk9shF.jsonl`. No damaged event or cleanup error occurred.
+Physical reach uses actual collider contact and strike sight from axe height;
+a bounds center is never contact evidence. Logs probe at Tas's strike height
+with a 3D collider-ray fallback. Support projection uses the lower of the pivot
+and measured contact. High or unsupported contacts still refuse. Complete
+protection/settling queries reuse a buffer that grows from 256 to 2048, then
+refuse rather than consume truncated results. Before swings, up to seven
+outward six-metre escape corridors are checked, one per physics tick, with
+supported, dry, wall/body-clear steps every half metre.
 
-The cb0192a retry observed physical strike sight, then stopped at the protection
-guard before swinging (audit `.checks/audit-window-fsiaZG.jsonl`). Protection and
-settling queries now grow a reusable collider buffer from 256 up to 2048 when
-full, and refuse if a complete scan still cannot be obtained. Actual character,
-piece and rolling-log checks retain their radii/layers. Expansion/saturation
-traces record phase, capacity and count; a true exclusion names its collider.
-Use `just check plugin test-core ScanBufferTests` for complete-result retry,
-protected objects beyond the original prefix, storage reuse and the hard cap.
+Use `just check plugin test-core HarvestTests` for contact/reach, lower log
+support, escape geometry, health and tool policy. Use `just check plugin
+test-core ScanBufferTests` for complete-query retry, storage reuse and the cap.
 
-The 53a27dc trial confirmed the old query was truncated: the complete protection
-scan found 281 colliders. Tas felled the full beech after seven local hits,
-retreated from the trunk and collected two seeds and two feathers without
-damage. The next log failed contact acquisition before approach. The contact
-probe now falls back from a horizontal slice to a 3D ray through the collider
-center; an actual collider hit and clear strike sight remain required.
-Evidence: `.checks/harvest-trial-20261030T060943568520Z/summary.json` and
-`.checks/audit-window-LxVrpf.jsonl`. Log splitting remains a pending live check.
-
-The b0d4538 log retry passed contact acquisition and approached the tilted log,
-then refused its single outward escape. Before swinging, harvesting now checks
-up to seven six-metre outward corridors, one per physics tick, alternating sides
-through 90 degrees. None initially approaches the resource or crosses it. Every
-half-metre step still needs live supported, dry, wall/body-clear geometry; all
-failures refuse. Selected/rejected corridors retain bounded geometry diagnostics.
-`just check plugin test-core HarvestTests` includes monotonic distance and bound
-regressions. Prior refusal: `.checks/audit-window-VVI6C2.jsonl`; no damage or
-cleanup errors. Post-change log splitting remains pending until a live result.
-
-The subsequent log-only run passed three native harvests and collected 20 Wood
-without damage or cleanup errors (audit `.checks/audit-window-4KNHu1.jsonl`).
-A fresh full-tree run felled another beech but refused a log whose pivot was
-about 7 m above Tas. Log contact now probes at actual strike height, and support
-projection uses the lower of pivot/contact elevation; high contact still fails
-actual reach checks. Unsupported-stance diagnostics retain the pivot, contact,
-feet and projection top. The bounded gather behavior and its remaining live
-checks are described in [BEHAVIOURS.md](BEHAVIOURS.md).
+Verified live slices include full-beech felling, falling escape, stump breaking,
+and a three-task trunk/halves run with 20 Wood gained and no damaged events or
+cleanup errors (audit `.checks/audit-window-4KNHu1.jsonl`). A subsequent full-tree
+run felled another beech but refused its elevated log. A continuous full-tree
+benchmark, collection-disabled and failure branches, mining and controller-level
+gathering/delivery remain separate checks. Current results and exact evidence
+are on the [harvest ticket](../.tickets/tickets/TKT-01M62N12F04QEC0F53JCS1M21A.md).
+See [BEHAVIOURS.md](BEHAVIOURS.md) for the bounded `gather` template.
 
 ### Explicit melee
 
