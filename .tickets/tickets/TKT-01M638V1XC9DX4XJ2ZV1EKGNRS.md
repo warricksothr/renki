@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-30T17:24:39Z
+updated_at: 2026-10-30T17:30:03Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -124,3 +124,7 @@ Final waypoint-progress build live check 2026-10-29 22:54:47–22:55:03Z: level 
 **agent:codex/renki-milestones** at 2026-10-30T17:24:39Z
 
 claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
+
+**agent:codex/renki-milestones** at 2026-10-30T17:30:03Z
+
+PR #86 landed as 41110b0 after just check plugin test-core LocalRouteTests, just check ci (.checks/20261030T172544Z-89u0RN.log) and committed just check review (.checks/20261030T172624Z-lzd7cQ.log). Installed with checksum verification (.checks/20261030T172737Z-ocaU3K.log); initial install hit a transient controller.exe image lock despite process exit, and a later retry passed. Adding a non-mutating executable-write-access wait to stop-panel.ps1 so full package uploads do not race that lock. The new resupply run .checks/resupply-trial-20261030T172751293533Z is in progress: one native move_to has travelled about 87 m without damage, compared with the prior zero-probe refusal. No final home/food success claimed yet. Adding just vm trial-status to project compact ongoing position, observed travel, health, food and exact final outcomes from retained local evidence, reducing testing context without extra VM requests.
