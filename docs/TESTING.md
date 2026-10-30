@@ -817,6 +817,10 @@ which always logs out/stops and leaves the panel available. It is an explicit
 operator preparation check, not a background supply policy.
 Long return trips walk; a final approach within 40 m may run with at least
 30 stamina. Damage and survival preemption still abort preparation.
+If rejoin has already started the configured outage return, preparation may
+wait up to 120 s for that exact native task to finish. Its outgoing request must
+name the known same-world home; another order, changed scope or damage aborts.
+Preparation never replaces the active task to get control of the body.
 
 During a trial, `just vm trial-status` reads the newest local evidence directory
 and prints only position, observed travel, health, food, task and observation

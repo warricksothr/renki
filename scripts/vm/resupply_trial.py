@@ -33,6 +33,17 @@ def home_run(status):
     return math.dist(status['pos'], status['home']['pos']) <= 40 and status.get('stamina', 0) >= 30
 
 
+def startup_home(status, history):
+    """A return already dispatched on rejoin can finish; never replace it."""
+    home, task = status.get('home') or {}, status.get('task') or {}
+    if home.get('world') != status.get('world') or not home.get('pos') or task.get('task') != 'move_to':
+        return False
+    rows = history.get('value', []) if isinstance(history, dict) else history
+    return any(row.get('dir') == 'out' and row.get('frame', {}).get('type') == 'task'
+               and row['frame'].get('id') == task.get('id') and row['frame'].get('task') == 'move_to'
+               and row['frame'].get('args', {}).get('to') == home['pos'] for row in rows)
+
+
 def run(summary, call, observe, terminal, saved):
     status, mapped = observe()
     home = status.get('home') or {}

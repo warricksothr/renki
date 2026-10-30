@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T17:34:54Z
+updated_at: 2026-10-30T17:40:24Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -86,3 +86,7 @@ PR #85 landed as 8d74697. The first just vm resupply-food aborted safely before 
 **agent:codex/renki-milestones** at 2026-10-30T17:34:54Z
 
 The progressive-routing resupply trial travelled about 384 m under one native move_to and reached 8.4 m from home, but a Greyling hit for 2.98 at [-40.56,31.99,1.83] superseded the task with host retreat t-2. Actual final native HP was 22/25 at [-48.73,33.75,17.06], although the slower operator poll last saw 25; no food was withdrawn. Cleanup succeeded. Evidence .checks/resupply-trial-20261030T172751293533Z and .checks/audit-window-V6dJ5V.jsonl. Adding final audit-derived minimum/final HP and damage-event counts to every trial, so between-poll/cleanup injuries cannot disappear from its report. The short, rested final home approach can run (within 40 m and >=30 stamina); distant or exhausted trips still walk. Survival interruption/damage still aborts instead of replacing a retreat. Retry from west of home after checks; no owner preparation requested.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:40:24Z
+
+PR #88 merged as 3a14359. Next resupply attempt .checks/resupply-trial-20261030T173600325122Z aborted before issuing tasks because configured after-outage home movement was already active on rejoin. Native audit .checks/audit-window-CoMssT.jsonl confirms 22 HP and zero damage events; final position [-42.69,33.8,8.3]. No withdrawal occurred. Add passive preparation wait (<=120 s) only for an exact outgoing same-world home move_to request matching the current task ID. Preserve that task; changed orders, scope or health loss abort. Tests cover finish, damage, owner takeover and connection changes; no task replacement is dispatched. Do not mislabel intentional logout's retained interrupted flag as a new route failure. The earlier native route change did traverse the 375 m hill; remaining work is actual safe house entry and food receipt.

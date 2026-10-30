@@ -139,6 +139,49 @@ class CombatTrialTests(unittest.TestCase):
                 if outcome == 'extra attacker':
                     self.assertEqual(summary['reason'], 'additional nearby creature')
 
+    def test_resupply_waits_for_startup_home_but_stops_on_damage_or_takeover(self):
+        import types
+        for mode in ('finished', 'damage', 'owner', 'connection'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                observed, commands = 0, []
+                audit = Path(directory) / 'audit.jsonl'
+                audit.write_text('')
+                status = dict(self.status, world='one', connection=1, home=dict(world='one', pos=[0, 32, 0]),
+                              food=dict(active=[]))
+
+                def run(command, **kwargs):
+                    nonlocal observed
+                    args = command[2:]
+                    commands.append(args)
+                    value = ''
+                    if args[:3] == ['panel', 'GET', '/api/status']:
+                        observed += 1
+                        value = dict(status)
+                        if observed == 1:
+                            value['task'] = dict(id='home', task='move_to')
+                        elif mode == 'damage':
+                            value['hp'] = 77
+                        elif mode == 'owner':
+                            value['task'] = dict(id='owner', task='follow')
+                        elif mode == 'connection':
+                            value['connection'] = 2
+                    elif args[:3] == ['panel', 'GET', '/api/map']:
+                        value = dict(perception={})
+                    elif args[:2] == ['panel', 'GET'] and args[2].startswith('/api/task?'):
+                        value = []
+                    elif args[0] == 'audit-window':
+                        value = str(audit)
+                    return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
+
+                prepare = mock.Mock(side_effect=lambda summary, *a: summary.update(outcome='succeeded'))
+                module = types.SimpleNamespace(startup_home=lambda *a: True, run=prepare)
+                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--resupply-food']), mock.patch.dict(trial.sys.modules, resupply_trial=module), mock.patch.object(trial.time, 'sleep'), contextlib.redirect_stdout(io.StringIO()):
+                    code = trial.main()
+                self.assertEqual(code, 0 if mode == 'finished' else 1)
+                self.assertEqual(prepare.call_count, 1 if mode == 'finished' else 0)
+                self.assertFalse(any(c[0] == 'task' for c in commands))
+                self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
+
 
 if __name__ == '__main__':
     unittest.main()
