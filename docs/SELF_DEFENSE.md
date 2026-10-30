@@ -111,6 +111,42 @@ protection. After combat, leave interrupted jobs paused until their target,
 route and required items are revalidated. Stale continuations must not resume
 after an owner order, reconnect or world change.
 
+## Next: native kiting and encounter preparation
+
+Prioritize a reusable C# routine that finds one suitable nearby enemy and
+draws it toward checked fighting ground. This is useful gameplay behavior
+for melee, later ranged combat and tactical repositioning. An isolated test
+world is optional later tooling, not a prerequisite for this work.
+
+The controller behavior supplies a bounded search area, preferred fighting
+area, allowed enemy profile and stop conditions. One plugin body task owns
+ground validation, target acquisition, drawing attention, leading, waiting
+for the follower, engaging and emergency escape. Its handoff to melee must
+retain body ownership. Goal changes or owner stop must remain authoritative;
+the controller must not implement kiting through successive move_to orders.
+
+Kiting preserves pursuit rather than maximizing separation. Check actual
+target displacement toward Tas; remotely owned AI may not expose a target.
+Walk when clearance permits, run when the enemy gets too close and stamina
+permits, and slow or hold if it lags. Failure to follow is a bounded failure,
+not a reason to run farther. Use time, travel and progress limits, and retain
+defense/escape reserves. Unknown additional attackers, lost equipment, poor
+footing, low health/stamina or bystanders can end the attempt.
+
+Validate dry supported ground, nearby structures/characters, approach and
+escape routes before drawing an enemy. Recheck changing conditions locally;
+a saved waypoint is only a preferred location. Start with one ordinary
+Greyling and local observations rather than unrestricted searching. Keep
+healthy controlled kiting coordinated with retreat while preserving genuine
+emergency escape.
+
+Move enemy selection from the Python trial runner into this native routine.
+The harness should submit one combat goal and retain phases, distance,
+stamina, contact and outcome. Deterministic policy/replay tests cover pacing,
+follower loss, bounds and cancellation; real trials establish whether the
+enemy actually follows and whether the melee handoff works. This routine is
+planned, not implemented or live-verified yet.
+
 ## Owner protection and the web view
 
 Owner defense follows self-defense. Current damage events observe Tas, not
@@ -149,8 +185,10 @@ lost body ownership, another nearby creature, health below 70%, escape stamina
 below 10 or travel beyond 40 m. It never requests owner clearance. No suitable
 encounter produces an explicit aborted result, not a passing combat test.
 The runner does not spawn enemies, reset the character, scout unseen terrain,
-or prove return-to-shelter. Repeatable isolated-world staging/reset is still
-needed to guarantee a positive encounter independently of live-world state.
+or prove return-to-shelter. Native kiting above is the next development step
+to prepare natural encounters without owner staging. It cannot guarantee that
+a suitable enemy is available; isolated-world staging/reset remains optional
+tooling for guaranteed fixture availability.
 Verify defending and disengagement from actual evidence; do not deliberately
 injure Tas to cross a health threshold. Record incomplete game checks on the
 tickets. Use just check for retained, bounded diagnostics; just check ci and
