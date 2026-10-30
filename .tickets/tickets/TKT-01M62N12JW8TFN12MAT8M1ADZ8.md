@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T21:17:16Z
+updated_at: 2026-10-30T21:23:37Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -116,3 +116,11 @@ PR108 merged as7700a93. Full just check ci passed (.checks/20261030T210517Z-IvoH
 The one changed-build live trial (.checks/20261030T210819Z-kcHKdj.log; .checks/gather-trial-20261030T210820019368Z/summary.json) reached tree1:61548 after successful move_to t-1, then harvest t-2 timed out after180seconds without strike contact or harvesting. Exact audit .checks/audit-window-1FNOLW.jsonl shows three approach commitments, with physical contact Y40.98/41.87/40.14 above supported ground Y31.15/31.02/30.87. Zero damage events; final57.9HP at[21.8,30.87,35.06]; no cleanup errors, combat off, game stopped and panel online. Original Wood22/BeechSeeds17/Feathers2 remain; there was no spare food at start. Camera .checks/camera-20261030T211121661091Z.jpg and final camera .checks/camera-20261030T211235274500Z.jpg retain visual evidence. This run did not encounter another food refresh, so it does not live-prove that branch; its recorded food-refresh/real-injury regressions pass.
 
 Added a resource-pivot horizontal physical ray before the collider-centre fallback, rejecting unreachable physical contact from the projected support before movement. Added compact probe/pivot/feet diagnostics and the recorded canopy-height reach regression; just check plugin test-core HarvestTests passed (.checks/20261030T211632Z-ZFH6pV.log). CI, committed review, landing/deployment and a single changed-build retry follow. All full delivery/repeated hauling acceptance remains open.
+
+**agent:codex/renki-milestones** at 2026-10-30T21:23:37Z
+
+PR109 merged the pivot-ray/contact-support reach fix as3ccd07d. Full just check ci passed (.checks/20261030T211644Z-Q6mwg8.log), committed just check review passed (.checks/20261030T211825Z-o33xFx.log), and checksum-verified just check vm install passed (.checks/20261030T211859Z-XE8tMZ.log).
+
+The next bounded gather trial selected beech1:61671 at[45.74,33.83,35.34], initially24.17m away and clear. Native move_to t-1 succeeded, but fresh perception during approach found a Greyling30.12m from that tree, inside the unchanged32m falling protection. Controller gathering correctly refused before harvest with 'no nearby isolated tier-zero full beech at the site'. No cuts or contact-ray test occurred; do not count the pivot-ray fix as live-proven. Summary .checks/gather-trial-20261030T211928271209Z/summary.json; exact audit .checks/audit-window-WM1Kpz.jsonl; trial log .checks/20261030T211928Z-J9To8D.log. Zero damage, minimum/final57.6HP, final[44.92,33.59,34.16], no cleanup errors. Tas was logged out, game stopped, combat restored off and panel online. Starting Wood22/BeechSeeds17/Feathers2 were not harvested or deposited.
+
+Do not rerun protected gathering unchanged or ask the owner to clear it. The new local Greyling sighting justifies one autonomous M3 acquisition/kiting/melee trial on this build, using existing health/terrain/character/retreat guards. M2 full delivery, live pivot-contact proof, remembered/chat site selection and repeated hauling stay open.
