@@ -611,3 +611,9 @@ combat off by default. Verify normal aim/contact, block and supported dodge,
 bounded escape on deteriorating conditions, stop/reconnect cleanup and a
 separate return to shelter. Do not deliberately damage Tas for a threshold.
 Keep unobserved cases open on the attack and retreat tickets.
+
+On 2026-10-30 UTC, dd3edda passed the deployed permission-gate smoke:
+controller allowedTasks included attack, but the plugin with AllowCombat=false
+rejected the request as not_allowed. Tas stayed idle and sheltered. Browser
+preview checks passed for stamina, block mode, retreat reasons and clearing
+finished combat status. No positive combat outcome is claimed by these checks.
