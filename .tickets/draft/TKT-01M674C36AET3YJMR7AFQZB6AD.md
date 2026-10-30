@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T19:25:17Z
-updated_at: 2026-10-30T19:25:17Z
+updated_at: 2026-10-30T19:36:40Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -41,3 +41,11 @@ The owner observed pauses between movement points and wants next steps prepared 
 - [ ] Retained live traces identify and measure the causes of pauses between legs and tasks
 - [ ] A bounded provisional next-step design specifies authority, scope, freshness, displacement and preemption rules
 - [ ] Implementation recommendations and regressions cover smooth handoff and immediate invalidation without unverified movement
+
+## Notes
+
+**agent:codex/renki-milestones** at 2026-10-30T19:36:40Z
+
+Initial investigation/design is in docs/NAVIGATION-LOOKAHEAD.md. In retained audit .checks/audit-window-0hjdQA.jsonl, candidate rejection bursts of4/8/14 took2.003/4.005/7.020 seconds to the next accepted route. Code confirms Scouting.Decide returns Wait on each rejected candidate and KiteTask retries every0.5s. Failed native task to next controller dispatch was0.091/0.164s. One local route search reported27.4ms total and20.07ms worst slice; do not generalize these timings to other scenes. The initial2s observation hold is intentional.
+
+Proposed one provisional slot, bounded incremental candidate preparation near arrival, shared main-thread probe/frame budget, generation/scope/authority/freshness tags, actual-pose connector and immediate safety rechecks at commit, immediate stop/retreat/owner displacement, and explicit route adoption rather than throwing prepared work away with SetGoal. Instrument arrival/ready/commit/idle and invalidation before claiming smoothness. This remains a draft implementation investigation; no movement change or smooth-handoff acceptance earned.
