@@ -45,6 +45,8 @@ namespace Renki.Tasks
     {
         public static bool Ready(double hp, double maximum) => maximum > 0 && hp >= maximum * .8;
         public static bool Hurt(double started, double current, double maximum) => current < Math.Min(started, maximum) - .01;
+        public static bool Interrupted(bool damaged, double previous, double previousMaximum, double current, double maximum, bool foodRefreshed) =>
+            damaged || Hurt(previous, current, maximum) && !(foodRefreshed && maximum > previousMaximum);
     }
 
     public static class HarvestEscape

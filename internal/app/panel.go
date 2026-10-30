@@ -36,6 +36,7 @@ type PanelStatus struct {
 	Task          *protocol.TaskRef      `json:"task,omitempty"`
 	HP            float64                `json:"hp,omitempty"`
 	HPMax         float64                `json:"hpMax,omitempty"`
+	InjurySeq     *uint64                `json:"injurySeq,omitempty"`
 	Food          *protocol.FoodStatus   `json:"food,omitempty"`
 	Combat        *protocol.CombatStatus `json:"combat,omitempty"`
 	Stamina       float64                `json:"stamina,omitempty"`
@@ -84,6 +85,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		ps.WorldUID = s.WorldUID
+		ps.InjurySeq = a.Session.InjurySequence()
 		ps.Location, ps.Flags, ps.Yaw = s.Location, s.Flags, s.Yaw
 		ps.Food = s.Food
 		ps.Combat, ps.Stamina, ps.StaminaMax = s.Combat, s.Stamina, s.StaminaMax

@@ -669,6 +669,16 @@ results. `just check vm test-gather-trial` checks proof reconciliation;
 Both are included in `just check ci`. This single cycle does not establish chat
 site inference, repeated hauling or the complete M2 milestone.
 
+Health checks retain the last accepted injury-event sequence from the current
+connection (`injurySeq` in panel status). Any new injury, including one followed
+by regeneration between polls, stops gathering. A meal refresh can clamp HP to
+its old decayed maximum and raise the maximum again before the next poll; that
+specific transition is allowed only with a refreshed food timer and an unchanged
+known injury marker. Missing markers keep the conservative HP-loss check.
+The 80% health floor remains. Native harvesting keeps its actual-damage latch
+and checks food refresh against consecutive health samples rather than treating
+the task's original HP as an injury baseline indefinitely.
+
 Trials also retain a bounded harvest projection in `summary.json`: matching
 contact, safety-scan, escape and break evidence, with damage-event count for the
 whole audit window. Re-read an existing audit with `just vm harvest-evidence

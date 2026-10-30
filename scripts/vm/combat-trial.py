@@ -210,16 +210,17 @@ def main():
         call('combat', 'false' if harvesting or args.resupply_food else 'true')
         call('start', timeout=330)
         deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
-        startup_id, startup_hp, startup_scope = None, None, None
+        startup_id, startup_health, startup_scope = None, None, None
         while True:
             status, mapped = observe()
             reason = abort_reason(status)
             if reason:
                 raise RuntimeError(reason)
             if startup_id:
-                if (status.get('world'), status.get('connection')) != startup_scope or status['hp'] < min(startup_hp, status['hpMax']) - .15:
+                from harvest_trial import health_loss
+                if (status.get('world'), status.get('connection')) != startup_scope or health_loss(startup_health, status):
                     raise RuntimeError('startup home return changed scope or suffered damage')
-                startup_hp = status['hp']
+                startup_health = status
             chars = (mapped.get('perception') or {}).get('characters', [])
             # Do not wait for regeneration while being chased, or replace an escape.
             if status.get('task'):
@@ -233,7 +234,7 @@ def main():
                         history = call('panel', 'GET', '/api/task?id=' + active_id + '&at=' + anchor, as_json=True)
                         if not startup_home(status, history):
                             raise RuntimeError('another task is active; trial will not replace it')
-                        startup_id, startup_hp = active_id, status['hp']
+                        startup_id, startup_health = active_id, status
                         startup_scope = (status.get('world'), status.get('connection'))
                         summary['startupHomeTask'] = active_id
                         print('Waiting for the existing native return-home task', flush=True)
@@ -306,23 +307,31 @@ def main():
     finally:
         # Always save/logout, stop the game and restore combat off. Restart only
         # the controller so monitoring remains available between trials.
-        # Retain the current view before logout for agent-assisted diagnosis. This
-        # reads the latest frame; it never bypasses the native capture ceiling.
-        try:
-            summary['cameraEvidence'] = call('camera').strip()
-        except Exception as error:
-            summary['cameraUnavailable'] = str(error)
         cleanup = []
         if summary.get('behaviourName'):
             for action in ('stop', 'delete'):
                 cleanup.append(('panel', 'POST', '/api/behaviours', json.dumps(dict(action=action, name=summary['behaviourName']))))
         if summary.get('goalId') and summary.get('goal', {}).get('status') not in ('succeeded', 'needs_plan', 'cancelled'):
             cleanup.append(('panel', 'POST', '/api/goals', json.dumps(dict(action='stop', id=summary['goalId']))))
-        for arguments in cleanup + [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
+
+        def cleanup_call(arguments):
             try:
                 call(*arguments, timeout=200)
-            except Exception as e:
-                summary.setdefault('cleanupErrors', []).append(str(e))
+            except Exception as error:
+                summary.setdefault('cleanupErrors', []).append(str(error))
+
+        # Revoke this trial's automation before fetching diagnostic imagery;
+        # a slow image transfer must not keep a rejected behavior moving.
+        for arguments in cleanup:
+            cleanup_call(arguments)
+        # Retain the current view before logout for agent-assisted diagnosis. This
+        # reads the latest frame; it never bypasses the native capture ceiling.
+        try:
+            summary['cameraEvidence'] = call('camera').strip()
+        except Exception as error:
+            summary['cameraUnavailable'] = str(error)
+        for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
+            cleanup_call(arguments)
         until = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
         try:
             audit = call('audit-window', since, until, timeout=60).strip()

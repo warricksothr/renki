@@ -54,7 +54,7 @@ type gatherRun struct {
 	center                       protocol.Vec3
 	pending                      *protocol.PerceivedResource
 	beforePack, beforeScan       uint64
-	previousHealth               float64
+	previousHealth               healthSample
 	targets, logs                int
 	stow                         *stowRun
 }
@@ -129,12 +129,12 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	if r.began.IsZero() {
 		r.began = v.Now
-		r.previousHealth = v.State.HP
+		r.previousHealth = sampleHealth(v)
 	}
-	if v.State.HP < math.Min(r.previousHealth, v.State.HPMax)-.15 {
+	if r.previousHealth.lost(sampleHealth(v)) {
 		return nil, errors.New("observed health loss; gathering stopped")
 	}
-	r.previousHealth = v.State.HP
+	r.previousHealth = sampleHealth(v)
 	if v.Now.Sub(r.began) >= 8*time.Minute {
 		return nil, errors.New("gather reached its eight-minute work limit")
 	}

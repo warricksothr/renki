@@ -16,6 +16,7 @@ type View struct {
 	Now          time.Time
 	State        *protocol.State
 	Inventory    *protocol.Inventory
+	InjurySeq    *uint64
 	Perception   *protocol.Perception
 	Containers   []*protocol.Container
 	Owners       []string

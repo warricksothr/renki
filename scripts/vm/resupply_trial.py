@@ -3,6 +3,7 @@ import datetime
 import json
 import math
 import time
+from harvest_trial import health_loss
 
 # Exact ordinary food prefabs, never inferred from arbitrary item names.
 FOODS = ('CookedDeerMeat', 'NeckTailGrilled', 'CookedMeat', 'Honey', 'Raspberry', 'Blueberries', 'Mushroom')
@@ -71,22 +72,22 @@ def run(summary, call, observe, terminal, saved):
     if home.get('world') != status.get('world') or not home.get('pos') or math.dist(status['pos'], home['pos']) > 500:
         raise RuntimeError('resupply requires known home within 500 m in this world')
     scope = (status['world'], status.get('connection'))
-    previous_hp = status['hp']
+    previous_health = status
     deadline = time.monotonic() + 420
     summary.update(origin=status['pos'], tasks=[], supplied={})
 
     def checked_observe():
-        nonlocal previous_hp
+        nonlocal previous_health
         st, mp = observe()
         if (st.get('world'), st.get('connection')) != scope or not st.get('connected') or st.get('phase') != 'in_world':
             raise RuntimeError('resupply world/connection changed')
-        if st.get('hp', 0) < min(previous_hp, st.get('hpMax', 0)) - .15:
+        if health_loss(previous_health, st):
             raise RuntimeError('observed damage during resupply')
         if st.get('location', {}).get('inWater') or 'swimming' in st.get('flags', []):
             raise RuntimeError('unsafe water during resupply')
         if time.monotonic() >= deadline or math.dist(st['pos'], summary['origin']) > 525:
             raise RuntimeError('resupply time/travel limit')
-        previous_hp = st['hp']
+        previous_health = st
         return st, mp
 
     def task(name, args, timeout):

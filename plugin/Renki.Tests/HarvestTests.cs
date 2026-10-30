@@ -9,6 +9,16 @@ namespace Renki.Tests
 {
     public sealed class HarvestTests
     {
+        [Fact]
+        public void FoodRefreshDoesNotInventDamageOrClearTheDamageLatch()
+        {
+            Assert.False(HarvestHealth.Interrupted(false, 60.7, 60.7, 60, 66.1, true));
+            Assert.True(HarvestHealth.Interrupted(true, 60.7, 60.7, 60, 66.1, true));
+            Assert.True(HarvestHealth.Interrupted(true, 60.7, 60.7, 66.1, 66.1, true));
+            Assert.True(HarvestHealth.Interrupted(false, 60.7, 60.7, 60, 66.1, false));
+            Assert.False(HarvestHealth.Interrupted(false, 60.7, 60.7, 60, 60, false));
+        }
+
         [Theory]
         [InlineData(false, false, false, false)]
         [InlineData(false, true, false, false)]

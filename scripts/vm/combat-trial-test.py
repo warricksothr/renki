@@ -231,6 +231,7 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertFalse(any(c[0] == 'task' for c in commands))
                 actions = [json.loads(c[3]) for c in commands if c[:3] == ['panel', 'POST', '/api/behaviours']]
                 self.assertEqual(actions, [dict(action=a, name='unique-test') for a in ('stop', 'delete')])
+                self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
                 self.assertEqual(commands[-5:-1], [['panel', 'POST', '/api/act/logout', '{}'], ['stop'], ['combat', 'false'], ['panel-start']])
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
                 self.assertNotEqual(summary['outcome'], 'awaiting_proof')
