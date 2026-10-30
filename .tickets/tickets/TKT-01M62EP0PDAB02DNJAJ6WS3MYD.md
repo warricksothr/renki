@@ -19,21 +19,21 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:codex/renki-resume
-  branch: t3/chest-memory
+  actor: agent:codex/renki-milestones
+  branch: t3/reconcile-landmarks
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: e0a7f40715409b6a1107bac325c49aa2f0b40a48
+  commit: 9433ba9fa565ea0e3bdc2ac3a270db4ce892454c
   session: null
-  claimed_at: 2026-10-29T20:14:14Z
+  claimed_at: 2026-10-30T17:51:14Z
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-10-30T13:43:12Z
+updated_at: 2026-10-30T17:51:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -75,11 +75,7 @@ can say what is near ("there's a chest by the workbench").
 
 ## Implementation plan
 
-The chest slice is landed and deployed. Continue M2 with persistent last-seen landmarks: useful structures, pickables and known ore deposits. Keep static prefab/kind/tool metadata once in a per-world catalogue; each entity retains its reference, position rounded to 0.5 m, last-seen wall time and portal tag. Do not persist door state, drops, characters or individual scenery trees/ordinary rocks. Bound records and catalogue by age/count; rollback failed saves and return independent expanded reads.
-
-Capture perception arrival time and world atomically in Session, then batch newly seen landmarks for up to 30 seconds, flushing at shutdown. Preserve original timestamps across failures and connection/world changes and never reuse menu or previous-world frames. Expose authenticated read-only GET /api/memory/landmarks for future hauling consumers. Test restart, world separation, metadata sharing, replacement/movement, retention, rollback, recorder scope/retries and API authentication.
-
-The current perception wire has per-kind truncation and no complete-coverage guarantee (resources also have a collider cap). Omission therefore cannot safely prove missing; leave missing inference unticked until explicit scan coverage exists. Death/danger and map rendering remain later slices. Run focused just checks, just check ci and committed just check review before landing and controller-only deployment. Live route/combat checks stay deferred.
+Address the owner's screenshots showing duplicate remembered/live chests, beds, doors, stations and fires. The plugin already reports ZDO network IDs; records from older IDs remain in per-world landmark memory. Reconcile positive newer observations by exact kind/prefab and a tight three-dimensional location match against half-metre legacy positions. Use a bounded spatial index, require a unique newest observed counterpart, retain co-observed objects and ambiguous matches, and never infer disappearance from a capped perception frame. Remove superseded IDs in the shared durable store, not only the renderer. Keep current IDs as task addresses. Carry old chest contents only as explicitly unverified last-known hints with their original observation time/source; a new exact snapshot clears that status. Save landmark/container reconciliation atomically with rollback on failure. Add world/floor/type/nearby-object/ambiguity/co-observation/older-frame/restart/rollback regressions, run focused checks and just check ci, committed review, land and deploy. Confirm the actual home map no longer retains old-ID counterparts and that contents/provenance match the shared APIs. Stable logical aliases for arbitrary old explicit job parameters and absence-based missing detection remain separate unearned work.
 
 ## Notes
 
@@ -126,3 +122,7 @@ Missing-object inference remains deliberately unimplemented: per-kind truncation
 **agent:codex/renki-resume** at 2026-10-30T13:43:12Z
 
 PR #68 and danger ticket TKT-01M62N25C1HMQ34QW6CTY05B4W (Controller: danger zones from where the bot was hurt) complete the persistent injury/danger and map-rendering slice, now installed in 552c491. Exact plugin injury positions and attacker ID/prefab are retained when available; unknown environmental causes remain unidentified. The panel draws remembered landmarks and danger zones, and gather/collect target choice uses their decayed scores. Store/recorder/engine/map/shutdown regressions, CI/review and real-assets browser layer/tooltip checks passed. Missing-object inference still requires explicit complete scan coverage; environmental cause classification and native route avoidance are not claimed.
+
+**agent:codex/renki-milestones** at 2026-10-30T17:51:14Z
+
+claim taken from agent:codex/renki-resume by agent:codex/renki-milestones

@@ -8,15 +8,16 @@ import time
 FOODS = ('CookedDeerMeat', 'NeckTailGrilled', 'CookedMeat', 'Honey', 'Raspberry', 'Blueberries', 'Mushroom')
 
 
-def candidates(status, mapped, supplied):
+def candidates(status, mapped, supplied, opened=None):
     home = status.get('home') or {}
     if home.get('world') != status.get('world') or not home.get('pos'):
         raise RuntimeError('no known home in the current world')
     choices = []
+    opened = opened or {}
     visible = [s for s in (mapped.get('perception') or {}).get('structures', [])
                if s.get('kind') == 'container' and s.get('id') and s.get('pos')]
     visible_ids = {s['id'] for s in visible}
-    for chest in mapped.get('containers', []):
+    for chest in list(mapped.get('containers', [])) + [c for c in opened.values() if c.get('pos')]:
         if math.dist(chest['pos'], home['pos']) > 32:
             continue
         entity = chest['entity']
@@ -29,10 +30,17 @@ def candidates(status, mapped, supplied):
                 entity = replacements[0]['id']
             elif len(replacements) > 1:
                 continue
-        for item in chest.get('items', []):
+        for item in opened.get(entity, chest).get('items') or []:
             prefab = item.get('prefab')
             if prefab in FOODS and prefab not in supplied and item.get('stack', 0) > 0:
                 choices.append((FOODS.index(prefab), math.dist(status['pos'], chest['pos']), entity, prefab, min(4, item['stack'])))
+    # A failed food hint is a reason to check another box. A one-item ordinary
+    # food request opens through the normal access path and reports actual
+    # contents even if that food is missing. Exact receipts remain required.
+    probe_food = next((p for p in FOODS if p not in supplied), None)
+    for chest in visible:
+        if probe_food and math.dist(chest['pos'], home['pos']) <= 32 and chest['id'] not in opened:
+            choices.append((len(FOODS), math.dist(status['pos'], chest['pos']), chest['id'], probe_food, 1))
     return sorted(set(choices))
 
 
@@ -107,12 +115,12 @@ def run(summary, call, observe, terminal, saved):
         result, status, mapped, _ = task('move_to', dict(to=home['pos'], stopDistance=2, run=home_run(status)), 270)
         if result['status'] != 'succeeded' or math.dist(status['pos'], home['pos']) > 3:
             raise RuntimeError('native return home did not complete: ' + str(result.get('detail') or result.get('reason')))
-    attempted, missing_chests = set(), set()
+    attempted, missing_chests, opened = set(), set(), {}
     for _ in range(4):
         if len(summary['supplied']) >= 2:
             break
         status, mapped = checked_observe()
-        options = [c for c in candidates(status, mapped, summary['supplied'])
+        options = [c for c in candidates(status, mapped, summary['supplied'], opened)
                    if (c[2], c[3]) not in attempted and c[2] not in missing_chests]
         if not options:
             break
@@ -126,7 +134,9 @@ def run(summary, call, observe, terminal, saved):
         history = history.get('value', []) if isinstance(history, dict) else history
         receipts = [r.get('frame', {}) for r in history if r.get('frame', {}).get('type') == 'container']
         receipt = next((c for c in receipts if c.get('entity') == chest and c.get('task') == summary['tasks'][-1]['id'] and c.get('direction') == 'withdraw'), None)
-        if receipt is None and result.get('reason') in ('invalid_target', 'target_lost'):
+        if receipt is not None:
+            opened[chest] = receipt
+        elif result['status'] != 'succeeded':
             missing_chests.add(chest)
         moved = (receipt or {}).get('moved', {}).get(prefab, 0)
         pack = pack_snapshot(call, scope)

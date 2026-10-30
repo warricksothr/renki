@@ -1051,7 +1051,10 @@ function describe(m) {
     const details = contents.slice(0, items.length > 1 ? 4 : 12).map(([prefab, count]) => `${count} × ${plain(prefab)}`);
     const extra = contents.length - details.length;
     if (extra) details.push(`+${extra} more item types`);
-    return [parts.join(" · "), `Last opened ${seen}`, details.length ? details.join(" · ") : "Empty when last opened"];
+    const provenance = chest.observedEntity && chest.observedEntity !== chest.entity
+      ? `Contents from a previous object here · last opened ${seen} · needs checking`
+      : `Last opened ${seen}`;
+    return [parts.join(" · "), provenance, details.length ? details.join(" · ") : "Empty when last opened"];
   });
   if (items.length > limit) lines.push(`and ${items.length - limit} more${chests ? " chests · zoom in for individual contents" : ""}`);
   return lines;
