@@ -2149,6 +2149,7 @@ export function startController() {
     placeExpected = null;
     placePicking = false;
     $("place-form").reset();
+    $("place-radius").value = "0";
     $("place-nearby").replaceChildren();
     $("place-source").textContent = "";
     placeResult("");

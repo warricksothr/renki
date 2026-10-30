@@ -12,12 +12,12 @@ test: install
     node --test test/*.test.js
 
 lint: install
-    npx --no-install prettier --check src build.mjs measure.mjs preview-checks.js test
+    npx --no-install prettier --check src build.mjs measure.mjs preview-checks.js test ui
 
 fmt: install
-    npx --no-install prettier --write src build.mjs measure.mjs preview-checks.js test
+    npx --no-install prettier --write src build.mjs measure.mjs preview-checks.js test ui
 
-ci: lint verify test
+ci: lint verify test ui-test
 
 # CI checks committed assets before any Go recipe can regenerate them.
 verify: install
@@ -33,3 +33,30 @@ lock:
 # Compare built embedded sizes with a local git baseline; no network or VM.
 measure baseline='origin/main':
     node measure.mjs '{{baseline}}'
+
+# Install the exact Chromium revision from package-lock.json (fails on missing OS libs).
+ui-install: install
+    npx --no-install playwright install chromium
+
+# Read-only recorded fixture on a distinct port; no game/controller needed.
+fixture port='18791': build
+    python3 ../scripts/map-preview.py --suite --serve --port '{{port}}'
+
+# Named semantic checks, screenshots and JSON diagnostics; accepts --scenario/--viewport/--output.
+[positional-arguments]
+ui-test *ARGS: build
+    node ui/run.mjs "$@"
+
+# Labeled documentation examples and a portable contact sheet, using the same checks.
+[positional-arguments]
+examples *ARGS: build
+    node ui/run.mjs --examples "$@"
+
+# Small artifact summaries only; full diagnostics remain in the output directory.
+[positional-arguments]
+ui-report *ARGS:
+    node ui/report.mjs "$@"
+
+# Explicit operator setup; may need administrator privileges for OS packages.
+ui-install-system: install
+    npx --no-install playwright install-deps chromium

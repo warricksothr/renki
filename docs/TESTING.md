@@ -881,3 +881,13 @@ release, a stale release ID, conflicting pins, and an explicit normal settings
 change displacing the override. Disconnect/world replacement must clear the
 lease without configuring a replacement connection. Focused regression coverage
 runs through `just check controller test-packages ./internal/app ./internal/session ./internal/panel`.
+
+## Deterministic Preact browser checks
+
+See [PANEL-UI-TESTING.md](PANEL-UI-TESTING.md) for `just panel ui-install`,
+`just panel fixture`, `just check panel ui-test`, `just check panel examples`
+and compact artifact inspection. The actual built panel/shared renderer runs
+against recorded fixtures with a locked browser/font and no game requests.
+The browser suite is required by `just check ci`; missing prerequisites fail.
+Screenshots and structured diagnostics live in `.checks/`, with a separate
+visual-review checklist that never treats a passing assertion as design approval.
