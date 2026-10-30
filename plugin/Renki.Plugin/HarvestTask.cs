@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Renki.Movement;
+using Renki.Perception;
 using Renki.Protocol;
 using Renki.Tasks;
 using UnityEngine;
@@ -24,6 +25,8 @@ namespace Renki.Plugin
         readonly HashSet<ZDOID> oldDrops = new HashSet<ZDOID>();
         readonly Dictionary<string, int> before = new Dictionary<string, int>();
         readonly Collider[] hits = new Collider[256];
+        readonly ScanBuffer<Collider> safetyScan = new ScanBuffer<Collider>(256, 2048);
+        string scanFailure;
         readonly Dictionary<TreeLog, HarvestStillness> logPoses = new Dictionary<TreeLog, HarvestStillness>();
         readonly HarvestEvidence evidence = new HarvestEvidence();
         readonly Walker walker = new Walker();
@@ -149,7 +152,11 @@ namespace Renki.Plugin
             }
             origin = target.transform.position;
             if (!PrivateArea.CheckAccess(origin, 0f, false, false)) return Finish(Outcome.Failed(Wire.ReasonNotAllowed, "the resource is behind a ward"));
-            if (!Settled(origin, rolling ? 6 : 2)) { swingSince = -1; return null; }
+            if (!Settled(origin, rolling ? 6 : 2))
+            {
+                swingSince = -1;
+                return scanFailure != null ? Finish(Outcome.Failed(Wire.ReasonRefused, scanFailure)) : null;
+            }
             tool = Best(p);
             if (tool == null) return Finish(Outcome.Failed(Wire.ReasonNoTool, $"need a usable {(rock ? "pickaxe" : "axe")} of tier {minimum}; carried tools may be broken"));
             if (p.GetCurrentWeapon() != tool)
@@ -204,8 +211,8 @@ namespace Renki.Plugin
                     ["reach"] = reach,
                 });
             }
-            if (Protected(p, tallTree ? Mathf.Clamp(targetColliders.Where(Alive).Max(c => c.bounds.max.y) - origin.y + 2, 8, 32) : 0))
-                return Finish(Outcome.Failed(Wire.ReasonRefused, "a character or player structure is too close to harvest safely"));
+            if (Protected(p, tallTree ? Mathf.Clamp(targetColliders.Where(Alive).Max(c => c.bounds.max.y) - origin.y + 2, 8, 32) : 0, out var protectedReason))
+                return Finish(Outcome.Failed(Wire.ReasonRefused, protectedReason));
             if (rolling && !retreatReady)
             {
                 var away = p.transform.position - origin; away.y = 0;
@@ -264,31 +271,63 @@ namespace Renki.Plugin
             return false;
         }
 
-        bool Protected(Player p, float fallRadius)
+        bool ScanSafety(Vector3 center, float radius, string phase)
+        {
+            var before = safetyScan.Items.Length;
+            var complete = safetyScan.TryFill(buffer => Physics.OverlapSphereNonAlloc(center, radius, buffer, ~0, QueryTriggerInteraction.Ignore));
+            scanFailure = complete ? null : "too much nearby geometry to check " + phase + " safely";
+            if (before != safetyScan.Items.Length || !complete)
+                Tracer.Emit("harvest", "safety scan", new Dictionary<string, object>
+                {
+                    ["phase"] = phase,
+                    ["radius"] = radius,
+                    ["previousCapacity"] = before,
+                    ["capacity"] = safetyScan.Items.Length,
+                    ["count"] = safetyScan.Count,
+                    ["complete"] = complete,
+                });
+            return complete;
+        }
+
+        bool Protected(Player p, float fallRadius, out string why)
         {
             var radius = Math.Max(fallRadius, tool.m_shared.m_attack.m_attackRange + 1.5f);
             var center = fallRadius > 0 ? origin : p.transform.position + Vector3.up;
-            var count = Physics.OverlapSphereNonAlloc(center, radius, hits, ~0, QueryTriggerInteraction.Ignore);
-            if (count == hits.Length) return true;
-            for (var i = 0; i < count; i++)
+            why = null;
+            if (!ScanSafety(center, radius, "protection")) { why = scanFailure; return true; }
+            for (var i = 0; i < safetyScan.Count; i++)
             {
-                var c = hits[i];
+                var c = safetyScan.Items[i];
                 var character = c.GetComponentInParent<Character>();
                 if (character is Player peer && peer != p &&
                     !HarvestSafety.PlayerBlocks(rolling || rock || tool.m_shared.m_tamedOnly, Perceiver.Pvp(p), Perceiver.Pvp(peer))) continue;
-                if (character != null && character != p || c.GetComponentInParent<Piece>() != null) return true;
+                var piece = c.GetComponentInParent<Piece>();
+                if (character == null || character == p)
+                {
+                    if (piece == null) continue;
+                }
+                why = character != null && character != p ? "a character is inside the harvest exclusion" : "a player structure is inside the harvest exclusion";
+                Tracer.Emit("harvest", "protected collider", new Dictionary<string, object>
+                {
+                    ["collider"] = c.transform.root.name + "/" + c.name,
+                    ["radius"] = radius,
+                    ["center"] = Convert.ToArray(center),
+                    ["boundsDistance"] = Math.Sqrt(c.bounds.SqrDistance(center)),
+                    ["character"] = character != null && character != p,
+                    ["piece"] = piece != null,
+                });
+                return true;
             }
             return false;
         }
 
         bool Settled(Vector3 center, float radius)
         {
-            var count = Physics.OverlapSphereNonAlloc(center, radius, hits, ~0, QueryTriggerInteraction.Ignore);
-            if (count == hits.Length) return false;
+            if (!ScanSafety(center, radius, "settling")) return false;
             var quiet = true;
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < safetyScan.Count; i++)
             {
-                var log = hits[i].GetComponentInParent<TreeLog>();
+                var log = safetyScan.Items[i].GetComponentInParent<TreeLog>();
                 if (log == null) continue;
                 var body = log.GetComponent<Rigidbody>();
                 if (!logPoses.TryGetValue(log, out var pose))
@@ -322,7 +361,11 @@ namespace Renki.Plugin
             // Retreat is a phase, not a permanent exclusion radius: after
             // logs settle, collection must be able to approach the drops.
             retreated = true;
-            if (!Settled(origin, 8)) { quietSince = -1; return null; }
+            if (!Settled(origin, 8))
+            {
+                quietSince = -1;
+                return scanFailure != null ? Finish(Outcome.Failed(Wire.ReasonRefused, scanFailure)) : null;
+            }
             if (quietSince < 0) quietSince = Time.unscaledTime;
             if (Time.unscaledTime - quietSince < 2) return null;
             if (!args.Collect) return Complete(p);

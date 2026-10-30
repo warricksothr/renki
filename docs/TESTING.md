@@ -628,6 +628,15 @@ and blocked/missing-target regressions. Evidence for the unsuccessful attempt:
 `.checks/harvest-trial-20261030T054510700197Z/summary.json` and
 `.checks/audit-window-fk9shF.jsonl`. No damaged event or cleanup error occurred.
 
+The cb0192a retry observed physical strike sight, then stopped at the protection
+guard before swinging (audit `.checks/audit-window-fsiaZG.jsonl`). Protection and
+settling queries now grow a reusable collider buffer from 256 up to 2048 when
+full, and refuse if a complete scan still cannot be obtained. Actual character,
+piece and rolling-log checks retain their radii/layers. Expansion/saturation
+traces record phase, capacity and count; a true exclusion names its collider.
+Use `just check plugin test-core ScanBufferTests` for complete-result retry,
+protected objects beyond the original prefix, storage reuse and the hard cap.
+
 ### Explicit melee
 
 Use `just check plugin test-core MeleeTests` for encounter policy, stamina
