@@ -143,6 +143,27 @@ func TestTheNewestInventoryIsKept(t *testing.T) {
 	}
 }
 
+func TestPackSnapshotRequiresLiveScopedInventory(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", Weight: 12, WeightMax: 300})
+	p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 3}}})
+	waitFor(t, func() bool { return s.PackSnapshot().Inventory != nil })
+	pack := s.PackSnapshot()
+	if pack.World != "Midgard" || pack.Connection == 0 || pack.Weight != 12 || pack.WeightMax != 300 || pack.Inventory.Count("Wood") != 3 {
+		t.Fatalf("wrong scoped pack: %+v", pack)
+	}
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "Other"})
+	waitFor(t, func() bool { return s.PackSnapshot().World == "Other" })
+	if s.PackSnapshot().Inventory != nil {
+		t.Fatal("inventory leaked across worlds")
+	}
+	p.Send(&protocol.State{Phase: protocol.PhaseMenu})
+	waitFor(t, func() bool { return s.PackSnapshot().World == "" })
+	if s.PackSnapshot().Connection != 0 {
+		t.Fatal("menu retained a live inventory scope")
+	}
+}
+
 func TestChestSnapshotsAreOrderedAndScopedToConnectionAndWorld(t *testing.T) {
 	s, _, p := setup(t, nil, nil)
 	p.Send(&protocol.State{World: "Midgard"})

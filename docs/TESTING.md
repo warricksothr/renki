@@ -590,6 +590,32 @@ Named movement reached the raised indoor floor; saved-place Go also passed.
 Temporary test places were deleted. The retained home storage zone is
 centered on its accessible indoor approach. Zone edits started no harvest.
 
+### Autonomous full-tree/log benchmark
+
+`just vm harvest-trial --wait-s 60` uses normal native harvest tasks with combat
+disabled, without owner staging. It requires active food, 80% health, 40 stamina,
+a usable carried axe, four spare slots and 60 spare carry weight. It selects one
+nearby tier-zero full Beech1, with clearance from all characters and structures.
+The native task owns approaching, aiming, swinging, falling-trunk escape and
+collecting. The supervisor issues no movement tasks.
+
+The benchmark then considers only newly observed nearby beech logs, excluding
+the initial resource IDs. Proximity is not proof of spawn lineage. At most five
+harvest tasks and eight minutes of work are allowed, within 40 m of the initial
+position. Each successful task needs matching local-hit/break evidence, and a
+positive benchmark needs at least two log harvests, a positive observed Wood
+inventory delta and no observed unfinished nearby new logs. Unsafe/unavailable
+logs, lost ownership, changed world/connection, health loss and stale inventory
+abort instead of requesting owner clearance. Existing native route/threat guards
+remain active. It always logs out/stops and restores combat off.
+
+Evidence under `.checks/harvest-trial-*` retains exact resource IDs, per-task
+histories, before/after item counts, observations and audit paths. The console
+prints a bounded outcome with task/log counts and Wood gain. Use `just check vm
+test-harvest-trial` for selection, scoped inventory, native-goal sequencing,
+evidence requirements, failure and cleanup checks; it is part of `just check ci`.
+This does not establish mining, crafting, delivery home or indefinite harvesting.
+
 ### Explicit melee
 
 Use `just check plugin test-core MeleeTests` for encounter policy, stamina

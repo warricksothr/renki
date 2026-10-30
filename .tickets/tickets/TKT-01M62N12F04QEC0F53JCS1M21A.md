@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T00:36:46Z
+updated_at: 2026-10-30T05:43:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -56,7 +56,9 @@ Fails with `no_tool` when nothing in the inventory meets minTool, `inventory_ful
 
 ## Implementation plan
 
-Replace collider-bounds proximity with real collider contact at tool attack height. Pick a stand-off beside the actual contact, project onto measured support near the resource's own level, and pass a tight grounded goal to the existing wall/water/clearance-validated walker. Never inherit the raised starting floor as the outdoor resource's destination height. Recompute bounded approaches after missed swings, using observed hit evidence for progress and retaining injury/threat/protection/settling/escape checks. Cover the recorded raised-house and too-far small-tree cases offline, then verify a from-home harvest/collect/deliver/return with an unmodified physical target.
+Continue TKT-01M62N12F04QEC0F53JCS1M21A — Plugin: harvest task: chop, split and break with the best tool. Add a just vm harvest-trial supervisor using existing normal native harvest tasks, not movement puppeting. Share the combat trial's connection/evidence/always-logout-stop infrastructure. Keep combat disabled. Select one nearby tier-zero full Beech1 with active meals, usable carried axe, health/stamina, spare carrying capacity, and clearance from all characters/structures at the bot and work site. Refuse unsafe/unavailable work rather than asking the owner to clear or reposition anything.
+
+Capture initial resources and inventory. After the selected full tree, process only newly observed same-family logs near that tree (bounded tasks/travel/time); do not reuse pre-existing logs or claim spawn lineage from proximity alone. Keep exact task receipts and inventory delta and require actual native local-hit/break evidence plus observed collected Wood to report a positive benchmark. Missing logs, changed world, takeover, damage, nearby characters, unsupported routes and collection failures remain failures/aborts. Retain compact harvest traces and stop automatically on every path. Validate orchestration/selection/cleanup with mocks and run the full gate/review before landing. Deploy and attempt the live check after the current combat trial cleans up; keep compound acceptance criteria open for any unverified falling/splitting/mining/collect:false cases.
 
 ## Notes
 
@@ -113,3 +115,11 @@ Build a1a1a41 completed the unstaged raised-home stump benchmark on 2026-10-30 U
 Receipts .checks/task-3kbvjvot.json, .checks/task-68smxtw6.json, .checks/task-xrezsg2b.json and .checks/task-zqclusoo.json. Exact full loop .checks/audit-window-8he1ZH.jsonl. The initial house exit still needed Jump/Strafe/Repath recovery around [-41.3,36.09,12.4] before the successful terrain approach, so this is a positive bounded check rather than a claim of ideal navigation. It used no manual outdoor staging.
 
 Own PvP false is observed; no nearby Nimah was present, so the protected-bystander live check remains open. Full-tree falling escape, descendant log splitting, rock mining, collect:false live behavior and the complete compound criteria are still unverified. Do not reuse destroyed stump1:39764. The other stump1:39765 was still present in the last live map.
+
+**agent:codex/renki-resume** at 2026-10-30T05:43:13Z
+
+Added just vm harvest-trial for one owner-independent full Beech1 and newly observed nearby same-family logs, using normal native harvest goals. It shares startup, saved observations, task receipts, exact audit-window capture and unconditional logout/stop/combat-off cleanup with the combat supervisor. It never issues movement tasks. Before cutting, require active food/80% HP/40 stamina, a usable supplied axe, four spare slots,60 spare carrying weight and all-character/structure clearance. Scope every observation and inventory snapshot to the same live world/connection; abort on visible health loss, takeover, unsafe/unavailable logs and travel/time/task limits.
+
+A positive benchmark requires matching native local-hit/break evidence for each successful task, at least two new log harvests, collected Wood confirmed by exact pack delta, and no observed unfinished new nearby beech logs. Initial log IDs remain excluded. Proximity does not prove spawn lineage. Five tasks/eight minutes/40m bound the attempt. Does not claim mining, crafting, home delivery or indefinite harvesting.
+
+Added authenticated read-only GET /api/inventory with one-lock live world/connection/weight/pack scope; unknown/menu/disconnected inventory is never presented as current. This avoids downloading broad audit history just to verify pack counts. Focused controller session/panel/app checks passed (.checks/20261030T053749Z-moxuXl.log). just check vm test-harvest-trial passed (.checks/20261030T053902Z-75yVzI.log); full just check ci passed including 323 plugin tests, five combat supervisor tests and four harvest supervisor tests with nine integration scenarios (.checks/20261030T054200Z-4eMCez.log). Remaining review/landing/deployment/live trial follow. Harvest acceptance criteria remain open until actual evidence earns them.

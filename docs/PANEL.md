@@ -126,6 +126,9 @@ and inventory, and a state a second for the last five minutes for the trail.
 
 `internal/panel` serves three embedded files and these endpoints, all
 behind the login: `GET /api/status`, a snapshot of the bot,
+`GET /api/inventory`, a read-only snapshot of its pack, carrying weight and
+world/connection scope (inventory is null before observation or outside a live
+world),
 `GET /api/events`, server-sent events carrying each audit record (`record`,
 with the timeline's `line` and a category `cat`) and a status every second
 (`status`), and `POST /api/act/{stop,home,logout}` for the buttons, which

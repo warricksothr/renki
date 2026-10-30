@@ -25,6 +25,31 @@ import (
 
 const token = "0123456789abcdef-test"
 
+func TestInventorySnapshotRequiresAuthenticationAndIsNeverCached(t *testing.T) {
+	calls := 0
+	h := Handler(Options{Token: token, Status: func() any { return nil }, Inventory: func() any {
+		calls++
+		return map[string]any{"world": "Midgard", "connection": 7, "inventory": nil}
+	}})
+	for _, authed := range []bool{false, true} {
+		req := httptest.NewRequest("GET", "/api/inventory", nil)
+		if authed {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if !authed && w.Code != http.StatusUnauthorized {
+			t.Fatalf("unauthenticated inventory: %d", w.Code)
+		}
+		if authed && (w.Code != http.StatusOK || w.Header().Get("Cache-Control") != "no-store" || !strings.Contains(w.Body.String(), `"connection":7`)) {
+			t.Fatalf("snapshot response: %d %s", w.Code, w.Body.String())
+		}
+	}
+	if calls != 1 {
+		t.Fatalf("inventory called %d times", calls)
+	}
+}
+
 func TestExplicitTaskEndpointValidatesBeforeDispatch(t *testing.T) {
 	calls := 0
 	srv := httptest.NewServer(Handler(Options{Token: token, Status: func() any { return nil }, Dispatch: func(_ context.Context, c TaskCommand) (string, error) {

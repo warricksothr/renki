@@ -325,6 +325,25 @@ func (s *Session) Inventory() *protocol.Inventory {
 	return s.carried
 }
 
+// PackSnapshot scopes inventory and carrying capacity to one live body/world.
+// A missing Inventory means it has not been observed in that scope yet.
+type PackSnapshot struct {
+	World      string              `json:"world"`
+	Connection uint64              `json:"connection"`
+	Weight     float64             `json:"weight"`
+	WeightMax  float64             `json:"weightMax"`
+	Inventory  *protocol.Inventory `json:"inventory"`
+}
+
+func (s *Session) PackSnapshot() PackSnapshot {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.conn == nil || s.state == nil || s.state.Phase != protocol.PhaseInWorld || s.state.World == "" {
+		return PackSnapshot{}
+	}
+	return PackSnapshot{World: s.state.World, Connection: s.conn.ID(), Weight: s.state.Weight, WeightMax: s.state.WeightMax, Inventory: s.carried}
+}
+
 // Containers lists chest snapshots from this connection; snapshots are immutable.
 func (s *Session) Containers() []*protocol.Container {
 	s.mu.Lock()
