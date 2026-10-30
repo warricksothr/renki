@@ -152,6 +152,7 @@ def run_persistent_goal(summary, call, observe, saved):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     harvest_mode = parser.add_mutually_exclusive_group()
+    harvest_mode.add_argument('--gather-tree', action='store_true', help='test the controller gather -> storage -> return chain')
     harvest_mode.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
     harvest_mode.add_argument('--harvest-logs', type=float, nargs=3, help='retry existing nearby beech logs around this center; no full-tree claim')
     harvest_mode.add_argument('--resupply-food', action='store_true', help='return home and replenish ordinary carried food from known storage')
@@ -161,7 +162,7 @@ def main():
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     args = parser.parse_args()
-    harvesting = args.harvest_tree or args.harvest_logs is not None
+    harvesting = args.harvest_tree or args.harvest_logs is not None or args.gather_tree
     if args.persistent and (harvesting or args.resupply_food or args.direct or args.entity or args.at):
         parser.error('--persistent chooses its own target and area; cannot combine with other trial modes')
     if args.direct and (not args.entity or args.at or harvesting or args.resupply_food):
@@ -174,7 +175,7 @@ def main():
         parser.error('--at must contain finite coordinates')
     if not math.isfinite(args.wait_s) or not 0 <= args.wait_s <= 120:
         parser.error('--wait-s must be between 0 and 120')
-    saved = ROOT / '.checks' / (('resupply-trial-' if args.resupply_food else 'harvest-trial-' if harvesting else 'combat-trial-') + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+    saved = ROOT / '.checks' / (('resupply-trial-' if args.resupply_food else 'gather-trial-' if args.gather_tree else 'harvest-trial-' if harvesting else 'combat-trial-') + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     saved.mkdir(parents=True)
     summary = {'outcome': 'not_started', 'evidence': str(saved)}
     since = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -252,6 +253,10 @@ def main():
             run(summary, call, observe, terminal, saved)
         elif args.persistent:
             run_persistent_goal(summary, call, observe, saved)
+        elif args.gather_tree:
+            from gather_trial import run
+            print('Testing controller gather, gains-only delivery and return', flush=True)
+            run(summary, call, observe, saved)
         elif harvesting:
             from harvest_trial import run
             print('Testing native ' + ('existing logs' if args.harvest_logs else 'full-tree/log harvesting'), flush=True)
@@ -303,6 +308,9 @@ def main():
         except Exception as error:
             summary['cameraUnavailable'] = str(error)
         cleanup = []
+        if summary.get('behaviourName'):
+            for action in ('stop', 'delete'):
+                cleanup.append(('panel', 'POST', '/api/behaviours', json.dumps(dict(action=action, name=summary['behaviourName']))))
         if summary.get('goalId') and summary.get('goal', {}).get('status') not in ('succeeded', 'needs_plan', 'cancelled'):
             cleanup.append(('panel', 'POST', '/api/goals', json.dumps(dict(action='stop', id=summary['goalId']))))
         for arguments in cleanup + [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
@@ -318,6 +326,14 @@ def main():
             if 'minimumHP' in vitals:
                 vitals['minimumHP'] = min(summary.get('minimumHP', vitals['minimumHP']), vitals['minimumHP'])
             summary.update(vitals)
+            if args.gather_tree:
+                from gather_trial import verify
+                try:
+                    summary.update(verify(audit, summary))
+                    if summary.get('outcome') == 'succeeded' and summary.get('damageEvents', 0):
+                        summary.update(outcome='failed', reason='native damage occurred during controller gather')
+                except Exception as error:
+                    summary.update(outcome='failed', reason=str(error))
             if harvesting:
                 try:
                     from harvest_trial import diagnostics
@@ -339,6 +355,8 @@ def main():
                     summary['diagnosticError'] = str(e)
         except Exception as e:
             summary['auditError'] = str(e)
+        if args.gather_tree and summary['outcome'] == 'awaiting_proof':
+            summary.update(outcome='failed', reason='controller gather audit proof unavailable')
         (saved / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
     report = {k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'damageEvents', 'finalNativeHP', 'evidence', 'cleanupErrors') if k in summary}
     if summary.get('result'):
@@ -349,7 +367,7 @@ def main():
             entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','examples')})
             for e in summary.get('encounters', [])]
     if harvesting:
-        report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain') if k in summary})
+        report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain', 'deposited', 'returned', 'selection') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))
         if summary.get('harvest'):
             report['harvest'] = summary['harvest']

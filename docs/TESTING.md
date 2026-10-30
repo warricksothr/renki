@@ -646,6 +646,29 @@ test-harvest-trial` for selection, scoped inventory, native-goal sequencing,
 evidence requirements, failure and cleanup checks; it is part of `just check ci`.
 This does not establish mining, crafting, delivery home or indefinite harvesting.
 
+`just check vm gather-trial --wait-s 60` tests the controller's bounded `gather`
+behavior through full-tree/log harvesting, gains-only home-chest delivery and
+return to the work site. It uses one uniquely named manual, once-only instance;
+the supervisor monitors scope, health, nearby hostiles and travel without issuing
+movement or harvesting tasks itself. It requires the same supplied axe/food and
+isolated beech as the native benchmark, selecting from current perception within
+60 m because the controller can approach its site before native acquisition.
+It also requires remembered storage within
+10 m of home and home within 150 m. Remembered chest IDs are hints; only a unique
+visible chest within 0.4 m can replace an old ID for this trial.
+
+Success requires instance-attributed native steps, distinct tree/log identities,
+task-matched local-hit breaks, measured inventory gains, exact deposit receipts
+and a successful return task with a matching final pose. Original products must
+remain in the pack. Missing audit proof fails the run. Cleanup stops/deletes the
+temporary behavior, logs out/stops the game, restores combat off and restarts
+the offline panel, including after partial request failures. Evidence stays in
+`.checks/gather-trial-*`; the console reports compact task/log/gain/deposit/return
+results. `just check vm test-gather-trial` checks proof reconciliation;
+`just check vm test-combat-trial` also checks supervisor dispatch and cleanup.
+Both are included in `just check ci`. This single cycle does not establish chat
+site inference, repeated hauling or the complete M2 milestone.
+
 Trials also retain a bounded harvest projection in `summary.json`: matching
 contact, safety-scan, escape and break evidence, with damage-event count for the
 whole audit window. Re-read an existing audit with `just vm harvest-evidence

@@ -348,3 +348,11 @@ camera-check: need-target
 # Check actual-frame cadence analysis without game or network access.
 test-camera-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/camera-check-test.py"
+
+# Test the controller gather -> gain-only storage -> return chain; always stop.
+[positional-arguments]
+gather-trial *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --gather-tree "$@"
+
+test-gather-trial:
+    python3 -B "{{justfile_directory()}}/scripts/vm/gather-trial-test.py"

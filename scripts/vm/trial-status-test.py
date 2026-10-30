@@ -1,10 +1,13 @@
 """Progress is observation-based, scoped and never implies objective success."""
 import datetime
+import contextlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location('progress', Path(__file__).with_name('trial-status.py'))
 progress = importlib.util.module_from_spec(spec)
@@ -12,6 +15,22 @@ spec.loader.exec_module(progress)
 
 
 class Progress(unittest.TestCase):
+    def test_latest_gather_run_includes_delivery_and_missing_terminal_result(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / '.checks' / 'combat-trial-20261030T100000Z').mkdir(parents=True)
+            folder = root / '.checks' / 'gather-trial-20261030T110000Z'
+            folder.mkdir()
+            (folder / 'summary.json').write_text(json.dumps(dict(outcome='failed', deposited={'Wood': 20},
+                returned=False, tasks=[dict(id='h1', task='harvest', result=None)])))
+            with mock.patch.object(progress, 'ROOT', root), mock.patch.object(progress.sys, 'argv', ['trial-status']), contextlib.redirect_stdout(io.StringIO()) as output:
+                progress.main()
+            result = json.loads(output.getvalue())
+            self.assertEqual(result['evidence'], str(folder))
+            self.assertEqual(result['deposited'], {'Wood': 20})
+            self.assertFalse(result['returned'])
+            self.assertIsNone(result['tasks'][0]['status'])
+
     def test_preparation_partial_append_scoped_travel_and_explicit_outcome(self):
         with tempfile.TemporaryDirectory() as name:
             folder = Path(name)
