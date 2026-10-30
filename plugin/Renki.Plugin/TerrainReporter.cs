@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using HarmonyLib;
 using Renki.Perception;
 using Renki.Protocol;
@@ -14,6 +18,8 @@ namespace Renki.Plugin
     {
         TerrainCache cache = new TerrainCache();
         string world;
+        TerrainScope scope;
+        public string Namespace = "local", Epoch = "1", Source;
         readonly Dictionary<(int, int), TerrainTile> pending = new Dictionary<(int, int), TerrainTile>();
         readonly Stopwatch watch = new Stopwatch();
         double totalMs, worstMs;
@@ -24,18 +30,36 @@ namespace Renki.Plugin
 
         public void Update(RenkiPlugin plugin, Player p, double radius)
         {
-            var current = ZNet.instance != null ? ZNet.instance.GetWorldName() : "";
+            var net = ZNet.instance;
+            var current = net != null ? net.GetWorldName() : "";
             if (string.IsNullOrEmpty(current)) return;
-            if (current != world)
+            var uid = net.GetWorldUID().ToString(CultureInfo.InvariantCulture);
+            if (current != world || uid != scope?.WorldUid)
             {
                 cache = new TerrainCache(); pending.Clear(); world = current;
+                var mods = string.Join("\n", BepInEx.Bootstrap.Chainloader.PluginInfos.Values
+                    .Select(info => info.Metadata.GUID + "@" + info.Metadata.Version).OrderBy(v => v, StringComparer.Ordinal));
+                string fingerprint;
+                using (var hash = SHA256.Create())
+                    fingerprint = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(mods))).Replace("-", "").ToLowerInvariant();
+                scope = new TerrainScope
+                {
+                    Namespace = Namespace,
+                    Epoch = Epoch,
+                    Source = Source,
+                    WorldUid = uid,
+                    Stream = Guid.NewGuid().ToString("N"),
+                    Game = global::Version.GetVersionString(),
+                    Generator = net.GetWorld().m_worldGenVersion,
+                    Mods = fingerprint
+                };
             }
             var at = p.transform.position;
             var forward = p.GetVelocity();
             if (forward.sqrMagnitude < .1f) forward = p.transform.forward;
             forward.y = 0; forward.Normalize();
             watch.Restart();
-            var tile = cache.Step(at.x, at.z, forward.x, forward.z, Time.unscaledTime,
+            var tile = cache.Step(at.x, at.z, forward.x, forward.z, Time.unscaledTimeAsDouble,
                 ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : 30,
                 Sample, (int)Math.Ceiling(Math.Min(64, radius) / TerrainCache.TileSize));
             watch.Stop();
@@ -47,7 +71,13 @@ namespace Renki.Plugin
                 nextSend = Time.unscaledTime + 1;
                 if (pending.Count > 0)
                 {
-                    plugin.Send(new Terrain { World = world, Tiles = new List<TerrainTile>(pending.Values) });
+                    plugin.Send(new Terrain
+                    {
+                        World = world,
+                        Scope = scope,
+                        CapturedAt = Time.unscaledTimeAsDouble,
+                        Tiles = new List<TerrainTile>(pending.Values)
+                    });
                     pending.Clear();
                 }
             }

@@ -179,6 +179,7 @@ namespace Renki.Protocol
         [JsonProperty("phase")] public string Phase = "";
         [JsonProperty("character")] public string Character = "";
         [JsonProperty("world")] public string World = "";
+        [JsonProperty("worldUid", NullValueHandling = NullValueHandling.Ignore)] public string WorldUid;
         [JsonProperty("pos")] public double[] Pos = new double[3];
         [JsonProperty("yaw")] public double Yaw;
         [JsonProperty("vel")] public double[] Vel = new double[3];

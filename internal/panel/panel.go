@@ -75,6 +75,7 @@ type Options struct {
 	LandmarkMemory  func() any
 	PlayerMemory    func() any
 	Map             func() any
+	Atlas           http.Handler
 	Inventory       func() any
 	Waypoints       http.Handler
 }
@@ -132,6 +133,9 @@ func Handler(o Options) http.Handler {
 			w.Header().Set("Cache-Control", "no-store")
 			_ = json.NewEncoder(w).Encode(o.Inventory())
 		})
+	}
+	if o.Atlas != nil {
+		authed.Handle("GET /api/atlas/", o.Atlas)
 	}
 	if o.Map != nil {
 		authed.HandleFunc("GET /api/map", func(w http.ResponseWriter, r *http.Request) {

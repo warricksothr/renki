@@ -69,3 +69,83 @@ func TestTerrainRetentionIsBoundedAndKeepsNearestTiles(t *testing.T) {
 		t.Fatal("disconnected terrain presented as live")
 	}
 }
+
+func TestDurableTerrainRequiresFreshnessAndMatchingIdentity(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.State{World: "one", WorldUID: "9223372036854775807", Phase: protocol.PhaseInWorld})
+	waitFor(t, func() bool { return s.State() != nil })
+	c := currentConn(t, s)
+	scope := protocol.TerrainScope{Namespace: "server", WorldUID: "9223372036854775807", Epoch: "1", Source: "bot", Stream: "run", Game: "game", Generator: 2, Mods: "hash"}
+	tile := terrainTile(-1, 0)
+	at := 9.0
+	tile.MeasuredAt = make([]*float64, 25)
+	for i := range tile.MeasuredAt {
+		tile.MeasuredAt[i] = &at
+	}
+	patch := &protocol.Terrain{Envelope: protocol.Envelope{Seq: 100}, World: "one", Scope: &scope, CapturedAt: 10, Tiles: []protocol.TerrainTile{tile}}
+	s.Message(c, patch)
+	batches, dropped := s.DrainTerrain()
+	if len(batches) != 1 || dropped != 0 || batches[0].Scope.WorldUID != scope.WorldUID || batches[0].ReceivedAt.IsZero() {
+		t.Fatal(batches, dropped)
+	}
+	s.Message(c, patch) // duplicate sequence
+	patch.Seq++
+	patch.CapturedAt = 8 // measurements from the future
+	s.Message(c, patch)
+	patch.Seq++
+	patch.CapturedAt = 10
+	other := scope
+	other.WorldUID = "42"
+	patch.Scope = &other
+	s.Message(c, patch) // same name, different save
+	if got, _ := s.DrainTerrain(); len(got) != 0 {
+		t.Fatal("invalid/stale identity reached disk queue")
+	}
+	// Accepted batches retain their original scope after reconnect.
+	patch.Scope = &scope
+	patch.Seq++
+	s.Message(c, patch)
+	s.Connected(c)
+	batches, _ = s.DrainTerrain()
+	if len(batches) != 1 || batches[0].Scope != scope {
+		t.Fatal("accepted scope lost on reconnect")
+	}
+	_, _, current, _ := s.TerrainView()
+	if current != nil {
+		t.Fatal("live identity survived reconnect")
+	}
+}
+
+func TestLegacyTerrainNeverEntersDurableQueue(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.State{World: "one", Phase: protocol.PhaseInWorld})
+	waitFor(t, func() bool { return s.State() != nil })
+	s.Message(currentConn(t, s), &protocol.Terrain{Envelope: protocol.Envelope{Seq: 100}, World: "one", Tiles: []protocol.TerrainTile{terrainTile(0, 0)}})
+	if got, _ := s.DrainTerrain(); len(got) != 0 {
+		t.Fatal("legacy tiles received artificial freshness")
+	}
+}
+
+func TestDurableTerrainQueueIsBoundedAndKeepsAcceptedBatches(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.State{World: "one", WorldUID: "42", Phase: protocol.PhaseInWorld})
+	waitFor(t, func() bool { return s.State() != nil })
+	c := currentConn(t, s)
+	scope := protocol.TerrainScope{Namespace: "server", WorldUID: "42", Epoch: "1", Source: "bot", Stream: "run", Game: "game", Generator: 2, Mods: "hash"}
+	tile := terrainTile(0, 0)
+	at := 1.0
+	tile.MeasuredAt = make([]*float64, 25)
+	for i := range tile.MeasuredAt {
+		tile.MeasuredAt[i] = &at
+	}
+	for i := 0; i < MaxTerrainPending+1; i++ {
+		s.Message(c, &protocol.Terrain{Envelope: protocol.Envelope{Seq: uint64(100 + i)}, World: "one", Scope: &scope, CapturedAt: 1, Tiles: []protocol.TerrainTile{tile}})
+	}
+	batches, dropped := s.DrainTerrain()
+	if len(batches) != MaxTerrainPending || dropped != 1 {
+		t.Fatal(len(batches), dropped)
+	}
+	if rest, drops := s.DrainTerrain(); len(rest) != 0 || drops != 0 {
+		t.Fatal("drain did not clear queue")
+	}
+}

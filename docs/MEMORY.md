@@ -1,9 +1,9 @@
 # World memory
 
-Terrain currently lives in a bounded session cache and is not retained here.
-[ATLAS.md](ATLAS.md) proposes a separate durable SQLite atlas, with stable world
-identity, truthful sample freshness, bounded change history and portable exports.
-That design is backlog work; the policies below describe existing memory.
+Terrain persists separately in `dataDir/atlas.sqlite`. [ATLAS.md](ATLAS.md)
+describes stable world identity, sample freshness, bounded change history,
+retention/quota settings and saved-map viewing. Portable exports remain backlog.
+The policies below describe the existing JSON memory layers.
 
 ## Last-seen places
 

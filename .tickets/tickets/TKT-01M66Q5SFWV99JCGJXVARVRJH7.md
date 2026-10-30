@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M66Q5SFWV99JCGJXVARVRJH7
 title: Durable versioned world atlas and portable mapping data
 type: epic
-status: draft
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -23,7 +23,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:34:39Z
-updated_at: 2026-10-30T15:34:39Z
+updated_at: 2026-10-30T16:04:47Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
@@ -47,3 +47,9 @@ Sharing remains a future explicit export/import capability: prefer GeoPackage/lo
 - [ ] Changed observations retain bounded history; freshness, logical expiry, quotas and physical storage maintenance are explicit and tested
 - [ ] Panel distinguishes current, remembered/stale, unknown and imported evidence without claiming exploration or navigability
 - [ ] Portable mapping representation defines local coordinates, provenance, compatibility and selected shareable layers; exchange remains explicit
+
+## Notes
+
+**agent:codex/renki-atlas** at 2026-10-30T16:04:17Z
+
+The first three children are implemented: identity/freshness, durable terrain storage and saved-map viewing. The explicit portable export/import child remains draft; no shared publication or imported evidence is enabled. docs/ATLAS.md now distinguishes implemented runtime from the broader format/layer proposal. Local CI, interop, Windows builds and browser fixture checks passed; live deployment proof follows.

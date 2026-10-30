@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"sort"
@@ -8,6 +9,8 @@ import (
 )
 
 type MapSnapshot struct {
+	WorldUID   string                     `json:"worldUid,omitempty"`
+	WorldKey   string                     `json:"worldKey,omitempty"`
 	Danger     []home.DangerZone          `json:"danger"`
 	World      string                     `json:"world"`
 	Connection uint64                     `json:"connection"`
@@ -20,8 +23,14 @@ type MapSnapshot struct {
 }
 
 func (a *App) MapSnapshot() any {
-	world, conn, tiles := a.Session.TerrainSnapshot()
+	world, conn, scope, tiles := a.Session.TerrainView()
 	out := MapSnapshot{World: world, Connection: conn, Tiles: tiles, Landmarks: []home.Landmark{}, Containers: []home.RememberedContainer{}}
+	if state := a.Session.State(); state != nil && state.World == world {
+		out.WorldUID = state.WorldUID
+	}
+	if scope != nil {
+		out.WorldKey = atlas.Key(*scope)
+	}
 	out.Perception, out.Walls = a.Session.MapObjects(world, conn)
 	if world != "" {
 		out.Danger = a.Memory.Store.DangerZones(world, time.Now())

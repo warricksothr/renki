@@ -158,6 +158,7 @@ type State struct {
 	Phase      string            `json:"phase"`
 	Character  string            `json:"character"`
 	World      string            `json:"world"`
+	WorldUID   string            `json:"worldUid,omitempty"`
 	Pos        Vec3              `json:"pos"`
 	Yaw        float64           `json:"yaw"`
 	Vel        Vec3              `json:"vel"`

@@ -9,7 +9,21 @@ namespace Renki.Protocol
     {
         public override string MessageType => Wire.Terrain;
         [JsonProperty("world")] public string World = "";
+        [JsonProperty("scope", NullValueHandling = NullValueHandling.Ignore)] public TerrainScope Scope;
+        [JsonProperty("capturedAt", DefaultValueHandling = DefaultValueHandling.Ignore)] public double CapturedAt;
         [JsonProperty("tiles")] public List<TerrainTile> Tiles = new List<TerrainTile>();
+    }
+
+    public sealed class TerrainScope
+    {
+        [JsonProperty("namespace")] public string Namespace;
+        [JsonProperty("worldUid")] public string WorldUid;
+        [JsonProperty("epoch")] public string Epoch;
+        [JsonProperty("source")] public string Source;
+        [JsonProperty("stream")] public string Stream;
+        [JsonProperty("game")] public string Game;
+        [JsonProperty("generator")] public int Generator;
+        [JsonProperty("mods")] public string Mods;
     }
 
     public sealed class TerrainTile
@@ -19,6 +33,9 @@ namespace Renki.Protocol
         [JsonProperty("waterLevel")] public double WaterLevel;
         [JsonProperty("heights")] public double?[] Heights = new double?[25];
         [JsonProperty("biomes")] public string[] Biomes = new string[25];
+        // Producer monotonic seconds. Carried values retain their original
+        // timestamp; null means no measurement. Resends never renew it.
+        [JsonProperty("measuredAt", NullValueHandling = NullValueHandling.Ignore)] public double?[] MeasuredAt;
     }
 
     public sealed class Location
