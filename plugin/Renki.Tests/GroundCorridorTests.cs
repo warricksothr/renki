@@ -85,6 +85,41 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void GradeFailureIdentifiesTheActualSupportedSegmentAndAngle()
+        {
+            var failure = GroundCorridor.Inspect(V3.Zero, new V3(6, 0, 0), Terrain((x, _) => x < 2 ? 0 : (x - 1.5) * .7));
+            Assert.Equal("grade", failure.Reason);
+            Assert.Equal(4, failure.Segment);
+            Assert.Equal(new V3(1.5, 0, 0), failure.From);
+            Assert.Equal(new V3(2, 0, 0), failure.Desired);
+            Assert.Equal(new V3(2, .35, 0), failure.Supported.Value);
+            Assert.Equal(0, failure.PreviousAngle.Value);
+            Assert.InRange(failure.Angle.Value, 34.9, 35.1);
+        }
+
+        [Fact]
+        public void SharpChangeIncludesBothGradesRatherThanOnlyAnAverage()
+        {
+            var failure = GroundCorridor.Inspect(new V3(-6, 2.4, 0), new V3(6, 0, 0), Terrain((x, _) => Math.Abs(x) * .4));
+            Assert.Equal("sharp_change", failure.Reason);
+            Assert.Equal(13, failure.Segment);
+            Assert.InRange(failure.PreviousAngle.Value, -21.9, -21.7);
+            Assert.InRange(failure.Angle.Value, 21.7, 21.9);
+            Assert.Equal(new V3(.5, .2, 0), failure.Supported.Value);
+        }
+
+        [Fact]
+        public void SupportFailureReportsTheAttemptedPositionWithoutInventingAnAngle()
+        {
+            var failure = GroundCorridor.Inspect(V3.Zero, new V3(6, 0, 0), Terrain((x, _) => x >= 2 ? double.NaN : 0));
+            Assert.Equal("blocked_or_unsupported", failure.Reason);
+            Assert.Equal(4, failure.Segment);
+            Assert.Equal(new V3(2, 0, 0), failure.Desired);
+            Assert.Null(failure.Supported);
+            Assert.Null(failure.Angle);
+        }
+
+        [Fact]
         public void NonfiniteOrUnboundedInputNeverStartsPhysicsWork()
         {
             var calls = 0;

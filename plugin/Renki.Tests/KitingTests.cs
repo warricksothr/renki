@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Renki.Tasks;
 using Xunit;
 
@@ -9,6 +11,30 @@ namespace Renki.Tests
         static KiteFrame Frame(double bot = 0, double enemy = 20) => new KiteFrame
         { Bot = new V3(bot, 0, 0), Enemy = new V3(enemy, 0, 0), Hp = 80, HpMax = 80, Stamina = 60 };
         static Kiting Policy() => new Kiting(V3.Zero, Area, new V3(20, 0, 0), 0);
+
+        [Fact]
+        public void SecondSurveyPassCoversNewGroundWithinTheSameBudgetAndRadius()
+        {
+            var origin = new V3(100, 50, 100);
+            var points = new HashSet<V3>();
+            for (var i = 0; i < Kiting.SurveyAttempts; i++)
+            {
+                var point = Kiting.SurveyPoint(origin, i);
+                Assert.Equal(origin.Y, point.Y);
+                Assert.InRange(V3.FlatDistance(origin, point), 0, 12.001);
+                if (i != 17) Assert.True(points.Add(point), "only the center may be retried");
+            }
+            Assert.Equal(33, points.Count);
+            Assert.Equal(origin, Kiting.SurveyPoint(origin, 17));
+            Assert.InRange(Kiting.SurveyPoint(origin, 18).Z - origin.Z, 2.29, 2.30);
+        }
+
+        [Fact]
+        public void SurveyCannotEscapeItsBoundedCandidateSchedule()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => Kiting.SurveyPoint(V3.Zero, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => Kiting.SurveyPoint(V3.Zero, Kiting.SurveyAttempts));
+        }
 
         [Fact]
         public void NativeSequenceDrawsObservesPursuitAndLeadsBackBeforeEngaging()

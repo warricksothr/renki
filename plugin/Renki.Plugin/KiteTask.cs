@@ -16,7 +16,7 @@ namespace Renki.Plugin
         readonly Vector3 origin;
         readonly float began;
         readonly Walker walker = new Walker();
-        readonly WorldNavigation.PlanningProbe probe = new WorldNavigation.PlanningProbe();
+        readonly WorldNavigation.PlanningProbe probe = new WorldNavigation.PlanningProbe(diagnostics: true);
         readonly List<Character> characters = new List<Character>();
         readonly List<Vector3> approachPath = new List<Vector3>();
         readonly Collider[] nearby = new Collider[256];
@@ -24,6 +24,7 @@ namespace Renki.Plugin
         string entity = "", mode = "survey", reason;
         Vector3 area, lastEnemy, walkGoal;
         Kiting policy;
+        GroundCorridor.Failure groundFailure;
         MeleeTask melee;
         FleeTask escape;
         int survey;
@@ -75,9 +76,7 @@ namespace Renki.Plugin
                 if (args.At.HasValue) candidate = Convert.ToVector3(args.At.Value);
                 else
                 {
-                    var index = survey % 17;
-                    var angle = (index - 1) * Mathf.PI / 4;
-                    candidate = origin + (index == 0 ? Vector3.zero : new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * (index <= 8 ? 6 : 12));
+                    candidate = Convert.ToVector3(Kiting.SurveyPoint(Convert.ToV3(origin), survey));
                     if (Ground(candidate, out var projected)) candidate = projected;
                 }
                 survey++;
@@ -88,9 +87,8 @@ namespace Renki.Plugin
                 }
                 else
                 {
-                    Tracer.Emit("combat", "ground_rejected", new Dictionary<string, object>
-                    { ["candidate"] = Convert.ToArray(candidate), ["reason"] = rejected, ["attempt"] = survey });
-                    if (args.At.HasValue ? survey >= 4 : survey >= 34)
+                    TraceGroundRejection(candidate, rejected);
+                    if (args.At.HasValue ? survey >= 4 : survey >= Kiting.SurveyAttempts)
                         return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported clear fighting ground with a checked escape corridor; last rejection: " + rejected));
                 }
                 return null;
@@ -210,10 +208,13 @@ namespace Renki.Plugin
 
         static bool Ground(Vector3 at, out Vector3 ground)
         {
-            ground = at; var hm = Heightmap.FindHeightmap(at);
-            if (hm == null || !hm.GetWorldHeight(at, out var height)) return false;
+            // GetWorldHeight rounds to a mesh vertex. Use the game's terrain-only
+            // ray projection so step/grade probes start on the actual surface.
+            ground = at;
+            if (ZoneSystem.instance == null || Heightmap.FindHeightmap(at) == null ||
+                !ZoneSystem.instance.GetGroundHeight(at, out var height)) return false;
             ground.y = height;
-            return ZoneSystem.instance != null && height > ZoneSystem.instance.m_waterLevel + .2f;
+            return height > ZoneSystem.instance.m_waterLevel + .2f;
         }
 
         bool ClearScenery(Vector3 at)
@@ -226,18 +227,21 @@ namespace Renki.Plugin
 
         bool TryArea(Player p, Vector3 at, out Vector3 grounded, out string rejected)
         {
+            groundFailure = null;
+            probe.BeginSlice();
             rejected = "wet_or_unloaded_terrain";
             if (!Ground(at, out grounded)) return false;
             rejected = "different_ground_level";
             if (Math.Abs(at.y - grounded.y) > 1) return false;
-            probe.BeginSlice();
             // Full diameters catch a sharp crest/dip at the center as well as
             // validate body-width approaches and six-metre escape corridors.
             var center = Convert.ToV3(grounded);
             V3? DryProbe(V3 from, V3 desired)
             {
                 var result = probe.Probe(from, desired);
-                return result.HasValue && ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f ? result : null;
+                if (!result.HasValue) return null;
+                return ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f
+                    ? result : probe.Refuse("wet_ground", result.Value);
             }
             for (var i = 0; i < 4; i++)
             {
@@ -245,7 +249,8 @@ namespace Renki.Plugin
                 var radius = new V3(Math.Cos(angle), 0, Math.Sin(angle)) * Kiting.AreaRadius;
                 rejected = "wet_or_unloaded_terrain";
                 if (!Ground(Convert.ToVector3(center - radius), out var edge)) return false;
-                if (!GroundCorridor.Check(Convert.ToV3(edge), center + radius, DryProbe, out rejected)) return false;
+                groundFailure = GroundCorridor.Inspect(Convert.ToV3(edge), center + radius, DryProbe);
+                if (groundFailure != null) { rejected = groundFailure.Reason; return false; }
             }
             var count = Physics.OverlapSphereNonAlloc(grounded + Vector3.up, 8, nearby, ~0, QueryTriggerInteraction.Ignore);
             rejected = "crowded_geometry";
@@ -269,6 +274,28 @@ namespace Renki.Plugin
             }
             rejected = null;
             return true;
+        }
+
+        void TraceGroundRejection(Vector3 candidate, string rejected)
+        {
+            var data = new Dictionary<string, object>
+            { ["candidate"] = Convert.ToArray(candidate), ["reason"] = rejected, ["attempt"] = survey };
+            if (groundFailure != null)
+            {
+                data["segment"] = groundFailure.Segment;
+                data["from"] = groundFailure.From.ToArray(); data["desired"] = groundFailure.Desired.ToArray();
+                if (groundFailure.Supported.HasValue) data["supported"] = groundFailure.Supported.Value.ToArray();
+                if (groundFailure.Angle.HasValue) data["angle"] = Math.Round(groundFailure.Angle.Value, 2);
+                if (groundFailure.PreviousAngle.HasValue) data["previousAngle"] = Math.Round(groundFailure.PreviousAngle.Value, 2);
+            }
+            var physical = probe.LastFailure;
+            if (physical != null)
+            {
+                data["probeStage"] = physical.Stage; data["probeAt"] = physical.At.ToArray();
+                if (physical.Collider != null) data["collider"] = physical.Collider;
+                if (physical.ColliderCenter.HasValue) data["colliderCenter"] = physical.ColliderCenter.Value.ToArray();
+            }
+            Tracer.Emit("combat", "ground_rejected", data);
         }
 
         Outcome Abort(Player p, string why)
