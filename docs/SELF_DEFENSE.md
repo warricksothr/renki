@@ -122,16 +122,22 @@ after an owner order, reconnect or world change.
 `entity` is optional in this mode; omission selects the nearest eligible single
 ordinary Greyling. Optional `at: [x,y,z]` supplies preferred fighting ground
 within 12 m. Without it, the routine surveys the starting point and rings at
-6 and 12 m. Each candidate must have dry supported terrain, clear body routes
+6 and 12 m. The second pass rotates by 22.5 degrees to cover new centers within
+the same 34-check budget; the starting center is retried once. Each candidate
+must have dry supported terrain, clear body routes
 within a 6 m radius, no nearby buildings or bystanders, and a usable approach.
 Four full diameters sample support every 0.5 m, including across the center.
 They use the same 30-degree grade and 15-degree adjacent-change limits as
 dodging, allowing gradual hillsides while rejecting steep ground and sharp
 crests, dips or ledges at that sampling resolution. The installed game's
 player sliding threshold is 38 degrees; 30 leaves margin for combat.
-Rejected candidates emit `combat/ground_rejected` traces with their location,
-attempt number and reason (grade, sharp change, support/clearance, scenery,
-characters or approach).
+Terrain projection uses the game's terrain-only raycast, not the nearby mesh
+vertex returned by `Heightmap.GetWorldHeight`. Rejected candidates emit
+`combat/ground_rejected` traces with their location, attempt and reason. Profile
+failures include the exact segment, supported point and current/previous
+inclination. Physical failures distinguish support, body casts/overlaps, cached
+bounds, remembered walls and water; collider names/centers accompany live hits.
+Detailed physical diagnostics are enabled only for this survey.
 It moves to the checked ground before searching. Preparation is capped at
 25 seconds; local enemy acquisition waits at most 8 seconds once positioned.
 

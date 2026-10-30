@@ -16,6 +16,18 @@ namespace Renki.Tasks
     public sealed class Kiting
     {
         public const double SearchRange = 30, AreaRadius = 6, TravelLimit = 40, WorkLimit = 40;
+        public const int SurveyAttempts = 34;
+
+        public static V3 SurveyPoint(V3 origin, int attempt)
+        {
+            if (attempt < 0 || attempt >= SurveyAttempts) throw new ArgumentOutOfRangeException(nameof(attempt));
+            var index = attempt % 17;
+            if (index == 0) return origin;
+            // The second pass fills angular gaps instead of repeating the
+            // same rejected centers. Keep one center retry for scene loading.
+            var angle = (index - 1) % 8 * Math.PI / 4 + attempt / 17 * Math.PI / 8;
+            return origin + new V3(Math.Cos(angle), 0, Math.Sin(angle)) * (index <= 8 ? 6 : 12);
+        }
         readonly V3 start, area;
         readonly double began;
         double lastFollow, progressAt, bestAreaDistance, bestGap;

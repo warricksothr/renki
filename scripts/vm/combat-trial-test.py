@@ -34,6 +34,27 @@ class CombatTrialTests(unittest.TestCase):
         result.append(dict(frame=dict(re='trial', status='rejected', reason='refused')))
         self.assertEqual(trial.terminal(dict(value=result), 'trial')['status'], 'rejected')
 
+    def test_ground_summary_filters_tasks_counts_failures_and_bounds_examples(self):
+        def row(task, reason, stage=None):
+            data = dict(candidate=[1, 32, 2], reason=reason, segment=3, angle=34, previousAngle=22)
+            if stage:
+                data.update(probeStage=stage, collider='Beech1/stem', probeAt=[2, 32, 2])
+            return dict(frame=dict(type='trace', task=task, source='combat', msg='ground_rejected', data=data))
+        rows = [row('old', 'ignored'), row('trial', 'grade'), row('trial', 'grade')]
+        rows += [row('trial', 'blocked_or_unsupported', 'body_cast') for _ in range(20)]
+        rows += [row('trial', 'other_' + str(i)) for i in range(10)]
+        with tempfile.TemporaryDirectory() as directory:
+            audit = Path(directory) / 'audit.jsonl'
+            audit.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+            summary = trial.ground_diagnostics(audit, 'trial')
+        self.assertEqual(summary['candidates'], 32)
+        self.assertEqual(summary['reasons']['grade'], 2)
+        self.assertNotIn('ignored', summary['reasons'])
+        self.assertEqual(summary['probeStages'], {'body_cast': 20})
+        self.assertEqual(len(summary['examples']), 6)
+        self.assertEqual(summary['examples'][0]['angle'], 34)
+        self.assertEqual(summary['examples'][1]['collider'], 'Beech1/stem')
+
     def test_runner_stops_and_restores_gate_after_success_or_additional_attacker(self):
         for outcome in ('success', 'extra attacker'):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as directory:

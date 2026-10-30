@@ -632,6 +632,13 @@ GroundCorridorTests` for gradual uphill/downhill terrain, changing grade,
 sharp crests/dips/ledges and unsupported/blocked intermediate ground. Positive
 pursuit/engagement checks still require live evidence.
 
+Each trial's `summary.json` also projects matching-task ground-rejection counts,
+physical probe stages and at most six representative failures from its audit.
+The console prints only counts and the terminal task reason; exact segment
+positions, inclinations and collider evidence stay in the retained summary and
+audit. Failures in this optional diagnostic projection are recorded separately
+and do not replace the encounter result or interfere with cleanup.
+
 The corrected build (33cd427) also returned `unreachable` from the same hillside
 on 2026-10-30 UTC. Its 34 candidate traces reported 16 grade refusals, 8 sharp
 changes and 10 support/clearance failures. No enemy was acquired; no damage was

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """One owner-independent melee trial through normal tasks, with retained evidence."""
 import argparse
+from collections import Counter
 import datetime
 import json
 import math
@@ -44,6 +45,31 @@ def terminal(value, task_id):
         if frame.get('re') == task_id and frame.get('status') in ('succeeded', 'failed', 'rejected', 'cancelled'):
             return frame
     return None
+
+
+def ground_diagnostics(audit, task_id):
+    """Bounded projection of one native goal; full traces remain in the audit."""
+    reasons, stages = Counter(), Counter()
+    examples, seen = [], set()
+    with Path(audit).open() as lines:
+        for line in lines:
+            row = json.loads(line)
+            frame = row.get('frame', {})
+            if (frame.get('type') != 'trace' or frame.get('task') != task_id
+                    or frame.get('source') != 'combat' or frame.get('msg') != 'ground_rejected'):
+                continue
+            data = frame.get('data') or {}
+            reasons[data.get('reason', 'unknown')] += 1
+            stage = data.get('probeStage')
+            if stage:
+                stages[stage] += 1
+            kind = (data.get('reason'), stage)
+            if kind not in seen and len(examples) < 6:
+                seen.add(kind)
+                examples.append({k: data[k] for k in ('candidate', 'reason', 'segment', 'from', 'desired',
+                                'supported', 'angle', 'previousAngle', 'probeStage', 'probeAt', 'collider',
+                                'colliderCenter') if k in data})
+    return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), examples=examples)
 
 
 def main():
@@ -151,10 +177,20 @@ def main():
         try:
             audit = call('audit-window', since, until, timeout=60).strip()
             summary['audit'] = audit
+            if summary.get('task'):
+                try:
+                    summary['ground'] = ground_diagnostics(audit, summary['task'])
+                except Exception as e:
+                    summary['diagnosticError'] = str(e)
         except Exception as e:
             summary['auditError'] = str(e)
         (saved / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
-    print(json.dumps({k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'evidence', 'cleanupErrors') if k in summary}, indent=2))
+    report = {k: summary[k] for k in ('outcome', 'reason', 'entity', 'minimumHP', 'evidence', 'cleanupErrors') if k in summary}
+    if summary.get('result'):
+        report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
+    if summary.get('ground'):
+        report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages')}
+    print(json.dumps(report, indent=2))
     return 0 if summary['outcome'] == 'succeeded' and not summary.get('cleanupErrors') else 1
 
 

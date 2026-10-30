@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T02:31:36Z
+updated_at: 2026-10-30T03:41:36Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Owner correction after the first native survey: ordinary terrain should be usable when its grade is reasonable and it has no sharp regions; flat ground is not required. The existing six-metre radial probes incorrectly apply the movement single-step height limit to the entire radius, and dodge clearance also caps total elevation change. Replace those aggregate height checks with half-metre supported corridor samples that bound local slope and adjacent slope changes. Use an initial 30-degree maximum inclination (below the installed player sliding threshold of 38 degrees) and 15-degree maximum change between adjacent samples. Continue validating physical body clearance and dry ground, and retain all existing encounter budgets and bystander gates. Reuse the profile validator for fighting-ground and dodge corridors, with regressions for long uphill/downhill slopes, smooth grade changes, steep ground, sharp ridges/dips, unsupported/blocked segments and nonfinite data. Report per-candidate ground rejection reasons for live diagnosis. Validate, review and land, install offline, then run another normal-controls automated attempt without owner staging. Keep live pursuit/strike/defense criteria open until observed.
+Continue native encounter ground selection from the retained 34-candidate refusal audit. Add precise failure evidence: the corridor segment, supported point, current/previous inclination, and the physical probe stage/collider when support or body clearance fails. Inspect the installed terrain APIs: Heightmap.GetWorldHeight selects a nearby vertex, so replace its use as exact ground with bounded terrain-only projection onto the actual loaded surface where appropriate. Keep local grade/roughness limits unchanged until measured failures justify a policy change. Add meaningful regressions for diagnostic positions/angles and measured false-rejection fixes. Preserve native ownership, encounter budgets and automatic logout/stop/combat-off cleanup. Run just check ci, committed just check review, land and install, then run a supervised normal-controls attempt and inspect the retained bounded diagnostics. Positive pursuit/strike/block/dodge criteria remain open unless observed.
 
 ## Notes
 
@@ -122,3 +122,11 @@ The grade/roughness correction landed in PR #49 as 33cd427. Committed just check
 Ran a second automated normal-controls attempt with just check vm combat-trial --wait-s 60 (.checks/20261030T022800Z-9GPeqv.log). One native attack surveyed 34 candidates and returned unreachable without acquiring an enemy. Rejection traces distinguish 16 grade, 8 sharp_change and 10 blocked_or_unsupported candidates; this run did not find an eligible fighting area. Those counts describe observed policy refusals, not proof every candidate is physically unusable. GroundCorridorTests separately establish that gradual slopes can accumulate several metres of elevation and that the flat-ground restriction is gone.
 
 Tas remained around [174.15,84.73,-246.79]. Minimum observed HP was 75.8 with HP following the food-derived maximum and no observed damage; stamina stayed near 67. Automatic logout, stop and combat=false restoration completed with no cleanup errors. Summary: .checks/combat-trial-20261030T022800895969Z/summary.json. Audit with candidate reasons: .checks/audit-window-df13eN.jsonl. No positive pursuit, contact, block or dodge is claimed. Acceptance criteria remain open. Future ground-selection work can inspect rejected sample locations and actual collider/terrain causes rather than adjusting limits blindly; no owner staging or clearance is required by the harness.
+
+**agent:codex/renki-resume** at 2026-10-30T03:41:36Z
+
+Inspected the installed terrain APIs and retained refusal audit. Heightmap.GetWorldHeight rounds to a mesh vertex; native ground projection now uses ZoneSystem.GetGroundHeight's actual terrain-only raycast. The previous 34-check audit contained only 17 distinct centers with identical paired passes; the second pass now rotates 22.5 degrees, covering 33 unique centers without expanding the 34-check/12m budget. Grade and sharpness limits remain unchanged.
+
+GroundCorridor now exposes exact failure segments/points and current/previous angles. The survey opts into physical stage/collider diagnostics, distinguishing endpoint/midpoint support, water, wall memory, cached bounds, live body casts/overlaps and saturated buffers. Ordinary navigation does not allocate these detailed diagnostics. Trial summaries stream the matching-task audit into counts and at most six representative failures; console output stays compact and full traces remain retained. Optional diagnostic errors do not replace encounter results or interfere with cleanup.
+
+Focused diagnostic tests passed (.checks/20261030T033639Z-jsVjo6.log, .checks/20261030T033643Z-qHpD8D.log). Initial CI caught only initializer whitespace, corrected before the passing gate. Final just check ci passed with 292 plugin tests, controller checks/builds and four supervisor tests (.checks/20261030T034042Z-I9gecF.log). Committed review, landing, installation and a normal-controls live attempt follow. Positive combat criteria remain unchecked. The two reported environment restarts did not lose the working changes or test evidence.
