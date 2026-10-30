@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T18:51:34Z
+updated_at: 2026-10-30T19:06:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -78,3 +78,7 @@ PR #64 merged as67e2e1e; bounded gather is installed in cd08433. Final just chec
 **agent:codex/renki-milestones** at 2026-10-30T17:46:20Z
 
 claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
+
+**agent:codex/renki-milestones** at 2026-10-30T19:06:21Z
+
+PR #96 merged the broad-site approach regression/fix. Focused behavior checks, just check ci (.checks/20261030T185100Z-mTlVk9.log) and committed just check review (.checks/20261030T185134Z-uPodSM.log) passed. Deployed in 635f4e9 and retained in installed 5a5f5c9; checksum-verified installation .checks/20261030T190549Z-IPaAzz.log. Full controller tree -> logs -> gain-only chest receipt -> return proof remains open, along with site inference/chat and repeated hauling. The previous pending approach stash was removed only after its exact implementation landed.

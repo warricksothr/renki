@@ -100,7 +100,10 @@ namespace Renki.Plugin
                 return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
                 return Abort(p, "health, stamina or equipment no longer supports kiting");
-            if (!p.IsOnGround() || p.IsSwimming() || p.IsEncumbered()) return Abort(p, "unsafe footing");
+            // Ordinary travel owns its normal bounded step/jump recovery.
+            // Requiring grounded every physics tick would cancel its first
+            // jump at a doorway; combat still requires grounded footing.
+            if ((!preparing && !p.IsOnGround()) || p.IsSwimming() || p.IsEncumbered()) return Abort(p, "unsafe footing");
             if (Vector3.Distance(origin, p.transform.position) > searchRadius + Kiting.TravelLimit)
                 return Abort(p, "overall search and encounter travel limit");
             if (preparing) return PrepareSearch(p, dt);
@@ -287,6 +290,7 @@ namespace Renki.Plugin
             var ended = Time.unscaledTime - preparationLegAt >= 25
                 ? Outcome.Failed(Wire.ReasonTimeout, "search travel leg time limit") : preparation.Tick(dt);
             if (ended == null) return null;
+            if (ended.Status == Wire.StatusSucceeded && !p.IsOnGround()) return null;
             preparation.Cancel(); preparation = null;
             if (ended.Status != Wire.StatusSucceeded)
             {
