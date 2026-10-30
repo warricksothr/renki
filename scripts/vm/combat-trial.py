@@ -49,7 +49,7 @@ def terminal(value, task_id):
 
 def ground_diagnostics(audit, task_id):
     """Bounded projection of one native goal; full traces remain in the audit."""
-    reasons, stages = Counter(), Counter()
+    reasons, stages, regions = Counter(), Counter(), Counter()
     examples, seen = [], set()
     with Path(audit).open() as lines:
         for line in lines:
@@ -60,16 +60,18 @@ def ground_diagnostics(audit, task_id):
                 continue
             data = frame.get('data') or {}
             reasons[data.get('reason', 'unknown')] += 1
+            if data.get('region'):
+                regions[data['region']] += 1
             stage = data.get('probeStage')
             if stage:
                 stages[stage] += 1
             kind = (data.get('reason'), stage)
             if kind not in seen and len(examples) < 6:
                 seen.add(kind)
-                examples.append({k: data[k] for k in ('candidate', 'reason', 'segment', 'from', 'desired',
+                examples.append({k: data[k] for k in ('candidate', 'reason', 'region', 'segment', 'from', 'desired',
                                 'supported', 'angle', 'previousAngle', 'roughness', 'probeStage', 'probeAt', 'collider',
                                 'colliderCenter') if k in data})
-    return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), examples=examples)
+    return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), regions=dict(regions), examples=examples)
 
 
 def main():

@@ -629,11 +629,19 @@ inclination, and rejects adjacent inclination changes over 15 degrees when
 their height residual exceeds 0.15 m. The residual is the next support height's
 deviation from the previous segment's continuation. This distinguishes mild
 mesh joins observed in the game from physically sharp ledges and ridges.
-Fighting-ground diameters and dodge corridors share this policy, with
+Fighting-ground stance diameters and dodge corridors share this policy, with
 candidate rejection traces for live diagnosis. Use `just check plugin test-core
 GroundCorridorTests` for gradual uphill/downhill terrain, changing grade,
 sharp crests/dips/ledges and unsupported/blocked intermediate ground. Positive
 pursuit/engagement checks still require live evidence.
+
+Ground selection checks four complete diameters through a 3 m stance region
+and requires at least one clear 6 m escape corridor among eight directions.
+It does not require every outer direction to be open. Use `just check plugin
+test-core FightingGroundTests` for outer obstacles with alternative exits,
+blocked escape rings, central steep/sharp/unsupported terrain, gradual slopes,
+missing dry projections and obstruction changes. These policy checks do not
+prove real dodging or retreat; actual moves retain their own clearance checks.
 
 Each trial's `summary.json` also projects matching-task ground-rejection counts,
 physical probe stages and at most six representative failures from its audit.

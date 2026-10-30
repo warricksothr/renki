@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T04:35:09Z
+updated_at: 2026-10-30T04:49:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,9 +49,9 @@ extensions: {}
 
 ## Implementation plan
 
-The restored live attempt on clean deployed 8b8e500 completed its native survey and failed without acquiring an enemy. Evidence .checks/combat-trial-20261030T042328367788Z/summary.json and .checks/audit-window-ZAlffd.jsonl: 34 checks, 9 physical failures (7 actual Beech body casts, one midpoint and one endpoint support failure), 19 grade refusals (30.14 to 46.48 degrees), and 6 sharp-change refusals. All six sharp-change refusals were mild mesh joins: adjacent inclinations differed by roughly 15.1 to 16.4 degrees. Their half-metre height residuals are below 0.15m. Last perception contained a Boar and no Greyling; positive combat may remain unavailable even after ground is accepted.
+The 4f7b519 trial failed during survey: 34 candidates, 22 grade and 12 physical refusals; 21 first-failing samples lay more than 3m from the candidate center. Evidence .checks/combat-trial-20261030T043800769522Z/summary.json and .checks/audit-window-2RYcOu.jsonl. Minimum HP 74.8 tracked full food-derived health; no enemy was acquired. Follow-up just check vm status and just check vm combat confirmed game/controller stopped and AllowCombat=false (.checks/20261030T044139Z-qKiohA.log, .checks/20261030T044139Z-iqvjnC.log).
 
-Use measured physical roughness in addition to the angle threshold: classify a join as sharp only when its inclination changes by more than 15 degrees AND its height deviates by more than 0.15m from the previous segment's continuation. Retain the 30-degree inclination cap, half-metre physical support/body-clearance checks and existing encounter bounds. Existing sharp-crest/dip and 0.2m ledge regressions must continue rejecting. Add regressions using the observed mild joins, expose the roughness value in failure evidence, and document the rule. Add a read-only just vm combat-evidence recipe for bounded repeated audit inspection. Validate, review, land, install and run another autonomous trial; record stage progress and cleanup honestly even if no eligible Greyling is present.
+Replace the all-direction six-metre footprint with four complete diameters through a three-metre stance region and at least one checked six-metre escape corridor among eight directions. Keep half-metre samples, 30-degree incline, physical sharpness/support/body clearance, character/building exclusions, approach validation and per-dodge checks. Recheck the stance and existence of an escape route during preparation/kiting; do not imply the selected corridor dictates a safe flee direction around a live enemy. Extract a core geometry policy with tests for usable clear sectors beside outer obstructions, no escape routes, central steep/sharp/unsupported ground, gradual slopes and projection failure. Trace the region and selected escape endpoint for bounded evidence. Validate, review, land, deploy and run one autonomous trial; leave positive melee criteria open unless actual evidence earns them.
 
 ## Notes
 
@@ -162,3 +162,11 @@ The deployed 8b8e500 trial failed during native survey, with no enemy acquired o
 Measured all six sharp-change refusals: 15.11 to 16.39 degrees across half-metre segments, producing height residuals below 0.15m. Added the physical residual test alongside the angle threshold, accepting ordinary terrain faceting while retaining the 30-degree slope cap and physical support/clearance. Sharp 0.2m ledges and crest/dip regressions still reject. Exact roughness values are retained in failure evidence. Focused GroundCorridorTests passed all 20 cases (.checks/20261030T043016Z-cT8krf.log), and just check ci passed with 297 plugin tests and four supervisor tests (.checks/20261030T043144Z-IrR1Ol.log).
 
 Added just vm combat-evidence for repeated bounded read-only audit inspection, resolving relative paths from the repository root. Added just vm panel-address to read the actual configured web URL without exposing its token. Owner asked to watch; the configured URL is http://100.101.221.77:8780/ on BLIGHT's controller, available when the controller runs. Final gate/review, deployment and another automated trial follow. Positive encounter criteria remain open.
+
+**agent:codex/renki-resume** at 2026-10-30T04:49:25Z
+
+The 4f7b519 live trial completed without acquiring an enemy: 34 survey candidates, 22 grade and 12 physical refusals; 21 failing samples were outside 3m of the candidate center. Minimum HP 74.8 followed the food-derived maximum, without observed damage. Evidence .checks/combat-trial-20261030T043800769522Z/summary.json and .checks/audit-window-2RYcOu.jsonl. Automatic cleanup completed; independent just check vm status and just check vm combat confirmed game/controller stopped and combat false (.checks/20261030T044139Z-qKiohA.log, .checks/20261030T044139Z-iqvjnC.log).
+
+Implemented a three-metre stance region checked by four complete diameters, plus at least one six-metre escape corridor among eight directions. This removes the requirement that every outer direction be usable. Stance crests/dips, incline/physical roughness, dry support and body clearance remain checked; actual movement/dodge/flee still validate their chosen routes. A checked exit is space availability, not a guarantee that it leads away from a live enemy. Region diagnostics distinguish stance and escape failures, and selection traces retain the chosen exit. Physical diagnostics from earlier failed alternatives cannot leak onto later projection failures.
+
+just check plugin test-core FightingGroundTests initially passed 11 cases (.checks/20261030T044730Z-GbyCLA.log). Added steep-exit/work-budget coverage; just check ci passed with 309 plugin tests, controller checks/builds and four Python supervisor tests (.checks/20261030T044835Z-15l2f3.log). Existing GroundCorridor sharpness regressions remain green. Review, landing, deployment and another autonomous live trial follow; broad combat acceptance criteria stay open.

@@ -127,16 +127,22 @@ ordinary Greyling. Optional `at: [x,y,z]` supplies preferred fighting ground
 within 12 m. Without it, the routine surveys the starting point and rings at
 6 and 12 m. The second pass rotates by 22.5 degrees to cover new centers within
 the same 34-check budget; the starting center is retried once. Each candidate
-must have dry supported terrain, clear body routes
-within a 6 m radius, no nearby buildings or bystanders, and a usable approach.
-Four full diameters sample support every 0.5 m, including across the center.
+must have dry supported terrain, a clear 3 m stance region, at least one
+6 m escape corridor among eight directions, no nearby buildings or bystanders,
+and a usable approach. Four full stance diameters sample support every 0.5 m,
+including across the center. Outer obstacles can exclude individual escape
+directions without excluding usable ground. The route is rechecked during
+preparation and kiting; it establishes available space, not a guarantee that
+fleeing in that direction is safe around an enemy. Each actual dodge and
+retreat still validates its chosen movement.
 They use the same 30-degree grade and angle/height roughness checks as
 dodging, allowing gradual hillsides while rejecting steep ground and sharp
 crests, dips or ledges at that sampling resolution. The installed game's
 player sliding threshold is 38 degrees; 30 leaves margin for combat.
 Terrain projection uses the game's terrain-only raycast, not the nearby mesh
 vertex returned by `Heightmap.GetWorldHeight`. Rejected candidates emit
-`combat/ground_rejected` traces with their location, attempt and reason. Profile
+`combat/ground_rejected` traces with their location, attempt, reason and stance
+or escape region. A selected area records its checked escape endpoint. Profile
 failures include the exact segment, supported point, current/previous
 inclination and height residual. Physical failures distinguish support, body casts/overlaps, cached
 bounds, remembered walls and water; collider names/centers accompany live hits.

@@ -25,6 +25,8 @@ namespace Renki.Plugin
         Vector3 area, lastEnemy, walkGoal;
         Kiting policy;
         GroundCorridor.Failure groundFailure;
+        string groundRegion;
+        V3? escapeEnd;
         MeleeTask melee;
         FleeTask escape;
         int survey;
@@ -83,6 +85,12 @@ namespace Renki.Plugin
                 if (TryArea(p, candidate, out area, out var rejected))
                 {
                     hasArea = true; nextAreaCheck = Time.unscaledTime + 1;
+                    Tracer.Emit("combat", "ground_selected", new Dictionary<string, object>
+                    {
+                        ["area"] = Convert.ToArray(area),
+                        ["escape"] = escapeEnd.Value.ToArray(),
+                        ["stanceRadius"] = FightingGround.StanceRadius,
+                    });
                     Mode("position");
                 }
                 else
@@ -228,13 +236,12 @@ namespace Renki.Plugin
         bool TryArea(Player p, Vector3 at, out Vector3 grounded, out string rejected)
         {
             groundFailure = null;
+            groundRegion = null; escapeEnd = null;
             probe.BeginSlice();
             rejected = "wet_or_unloaded_terrain";
             if (!Ground(at, out grounded)) return false;
             rejected = "different_ground_level";
             if (Math.Abs(at.y - grounded.y) > 1) return false;
-            // Full diameters catch a sharp crest/dip at the center as well as
-            // validate body-width approaches and six-metre escape corridors.
             var center = Convert.ToV3(grounded);
             V3? DryProbe(V3 from, V3 desired)
             {
@@ -243,15 +250,9 @@ namespace Renki.Plugin
                 return ZoneSystem.instance != null && result.Value.Y > ZoneSystem.instance.m_waterLevel + .2f
                     ? result : probe.Refuse("wet_ground", result.Value);
             }
-            for (var i = 0; i < 4; i++)
-            {
-                var angle = i * Math.PI / 4;
-                var radius = new V3(Math.Cos(angle), 0, Math.Sin(angle)) * Kiting.AreaRadius;
-                rejected = "wet_or_unloaded_terrain";
-                if (!Ground(Convert.ToVector3(center - radius), out var edge)) return false;
-                groundFailure = GroundCorridor.Inspect(Convert.ToV3(edge), center + radius, DryProbe);
-                if (groundFailure != null) { rejected = groundFailure.Reason; return false; }
-            }
+            V3? Project(V3 point) => Ground(Convert.ToVector3(point), out var support) ? Convert.ToV3(support) : (V3?)null;
+            groundFailure = FightingGround.Inspect(center, Project, DryProbe, out groundRegion, out escapeEnd);
+            if (groundFailure != null) { rejected = groundFailure.Reason; return false; }
             var count = Physics.OverlapSphereNonAlloc(grounded + Vector3.up, 8, nearby, ~0, QueryTriggerInteraction.Ignore);
             rejected = "crowded_geometry";
             if (count == nearby.Length) return false;
@@ -280,6 +281,7 @@ namespace Renki.Plugin
         {
             var data = new Dictionary<string, object>
             { ["candidate"] = Convert.ToArray(candidate), ["reason"] = rejected, ["attempt"] = survey };
+            if (groundRegion != null) data["region"] = groundRegion;
             if (groundFailure != null)
             {
                 data["segment"] = groundFailure.Segment;
@@ -290,7 +292,7 @@ namespace Renki.Plugin
                 if (groundFailure.Roughness.HasValue) data["roughness"] = Math.Round(groundFailure.Roughness.Value, 3);
             }
             var physical = probe.LastFailure;
-            if (physical != null)
+            if (physical != null && groundFailure?.Reason == "blocked_or_unsupported")
             {
                 data["probeStage"] = physical.Stage; data["probeAt"] = physical.At.ToArray();
                 if (physical.Collider != null) data["collider"] = physical.Collider;
