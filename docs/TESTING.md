@@ -668,7 +668,8 @@ contact, animation timing, block effectiveness or roll displacement.
 and no owner staging/clearance prerequisite. It restarts Tas, temporarily enables
 combat, delegates local ground/target selection and kiting to C#, requires active
 food/80% health/40 stamina, and records evidence under `.checks/combat-trial-*`.
-It always logs out/stops/restores combat off. Additional creatures, unsafe
+It always logs out/stops/restores combat off, then restarts only the
+controller so the web panel stays available while Tas is offline. Additional creatures, unsafe
 health, exhausted escape, lost task ownership and more than 40 m travel abort
 the trial. No eligible encounter is an aborted trial, never a pass. Optional
 `--entity` restricts native target selection, `--at X Y Z` names preferred nearby

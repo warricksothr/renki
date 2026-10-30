@@ -115,6 +115,7 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertFalse(any(c[:2] == ['task', 'move_to'] for c in commands))
                 self.assertIn(['combat', 'true'], commands)
                 self.assertIn(['combat', 'false'], commands)
+                self.assertEqual(commands[-3:-1], [['combat', 'false'], ['panel-start']])
                 self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
                 self.assertEqual(summary['outcome'], 'succeeded' if outcome == 'success' else 'aborted')
