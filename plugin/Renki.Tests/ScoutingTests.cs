@@ -80,13 +80,95 @@ namespace Renki.Tests
         }
 
         [Fact]
-        public void BlockedWalkingRouteAndNoProgressBothTerminate()
+        public void ChangedRouteAndNoProgressTryAnotherBearingWithoutResettingBudgets()
         {
             var s = Search(); s.Decide(V3.Zero, 60, true, 2, Clear);
-            Assert.Equal(ScoutAction.Abort, s.Decide(V3.Zero, 60, true, 3, _ => null));
+            Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 3, _ => null));
+            Assert.Equal(1, s.Recoveries);
+            Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 3.5, Clear));
+            Assert.True(s.Goal.Z > 0);
+            Assert.Equal(4, s.Attempts);
             s = Search(); s.Decide(V3.Zero, 60, true, 2, Clear);
-            Assert.Equal(ScoutAction.Abort, s.Decide(V3.Zero, 60, true, 6, Clear));
+            Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 6, Clear));
             Assert.Contains("no progress", s.Reason);
+            Assert.Equal(ScoutAction.Abort, s.Decide(V3.Zero, 60, true, Scouting.ReturnLimit, Clear));
+        }
+
+        [Fact]
+        public void RepeatedWalkerFailuresExhaustFiniteRecoveryAndNeverCountAsCoverage()
+        {
+            var s = Search();
+            for (var i = 0; i < Scouting.RecoveryLimit; i++)
+            {
+                Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 2 + i, Clear));
+                Assert.Equal(ScoutAction.Wait, s.RejectRoute("walker refused"));
+            }
+            Assert.Equal(Scouting.RecoveryLimit, s.Recoveries);
+            Assert.Equal(0, s.CompletedLegs);
+            Assert.Equal(ScoutAction.Done, s.Decide(V3.Zero, 60, true, 10, _ => throw new Exception("already at return point")));
+            Assert.True(s.Returning);
+        }
+
+        [Fact]
+        public void ReturnRetracesObservedBendAndRevalidatesEveryConnector()
+        {
+            var s = Search();
+            s.Decide(V3.Zero, 60, true, 2, Clear);
+            var trail = new[] { new V3(8, 0, 0), new V3(16, 0, 0), new V3(16, 0, 8), new V3(16, 0, 16) };
+            for (var i = 0; i < trail.Length - 1; i++)
+                Assert.Equal(ScoutAction.Walk, s.Decide(trail[i], 60, true, 2.5 + i * .5, Clear));
+            var bot = trail[trail.Length - 1];
+            var now = 4.0;
+            for (var i = trail.Length - 2; i >= -1; i--)
+            {
+                var expected = i >= 0 ? trail[i] : V3.Zero;
+                Assert.Equal(ScoutAction.Walk, s.Decide(bot, 29, true, now++, at =>
+                {
+                    Assert.Equal(expected, at);
+                    return at;
+                }));
+                Assert.Equal(expected, s.Goal);
+                bot = s.Goal;
+            }
+            var outboundLegs = s.CompletedLegs;
+            Assert.Equal(ScoutAction.Done, s.Decide(bot, 29, true, now, _ => throw new Exception("already home")));
+            Assert.Equal(outboundLegs, s.CompletedLegs);
+        }
+
+        [Fact]
+        public void WindingTrailReservesReturnTravelBeforeRadialEstimateWould()
+        {
+            var s = Search(); s.Decide(V3.Zero, 60, true, 2, Clear);
+            var loop = new[] { new V3(16, 0, 0), new V3(32, 0, 0), new V3(32, 0, 16), new V3(16, 0, 16) };
+            var bot = V3.Zero; var now = 2.0;
+            for (var i = 0; i < 20 && !s.Returning; i++)
+            {
+                bot = loop[i % loop.Length];
+                Assert.Equal(ScoutAction.Walk, s.Decide(bot, 60, true, now += .25, Clear));
+            }
+            Assert.True(s.Returning);
+            Assert.True(s.Travel < Scouting.TravelLimit - 60 * 1.5);
+            Assert.True(s.Travel + s.ReturnDistance <= Scouting.TravelLimit);
+            while ((bot - V3.Zero).Length > 1.5)
+            {
+                bot = s.Goal;
+                var action = s.Decide(bot, 60, true, now += .25, Clear);
+                Assert.True(action == ScoutAction.Walk || action == ScoutAction.Done);
+            }
+            Assert.True(s.Travel <= Scouting.TravelLimit);
+            Assert.InRange(s.TrailPoints, 1, Scouting.TrailLimit);
+        }
+
+        [Fact]
+        public void ThreatOverridesRecoveryAndChangedReturnStillAborts()
+        {
+            var s = Search(); s.Decide(V3.Zero, 60, true, 2, Clear);
+            s.RejectRoute("outbound route changed");
+            Assert.Equal(ScoutAction.Abort, s.Decide(V3.Zero, 60, false, 3, _ => throw new Exception("unsafe")));
+            s = Search(); s.Decide(V3.Zero, 60, true, 2, Clear);
+            Assert.Equal(ScoutAction.Walk, s.Decide(s.Goal, 29, true, 3, Clear));
+            Assert.Equal(ScoutAction.Abort, s.RejectRoute("return walker refused"));
+            Assert.Equal(0, s.Recoveries);
         }
 
         [Theory]
