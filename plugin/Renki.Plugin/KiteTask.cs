@@ -347,7 +347,7 @@ namespace Renki.Plugin
             {
                 nextScout = Time.unscaledTime + .5f;
                 var recoveries = scouting.Recoveries;
-                scoutAction = scouting.Decide(Convert.ToV3(pos), p.GetStamina(), ClearCharacters(p, null, pos),
+                scoutAction = scouting.Decide(Convert.ToV3(pos), p.GetStamina(), ClearTravelCharacters(p, pos, false),
                     Time.unscaledTime, goal => ScoutRoute(p, goal));
                 if (scouting.Recoveries != recoveries) TraceScoutRecovery();
                 if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
@@ -436,6 +436,7 @@ namespace Renki.Plugin
             scoutPath.Clear();
             probe.BeginSlice();
             if (!Ground(p.transform.position, out var supportedStart)) return RejectScout(desired, "unsupported_start");
+            if (!ClearTravelCharacters(p, goal, true)) return RejectScout(desired, "character_near_destination");
             var previous = Convert.ToV3(supportedStart);
             double length = 0;
             for (var i = 0; i <= points.Count; i++)
@@ -450,7 +451,8 @@ namespace Renki.Plugin
                 foreach (var c in Character.GetAllCharacters())
                 {
                     if (c == null || c == p || c.IsDead()) continue;
-                    if (Scouting.RouteDistance(previous, next, Convert.ToV3(c.transform.position)) < (BaseAI.IsEnemy(p, c) ? 15 : 8))
+                    if (!Scouting.TravelSeparated(Scouting.RouteDistance(previous, next, Convert.ToV3(c.transform.position)),
+                        c is Player, BaseAI.IsEnemy(p, c), destination: false))
                         return RejectScout(desired, "character_near_route");
                 }
                 var parts = Math.Max(1, (int)Math.Ceiling((next - previous).Length / 8));

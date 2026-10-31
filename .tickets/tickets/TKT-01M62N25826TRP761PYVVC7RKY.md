@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T00:18:21Z
+updated_at: 2026-10-31T00:26:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -300,3 +300,7 @@ The generalized startup wait succeeded live: t-1 returned home with a matching s
 **agent:codex/renki-milestones** at 2026-10-31T00:18:21Z
 
 PR119 merged asf818902 after full just check ci (393C# and42browser scenarios, .checks/20261031T001118Z-1ORkOD.log) and clean committed review (.checks/20261031T001344Z-WBpscb.log); checksum deployment passed (.checks/20261031T001418Z-1qdHkS.log). Changed-build native trial .checks/combat-trial-20261031T001449659091Z/summary.json and audit .checks/audit-window-TQl9YC.jsonl travelled117.6m with6 outbound and19 checked return legs, zero damage and final78.4HP. It failed near the final return breadcrumb[-29.8,32.91,-7.63] with structure_near_route, not the earlier outbound grade rejection. No enemy was acquired. The4m scenery exclusion was tested at navmesh corners only, allowing an outbound segment beside a building and later rejecting its actual sampled return waypoint as a new corner. Enemy-free walking will use the same already-required physical body/support/grade/water/character checks in both directions; retain the separate4m clearance for initial open staging and fighting-ground selection before engagement. This removes a combat-ground buffer from travel, not a body collision check. New physical obstacles still refuse. Run full CI and committed review, land/deploy and perform one changed-build trial; kill/block/dodge and full M2 delivery remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T00:26:45Z
+
+PR120 merged ase382914 after full just check ci (.checks/20261031T001821Z-IGX6eg.log) and clean committed review (.checks/20261031T002042Z-NVoZ45.log). First VM copy encountered the known transient Windows image lock; retry verified all checksums (.checks/20261031T002219Z-XSce55.log). Native trial .checks/combat-trial-20261031T002241237715Z/summary.json and audit .checks/audit-window-AEZutQ.jsonl completed7 outbound and20 return legs,142.8m observed travel, zero damage, final77HP. The scenery mismatch is gone. Final return[-23.5,33.65,-5.91] stopped3m from origin[-25.82,33.1,-7.83] because player jarl was at[-32.45,33.82,-4.7]: the8m combat character buffer was also being applied to enemy-free scouting travel. Reusing existing Scouting.TravelSeparated/ClearTravelCharacters policy for scouting body and route checks: players may be passed, planned destinations must stay2m away, creatures remain15m hostile/8m neutral. Acquisition and fighting retain their separate character checks. Existing ScoutingTests already cover this player-passage policy; full CI/native build, committed review, landing/deployment and one changed-build trial follow. No Greyling was acquired and kill/block/dodge criteria stay open. Do not ask a player to move for an ordinary walking check.
