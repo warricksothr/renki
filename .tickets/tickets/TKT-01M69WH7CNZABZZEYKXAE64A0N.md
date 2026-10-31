@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T21:06:00Z
-updated_at: 2026-10-31T21:33:53Z
+updated_at: 2026-10-31T21:45:05Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -72,3 +72,11 @@ Live results so far: controller-only deployment preserved the client. The new id
 Trial .checks/marker-food-20261031T212422Z cooked RawMeat at station 1:70084, observed normal removal and spawned CookedMeat 647877508:2930, but native collection did not finish in its bound. Full trace window: .checks/audit-window-cc30tV.jsonl. A later ordinary pickup t-1 retrieved the exact output (.checks/task-5f9v0kif.json), and Tas ate/healed normally. The drop settled ~0.85 m from its original spawn goal, below the pickup task's old 1 m replan threshold. Added a replay of those coordinates and native pickup tracking for 0.25 m movement/current-item arrival. This needs a DLL deployment and positive integrated cooking retry. Separately reserve background meal upkeep during active marker cooking, matching the existing durable food goal's receipt protection.
 
 The original berries marker was attempted with normal dry/hostile-avoiding movement; native routing refused the route. The bounded helper returned Tas to safe home, online and injury-free (.checks/marker-food-20261031T213009Z). Added south mushrooms from three remembered sources as another explicit food marker; live visit pending. Existing home cooking marker points at working indoor cookers; original automatic cooking marker still points to unheated outdoor stations. Station 1:70085 retains burnt food; ordinary generic interaction correctly refuses cooker use, so automated station cleanup remains unsupported. Do not label natural foraging or integrated new-marker cooking successful from the primitive pickup alone.
+
+**agent:codex/renki-milestones** at 2026-10-31T21:45:05Z
+
+Native pickup fix deployed and checksum-verified (.checks/20261031T213609Z-alAGmk.log). The idle cooking trial .checks/marker-food-20261031T213736Z completed its behaviour with runs=1,last=completed. Native t-3 succeeded: cooked one RawMeat and collected one CookedMeat, followed by normal eating. Full audit: .checks/audit-window-dMiwS0.jsonl. The supervisor then unnecessarily commanded a home movement while already sheltered nearby, causing about two points of fire damage. Overall trial is correctly failed; no claim of clean whole-trial success. Skip that redundant return now. New meals may increase max HP before healing, so admission remains 80% health and continued work accepts at least 40%/25 HP while independently stopping for actual injury. Controller-only fix deployed (.checks/20261031T214038Z-gaNbA1.log); full just check ci passed (.checks/20261031T214039Z-PcBRGR.log).
+
+The southern mushroom route was also refused (.checks/marker-food-20261031T213322Z); native traces identify nearby Greyling/Boar/Neck exclusion corridors. Do not relax safety or repeat these eastern/southern routes blindly. A western mushroom hint near [-71,33.5,-71] is the next guarded alternative and still needs fresh confirmation. Natural food acquisition remains unproven.
+
+Clean cooking retry .checks/marker-food-20261031T214114Z yielded at preflight because a new live follow task t-3 took the body. No food work or logout occurred in that retry. Audit .checks/audit-window-LW9C3E.jsonl confirms nearby player chat and follow movement. Leave this command intact while awaiting the user's preference; RawMeat1 remains carried. Lasting idle presets remain disabled pending clean live validation. PR: https://github.com/warricksothr/renki/pull/134.

@@ -388,7 +388,9 @@ Each attempt lasts at most six minutes:
   leave an actionable result rather than discard food.
 
 All actions require fresh surroundings, dry footing, an active meal, at least
-25 HP and 80% health, no nearby hostiles and no injury during the batch. There
+25 HP and 80% health at admission, no nearby hostiles and no injury during the
+batch. Newly eaten food may raise maximum HP before healing; continued work
+still requires 40% health and checks actual injury separately. There
 is a five-minute cooldown after completed/failed attempts and a limit of 12
 attempts per controller session. Empty/depleted sites therefore back off.
 Definitions and enabled flags persist; counters and dwell reset on restart.

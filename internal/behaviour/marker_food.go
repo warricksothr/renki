@@ -80,7 +80,11 @@ func (r *markerFoodRun) Check(v View) error {
 		return errors.New("food marker changed or left")
 	}
 	s := v.State
-	if !finite(s.HP) || !finite(s.HPMax) || s.HPMax <= 0 || s.HP < math.Max(25, .8*s.HPMax) || s.Stranded() || s.Encumbered() || slices.Contains(s.Flags, protocol.FlagSwimming) || s.Location != nil && s.Location.InWater {
+	fraction := .8
+	if r.marker != nil {
+		fraction = .4
+	} // A new meal can raise max HP before healing; actual injury is checked below.
+	if !finite(s.HP) || !finite(s.HPMax) || s.HPMax <= 0 || s.HP < math.Max(25, fraction*s.HPMax) || s.Stranded() || s.Encumbered() || slices.Contains(s.Flags, protocol.FlagSwimming) || s.Location != nil && s.Location.InWater {
 		return errors.New("food work needs healthy dry footing and carry capacity")
 	}
 	fed := false

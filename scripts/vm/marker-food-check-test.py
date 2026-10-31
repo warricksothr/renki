@@ -23,6 +23,8 @@ class Safety(unittest.TestCase):
         before = self.status()
         after = dict(before, hp=65, hpMax=65)
         self.assertIsNone(m.unsafe(after, before))
+        self.assertIsNone(m.unsafe(dict(before, hpMax=100), before))
+        self.assertIsNotNone(m.unsafe(dict(before, hpMax=100)))
         self.assertIsNotNone(m.unsafe(dict(after, injurySeq=1), before))
         self.assertIsNotNone(m.unsafe(dict(after, connection=2), before))
 

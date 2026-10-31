@@ -22,7 +22,8 @@ def unsafe(status, previous=None):
     if not status.get('connected') or status.get('phase') != 'in_world':
         return 'bot unavailable'
     hp, maximum = status.get('hp', 0), status.get('hpMax', 0)
-    if not math.isfinite(hp) or not math.isfinite(maximum) or maximum <= 0 or hp < max(25, maximum * .8):
+    fraction = .8 if previous is None else .4
+    if not math.isfinite(hp) or not math.isfinite(maximum) or maximum <= 0 or hp < max(25, maximum * fraction):
         return 'unsafe health'
     if (status.get('location') or {}).get('inWater') or 'swimming' in status.get('flags', []):
         return 'unsafe footing'
@@ -31,10 +32,10 @@ def unsafe(status, previous=None):
     return None
 
 
-def safe_home(status, mapped):
+def safe_home(status, mapped, previous=None):
     home = status.get('home') or {}
     perception = mapped.get('perception')
-    return (not unsafe(status) and not status.get('task') and 'in_shelter' in status.get('flags', [])
+    return (not unsafe(status, previous) and not status.get('task') and 'in_shelter' in status.get('flags', [])
             and home.get('world') == status.get('world') and bool(home.get('pos'))
             and math.dist(status['pos'], home['pos']) <= 8
             and (mapped.get('world'), mapped.get('connection')) == (status.get('world'), status.get('connection'))
@@ -161,7 +162,8 @@ def main():
         home = status.get('home') or {}
         if home.get('world') != world or not home.get('pos'):
             raise RuntimeError('no pinned home for return')
-        task('move_to', dict(to=home['pos'], dry=True, avoidHostiles=True), 120)
+        if not safe_home(status, call('panel', 'GET', '/api/map'), previous):
+            task('move_to', dict(to=home['pos'], dry=True, avoidHostiles=True), 120)
     except Exception as error:
         summary.update(outcome='failed', reason=str(error))
     finally:
@@ -185,6 +187,14 @@ def main():
                         status = call('panel', 'GET', '/api/status')
                         mapped = call('panel', 'GET', '/api/map')
                         remain = safe_home(status, mapped)
+                # Food production can raise maximum HP without damage.
+                # At safe home, allow a bounded natural recovery observation.
+                recover_until = min(deadline, time.monotonic() + 90)
+                while not remain and not yielded and safe_home(status, mapped, previous) and time.monotonic() < recover_until:
+                    time.sleep(2)
+                    status = observe()
+                    mapped = call('panel', 'GET', '/api/map')
+                    remain = safe_home(status, mapped)
             except Exception:
                 remain = False
         if owns_body and not yielded and not remain:

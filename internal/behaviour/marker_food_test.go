@@ -194,3 +194,23 @@ func TestPreparingFoodReservesKeeperForActiveKitchenOnly(t *testing.T) {
 		e.active = ""
 	}
 }
+
+func TestMarkerFoodNewMealDoesNotCountAsAnInjury(t *testing.T) {
+	r := foodRunner(t, "berries")
+	v := markerView("berries")
+	seq := uint64(10)
+	v.InjurySeq = &seq
+	w := v.Waypoints[0]
+	r.marker = &w
+	r.began = v.Now
+	r.health = sampleHealth(v)
+	v.State.HPMax = 100
+	v.State.Food.Active = append(v.State.Food.Active, protocol.ActiveFood{Prefab: "CookedMeat", RemainingS: 1200})
+	if err := r.Check(v); err != nil {
+		t.Fatal("new food maximum cancelled safe work", err)
+	}
+	seq++
+	if err := r.Check(v); err == nil {
+		t.Fatal("real injury ignored after meal activation")
+	}
+}
