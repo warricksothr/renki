@@ -24,7 +24,7 @@ namespace Renki.Tasks
         readonly long producer;
         readonly int rawBefore, outputBefore, maxYield;
         readonly double limit;
-        int phase, slot = -1;
+        int phase, slot = -1, requestedYield;
         double since;
         public string Failure { get; private set; }
         public int OutputCount { get; private set; }
@@ -42,15 +42,23 @@ namespace Renki.Tasks
             limit = cookTime * 2 + 10;
         }
 
+        public bool ExpectYield(int count)
+        {
+            if (phase != 3 || requestedYield != 0 || count < 1 || count > maxYield)
+            { Fail("invalid or repeated cooking removal request"); return false; }
+            requestedYield = count; return true;
+        }
+
         CookAction Fail(string why) { Failure = why; phase = -1; return CookAction.Failed; }
 
-        public CookAction Next(double elapsed, int rawCount, int outputCount, IReadOnlyList<CookSlot> slots, bool heated, int spawned, int received = 0)
+        public CookAction Next(double elapsed, int rawCount, int outputCount, IReadOnlyList<CookSlot> slots, bool heated, int spawned, int received = 0, bool deliverySettled = true)
         {
             if (phase == -1) return CookAction.Failed;
             if (phase == 5) return CookAction.Succeeded;
             if (slots == null || slots.Count == 0 || slots.Count > 16 || slots.Any(s => s == null)) return Fail("cooking slots unavailable");
             if (double.IsNaN(elapsed) || double.IsInfinity(elapsed) || elapsed < 0 || elapsed > limit) return Fail("bounded cooking time elapsed");
             if (spawned < 0 || spawned > maxYield) return Fail("unexpected cooking yield");
+            if (requestedYield != 0 && spawned > requestedYield) return Fail("output exceeds the normal removal request");
             if (received < 0 || received > spawned) return Fail("unexpected cooking pickup receipt");
             var occupied = slots.Select((s, i) => (s, i)).Where(x => !string.IsNullOrEmpty(x.s.Item)).ToArray();
             if (phase == 0)
@@ -85,14 +93,14 @@ namespace Renki.Tasks
             {
                 if (occupied.Any(x => x.i != slot || x.s.Producer != producer || x.s.Item != output || x.s.Status != 1))
                     return Fail("station changed during output removal");
-                if (occupied.Length == 0 && spawned > 0)
+                if (occupied.Length == 0 && spawned > 0 && (requestedYield == 0 || spawned == requestedYield))
                 { OutputCount = spawned; phase = 4; since = elapsed; }
-                else return elapsed - since <= 3 ? CookAction.Wait : Fail("output spawn receipt unconfirmed; not removing again");
+                else return elapsed - since <= 8 ? CookAction.Wait : Fail("output spawn receipt unconfirmed; not removing again");
             }
             if (phase == 4)
             {
                 if (occupied.Length != 0 || spawned != OutputCount) return Fail("batch changed during collection");
-                if (outputCount == outputBefore + OutputCount && received == OutputCount)
+                if (outputCount == outputBefore + OutputCount && received == OutputCount && deliverySettled)
                 { phase = 5; return CookAction.Succeeded; }
                 if (outputCount > outputBefore + OutputCount) return Fail("unrelated food gain makes the receipt uncertain");
                 return elapsed - since <= 15 ? CookAction.Collect : Fail("cooked output was not verified in inventory");

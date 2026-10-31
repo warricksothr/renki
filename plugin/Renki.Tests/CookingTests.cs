@@ -115,7 +115,7 @@ namespace Renki.Tests
             var batch = Inserted();
             Assert.Equal(CookAction.Remove, batch.Next(21, 1, 5, Food("CookedMeat", 1), true, 0));
             Assert.Equal(CookAction.Wait, batch.Next(22, 1, 6, Empty(), true, 0));
-            Assert.Equal(CookAction.Failed, batch.Next(25, 1, 6, Empty(), true, 0));
+            Assert.Equal(CookAction.Failed, batch.Next(30, 1, 6, Empty(), true, 0));
             Assert.Contains("not removing again", batch.Failure);
         }
 
@@ -146,6 +146,85 @@ namespace Renki.Tests
             Assert.Equal("NeckTailGrilled", CookingBatch.Result("NeckTail"));
             foreach (var value in new[] { double.NaN, double.PositiveInfinity, 0, 121 })
                 Assert.Throws<ArgumentException>(() => new CookingBatch("RawMeat", 7, 2, 5, 2, value));
+        }
+
+        [Fact]
+        public void RemoteBonusDeliveryWaitsForTheWholeRequestedYieldAndSettlement()
+        {
+            var batch = Inserted();
+            Assert.Equal(CookAction.Remove, batch.Next(21, 1, 5, Food("CookedMeat", 1), true, 0));
+            Assert.True(batch.ExpectYield(2));
+            Assert.Equal(CookAction.Wait, batch.Next(22, 1, 6, Empty(), true, 1, received: 1));
+            Assert.Equal(CookAction.Collect, batch.Next(23, 1, 7, Empty(), true, 2, received: 2, deliverySettled: false));
+            Assert.Equal(CookAction.Succeeded, batch.Next(24, 1, 7, Empty(), true, 2, received: 2));
+        }
+
+        [Fact]
+        public void RemotePickupCanArriveBeforeTheEmptySlotButCannotCompleteBeforeIt()
+        {
+            var batch = Inserted();
+            Assert.Equal(CookAction.Remove, batch.Next(21, 1, 5, Food("CookedMeat", 1), true, 0));
+            Assert.True(batch.ExpectYield(1));
+            Assert.Equal(CookAction.Wait, batch.Next(22, 1, 6, Food("CookedMeat", 1), true, 1, received: 1));
+            Assert.Equal(CookAction.Collect, batch.Next(23, 1, 6, Empty(), true, 1, received: 1, deliverySettled: false));
+            Assert.Equal(CookAction.Succeeded, batch.Next(24, 1, 6, Empty(), true, 1, received: 1));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(3)]
+        public void InvalidOrRepeatedNormalRemovalCannotProveDelivery(int count)
+        {
+            var batch = Inserted();
+            Assert.Equal(CookAction.Remove, batch.Next(21, 1, 5, Food("CookedMeat", 1), true, 0));
+            Assert.False(batch.ExpectYield(count));
+            Assert.Equal(CookAction.Failed, batch.Next(22, 1, 6, Empty(), true, 1, received: 1));
+            batch = Inserted();
+            Assert.Equal(CookAction.Remove, batch.Next(21, 1, 5, Food("CookedMeat", 1), true, 0));
+            Assert.True(batch.ExpectYield(1)); Assert.False(batch.ExpectYield(1));
+        }
+
+        static CookingRemoteOutput Remote(int count = 1) => new CookingRemoteOutput("CookedMeat", 9, 7, true, count, new[] { "old" });
+
+        [Theory]
+        [InlineData("old", "CookedMeat", 9, 0, 0, 7)]
+        [InlineData("new", "RawMeat", 9, 0, 0, 7)]
+        [InlineData("new", "CookedMeat", 8, 0, 0, 7)]
+        [InlineData("new", "CookedMeat", 9, -.2, 0, 7)]
+        [InlineData("new", "CookedMeat", 9, 3.1, 0, 7)]
+        [InlineData("new", "CookedMeat", 9, 0, 2.1, 7)]
+        [InlineData("new", "CookedMeat", 9, 0, 0, 8)]
+        [InlineData("new", "CookedMeat", 9, double.NaN, 0, 7)]
+        public void OldReloadedUnrelatedAndOutOfWindowDropsAreNotRemoteReceipts(string id, string prefab,
+            long creator, double born, double distance, long crafter)
+        {
+            var remote = Remote();
+            Assert.Equal(CookingDropMatch.Ignore, remote.Observe(id, prefab, creator, born, distance, 1, crafter));
+            Assert.False(remote.Complete); Assert.Equal(0, remote.Count);
+        }
+
+        [Fact]
+        public void DuplicateIdentityDoesNotCountTwiceAndExtraOrMergedOutputsAreAmbiguous()
+        {
+            var remote = Remote(2);
+            Assert.Equal(CookingDropMatch.Accepted, remote.Observe("one", "CookedMeat", 9, .1, .2, 1, 7));
+            Assert.Equal(CookingDropMatch.Ignore, remote.Observe("one", "CookedMeat", 9, .1, .2, 1, 7));
+            Assert.False(remote.Complete);
+            Assert.Equal(CookingDropMatch.Accepted, remote.Observe("two", "CookedMeat", 9, .3, .2, 1, 7));
+            Assert.True(remote.Complete);
+            Assert.Equal(CookingDropMatch.Ambiguous, remote.Observe("three", "CookedMeat", 9, .3, .2, 1, 7));
+            Assert.False(remote.Complete);
+            Assert.Equal(CookingDropMatch.Ambiguous, Remote().Observe("merged", "CookedMeat", 9, .1, .2, 2, 7));
+        }
+
+        [Fact]
+        public void StationsWithoutCrafterMetadataStillRequireTheRemoteCreatorAndBirthWindow()
+        {
+            var remote = new CookingRemoteOutput("CookedMeat", 9, 7, false, 1, Array.Empty<string>());
+            Assert.Equal(CookingDropMatch.Ignore, remote.Observe("wrong", "CookedMeat", 8, .1, .2, 1, 0));
+            Assert.Equal(CookingDropMatch.Ignore, remote.Observe("old", "CookedMeat", 9, -2, .2, 1, 0));
+            Assert.Equal(CookingDropMatch.Accepted, remote.Observe("new", "CookedMeat", 9, .1, .2, 1, 0));
+            Assert.True(remote.Complete);
         }
 
         static TaskRequest Request() => new TaskRequest

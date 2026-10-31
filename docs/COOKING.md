@@ -16,10 +16,10 @@ and `AllowMovement`, and session `interact` and `pickup` permissions, are requir
 Plain interaction with a cooking station remains refused.
 
 This first slice supports ordinary fire-backed stations with direct item use,
-not ovens, cauldrons or stations using fuel switches. The station must be
-locally simulated so the plugin can witness the exact output spawn. An unowned
-station may be acquired by the game's normal ingredient insertion; the task
-never claims ownership itself or displaces another peer's simulation. Native cooking additionally checks the actual
+not ovens, cauldrons or stations using fuel switches. Remote station simulation
+is supported through the game's ordinary owner-mediated interactions. An unowned
+station may be acquired by normal ingredient insertion; the task never claims
+ownership itself or displaces another peer's simulation. Native cooking checks the actual
 recipe, ward access, sight/reach, active food, 80% health, dry footing, nearby
 hostiles and space/weight for the complete possible yield. Missing ingredients,
 busy stations and a dead fire produce a refusal with the missing prerequisite.
@@ -35,18 +35,37 @@ withdrawal, continued fire tending and bulk cooking remain follow-up composition
 The station's normal `UseItem` action consumes one carried ingredient. Success
 requires the matching inventory decrease and a single matching cooking slot
 whose recorded producer is this peer. Uncertain insertion is not retried.
-When that slot is cooked, normal station use removes it once. A scoped hook
-observes the game's own spawned output instances; no inventory or world state
-is written to create food. Normal pickup of those exact spawned instances must
-produce matched per-drop inventory gains; pickup does not substitute another
+When that slot is cooked, normal station use removes it once. A scoped observer
+records the normal outgoing removal RPC's requested yield and simulating peer.
+Locally simulated output has a direct `SpawnItem` witness (`direct_spawn`).
+Remote output uses a separate correlation receipt (`remote_correlation`): only
+new item IDs absent before removal, created by the addressed peer, born within
+three seconds of the request (100 ms clock tolerance) and observed within 2 m
+of the normal spawn origin qualify. Prefab, one-item stack and the recorded
+crafter, when enabled by the station, must match. Old/reloaded drops, mismatched
+creators and merges cannot replace missing output. Excess matching candidates
+are ambiguous and fail. The full requested yield and empty synchronized slot
+must arrive; remote delivery also waits three seconds before completion to
+observe competing candidates. Removal acknowledgment has an eight-second limit.
+
+Remote correlation is evidence of delivery, not a direct witness of the remote
+spawn call. Vanilla drops carry no station ID. A simultaneous same-owner,
+same-prefab drop at the same origin/time can still be indistinguishable,
+especially when the station does not record a crafter. The trace and proof tool
+retain the evidence mode rather than claiming exact remote causality. Slow
+replication or an early merge may conservatively fail a real delivery.
+
+No inventory or world state is written to create food. Normal pickup of the
+identified output instances must produce matched per-drop inventory gains;
+pickup does not substitute another
 drop after a merge. The task completes only after the corresponding full
 inventory increase. An unrelated gain of the same prefab is insufficient. The food
 keeper waits to eat this output until the native receipt completes.
 
-A foreign occupied slot, burnt/changed/removed input, lost station ownership,
+A foreign occupied slot, burnt/changed/removed input,
 unconfirmed output, unrelated food gains, blocked pickup or work deadline ends
 the task without claiming success. State transitions and input/output receipts
-appear as `cooking` traces, with the task/station/slot and actual spawned IDs.
+appear as `cooking` traces, with the task/station/slot, output IDs and evidence mode.
 Other players can still take a batch or its drops; a disappearing item alone
 does not prove delivery.
 
@@ -66,7 +85,7 @@ station's synchronized state. Other machine/fermenter/beehive state is pending.
 Use `just check plugin test-core CookingTests` and
 `just check controller test-packages ./internal/protocol ./internal/chat` for
 focused checks; `just check ci` is the full gate. Live proof requires matched
-input, slot, output-spawn and inventory receipts. Policy tests alone do not
+input, slot, direct-spawn or remote-correlation and inventory receipts. Policy tests alone do not
 establish successful cooking on the server. Track remaining broader tending
 on TKT-01M62VXZ6 — Controller: tend template: cooking, fermenters, beehives, ore.
 

@@ -10,7 +10,7 @@ namespace Renki.Plugin
 {
     /// <summary>One normally inserted ingredient, a verified owned slot, normal
     /// removal and provenance-linked dropped output. Never edits inventory/ZDOs.</summary>
-    sealed class CookingTask : IBodyTask
+    sealed partial class CookingTask : IBodyTask
     {
         internal static CookingTask Active;
         readonly string id, raw;
@@ -110,19 +110,6 @@ namespace Renki.Plugin
                 if (result.Status != Wire.StatusSucceeded) return Finish(result);
                 arrived = true;
             }
-            // Normal UseItem acquires an unowned station. Do not preempt that
-            // path, but never insert into a station simulated by another peer.
-            // After insertion, local simulation is mandatory for spawn receipts.
-            if (!station.m_nview.IsOwner() && (batch != null || station.m_nview.HasOwner()))
-            {
-                Trace("station simulation unavailable", new Dictionary<string, object>
-                {
-                    ["hasOwner"] = station.m_nview.HasOwner(),
-                    ["owner"] = station.m_nview.GetZDO().GetOwner(),
-                    ["localPeer"] = ZNet.GetUID()
-                });
-                return Finish(Outcome.Failed(Wire.ReasonRefused, "the cooking station must be unowned or simulated locally to verify its output"));
-            }
             if (batch == null)
             {
                 var currentSlots = Slots(station);
@@ -148,7 +135,10 @@ namespace Renki.Plugin
                 batch = new CookingBatch(raw, ZNet.GetUID(), Count(me, raw), Count(me, Output), maxYield, conversion.m_cookTime);
                 began = Time.unscaledTime;
             }
-            var action = batch.Next(Time.unscaledTime - began, Count(me, raw), Count(me, Output), Slots(station), Heated(station), spawned, received);
+            ObserveRemoteOutputs();
+            if (deliveryFailure != null) return Finish(Outcome.Failed(Wire.ReasonRefused, deliveryFailure));
+            var action = batch.Next(Time.unscaledTime - began, Count(me, raw), Count(me, Output), Slots(station), Heated(station), spawned, received,
+                deliverySettled: remoteOutput == null || remoteOutput.Complete && Time.unscaledTime - removalAt >= 3);
             if (batch.Phase != lastPhase)
             {
                 lastPhase = batch.Phase;
@@ -162,7 +152,8 @@ namespace Renki.Plugin
             if (action == CookAction.Failed) return Finish(Outcome.Failed(Wire.ReasonRefused, batch.Failure));
             if (action == CookAction.Succeeded)
             {
-                Trace("verified cooked inventory receipt", new Dictionary<string, object> { ["output"] = Output, ["count"] = batch.OutputCount });
+                Trace("verified cooked inventory receipt", new Dictionary<string, object>
+                { ["output"] = Output, ["count"] = batch.OutputCount, ["evidence"] = remoteOutput == null ? "direct_spawn" : "remote_correlation" });
                 return Finish(Outcome.Succeeded($"cooked one {raw}; collected {batch.OutputCount} {Output}"));
             }
             if (action == CookAction.Collect)
@@ -196,8 +187,14 @@ namespace Renki.Plugin
             if (action == CookAction.Remove)
             {
                 removing = true;
-                if (!station.Interact(me, false, false))
+                bool used;
+                issuingRemoval = true;
+                try { used = station.Interact(me, false, false); }
+                finally { issuingRemoval = false; }
+                if (!used)
                     return Finish(Outcome.Failed(Wire.ReasonRefused, "the station refused output removal"));
+                if (!removalSeen)
+                    return Finish(Outcome.Failed(Wire.ReasonRefused, "the normal cooking removal request was not observed"));
                 Trace("cooked output removal requested");
             }
             return null;
@@ -234,9 +231,7 @@ namespace Renki.Plugin
                 foreach (var drop in ItemDrop.s_instances)
                     if (drop != null && !__state.Contains(drop) && drop.m_itemData?.m_dropPrefab?.name == task.Output)
                     {
-                        task.outputs.Add(drop); task.spawned += drop.m_itemData.m_stack;
-                        task.Trace("normal station output spawned", new Dictionary<string, object>
-                        { ["entity"] = Perceiver.Id(drop.m_nview), ["output"] = task.Output, ["count"] = drop.m_itemData.m_stack });
+                        task.AddOutput(drop, "normal station output spawned");
                     }
             }
         }
@@ -257,6 +252,7 @@ namespace Renki.Plugin
                 var task = Active;
                 if (task == null || __instance != Player.m_localPlayer || go == null) return;
                 var drop = go.GetComponent<ItemDrop>();
+                task.ObserveRemoteOutput(drop);
                 if (drop == null || !task.outputs.Contains(drop)) return;
                 __state = new PickupAttempt
                 {

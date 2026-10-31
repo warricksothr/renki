@@ -22,6 +22,31 @@ def terminal(history, task_id):
                  ('succeeded', 'failed', 'rejected', 'cancelled')), None)
 
 
+def delivery_receipt(receipts):
+    """Require matching identities/counts; keep remote correlation explicit."""
+    finals = [r.get('data', {}) for r in receipts if r.get('msg') == 'verified cooked inventory receipt']
+    requests = [r.get('data', {}) for r in receipts if r.get('msg') == 'normal cooking removal request observed']
+    if len(finals) != 1 or len(requests) != 1: return None
+    final, request = finals[0], requests[0]
+    mode, count = final.get('evidence'), final.get('count', 0)
+    message = {'direct_spawn': 'normal station output spawned',
+               'remote_correlation': 'correlated remote station output observed'}.get(mode)
+    if not message or not 1 <= count <= 10 or request.get('requestedCount') != count or request.get('evidence') != mode: return None
+    outputs = [r.get('data', {}) for r in receipts if r.get('msg') == message]
+    drops = {}
+    for output in outputs:
+        entity = output.get('entity')
+        if not entity or entity in drops or output.get('output') != final.get('output') or output.get('count', 0) <= 0: return None
+        drops[entity] = output['count']
+    picked = {entity: 0 for entity in drops}
+    for row in receipts:
+        if row.get('msg') != 'verified cooking drop pickup': continue
+        data = row.get('data', {}); entity = data.get('entity')
+        if entity not in drops or data.get('output') != final.get('output') or data.get('count', 0) <= 0: return None
+        picked[entity] += data['count']
+    return dict(evidence=mode, output=final.get('output'), count=count) if sum(drops.values()) == count and picked == drops else None
+
+
 def safe(status, previous=None):
     hp, maximum = status.get('hp', 0), status.get('hpMax', 0)
     if not status.get('connected') or status.get('phase') != 'in_world': return 'not in world'
@@ -176,11 +201,10 @@ def main():
         summary['cookingReceipts'] = receipts
         if result['status'] != 'succeeded':
             raise RuntimeError('native cooking ' + result['status'] + ' (' + result.get('reason', '') + '): ' + result.get('detail', ''))
-        if not any(r.get('msg') == 'normal station output spawned' for r in receipts) or not any(
-                r.get('msg') == 'verified cooking drop pickup' for r in receipts) or not any(
-                r.get('msg') == 'verified cooked inventory receipt' for r in receipts):
+        delivery = delivery_receipt(receipts)
+        if not delivery:
             raise RuntimeError('cooking lacks succeeded native status and matched spawn/inventory receipts')
-        summary.update(outcome='succeeded', reason='one input cooked and its full native output collected')
+        summary.update(outcome='succeeded', reason='one input cooked and its full native output collected', delivery=delivery)
     except Exception as error:
         summary['reason'] = str(error)
     finally:

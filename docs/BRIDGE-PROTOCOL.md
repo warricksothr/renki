@@ -606,12 +606,18 @@ Notes:
   - `cook:"RawMeat"` (also `DeerMeat` or `NeckTail`) cooks one carried input
     through normal station item use, then removes and collects its verified
     output. It requires movement/gather and session pickup permission, an empty
-    locally simulated fire-backed cooking station, active food, safe health,
+    fire-backed cooking station, active food, safe health,
     dry footing, no nearby hostile and room for the full possible yield.
     A cold station may first use one carried Wood on its uniquely matched empty
     supporting fire; wood, fuel and actual heat receipts are required before
     input insertion. No repeated fuel use follows uncertain or blocked heat.
-    Exact input/owned-slot/spawn/inventory receipts are required. Stop or
+    Input/producer-slot/output-instance/pickup/inventory receipts are required.
+    Local output uses a direct spawn witness; remote output is explicitly
+    correlated by the normal request's yield/peer and new IDs, birth time,
+    spawn location and crafter when recorded. Ambiguity or missing yield fails.
+    The trace reports `direct_spawn` or `remote_correlation`; vanilla remote
+    drops contain no station ID, so correlation is not exact remote causality.
+    Stop or
     interruption leaves any partial batch on the station or in the world;
     it never resumes automatically. The food keeper waits to consume this
     output until its receipt completes. No other interaction mode may combine

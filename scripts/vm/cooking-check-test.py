@@ -49,4 +49,18 @@ assert cooking.terminal({'value': history}, 't-1')['status'] == 'failed'
 assert cooking.terminal(history, 'missing') is None
 native = json.loads((cooking.ROOT / 'internal/protocol/testdata/plugin/task_failed.json').read_text())
 assert cooking.terminal([{'frame': native}], native['re'])['status'] == 'failed'
+
+for mode, message in [('direct_spawn', 'normal station output spawned'),
+                      ('remote_correlation', 'correlated remote station output observed')]:
+    receipt = [dict(msg='normal cooking removal request observed', data=dict(evidence=mode, requestedCount=1)),
+               dict(msg=message, data=dict(entity='drop', output='CookedMeat', count=1)),
+               dict(msg='verified cooking drop pickup', data=dict(entity='drop', output='CookedMeat', count=1)),
+               dict(msg='verified cooked inventory receipt', data=dict(evidence=mode, output='CookedMeat', count=1))]
+    assert cooking.delivery_receipt(receipt) == dict(evidence=mode, output='CookedMeat', count=1)
+    for missing in range(len(receipt)):
+        assert cooking.delivery_receipt(receipt[:missing] + receipt[missing+1:]) is None
+    for index, patch in [(0, dict(requestedCount=2)), (1, dict(entity='other')), (2, dict(count=2)),
+                         (2, dict(output='Raspberry')), (3, dict(evidence='unknown'))]:
+        changed = list(receipt); changed[index] = receipt[index] | dict(data=receipt[index]['data'] | patch)
+        assert cooking.delivery_receipt(changed) is None
 print('cooking supervision, unique chest candidates and scoped receipts passed')
