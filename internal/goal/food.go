@@ -15,7 +15,7 @@ import (
 	"github.com/warricksothr/renki/internal/session"
 )
 
-var meals = []string{"CookedDeerMeat", "NeckTailGrilled", "CookedMeat", "Honey", "Raspberry", "Blueberries", "Mushroom"}
+var meals = []string{"CookedDeerMeat", "NeckTailGrilled", "CookedMeat", "Honey", "Raspberry", "Blueberries", "Mushroom", "MushroomYellow"}
 var ingredients = []string{"RawMeat", "DeerMeat", "NeckTail"}
 var cooked = map[string]string{"RawMeat": "CookedMeat", "DeerMeat": "CookedDeerMeat", "NeckTail": "NeckTailGrilled"}
 

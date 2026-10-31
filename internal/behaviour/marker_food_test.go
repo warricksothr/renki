@@ -98,26 +98,30 @@ func TestMarkerFoodStockLimitAndInjuryAndThreatGuards(t *testing.T) {
 	}
 }
 func TestMarkerFoodStoreKeepsPersonalMealsAndRequiresTransferReceipt(t *testing.T) {
-	r := foodRunner(t, "storage")
-	v := markerView("storage")
-	v.Inventory.Items = []protocol.InventoryItem{{Prefab: "Mushroom", Stack: 5}}
-	v.Perception.Structures = []protocol.PerceivedStructure{{ID: "box", Kind: protocol.StructureContainer}}
-	order, err := r.Next(v, nil)
-	if err != nil || order == nil {
-		t.Fatal(order, err)
-	}
-	args := order.Args.(*protocol.TransferArgs)
-	if args.Container != "box" || int(args.Items[0].Count) != 3 {
-		t.Fatal(args)
-	}
-	if _, err = r.Next(v, &Result{TaskID: "deposit", Status: protocol.StatusSucceeded}); err != ErrWait {
-		t.Fatal("accepted success without receipt", err)
-	}
-	v.Inventory.Seq++
-	v.Inventory.Items[0].Stack = 2
-	v.Containers = []*protocol.Container{{Entity: "box", Task: "deposit", Direction: protocol.TaskDeposit, Moved: map[string]int{"Mushroom": 3}}}
-	if order, err = r.Next(v, &Result{TaskID: "deposit", Status: protocol.StatusSucceeded}); order != nil || err != nil {
-		t.Fatal(order, err)
+	for _, prefab := range []string{"Mushroom", "MushroomYellow"} {
+		t.Run(prefab, func(t *testing.T) {
+			r := foodRunner(t, "storage")
+			v := markerView("storage")
+			v.Inventory.Items = []protocol.InventoryItem{{Prefab: prefab, Stack: 5}}
+			v.Perception.Structures = []protocol.PerceivedStructure{{ID: "box", Kind: protocol.StructureContainer}}
+			order, err := r.Next(v, nil)
+			if err != nil || order == nil {
+				t.Fatal(order, err)
+			}
+			args := order.Args.(*protocol.TransferArgs)
+			if args.Container != "box" || int(args.Items[0].Count) != 3 {
+				t.Fatal(args)
+			}
+			if _, err = r.Next(v, &Result{TaskID: "deposit", Status: protocol.StatusSucceeded}); err != ErrWait {
+				t.Fatal("accepted success without receipt", err)
+			}
+			v.Inventory.Seq++
+			v.Inventory.Items[0].Stack = 2
+			v.Containers = []*protocol.Container{{Entity: "box", Task: "deposit", Direction: protocol.TaskDeposit, Moved: map[string]int{prefab: 3}}}
+			if order, err = r.Next(v, &Result{TaskID: "deposit", Status: protocol.StatusSucceeded}); order != nil || err != nil {
+				t.Fatal(order, err)
+			}
+		})
 	}
 }
 func cookingRows() []*protocol.Trace {

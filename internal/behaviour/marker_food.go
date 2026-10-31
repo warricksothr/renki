@@ -21,7 +21,7 @@ type MarkerFoodParams struct {
 }
 
 var wildMeals = []string{"Raspberry", "Blueberries", "Mushroom"}
-var readyMeals = []string{"CookedMeat", "CookedDeerMeat", "NeckTailGrilled", "Honey", "Raspberry", "Blueberries", "Mushroom"}
+var readyMeals = []string{"CookedMeat", "CookedDeerMeat", "NeckTailGrilled", "Honey", "Raspberry", "Blueberries", "Mushroom", "MushroomYellow"}
 var rawMeals = []string{"RawMeat", "DeerMeat", "NeckTail"}
 var cookedMeals = map[string]string{"RawMeat": "CookedMeat", "DeerMeat": "CookedDeerMeat", "NeckTail": "NeckTailGrilled"}
 

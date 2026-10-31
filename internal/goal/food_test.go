@@ -70,6 +70,32 @@ func deliveryRows(id, item, station string) []*protocol.Trace {
 		row("verified cooked inventory receipt", map[string]any{"output": item, "count": 1, "evidence": "remote_correlation"}),
 	}
 }
+func TestFoodBootstrapsFromObservedYellowMushroomsBeforeCooking(t *testing.T) {
+	_, r, v, _ := foodFixture(t)
+	v.State.HP, v.State.HPMax = 25, 25
+	v.State.Food = &protocol.FoodStatus{}
+	v.Inventory.Items = []protocol.InventoryItem{{Prefab: "RawMeat", Stack: 1}}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil || o.Task != protocol.TaskWithdraw {
+		t.Fatal(o, err)
+	}
+	// An ordinary failed probe reports the chest's real contents.
+	last := foodTransfer(t, r, &v, "probe", "a", "CookedDeerMeat", 0, []protocol.InventoryItem{{Prefab: "MushroomYellow", Stack: 7}})
+	o, err = r.Next(v, last)
+	if err != nil || o == nil || o.Task != protocol.TaskWithdraw {
+		t.Fatal("ignored available starter food", o, err)
+	}
+	args := o.Args.(*protocol.TransferArgs)
+	if args.Container != "a" || args.Items[0].Prefab != "MushroomYellow" || args.Items[0].Count != 3 {
+		t.Fatal(args)
+	}
+	last = foodTransfer(t, r, &v, "starter", "a", "MushroomYellow", 3, nil)
+	v.State.Food.Carried = []protocol.CarriedFood{{Prefab: "MushroomYellow", CanEat: true, Health: 10, Regen: 1}}
+	o, err = r.Next(v, last)
+	if err != nil || o == nil || o.Task != protocol.TaskUseItem || o.Args.(*protocol.UseItemArgs).Item != "MushroomYellow" {
+		t.Fatal("did not eat the verified starter before attempting cooking", o, err)
+	}
+}
 func TestFoodWrongHintsSearchDistinctBoxesThenCookAReserve(t *testing.T) {
 	host, r, v, id := foodFixture(t)
 	v.Containers = []*protocol.Container{{Entity: "a", Items: []protocol.InventoryItem{{Prefab: "CookedDeerMeat", Stack: 10}}}}

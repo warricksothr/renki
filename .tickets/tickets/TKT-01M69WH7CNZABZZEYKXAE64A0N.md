@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T21:06:00Z
-updated_at: 2026-10-31T21:45:05Z
+updated_at: 2026-10-31T22:12:17Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -80,3 +80,9 @@ Native pickup fix deployed and checksum-verified (.checks/20261031T213609Z-alAGm
 The southern mushroom route was also refused (.checks/marker-food-20261031T213322Z); native traces identify nearby Greyling/Boar/Neck exclusion corridors. Do not relax safety or repeat these eastern/southern routes blindly. A western mushroom hint near [-71,33.5,-71] is the next guarded alternative and still needs fresh confirmation. Natural food acquisition remains unproven.
 
 Clean cooking retry .checks/marker-food-20261031T214114Z yielded at preflight because a new live follow task t-3 took the body. No food work or logout occurred in that retry. Audit .checks/audit-window-LW9C3E.jsonl confirms nearby player chat and follow movement. Leave this command intact while awaiting the user's preference; RawMeat1 remains carried. Lasting idle presets remain disabled pending clean live validation. PR: https://github.com/warricksothr/renki/pull/134.
+
+**agent:codex/renki-milestones** at 2026-10-31T22:12:17Z
+
+User released Tas from following for the remaining food trials. Fresh state is idle, sheltered at home with 25/25 HP, no active meals and RawMeat1. Production resupply .checks/food-20261031T220959Z boundedly searched 11 unique chests and stopped needs_plan because the Mushroom chest 1:70040 was in use and cooking requires an active meal. Another chest was unreachable, not empty. Cleanup logged Tas out and stopped the client safely.
+
+The accessible raw-food chest reported MushroomYellow7, but ready-food selection excluded this valid edible. Extend production resupply, marker surplus storage and food-check staging to recognize yellow mushrooms; preserve native CanEat and health gates. Replay the exact failed-probe-to-verified-starter flow and reserve-preserving yellow-mushroom deposit. Focused just check controller test-packages ./internal/goal ./internal/behaviour passed (.checks/20261031T221151Z-OtUAM2.log). Deploy the controller after full CI, then run resupply, clean idle cooking, western forage and storage in that order. No new natural gathering or whole-trial success earned yet.
