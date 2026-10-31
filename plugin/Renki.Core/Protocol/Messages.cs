@@ -262,6 +262,20 @@ namespace Renki.Protocol
         [JsonProperty("characters")] public List<PerceivedCharacter> Characters = new List<PerceivedCharacter>();
         [JsonProperty("resources")] public List<PerceivedResource> Resources = new List<PerceivedResource>();
         [JsonProperty("structures")] public List<PerceivedStructure> Structures = new List<PerceivedStructure>();
+        [JsonProperty("logObstacles")] public List<LogObstacle> LogObstacles = new List<LogObstacle>();
+        public bool ShouldSerializeLogObstacles() => LogObstacles != null && LogObstacles.Count != 0;
+    }
+
+    /// <summary>Transient travel envelope from the navigation cache, not a
+    /// solid mesh or a remembered landmark. Replaced on every perception.</summary>
+    public sealed class LogObstacle
+    {
+        [JsonProperty("entity")] public string Entity = "";
+        [JsonProperty("collider")] public int Collider;
+        [JsonProperty("outline")] public double[][] Outline = System.Array.Empty<double[]>();
+        [JsonProperty("minY")] public double MinY;
+        [JsonProperty("maxY")] public double MaxY;
+        [JsonProperty("padding")] public double Padding;
     }
 
     /// <summary>Section 6.9: the walls near the bot, sent when they change.</summary>

@@ -236,6 +236,27 @@ physics queries use fixed buffers and reject a leg on saturation.
 
 Run `just check plugin test-core NavigationCacheTests` for deterministic
 geometry, invalidation, support lifetime, priority and detour regressions.
+Run `just check plugin test-core LogFootprintTests` for low-log detours,
+rotated/tilted envelopes, height clearance, outward overlap escape and
+move/removal/split lifecycle. Logs use a separate conservative travel envelope
+in the same bounded discovery/dirty/sweep process (at most 256 log colliders).
+The log pose must still match before an envelope rejects a leg. Ordinary
+stairs retain their upper-body clearance rule; logs also receive live lower-body
+casts and endpoint checks, including before discovery and while moving. Only
+movement out of an initial footprint overlap may bypass that log's exclusion;
+inward/crossing movement and travel along its interior stay rejected.
+The panel's **Log boundaries** layer shows these same live envelopes in amber,
+with a translucent 0.4 m clearance stroke; overhead/underfoot envelopes are
+faint. Hover an outline for entity, clearance and vertical extent. Map exports
+include the measured geometry. `just check panel ui-test --scenario log-boundaries
+--port 0` checks shared exports, toggling, split/removal and logout with synthetic
+events and saves repeatable screenshots. This is fixture evidence, not a game
+collision check. During a live route/harvest check, confirm that an existing
+downed log produces `log_footprint` or `log_body_cast`/`log_body_overlap` refusals,
+that Tas walks around it, and that split/rolling logs leave no old outlines.
+Inspect `logs`, occupancy, discovery saturation and maintenance CPU in the
+obstacle-cache trace and `physicsCasts`/worst-frame time in route results. The
+extra exact checks have a cost; do not infer a CPU improvement from a cache hit.
 These establish fewer simulated live checks on an identical route; actual
 Unity CPU savings still need the repeated house exit/return check. Compare
 `supportHits`, `supportQueries`, `boundsRejected`, `physicsCasts`,

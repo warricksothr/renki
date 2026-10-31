@@ -24,6 +24,7 @@ namespace Renki.Plugin
         const float Radius = .4f;
 
         internal static void Focus(Vector3 target) => focus = target;
+        internal static List<LogObstacle> LogObstacles() => obstacles.Snapshot();
         internal static double WaterLevel(V3 at) => Math.Max(
             ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000,
             Floating.GetLiquidLevel(Convert.ToVector3(at)));
@@ -178,6 +179,7 @@ namespace Renki.Plugin
             if (!plan.WaterSafe(dest, water) || !plan.WaterSafe(middle.Value, water)) return plan.Refuse("water", dest);
             if (!WallRoute.Clear(from, dest, Walls)) return plan.Refuse("wall_memory", dest);
             if (obstacles.Blocked(from, dest)) { plan.BoundsRejected++; return plan.Refuse("obstacle_bounds", dest); }
+            if (obstacles.Logs.Blocked(from, dest)) { plan.BoundsRejected++; return plan.Refuse("log_footprint", dest); }
             var origin = Convert.ToVector3(from);
             var delta = at - origin;
             if (delta.sqrMagnitude < .0001f) return dest;
@@ -186,7 +188,29 @@ namespace Renki.Plugin
             bool Obstacle(Collider c)
             {
                 if (Doorman.MayIgnoreCollider(c.GetComponentInParent<Door>(), plan.Executing)) return false;
+                if (obstacles.LeavingLog(c, from, dest)) return false;
                 return true;
+            }
+            // Curved low log edges are not stairs. Check the lower body for
+            // logs even before discovery/rebuild, and while a log is rolling.
+            // Ordinary steps retain the existing upper-body clearance rule.
+            plan.PhysicsCasts++;
+            var lowCasts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * .45f, origin + Vector3.up * 1.4f,
+                Radius, delta.normalized, castHits, delta.magnitude, Mask, QueryTriggerInteraction.Ignore);
+            if (lowCasts == castHits.Length) { plan.Saturated++; return plan.Refuse("log_cast_saturated", dest); }
+            for (var i = 0; i < lowCasts; i++)
+            {
+                var c = castHits[i].collider;
+                if (c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_cast", dest, c);
+            }
+            plan.PhysicsCasts++;
+            var lowHits = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * .45f, at + Vector3.up * 1.4f,
+                Radius, overlaps, Mask, QueryTriggerInteraction.Ignore);
+            if (lowHits == overlaps.Length) { plan.Saturated++; return plan.Refuse("log_overlap_saturated", dest); }
+            for (var i = 0; i < lowHits; i++)
+            {
+                var c = overlaps[i];
+                if (c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_overlap", dest, c);
             }
             plan.PhysicsCasts++;
             var casts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * 1.05f, origin + Vector3.up * 1.4f,

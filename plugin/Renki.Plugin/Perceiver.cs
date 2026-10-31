@@ -91,6 +91,7 @@ namespace Renki.Plugin
                 Characters = characters.Take(),
                 Structures = structures.Take(),
                 Resources = resources.Take(),
+                LogObstacles = WorldNavigation.LogObstacles(),
             };
             watch.Stop();
             Account(snapshot, hits);

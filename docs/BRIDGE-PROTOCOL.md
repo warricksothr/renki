@@ -203,6 +203,18 @@ What's near the bot, within `radius`, nearest first, capped at `maxPerKind`
 per kind. v1 sends a full snapshot every time. Deltas come later if size turns
 into a problem.
 
+Optional `logObstacles` contains at most 256 transient navigation envelopes,
+one per measured loaded log collider. Each has `entity` (network resource ID),
+`collider` (run-local collider ID), four world-space `outline` corners,
+`minY`, `maxY`, and `padding` (body clearance in metres, currently 0.4).
+The outline encloses the projected collider bounds; it is a conservative travel
+exclusion, not an exact solid mesh. Geometry comes from the same cache used by
+native routing. Changed poses invalidate old records until rebuilt; disabled
+and destroyed colliders are omitted immediately. A new snapshot replaces the
+entire list; absent/empty means clear it. Parent logs and split children have
+different identities. These outlines are live-only and never retained as terrain
+or landmarks. Map snapshots and exports carry them through `perception`.
+
 ```json
 {
   "v": 1, "type": "perception", "seq": 210, "t": 18234.60,
