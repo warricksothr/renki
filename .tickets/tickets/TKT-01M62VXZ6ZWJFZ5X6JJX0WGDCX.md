@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-31T17:55:34Z
+updated_at: 2026-10-31T18:03:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -124,3 +124,11 @@ Multiplayer implementation762339a and contact-sheet correction4250c87 passed ful
 Guarded live trial .checks/cooking-20261031T175115Z passed the former simulation-owner admission gate, then refused the station sight/reach check before fuel or ingredient consumption. It cleaned up and left Tas offline with the panel available. The outer trial log is .checks/20261031T175115Z-jx6LU6.log. No cooked output has been attempted/proved yet.
 
 Investigation found the task used an arbitrary2.5m eye-to-collider range while the installed game's Player.FindHoverObject uses Player.m_maxInteractDistance, default5m, for normal interaction. Corrected cooking station/fire reach to the actual configured finite positive range while retaining the existing physical obstruction check. If already actually visible/reachable, the task skips an unnecessary walk to the station pivot. This is the first correction before implementing larger candidate-standing-position search: if an actual obstruction remains, it must still fail and be solved through native approach/routing, not sight bypass. Other interaction tasks retain their existing limits; scope is cooking. Full checks and another guarded trial follow.
+
+**agent:codex/renki-milestones** at 2026-10-31T18:03:48Z
+
+Range correction2348218 passed full just check ci in142s (.checks/20261031T175539Z-MBs7D2.log), review without findings, and verified installation (.checks/20261031T175827Z-wf9PUA.log). Guarded retry .checks/cooking-20261031T175844Z still refused station sight/reach before consumption, so the actual obstruction remains after using normal game range. No cooked-output attempt/proof yet; Tas is offline after cleanup.
+
+Added native CookingApproach rather than bypassing sight or driving Tas externally. It first tests actual station/fire usability. Otherwise it measures48 ring seeds (one per physics step), considers live support above/below raised floors, rejects steep/wet support, standing-body collisions, blocked station/fire sight and current/future burning areas, and passes only measured candidates to the existing dry/hostile-aware MoveToTask. Four walks at most,12s each,60s total. Actual reach is checked every step; arrival near the pivot is no longer sufficient. Rejection counts and each selected position are traced for bounded diagnosis.
+
+Refactored UseReach so actual Near delegates to the same ray/collider check from supplied hypothetical feet; actual behavior is preserved. Fire preparation exposes its unique candidate and burning bounds for approach checks without adding fuel or claiming ownership. Physics-dependent placement is checked through native build plus guarded live trial, not fabricated unit mocks. Existing core sight, movement, cooking and receipt checks remain in full just check ci. Native build is running; full gate/review/deploy/live trial follow.

@@ -15,7 +15,7 @@ namespace Renki.Plugin
         internal static CookingTask Active;
         readonly string id, raw;
         readonly CookingStation station;
-        readonly MoveToTask approach;
+        readonly CookingApproach approach;
         readonly CookingFire fire;
         readonly List<Character> creatures = new List<Character>();
         readonly List<ItemDrop> outputs = new List<ItemDrop>();
@@ -71,14 +71,7 @@ namespace Renki.Plugin
                 throw new TaskRefused(Wire.ReasonInvalidTarget, "cooking currently supports basic fire-backed meat/neck-tail stations");
             this.id = id; raw = args.Cook; Output = CookingBatch.Result(raw); this.station = station;
             fire = new CookingFire(station, id);
-            var pos = station.transform.position;
-            approach = new MoveToTask(new MoveToArgs
-            {
-                To = new Target { Pos = Convert.ToV3(pos) },
-                StopDistance = 2,
-                Dry = true,
-                AvoidHostiles = true
-            }, pos, null);
+            approach = new CookingApproach(id, station, fire);
             previousHp = Player.m_localPlayer.GetHealth();
             Active = this;
         }
@@ -108,12 +101,9 @@ namespace Renki.Plugin
                 return Finish(Outcome.Failed(Wire.ReasonRefused, "a hostile is too close to tend food"));
             if (!arrived)
             {
-                if (!UseReach.Near(me, station.gameObject, InteractionRange(me)))
-                {
-                    var result = approach.Tick(dt);
-                    if (result == null) return null;
-                    if (result.Status != Wire.StatusSucceeded) return Finish(result);
-                }
+                var result = approach.Tick(dt, out var walking);
+                if (result != null) return Finish(result);
+                if (walking) return null;
                 arrived = true;
             }
             if (batch == null)

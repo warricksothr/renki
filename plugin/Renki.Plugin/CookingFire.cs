@@ -18,6 +18,30 @@ namespace Renki.Plugin
         public CookingFire(CookingStation station, string taskId) { this.station = station; this.taskId = taskId; }
         static int Wood(Player me) => me.GetInventory().GetAllItems().Where(i => i.m_dropPrefab?.name == "Wood").Sum(i => i.m_stack);
 
+        List<Fireplace> Nearby()
+        {
+            var pieces = new List<Piece>(); Piece.GetAllPiecesInRadius(station.transform.position, 3, pieces);
+            return pieces.Select(p => p.GetComponent<Fireplace>()).Where(f => f != null).Distinct().ToList();
+        }
+
+        internal GameObject PreparationTarget()
+        {
+            if (CookingTask.Heated(station)) return null;
+            var candidates = Nearby().Where(f => Supports(f, station)).ToArray();
+            return candidates.Length == 1 ? candidates[0].gameObject : null;
+        }
+
+        internal bool SafeFooting(Vector3 feet)
+        {
+            foreach (var nearby in Nearby())
+                foreach (var original in BurningBounds(nearby))
+                {
+                    var bounds = original; bounds.Expand(.7f);
+                    if (bounds.Contains(feet + Vector3.up * .3f) || bounds.Contains(feet + Vector3.up)) return false;
+                }
+            return true;
+        }
+
         public Outcome Tick(Player me, out bool waiting)
         {
             waiting = false;
@@ -26,8 +50,7 @@ namespace Renki.Plugin
             if (receipt == null)
             {
                 if (Wood(me) < 1) return Outcome.Failed(Wire.ReasonInvalidTarget, "carry one Wood to fuel the cooking fire");
-                var pieces = new List<Piece>(); Piece.GetAllPiecesInRadius(station.transform.position, 3, pieces);
-                var candidates = pieces.Select(p => p.GetComponent<Fireplace>()).Where(f => Supports(f, station)).Distinct().ToArray();
+                var candidates = Nearby().Where(f => Supports(f, station)).ToArray();
                 if (candidates.Length != 1)
                     return Outcome.Failed(Wire.ReasonRefused, "no unique empty wood fire supports the cooking check points");
                 fire = candidates[0];
@@ -67,6 +90,12 @@ namespace Renki.Plugin
                 station.m_fireCheckRadius != .25f) return false;
             var points = station.m_fireCheckPoints != null && station.m_fireCheckPoints.Length != 0
                 ? station.m_fireCheckPoints.Select(t => t.position).ToArray() : new[] { station.transform.position };
+            var areas = BurningBounds(fire);
+            return points.All(point => areas.Any(area => area.Contains(point)));
+        }
+
+        static List<Bounds> BurningBounds(Fireplace fire)
+        {
             var areas = new List<Bounds>();
             foreach (var area in fire.GetComponentsInChildren<EffectArea>(true))
             {
@@ -88,7 +117,7 @@ namespace Renki.Plugin
                 else continue;
                 bounds.Expand(.25f); areas.Add(bounds);
             }
-            return points.All(point => areas.Any(area => area.Contains(point)));
+            return areas;
         }
     }
 }
