@@ -193,6 +193,7 @@ type AttackArgs struct {
 	Entity       string   `json:"entity,omitempty"`
 	Style        string   `json:"style,omitempty"`
 	Kite         bool     `json:"kite,omitempty"`
+	Defensive    bool     `json:"defensive,omitempty"`
 	At           *Vec3    `json:"at,omitempty"`
 	SearchRadius *float64 `json:"searchRadius,omitempty"`
 	SearchSector *int     `json:"searchSector,omitempty"`
@@ -207,6 +208,7 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 		Entity       string          `json:"entity"`
 		Style        string          `json:"style"`
 		Kite         bool            `json:"kite"`
+		Defensive    bool            `json:"defensive"`
 		At           json.RawMessage `json:"at"`
 		SearchRadius *float64        `json:"searchRadius"`
 		SearchSector json.RawMessage `json:"searchSector"`
@@ -218,7 +220,7 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 	if err := json.Unmarshal(raw, &wire); err != nil {
 		return err
 	}
-	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, SearchRadius: wire.SearchRadius, SearchOffset: wire.SearchOffset}
+	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, Defensive: wire.Defensive, SearchRadius: wire.SearchRadius, SearchOffset: wire.SearchOffset}
 	if wire.SearchSector != nil {
 		var sector int
 		if bytes.Equal(bytes.TrimSpace(wire.SearchSector), []byte("null")) {
@@ -273,6 +275,9 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 }
 
 func (a *AttackArgs) validate() error {
+	if a.Defensive && (a.Kite || strings.TrimSpace(a.Entity) == "") {
+		return errors.New("defensive attack requires an explicit entity without kite discovery")
+	}
 	if a.SearchAnchor != nil || a.SearchLimit != nil {
 		if a.SearchCenter == nil || a.SearchAnchor == nil || a.SearchLimit == nil || math.IsNaN(*a.SearchLimit) || math.IsInf(*a.SearchLimit, 0) || *a.SearchLimit <= 0 || *a.SearchLimit > 500 {
 			return errors.New("regional bounds require searchCenter, finite searchAnchor and searchLimit in (0,500]")
@@ -351,13 +356,17 @@ func (a *HarvestArgs) validate() error {
 // MoveToArgs are the arguments to `move_to`. A nil pointer means the
 // plugin's default: 1.5 m, and walking.
 type MoveToArgs struct {
-	Dry          bool     `json:"dry,omitempty"`
-	To           Target   `json:"to"`
-	StopDistance *float64 `json:"stopDistance,omitempty"`
-	Run          *bool    `json:"run,omitempty"`
+	Dry           bool     `json:"dry,omitempty"`
+	AvoidHostiles bool     `json:"avoidHostiles,omitempty"`
+	To            Target   `json:"to"`
+	StopDistance  *float64 `json:"stopDistance,omitempty"`
+	Run           *bool    `json:"run,omitempty"`
 }
 
 func (a *MoveToArgs) validate() error {
+	if a.AvoidHostiles && !a.Dry {
+		return errors.New("avoidHostiles requires dry travel")
+	}
 	if a.To.IsZero() {
 		return errors.New("`to` is required")
 	}
@@ -462,6 +471,7 @@ type InteractArgs struct {
 	Alt    bool   `json:"alt,omitempty"`
 	Hold   bool   `json:"hold,omitempty"`
 	Sleep  bool   `json:"sleep,omitempty"`
+	Repair bool   `json:"repair,omitempty"`
 }
 
 func (a *InteractArgs) validate() error {
@@ -470,6 +480,9 @@ func (a *InteractArgs) validate() error {
 	}
 	if a.Sleep && (a.Alt || a.Hold) {
 		return errors.New("`sleep` cannot be combined with `alt` or `hold`")
+	}
+	if a.Repair && (a.Sleep || a.Alt || a.Hold) {
+		return errors.New("`repair` cannot combine with sleep, alt or hold")
 	}
 	return nil
 }

@@ -137,6 +137,13 @@ def run(summary, call, observe, terminal, saved):
     summary['searchChests'] = len(search_chests)
     while len(summary['supplied']) < 2:
         status, mapped = checked_observe()
+        # Already-carried food contributes to readiness, never to transfer
+        # proof. Avoid opening every remaining chest after replenishing one
+        # type when two ordinary food reserves are already in the pack.
+        if summary['supplied']:
+            carried = pack_snapshot(call, scope)
+            if sum(count(carried, prefab) >= 3 for prefab in FOODS) >= 2:
+                break
         options = [c for c in candidates(status, mapped, summary['supplied'], opened)
                    if c[2] in search_chests and (c[2], c[3]) not in attempted and c[2] not in missing_chests]
         if not options:

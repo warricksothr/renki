@@ -31,6 +31,7 @@ namespace Renki.Movement
 
         readonly V3 start, goal;
         readonly double within;
+        readonly double arrivalLevel;
         readonly double initialDistance;
         readonly Func<V3, V3, V3?> probe;
         readonly int maxNodes;
@@ -50,17 +51,23 @@ namespace Renki.Movement
         public bool ProgressLeg { get; }
 
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
-            bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes)
+            bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
+            double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
+            if (double.IsNaN(progressHorizon) || progressHorizon < FrontierDistance) throw new ArgumentOutOfRangeException(nameof(progressHorizon));
             this.start = start;
             this.goal = goal;
             this.probe = probe;
             this.within = within;
+            this.arrivalLevel = arrivalLevel;
             this.maxNodes = maxNodes; this.maxCost = maxCost;
             initialDistance = V3.FlatDistance(start, goal);
-            ProgressLeg = initialDistance > FrontierDistance * 1.5;
+            // Keep taking checked approach legs until the destination is
+            // within the local horizon. Starting a full floor/entrance search
+            // from 24 m away can spend its entire bound on the lower bank.
+            ProgressLeg = initialDistance > progressHorizon;
             Add(new Node { Pos = start, Ground = groundCorridor ? new GroundCorridor.Cursor() : null });
         }
 
@@ -73,7 +80,7 @@ namespace Renki.Movement
                 open.Remove(node);
                 if (costs[Key(node)] < node.Cost) { i--; continue; }
                 Expanded++;
-                if (Arrival.Reached(node.Pos, goal, within))
+                if (Arrival.Reached(node.Pos, goal, within, arrivalLevel))
                 {
                     Complete(node, node.Pos);
                     break;
@@ -87,7 +94,7 @@ namespace Renki.Movement
                     Complete(node, node.Pos);
                     break;
                 }
-                if (V3.FlatDistance(node.Pos, goal) <= within + Cell * 1.5 && Math.Abs(node.Pos.Y - goal.Y) <= Arrival.Level)
+                if (V3.FlatDistance(node.Pos, goal) <= within + Cell * 1.5 && Math.Abs(node.Pos.Y - goal.Y) <= arrivalLevel)
                 {
                     Probes++;
                     // Grid cells can straddle the narrow space beside a
@@ -95,7 +102,7 @@ namespace Renki.Movement
                     // occupied centre of a chest/tree/other target.
                     var offset = (node.Pos - goal).Flat.Normalized * (within * .95);
                     var end = Step(node, new V3(goal.X + offset.X, node.Pos.Y, goal.Z + offset.Z), out _);
-                    if (end is V3 at && node.Cost + (at - node.Pos).Length <= maxCost && Arrival.Reached(at, goal, within))
+                    if (end is V3 at && node.Cost + (at - node.Pos).Length <= maxCost && Arrival.Reached(at, goal, within, arrivalLevel))
                     {
                         Complete(node, at);
                         break;

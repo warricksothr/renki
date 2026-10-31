@@ -203,6 +203,18 @@ What's near the bot, within `radius`, nearest first, capped at `maxPerKind`
 per kind. v1 sends a full snapshot every time. Deltas come later if size turns
 into a problem.
 
+Optional `logObstacles` contains at most 256 transient navigation envelopes,
+one per measured loaded log collider. Each has `entity` (network resource ID),
+`collider` (run-local collider ID), four world-space `outline` corners,
+`minY`, `maxY`, and `padding` (body clearance in metres, currently 0.4).
+The outline encloses the projected collider bounds; it is a conservative travel
+exclusion, not an exact solid mesh. Geometry comes from the same cache used by
+native routing. Changed poses invalidate old records until rebuilt; disabled
+and destroyed colliders are omitted immediately. A new snapshot replaces the
+entire list; absent/empty means clear it. Parent logs and split children have
+different identities. These outlines are live-only and never retained as terrain
+or landmarks. Map snapshots and exports carry them through `perception`.
+
 ```json
 {
   "v": 1, "type": "perception", "seq": 210, "t": 18234.60,
@@ -331,7 +343,9 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 
 A final receipt may include `entity`, the exact native-selected target ID.
 For an acquisition/kiting attack this binds the enemy selected after dispatch.
-Successful combat requires `detail: "observed Greyling death"` and a bound
+Successful combat requires `detail: "observed Greyling death"` (or
+`"observed Boar death"` or `"observed Neck death"` for an explicitly named
+ordinary creature) and a bound
 target; disappearance or unloading does not prove death. An explicitly named
 target cannot be substituted by another receipt entity.
 
@@ -478,14 +492,14 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | Task | Kind | Args | Milestone |
 |---|---|---|---|
 | `stop` | body | — | M1 |
-| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false) | M1 |
+| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false); `avoidHostiles` (bool, requires dry) | M1 |
 | `follow` | body | `player` (name or id); `distance` (default 3.5); `run`: `"auto"` matches the leader | M1 |
 | `look_at` | instant | `to`: position or entity | M1 |
 | `say` | instant | `text`; `channel`: `normal`, `shout` or `whisper`; `to` (whisper target) | M1 |
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
-| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (bool, beds only) | M2 |
+| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only) | M2 |
 | `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (carried food prefab; eat one) | M2 |
@@ -493,7 +507,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `withdraw` | body | `container`; `items` | M2 |
 | `craft` | body | `recipe` (prefab); `count`; walks to the needed station | M2 |
 | `sleep` (planned standalone task) | body | Chat currently uses `interact` with `sleep:true` | M2 |
-| `repair_all` | body | `station` | M2 |
+| `repair_all` (planned standalone task) | body | Currently use `interact` with `repair:true` and a station entity | M2 |
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `guard` | body | `around`: player or position; `radius` | M3 |
 | `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
@@ -570,7 +584,17 @@ Notes:
   - A tombstone is the bot's own grave when all of it fits in the pack, and
     using it takes everything; otherwise it counts as a chest. If the pack
     has filled by the time the bot gets there, it fails `inventory_full`.
-  - Drops (`pickup`), chests (`deposit`, `withdraw`), crafting stations,
+  - `repair:true` permits a crafting station through its normal interaction,
+    then uses the game's repair-button method for eligible carried tools and
+    armour. It requires movement and `AllowGather`, normal game rules (no
+    no-cost mode), current ward access and physical sight/reach. The game checks
+    shelter, station type/level and item recipe. Each click must cause one
+    observed durability gain; `repair` traces include item slot/prefab and
+    before/after/max durability. At most 32 clicks and 10 seconds after opening
+    are allowed. Completion/cancellation closes the station UI. Success means
+    no more damaged gear repairable at that station; other station types may
+    still be needed. `repair` cannot combine with `sleep`, `alt` or `hold`.
+  - Drops (`pickup`), chests (`deposit`, `withdraw`), ordinary crafting-station use,
     portals and signs are `invalid_target`, since they have their own tasks
     or open a window the bot cannot use. So is a thing with several parts to
     use and none named, such as a smelter's ore, fuel and output.
@@ -636,18 +660,30 @@ Notes:
   Choosing a tree and chaining newly spawned logs/stumps are the controller's
   job; this primitive does not silently harvest neighbouring resources.
 - `attack` currently implements explicit bounded melee against one unstarred
-  hostile Greyling. `style` defaults to `melee`; `auto` also selects melee;
+  hostile Greyling or explicitly named wild Boar or Neck. Unnamed search still selects
+  only Greylings. `style` defaults to `melee`; `auto` also selects melee;
   ranged is not yet supported. AllowCombat and AllowMovement must both be on.
   It uses carried ordinary melee weapons, moving-target aim, stamina-aware
   block/dodge and supported movement. Players/tamed creatures are refused.
-  It starts at 80% health and accepts a target within 30 m. Outside 12 m,
-  a closing phase walks within the initial 30 m area for at most 12 s,
-  requiring 0.5 m distance progress every 4 s. On first reaching 12 m,
+  It starts at 80% health and accepts a target within 30 m. Outside 3 m,
+  a closing phase moves within the initial 30 m area for at most 12 s,
+  requiring 0.5 m distance progress every 4 s. On first reaching 3 m,
   the bot's position anchors the encounter's 12 m pursuit leash, 45 s work budget and
   12 s without observed target-health progress. Unsafe conditions trigger an
   ordinary bounded flee inside the same task; the encounter still fails and
   reports the escape result. Target unloading is target_lost, not a kill.
   Choosing whether to start a fight remains the controller/owner's job.
+  Explicit `defensive:true` requires an exact entity without kite discovery.
+  Native damage callbacks must confirm that this ordinary Greyling hit the
+  current body in the last 15 s. Entry requires at least 30 HP and 65% health,
+  35 stamina, active food and at least 2 armour. Defense stays within 6 m of
+  its start and target for at most 12 s; below 25 HP or 60% health it escapes.
+  The normal bystander, structure, dry-ground and stamina checks still apply.
+  The controller may try one such defense per attacker per minute after a
+  confirmed hit; a native refusal falls back to flee on its next tick. Nearby
+  characters/structures prevent that automatic attempt.
+  It cannot start an expedition, chase a distant attacker or lower ordinary
+  combat thresholds. State.combat marks this mode with `defensive:true`.
   Optional state.combat gives the attack task id, entity, mode and reason;
   matching IDs let retreat coordinate with the active encounter and fallback.
   Optional `kite:true` makes `entity` optional and delegates local ground and
@@ -671,6 +707,17 @@ Notes:
 
 ### 7.3 Movement inside the plugin
 
+- **Work-trip hostile clearance:** `move_to` can opt into `avoidHostiles:true`
+  with `dry:true`. Native navmesh validation, local planning and immediate
+  movement keep a horizontal clearance from loaded hostile MonsterAI
+  creatures within 64 m: 40 m by default, 24 m for unstarred boars and 16 m for
+  unstarred Necks. These avoidance margins do not establish that a creature
+  cannot acquire the bot. Passive animals do not create exclusion areas.
+  A body already inside an area may move monotonically away; it cannot cross
+  through the creature. Threat positions refresh once per physics frame and
+  all support, water and solid-collision checks still apply. A saturated
+  creature sample refuses routing. Gather enables this on all of its travel
+  legs, including return home; explicit combat retains its own approach policy.
 - **Dry home travel:** home returns request `dry:true`. Native movement uses
   validated route hints or incremental local routing with supported endpoints
   and midpoints at least 0.2m above water, including bridge/floor support. It
@@ -713,7 +760,9 @@ Notes:
   and route-leg validation use current objects/geometry after rebuilding a base;
   old door refusals are cleared on world/session reset. Unknown support and water
   more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
-  48 m from its start on each axis, and 8 s. It advances at most eight nodes
+  48 m from its start on each axis, and 16 s. The wall-clock allowance lets
+  the existing node bound finish under sliced physical probes; the enclosing
+  task timeout is unchanged. It advances at most eight nodes
   per physics step, with a 2 ms target budget, holding movement and the stuck
   clock meanwhile. Traces record probes and actual total/worst-frame time.
   For destinations more than 24 m away horizontally, a search may instead

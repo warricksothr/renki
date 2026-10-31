@@ -67,6 +67,18 @@ func setup(t *testing.T, extraTasks ...string) *fixture {
 	return f
 }
 func (f *fixture) tick() { f.e.Tick(context.Background()) }
+
+func TestViewIncludesCurrentLayoutAndDropsItOnWorldChange(t *testing.T) {
+	f := setup(t)
+	f.p.Send(&protocol.Layout{Walls: []protocol.Wall{{A: protocol.Vec3{1, 0, 0}, B: protocol.Vec3{1, 0, 4}, H: 2}}})
+	wait(t, func() bool { return len(f.e.view().Walls) == 1 })
+	f.p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "another", HP: 25, HPMax: 25})
+	wait(t, func() bool { return f.e.view().State.World == "another" })
+	if len(f.e.view().Walls) != 0 {
+		t.Fatal("layout crossed worlds")
+	}
+}
+
 func def() Definition {
 	return Definition{Template: "move_to", Params: json.RawMessage(`{"to":[3,0,0]}`), Trigger: Trigger{Kind: "manual"}, Repeat: Repeat{Mode: "once"}, Enabled: true}
 }

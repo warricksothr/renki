@@ -13,7 +13,7 @@ namespace Renki.Movement
         /// a storey (2 m), more than the lie of the ground in a stride.</summary>
         public const double Level = 1.75;
 
-        public static bool Reached(V3 pos, V3 goal, double within) =>
-            V3.FlatDistance(pos, goal) <= within && Math.Abs(pos.Y - goal.Y) <= Level;
+        public static bool Reached(V3 pos, V3 goal, double within, double level = Level) =>
+            V3.FlatDistance(pos, goal) <= within && Math.Abs(pos.Y - goal.Y) <= level;
     }
 }

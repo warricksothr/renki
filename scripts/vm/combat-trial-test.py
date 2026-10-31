@@ -338,7 +338,7 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertEqual([c[1] for c in sent], ['attack'] if mode == 'finished' else [])
 
     def test_gather_dispatch_proof_and_cleanup_survive_partial_failures(self):
-        for mode in ('success', 'lost_save_response', 'bad_proof', 'missing_audit', 'missing_proof', 'cleanup_failure', 'audit_damage'):
+        for mode in ('success', 'defend', 'lost_save_response', 'bad_proof', 'missing_audit', 'missing_proof', 'cleanup_failure', 'audit_damage', 'hostile', 'enemy', 'pursuer'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 commands = []
                 audit = Path(directory) / 'audit.jsonl'
@@ -359,27 +359,42 @@ class CombatTrialTests(unittest.TestCase):
                         return subprocess.CompletedProcess(command, 1, '', 'stop response lost')
                     return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
 
-                def gather_run(summary, call, observe, saved):
+                def gather_run(summary, call, observe, saved, **kwargs):
+                    self.assertEqual(kwargs, dict(trees=1, site=None, defend=True) if mode == 'defend' else {})
                     summary['behaviourName'] = 'unique-test'
                     if mode == 'lost_save_response':
                         raise RuntimeError('save response lost')
+                    if mode == 'hostile':
+                        raise RuntimeError('hostile approached the harvest trial')
+                    if mode == 'enemy':
+                        summary.update(outcome='failed', reason='refused: an enemy approached within 15 m; harvesting cancelled')
+                        return
+                    if mode == 'pursuer':
+                        summary.update(outcome='failed', reason='confirmed work-site pursuer did not enter native defense range')
+                        return
                     summary['outcome'] = 'awaiting_proof'
 
                 def verify(path, summary):
                     if mode == 'bad_proof':
                         raise RuntimeError('missing receipt')
-                    return {} if mode in ('missing_proof', 'lost_save_response') else dict(outcome='succeeded')
+                    return {} if mode in ('missing_proof', 'lost_save_response', 'hostile', 'enemy', 'pursuer') else dict(outcome='succeeded')
 
                 module = types.SimpleNamespace(run=mock.Mock(side_effect=gather_run), verify=mock.Mock(side_effect=verify))
-                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--gather-tree', '--wait-s', '0']), mock.patch.dict(trial.sys.modules, gather_trial=module), contextlib.redirect_stdout(io.StringIO()):
+                argv = ['combat-trial', '--gather-tree', '--wait-s', '0'] + (['--gather-defend'] if mode == 'defend' else [])
+                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', argv), mock.patch.dict(trial.sys.modules, gather_trial=module), contextlib.redirect_stdout(io.StringIO()):
                     code = trial.main()
-                self.assertEqual(code, 0 if mode == 'success' else 1)
+                self.assertEqual(code, 0 if mode in ('success', 'defend') else 1)
                 module.run.assert_called_once()
-                self.assertNotIn(['combat', 'true'], commands)
+                self.assertEqual(['combat', 'true'] in commands, mode == 'defend')
                 self.assertFalse(any(c[0] == 'task' for c in commands))
                 actions = [json.loads(c[3]) for c in commands if c[:3] == ['panel', 'POST', '/api/behaviours']]
                 self.assertEqual(actions, [dict(action=a, name='unique-test') for a in ('stop', 'delete')])
-                self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
+                if mode in ('hostile', 'enemy', 'pursuer'):
+                    self.assertNotIn(['camera'], commands)
+                    self.assertLess(commands.index(['panel', 'POST', '/api/act/logout', '{}']),
+                                    next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']))
+                else:
+                    self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
                 self.assertEqual(commands[-5:-1], [['panel', 'POST', '/api/act/logout', '{}'], ['stop'], ['combat', 'false'], ['panel-start']])
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
                 self.assertNotEqual(summary['outcome'], 'awaiting_proof')

@@ -107,6 +107,7 @@ namespace Renki.Movement
         readonly Func<V3, V3, V3?> probe;
         readonly V3 goal;
         readonly double within;
+        readonly double arrivalLevel;
         readonly List<V3> path = new List<V3>();
         V3 from, legStart;
         int index, part, parts;
@@ -115,23 +116,24 @@ namespace Renki.Movement
         public RouteStatus Status { get; private set; } = RouteStatus.Searching;
         public IReadOnlyList<V3> Path => path;
 
-        public RouteValidation(V3 start, V3 goal, RouteHint hint, Func<V3, V3, V3?> probe, double within = .25)
+        public RouteValidation(V3 start, V3 goal, RouteHint hint, Func<V3, V3, V3?> probe, double within = .25, double arrivalLevel = Arrival.Level)
         {
             from = legStart = start; this.goal = goal; this.hint = hint.Points; this.probe = probe;
             this.within = within;
+            this.arrivalLevel = arrivalLevel;
         }
 
         public RouteStatus Advance(int budget = 8)
         {
             for (var n = 0; n < budget && Status == RouteStatus.Searching; n++)
             {
-                if (path.Count > 0 && Arrival.Reached(from, goal, within))
+                if (path.Count > 0 && Arrival.Reached(from, goal, within, arrivalLevel))
                 {
                     Status = RouteStatus.Found; break;
                 }
                 if (index == hint.Count)
                 {
-                    Status = Arrival.Reached(from, goal, within) ? RouteStatus.Found : RouteStatus.NoRoute;
+                    Status = Arrival.Reached(from, goal, within, arrivalLevel) ? RouteStatus.Found : RouteStatus.NoRoute;
                     break;
                 }
                 if (Samples >= MaxSamples) { Status = RouteStatus.NoRoute; break; }

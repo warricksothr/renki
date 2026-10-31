@@ -17,8 +17,11 @@ namespace Renki.Tasks
 
         /// <summary>Null when interact may use a thing of this kind, or the
         /// refusal: a reason and what to say.</summary>
-        public static Outcome Check(string kind, SafetyConfig safety)
+        public static Outcome Check(string kind, SafetyConfig safety, bool repair = false)
         {
+            if (repair)
+                return kind != Station ? Outcome.Failed(Wire.ReasonInvalidTarget, "repair requires a crafting station")
+                    : !safety.AllowGather ? Outcome.Failed(Wire.ReasonNotAllowed, "repair needs AllowGather") : null;
             switch (kind)
             {
                 // A grave is the bot's own, and all of it fits in the pack.

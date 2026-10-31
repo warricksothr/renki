@@ -77,6 +77,8 @@ type collectRun struct {
 	beforeSeq                    uint64
 	stepSeq                      uint64
 	beforeCount                  int
+	beforeState                  uint64
+	beforeFood                   float64
 	yield                        *protocol.ResourceYield
 	targetPos                    protocol.Vec3
 	picked                       bool
@@ -173,7 +175,7 @@ func (r *collectRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	// After using a pickable, wait for its products or a measured inventory
 	// increase. Its animation/RPC result alone is not a collection receipt.
-	if r.picked && v.Inventory.Seq > r.beforeSeq && v.Inventory.Count(r.yield.Prefab)-r.beforeCount >= r.yield.Count {
+	if r.picked && v.Inventory.Seq > r.beforeSeq && r.productGain(v) >= r.yield.Count {
 		// The whole possible yield is already in the pack. The current
 		// perception may still show the drop the game just auto-picked.
 		r.picked = false
@@ -184,7 +186,7 @@ func (r *collectRun) Next(v View, result *Result) (*session.Order, error) {
 				return r.take(v, drop), nil
 			}
 		}
-		if v.Perception.Seq <= r.pickScan || v.Inventory.Seq <= r.beforeSeq || v.Inventory.Count(r.yield.Prefab) <= r.beforeCount {
+		if v.Perception.Seq <= r.pickScan || v.Inventory.Seq <= r.beforeSeq || r.productGain(v) <= 0 {
 			return nil, ErrWait
 		}
 		r.picked = false
@@ -216,6 +218,29 @@ func (v View) PerceptionSeq() uint64 {
 	}
 	return v.Perception.Seq
 }
+
+func activeFoodRemaining(v View, prefab string) float64 {
+	if v.State != nil && v.State.Food != nil {
+		for _, food := range v.State.Food.Active {
+			if food.Prefab == prefab && finite(food.RemainingS) && food.RemainingS > 0 {
+				return food.RemainingS
+			}
+		}
+	}
+	return 0
+}
+
+func (r *collectRun) productGain(v View) int {
+	gain := v.Inventory.Count(r.yield.Prefab) - r.beforeCount
+	// Automatic upkeep can eat one newly picked food before collection
+	// observes the pack. A fresh activation/refresh proves one consumption;
+	// subtracting the starting count still rejects eating only old supplies.
+	if v.State.Seq > r.beforeState && activeFoodRemaining(v, r.yield.Prefab) > r.beforeFood+5 {
+		gain++
+	}
+	return gain
+}
+
 func (r *collectRun) take(v View, target protocol.PerceivedResource) *session.Order {
 	r.seen[target.ID] = true
 	r.targets++
@@ -225,6 +250,8 @@ func (r *collectRun) take(v View, target protocol.PerceivedResource) *session.Or
 		r.targetPos = target.Pos
 		r.beforeCount = v.Inventory.Count(target.Yield.Prefab)
 		r.beforeSeq = v.Inventory.Seq
+		r.beforeState = v.State.Seq
+		r.beforeFood = activeFoodRemaining(v, target.Yield.Prefab)
 	}
 	r.task = protocol.TaskPickup
 	var args any = &protocol.PickupArgs{Entity: target.ID}

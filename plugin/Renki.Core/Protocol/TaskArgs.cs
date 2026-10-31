@@ -56,6 +56,7 @@ namespace Renki.Protocol
     public sealed class MoveToArgs
     {
         public bool Dry;
+        public bool AvoidHostiles;
         public Target To;
         public double StopDistance = 1.5;
         public bool Run;
@@ -94,6 +95,7 @@ namespace Renki.Protocol
         public string Entity;
         public string Style = "melee";
         public bool Kite;
+        public bool Defensive;
         public V3? At;
         public double? SearchRadius;
         public int? SearchSector;
@@ -128,6 +130,9 @@ namespace Renki.Protocol
 
         /// <summary>Beds only: claim/set spawn if needed, then lie down.</summary>
         public bool Sleep;
+
+        /// <summary>Stations only: repair eligible carried gear through the game UI.</summary>
+        public bool Repair;
     }
 
     public sealed class FleeArgs
@@ -216,12 +221,15 @@ namespace Renki.Protocol
                         return new TransferArgs { Container = container, Items = parsed.ToArray() };
                     }
                 case TaskNames.MoveTo:
+                    if (Bool(a, "avoidHostiles", false) && !Bool(a, "dry", false))
+                        throw new BadArgsException("avoidHostiles requires dry travel");
                     return new MoveToArgs
                     {
                         To = Target.Parse(a["to"], "to"),
                         StopDistance = Number(a, "stopDistance", 1.5),
                         Run = Bool(a, "run", false),
                         Dry = Bool(a, "dry", false),
+                        AvoidHostiles = Bool(a, "avoidHostiles", false),
                     };
                 case TaskNames.Follow:
                     {
@@ -260,6 +268,8 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         var kite = Bool(a, "kite", false);
+                        var defensive = Bool(a, "defensive", false);
+                        if (defensive && (kite || string.IsNullOrWhiteSpace(entity))) throw new BadArgsException("defensive attack requires an explicit entity without kite discovery");
                         double? searchRadius = a["searchRadius"] == null ? (double?)null : Number(a, "searchRadius", 60);
                         if (searchRadius.HasValue && (!kite || double.IsNaN(searchRadius.Value) || double.IsInfinity(searchRadius.Value) || searchRadius < 12 || searchRadius > 80))
                             throw new BadArgsException("`searchRadius` requires kite=true and a radius between 12 and 80 m");
@@ -315,7 +325,7 @@ namespace Renki.Protocol
                             if ((searchCenter.Value - searchAnchor.Value).Length + (searchRadius ?? 24) > searchLimit + 1e-6)
                                 throw new BadArgsException("search area exceeds native search bounds");
                         }
-                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset, SearchCenter = searchCenter, SearchAnchor = searchAnchor, SearchLimit = searchLimit };
+                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, Defensive = defensive, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset, SearchCenter = searchCenter, SearchAnchor = searchAnchor, SearchLimit = searchLimit };
                     }
                 case TaskNames.Harvest:
                     {
@@ -327,8 +337,9 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false) };
+                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false) };
                         if (args.Sleep && (args.Alt || args.Hold)) throw new BadArgsException("`sleep` cannot be combined with `alt` or `hold`");
+                        if (args.Repair && (args.Sleep || args.Alt || args.Hold)) throw new BadArgsException("`repair` cannot combine with sleep, alt or hold");
                         return args;
                     }
                 case TaskNames.Flee:
