@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T09:45:57Z
+updated_at: 2026-10-31T09:57:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -297,3 +297,10 @@ Under-floor home return passed from[-28.72,34.48,-1.76] to[-36.64,36.09,8.24] wi
 Exact direct native combat then killed that original pursuer, with zero damage events: .checks/combat-trial-20261031T093047397072Z/summary.json, t-1, owner_callback proof, audit .checks/audit-window-DGNdXN.jsonl. Normal outage setting was reset afterward. The next benchmark correctly refused before work because the post-fight start was162m from home (guard150m), without injury. Returning home exposed Boar1520283559:47 near the inland food patch, with Neck1313705408:82 nearby; Tas fled and regenerated. Explicit final home-floor return t-4 passed (.checks/task-lsncb_jk.json), then game safely stopped with combat false and panel restored (.checks/20261031T094012Z-0NE5rI.log).
 
 Work travel currently ignores known creatures until they are close enough to hit. Add explicit avoidHostiles to dry move_to, enabled by every gather travel leg. Native planning and execution both keep24m from loaded hostile MonsterAI creatures, with one bounded snapshot per physics frame; passive animals are excluded, starting-inside motion may only increase separation, and saturated samples fail closed. Keep all normal physical, support, water and task bounds. A deterministic local A* test finds a genuine detour; protocol/behavior checks and installed-game build pass. Need full gate/review/deployment, then exact two-fresh-tree/new-log gains-only storage proof. More standing beeches were freshly observed in the southern stand, so resources remain available.
+
+**agent:codex/renki-milestones** at 2026-10-31T09:57:43Z
+
+### Hostile-aware trip follow-up
+The checksum-installed 66febec two-tree trial (.checks/gather-trial-20261031T094933929174Z/summary.json) left the current gates successfully but failed before harvest. Greyling1790253576:61 was freshly observed about25m away before pursuing Tas;24m route clearance allowed acquisition. The task eventually refused its local route while the pursuer closed. Cleanup captured two damage events, minimum29.1HP; no complete harvesting/storage claim.
+
+Increase opt-in work-trip clearance to40m, retaining escape-only movement when starting inside, physical dry validation, passive-animal exclusion, unchanged planner budgets and refusal when no safe route exists. The focused actual-detour/segment checks pass (.checks/20261031T095609Z-Q4UOHb.log). This is avoidance margin, not a guarantee against new/moving attackers. Tas has returned to the correct home floor automatically. Replenish food through checked chest search, or existing native collection at freshly revalidated berry/mushroom hints when storage has none; inspect an alternate southeast beech stand before reusing the pursuer's northern route. Full CI, committed review, installation and exact two-tree/home/storage proof remain required.

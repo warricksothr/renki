@@ -6,7 +6,9 @@ namespace Renki.Movement
     /// clearance still permits moving away, never through the creature.</summary>
     public static class HostileClearance
     {
-        public const double Radius = 24;
+        // A Greyling can acquire and pursue a walking player before a 24 m
+        // exclusion is reached. Leave room to turn before that approach.
+        public const double Radius = 40;
         public static bool Clear(V3 from, V3 to, IReadOnlyList<V3> threats)
         {
             foreach (var threat in threats)

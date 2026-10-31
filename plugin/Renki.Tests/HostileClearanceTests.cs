@@ -12,8 +12,9 @@ namespace Renki.Tests
         {
             var threats = new[] { V3.Zero };
             Assert.False(HostileClearance.Clear(new V3(-30, 0, 0), new V3(30, 0, 0), threats));
-            Assert.True(HostileClearance.Clear(new V3(-30, 0, 25), new V3(30, 0, 25), threats));
-            Assert.True(HostileClearance.Clear(new V3(-30, 0, 0), new V3(-24, 0, 0), threats));
+            Assert.False(HostileClearance.Clear(new V3(-45, 0, 25), new V3(45, 0, 25), threats));
+            Assert.True(HostileClearance.Clear(new V3(-45, 0, 41), new V3(45, 0, 41), threats));
+            Assert.True(HostileClearance.Clear(new V3(-45, 0, 0), new V3(-40, 0, 0), threats));
         }
         [Fact]
         public void StartingNearOneThreatStillAllowsAnEscapeButNeverThroughAnother()
@@ -29,9 +30,9 @@ namespace Renki.Tests
         public void LocalPlanningTakesADetourInsteadOfEnteringTheThreatArea()
         {
             var threats = new[] { V3.Zero };
-            var start = new V3(-30, 0, 0);
+            var start = new V3(-45, 0, 0);
             V3? Probe(V3 from, V3 to) => HostileClearance.Clear(from, to, threats) ? to : (V3?)null;
-            var route = new LocalRoute(start, new V3(30, 0, 0), Probe);
+            var route = new LocalRoute(start, new V3(45, 0, 0), Probe);
             while (route.Status == RouteStatus.Searching) route.Advance();
             Assert.Equal(RouteStatus.Found, route.Status);
             Assert.Contains(route.Path, p => System.Math.Abs(p.Z) > 10);
