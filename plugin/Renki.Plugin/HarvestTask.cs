@@ -292,9 +292,9 @@ namespace Renki.Plugin
             if (rolling && !retreatReady)
             {
                 var away = p.transform.position - origin; away.y = 0;
-                if (away.sqrMagnitude < .01f) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no clear side to retreat from the trunk"));
+                if (away.sqrMagnitude < .01f) return AnotherApproach("no clear side to retreat from the trunk");
                 if (retreatAttempts == HarvestEscape.CandidateLimit)
-                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported escape from the falling trunk after checking outward alternatives"));
+                    return AnotherApproach("no supported escape from the falling trunk after checking outward alternatives");
                 retreat = Convert.ToVector3(HarvestEscape.Candidate(Convert.ToV3(origin), Convert.ToV3(p.transform.position), retreatAttempts++));
                 var probe = new WorldNavigation.PlanningProbe(diagnostics: true); probe.BeginSlice();
                 var at = Convert.ToV3(p.transform.position);
@@ -356,6 +356,7 @@ namespace Renki.Plugin
         {
             if (!rolling) return Finish(Outcome.Failed(Wire.ReasonUnreachable, reason));
             findingApproach = true; alternativeApproach = false; walking = false; swingSince = -1;
+            retreatReady = false; retreatAttempts = 0;
             strikeLogged = false; contactProgress.Reset();
             Tracer.Emit("harvest", tallTree ? "searching alternative tree contact" : "searching alternative log contact", new Dictionary<string, object>
             {

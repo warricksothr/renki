@@ -735,6 +735,9 @@ Canopy bounds never choose the standing height. Every candidate still needs
 weapon reach, clear strike sight and a native route; falling-tree protection
 remains in force before a swing. Inspect `alternative tree contact selected`
 and task-matched break evidence separately.
+If every outward escape at one strike position is blocked, the next bounded
+contact candidate must find both a strike and a safe escape. Each new position
+gets its own escape fan; the overall 20-contact/180-second limits still apply.
 Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
 refuse rather than consume truncated results. Before swings, up to seven
 outward six-metre escape corridors are checked, one per physics tick, with

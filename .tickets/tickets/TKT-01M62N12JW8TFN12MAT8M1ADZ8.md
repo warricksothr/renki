@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T13:36:03Z
+updated_at: 2026-10-31T13:42:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -452,3 +452,10 @@ Native dry hostile-aware travel to freshly revalidated berry bushes succeeded (.
 Trial .checks/gather-trial-20261031T133053030525Z safely reached the stand, then stopped before any cut: full tree1:61667 at[91.37,40.62,47.89] had measured contact[91.91,41.42,47.3], but the projected upslope feet[92.55,41.97,46.6] leave that contact beyond the1.4m weapon reach from0.8m attack height. The older bounded contact search applies only to fallen logs, so a standing tree fails its first unsuitable side. Final31.5/31.5HP, zero damage, offline/panel restored. The harvest-refusal/defense fix remains unexercised live.
 
 Extend the existing20-candidate physical contact search to upright trees. Seed2-4m rings around the trunk, current side first then both angular directions; do not use canopy bounds as a trunk/height substitute. Reuse the existing two passes of measured contact and ground projection, preserve the selected supported anchor height when approaching, require final actual strike sight/range and route, and retain all180s/attempt, food/injury, falling-tree/bystander/structure and tool guards. Fallen-log seeds/policies remain unchanged. Add captured slope reach/occlusion and trunk-ring coverage/bounds regressions plus compact native tree-contact evidence. Focused HarvestTests and plugin build pass (.checks/20261031T133507Z-6fsJMD.log, .checks/20261031T133510Z-hZEejv.log). Need gate/review/plugin install and uninterrupted two-fresh-tree/log gain-only store/home proof.
+
+**agent:codex/renki-milestones** at 2026-10-31T13:42:45Z
+
+### Alternate upright contact passed; escape failure must try another side
+0731ae5 passed full CI .checks/20261031T133603Z-QV4WeL.log, committed review .checks/20261031T133832Z-XHiSuc.log, push and checksum installation .checks/20261031T133845Z-pup59e.log. Trial .checks/gather-trial-20261031T133855833865Z reproduced the low-contact reach refusal on tree1:61667, then selected upright candidate1 at[92.57,41.91,46.53], measured actual trunk contact[91.94,42.71,47.24], reached it and confirmed clear physical strike sight. No tree was broken: all seven outward escape candidates at that side were rejected, so the old escape-failure branch terminated instead of invoking the now-available alternate contact search. Zero damage, final31.1/31.1HP, safely offline/panel restored; fresh Raspberry and two reserves remain. Successful normal food collection/consumption is also retained in .checks/audit-window-FuZetb.jsonl.
+
+An exhausted escape fan or no clear current side now selects the next bounded contact candidate. Reset only that position's escape fan when switching contacts; keep the global20-candidate/180-second work limit and all measured support, weapon, actual sight, protection and injury gates. No swing is authorized until a checked escape exists. Existing contact/escape mathematics checks and the full gate/review/plugin install precede retry. The two-tree/log gains-only storage and final home proof is still open.
