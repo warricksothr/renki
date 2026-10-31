@@ -171,6 +171,141 @@ func TestHouseholdSourcesArePinnedAndDangerRanked(t *testing.T) {
 		t.Fatal("edited source remained valid", err)
 	}
 }
+
+func TestHouseholdReturnsBeforePersonalResupplyOrRecoveryOutsideHome(t *testing.T) {
+	for _, pressure := range []string{"reserve", "nourishment", "recovery", "weight", "slots", "committed"} {
+		t.Run(pressure, func(t *testing.T) {
+			host, r, v, id := stockFixture(t)
+			v.State.Pos = protocol.Vec3{20, 0, 0}
+			v.Inventory.Items[0].Stack = 2
+			v.Perception.Resources = []protocol.PerceivedResource{{ID: "meal", Kind: protocol.ResourcePickable, Pos: protocol.Vec3{21, 0, 0}, Yield: &protocol.ResourceYield{Prefab: "Mushroom", Count: 1, Weight: 1, StackMax: 20}}}
+			switch pressure {
+			case "reserve":
+				v.Inventory.Items[0].Stack = 1
+			case "nourishment":
+				v.State.Food.Active[0].RemainingS = 299
+				v.State.Food.Carried = []protocol.CarriedFood{{Prefab: "Mushroom", CanEat: true, Health: 15, Regen: 1}}
+			case "recovery":
+				v.State.HP = 35
+			case "weight":
+				v.State.Weight = 210
+			case "slots":
+				v.Inventory.Size = [2]int{3, 1}
+			}
+			if err := host.Store.update(id, func(g *Record) error {
+				g.Home = v.Home
+				g.Food.SearchPinned = true
+				g.Food.Phase = "raw" // Personal acquisition would otherwise run first.
+				g.Food.Stock.Delivering = pressure == "committed"
+				g.Food.Stock.Known = map[string]int{"Mushroom": 0}
+				g.Food.Chests = []FoodChest{{Entity: "a", Pos: protocol.Vec3{1, 0, 0}, Observed: true, ObservedAt: v.Now, Run: host.Store.runID}}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			o, err := r.Next(v, nil)
+			if err != nil || o == nil || o.Task != protocol.TaskMoveTo {
+				t.Fatal("did not return before collecting, eating or waiting outdoors", o, err)
+			}
+			a := o.Args.(*protocol.MoveToArgs)
+			g, _ := host.Store.Get(id)
+			if !a.Dry || !a.AvoidHostiles || a.To.Pos == nil || *a.To.Pos != *v.Home || !g.Food.Stock.Delivering || g.Pending.Template != "food_return" {
+				t.Fatal(o, g)
+			}
+		})
+	}
+}
+
+func TestHouseholdPersonalBootstrapCanAcquireBeforeStockWorkBegins(t *testing.T) {
+	host, r, v, id := stockFixture(t)
+	v.State.Pos = protocol.Vec3{20, 0, 0}
+	v.Inventory.Items[0].Stack = 1
+	v.Perception.Resources = []protocol.PerceivedResource{{ID: "meal", Kind: protocol.ResourcePickable, Pos: protocol.Vec3{21, 0, 0}, Yield: &protocol.ResourceYield{Prefab: "Mushroom", Count: 1, Weight: 1, StackMax: 20}}}
+	if err := host.Store.update(id, func(g *Record) error {
+		g.Home = v.Home
+		g.Food.SearchPinned = true
+		g.Food.Phase = "raw"
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil || o.Task != protocol.TaskInteract || o.Args.(*protocol.InteractArgs).Entity != "meal" {
+		t.Fatal("sent personal bootstrap home before it could obtain its reserve", o, err)
+	}
+}
+
+func TestHouseholdReceiptsPendingCollectionBeforeCapacityReturn(t *testing.T) {
+	host, r, v, id := stockFixture(t)
+	v.State.Pos = protocol.Vec3{20, 0, 0}
+	v.Inventory.Items[0].Stack = 2
+	v.Perception.Resources = []protocol.PerceivedResource{{ID: "meal", Kind: protocol.ResourcePickable, Pos: protocol.Vec3{21, 0, 0}, Yield: &protocol.ResourceYield{Prefab: "Mushroom", Count: 1, Weight: 1, StackMax: 20}}}
+	if err := host.Store.update(id, func(g *Record) error {
+		g.Home = v.Home
+		g.Food.SearchPinned = true
+		g.Food.Phase = "ready"
+		g.Food.Chests = []FoodChest{{Entity: "a", Pos: protocol.Vec3{1, 0, 0}, Observed: true, ObservedAt: v.Now, Run: host.Store.runID}}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil || o.Task != protocol.TaskInteract {
+		t.Fatal(o, err)
+	}
+	if err = r.Dispatched("pick"); err != nil {
+		t.Fatal(err)
+	}
+	foodFresh(&v)
+	v.Perception.Seq++
+	v.Inventory.Items[0].Stack++
+	v.State.Weight = 210
+	o, err = r.Next(v, &behaviour.Result{TaskID: "pick", Status: protocol.StatusSucceeded})
+	g, _ := host.Store.Get(id)
+	if err != nil || o == nil || o.Task != protocol.TaskMoveTo || g.Food.Acquisition.Product != nil || len(g.Food.Receipts) != 1 || g.Food.Receipts[0].TaskID != "pick" || g.Food.Receipts[0].Count != 1 || !g.Food.Stock.Delivering {
+		t.Fatal("capacity return lost the verified collection", o, g, err)
+	}
+}
+
+func TestHouseholdVisitsDistinctDepletedSourcesThenReturnsBeforeStopping(t *testing.T) {
+	host, r, v, id := stockFixture(t)
+	v.Inventory.Items[0].Stack = 2
+	v.Waypoints = []home.Waypoint{{Name: "near", Kind: "berries", Pos: protocol.Vec3{20, 0, 0}, Radius: 4, At: v.Now}, {Name: "far", Kind: "berries", Pos: protocol.Vec3{35, 0, 0}, Radius: 4, At: v.Now}}
+	if err := host.Store.update(id, func(g *Record) error {
+		g.Home = v.Home
+		g.Food.SearchPinned = true
+		g.Food.Phase = "ready"
+		g.Food.Stock.Sources = []string{"near", "far"}
+		g.Food.Chests = []FoodChest{{Entity: "a", Pos: protocol.Vec3{1, 0, 0}, Observed: true, ObservedAt: v.Now, Run: host.Store.runID}}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var last *behaviour.Result
+	for _, name := range []string{"near", "far", "home"} {
+		o, err := r.Next(v, last)
+		if err != nil || o == nil || o.Task != protocol.TaskMoveTo {
+			t.Fatal(name, o, err)
+		}
+		g, _ := host.Store.Get(id)
+		if name != "home" && g.Pending.Entity != "marker:"+name || name == "home" && g.Pending.Template != "food_return" {
+			t.Fatal("revisited a depleted source or stopped away from home", name, g.Pending)
+		}
+		if err := r.Dispatched(name); err != nil {
+			t.Fatal(err)
+		}
+		v.State.Pos = *o.Args.(*protocol.MoveToArgs).To.Pos
+		foodFresh(&v)
+		v.Perception.Seq++
+		last = &behaviour.Result{TaskID: name, Status: protocol.StatusSucceeded}
+	}
+	o, err := r.Next(v, last)
+	g, _ := host.Store.Get(id)
+	if err != nil || o != nil || g.Status != "needs_plan" || !strings.Contains(g.Reason, "exhausted or unsafe") || len(g.Food.Acquisition.Visits) != 2 || len(g.Food.Receipts) != 0 {
+		t.Fatal("empty visits became success or unbounded retry", o, g, err)
+	}
+}
+
 func TestHouseholdEpisodeLifecycleKeepsUncertainTaskAndSurvivesRestart(t *testing.T) {
 	host, _, v, id := stockFixture(t)
 	g, _ := host.Store.Get(id)

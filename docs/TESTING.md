@@ -1187,8 +1187,10 @@ route through another creature. Passive deer must not block ordinary travel.
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing
-collection versus capacity return, source revisions, danger-ranked visits and
-uncertain episode cancellation/restart. The guarded idle journey remains bound
+collection versus capacity return, declining nourishment and reserve, recovery
+before more remote work, committed returns, source revisions, danger-ranked visits,
+distinct depleted-source fallback and uncertain episode cancellation/restart.
+The guarded idle journey remains bound
 to its original admission marker even while travelling.
 
 For live home cooking/storage, use `just vm food-check --storage IDS
@@ -1199,3 +1201,12 @@ actual behaviour episode ID, durable food checkpoint, stock totals, matched
 deposit and cooking receipts. Absence of ingredients or a full chest remains an
 honest incomplete trial. A successful home cooking episode does not prove an
 outdoor multi-source production trip.
+
+For an outdoor check, use `just vm food-check --storage IDS --stock-target
+Mushroom=1 --sources "west mushrooms" --require-acquisition --require-deposit
+--keep-online` with a real shortage and sufficient personal supplies. Inspect
+`just vm trial-status /absolute/path/to/.checks/food-TIMESTAMP` for the current
+stock decision, attempted source cells, collection receipts and destination
+deposits. Source attempts include refused routes and do not prove arrival or
+depletion; collection and storage remain separate proof. Full checkpoints and
+observations stay in the evidence directory.

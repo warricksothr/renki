@@ -237,6 +237,14 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 			return r.foodProductNext(g, v)
 		}
 	}
+	// Stock observations mark admission to household work after the initial
+	// personal bootstrap. End that travel before resupply/recovery can admit
+	// more remote work. Account for an in-flight product first, then retain
+	// delivery even if food or capacity improves on the way home.
+	if stock := f.Stock; stock != nil && !foodAtHome(s.Pos, g.Center) &&
+		(stock.Delivering || stock.Known != nil && (stockLoaded(v) || !nourished(s) || mealCount(v.Inventory) < f.Reserve || s.HP < s.HPMax*.8)) {
+		return r.stockReturn(g, v, stock.Known, stock.Shortage, "committed delivery: personal reserve, nourishment, recovery or capacity pressure")
+	}
 	itemToEat := food.Choose(s.Food)
 	fillSlot := itemToEat != "" && s.Food != nil && len(s.Food.Active) < 3 && remaining(s, itemToEat) == 0
 	// A reserve is measured after filling eligible food slots, so the normal
