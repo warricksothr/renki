@@ -547,6 +547,45 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void RemainingCheckedRoutePreservesTheBendAndDropsConsumedCorners()
+        {
+            var path = new PathFollower { Reach = .25 };
+            var bend = new V3(0, 0, 5);
+            var end = new V3(5, 0, 5);
+            path.Set(new[] { V3.Zero, bend, end });
+            Assert.Equal(new[] { bend, end }, path.Remaining(V3.Zero));
+            // A fresh direct path to end would cut across the inside of the
+            // bend. Revalidation must receive the original checked corners.
+            Assert.Equal(new V3(0, 0, 3), path.Direction(new V3(0, 0, 2)));
+            Assert.Equal(new[] { end }, path.Remaining(bend));
+            Assert.Empty(path.Remaining(end));
+            Assert.Equal(V3.Zero, path.Direction(end));
+        }
+
+        [Fact]
+        public void ReinstallingValidatedRemainderCannotRestoreConsumedCorners()
+        {
+            var path = new PathFollower { Reach = .25 };
+            var bend = new V3(0, 0, 5);
+            var end = new V3(5, 0, 5);
+            path.Set(new[] { bend, end });
+            var remaining = path.Remaining(bend);
+            path.Set(remaining);
+            Assert.Equal(new V3(5, 0, 0), path.Direction(bend));
+            // The returned route is a snapshot, not a mutable view of Set.
+            Assert.Equal(new[] { end }, remaining);
+        }
+
+        [Fact]
+        public void CheckedRemainderKeepsACornerOnAnotherFloor()
+        {
+            var path = new PathFollower { Reach = .25 };
+            var corner = new V3(0, 4, 0);
+            path.Set(new[] { corner, new V3(5, 4, 0) });
+            Assert.Equal(corner, path.Remaining(V3.Zero)[0]);
+        }
+
+        [Fact]
         public void PreciseFinalArrivalKeepsSteeringPastDefaultStoppingDistance()
         {
             var p = new PathFollower { FinalReach = .15 };

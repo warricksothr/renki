@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T23:42:15Z
+updated_at: 2026-10-30T23:58:30Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -140,3 +140,7 @@ The user requested bounding searches by unique chests in the area instead of an 
 **agent:codex/renki-milestones** at 2026-10-30T23:42:15Z
 
 The first freshly fed full gather trial started from home and found zero currently perceived full beech trees. It correctly refused before submitting any native work: .checks/gather-trial-20261030T234022610220Z/summary.json, console .checks/20261030T234022Z-hBCgUQ.log. Zero damage events, final84.3/84.3HP and successful cleanup. This is an eligibility refusal, not a harvesting pass or evidence that no trees exist outside current perception. Do not repeat from the same view. After the changed-build native combat scouting trial, inspect its fresh view for an eligible M2 site. General remembered-site discovery and multi-trip work remain open.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:58:30Z
+
+Outdoor controller gather trial on33be3ba selected isolated full beech1:61548 at[23.62,31.37,33.53] from five observed trees. Native move_to succeeded. Harvest t-2 proved pivot-ray trunk contact at[24.09,32.17,33.98] and resource broke after7 local hits: the full beech was actually felled. Before safe completion, an enemy approached within15m and harvesting refused; controller retreat followed, with1 damage event and final77.1HP at[25.9,32.33,19.45]. Evidence .checks/gather-trial-20261030T235528819650Z/summary.json, .checks/audit-window-L4JQb3.jsonl, .checks/20261030T235528Z-xBSA4E.log. Cleanup succeeded. This is live full-tree/contact proof, not log splitting, collected gains, chest delivery or full M2 completion. Do not repeat a full-tree benchmark against this now-felled tree; any log follow-up needs fresh identity/guards. One newly observed enemy supports the next autonomous M3 trial after the checked-scout-route fix.

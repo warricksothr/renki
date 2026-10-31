@@ -30,7 +30,7 @@ namespace Renki.Plugin
         double replayMs, replayWorstMs;
         Vector3 goal;
         double arrivalWithin = .5;
-        bool hasGoal;
+        bool hasGoal, checkedOnly;
         LocalRoute localRoute;
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
@@ -123,6 +123,7 @@ namespace Renki.Plugin
 
         public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false)
         {
+            checkedOnly = false;
             approach.Reset();
             goal = to;
             arrivalWithin = within;
@@ -134,6 +135,21 @@ namespace Renki.Plugin
             RecordGrounded(from);
             Repath(from);
         }
+
+        // A host-validated route is the movement authority. Do not replace it
+        // with another navmesh query or an unvalidated stuck-recovery strafe.
+        public void SetCheckedRoute(Vector3 to, IReadOnlyList<V3> points)
+        {
+            checkedOnly = hasGoal = true;
+            goal = to;
+            navigationFailure = null; Blocked = null;
+            localRoute = null; replay = null;
+            climb.Stop(); strafeUntil = 0;
+            path.Reach = .25; path.FinalReach = .125;
+            path.Set(points);
+        }
+
+        public IReadOnlyList<V3> RemainingCheckedRoute(Vector3 pos) => path.Remaining(Convert.ToV3(pos));
 
         void RecordGrounded(Vector3 pos)
         {
@@ -276,6 +292,12 @@ namespace Renki.Plugin
         public bool Steer(Vector3 pos, bool run, bool climbObstacles = true)
         {
             if (!hasGoal) return true;
+            if (checkedOnly)
+            {
+                Driver.Move = Toward(pos).normalized;
+                Driver.Run = run;
+                return true;
+            }
             if (!climbObstacles) { climb.Stop(); climbWaiting = false; }
             RecordGrounded(pos);
             if (Swim(pos, ref run)) return true;
