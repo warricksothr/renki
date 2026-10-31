@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T06:07:10Z
+updated_at: 2026-10-31T06:23:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -190,3 +190,13 @@ The partial-navmesh progress check used the current position. A necessary doorwa
 91d957e passed full CI, committed review and checksum installation. Trial .checks/gather-trial-20261031T060050082660Z left the changed house, traveled to the south stand and felled Beech1 entity1:20627 in t-2 with7 attributed local hits. Zero damage events; automatic cleanup passed. t-3 then refused a tilted fallen log: measured contact[-37.52,38.56,-60.05] was outside axe reach from supported floor[-38.21,36.01,-60.71]. Audit .checks/audit-window-fYG8sm.jsonl. This is a positive departure/felling slice, not a full tree or storage pass.
 
 Implement bounded native search along both sides/ends of the actual log's bounds after nearest-contact/support/sight/approach failure. Bounds seed measurements only; every selected candidate needs actual collider contact, real ground, unchanged weapon reach, strike sight and ordinary dry routing before swinging. Pin the selected side during approach; one candidate per physics step,20 total within existing180-second task bound. Preserve damage, hostile, falling/rolling, bystander, permission and cancellation checks. A synthetic seed-exterior regression exposed an end-seed offset entering the bounds; correct the generator rather than relaxing the assertion. Test/deploy and recover the existing log before another fresh two-tree trial.
+
+**agent:codex/renki-milestones** at 2026-10-31T06:23:21Z
+
+### Recovery follow-up and supervisor exposure
+
+3367306's log recovery reached the target and entered strike range but repeatedly reapproached without a local hit. Range/footing oscillation reset the swing timer, so add a separate8-second contact-progress clock reset only by actual resource hits or selecting another bounded approach. Seed/support/route guards remain; contact selection cannot count as harvest proof. Focused HarvestTests exercise the oscillation and real-hit renewal. The temporary candidate package is checksum-deployed; full CI runs alongside live checks before another commit/review.
+
+A Boar and later a Greyling interrupted the live work. The Greyling hit at01:18:07-05:00 occurred4.3 seconds after native harvesting had already refused for a hostile inside15m (.checks/harvest-trial-20261031T061351430235Z/summary.json; .checks/audit-window-IiX1vf.jsonl). Slow diagnostic imagery/deletion delayed logout. Urgent health/hostile/ownership/water aborts now logout before diagnostics/deletion and omit camera retrieval; regression verifies that order. Add hostile monitoring during explicit recovery travel and skip travel when a fresh safe log is already within native acquisition range. The subsequent retry rejoined into a pursuing enemy and fled; it earned no new harvesting proof (.checks/harvest-trial-20261031T062051801073Z/summary.json). Tas stayed above the80% gathering floor and was stopped; no user cleanup requested.
+
+Use the existing bounded combat-and-return goal to resolve the Greyling exposure and return home, then resume multi-harvest testing. Record each native receipt separately; no completed multi-tree loop yet. Avoid retrying the same unchanged approach or treating felling as complete log/wood proof.

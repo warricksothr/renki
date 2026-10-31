@@ -338,7 +338,7 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertEqual([c[1] for c in sent], ['attack'] if mode == 'finished' else [])
 
     def test_gather_dispatch_proof_and_cleanup_survive_partial_failures(self):
-        for mode in ('success', 'lost_save_response', 'bad_proof', 'missing_audit', 'missing_proof', 'cleanup_failure', 'audit_damage'):
+        for mode in ('success', 'lost_save_response', 'bad_proof', 'missing_audit', 'missing_proof', 'cleanup_failure', 'audit_damage', 'hostile'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 commands = []
                 audit = Path(directory) / 'audit.jsonl'
@@ -363,12 +363,14 @@ class CombatTrialTests(unittest.TestCase):
                     summary['behaviourName'] = 'unique-test'
                     if mode == 'lost_save_response':
                         raise RuntimeError('save response lost')
+                    if mode == 'hostile':
+                        raise RuntimeError('hostile approached the harvest trial')
                     summary['outcome'] = 'awaiting_proof'
 
                 def verify(path, summary):
                     if mode == 'bad_proof':
                         raise RuntimeError('missing receipt')
-                    return {} if mode in ('missing_proof', 'lost_save_response') else dict(outcome='succeeded')
+                    return {} if mode in ('missing_proof', 'lost_save_response', 'hostile') else dict(outcome='succeeded')
 
                 module = types.SimpleNamespace(run=mock.Mock(side_effect=gather_run), verify=mock.Mock(side_effect=verify))
                 with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--gather-tree', '--wait-s', '0']), mock.patch.dict(trial.sys.modules, gather_trial=module), contextlib.redirect_stdout(io.StringIO()):
@@ -379,7 +381,12 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertFalse(any(c[0] == 'task' for c in commands))
                 actions = [json.loads(c[3]) for c in commands if c[:3] == ['panel', 'POST', '/api/behaviours']]
                 self.assertEqual(actions, [dict(action=a, name='unique-test') for a in ('stop', 'delete')])
-                self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
+                if mode == 'hostile':
+                    self.assertNotIn(['camera'], commands)
+                    self.assertLess(commands.index(['panel', 'POST', '/api/act/logout', '{}']),
+                                    next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']))
+                else:
+                    self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
                 self.assertEqual(commands[-5:-1], [['panel', 'POST', '/api/act/logout', '{}'], ['stop'], ['combat', 'false'], ['panel-start']])
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
                 self.assertNotEqual(summary['outcome'], 'awaiting_proof')

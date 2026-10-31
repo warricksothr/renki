@@ -67,6 +67,24 @@ namespace Renki.Tasks
         }
     }
 
+    public sealed class HarvestContactProgress
+    {
+        double since = double.NaN;
+        int hits;
+        public void Reset() => since = double.NaN;
+        public void Contact(double now, int localHits)
+        {
+            if (!double.IsNaN(since)) return;
+            since = now; hits = localHits;
+        }
+        public bool Stalled(double now, int localHits)
+        {
+            if (double.IsNaN(since)) return false;
+            if (hits != localHits) { since = now; hits = localHits; }
+            return now - since > 8;
+        }
+    }
+
     public static class HarvestHealth
     {
         public static bool Ready(double hp, double maximum) => maximum > 0 && hp >= maximum * .8;

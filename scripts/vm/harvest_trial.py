@@ -154,6 +154,9 @@ def run(summary, call, observe, terminal, saved, log_center=None):
             raise RuntimeError('harvest health, footing, weight or travel guard')
         if health_loss(previous_health, st):
             raise RuntimeError('observed health loss during harvest trial')
+        if any(c.get('hostile') and c.get('hpFrac', 0) > 0 and distance(c['pos'], st['pos']) < 15
+               for c in (mp.get('perception') or {}).get('characters', [])):
+            raise RuntimeError('hostile approached the harvest trial')
         previous_health = st
         if time.monotonic() >= deadline:
             raise RuntimeError('harvest trial time limit')
@@ -174,7 +177,8 @@ def run(summary, call, observe, terminal, saved, log_center=None):
     if log_center is not None:
         if len(log_center) != 3 or not all(math.isfinite(n) for n in log_center) or distance(origin, log_center) > 150:
             raise RuntimeError('log recovery hint must be finite and within 150 m')
-        if distance(status['pos'], log_center) > 12:
+        nearby_log = select_resource(status, mapped.get('perception') or {}, set(), log_center)
+        if nearby_log is None and distance(status['pos'], log_center) > 12:
             travel = approach_logs(log_center, call, snapshot, terminal, saved)
             summary['approach'] = travel
             status, mapped = snapshot()

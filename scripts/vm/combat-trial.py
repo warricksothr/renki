@@ -406,16 +406,24 @@ def main():
             except Exception as error:
                 summary.setdefault('cleanupErrors', []).append(str(error))
 
+        urgent = any(reason in summary.get('reason', '').lower() for reason in
+                     ('hostile', 'health', 'damage', 'ownership', 'unsafe water'))
+        if urgent:
+            # Do not leave an aborted, stationary bot exposed while slow SSH
+            # diagnostics or automation deletion consume its threat buffer.
+            cleanup_call(('panel', 'POST', '/api/act/logout', '{}'))
+
         # Revoke this trial's automation before fetching diagnostic imagery;
         # a slow image transfer must not keep a rejected behavior moving.
         for arguments in cleanup:
             cleanup_call(arguments)
         # Retain the current view before logout for agent-assisted diagnosis. This
         # reads the latest frame; it never bypasses the native capture ceiling.
-        try:
-            summary['cameraEvidence'] = call('camera').strip()
-        except Exception as error:
-            summary['cameraUnavailable'] = str(error)
+        if not urgent:
+            try:
+                summary['cameraEvidence'] = call('camera').strip()
+            except Exception as error:
+                summary['cameraUnavailable'] = str(error)
         for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
             cleanup_call(arguments)
         until = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')

@@ -45,6 +45,7 @@ namespace Renki.Plugin
         int alternativeAttempts;
         bool findingApproach, alternativeApproach;
         Vector3 alternativeAnchor;
+        readonly HarvestContactProgress contactProgress = new HarvestContactProgress();
         PickupTask pickup;
 
         public HarvestTask(HarvestArgs args, GameObject target)
@@ -186,6 +187,10 @@ namespace Renki.Plugin
             }
             var attackHeight = tool.m_shared.m_attack.m_attackHeight;
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
+            // Range/footing can oscillate on a slope. Small reapproaches must
+            // not reset the clock forever without an actual hit on this log.
+            if (rolling && !tallTree && contactProgress.Stalled(Time.unscaledTime, evidence.LocalHits))
+                return AnotherApproach("no local hit after reaching log contact");
             if (findingApproach)
             {
                 if (alternativeAttempts >= HarvestContactSearch.Limit)
@@ -272,6 +277,7 @@ namespace Renki.Plugin
             if (!strikeLogged)
             {
                 strikeLogged = true;
+                contactProgress.Contact(Time.unscaledTime, evidence.LocalHits);
                 Tracer.Emit("harvest", "physical strike contact visible", new Dictionary<string, object>
                 {
                     ["entity"] = args.Entity,
@@ -350,6 +356,7 @@ namespace Renki.Plugin
         {
             if (!rolling || tallTree) return Finish(Outcome.Failed(Wire.ReasonUnreachable, reason));
             findingApproach = true; alternativeApproach = false; walking = false; swingSince = -1;
+            strikeLogged = false; contactProgress.Reset();
             Tracer.Emit("harvest", "searching alternative log contact", new Dictionary<string, object>
             {
                 ["reason"] = reason,

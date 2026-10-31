@@ -10,6 +10,21 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void SlippingOutOfRangeCannotRenewAnUnproductiveLogContactForever()
+        {
+            var progress = new HarvestContactProgress();
+            Assert.False(progress.Stalled(30, 0)); // Travel before contact is allowed.
+            progress.Contact(30, 0);
+            progress.Contact(35, 0); // Another in-range frame after repositioning.
+            Assert.True(progress.Stalled(39, 0));
+            progress.Reset();
+            progress.Contact(40, 0);
+            Assert.False(progress.Stalled(47, 1)); // A real hit renews the budget.
+            Assert.False(progress.Stalled(54, 1));
+            Assert.True(progress.Stalled(56, 1));
+        }
+
+        [Fact]
         public void FoodRefreshDoesNotInventDamageOrClearTheDamageLatch()
         {
             Assert.False(HarvestHealth.Interrupted(false, 60.7, 60.7, 60, 66.1, true));
