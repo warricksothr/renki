@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T04:05:56Z
+updated_at: 2026-10-31T04:16:53Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -378,3 +378,17 @@ This trial DID exercise real scouting detours. The successful t-6 plans found ch
 Native fix adds explicit move_to dry=true for goal/home returns. It uses currently checked cached trails or existing bounded incremental LocalRoute, dry measured support (including floors/bridges) and endpoint/midpoint water guards; each actual short movement/strafe is checked again. It cannot switch back to the inlet-crossing navmesh shortcut. Existing wet starts use the native bounded shore search targeting truly dry land and keep exiting through shallow water before dry onward planning. The supervisor can request one native dry home prerequisite for an idle interrupted wet start, with known nearby home, food/health/stamina, known clear surroundings, original scope/damage/ownership/timeout checks and no replacement of unrelated work. This supplies autonomous recovery without player staging/clearing/repositioning.
 
 Supersedes the plan's arbitrary1.5m arrival bound: host confirmation now matches the existing native Arrival.Level=1.75m; a regression covers a valid1.6m marker/standing-height difference and still rejects a wrong floor3m below. Protocol fixture/Go+C# decode, dry inlet routing and changed-water rejection, bridge support, dry-vs-shallow shore choice, home dry flag, full supervisor wet-start sequence and receipt-ledger projection checks were added. Focused checks and native build pass. Full just check ci is running before the fix commit/review, checksum deployment and a materially changed native-return trial. Compact console output now keeps detour counts/maxima; all terminal planner examples remain on disk. Search-ledger receipts recover encounters trimmed from the panel's three-row history.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:14:39Z
+
+### Changed-build live result
+
+c24a8d7 recovered Tas from the inlet and traveled 50.7 m around it on supported dry routes, without damage. Startup return then failed unreachable on dry land at [-27.42,31.66,-14.32], about 23 m from home; no combat goal started. Final local search exhausted 3200 nodes and its eight-second elapsed bound. The dry branch currently bypasses navmesh entirely, leaving local search to solve the raised-floor entrance without guidance. Next: incrementally validate complete navmesh candidates through the same dry support/body/water probe before use, retain local fallback, and bound/reject repeated stationary candidates.
+
+Evidence: .checks/combat-trial-20261031T040947354794Z/summary.json and .checks/audit-window-ADgxrE.jsonl. One earlier planning step measured 14.26 ms; the approximate two-ms scheduler target is not a hard ceiling. Independent status confirmed game offline and controller online. Kill-and-confirmed-return and actual block/dodge evidence remain unearned.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:16:53Z
+
+### Native dry navmesh guidance
+
+Added bounded NavmeshCandidates and incremental RouteValidation for complete dry navmesh candidates, with distinct provenance from recorded successful trails. Every half-meter segment must pass the live dry support/body/water probe before movement; immediate-leg and actual corridor checks remain active. Rejected asynchronous candidates preserve local search and its elapsed budget. At most eight distinct stationary candidates are checked; a repeated candidate is suppressed until two meters of real movement or a new goal. Rejection includes focused stage/collider diagnostics. Core regressions cover an inlet shortcut, dry local fallback, a raised entrance and demolished ramp, async candidate changes, stationary attempt bounds, incomplete routes and sample limits. Full gate and live recheck pending.

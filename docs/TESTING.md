@@ -993,6 +993,16 @@ ordinary failures retain their three-repeat stop. A goal success requires an exa
 native “observed Greyling death” receipt; orchestration progress alone does not
 close melee/block/dodge checks. Cleanup cancels unfinished goals, logs out and
 stops the game, restores combat off and starts the controller/panel alone.
+
+Native dry home travel can use a complete navmesh candidate only after incremental
+physical support, water and body-clearance validation of every half-meter leg.
+An inlet-crossing candidate must fail without becoming movement authority;
+local dry planning then routes around it. Asynchronous candidates do not reset
+the ongoing local search or its elapsed bound on rejection. The same stationary
+candidate is not retried, and at most eight distinct candidates are validated
+until two meters of actual movement or a new goal resets that allowance. Check a
+raised-floor entrance, a removed ramp, an invalid wet shortcut and changed tiles;
+keep recorded-trail reuse distinct from validated navmesh guidance in evidence.
 See [GOALS.md](GOALS.md) for restart uncertainty and policy boundaries.
 
 ## Game-camera debugging

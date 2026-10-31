@@ -24,11 +24,12 @@ namespace Renki.Plugin
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
         readonly RouteTrail trail = new RouteTrail();
+        readonly NavmeshCandidates navmeshCandidates = new NavmeshCandidates();
         RouteValidation replay;
         WorldNavigation.PlanningProbe replayProbe;
         long replayID;
         V3? replayWaypoint;
-        bool replaying, skipReuse, trailStarted, reuseRoutes;
+        bool replaying, replayNavmesh, skipReuse, trailStarted, reuseRoutes;
         double replayMs, replayWorstMs;
         Vector3 goal;
         double arrivalWithin = .5;
@@ -134,6 +135,7 @@ namespace Renki.Plugin
             WorldNavigation.Focus(to);
             hasGoal = true;
             skipReuse = false;
+            navmeshCandidates.Reset();
             trailStarted = false;
             RecordGrounded(from);
             Repath(from);
@@ -181,6 +183,7 @@ namespace Renki.Plugin
             localRoute = null;
             replay = null;
             replaying = false;
+            replayNavmesh = false;
             replayWaypoint = null;
             path.Reach = 1;
             path.FinalReach = arrivalWithin;
@@ -200,9 +203,10 @@ namespace Renki.Plugin
             }
             if (dryGround)
             {
-                // A navmesh path can cross this world's inlet. Plan supported dry
-                // legs instead; cached routes above still need current validation.
+                // The navmesh can guide us through a raised-floor entrance, but
+                // can also cross an inlet. Validate all its legs before use.
                 OffLevel = StraightLine = false;
+                if (!forceLocal && BeginDryNavmesh(from, target)) return;
                 BeginLocal(from, target);
                 return;
             }
@@ -371,7 +375,7 @@ namespace Renki.Plugin
             var recovery = stuck.Update(Convert.ToV3(pos), Time.time);
             if (replaying && recovery != Recovery.None)
             {
-                RejectReplay(pos, "no progress on recorded route");
+                RejectReplay(pos, "no progress on checked route");
                 return true;
             }
             if (recovery != Recovery.None)
@@ -435,19 +439,28 @@ namespace Renki.Plugin
 
         void RejectReplay(Vector3 pos, string why)
         {
-            WorldNavigation.Routes.Remove(replayID);
-            skipReuse = true;
-            Tracer.Emit("walker", "recorded route rejected", new Dictionary<string, object>
+            if (!replayNavmesh) { WorldNavigation.Routes.Remove(replayID); skipReuse = true; }
+            Tracer.Emit("walker", replayNavmesh ? "navmesh candidate rejected" : "recorded route rejected", new Dictionary<string, object>
             {
                 ["why"] = why,
                 ["route"] = replayID,
                 ["pos"] = Convert.ToArray(pos),
                 ["checking"] = replay?.Checking?.ToArray(),
                 ["samples"] = replay?.Samples,
+                ["failure"] = replayProbe?.LastFailure?.Stage,
+                ["collider"] = replayProbe?.LastFailure?.Collider,
                 ["ms"] = System.Math.Round(replayMs, 2),
                 ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
             });
-            Repath(pos, true);
+            if (replayNavmesh)
+            {
+                replay = null; replaying = replayNavmesh = false;
+                // An asynchronous candidate must not discard the local search
+                // or restart its elapsed-time bound after a failed validation.
+                if (localRoute == null) BeginLocal(pos, goal);
+                else path.Set(new V3[0]);
+            }
+            else Repath(pos, true);
             Driver.Stand();
         }
 
@@ -471,7 +484,8 @@ namespace Renki.Plugin
             path.Set(replay.Path);
             path.Reach = .15;
             replaying = true;
-            Tracer.Emit("walker", "reusing recorded route", new Dictionary<string, object>
+            localRoute = null;
+            Tracer.Emit("walker", replayNavmesh ? "following validated dry navmesh route" : "reusing recorded route", new Dictionary<string, object>
             {
                 ["route"] = replayID,
                 ["samples"] = replay.Samples,
@@ -485,12 +499,37 @@ namespace Renki.Plugin
             return true;
         }
 
+        bool BeginDryNavmesh(Vector3 from, Vector3 target)
+        {
+            scratch.Clear();
+            if (Pathfinding.instance == null ||
+                !Pathfinding.instance.GetPath(from, target, scratch, Pathfinding.AgentType.Humanoid, false, true, false)) return false;
+            var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true);
+            var candidate = navmeshCandidates.Try(Convert.ToV3(from), Convert.ToV3(target),
+                scratch.Select(Convert.ToV3).ToArray(), probe.Probe, arrivalWithin);
+            if (candidate == null) return false;
+            replayProbe = probe; replay = candidate;
+            replayNavmesh = true; replayID = 0;
+            replayMs = replayWorstMs = 0;
+            path.Set(new V3[0]);
+            OffLevel = StraightLine = false; Blocked = null;
+            Tracer.Emit("walker", "validating dry navmesh candidate", new Dictionary<string, object>
+            {
+                ["from"] = Convert.ToArray(from),
+                ["to"] = Convert.ToArray(target),
+                ["waypoints"] = scratch.Count,
+                ["end"] = Convert.ToArray(scratch[scratch.Count - 1]),
+            });
+            return true;
+        }
+
         void BeginLocal(Vector3 from, Vector3 target)
         {
             localWaterBlocked = Blocked;
             Blocked = null;
             localProbe = new WorldNavigation.PlanningProbe(dry: dryGround);
             localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, arrivalWithin);
+            replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
             localMs = localWorstMs = 0;
@@ -504,22 +543,29 @@ namespace Renki.Plugin
             // GetPath requests tiles asynchronously. A first query after
             // joining may fail while the usable navmesh is still building.
             // Keep the ongoing search if a retry offers no safe progress.
-            if (!dryGround && Time.unscaledTime >= nextNavmeshCheck && Pathfinding.instance != null)
+            if (Time.unscaledTime >= nextNavmeshCheck && Pathfinding.instance != null)
             {
                 nextNavmeshCheck = Time.unscaledTime + 1;
-                scratch.Clear();
-                if (Pathfinding.instance.GetPath(pos, goal, scratch, Pathfinding.AgentType.Humanoid, false, true, false) && scratch.Count > 0)
+                if (dryGround)
                 {
-                    var points = scratch.Select(Convert.ToV3).ToArray();
-                    var from = Convert.ToV3(pos);
-                    var target = Convert.ToV3(goal);
-                    var complete = Arrival.Reached(points[points.Length - 1], target, 1.5) && WallRoute.Clear(from, points, WorldNavigation.Walls);
-                    if (complete || WallRoute.Prefix(from, target, points, WorldNavigation.Walls).Count > 0)
+                    if (BeginDryNavmesh(pos, goal)) return true;
+                }
+                else
+                {
+                    scratch.Clear();
+                    if (Pathfinding.instance.GetPath(pos, goal, scratch, Pathfinding.AgentType.Humanoid, false, true, false) && scratch.Count > 0)
                     {
-                        Tracer.Emit("walker", "navmesh became usable during local search");
-                        ResetStuck(pos);
-                        Repath(pos);
-                        return true;
+                        var points = scratch.Select(Convert.ToV3).ToArray();
+                        var from = Convert.ToV3(pos);
+                        var target = Convert.ToV3(goal);
+                        var complete = Arrival.Reached(points[points.Length - 1], target, 1.5) && WallRoute.Clear(from, points, WorldNavigation.Walls);
+                        if (complete || WallRoute.Prefix(from, target, points, WorldNavigation.Walls).Count > 0)
+                        {
+                            Tracer.Emit("walker", "navmesh became usable during local search");
+                            ResetStuck(pos);
+                            Repath(pos);
+                            return true;
+                        }
                     }
                 }
             }
