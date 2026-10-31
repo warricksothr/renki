@@ -15,7 +15,7 @@ type gatherDefenseReceipt struct{ state, perception uint64 }
 // inventory. Native kiting owns the fighting ground, lure, strikes and escape.
 // It never searches for an enemy or substitutes a different target.
 func (r *gatherRun) defend(v View) (*session.Order, error) {
-	if !r.p.Defend || !r.arrived || !freshPerception(v) {
+	if !r.p.Defend || !freshPerception(v) || !r.arrived && distance(v.State.Pos, r.p.Site.Pos) > r.p.Site.Radius {
 		return nil, nil
 	}
 	var target *protocol.PerceivedCharacter

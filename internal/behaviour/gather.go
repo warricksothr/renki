@@ -97,8 +97,12 @@ type gatherRun struct {
 func (r *gatherRun) Recover(result Result) bool {
 	// Storage may try its next chest. Opted-in harvest refusal may defend,
 	// then retry the same resource; it never counts as a completed cut.
+	// Harvest receipts may omit entity. The engine correlates their task ID
+	// to this runner's outstanding explicit request, so the pinned resource
+	// remains authoritative. A conflicting reported entity is never accepted.
 	return r.stow != nil && r.stow.Recover(result) || r.p.Defend && r.pending != nil &&
-		result.Entity == r.pending.ID && result.Status == protocol.StatusFailed && result.Reason == protocol.ReasonRefused
+		(result.Entity == r.pending.ID || result.Entity == "" && result.TaskID != "") &&
+		result.Status == protocol.StatusFailed && result.Reason == protocol.ReasonRefused
 }
 
 func beechLog(resource protocol.PerceivedResource) bool {
@@ -322,6 +326,11 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		r.repairPending = false
 	}
 	if !r.prepared {
+		// A run resumed at its work site may already have a confirmed
+		// pursuer. Defend before a repair/outbound approach can refuse it.
+		if order, err := r.defend(v); order != nil || err != nil {
+			return order, err
+		}
 		r.prepared = true
 		if r.p.ReturnHome && gatherAxe(v, 0) && !gatherAxe(v, .9) {
 			if err := gatherTravelReady(v); err != nil && !errors.Is(err, errGatherTool) {

@@ -1,12 +1,48 @@
 package behaviour
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/warricksothr/renki/internal/protocol"
 )
+
+func TestEngineDefendsAnAttributedNativeHarvestRefusalWithoutAnEntityField(t *testing.T) {
+	f := setup(t, protocol.TaskHarvest, protocol.TaskAttack)
+	_, v := gathering(t)
+	f.p.Send(v.State)
+	f.p.Send(v.Inventory)
+	f.p.Send(v.Perception)
+	wait(t, func() bool { return f.s.Inventory() != nil && f.s.Perception() != nil && f.s.State().Food != nil })
+	d := def()
+	d.Template = "gather"
+	d.Params = json.RawMessage(`{"site":{"world":"test","pos":[0,0,0],"radius":30},"to":["a"],"defend":true}`)
+	f.put(t, "gather", d)
+	f.act(t, "gather", "start")
+	f.tick()
+	cut := f.p.NextTask()
+	if cut.Task != protocol.TaskHarvest {
+		t.Fatal(cut)
+	}
+	gatherPursuer(&v)
+	f.p.Send(v.Perception)
+	wait(t, func() bool { return len(f.s.Perception().Characters) == 1 })
+	// Captured native failure: re/status/reason/detail, no entity. The engine
+	// must use its outstanding task correlation, not a made-up native binding.
+	f.done(t, cut, protocol.StatusFailed, protocol.ReasonRefused)
+	f.tick()
+	attack := f.p.NextTask()
+	var args protocol.AttackArgs
+	if err := json.Unmarshal(attack.Args, &args); err != nil || attack.Task != protocol.TaskAttack || args.Entity != "pursuer" || !args.Kite {
+		t.Fatal(attack, err)
+	}
+	r := f.e.instances["gather"].runner.(*gatherRun)
+	if r.resume == nil || r.resume.ID != "tree" || r.pending != nil || r.completed["tree"] || r.trees != 1 || r.logs != 0 {
+		t.Fatal(r)
+	}
+}
 
 func gatherPursuer(v *View) {
 	v.Perception.Characters = []protocol.PerceivedCharacter{{ID: "pursuer", Kind: protocol.CharacterCreature,
@@ -15,6 +51,32 @@ func gatherPursuer(v *View) {
 
 func defenseSuccess() *Result {
 	return &Result{Status: protocol.StatusSucceeded, Entity: "pursuer", Detail: "observed Greyling death"}
+}
+
+func TestGatherAtItsSiteCanDefendBeforeStartingPreparationOrCutting(t *testing.T) {
+	for _, nearSite := range []bool{true, false} {
+		r, v := gathering(t)
+		r.p.Defend = true
+		gatherPursuer(&v)
+		if !nearSite {
+			r.p.Site.Pos[0] = 100
+		}
+		order, err := r.Next(v, nil)
+		if !nearSite {
+			if order != nil || err == nil || r.defenses != 0 {
+				t.Fatal("work-site defense admitted a separate distant fight", order, err)
+			}
+			continue
+		}
+		if err != nil || order == nil || order.Task != protocol.TaskAttack || r.trees != 0 || r.prepared || r.arrived || r.keep["Wood"] != 12 {
+			t.Fatal(order, err, r)
+		}
+		finishDefense(t, r, &v)
+		nextTask(t, r, v, defenseSuccess(), protocol.TaskHarvest)
+		if r.trees != 1 || !r.prepared || r.keep["Wood"] != 12 {
+			t.Fatal(r)
+		}
+	}
 }
 
 func TestGatherKeepsItsUnfinishedChainWhileAConfirmedPursuerApproaches(t *testing.T) {
@@ -193,7 +255,7 @@ func TestGatherDefenseRequiresExactDeathAndSubsequentFreshObservations(t *testin
 }
 
 func TestGatherRefusalFailsClosedWithoutSafeOptedInPursuer(t *testing.T) {
-	for _, mode := range []string{"default", "unconfirmed", "starred", "two", "stamina", "food", "axe", "bystander", "budget", "count", "wrong receipt", "unreachable"} {
+	for _, mode := range []string{"default", "unconfirmed", "starred", "two", "stamina", "food", "axe", "bystander", "budget", "count", "wrong receipt", "uncorrelated receipt", "unreachable"} {
 		t.Run(mode, func(t *testing.T) {
 			r, v := gathering(t)
 			r.p.Defend = true
@@ -225,6 +287,8 @@ func TestGatherRefusalFailsClosedWithoutSafeOptedInPursuer(t *testing.T) {
 				r.defenses = 2
 			case "wrong receipt":
 				result.Entity = "other"
+			case "uncorrelated receipt":
+				result.Entity = ""
 			case "unreachable":
 				result.Reason = protocol.ReasonUnreachable
 			}

@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T13:11:38Z
+updated_at: 2026-10-31T13:22:28Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -432,3 +432,12 @@ Add bounded local-search diagnostics: counts by refusal stage, the last measured
 b359863 passed CI .checks/20261031T130144Z-FiuHpd.log, review .checks/20261031T130435Z-OInXi2.log and checksum deployment .checks/20261031T130450Z-1wyMrd.log. Trial .checks/gather-trial-20261031T130552435329Z selected the now-visible nearby workbench and attempted ordinary repair approach, but did not reach it. Audit .checks/audit-window-pVetbs.jsonl now proves every local fallback stopped with searchStatus Searching at elapsed 8.0 seconds after 2278-2372 expansions, not an exhausted frontier or the allowed 4096-node bound. Per-stage counts/examples identify walls, floors, wood stacks, water and support discontinuities; no single final collider is inferred to explain the whole failure. Native damage zero, final 36.6/36.6 HP, safely offline/panel restored. Captured view .checks/camera-20261031T130732353406Z.jpg shows Tas beside the eastern wood stacks and exterior ladder.
 
 Allow up to 16 seconds for the same local search to finish its existing 4096 nodes. At eight expansions per 50 Hz physics step that bound alone needs 10.24 seconds; two-ms physical-probe slices reduce actual expansions per step further. Retain the two-ms frame slice, node/range/physical/water/height/hostile limits and unchanged enclosing native task deadline. This corrects premature discard of a live frontier, not a claim that any route must exist. Focused LocalRoute checks, full CI, committed review and installation precede remeasurement. Full repair, two fresh complete trees/logs, exact gain-only storage and final home remain unverified.
+
+**agent:codex/renki-milestones** at 2026-10-31T13:22:28Z
+
+### Entrance/repair passed; real harvest refusal lacked native entity
+1c9b9b9 passed full CI .checks/20261031T131138Z-yWOSJl.log, review .checks/20261031T131359Z-oNXM77.log, push and checksum installation .checks/20261031T131411Z-zCuzGV.log. Trial .checks/gather-trial-20261031T131421803406Z proved the raised-floor/workbench route: t-1 repaired two carried items, t-2 returned to the stand, t-3 cleared passive wildlife, t-4 felled fresh Beech1:61690, and t-5 split new parent log1369758836:133. t-6 on half1369758836:225 was refused because a Greyling approached within15m. Audit .checks/audit-window-Q96fXG.jsonl shows the actual receipt has re/status/reason/detail but NO entity. The unit scenario had supplied Entity:tree, hiding a production mismatch: Recover rejected the otherwise correctly correlated failure before native defense could run.
+
+Use the engine's outstanding TaskID correlation when the native harvest-refusal receipt omits entity, retaining the original explicit pending resource. A conflicting reported entity or an uncorrelated empty receipt remains invalid; failed/refused never counts as a cut. A bridge/engine regression reproduces the missing-entity receipt and requires native attack of the confirmed pursuer while preserving the same unfinished tree. Also admit the same bounded defense before preparation when a fresh confirmed pursuer is already at the work site, preserving healthy/fed/tool/stamina/bystander/identity/budget gates and refusing unrelated distant fights.
+
+The trial cleanup then took8.5s before logout because its urgency classifier did not recognize the word enemy. Greyling1692447902:106 hit for3.57HP during that avoidable diagnostic delay. Final nativeHP32.1, safely offline at[77.67,37.71,46.72]; one damage event, no successful defense or delivery claimed. Treat enemy/pursuer failures as urgent logout before behavior cleanup/camera, with regression for each actual reason shape. Do not relax gathering's injury guard: this damage was in cleanup, not an authorized successful defense. Need final focused checks, full gate/review/controller deployment and two-fresh-tree/log gain-only home/storage proof.

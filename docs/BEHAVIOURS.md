@@ -240,6 +240,10 @@ With optional work-site defense enabled, a single confirmed ordinary Greyling
 pursuer within 40 m gets up to 15 seconds to enter the existing 20 m native defense
 range. The unfinished tree/log chain stays pinned while Tas waits. This never
 authorizes a chase, a substitute attacker, or combat outside that admission range.
+Starting inside the work zone can defend a freshly confirmed pursuer before
+repair or travel preparation. A refused harvest receipt without a resource ID
+uses the engine's matching task correlation and the original explicit target;
+it never marks the interrupted resource complete or changes the retry target.
 
 Before leaving home, `returnHome` gathering repairs a carried axe below 90%
 durability at a currently observed home workbench. When started away from home
