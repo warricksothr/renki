@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T10:44:42Z
+updated_at: 2026-10-31T10:58:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -502,3 +502,12 @@ Extend explicit native melee eligibility to an unstarred wild hostile Neck, pres
 Latest two-tree trial .checks/gather-trial-20261031T102921984436Z/summary.json reached [65,35,28] and felled Beech1 1:61675 with nine local hits, then stopped because Greyling1960390678:2623 pursued Tas during log settling. Zero damage; no full-tree chain or delivery claim. Exact native melee subsequently killed that pursuer without damage: .checks/combat-trial-20261031T103338195611Z/summary.json. The preexisting new trunk812124484:165 cannot count as a fresh full tree in the next trial.
 
 Implement opt-in gather defend:true, default false: one fresh ordinary Greyling targeting Tas within20m, normal native kite/melee permission/gates, at most two encounters within the existing work budget. Preserve unfinished tree/log identity and original inventory; a refused cut retries the same resource only after exact native death proof plus subsequent fresh state/perception. Injury still stops. No silent chat combat opt-in. Controller regressions pass .checks/20261031T104237Z-OuwbTQ.log. Trial --gather-defend explicitly enables permission and restores false; proximity exception requires matching attributed task/request/combat target, and proof excludes refused cuts. Trial tests pass .checks/20261031T104406Z-qvf2uN.log and .checks/20261031T104406Z-4YXruV.log. Full CI/review/deploy and exact two-fresh-tree/log gains-only home-storage proof remain next. Broad M2/M3 criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:58:35Z
+
+### Captured fatal split-log escape defect
+c356b89 passed full CI .checks/20261031T104442Z-6MNeJj.log, committed review .checks/20261031T104729Z-3bm6J0.log and checksum deployment .checks/20261031T104750Z-qr50qg.log. Its initial home return recovered from the eastern log-pile stall and passed in118s (.checks/task-1wjqpv55.json), close to the120s bound.
+
+Trial .checks/gather-trial-20261031T105126279575Z/summary.json repaired the axe, left home, felled Beech1 1:61682 and split its first trunk2433514394:158 and both halves, collecting22 Wood. It then continued another newly bound collateral trunk2433514394:182; contrary to the initial progress report, this was still the first tree chain, not a second standing tree. It broke that log after four local hits, but a37.01 falling-log damage event killed Tas1.12s later. No successful full-loop claim. Audit .checks/audit-window-psdxvO.jsonl records the died event and no other characters at the cut.
+
+Root cause: AfterBreak skipped retreat whenever Tas was5.5m from the resource pivot. Here the pivot[82.29,43.32,24.04] was7.9m from Tas[85.91,42.68,31.08], despite a physical strike contact only~1.4m away. Require reaching within0.5m horizontally of the prevalidated six-metre escape goal[88.76,43.42,36.41] before settling/collection, with unchanged physical rechecks and six-second limit. New captured-coordinate regression passes with just check plugin test-core HarvestTests (.checks/20261031T105749Z-HwxifP.log); emit exact escape-completed evidence. Autonomous ordinary corpse retrieval, food, repair and a fresh two-tree trial follow full CI/review/deployment. Earlier trunk is now baseline work and cannot satisfy fresh-tree proof.

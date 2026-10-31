@@ -220,6 +220,19 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void StrikingALongTrunkTipStillRequiresTheCompleteCheckedEscape()
+        {
+            var pivot = new V3(82.29, 43.32, 24.04);
+            var feet = new V3(85.91, 42.68, 31.08);
+            var escape = new V3(88.76, 43.42, 36.41);
+            Assert.True(V3.FlatDistance(feet, pivot) > 5.5); // Former premature completion.
+            Assert.True(HarvestEscape.NeedsRetreat(feet, escape));
+            Assert.True(HarvestEscape.NeedsRetreat(feet + (escape - feet) * .8, escape));
+            Assert.False(HarvestEscape.NeedsRetreat(escape - new V3(.2, 0, .2), escape));
+            Assert.False(HarvestEscape.NeedsRetreat(escape, escape));
+        }
+
+        [Fact]
         public void AlternativeTrunkEscapesNeverInitiallyApproachOrCrossTheResource()
         {
             var resource = new V3(175.46, 86.65, -265.53);

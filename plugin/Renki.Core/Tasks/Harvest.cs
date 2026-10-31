@@ -97,6 +97,10 @@ namespace Renki.Tasks
     {
         public const int CandidateLimit = 7;
 
+        // A long trunk's pivot can be far from the actual strike contact.
+        // Complete the checked escape leg even when already far from it.
+        public static bool NeedsRetreat(V3 feet, V3 escape) => V3.FlatDistance(feet, escape) > .5;
+
         // Outward then alternating sides, through 90 degrees. Every segment
         // increases distance from the resource; none crosses toward the trunk.
         public static V3 Candidate(V3 resource, V3 feet, int attempt)

@@ -454,7 +454,7 @@ namespace Renki.Plugin
 
         Outcome AfterBreak(Player p, double dt)
         {
-            if (rolling && !retreated && V3.FlatDistance(Convert.ToV3(p.transform.position), Convert.ToV3(origin)) < 5.5)
+            if (rolling && !retreated && (!retreatReady || HarvestEscape.NeedsRetreat(Convert.ToV3(p.transform.position), Convert.ToV3(retreat))))
             {
                 if (!retreatReady || Time.unscaledTime - brokeAt > 6) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "could not retreat from the broken trunk"));
                 var delta = retreat - p.transform.position; delta.y = 0;
@@ -467,6 +467,13 @@ namespace Renki.Plugin
             }
             // Retreat is a phase, not a permanent exclusion radius: after
             // logs settle, collection must be able to approach the drops.
+            if (rolling && !retreated)
+                Tracer.Emit("harvest", "escape completed", new Dictionary<string, object>
+                {
+                    ["entity"] = args.Entity,
+                    ["feet"] = Convert.ToArray(p.transform.position),
+                    ["goal"] = Convert.ToArray(retreat),
+                });
             retreated = true;
             if (!Settled(origin, 8))
             {

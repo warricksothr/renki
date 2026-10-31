@@ -222,6 +222,9 @@ a usable carried axe, four free slots and 60 spare carry weight; initial stamina
 must be at least 40. Native C# owns every approach, strike, falling-log escape and
 collection. Protection distances remain 32 m for standing trees, 8 m for logs,
 and 15 m around Tas, with authoritative native checks before swings.
+After a tree or rolling log breaks, Tas completes its checked escape leg before
+waiting for the descendants to settle. Distance from the old network pivot
+cannot skip retreat when striking near the end of a long trunk.
 
 Before leaving home, `returnHome` gathering repairs a carried axe below 90%
 durability at a currently observed home workbench. It uses `interact` with
