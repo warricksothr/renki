@@ -12,6 +12,12 @@ from harvest_trial import health_loss
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def rows(value):
+    # Windows PowerShell can wrap an Invoke-RestMethod array while piping it
+    # through ConvertTo-Json; the HTTP API itself returns the plain array.
+    return value.get('value', []) if isinstance(value, dict) else value
+
+
 def unsafe(status, previous=None):
     if not status.get('connected') or status.get('phase') != 'in_world':
         return 'bot unavailable'
@@ -90,8 +96,7 @@ def main():
                 raise RuntimeError('new body order interrupted supervised movement')
             history = call('panel', 'GET', '/api/task?id=' + request['id'] + '&at=' + anchor)
             (folder / (request['id'] + '.json')).write_text(json.dumps(history))
-            rows = history.get('value', []) if isinstance(history, dict) else history
-            for row in reversed(rows):
+            for row in reversed(rows(history)):
                 frame = row.get('frame', {})
                 if frame.get('type') == 'task' and frame.get('re') == request['id'] and frame.get('status') in ('succeeded', 'failed', 'rejected', 'cancelled'):
                     if frame['status'] != 'succeeded':
@@ -133,8 +138,8 @@ def main():
         started = False
         while time.monotonic() < deadline:
             status = observe()
-            rows = call('panel', 'GET', '/api/behaviours')
-            row = next(r for r in rows if r['name'] == name)
+            instances = rows(call('panel', 'GET', '/api/behaviours'))
+            row = next(r for r in instances if r['name'] == name)
             (folder / 'behaviour.json').write_text(json.dumps(row, indent=2))
             if row.get('last') == 'new order':
                 yielded = True

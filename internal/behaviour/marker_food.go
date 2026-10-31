@@ -70,7 +70,9 @@ type markerFoodRun struct {
 }
 
 func (r *markerFoodRun) Check(v View) error {
-	if !idleFresh(v) || !freshPerception(v) || v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 3*time.Second || v.Inventory == nil {
+	// State and perception stream independently. A new scan can be a few
+	// milliseconds ahead of the latest state without being future-dated.
+	if !idleFresh(v) || v.Perception == nil || math.Abs(v.State.T-v.Perception.T) > 3 || v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 3*time.Second || v.Inventory == nil {
 		return errors.New("food work requires fresh state, inventory and surroundings")
 	}
 	w, ok := r.p.Marker.resolve(v)

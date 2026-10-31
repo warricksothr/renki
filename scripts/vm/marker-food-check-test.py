@@ -10,6 +10,11 @@ spec.loader.exec_module(m)
 
 
 class Safety(unittest.TestCase):
+    def test_http_and_powershell_array_envelopes(self):
+        expected = [dict(name='job', runs=1)]
+        self.assertEqual(m.rows(expected), expected)
+        self.assertEqual(m.rows(dict(value=expected, Count=1)), expected)
+
     def status(self):
         return dict(connected=True, phase='in_world', world='one', connection=1, hp=70, hpMax=70,
                     pos=[0, 0, 0], flags=['in_shelter'], injurySeq=0, home=dict(world='one', pos=[0, 0, 0]))

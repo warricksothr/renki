@@ -34,6 +34,19 @@ func TestMarkerFoodEmptySitesBackOffWithUsefulReason(t *testing.T) {
 		})
 	}
 }
+
+func TestMarkerFoodGuardAcceptsIndependentFreshStreamTiming(t *testing.T) {
+	r := foodRunner(t, "cooking")
+	v := markerView("cooking")
+	v.Perception.T = v.State.T + .06 // observed live state/perception skew
+	if err := r.Check(v); err != nil {
+		t.Fatal("fresh independent scan cancelled cooking", err)
+	}
+	v.Perception.T = v.State.T + 4
+	if err := r.Check(v); err == nil {
+		t.Fatal("out-of-scope scan accepted")
+	}
+}
 func TestMarkerFoodCollectsOnlyFreshLocalSafeEdibleYields(t *testing.T) {
 	r := foodRunner(t, "berries")
 	v := markerView("berries")
