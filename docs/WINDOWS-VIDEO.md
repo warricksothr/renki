@@ -86,6 +86,14 @@ retaining encoded output. The panel independently expires assertions and detects
 stalled decoded frames. See LOCAL-VIDEO.md for polling/expiry windows; these are
 bounded checks, not instantaneous protection during desktop/GPU failure.
 
+A temporary failure replacing the health file revokes Program to standby and
+resets freshness verification; the adapter retries rather than exiting. The
+capture verifier and watchdog tasks also restart after an unexpected process
+failure (up to five attempts, one minute apart). `just streaming windows-status`
+includes task state, last-run time, last result and the verifier observation
+time. A running OBS output with an old observation time means the verifier
+needs attention; OBS frame rate alone cannot establish healthy game capture.
+
 OBS websocket v5 is authenticated; firewall rules block network access to 4455
 while loopback works. Passwords stay in ACL-restricted local files, never in
 diagnostics. The adapter has no inbound listener and sends the panel credential

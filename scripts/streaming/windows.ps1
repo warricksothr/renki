@@ -17,6 +17,10 @@ function Task($Name, $Exe, $Arguments, $Working) {
     $principal = (Get-ScheduledTask -TaskName RenkiStart).Principal
     $action = New-ScheduledTaskAction -Execute $Exe -Argument $Arguments -WorkingDirectory $Working
     $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
+    if ($Name -in @('RenkiCapture','RenkiCaptureWatchdog')) {
+        $settings.RestartCount = 5
+        $settings.RestartInterval = 'PT1M'
+    }
     Register-ScheduledTask -TaskName $Name -Principal $principal -Action $action -Settings $settings -Force | Out-Null
 }
 
@@ -243,7 +247,10 @@ if ($Action -eq 'stop') {
     Get-Process obs64 -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $obsExe.Replace('/','\') } | Stop-Process -Force
 }
 if ($Action -eq 'status') {
-    Get-ScheduledTask -TaskName RenkiOBS,RenkiCapture,RenkiCaptureWatchdog,RenkiRelay -ErrorAction SilentlyContinue | Select-Object TaskName,State | Format-Table -AutoSize
+    Get-ScheduledTask -TaskName RenkiOBS,RenkiCapture,RenkiCaptureWatchdog,RenkiRelay -ErrorAction SilentlyContinue | ForEach-Object {
+        $info = $_ | Get-ScheduledTaskInfo
+        [pscustomobject]@{ TaskName=$_.TaskName; State=$_.State; LastRun=$info.LastRunTime; LastResult=$info.LastTaskResult }
+    } | Format-Table -AutoSize
     Get-Process obs64,obs-adapter,mediamtx -ErrorAction SilentlyContinue | Select-Object Name,Id,CPU,WorkingSet64 | Format-Table -AutoSize
     if (Test-Path (Join-Path $private 'status.json')) { Get-Content (Join-Path $private 'status.json') }
     if (Test-Path (Join-Path $root 'obs-adapter.exe')) { & (Join-Path $root 'obs-adapter.exe') -config (Join-Path $private 'adapter.json') -action status }
