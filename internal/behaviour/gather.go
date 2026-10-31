@@ -230,6 +230,12 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	if v.Inventory == nil || !freshPerception(v) {
 		return nil, ErrWait
 	}
+	if r.keep == nil {
+		r.keep = map[string]int{}
+		for _, prefab := range beechProducts {
+			r.keep[prefab] = v.Inventory.Count(prefab)
+		}
+	}
 	if r.repairPending {
 		if result == nil || result.Status != protocol.StatusSucceeded {
 			return nil, errors.New("gather station repair did not succeed")
@@ -398,12 +404,6 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 			return nil, errors.New("gather needs 40 stamina before starting")
 		}
 		r.restUntil = time.Time{}
-		if r.keep == nil {
-			r.keep = map[string]int{}
-			for _, prefab := range beechProducts {
-				r.keep[prefab] = v.Inventory.Count(prefab)
-			}
-		}
 		r.baseline = map[string]bool{}
 		r.chain = map[string]bool{}
 		for _, resource := range v.Perception.Resources {

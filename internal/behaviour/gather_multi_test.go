@@ -87,6 +87,24 @@ func TestGatherTwoTreesThenVerifiedPinnedHomeAndGainsOnlyDeposit(t *testing.T) {
 	}
 }
 
+func TestGatherDeliversProductsCollectedOnTheOutboundTrip(t *testing.T) {
+	r, v := gathering(t)
+	v.State.Pos[0] = 50
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	v.State.Pos[0] = 0
+	v.Inventory.Seq++
+	v.Inventory.Items[1].Stack += 5
+	nextTask(t, r, v, success("site"), protocol.TaskHarvest)
+	order := finishGatherTree(t, r, &v, "one")
+	if order.Task != protocol.TaskDeposit {
+		t.Fatal(order)
+	}
+	args := order.Args.(*protocol.TransferArgs)
+	if len(args.Items) != 1 || args.Items[0].Prefab != "Wood" || args.Items[0].Count != 25 || r.keep["Wood"] != 12 {
+		t.Fatal(args, r.keep)
+	}
+}
+
 func TestGatherCapacityPressureFinishesCargoBeforeSelectingAnotherTree(t *testing.T) {
 	r, v := gathering(t)
 	r.p.MaxTrees = 2
