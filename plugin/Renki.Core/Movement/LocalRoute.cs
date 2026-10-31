@@ -50,17 +50,22 @@ namespace Renki.Movement
         public bool ProgressLeg { get; }
 
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
-            bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes)
+            bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
+            double progressHorizon = FrontierDistance * 1.5)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
+            if (double.IsNaN(progressHorizon) || progressHorizon < FrontierDistance) throw new ArgumentOutOfRangeException(nameof(progressHorizon));
             this.start = start;
             this.goal = goal;
             this.probe = probe;
             this.within = within;
             this.maxNodes = maxNodes; this.maxCost = maxCost;
             initialDistance = V3.FlatDistance(start, goal);
-            ProgressLeg = initialDistance > FrontierDistance * 1.5;
+            // Keep taking checked approach legs until the destination is
+            // within the local horizon. Starting a full floor/entrance search
+            // from 24 m away can spend its entire bound on the lower bank.
+            ProgressLeg = initialDistance > progressHorizon;
             Add(new Node { Pos = start, Ground = groundCorridor ? new GroundCorridor.Cursor() : null });
         }
 

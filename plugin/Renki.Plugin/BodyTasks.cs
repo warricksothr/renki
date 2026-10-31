@@ -575,7 +575,8 @@ namespace Renki.Plugin
             localWaterBlocked = Blocked;
             Blocked = null;
             localProbe = new WorldNavigation.PlanningProbe(dry: dryGround);
-            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, arrivalWithin);
+            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, arrivalWithin,
+                progressHorizon: LocalRoute.FrontierDistance + arrivalWithin);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;

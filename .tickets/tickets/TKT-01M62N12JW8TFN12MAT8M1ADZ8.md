@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T07:34:56Z
+updated_at: 2026-10-31T07:46:59Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -231,3 +231,14 @@ The two-tree trial .checks/gather-trial-20261031T072343944638Z/summary.json comp
 The alternative-contact search claimed to use ground but actually started from the log bounds centreY44.05. Its downward support rays could not reach terrainY35, so every side/end candidate failed without testing the accessible lower trunk. Alternatives now first project their seed onto actual loaded game terrain, then measure target contact, physical standing support, reach, sight and dry route as before. The exact failed trunk is being retried to validate this correction.
 
 Separately, committed e11691f captures the keep counts before leaving the departure point, so outbound incidental product pickups are delivered too. Focused regression covers that path. Installation hit the already-observed transient controller.exe copy lock again; the VM recipe now retries package copy at most3 times, stopping/releasing the panel between attempts, and still requires checksum verification before installation. A retry installed the current candidate successfully. Full CI is running. Need fresh stand after rescuing/storing the current cargo; measured terrain at[0,-96] is40.6m and within the150m home envelope, but resource eligibility must be checked in person.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:44:35Z
+
+### Recovery cargo and bounded approach search
+Exact failed raised collateral trunk2463067676:73 was successfully cut after the terrain projection fix: .checks/task-wyyplpgl.json; its halves yielded14 and10 Wood (.checks/task-xm6qc3i5.json, .checks/task-588p1ol8.json). Full home return initially failed on the lower bank at[-26.9,31.84,-15.5], spending its8s local search bound3173 nodes before reaching the distant entrance. A shorter supported approach followed by native home return succeeded (.checks/task-pzdvqkxx.json, .checks/task-1fkmkt9i.json), with fresh pose[-36.63,36.09,8.21] confirming the home floor. LocalRoute now keeps checked16m approach legs until within its local horizon instead of switching to an exhaustive entrance search24m out. A regression proves supported progress without wrong-floor arrival under512 nodes; focused LocalRouteTests passed .checks/20261031T074331Z-kQ0IzE.log.
+
+Temporary cargo preparation completed with exact native t-10 receipt:87 Wood,23 BeechSeeds,20 Resin,6 Feathers moved into1:48789; current pack contains only axe and one CookedDeerMeat. Audit .checks/audit-window-BCHwQe.jsonl. Temporary instance deleted. This is recovery/storage evidence, not yet the requested uninterrupted two-tree loop. Repair and fresh high inland stand trial follow.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:46:59Z
+
+The full CI gate caught that applying a shorter horizon to every LocalRoute also truncated a combat scout's checked return route. The revised change makes progressHorizon explicit, preserves the planner's existing default for scout detours, and opts the ordinary Walker into16m plus task stopping distance. All core tests pass (.checks/20261031T074620Z-rAA7Cp.log); complete CI rerun follows. Native station repair succeeded for the carried axe (.checks/task-7l82jg37.json), with fresh inventory100/100 durability. Healthy Tas remains sheltered at home.

@@ -146,6 +146,28 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void NearbyRaisedHomeStillUsesACheckedApproachBeforeItsEntranceSearch()
+        {
+            var start = new V3(0, 0, -23);
+            var goal = new V3(0, 4, 0);
+            // The lower bank is supported but does not reach the home floor.
+            // Searching it for an entrance must not exhaust the whole bound
+            // before walking the safe approach that is already available.
+            var route = new LocalRoute(start, goal, (_, to) => to, within: 2, maxNodes: 512,
+                progressHorizon: LocalRoute.FrontierDistance + 2);
+            Assert.Equal(RouteStatus.Found, Finish(route));
+            Assert.True(route.ProgressLeg);
+            Assert.InRange(route.Expanded, 1, 512);
+            var end = route.Path.Last();
+            Assert.True(V3.FlatDistance(start, end) >= LocalRoute.FrontierDistance);
+            Assert.True(V3.FlatDistance(start, goal) - V3.FlatDistance(end, goal) >= LocalRoute.FrontierProgress);
+            Assert.All(route.Path, at => Assert.Equal(start.Y, at.Y));
+            Assert.False(Arrival.Reached(end, goal, 2));
+            Assert.False(new LocalRoute(end, goal, (_, to) => to, within: 2,
+                progressHorizon: LocalRoute.FrontierDistance + 2).ProgressLeg);
+        }
+
+        [Fact]
         public void DistantProgressRoutesAroundMeasuredWallWithoutUsingTheGoalsFloor()
         {
             var walls = new[] { Wall(3, -4, 3, 4) };
