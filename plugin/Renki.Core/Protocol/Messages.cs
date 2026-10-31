@@ -171,6 +171,7 @@ namespace Renki.Protocol
         [JsonProperty("id")] public string Id;
         [JsonProperty("entity")] public string Entity;
         [JsonProperty("mode")] public string Mode;
+        [JsonProperty("defensive", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Defensive;
         [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;
     }
 

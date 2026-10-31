@@ -94,6 +94,7 @@ namespace Renki.Protocol
         public string Entity;
         public string Style = "melee";
         public bool Kite;
+        public bool Defensive;
         public V3? At;
         public double? SearchRadius;
         public int? SearchSector;
@@ -263,6 +264,8 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         var kite = Bool(a, "kite", false);
+                        var defensive = Bool(a, "defensive", false);
+                        if (defensive && (kite || string.IsNullOrWhiteSpace(entity))) throw new BadArgsException("defensive attack requires an explicit entity without kite discovery");
                         double? searchRadius = a["searchRadius"] == null ? (double?)null : Number(a, "searchRadius", 60);
                         if (searchRadius.HasValue && (!kite || double.IsNaN(searchRadius.Value) || double.IsInfinity(searchRadius.Value) || searchRadius < 12 || searchRadius > 80))
                             throw new BadArgsException("`searchRadius` requires kite=true and a radius between 12 and 80 m");
@@ -318,7 +321,7 @@ namespace Renki.Protocol
                             if ((searchCenter.Value - searchAnchor.Value).Length + (searchRadius ?? 24) > searchLimit + 1e-6)
                                 throw new BadArgsException("search area exceeds native search bounds");
                         }
-                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset, SearchCenter = searchCenter, SearchAnchor = searchAnchor, SearchLimit = searchLimit };
+                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, Defensive = defensive, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset, SearchCenter = searchCenter, SearchAnchor = searchAnchor, SearchLimit = searchLimit };
                     }
                 case TaskNames.Harvest:
                     {

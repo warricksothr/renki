@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T08:28:34Z
+updated_at: 2026-10-31T08:54:38Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -267,3 +267,10 @@ Installed f131dfb passed complete CI (.checks/20261031T081659Z-saV9yo.log), comm
 With no Greyling currently perceived, Tas withdrew/equipped the supplied rag armour and used normal dry travel to the known berry waypoint. Four fresh food pickables were found. The collect behavior picked its first raspberry, but automatic food upkeep ate its only product before the next observed inventory; it timed out awaiting a pack gain. This is a real collection/consumption accounting defect, not a successful routine. The failed temporary instance was deleted. Native uses of the remaining bush and two mushrooms succeeded; Tas returned home with three active foods, one spare raspberry, one spare mushroom, full67.5/67.5 HP and90 stamina. Carried Wood2 is now a meaningful preservation baseline for the next gains-only test. Native receipts .checks/task-ap1fnmvh.json, .checks/task-j5vehg5g.json, .checks/task-qsvixd7u.json; repair follows for85/100 axe.
 
 Collect now counts at most one freshly observed activation/refresh of the exact output food, alongside net pack gain; an inventory newer than the interaction remains required. Starting-food counts are subtracted, so merely eating old supplies cannot fake a collection. Focused tests cover new consumption, refresh, stale state, unchanged active food, old stock consumption and a different prefab; behavior checks pass .checks/20261031T082724Z-eO6CCH.log. Full CI/review and controller deployment follow. Need fresh two-tree trial at[12,43.3,-135] (within150m home, reaching farther southern trees); existing fallen trunk near[5,53,-149] must remain excluded baseline, not miscounted as fresh work. Full routine proof remains open.
+
+**agent:codex/renki-milestones** at 2026-10-31T08:54:38Z
+
+### Live proof and current obstruction
+386a7ee fixes fresh food consumption accounting and is deployed; CI .checks/20261031T082834Z-nCtEF9.log and committed review .checks/20261031T083150Z-r4dBeH.log passed. Live gather trial .checks/gather-trial-20261031T083217973420Z/summary.json selected/felled Beech1 1:42721, but Greyling846416140:195 interrupted its new log1313705408:137. It did not complete a tree chain or deposit; this is not positive two-tree evidence. The older trunk731390815:75 is also unfinished and cannot count as a fresh tree. Site[23,44.4,-131] can reach further standing beeches1:42716,1:42732,1:42984.
+
+Tas has been safely stopped with combat disabled and the panel restored (.checks/20261031T084404Z-HQuj4L.log). Latest observed HP34.4/45.1 and pose[-55.52,31.29,57.12] are stale. Rag armour is equipped, axe was repaired, Wood2 is the carried preservation baseline. Repeated standard combat setup failed because 80% entry preparation cannot safely regenerate while pursued; adding separate native-confirmed bounded defensive recovery on the M3 ticket, preserving ordinary combat entry requirements. Full multi-tree/home/deposit acceptance remains unearned.

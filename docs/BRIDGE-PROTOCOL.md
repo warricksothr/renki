@@ -660,6 +660,17 @@ Notes:
   ordinary bounded flee inside the same task; the encounter still fails and
   reports the escape result. Target unloading is target_lost, not a kill.
   Choosing whether to start a fight remains the controller/owner's job.
+  Explicit `defensive:true` requires an exact entity without kite discovery.
+  Native damage callbacks must confirm that this ordinary Greyling hit the
+  current body in the last 15 s. Entry requires at least 30 HP and 65% health,
+  35 stamina, active food and at least 2 armour. Defense stays within 6 m of
+  its start and target for at most 12 s; below 25 HP or 60% health it escapes.
+  The normal bystander, structure, dry-ground and stamina checks still apply.
+  The controller may try one such defense per attacker per minute after a
+  confirmed hit; a native refusal falls back to flee on its next tick. Nearby
+  characters/structures prevent that automatic attempt.
+  It cannot start an expedition, chase a distant attacker or lower ordinary
+  combat thresholds. State.combat marks this mode with `defensive:true`.
   Optional state.combat gives the attack task id, entity, mode and reason;
   matching IDs let retreat coordinate with the active encounter and fallback.
   Optional `kite:true` makes `entity` optional and delegates local ground and

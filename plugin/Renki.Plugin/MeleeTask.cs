@@ -11,6 +11,14 @@ namespace Renki.Plugin
     sealed class MeleeTask : IBodyTask
     {
         internal static MeleeTask Active;
+        static Character aggressor;
+        static float hurtAt;
+        internal static void Damaged(float amount, Character attacker)
+        {
+            if (amount > 0 && attacker != null) { aggressor = attacker; hurtAt = Time.unscaledTime; }
+        }
+        internal static void ClearAggressor() { aggressor = null; }
+        readonly bool defensive;
         readonly Character enemy;
         readonly string entity, id, prefab;
         Vector3 start;
@@ -30,7 +38,7 @@ namespace Renki.Plugin
         string mode = "approach", reason;
         MeleeFrame lastFrame;
 
-        internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
+        internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason, Defensive = defensive };
 
         public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null)
         {
@@ -44,11 +52,16 @@ namespace Renki.Plugin
             var distance = Vector3.Distance(start, enemy.transform.position);
             if (distance > MeleeEncounter.ClosingRange)
                 throw new TaskRefused(Wire.ReasonRefused, "target is outside the 30 m closing range");
-            if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
+            defensive = args.Defensive;
+            if (defensive && (prefab != "Greyling" || distance > 6 ||
+                !MeleeEncounter.DefensiveReady(p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(),
+                    p.GetFoods().Count > 0, aggressor == enemy && Time.unscaledTime - hurtAt <= 15)))
+                throw new TaskRefused(Wire.ReasonRefused, "defense requires a recent nearby Greyling attacker, food, armour, 30 HP/65% health and 35 stamina");
+            if (!defensive && !HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
                 throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before combat");
             weapon = Best(p);
             if (weapon == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable ordinary melee weapon");
-            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance);
+            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance, defensive);
             if (!encounter.Engaged) mode = "closing";
             walker.ResetStuck(start);
             death = observation ?? new CharacterDeathObservation(enemy, entity);
@@ -113,7 +126,7 @@ namespace Renki.Plugin
             var pos = p.transform.position;
             var targetPos = enemy.transform.position;
             var targetDistance = Vector3.Distance(pos, targetPos);
-            if (!encounter.Engaged && targetDistance <= MeleeEncounter.EngagementRange) start = pos;
+            if (!defensive && !encounter.Engaged && targetDistance <= MeleeEncounter.EngagementRange) start = pos;
             var eye = pos + Vector3.up * weapon.m_shared.m_attack.m_attackHeight;
             var collider = enemy.GetCollider();
             if (collider == null || !collider.enabled) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target collider is unavailable"));
@@ -183,7 +196,7 @@ namespace Renki.Plugin
                     walker.SetGoal(pos, goal, .2, dryGround: true); walker.ResetStuck(pos); walkGoal = targetPos; walking = true; nextAim = Time.unscaledTime + .5f;
                 }
                 if (walker.Refused() is Outcome refusal) return Retreat(p, refusal.Detail ?? refusal.Reason);
-                if (!walker.Steer(pos, MeleeEncounter.RunApproach(frame, reach), climbObstacles: false)) return Retreat(p, "cannot approach target");
+                if (!walker.Steer(pos, !defensive && MeleeEncounter.RunApproach(frame, reach), climbObstacles: false)) return Retreat(p, "cannot approach target");
             }
             else
             {

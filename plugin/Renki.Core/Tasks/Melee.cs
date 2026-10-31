@@ -16,14 +16,16 @@ namespace Renki.Tasks
     {
         public const double HealthFraction = .8, EscapeReserve = 10, Leash = 12, WorkLimit = 45, NoProgress = 12;
         public const double ClosingRange = 30, ClosingLimit = 12, ClosingNoProgress = 4, EngagementRange = 3;
+        readonly bool defensive;
         double started, progressAt, bestHealth, closestDistance;
         public string Reason { get; private set; }
         public bool Engaged { get; private set; }
 
-        public MeleeEncounter(double now, double targetHealth, double targetDistance = 0)
+        public MeleeEncounter(double now, double targetHealth, double targetDistance = 0, bool defensive = false)
         {
+            this.defensive = defensive;
             started = progressAt = now; bestHealth = targetHealth;
-            closestDistance = targetDistance; Engaged = targetDistance <= EngagementRange;
+            closestDistance = targetDistance; Engaged = defensive || targetDistance <= EngagementRange;
         }
 
         public static bool Eligible(string prefab, int level, bool player, bool tamed, bool hostile) =>
@@ -31,6 +33,11 @@ namespace Renki.Tasks
 
         public static bool SearchEligible(string prefab, int level, bool player, bool tamed, bool hostile, bool explicitlyNamed) =>
             Eligible(prefab, level, player, tamed, hostile) && (prefab == "Greyling" || explicitlyNamed);
+
+        public static bool DefensiveReady(double hp, double max, double stamina, double armour, bool fed, bool confirmed) =>
+            confirmed && fed && armour >= 2 && hp >= 30 && max > 0 && hp >= max * .65 && stamina >= 35;
+
+        public static bool DefensiveHealth(double hp, double max) => max > 0 && hp >= 25 && hp >= max * .6;
 
         public static bool RunApproach(MeleeFrame frame, double reach) =>
             !frame.Incoming && frame.TargetDistance > Math.Max(8, reach * 2) &&
@@ -44,8 +51,10 @@ namespace Renki.Tasks
             if (f.Dead) return MeleeAction.Won;
             if (!f.Weapon) return Retreat("no usable melee weapon");
             if (f.Unsafe) return Retreat("another creature, bystander or unsafe footing is nearby");
-            if (!(f.HpMax > 0) || f.Hp < f.HpMax * HealthFraction) return Retreat("health below combat threshold");
+            if (defensive ? !DefensiveHealth(f.Hp, f.HpMax) : !(f.HpMax > 0) || f.Hp < f.HpMax * HealthFraction) return Retreat("health below combat threshold");
             if (f.Stamina < EscapeReserve) return Retreat("stamina needed for escape");
+            if (defensive && (now - started >= 12 || f.TargetDistance > 6 || f.DistanceFromStart > 6))
+                return Retreat("defensive encounter limit");
             if (!Engaged)
             {
                 if (f.TargetDistance > ClosingRange || f.DistanceFromStart > ClosingRange)

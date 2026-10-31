@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T07:24:50Z
+updated_at: 2026-10-31T08:49:08Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,8 +49,8 @@ extensions: {}
 
 ## Implementation plan
 
-### Clear the harvesting-route obstruction without manual staging
-Keep existing regional Greyling discovery and proof. An ordinary wild Boar followed Tas and interrupted the multi-tree trip within10m; the supervisor stopped without injury (.checks/gather-trial-20261031T065519945710Z/summary.json). Add an explicitly named unstarred hostile wild Boar to bounded melee eligibility, including optional native kiting of that exact entity. Unnamed acquisition remains Greyling-only; tame/player/starred/unknown targets remain refused. Emit the actual observed species in native death receipts, keeping existing Greyling-goal proof unchanged. Melee approach/dodge and flee use dry-ground physics after prior shoreline escapes entered water. Keep health/stamina, bystander, structure, pursuit and work limits. Focused policy tests and installed-game build precede a supervised exact-entity live check; no kill or block/dodge claim without native evidence. Finish the two-tree/home/storage objective after this prerequisite. Full CI, committed review and checksum deployment gate landing.
+### Bounded defensive recovery
+The latest two-tree trial felled its selected tree but was interrupted by the same confirmed Greyling. Doorway return and sprint pacing now pass; repeated ordinary combat preparation cannot recover because its 80% entry threshold refuses the already injured body, and fleeing recruits more threats. Add a separate explicit defensive attack mode for one native-confirmed recent ordinary Greyling attacker: at least 30 HP/65% health, 35 stamina, active food and rag-equivalent armour to start; retain at least 25 HP/60%, escape reserve, bystander/structure/dry-ground checks; at most 12 seconds and 6 m, no kiting/search. Ordinary combat keeps its 80% threshold. Native confirmation cannot be supplied by the controller. Match defensive telemetry in retreat suppression. Verify refusal boundaries and exact live death before resuming fresh multi-tree work.
 
 ## Notes
 

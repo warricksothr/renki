@@ -211,6 +211,7 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskHarvest, `{"entity":"0:7001","collect":false}`, &HarvestArgs{Entity: "0:7001", Collect: func() *bool { v := false; return &v }()}, nil},
 		{TaskHarvest, `{}`, nil, ErrBadArgs},
 		{TaskAttack, `{"entity":"1:2"}`, &AttackArgs{Entity: "1:2"}, nil},
+		{TaskAttack, `{"entity":"1:2","defensive":true}`, &AttackArgs{Entity: "1:2", Defensive: true}, nil},
 		{TaskAttack, `{"entity":"1:2","style":"auto"}`, &AttackArgs{Entity: "1:2", Style: "auto"}, nil},
 		{TaskAttack, `{"entity":"1:2","style":"melee"}`, &AttackArgs{Entity: "1:2", Style: "melee"}, nil},
 		{TaskAttack, `{"kite":true}`, &AttackArgs{Kite: true}, nil},

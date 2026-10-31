@@ -24,6 +24,53 @@ namespace Renki.Tests
             InRange = true,
         };
 
+        [Theory]
+        [InlineData(30, 45, 35, 2, true, true, true)]
+        [InlineData(29.9, 40, 35, 2, true, true, false)]
+        [InlineData(30, 50, 35, 2, true, true, false)]
+        [InlineData(30, 45, 34, 2, true, true, false)]
+        [InlineData(30, 45, 35, 1, true, true, false)]
+        [InlineData(30, 45, 35, 2, false, true, false)]
+        [InlineData(30, 45, 35, 2, true, false, false)]
+        public void DefensiveEntryNeedsReservesFoodArmourAndNativeConfirmation(double hp, double max, double stamina, double armour, bool fed, bool confirmed, bool allowed)
+        {
+            Assert.Equal(allowed, MeleeEncounter.DefensiveReady(hp, max, stamina, armour, fed, confirmed));
+        }
+
+        [Theory]
+        [InlineData("health")]
+        [InlineData("fraction")]
+        [InlineData("stamina")]
+        [InlineData("distance")]
+        [InlineData("leash")]
+        [InlineData("time")]
+        [InlineData("bystander")]
+        public void DefenseCannotChaseOrLoseItsSurvivalReserves(string cause)
+        {
+            var f = Healthy(); f.Hp = 30; f.HpMax = 45;
+            var policy = new MeleeEncounter(0, 20, 2, defensive: true);
+            Assert.Equal(MeleeAction.Strike, policy.Decide(f, 1));
+            Assert.Equal(MeleeAction.Retreat, new MeleeEncounter(0, 20).Decide(f, 1));
+            double now = 2;
+            if (cause == "health") f.Hp = 24.9;
+            if (cause == "fraction") f.HpMax = 51;
+            if (cause == "stamina") f.Stamina = 9;
+            if (cause == "distance") f.TargetDistance = 6.1;
+            if (cause == "leash") f.DistanceFromStart = 6.1;
+            if (cause == "time") now = 12;
+            if (cause == "bystander") f.Unsafe = true;
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, now));
+        }
+
+        [Fact]
+        public void DefensiveProtocolNeverStartsSearchOrKiting()
+        {
+            var args = Assert.IsType<AttackArgs>(TaskArgs.Parse(new TaskRequest { Task = "attack", Args = JObject.Parse("{\"entity\":\"1:2\",\"defensive\":true}") }));
+            Assert.True(args.Defensive);
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(new TaskRequest { Task = "attack", Args = JObject.Parse("{\"entity\":\"1:2\",\"defensive\":true,\"kite\":true}") }));
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(new TaskRequest { Task = "attack", Args = JObject.Parse("{\"defensive\":true}") }));
+        }
+
         [Fact]
         public void NormalMeleeTracksApproachAttackWindowAndRecovery()
         {

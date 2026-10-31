@@ -150,10 +150,11 @@ type CarriedFood struct {
 }
 
 type CombatStatus struct {
-	ID     string `json:"id"`
-	Entity string `json:"entity"`
-	Mode   string `json:"mode"`
-	Reason string `json:"reason,omitempty"`
+	ID        string `json:"id"`
+	Entity    string `json:"entity"`
+	Mode      string `json:"mode"`
+	Defensive bool   `json:"defensive,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 }
 
 // State is the bot's own body, streamed at stateHz (6.1).

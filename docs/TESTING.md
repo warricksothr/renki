@@ -1091,3 +1091,9 @@ The browser suite is required by `just check ci`; missing prerequisites fail.
 Screenshots and structured diagnostics live in `.checks/`, with a separate
 visual-review checklist that never treats a passing assertion as design approval.
 
+
+For an injured-body recovery check, `just vm task-check attack` accepts an
+explicit `defensive:true` request. Require a native-confirmed recent ordinary
+Greyling attacker and the food, armour, health and stamina reserves documented
+in BRIDGE-PROTOCOL.md. A refusal is a refusal, never death proof. Retain the
+exact task death receipt and audit, then restore combat off and stop the game.
