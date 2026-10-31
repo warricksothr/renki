@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T11:51:18Z
+updated_at: 2026-10-31T12:04:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -368,3 +368,10 @@ Long native hostile-aware running return then timed out120s at the eastern floor
 1521c9d deployed with checksum verification (.checks/20261031T114543Z-peBH6Z.log). Resupply .checks/resupply-trial-20261031T114726752105Z was stopped deliberately after repeated support_step refusals on a planned wood-pile descent. No native damage; cleanup left Tas offline and the panel online. The planned route used support around35.24m while the body stood around35.4m; counting that capsule offset as terrain rise/drop made execution reject the descent that planning accepted. Retained audit .checks/audit-window-op7Sil.jsonl shows repeated route prefixes and exact movement refusals.
 
 Dry continuity now samples the starting support as well as midpoint/endpoint. It allows only a nearby surface below the capsule (at most0.3m below,0.05m above), retaining each half-edge's0.3m rise/drop limit. Overhead floors and missing/distant footing remain invalid. Refusal traces include body/start/mid/end heights for the next diagnosis. Focused regression covers the capsule offset, true lip, overhead floor and unsupported body. Need full CI, committed review, install, return/resupply and exact two-tree final-home/store evidence before acceptance.
+
+**agent:codex/renki-milestones** at 2026-10-31T12:04:35Z
+
+### Return passed; food search and stair-exit correction
+684ed40 passed full CI .checks/20261031T115118Z-x7JR2O.log, review .checks/20261031T115358Z-9zafOM.log and checksum install .checks/20261031T115423Z-gEz5yw.log. Resupply .checks/resupply-trial-20261031T115440976800Z verified the dry return from the eastern wood pile to indoor floor[-37.07,36.09,6.38] with exact successful move receipt and no damage. It checked10of11 unique home chests, finding no ordinary edible food. The remaining chest1:48783 is unreachable from the current arrangement; its old snapshot contained Wood/Resin, so no food is inferred there. Tas has no food remaining,25/25HP and59.2/300 carried weight, AxeFlint96.8/100, Wood27/Resin5/BeechSeeds2.
+
+Normal dry hostile-aware travel toward remembered food[0.5,33,-19] left through the gates, then failed (.checks/task-4c65wmuv.json): captured body34.07163m, measured start33.75901m, midpoint33.72362m, endpoint33.69058m. The surface is continuous but the capsule/step offset exceeds0.3m. This supersedes the previous note's0.3m body-offset bound: use the existing0.6m physical support sampling bound, preserving the0.05m overhead exclusion and0.3m rise/drop per measured half-edge. Added exact stair-exit regression. Tas stopped safely; need gate/review/install and resume normal food collection, then the two-tree benchmark.

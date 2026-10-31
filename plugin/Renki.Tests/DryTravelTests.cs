@@ -15,12 +15,17 @@ namespace Renki.Tests
             var to = new V3(-29.4, 34.9, -2.01);
             Assert.False(DryTravel.ContinuousSupport(body, middle, to));
             Assert.True(DryTravel.ContinuousSupport(body, support, middle, to));
+            // Captured stair-exit footing: the capsule remains 0.32m above
+            // a gentle supported slope while the body's step settles.
+            Assert.True(DryTravel.ContinuousSupport(new V3(-46.5, 34.07163, 10.99),
+                new V3(-46.5, 33.75901, 10.99), new V3(-46.52, 33.72362, 10.74),
+                new V3(-46.53, 33.69058, 10.49)));
             // Offset compensation cannot authorize an actual abrupt lip,
             // an overhead floor, or a body without nearby support.
             Assert.False(DryTravel.ContinuousSupport(body, support, support, to - new V3(0, .3, 0)));
             var overhead = body + new V3(0, .56, 0);
             Assert.False(DryTravel.ContinuousSupport(body, overhead, overhead, overhead));
-            var below = body - new V3(0, .56, 0);
+            var below = body - new V3(0, .66, 0);
             Assert.False(DryTravel.ContinuousSupport(body, below, below, below));
         }
 

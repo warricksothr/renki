@@ -19,7 +19,7 @@ namespace Renki.Movement
         // Compare surface heights on all three samples, while refusing to
         // reinterpret an overhead floor or a distant surface as its footing.
         public static bool ContinuousSupport(V3 body, V3 supportedFrom, V3 middle, V3 to) =>
-            supportedFrom.Y <= body.Y + .05 && body.Y - supportedFrom.Y <= .3 &&
+            supportedFrom.Y <= body.Y + .05 && body.Y - supportedFrom.Y <= .6 + 1e-6 &&
             ContinuousSupport(supportedFrom, middle, to);
         // Do not probe through an obstacle beyond a checked short corner.
         // Strafing leaves that route, so it retains the full lookahead.
