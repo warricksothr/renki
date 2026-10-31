@@ -464,7 +464,11 @@ namespace Renki.Plugin
                     if (groundFailure != null) return RejectScout(desired, groundFailure.Reason);
                     segment = endpoint;
                 }
-                if (!ClearScenery(supported)) return RejectScout(desired, "structure_near_route");
+                // Enemy-free walking uses the physical body corridor above.
+                // The arena's 4 m building buffer is not a travel constraint:
+                // applying it only at corners made an observed outbound
+                // position fail when it became a return breadcrumb. Combat
+                // ground is surveyed separately before any engagement.
                 if (scoutPath.Count == 0 || (scoutPath[scoutPath.Count - 1] - next).Length > .01) scoutPath.Add(next);
                 previous = next;
             }
