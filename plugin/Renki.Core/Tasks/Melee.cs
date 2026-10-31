@@ -33,7 +33,7 @@ namespace Renki.Tasks
             Eligible(prefab, level, player, tamed, hostile) && (prefab == "Greyling" || explicitlyNamed);
 
         public static bool RunApproach(MeleeFrame frame, double reach) =>
-            !frame.Incoming && frame.TargetDistance > Math.Max(3, reach * 2) &&
+            !frame.Incoming && frame.TargetDistance > Math.Max(8, reach * 2) &&
             frame.Stamina >= frame.AttackCost + Math.Max(frame.BlockCost, frame.DodgeCost) + EscapeReserve + 20;
 
         public MeleeAction Decide(MeleeFrame f, double now)

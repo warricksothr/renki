@@ -198,7 +198,7 @@ namespace Renki.Tests
             Assert.False(MeleeEncounter.RunApproach(f, 1.4));
             f.Stamina = 61; f.Incoming = true;
             Assert.False(MeleeEncounter.RunApproach(f, 1.4));
-            f.Incoming = false; f.TargetDistance = 3;
+            f.Incoming = false; f.TargetDistance = 8;
             Assert.False(MeleeEncounter.RunApproach(f, 1.4));
         }
 

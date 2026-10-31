@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T07:09:29Z
+updated_at: 2026-10-31T07:24:50Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -472,3 +472,10 @@ Found and corrected an independent door discrepancy: planning previously exempte
 Native dry move_to t-1 succeeded from the home floor to[-58.25,34.99,-64.48] with full72.4/72.4 HP (.checks/task-sqvo8ta2.json). Exact Boar1960390678:1454 was still targeting Tas. Kiting t-2 ended honestly as enemy stopped following and completed its25m dry escape; direct t-4 then refused on pursuit leash before hitting (.checks/task-vwo1fuls.json, .checks/task-mlqgck3m.json; .checks/audit-window-4vWolf.jsonl). Neither is a kill. Tas remained at full current health.
 
 The direct encounter counted max(bot displacement, enemy displacement) against the bot's12m pursuit leash. At refusal Tas had advanced only a few metres while the Boar moved north beyond12m from the anchor. The host now supplies only actual bot displacement, preserving its12m travel bound, and the policy independently refuses a target beyond30m. Existing45s encounter/12s no-progress, health/stamina and scenery guards remain. Mode traces now include bot travel, target distance/health and current health/stamina so this can be diagnosed from bounded evidence. Focused MeleeTests pass, including independent bot-leash and target-range bounds. No acceptance criterion is advanced on this change alone.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:24:50Z
+
+### Autonomous obstruction cleared: observed wild Boar death
+Checksum-deployed pursuit/footing candidate completed explicit attack t-3 against Boar1960390678:1454 in5.05s, using native approach, strike and wait, and an owner_callback death observation. Receipt: .checks/task-jl7_xclh.json; audit .checks/audit-window-nw94xy.jsonl. The bounded native dry preparation is .checks/task-hz3mwguw.json. No human staging or clearing was required. This is a positive single-Boar melee check, not a block/dodge check; those modes were not observed and the second AC remains open.
+
+The earlier sprint attempt paused airborne over a terrain seam and immediately retreated. The candidate now allows at most0.5s with every held movement/attack input cleared over measured shallow dry support, only while closing outside6m and still healthy with escape stamina. Sprint ends outside8m, giving room to settle before close combat. Deep/unsupported/wet footing or a nearby enemy still refuses; no steering or swing runs airborne. Existing ScoutFooting bounds supply the pause. All core tests and full CI pass (.checks/20261031T072143Z-ewXJde.log). Combat is being switched off and the original two-tree/home/storage benchmark is restarting after this prerequisite.

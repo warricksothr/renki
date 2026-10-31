@@ -17,6 +17,7 @@ namespace Renki.Plugin
         readonly MeleeEncounter encounter;
         readonly CharacterDeathObservation death;
         readonly Walker walker = new Walker();
+        readonly ScoutFooting approachFooting = new ScoutFooting();
         readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe(dry: true);
         readonly List<Character> characters = new List<Character>();
         readonly Collider[] nearby = new Collider[256];
@@ -120,6 +121,22 @@ namespace Renki.Plugin
             var reach = weapon.m_shared.m_attack.m_attackRange * .8f;
             var attackWindow = enemy.InAttack();
             var incoming = attackWindow && Vector3.Distance(pos, targetPos) <= 3;
+            if (p.IsOnGround()) approachFooting.Decide(Time.unscaledTime, true, false, false, 0);
+            else if (!encounter.Engaged && targetDistance > 6 && !p.InWater() && !p.IsSwimming() && !p.IsEncumbered() &&
+                HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) && p.GetStamina() >= MeleeEncounter.EscapeReserve)
+            {
+                // Running over a terrain seam may briefly lose ground contact.
+                // Hold every input over measured shallow dry support; never
+                // steer or swing airborne, or settle inside the fighting area.
+                dodgeProbe.BeginSlice();
+                var supported = dodgeProbe.Probe(Convert.ToV3(pos), Convert.ToV3(pos));
+                var gap = supported.HasValue ? pos.y - supported.Value.Y : double.NaN;
+                if (approachFooting.Decide(Time.unscaledTime, false, true, supported.HasValue, gap) == ScoutFootingAction.Wait)
+                {
+                    SetMode("closing", "settling over measured dry support");
+                    return null;
+                }
+            }
             var unsafeArea = Unsafe(p, weapon.m_shared.m_attack.m_attackRange + 1.5f);
             var dodgeDirection = (pos - targetPos); dodgeDirection.y = 0; dodgeDirection.Normalize();
             var canDodge = incoming && !enemyWasAttacking && Time.unscaledTime >= nextDodge && SupportedDodge(pos, dodgeDirection);
