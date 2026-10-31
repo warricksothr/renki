@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T11:18:09Z
+updated_at: 2026-10-31T11:42:08Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -352,3 +352,12 @@ Candidate: checked routes use0.6m support-height tolerance in both consumption a
 629e5d6 passed full CI .checks/20261031T110946Z-xTVPCd.log, review .checks/20261031T111208Z-ohdIqD.log and checksum installation .checks/20261031T111220Z-p3kq6j.log. Exact native under-floor return now passed in10s from[-41.71,31.56,1.79] to[-36.56,36.09,7.7] (.checks/20261031T111331Z-eQLfUc.log). Both meals active, full health. Broad long-route repeat proof remains next.
 
 Fresh gather trial .checks/gather-trial-20261031T111416971900Z/summary.json correctly retained inventory and stopped with zero damage before any native step because another ordinary player was inside home. The controller incorrectly reused harvesting's15m all-character exclusion for repair and outbound travel. Separate the shared health/food/tool/capacity prerequisites from travel's nearby hostile/confirmed-pursuer guard and harvesting's unchanged all-character exclusion. No relaxation to native swing protection, falling-tree clearance or actual dry hostile-aware routing. Regressions prove a player permits repair/departure but still prevents swinging at the site; a hostile/confirmed pursuer prevents repair even when the tool is below25%. Focused behavior suite passes .checks/20261031T111747Z-NDYx6r.log. Full gate/review/deployment and exact fresh-two-tree/log gains-only final-home trial follow. Tas remains offline at home, combat false and panel available after cleanup.
+
+**agent:codex/renki-milestones** at 2026-10-31T11:42:08Z
+
+### Safe departure, a new stand and exact pursuer proof
+Installed a4f3d03 passed full CI .checks/20261031T111809Z-UBogRz.log, review .checks/20261031T112041Z-QlpvLm.log and checksum deployment .checks/20261031T112107Z-2ihrtk.log. Trial .checks/gather-trial-20261031T112205468461Z/summary.json repaired two carried items and left the home visitor successfully. No damage. Its remaining closest trees were all within33m of known walls around[57.94,36.9,3.4], so gathering correctly refused. This was not lack of standing trees or a navigation failure. A measured farther stand around[94.03,41.81,44.71] has fresh eligible full beeches; revalidate before work. A guessed-height scouting destination[82,43,50] was honestly refused; measured trees there have ground around40m, so do not reuse the43m guess.
+
+Controller collect completed two fresh mushroom targets around[100,40.5,62.5], refreshed Mushroom and was deleted after completion. Greyling1801365054:118 attacked during preparation; the ordinary retreat took Tas north. The first exact combat trial was interrupted by the configured outage home return. Temporarily setting home.afterOutage=false allowed .checks/combat-trial-20261031T113323615879Z/summary.json to kill that exact pursuer with owner_callback proof, native block/approach/strike/wait traces and0.49 damage. Normal outage setting was reset to config immediately; combat false restored by trial cleanup. No dodge claim.
+
+Long native hostile-aware running return then timed out120s at the eastern floor edge (.checks/task-ll5la3ln.json); Tas remains healthy and is safely offline with panel restored. The new first-four-point trace exposed the actual false path: from[-31.09,35.53,-0.5] to[-31.59,36.09,0], treating a0.56m vertical lip as a walkable step. Endpoint tolerance alone permits it; measured midpoint support puts that entire rise into one half-edge. Add dry-only support continuity, at most0.3m rise/drop per half-edge, in both planning and execution. Existing0.6m overall sampling bounds, native physical casts, water, threats, tight corner validation and arrival checks stay intact. Captured regression preserves two0.25m stair treads, and a real LocalRoute regression must detour to a ramp rather than enter a vertical lip. Focused DryTravelTests pass .checks/20261031T114126Z-UPFvni.log. Need full CI/review/install, installed return and exact two-fresh-tree/log gains-only final-home trial. No broad milestone criterion earned yet.

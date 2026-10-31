@@ -9,6 +9,11 @@ namespace Renki.Movement
         public const double Margin = .2;
         // Leave room for the body's step/slope offset below a sampled floor.
         public const double TravelMargin = Margin + .6;
+
+        // A full grid edge may span two ordinary stair treads. Its midpoint
+        // must share the rise; a half-metre floor lip is not a staircase.
+        public static bool ContinuousSupport(V3 from, V3 middle, V3 to) =>
+            Math.Abs(middle.Y - from.Y) <= .3 + 1e-6 && Math.Abs(to.Y - middle.Y) <= .3 + 1e-6;
         // Do not probe through an obstacle beyond a checked short corner.
         // Strafing leaves that route, so it retains the full lookahead.
         public static double ClearanceDistance(V3 from, V3? next, bool strafing = false) =>

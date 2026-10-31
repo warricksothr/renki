@@ -122,6 +122,7 @@ namespace Renki.Plugin
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
             internal bool WaterSafe(V3 at, double water) => dry
                 ? DryTravel.Clear(at, WaterLevel(at), DryTravel.TravelMargin) : at.Y >= water - .5;
+            internal bool SupportSafe(V3 from, V3 middle, V3 to) => !dry || DryTravel.ContinuousSupport(from, middle, to);
         }
 
         static V3? Probe(V3 from, V3 desired, PlanningProbe plan)
@@ -131,6 +132,7 @@ namespace Renki.Plugin
             if (!supported.HasValue) return plan.Refuse("endpoint_support", desired);
             if (!middle.HasValue) return plan.Refuse("midpoint_support", (from + desired) * .5);
             var dest = supported.Value;
+            if (!plan.SupportSafe(from, middle.Value, dest)) return plan.Refuse("support_step", dest);
             if (!plan.HostileClear(from, dest)) return plan.Refuse("hostile_corridor", dest);
             if (plan.RecentlyBlocked(from, dest)) return plan.Refuse("recent_live_refusal", dest);
             var at = Convert.ToVector3(dest);

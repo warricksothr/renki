@@ -263,6 +263,9 @@ the home marker's 1.75 m eye-height allowance. A body within 0.4 m of a tight
 corner may consume it only after a fresh physical probe validates the direct
 connection to the following point; the final point and another floor cannot
 be skipped this way.
+Dry probes also require the rise to be shared across their midpoint: each
+half-edge allows at most 0.3 m. This preserves ordinary stair treads while
+rejecting a vertical floor lip that endpoint-only step checks can misread.
 
 Between complete trees, capacity or axe-durability pressure chooses delivery
 rather than another cut. Low stamina gets one bounded 20-second rest; insufficient

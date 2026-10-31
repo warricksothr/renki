@@ -7,6 +7,44 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void ContinuousSupportFindsTheRampInsteadOfWalkingIntoAFloorLip()
+        {
+            double Height(V3 p) => p.X <= 0 ? .56 : p.X >= 2 || p.Z < 2 ? 0 : (2 - p.X) * .28;
+            V3 Support(V3 p) => new V3(p.X, Height(p), p.Z);
+            V3? Probe(V3 from, V3 desired)
+            {
+                var to = Support(desired);
+                return DryTravel.ContinuousSupport(from, Support((from + desired) * .5), to) ? to : (V3?)null;
+            }
+            var start = new V3(2, 0, 0);
+            var goal = new V3(-2, .56, 0);
+            Assert.Null(Probe(new V3(.5, 0, 0), new V3(0, .56, 0)));
+            var route = new LocalRoute(start, goal, Probe, arrivalLevel: .1);
+            while (route.Status == RouteStatus.Searching) route.Advance();
+            Assert.Equal(RouteStatus.Found, route.Status);
+            Assert.Contains(route.Path, p => p.Z >= 2);
+            Assert.InRange(route.Path[route.Path.Count - 1].Y, .55, .57);
+        }
+
+        [Fact]
+        public void CapturedRaisedFloorLipCannotMasqueradeAsTwoStairTreads()
+        {
+            var from = new V3(-31.09, 35.53, -.5);
+            var floor = new V3(-31.59, 36.09, 0);
+            var middle = (from + floor) * .5;
+            // Whichever side of the lip the midpoint samples, the entire
+            // 0.56m rise falls into one half-edge and cannot be walked.
+            Assert.False(DryTravel.ContinuousSupport(from, new V3(middle.X, from.Y, middle.Z), floor));
+            Assert.False(DryTravel.ContinuousSupport(from, new V3(middle.X, floor.Y, middle.Z), floor));
+            var stair = new V3(.5, 36.03, 0);
+            var start = new V3(0, 35.53, 0);
+            var tread = new V3(.25, 35.78, 0);
+            Assert.True(DryTravel.ContinuousSupport(start, tread, stair));
+            Assert.True(DryTravel.ContinuousSupport(stair, tread, start));
+            Assert.True(DryTravel.ContinuousSupport(from, from + new V3(-.25, 0, 0), from + new V3(-.5, 0, 0)));
+        }
+
+        [Fact]
         public void DiagonalPlanningCannotSkipTheBodiesShorterLookahead()
         {
             var from = new V3(0, 35.14, 0); var to = new V3(.5, 35.48, -.5);
