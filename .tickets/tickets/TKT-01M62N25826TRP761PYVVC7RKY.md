@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/outer-search-travel
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 1c8bdb792968155571ca9d073154c939a99ef2cb
+  session: null
+  claimed_at: 2026-10-31T01:47:59Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T01:07:02Z
+updated_at: 2026-10-31T01:48:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -42,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-The latest local search returned safely without finding a Greyling. Native searches currently always start with the east spoke, so time-bounded retries can revisit the same ground. First make fresh directional search explicit rather than introduce controller-selected terrain endpoints: add an optional discovery-only sector (eight compass bearings, three progressive distances), keep the existing native time/travel/route/return and combat eligibility limits, and have the host persist each sector intent and outcome before offering a different bearing. Try opposite bearings early. Distinguish an empty checked search with observed return from incomplete/unsafe search; neither is kill evidence or exhaustive area coverage. Generic failures retain the three-repeat stop, empty returned searches consume existing attempts/tasks/deadline instead. Preserve uncertain-intent restart handling, immutable policy snapshots, health/food/readiness checks and host-selected scope validation. Add protocol parity, native return/bounds, durable progression/restart/checkpoint and proof regressions. Run focused checks, full just check ci, commit, just check review, land and checksum-deploy, then run one persistent-goal trial. Record actual search/combat evidence and leave unobserved kill/block/dodge acceptance open.
+Continue M3 by extending later persistent search attempts to farther ground inside the existing goal sphere. Add discovery-only searchOffset (0–60 m, requires a sector, radius plus offset at most 120 m). Native scouting projects each short leg onto currently supported dry terrain; offset destinations are horizontal planning hints, never an assumed terrain Y. Keep local defaults unchanged. The first two host-selected bearings stay local; later bearings progressively use offsets 40/60 m, reduced with radius to fit the same goal envelope and 52 m combat/escape reserve. Persist offset with each intent/attempt and keep scripts unable to modify it. Native outer travel may try a small finite fan of progress-making alternatives after a blocked leg, spread across decision ticks; return travel remains on rechecked observed breadcrumbs. Include a conservative return-time allowance within the existing 90/150 s work/return and 300 m travel limits. Preserve target eligibility, player/creature clearances, damage/food/permission gates, exact death proof and uncertain-intent handling. Add protocol parity, outer-travel/bounded detour/return, host envelope and checkpoint tests. Run focused recipes, full just check ci, commit and just check review, deploy the reviewed change, then one changed-build persistent-goal trial. Record actual farthest observed travel and encounter evidence; do not label dispatch, partial travel or empty searches combat success. Finish with normal logout/combat-off/panel and standby checks. Keep unobserved M3 kill/block/dodge/owner-defense acceptance open.
 
 ## Notes
 

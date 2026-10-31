@@ -66,7 +66,9 @@ def report(folder, now=None):
     if goal:
         result['goal'] = {k: goal[k] for k in ('status', 'reason', 'attempts', 'maxAttempts', 'taskCount', 'waitS') if k in goal}
         result['goal']['pendingSector'] = ((goal.get('pending') or {}).get('search') or {}).get('sector')
+        result['goal']['pendingOffset'] = ((goal.get('pending') or {}).get('search') or {}).get('offset', 0)
         result['goal']['searches'] = [dict(sector=s['plan']['sector'], empty=s['empty'],
+                                           offset=s['plan'].get('offset', 0),
                                            reason=s['outcome'].get('reason')) for s in goal.get('searches', [])]
     return result
 

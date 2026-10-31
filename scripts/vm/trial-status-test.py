@@ -19,13 +19,14 @@ class Progress(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             folder = Path(name)
             goal = dict(status='running', attempts=2, maxAttempts=6, policy='large source',
-                        pending=dict(search=dict(sector=4)),
+                        pending=dict(search=dict(sector=4, offset=40)),
                         searches=[dict(plan=dict(sector=0, origin=[0, 0, 0]), empty=True,
                                        outcome=dict(reason='invalid_target', detail='long detail'))])
             (folder / 'goal.json').write_text(json.dumps(goal))
             result = progress.report(folder)['goal']
             self.assertEqual(result['pendingSector'], 4)
-            self.assertEqual(result['searches'], [dict(sector=0, empty=True, reason='invalid_target')])
+            self.assertEqual(result['pendingOffset'], 40)
+            self.assertEqual(result['searches'], [dict(sector=0, offset=0, empty=True, reason='invalid_target')])
             self.assertNotIn('policy', result)
             (folder / 'summary.json').write_text(json.dumps(dict(outcome='needs_plan',
                 goal=dict(goal, status='needs_plan', attempts=6, pending=None))))

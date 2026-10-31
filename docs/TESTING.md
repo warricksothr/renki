@@ -930,6 +930,9 @@ age. Pass an evidence directory to inspect a particular run. It makes no VM
 requests, and reports success only from the completed supervisor summary.
 Persistent trials also include a compact goal checkpoint: consumed attempts,
 pending sector and attempted bearings with empty/incomplete native outcomes.
+The pending and recorded offsets show when later attempts seek farther ground.
+Use actual task-scoped position evidence to confirm that ground was reached;
+requesting an offset or completing one checked leg is not that proof.
 This reads local `goal.json` while running and the terminal summary afterward;
 policy source, full perception and raw histories stay out of progress output.
 Full observations, task histories and audit frames remain on disk; inspect

@@ -10,6 +10,88 @@ namespace Renki.Tests
         static V3? Clear(V3 at) => at;
         static Scouting Search(double radius = 60) => new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, radius);
 
+        [Fact]
+        public void OuterSearchProjectsShortLegsIntoFartherGroundAndReturnsToObservedOrigin()
+        {
+            var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 0, 60);
+            var bot = V3.Zero; var farthest = 0.0; var ended = false;
+            V3? Terrain(V3 at) => new V3(at.X, at.X * .02, at.Z);
+            for (var i = 0; i < 120; i++)
+            {
+                var action = s.Decide(bot, 60, true, 2 + i * .2, Terrain);
+                if (action == ScoutAction.Done) { ended = true; break; }
+                Assert.Equal(ScoutAction.Walk, action);
+                Assert.InRange(V3.FlatDistance(s.Goal, bot), 0, Scouting.LegLength + .001);
+                Assert.InRange(s.Goal.Length, 0, Scouting.OuterReach + .25);
+                Assert.Equal(s.Goal.X * .02, s.Goal.Y, 5);
+                farthest = Math.Max(farthest, s.Goal.Length);
+                bot = s.Goal;
+            }
+            Assert.True(ended);
+            Assert.True(s.Returning);
+            Assert.InRange(farthest, 110, Scouting.OuterReach + .25);
+            Assert.InRange(bot.Length, 0, 1.5);
+            Assert.InRange(s.Travel, 220, Scouting.TravelLimit);
+        }
+
+        [Fact]
+        public void OuterTravelTriesOneBoundedAlternativePerDecisionAndKeepsProgress()
+        {
+            var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 0, 40);
+            var probes = 0;
+            V3? BlockDirect(V3 at) { probes++; return Math.Abs(at.Z) < .1 ? (V3?)null : at; }
+            Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 2, BlockDirect));
+            Assert.Equal(1, probes);
+            Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 2.5, BlockDirect));
+            Assert.Equal(2, probes);
+            Assert.True(s.Goal.Z > 0);
+            Assert.InRange(s.Goal.X, 0, Scouting.LegLength);
+            Assert.True(V3.FlatDistance(s.Goal, new V3(60, 0, 0)) < 60);
+            Assert.Equal(1, s.Attempts);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OuterFanIsFiniteAndBackwardProjectionCannotEarnTravel(bool backward)
+        {
+            var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 0, 40);
+            var probes = 0;
+            V3? Route(V3 at) { probes++; return backward ? new V3(-10, 0, 0) : (V3?)null; }
+            for (var i = 0; i < Scouting.LegAlternatives; i++)
+                Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 2 + i * .5, Route));
+            Assert.Equal(ScoutAction.Done, s.Decide(V3.Zero, 60, true, 5, Route));
+            Assert.Equal(Scouting.LegAlternatives, probes);
+            Assert.Equal(0, s.CompletedLegs);
+            Assert.Equal(1, s.Recoveries);
+        }
+
+        [Fact]
+        public void OuterReturnNeverFansAroundAnUnsafeBreadcrumb()
+        {
+            var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 0, 60);
+            s.Decide(V3.Zero, 60, true, 2, Clear);
+            var probes = 0;
+            Assert.Equal(ScoutAction.Abort, s.Decide(s.Goal, 29, true, 3, _ => { probes++; return null; }));
+            Assert.Equal(1, probes);
+            Assert.Contains("cannot return", s.Reason);
+        }
+
+        [Fact]
+        public void OuterTravelReservesReturnTimeWithoutExtendingAnyBudget()
+        {
+            var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 0, 60);
+            var bot = V3.Zero;
+            for (var i = 0; i < 6; i++) { s.Decide(bot, 60, true, 2 + i, Clear); bot = s.Goal; }
+            Assert.False(s.Returning);
+            Assert.Equal(ScoutAction.Walk, s.Decide(bot, 60, true, 80, Clear));
+            Assert.True(s.Returning);
+            Assert.Equal(ScoutAction.Abort, s.Decide(bot, 60, true, Scouting.ReturnLimit, Clear));
+            Assert.Contains("return time", s.Reason);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, null, 40));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 80, 0, 60));
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(1)]

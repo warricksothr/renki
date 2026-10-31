@@ -18,6 +18,7 @@ type combatParams struct {
 	At           json.RawMessage `json:"at,omitempty"`
 	SearchRadius *float64        `json:"searchRadius,omitempty"`
 	SearchSector *int            `json:"searchSector,omitempty"`
+	SearchOffset *float64        `json:"searchOffset,omitempty"`
 }
 
 func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error) {
@@ -43,6 +44,9 @@ func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error)
 	}
 	if p.SearchSector != nil {
 		args["searchSector"] = *p.SearchSector
+	}
+	if p.SearchOffset != nil {
+		args["searchOffset"] = *p.SearchOffset
 	}
 	encoded, err := json.Marshal(args)
 	if err != nil {

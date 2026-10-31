@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "seq": 52, "id": "t-outer", "t": 100,
+  "task": "attack", "args": {"kite":true,"searchRadius":40,"searchSector":7,"searchOffset":60}, "timeoutS":270 }

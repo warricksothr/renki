@@ -1015,6 +1015,15 @@ scouting and return"` and no entity. That is bounded search evidence, not full
 sector coverage or a combat success. A search with no completed leg remains
 unreachable; interrupted or failed returns do not produce this receipt.
 
+Optional `searchOffset` shifts the three search distances outward by 0–60 m.
+It requires `searchSector` and radius plus offset must not exceed 120 m.
+For example radius60/offset60 plans distances80,100,120 m along the bearing.
+These are horizontal hints, not fixed terrain-height destinations: native code
+projects and physically checks each short leg. Outer travel can probe a finite
+fan of progress-making alternatives, one per decision tick; the observed return
+trail is revalidated without that fan. Existing time/travel/health/character
+limits remain, with an earlier return allowance for long winding trails.
+
 ### Rendered camera images
 
 Optional `screenshot` settings on `welcome` and `config` contain `enabled`,

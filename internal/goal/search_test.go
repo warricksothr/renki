@@ -160,7 +160,7 @@ func TestSearchReceiptAndNextIntentCheckpointAreAtomic(t *testing.T) {
 }
 
 func TestPolicyCannotChooseItsOwnSectorOrEnlargeSearchRadius(t *testing.T) {
-	for _, p := range []string{`{"world":"one","searchRadius":48,"searchSector":4}`, `{"world":"one","searchRadius":60,"searchSector":0}`} {
+	for _, p := range []string{`{"world":"one","searchRadius":48,"searchSector":4}`, `{"world":"one","searchRadius":60,"searchSector":0}`, `{"world":"one","searchRadius":48,"searchSector":0,"searchOffset":60}`} {
 		host, r, v, id := fixture(t)
 		v.Perception.Characters = nil
 		source := "def step(context, state, outcome):\n return {\"action\": \"run\", \"template\": \"combat\", \"params\": " + p + "}\n"
@@ -172,5 +172,57 @@ func TestPolicyCannotChooseItsOwnSectorOrEnlargeSearchRadius(t *testing.T) {
 		if err != nil || order != nil || g.Status != "needs_plan" || g.Attempts != 0 || len(g.Searches) != 0 {
 			t.Fatal(order, err, g)
 		}
+	}
+}
+
+func TestLaterSearchesReachFartherWithoutLeavingTheGoalEnvelope(t *testing.T) {
+	for _, tc := range []struct{ radius, position, wantOffset float64 }{{200, 0, 60}, {100, 0, 36}, {200, 120, 16}} {
+		t.Run(fmt.Sprintf("radius=%g/position=%g", tc.radius, tc.position), func(t *testing.T) {
+			host, r, v, id := fixture(t)
+			if err := host.Store.update(id, func(g *Record) error { g.Radius = tc.radius; return nil }); err != nil {
+				t.Fatal(err)
+			}
+			v.State.Pos[0] = tc.position
+			v.Perception.Characters = nil
+			order, err := r.Next(v, nil)
+			for i := 0; i < 6; i++ {
+				if err != nil || order == nil {
+					t.Fatal(order, err)
+				}
+				args := order.Args.(*protocol.AttackArgs)
+				offset := 0.0
+				if args.SearchOffset != nil {
+					offset = *args.SearchOffset
+				}
+				if i < 2 && offset != 0 || i >= 4 && offset != tc.wantOffset || offset+*args.SearchRadius+tc.position+52 > tc.radius+1e-6 {
+					t.Fatalf("attempt %d: %+v offset=%g", i, args, offset)
+				}
+				g, _ := host.Store.Get(id)
+				if g.Pending.Search.Offset != offset {
+					t.Fatal("outer plan missing from durable intent", g.Pending)
+				}
+				task := fmt.Sprintf("outer-%d", i)
+				if err := r.Dispatched(task); err != nil {
+					t.Fatal(err)
+				}
+				order, err = r.Next(v, &behaviour.Result{TaskID: task, Status: protocol.StatusFailed, Reason: protocol.ReasonInvalidTarget, Detail: emptySectorDetail})
+			}
+			reopened, err := Open(host.Store.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			g, _ := reopened.Get(id)
+			if g.Attempts != 6 || len(g.Searches) != 6 || g.Searches[5].Plan.Offset != tc.wantOffset || g.Proof != nil {
+				t.Fatal(g)
+			}
+			g.Searches[5].Plan.Offset = 61
+			if err := validateRecord(g); err == nil {
+				t.Fatal("invalid outer reach was accepted")
+			}
+			g, _ = reopened.Get(id)
+			if g.Searches[5].Plan.Offset != tc.wantOffset {
+				t.Fatal("snapshot aliased store")
+			}
+		})
 	}
 }
