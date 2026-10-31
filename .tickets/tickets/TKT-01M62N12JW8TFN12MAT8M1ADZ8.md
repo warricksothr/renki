@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T09:57:43Z
+updated_at: 2026-10-31T10:06:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -304,3 +304,12 @@ Work travel currently ignores known creatures until they are close enough to hit
 The checksum-installed 66febec two-tree trial (.checks/gather-trial-20261031T094933929174Z/summary.json) left the current gates successfully but failed before harvest. Greyling1790253576:61 was freshly observed about25m away before pursuing Tas;24m route clearance allowed acquisition. The task eventually refused its local route while the pursuer closed. Cleanup captured two damage events, minimum29.1HP; no complete harvesting/storage claim.
 
 Increase opt-in work-trip clearance to40m, retaining escape-only movement when starting inside, physical dry validation, passive-animal exclusion, unchanged planner budgets and refusal when no safe route exists. The focused actual-detour/segment checks pass (.checks/20261031T095609Z-Q4UOHb.log). This is avoidance margin, not a guarantee against new/moving attackers. Tas has returned to the correct home floor automatically. Replenish food through checked chest search, or existing native collection at freshly revalidated berry/mushroom hints when storage has none; inspect an alternate southeast beech stand before reusing the pursuer's northern route. Full CI, committed review, installation and exact two-tree/home/storage proof remain required.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:06:13Z
+
+### Food access blocked by an ordinary Neck
+The scoped chest search completed without food (.checks/resupply-trial-20261031T095427894715Z/summary.json):11 unique eligible chests,11 requests,10 exact inspected receipts, zero damage. Tas returned to the home floor and regenerated normally. The wider-clearance build f5f6567 passed CI .checks/20261031T095640Z-tIxoWS.log, committed review .checks/20261031T095915Z-rqHTpX.log and checksum deployment .checks/20261031T095944Z-PeUnyo.log.
+
+Native dry foraging approaches correctly refused before entering hostile clearance (.checks/task-p9d3mlbk.json and .checks/task-g6osfkt0.json). Fresh perception identified ordinary Neck309910011:906 at[5.6,31.1,49.5], next to the mushroom patch[11,31.1,51.6]. Tas is safely offline after his last meal expired,25/25HP, no new damage. Do not claim gathering progress.
+
+Extend explicit native melee eligibility to an unstarred wild hostile Neck, preserving the same normal health/stamina/physical/by-stander gates, weapon inputs, exact native death proof, encounter/work/leash bounds and AllowCombat. Untargeted search remains Greyling-only; the native-confirmed emergency defense mode remains Greyling-only. Do not silently choose Necks as a substitute target. Add bounded loaded-threat identities/positions to failed avoidance route traces, so planning exclusions beyond normal perception are explainable. Full gate/review/deployment precede live explicit encounter, food collection and resumed two-tree benchmark. Cooking is a separate future primitive rather than a prerequisite shortcut in this change.

@@ -46,7 +46,7 @@ namespace Renki.Plugin
             enemy = obj != null ? obj.GetComponent<Character>() : null;
             var p = Player.m_localPlayer;
             if (enemy == null || !Eligible(p, enemy) || enemy.IsDead())
-                throw new TaskRefused(Wire.ReasonInvalidTarget, "melee supports one living unstarred hostile Greyling or wild Boar, never players or tamed creatures");
+                throw new TaskRefused(Wire.ReasonInvalidTarget, "melee supports one living unstarred hostile Greyling, wild Boar or Neck, never players or tamed creatures");
             prefab = enemy.m_nview.GetPrefabName();
             start = p.transform.position;
             var distance = Vector3.Distance(start, enemy.transform.position);

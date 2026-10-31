@@ -199,6 +199,11 @@ namespace Renki.Tests
         [Theory]
         [InlineData("Greyling", 1, false, false, true, true)]
         [InlineData("Boar", 1, false, false, true, true)]
+        [InlineData("Neck", 1, false, false, true, true)]
+        [InlineData("Neck", 2, false, false, true, false)]
+        [InlineData("Neck", 1, false, true, true, false)]
+        [InlineData("Neck", 1, true, false, true, false)]
+        [InlineData("Neck", 1, false, false, false, false)]
         [InlineData("Boar", 2, false, false, true, false)]
         [InlineData("Boar", 1, false, true, true, false)]
         [InlineData("Boar", 1, true, false, true, false)]
@@ -215,11 +220,14 @@ namespace Renki.Tests
         }
 
         [Fact]
-        public void BoarsRequireAnExplicitTargetWhileSearchStillChoosesGreylings()
+        public void OtherOrdinaryCreaturesRequireAnExplicitTargetWhileSearchStillChoosesGreylings()
         {
             Assert.True(MeleeEncounter.SearchEligible("Greyling", 1, false, false, true, false));
             Assert.False(MeleeEncounter.SearchEligible("Boar", 1, false, false, true, false));
             Assert.True(MeleeEncounter.SearchEligible("Boar", 1, false, false, true, true));
+            Assert.False(MeleeEncounter.SearchEligible("Neck", 1, false, false, true, false));
+            Assert.True(MeleeEncounter.SearchEligible("Neck", 1, false, false, true, true));
+            Assert.False(MeleeEncounter.SearchEligible("Neck", 2, false, false, true, true));
             Assert.False(MeleeEncounter.SearchEligible("Boar", 1, false, true, true, true));
             Assert.False(MeleeEncounter.SearchEligible("Troll", 1, false, false, true, true));
         }

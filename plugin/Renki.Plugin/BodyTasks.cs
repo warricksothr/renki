@@ -713,6 +713,7 @@ namespace Renki.Plugin
                 ["supportQueries"] = localProbe.SupportQueries,
                 ["boundsRejected"] = localProbe.BoundsRejected,
                 ["hostileRejected"] = localProbe.HostileRejected,
+                ["hostiles"] = !found && avoidHostiles && localProbe.HostileRejected > 0 ? hostiles.Snapshot() : null,
                 ["physicsCasts"] = localProbe.PhysicsCasts,
                 ["saturated"] = localProbe.Saturated,
                 ["ms"] = System.Math.Round(localMs, 2),

@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T09:20:44Z
+updated_at: 2026-10-31T10:06:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -486,3 +486,12 @@ The earlier sprint attempt paused airborne over a terrain seam and immediately r
 Native untargeted kite attack t-15 succeeded in36.8s against Greyling1313705408:53, with owner_callback death observation. It left the building through preparation, scouted, selected ground, drew/kited the creature and performed approach/strike/wait without observed combat damage. .checks/task-iccbblj2.json and .checks/audit-window-9rqXJh.jsonl; just vm combat-evidence reports the modes. This is the second Greyling; original846416140:195 is not proven dead. No block/dodge was observed.
 
 Separate live audit .checks/audit-window-qhk1k6.jsonl contains one Greyling hit during food preparation, automatic defensive request t-11 refused by native entry checks, and fallback flee t-12 one second later. This is positive refusal/fallback evidence, not successful defensive combat. The carried loadout has only ArmorRagsChest; two armour is required for defensive entry. Full prior CI/review and checksum deployment are recorded on the harvesting ticket. Routing failed on under-floor support/wood-stack geometry afterward; Tas safely stopped with combat false and panel available.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:06:13Z
+
+### Food access blocked by an ordinary Neck
+The scoped chest search completed without food (.checks/resupply-trial-20261031T095427894715Z/summary.json):11 unique eligible chests,11 requests,10 exact inspected receipts, zero damage. Tas returned to the home floor and regenerated normally. The wider-clearance build f5f6567 passed CI .checks/20261031T095640Z-tIxoWS.log, committed review .checks/20261031T095915Z-rqHTpX.log and checksum deployment .checks/20261031T095944Z-PeUnyo.log.
+
+Native dry foraging approaches correctly refused before entering hostile clearance (.checks/task-p9d3mlbk.json and .checks/task-g6osfkt0.json). Fresh perception identified ordinary Neck309910011:906 at[5.6,31.1,49.5], next to the mushroom patch[11,31.1,51.6]. Tas is safely offline after his last meal expired,25/25HP, no new damage. Do not claim gathering progress.
+
+Extend explicit native melee eligibility to an unstarred wild hostile Neck, preserving the same normal health/stamina/physical/by-stander gates, weapon inputs, exact native death proof, encounter/work/leash bounds and AllowCombat. Untargeted search remains Greyling-only; the native-confirmed emergency defense mode remains Greyling-only. Do not silently choose Necks as a substitute target. Add bounded loaded-threat identities/positions to failed avoidance route traces, so planning exclusions beyond normal perception are explainable. Full gate/review/deployment precede live explicit encounter, food collection and resumed two-tree benchmark. Cooking is a separate future primitive rather than a prerequisite shortcut in this change.

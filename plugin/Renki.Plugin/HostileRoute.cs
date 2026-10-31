@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Renki.Movement;
 using UnityEngine;
 
@@ -12,6 +13,29 @@ namespace Renki.Plugin
         readonly List<V3> threats = new List<V3>();
         int frame = -1;
         bool saturated, available;
+
+        // A route can avoid loaded threats beyond the normal perception
+        // radius. Report a bounded explanation when those threats block it.
+        internal object Snapshot()
+        {
+            var player = Player.m_localPlayer;
+            return new Dictionary<string, object>
+            {
+                ["available"] = available,
+                ["saturated"] = saturated,
+                ["count"] = threats.Count,
+                ["nearest"] = player == null ? new object[0] : characters
+                    .Where(c => c != null && c != player && !c.IsDead() &&
+                        c.GetComponent<MonsterAI>() != null && BaseAI.IsEnemy(player, c))
+                    .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude)
+                    .Take(8).Select(c => (object)new Dictionary<string, object>
+                    {
+                        ["entity"] = c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetZDO().m_uid.ToString() : null,
+                        ["prefab"] = c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetPrefabName() : null,
+                        ["pos"] = Convert.ToArray(c.transform.position),
+                    }).ToArray(),
+            };
+        }
         internal bool Clear(V3 from, V3 to)
         {
             if (frame != Time.frameCount)
