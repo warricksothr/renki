@@ -2368,7 +2368,7 @@ export function startController() {
       const article = document.createElement("article");
       article.className = "goal-record";
       const title = document.createElement("strong");
-      title.textContent = `Greyling encounter · ${g.status.replaceAll("_", " ")}`;
+      title.textContent = `${g.returnHome ? "Greyling encounter and return" : "Greyling encounter"} · ${g.status.replaceAll("_", " ")}`;
       const progress = document.createElement("p");
       progress.textContent = `${g.world} · Attempts ${g.attempts}/${g.maxAttempts} · Tasks ${g.taskCount}/${g.maxTasks} · Policy ${g.policyHash.slice(0, 8)}`;
       const reason = document.createElement("p");
@@ -2378,6 +2378,11 @@ export function startController() {
         const proof = document.createElement("p");
         proof.textContent = `Verified: ${g.proof.detail} (${g.proof.taskId})`;
         article.append(proof);
+      }
+      if (g.postCombat) {
+        const returning = document.createElement("p");
+        returning.textContent = `Return: ${g.postCombat.phase}${g.postCombat.receipt ? ` · ${g.postCombat.receipt.status} (${g.postCombat.receipt.taskId})` : ""}`;
+        article.append(returning);
       }
       if (g.history?.length) {
         const history = document.createElement("ol");
@@ -2437,6 +2442,7 @@ export function startController() {
           world: s.world,
           center: s.pos,
           radius: 200,
+          returnHome: true,
         },
       });
   });

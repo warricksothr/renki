@@ -90,6 +90,7 @@ class Resupply(unittest.TestCase):
                     if args[0] == 'task':
                         import json
                         if args[1] == 'move_to':
+                            self.assertTrue(json.loads(args[2])['dry'])
                             active_task = 'home'
                             status['task'] = dict(id='home', task='move_to')
                             history = [dict(frame=dict(type='task', re='home', status='succeeded'))]

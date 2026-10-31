@@ -15,6 +15,13 @@ spec.loader.exec_module(trial)
 
 
 class CombatTrialTests(unittest.TestCase):
+    def test_attempt_projection_keeps_trimmed_searches_and_excludes_return(self):
+        earlier = dict(taskId='search-1',template='combat',status='failed')
+        later = dict(taskId='fight',template='combat',status='succeeded')
+        home = dict(taskId='home',template='return_home',status='succeeded')
+        goal = dict(searches=[dict(outcome=earlier),dict(outcome=later)],history=[later,home])
+        self.assertEqual(trial.goal_attempts(goal),[earlier,later])
+
     def setUp(self):
         self.status = dict(connected=True, phase='in_world', hp=80, hpMax=80, pos=[0, 32, 0], stamina=60)
         self.enemy = dict(id='greyling', kind='creature', prefab='Greyling', pos=[25, 32, 0], hpFrac=1, hostile=True)
@@ -29,11 +36,64 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(trial.abort_reason(self.status, characters=[boar], target='greyling'), 'additional nearby creature')
         self.assertEqual(trial.abort_reason(dict(self.status, phase='menu')), 'not in the world')
 
+    def test_wet_start_dispatches_one_native_recovery_before_trial_preparation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            observed, commands = 0, []
+            audit = Path(directory) / 'audit.jsonl'
+            audit.write_text('')
+            home = [5,32,0]
+            def run(command, **kwargs):
+                nonlocal observed
+                args = command[2:]
+                commands.append(args)
+                value = ''
+                if args[:3] == ['panel', 'GET', '/api/status']:
+                    observed += 1
+                    value = dict(self.status, world='one', connection=1, home=dict(world='one', pos=home),
+                                 food=dict(active=[dict(prefab='Honey')]))
+                    if observed <= 2:
+                        value.update(pos=[0,28,0], flags=['swimming'], location=dict(inWater=True))
+                    else:
+                        value['pos'] = home
+                    if observed == 2:
+                        value['task'] = dict(id='home',task='move_to')
+                elif args[:3] == ['panel','GET','/api/map']:
+                    value = dict(perception=dict(characters=[]))
+                elif args[:2] == ['task','move_to']:
+                    self.assertEqual(observed,1)
+                    self.assertTrue(json.loads(args[2])['dry'])
+                    value = dict(id='home')
+                elif args[:2] == ['panel','GET'] and args[2].startswith('/api/task?id=home'):
+                    value = [dict(dir='out',frame=dict(type='task',id='home',task='move_to',args=dict(to=home,dry=True)))]
+                    if observed >= 3:
+                        value.append(dict(frame=dict(re='home',status='succeeded')))
+                elif args[0] == 'audit-window':
+                    value = str(audit)
+                return subprocess.CompletedProcess(command,0,json.dumps(value) if isinstance(value,(dict,list)) else value,'')
+            prepare = mock.Mock(side_effect=lambda summary,*a:summary.update(outcome='succeeded'))
+            module = types.SimpleNamespace(startup_home=lambda *a:True,run=prepare)
+            with mock.patch.object(trial,'ROOT',Path(directory)), mock.patch.object(trial.subprocess,'run',side_effect=run), mock.patch.object(trial.sys,'argv',['combat-trial','--resupply-food']), mock.patch.dict(trial.sys.modules,resupply_trial=module), mock.patch.object(trial.time,'sleep'), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(trial.main(),0)
+            self.assertEqual(len([c for c in commands if c[0] == 'task']),1)
+            self.assertEqual(prepare.call_count,1)
+
     def test_only_matching_task_terminal_status_ends_the_trial(self):
         result = [dict(frame=dict(re='old', status='succeeded')), dict(frame=dict(re='trial', status='running'))]
         self.assertIsNone(trial.terminal(result, 'trial'))
         result.append(dict(frame=dict(re='trial', status='rejected', reason='refused')))
         self.assertEqual(trial.terminal(dict(value=result), 'trial')['status'], 'rejected')
+
+    def test_wet_start_recovery_is_one_native_dry_home_request_with_safe_prerequisites(self):
+        status = dict(self.status, world='one', food=dict(active=[dict(prefab='meat')]),
+                      home=dict(world='one', pos=[5, 34, 0]))
+        self.assertEqual(trial.water_recovery_args(status, []), dict(to=[5, 34, 0], dry=True, stopDistance=2))
+        for change in (dict(home=None), dict(home=dict(world='other', pos=[5,34,0])), dict(stamina=20), dict(hp=60), dict(food=None)):
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                trial.water_recovery_args(dict(status, **change), [])
+        with self.assertRaises(RuntimeError):
+            trial.water_recovery_args(status, [dict(self.enemy, pos=[3,32,0])])
+        with self.assertRaises(RuntimeError):
+            trial.water_recovery_args(status, None)
 
     def test_audit_vitals_include_damage_between_polls_and_final_cleanup_state(self):
         frames = [dict(type='state', phase='menu', hp=0), dict(type='state', phase='in_world', hp=25, pos=[0, 0, 0]),

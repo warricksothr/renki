@@ -284,6 +284,7 @@ func (a *HarvestArgs) validate() error {
 // MoveToArgs are the arguments to `move_to`. A nil pointer means the
 // plugin's default: 1.5 m, and walking.
 type MoveToArgs struct {
+	Dry          bool     `json:"dry,omitempty"`
 	To           Target   `json:"to"`
 	StopDistance *float64 `json:"stopDistance,omitempty"`
 	Run          *bool    `json:"run,omitempty"`

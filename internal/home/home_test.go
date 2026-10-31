@@ -138,7 +138,7 @@ func TestGoHomeWalksThereAndRunsWhenFar(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := f.orders[0].Args.(*protocol.MoveToArgs)
-	if *a.To.Pos != (protocol.Vec3{100, 0, 0}) || *a.StopDistance != Arrive || !*a.Run {
+	if *a.To.Pos != (protocol.Vec3{100, 0, 0}) || *a.StopDistance != Arrive || !*a.Run || !a.Dry {
 		t.Errorf("move_to %+v", a)
 	}
 	if !k.Homeward(task.ID) {

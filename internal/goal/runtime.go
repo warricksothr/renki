@@ -30,10 +30,11 @@ func emptySearch(outcome Outcome) bool {
 }
 
 type Spec struct {
-	Kind   string        `json:"kind"`
-	World  string        `json:"world"`
-	Center protocol.Vec3 `json:"center"`
-	Radius float64       `json:"radius"`
+	Kind       string        `json:"kind"`
+	World      string        `json:"world"`
+	Center     protocol.Vec3 `json:"center"`
+	Radius     float64       `json:"radius"`
+	ReturnHome bool          `json:"returnHome,omitempty"`
 }
 
 func NewRecord(spec Spec, now time.Time) (Record, error) {
@@ -42,6 +43,10 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 		return Record{}, err
 	}
 	r := Record{ID: hex.EncodeToString(token[:]), Kind: spec.Kind, World: spec.World, Center: spec.Center, Radius: spec.Radius, Policy: combatPolicy, PolicyHash: hash(combatPolicy), State: json.RawMessage(`{}`), Status: "ready", Created: now, Deadline: now.Add(10 * time.Minute), MaxAttempts: 6, MaxTasks: 6}
+	r.ReturnHome = spec.ReturnHome
+	if r.ReturnHome {
+		r.MaxTasks++
+	} // One dedicated return, never another encounter.
 	return r, validateRecord(r)
 }
 func decode(raw []byte, to any) error { return behaviour.Decode(raw, to) }
@@ -117,7 +122,9 @@ func (t *Template) Queue(id string) error {
 		if r.Pending != nil {
 			return errors.New("uncertain action requires a new goal/plan; never replayed")
 		}
-		if time.Now().After(r.Deadline) || r.Attempts >= r.MaxAttempts || r.TaskCount >= r.MaxTasks || r.WaitS >= 120 {
+		encountersExhausted := r.Proof == nil && r.Attempts >= r.MaxAttempts
+		tasksExhausted := r.TaskCount >= r.MaxTasks && (r.PostCombat == nil || r.PostCombat.Receipt == nil)
+		if time.Now().After(r.Deadline) || encountersExhausted || tasksExhausted || r.WaitS >= 120 {
 			return errors.New("goal budget exhausted; cannot reset by resuming")
 		}
 		r.Status = "queued"
@@ -177,7 +184,7 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 		if last.TaskID == "" || last.TaskID != g.Pending.TaskID {
 			return r.need("native receipt does not match pending action")
 		}
-		outcome := Outcome{Status: last.Status, Reason: last.Reason, Detail: truncate(last.Detail, 512), TaskID: last.TaskID, Entity: g.Pending.Entity, At: v.Now}
+		outcome := Outcome{Template: g.Pending.Template, Status: last.Status, Reason: last.Reason, Detail: truncate(last.Detail, 512), TaskID: last.TaskID, Entity: g.Pending.Entity, At: v.Now}
 		if last.Entity != "" {
 			outcome.Entity = last.Entity
 		}
@@ -185,11 +192,16 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 		// can bind it; a later perception snapshot is never death evidence.
 		bound := outcome.Entity != "" && (g.Pending.Entity == "" || outcome.Entity == g.Pending.Entity)
 		verified := last.Status == protocol.StatusSucceeded && last.Detail == "observed Greyling death" && g.Pending.Template == "combat" && bound
-		if last.Status == protocol.StatusSucceeded && !verified {
+		returning := g.Pending.Template == "return_home" && g.ReturnHome && g.Proof != nil && g.PostCombat != nil && g.PostCombat.Phase == "return"
+		if last.Status == protocol.StatusSucceeded && !verified && !returning {
 			outcome.Status = "failed"
 			outcome.Reason = "unverified_success"
 		}
 		if err := r.t.Store.update(r.id, func(g *Record) error {
+			if returning {
+				g.PostCombat.Receipt = &outcome
+				g.PostCombat.Phase = "confirm"
+			}
 			empty := g.Pending.Search != nil && emptySearch(outcome)
 			if empty {
 				// A checked empty search is expected progress, not a repeated
@@ -217,6 +229,9 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 			return nil, err
 		}
 		g, _ = r.t.Store.Get(r.id)
+		if returning && outcome.Status != protocol.StatusSucceeded {
+			return r.need("post-combat return failed: " + outcome.Reason + " " + outcome.Detail)
+		}
 	}
 	if g.Pending != nil {
 		return r.need("uncertain action has no receipt; not replayed")
@@ -230,12 +245,21 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 	if !v.Now.Before(g.Deadline) {
 		return r.need("overall goal deadline exhausted")
 	}
+	if g.Proof != nil && g.ReturnHome {
+		return r.afterCombat(g, v)
+	}
 	if distance(v.State.Pos, g.Center) > g.Radius-52 {
 		return r.need("outside goal's conservative native travel envelope")
 	}
 	if g.Proof != nil {
 		// Completion belongs to the host, even if the policy would keep running.
 		return nil, r.t.Store.update(r.id, func(g *Record) error { g.Status = "succeeded"; g.Reason = "observed Greyling death"; return nil })
+	}
+	if g.ReturnHome {
+		if err := r.pinHome(g, v); err != nil {
+			return r.need(err.Error())
+		}
+		g, _ = r.t.Store.Get(r.id)
 	}
 	if g.Attempts >= g.MaxAttempts || g.TaskCount >= g.MaxTasks {
 		return r.need("attempt/native-task budget exhausted")

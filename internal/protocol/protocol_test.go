@@ -163,6 +163,8 @@ func TestDecodeArgs(t *testing.T) {
 	}{
 		{TaskStop, ``, &StopArgs{}, nil},
 		{TaskMoveTo, `{"to":[1,2,3]}`, &MoveToArgs{To: Target{Pos: &pos}}, nil},
+		{TaskMoveTo, `{"to":[1,2,3],"dry":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true}, nil},
+		{TaskMoveTo, `{"to":[1,2,3],"dry":"yes"}`, nil, ErrBadArgs},
 		{TaskMoveTo, `{"to":"0:7"}`, &MoveToArgs{To: Target{Entity: "0:7"}}, nil},
 		{TaskMoveTo, `{}`, nil, ErrBadArgs},
 		{TaskMoveTo, `{"to":{"x":1}}`, nil, ErrBadArgs},

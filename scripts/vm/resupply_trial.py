@@ -126,7 +126,7 @@ def run(summary, call, observe, terminal, saved):
         raise RuntimeError('resupply native task time limit')
 
     if math.dist(status['pos'], home['pos']) > 3:
-        result, status, mapped, _ = task('move_to', dict(to=home['pos'], stopDistance=2, run=home_run(status)), 270)
+        result, status, mapped, _ = task('move_to', dict(to=home['pos'], stopDistance=2, run=home_run(status), dry=True), 270)
         if result['status'] != 'succeeded' or math.dist(status['pos'], home['pos']) > 3:
             raise RuntimeError('native return home did not complete: ' + str(result.get('detail') or result.get('reason')))
     attempted, missing_chests, opened = set(), set(), {}

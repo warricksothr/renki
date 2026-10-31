@@ -61,6 +61,64 @@ func goalFixture(t *testing.T) (*App, *bridgetest.Plugin, func(string, string, b
 
 const startGoal = `{"action":"start","spec":{"kind":"combat_trial","world":"one","center":[0,0,0],"radius":100}}`
 
+func TestCombatGoalReturnsThroughTheEngineBeforeReportingTripSuccess(t *testing.T) {
+	a, p, call, _ := goalFixture(t)
+	home := protocol.Vec3{5, 0, 0}
+	if _, err := a.Home.SetHome(home, "test"); err != nil {
+		t.Fatal(err)
+	}
+	request := strings.Replace(startGoal, `"radius":100`, `"radius":100,"returnHome":true`, 1)
+	g := createdGoal(t, call("POST", request, true, true))
+	a.Behaviours.Tick(context.Background())
+	fight := p.NextTask()
+	if fight.Task != "attack" {
+		t.Fatal(fight)
+	}
+	p.Send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: fight.ID}, Status: "succeeded", Detail: "observed Greyling death", Entity: "first"})
+	g = tickUntilGoal(t, a, g.ID, func(g goal.Record) bool { return g.Proof != nil })
+	if g.Status == "succeeded" {
+		t.Fatal("kill alone completed the trip")
+	}
+	p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 100}})
+	until := time.Now().Add(4 * time.Second)
+	for time.Now().Before(until) {
+		a.Behaviours.Tick(context.Background())
+		g, _ = a.Goals.Get(g.ID)
+		if g.Pending != nil && g.Pending.Template == "return_home" && g.Pending.TaskID != "" {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if g.Pending == nil || g.Pending.Template != "return_home" {
+		t.Fatal(g)
+	}
+	back := p.NextTask()
+	var args protocol.MoveToArgs
+	if err := json.Unmarshal(back.Args, &args); err != nil || back.Task != "move_to" || !args.Dry || args.To.Pos == nil || *args.To.Pos != home {
+		t.Fatal(back, err)
+	}
+	p.Send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: back.ID}, Status: "succeeded"})
+	g = tickUntilGoal(t, a, g.ID, func(g goal.Record) bool { return g.PostCombat != nil && g.PostCombat.Receipt != nil })
+	if g.Status == "succeeded" {
+		t.Fatal("old position completed the trip")
+	}
+	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 101}, World: "one", Phase: protocol.PhaseInWorld, Pos: home, HP: 80, HPMax: 80, Stamina: 60})
+	p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 101}})
+	until = time.Now().Add(4 * time.Second)
+	for time.Now().Before(until) {
+		a.Behaviours.Tick(context.Background())
+		g, _ = a.Goals.Get(g.ID)
+		if g.Status == "succeeded" {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if g.Status != "succeeded" || g.Proof.TaskID != fight.ID || g.PostCombat.Receipt.TaskID != back.ID || g.Attempts != 1 || g.TaskCount != 2 {
+		t.Fatal(g)
+	}
+	p.Quiet(20 * time.Millisecond)
+}
+
 func createdGoal(t *testing.T, w *httptest.ResponseRecorder) goal.Record {
 	t.Helper()
 	if w.Code != 200 {

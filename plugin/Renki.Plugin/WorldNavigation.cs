@@ -62,14 +62,16 @@ namespace Renki.Plugin
             }
             readonly SupportMemo support;
             readonly bool diagnostics;
+            readonly bool dry;
             long slice;
             internal Failure LastFailure { get; private set; }
             public int BoundsRejected, PhysicsCasts, Saturated;
             public int SupportHits => support.Hits;
             public int SupportQueries => support.Misses;
-            public PlanningProbe(bool diagnostics = false)
+            public PlanningProbe(bool diagnostics = false, bool dry = false)
             {
                 this.diagnostics = diagnostics;
+                this.dry = dry;
                 support = new SupportMemo((at, y) =>
                 {
                     var result = Support(at, y, out var full);
@@ -99,6 +101,7 @@ namespace Renki.Plugin
                 return null;
             }
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
+            internal bool WaterSafe(V3 at, double water) => dry ? DryTravel.Clear(at, water) : at.Y >= water - .5;
         }
 
         static V3? Probe(V3 from, V3 desired, PlanningProbe plan)
@@ -110,7 +113,7 @@ namespace Renki.Plugin
             var dest = supported.Value;
             var at = Convert.ToVector3(dest);
             var water = ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000;
-            if (at.y < water - .5f || middle.Value.Y < water - .5f) return plan.Refuse("water", dest);
+            if (!plan.WaterSafe(dest, water) || !plan.WaterSafe(middle.Value, water)) return plan.Refuse("water", dest);
             if (!WallRoute.Clear(from, dest, Walls)) return plan.Refuse("wall_memory", dest);
             if (obstacles.Blocked(from, dest)) { plan.BoundsRejected++; return plan.Refuse("obstacle_bounds", dest); }
             var origin = Convert.ToVector3(from);

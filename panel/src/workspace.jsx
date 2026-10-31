@@ -166,7 +166,7 @@ export function Supplies() {
         </summary>
         <p>Keep an objective through failed attempts and bounded recovery.</p>
         <button id="goal-combat" type="button" disabled>
-          Test one Greyling encounter nearby
+          Test a Greyling encounter and return home
         </button>
         <p id="goal-result" role="status"></p>
         <div id="goal-list"></div>

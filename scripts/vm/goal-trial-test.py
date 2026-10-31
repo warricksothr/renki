@@ -15,13 +15,15 @@ spec.loader.exec_module(trial)
 
 class Goals(unittest.TestCase):
     def test_child_failure_does_not_end_objective_and_proof_is_required(self):
-        for ending in ('succeeded', 'needs_plan', 'missing_proof'):
+        for ending in ('succeeded', 'needs_plan', 'missing_proof', 'missing_return'):
             with self.subTest(ending=ending), tempfile.TemporaryDirectory() as folder:
                 base = dict(id='goal-1', status='running', attempts=1, reason='')
                 failed = dict(base, reason='travel limit', last=dict(status='failed'))
                 final = dict(base, status='needs_plan' if ending == 'needs_plan' else 'succeeded', attempts=2)
-                if ending == 'succeeded':
+                if ending in ('succeeded', 'missing_return'):
                     final['proof'] = dict(taskId='native-2', detail='observed Greyling death')
+                if ending == 'succeeded':
+                    final['postCombat'] = dict(phase='complete', receipt=dict(taskId='native-3', status='succeeded'))
                 frames = iter([None, base, failed, final])
                 status = dict(connected=True, phase='in_world', world='one', pos=[0, 30, 0], hp=80, hpMax=80, stamina=60)
                 def observe():
@@ -30,11 +32,15 @@ class Goals(unittest.TestCase):
                 def call(*args, **kwargs):
                     self.assertEqual(args[:3], ('panel', 'POST', '/api/goals'))
                     self.assertEqual(json.loads(args[3])['spec']['world'], 'one')
+                    self.assertTrue(json.loads(args[3])['spec']['returnHome'])
                     return dict(id='goal-1')
                 summary = {}
                 with mock.patch.object(trial.time, 'sleep'), contextlib.redirect_stdout(io.StringIO()):
                     if ending == 'missing_proof':
                         with self.assertRaisesRegex(RuntimeError, 'lacks host proof'):
+                            trial.run_persistent_goal(summary, call, observe, Path(folder))
+                    elif ending == 'missing_return':
+                        with self.assertRaisesRegex(RuntimeError, 'lacks confirmed native home return'):
                             trial.run_persistent_goal(summary, call, observe, Path(folder))
                     else:
                         trial.run_persistent_goal(summary, call, observe, Path(folder))

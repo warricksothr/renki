@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/post-combat-return
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 9548b59760be3d66d75b52667d77a98aaf326a06
+  session: null
+  claimed_at: 2026-10-31T03:41:32Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T02:58:00Z
+updated_at: 2026-10-31T04:37:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -42,7 +49,11 @@ extensions: {}
 
 ## Implementation plan
 
-Reproduce the recorded over-grade return connector offline (captured segment coordinates, explicitly modelled neighboring terrain rather than a claimed full-world replay), then add native incremental checked detours. Reuse LocalRoute with optional continuous GroundCorridor state per search node, keeping incoming grade in node identity so sharp joins cannot be hidden by grid corners. Carry the same ground history through full-path validation. Bound scouting detours to24m path cost,1024nodes,4s, at most8expansions and about2ms per physics step; pending planning holds motion and consumes the existing scout work/return/deadline budgets instead of being counted as failure. Use currently measured support, unchanged30degree grade/bend/roughness, dry/body/wall checks and existing creature/player clearances on every edge. Return detours target observed breadcrumbs; outbound detours may find a checked progress leg toward the existing horizontal destination without guessing distant terrain height. Revalidate the exact resulting route before walking and while following; movement, target acquisition, new orders and scope/readiness changes invalidate pending plans. Add offline return, creature-clearance, corner-history, pending/timeout/cancellation and bounded-work regressions. Run focused just checks, full just check ci, commit and just check review; checksum-deploy the reviewed change and run one persistent-goal live check. Keep travel/empty outcomes separate from combat proof and M3 acceptance, retain compact planning diagnostics, and verify normal offline/combat-off/panel/OBS cleanup.
+Add opt-in returnHome to combat goals, keeping old saved goals and kill-only semantics intact. New panel/supervisor goals opt into a pinned known home inside the authorized work sphere. Persist the destination before combat; retain six combat attempts and add one dedicated return task slot, not extra combat retries. Keep the exact kill Proof independent from postCombat phase/receipt so return failure, cancellation, restart uncertainty or observation failure never erases the kill or fabricates round-trip success.
+
+After verified death, the host uses bounded fresh-observation recovery waits (80% health,40 stamina, active food, no encumbrance/swimming or nearby live creature threat). It dispatches one existing native move_to to the pinned home; native C# owns pathfinding, supported motion, route reuse, obstruction and off-level recovery. Do not puppet movement or weaken scout terrain/character limits. Checkpoint return intent before dispatch; consume only its matching receipt. Require native success plus a fresh post-receipt observation within3m horizontally and1.5m vertically of the unchanged home before whole-goal success. A failed return remains needs_plan with kill Proof and return diagnostics preserved. Keep original deadline/wait bounds and never replay uncertain actions after restart. Scope/permission/new-order ownership remain with existing host/engine controls.
+
+Add focused goal/App/supervisor regressions for kill preservation, return receipt identity and position/height confirmation, recovery/readiness/threat/scope/home changes, budgets, cancellation/restart/checkpoint failures and legacy kill-only records. Expose phase and separate kill/return receipts in panel and compact trial summaries. Run focused just checks, formatting, full just check ci, commit and just check review. Deploy with verified checksums, run one changed-build autonomous persistent-goal trial, inspect native kill/return/block/dodge/detour evidence without inferring missing actions, and independently verify offline/combat-off/panel/standby cleanup. Keep remaining live detour and defensive-action acceptance open if not exercised.
 
 ## Notes
 
@@ -349,3 +360,73 @@ The changed-build autonomous persistent goal SUCCEEDED on its first native attem
 Evidence: .checks/combat-trial-20261031T025506622229Z/summary.json; native audit .checks/audit-window-miox0v.jsonl; console .checks/20261031T025506Z-nZ7HQS.log; camera .checks/camera-20261031T025637362179Z.jpg. The supervisor observed42.3m travel and30.6m maximum range from the trial center. Native audit confirms zero damage events, minimum/final73.2HP, final position[-2.72,32.94,-23.16]. Food-derived max health declined during the trial; this is not damage. No detour planner ran in this successful encounter, so real-terrain detour cost/success and checked detour return remain LIVE-UNVERIFIED; do not claim that the combat result proves them. No return-home completion was observed after the kill; cleanup deliberately logged out there.
 
 Independent cleanup: just check vm status (.checks/20261031T025702Z-rx8j6r.log) shows Valheim stopped, controller/panel running and Tas disconnected; just vm combat reports AllowCombat=false. just check streaming windows-status passed (.checks/20261031T025702Z-TLBEpw.log), confirming private output/standby services. No cleanup errors were reported. Next useful checks are native block/dodge under real attack, safe post-combat return, live detour/return activation and broader owner defense. Do not repeat an unchanged local search solely to hunt another kill; retain the positive proof and choose a distinct remaining acceptance case.
+
+**agent:codex/renki-milestones** at 2026-10-31T03:50:16Z
+
+Implemented opt-in returnHome on combat goals; new panel and goal-trial requests enable it, while saved/API kill-only goals retain prior semantics. Home is pinned inside the existing sphere before combat. Verified kill Proof remains independent from postCombat recover/return/confirm/complete and its native receipt. Six combat attempts are unchanged; only one additional native task slot is reserved for return. Recovery uses fresh post-kill surroundings, active food, 80% health/40 stamina, no encumbrance/swimming or nearby creature, with one-minute readiness/three-minute phase/original overall and shared wait limits. One native move_to owns the return path and existing physical navigation; whole-goal success also requires fresh post-receipt position at the unchanged home's horizontal/vertical level. No scripted intermediate movement or repeated return dispatch. Failures, cancellation and restart uncertainty retain kill proof.
+
+Focused just check controller test-packages ./internal/goal ./internal/app ./internal/behaviour passed (.checks/20261031T034811Z-ysv4X5.log). Tests cover real-engine kill-to-return sequencing, independent matching receipt and post-receipt arrival, wrong floor/position, missing/changed/out-of-scope home, readiness/threat/staleness/water/encumbrance, deadline/wait bounds, the sixth encounter's reserved return slot, intent/receipt checkpoint failure, cancellation and restart uncertainty. Supervisor/progress checks pass (just check vm test-goal-trial and just check vm test-resupply-food); the supervisor rejects kill-only success for the opted-in trip. Panel and retained summaries show kill proof separately from return phase/receipt. A focused test exposed accepting a same-time pre-receipt observation; confirmation now requires a strictly later observation.
+
+Full just check ci is running before commit/review and checksum deployment. Then run one changed-build persistent-goal trial and inspect actual native kill, return, block/dodge and scouting-detour traces separately. Return success, live detour costs/return and defensive actions remain unverified until observed. Preserve normal autonomous cleanup: Tas offline, combat false, controller/panel and private standby online. No acceptance box changed in this pass.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:05:56Z
+
+First changed-build trial of source87ceead exposed a concrete return failure, now being fixed before landing. Evidence: .checks/combat-trial-20261031T035235896688Z/summary.json, native audit .checks/audit-window-cH5J65.jsonl, console .checks/20261031T035235Z-EethEW.log, camera .checks/camera-20261031T035601378941Z.jpg. The goal used all six combat attempts, then t-6 killed ordinary Greyling1960390678:1455 with owner_callback evidence and retained exact Proof. Recovery ran and dispatched reserved native t-7 home. Ordinary navmesh return crossed the inlet; supervisor aborted unsafe water and cleaned up. Final native position[-37.97,28.15,-31.22], minimum/final68.3HP, zero native damage events. Independent controller read confirms cancelled goal f32dec5706e2b013198c6f6f still holds t-6 kill Proof and pending return intent. No round-trip success earned.
+
+This trial DID exercise real scouting detours. The successful t-6 plans found checked outbound legs in203/370 expansions,39.12/81.28ms total, worst planning steps1.93/2.12ms. Another candidate was correctly invalidated and a search stopped at1,024nodes (worst2.58ms). No block/dodge or scouting return-detour was observed. Preserve those distinctions; do not call an invalidated plan a walked route.
+
+Native fix adds explicit move_to dry=true for goal/home returns. It uses currently checked cached trails or existing bounded incremental LocalRoute, dry measured support (including floors/bridges) and endpoint/midpoint water guards; each actual short movement/strafe is checked again. It cannot switch back to the inlet-crossing navmesh shortcut. Existing wet starts use the native bounded shore search targeting truly dry land and keep exiting through shallow water before dry onward planning. The supervisor can request one native dry home prerequisite for an idle interrupted wet start, with known nearby home, food/health/stamina, known clear surroundings, original scope/damage/ownership/timeout checks and no replacement of unrelated work. This supplies autonomous recovery without player staging/clearing/repositioning.
+
+Supersedes the plan's arbitrary1.5m arrival bound: host confirmation now matches the existing native Arrival.Level=1.75m; a regression covers a valid1.6m marker/standing-height difference and still rejects a wrong floor3m below. Protocol fixture/Go+C# decode, dry inlet routing and changed-water rejection, bridge support, dry-vs-shallow shore choice, home dry flag, full supervisor wet-start sequence and receipt-ledger projection checks were added. Focused checks and native build pass. Full just check ci is running before the fix commit/review, checksum deployment and a materially changed native-return trial. Compact console output now keeps detour counts/maxima; all terminal planner examples remain on disk. Search-ledger receipts recover encounters trimmed from the panel's three-row history.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:14:39Z
+
+### Changed-build live result
+
+c24a8d7 recovered Tas from the inlet and traveled 50.7 m around it on supported dry routes, without damage. Startup return then failed unreachable on dry land at [-27.42,31.66,-14.32], about 23 m from home; no combat goal started. Final local search exhausted 3200 nodes and its eight-second elapsed bound. The dry branch currently bypasses navmesh entirely, leaving local search to solve the raised-floor entrance without guidance. Next: incrementally validate complete navmesh candidates through the same dry support/body/water probe before use, retain local fallback, and bound/reject repeated stationary candidates.
+
+Evidence: .checks/combat-trial-20261031T040947354794Z/summary.json and .checks/audit-window-ADgxrE.jsonl. One earlier planning step measured 14.26 ms; the approximate two-ms scheduler target is not a hard ceiling. Independent status confirmed game offline and controller online. Kill-and-confirmed-return and actual block/dodge evidence remain unearned.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:16:53Z
+
+### Native dry navmesh guidance
+
+Added bounded NavmeshCandidates and incremental RouteValidation for complete dry navmesh candidates, with distinct provenance from recorded successful trails. Every half-meter segment must pass the live dry support/body/water probe before movement; immediate-leg and actual corridor checks remain active. Rejected asynchronous candidates preserve local search and its elapsed budget. At most eight distinct stationary candidates are checked; a repeated candidate is suppressed until two meters of real movement or a new goal. Rejection includes focused stage/collider diagnostics. Core regressions cover an inlet shortcut, dry local fallback, a raised entrance and demolished ramp, async candidate changes, stationary attempt bounds, incomplete routes and sample limits. Full gate and live recheck pending.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:22:18Z
+
+### 7422354 live scouting result
+
+Changed build deployed with verified checksums after full gate (438 C# tests, 42 panel scenarios) and clean committed review. Goal 6f1626f42e84c575dd2ae2c5 exhausted six bounded scouting attempts with no eligible enemy: three empty-search receipts and three unreachable sectors. Tas traveled 162 m observed, with zero native damage events. No kill, dry home return, block or dodge proof was earned. Cleanup completed without errors. Evidence: .checks/combat-trial-20261031T041832915195Z/summary.json and .checks/audit-window-tpJLwE.jsonl.
+
+No automatic startup return was dispatched from the saved dry position 23 m from home, so this did not exercise the new dry route. Isolating that check via the existing bounded food-resupply supervisor, whose home move now also requests dry travel. This can replenish decaying food while testing the native raised-home approach, without requiring an enemy or a manually staged encounter.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:26:25Z
+
+### Isolated dry return result and prefix correction
+
+The isolated resupply home approach at source7422354 failed before movement with zero damage; no chest was opened. Full evidence .checks/resupply-trial-20261031T042231812609Z/summary.json and .checks/audit-window-KhiOrM.jsonl. Local search expanded3185nodes before its eight-second deadline, with13.27ms worst measured slice. No complete navmesh candidate was accepted.
+
+The candidate gate now permits a partial navmesh prefix only with at least six meters of horizontal goal progress, validates every leg to its own endpoint through dry physical probes, and leaves the absent final segment to local planning. This retains the existing successful prefix strategy without treating the endpoint as home. Added modeled captured-height regression showing a supported prefix below the raised home remains distinct from goal arrival. Rate-limited native query diagnostics now report missing/incomplete navmesh endpoints as well as candidate validation failures. Food-resupply returns also opt into dry native movement. Next changed-build check remains isolated home/resupply before another encounter search.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:28:35Z
+
+### Checked prefix authority
+
+A navmesh candidate refused at a later physical sample can also retain only its already validated prefix, provided that prefix itself earns at least six meters of goal progress. The refused sample is never installed. Following each prefix still rechecks its immediate support and actual motion corridor, then resumes local planning at its endpoint. A regression covers a long wet shortcut retaining dry ground before the bank and a near-start refusal retaining no speculative movement. This addresses paths whose complete endpoint is nominally near home but whose final physical leg is blocked.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:33:40Z
+
+### b37a795 isolated native dry return and recovery passed
+
+just check vm resupply-food --wait-s 60 passed. Tas traveled47.7m observed from[-28.08,31.45,-14.43] to home[-36.76,36.09,6.24],1.81m from the marker. Native t-1 move_to succeeded on the raised floor. The native navmesh ended below home at[-37.47,34.14,6.13]. Checked prefixes reached that obstacle; local planning then found the entrance (583nodes initially,141.72ms total,2.62ms worst slice), with further guarded replans around stairs/doorway. Initial candidate validation measured8.19ms worst slice, so the approximate two-ms scheduler remains an honest soft target.
+
+Verified t-3 withdrew4CookedDeerMeat and t-5 withdrew3CookedMeat using exact container receipts, followed by active meals and recovery to98.9/114.3HP. Zero native damage events; no cleanup errors. Full evidence .checks/resupply-trial-20261031T042917716712Z/summary.json, audit .checks/audit-window-5zlAse.jsonl, console .checks/20261031T042917Z-afdLuI.log. Full gate passed440C#tests and42panel scenarios before b37a795, committed review and checksum installation passed. This proves isolated dry home return plus resupply/recovery, not a combined post-kill round trip or actual block/dodge. A changed-start combat check is now running from the raised home with replenished food.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:37:00Z
+
+### Final pre-regional-search combat check
+
+The b37a795 goal from home exhausted six attempts without an eligible Greyling. Later native legs did reach 118.5 m from the goal center (304.6 m observed travel), so earlier progress at 30 m was not the final extent. Two searches earned exact empty receipts; other sectors were unreachable or ended in native retreat after route/return refusal. No kill, combined post-combat return, actual block/dodge, or scouting return-detour proof was earned. Evidence: .checks/combat-trial-20261031T043222522104Z/summary.json. Isolated dry home return, verified food transfers and recovery remain passed separately.
+
+User requested distinct selectable search areas with local search inside each. Current sector offsets vary bearings around each task's current position and do not establish separate area travel/local search phases. Continue that work after landing this verified return/recovery increment; retain all safety limits and separate unreachable areas from genuinely searched empty areas.

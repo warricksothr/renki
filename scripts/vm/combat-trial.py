@@ -39,6 +39,31 @@ def records(value):
     return value.get('value', []) if isinstance(value, dict) else value
 
 
+def goal_attempts(goal):
+    # Panel summaries trim history to three; the durable search ledger keeps
+    # earlier receipts. Include them without calling a home return an encounter.
+    attempts = {}
+    for outcome in [s['outcome'] for s in goal.get('searches', [])] + goal.get('history', []):
+        if outcome.get('template', 'combat') == 'combat' and outcome.get('taskId'):
+            attempts[outcome['taskId']] = outcome
+    return list(attempts.values())[-8:]
+
+
+def water_recovery_args(status, characters):
+    """One native return prerequisite after an interrupted wet trial, no steering."""
+    home = status.get('home') or {}
+    if characters is None:
+        raise RuntimeError('fresh surroundings required for startup water recovery')
+    if (home.get('world') != status.get('world') or not home.get('pos')
+            or distance(status['pos'], home['pos']) > 150 or status.get('hp', 0) < status.get('hpMax', 1) * .8
+            or status.get('stamina', 0) < 30 or not (status.get('food') or {}).get('active')):
+        raise RuntimeError('water recovery requires known nearby home, food, health and stamina')
+    if any(c.get('kind') == 'creature' and c.get('hpFrac', 0) > 0
+           and (c.get('targetingMe') or distance(c['pos'], status['pos']) < (15 if c.get('hostile') else 8)) for c in characters):
+        raise RuntimeError('another creature prevents startup water recovery')
+    return dict(to=home['pos'], dry=True, stopDistance=2)
+
+
 def terminal(value, task_id):
     for row in reversed(records(value)):
         frame = row.get('frame', {})
@@ -140,7 +165,7 @@ def ground_diagnostics(audit, task_id):
 def run_persistent_goal(summary, call, observe, saved):
     """One durable objective; a child-task failure is an outcome, not the end."""
     status, _ = observe()
-    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=200)
+    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=200, returnHome=True)
     created = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)), as_json=True)
     goal_id = created['id']
     summary.update(goalId=goal_id, origin=status['pos'], outcome='running')
@@ -162,9 +187,12 @@ def run_persistent_goal(summary, call, observe, saved):
             # The host must retain exact native evidence; never trust a script claim.
             if goal['status'] == 'succeeded' and not goal.get('proof'):
                 raise RuntimeError('successful goal lacks host proof')
+            if goal['status'] == 'succeeded' and ((goal.get('postCombat') or {}).get('phase') != 'complete'
+                    or ((goal.get('postCombat') or {}).get('receipt') or {}).get('status') != 'succeeded'):
+                raise RuntimeError('successful goal lacks confirmed native home return')
             summary.update(outcome=goal['status'], reason=goal.get('reason', ''))
             return
-        target = (goal.get('pending') or {}).get('entity')
+        target = (goal.get('pending') or {}).get('entity') or (goal.get('proof') or {}).get('entity')
         combat = status.get('combat') or {}
         if combat.get('id') == (goal.get('pending') or {}).get('taskId') and combat.get('entity'):
             target = combat['entity']
@@ -237,6 +265,17 @@ def main():
         while True:
             status, mapped = observe()
             reason = abort_reason(status)
+            if reason == 'unsafe water':
+                chars = (mapped.get('perception') or {}).get('characters')
+                recovery = water_recovery_args(status, chars)
+                if startup_id or (status.get('task') or {}).get('task') == 'move_to':
+                    reason = None  # Existing home task is still checked below.
+                elif not status.get('task') and not summary.get('startupRecoveryTask'):
+                    request = call('task', 'move_to', json.dumps(recovery), '120', as_json=True)
+                    summary['startupRecoveryTask'] = request['id']
+                    print('Native dry-ground return is recovering the interrupted wet start', flush=True)
+                    time.sleep(1)
+                    continue
             if reason:
                 raise RuntimeError(reason)
             if startup_id:
@@ -394,7 +433,7 @@ def main():
                     summary['diagnosticError'] = str(e)
             if summary.get('goalId'):
                 try:
-                    attempts = summary.get('goal', {}).get('history', [])[-6:]
+                    attempts = goal_attempts(summary.get('goal', {}))
                     summary['encounters'] = [dict(taskId=attempt['taskId'], status=attempt['status'],
                         reason=attempt.get('reason'), entity=attempt.get('entity'),
                         ground=ground_diagnostics(audit, attempt['taskId'])) for attempt in attempts if attempt.get('taskId')]
@@ -409,9 +448,10 @@ def main():
     if summary.get('result'):
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
     if summary.get('goalId'):
-        report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof')}
+        report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof', 'home', 'postCombat')}
         report['encounters'] = [dict(taskId=e['taskId'], status=e['status'], reason=e['reason'],
-            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','recoveries','returnHint','detours')})
+            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','recoveries','returnHint')},
+            detours={k:e['ground']['scouting']['detours'][k] for k in ('states','maxExpanded','worstFrameMs')})
             for e in summary.get('encounters', [])]
     if harvesting:
         report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain', 'deposited', 'returned', 'selection') if k in summary})

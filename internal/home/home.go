@@ -193,7 +193,7 @@ func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.T
 		run = false
 	}
 	t, err := k.s.Dispatch(ctx, session.Order{Task: protocol.TaskMoveTo, Origin: origin,
-		Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &h.Pos}, StopDistance: &stop, Run: &run}})
+		Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &h.Pos}, StopDistance: &stop, Run: &run, Dry: true}})
 	if err != nil {
 		return nil, err
 	}

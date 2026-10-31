@@ -53,6 +53,18 @@ class Progress(unittest.TestCase):
             (folder / 'goal.json').write_text('{')
             self.assertNotIn('goal', progress.report(folder))
 
+    def test_kill_and_return_proofs_remain_distinct_in_progress(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            goal = dict(status='needs_plan', proof=dict(taskId='fight', entity='grey', detail='observed Greyling death', unused='large'),
+                        postCombat=dict(phase='confirm', receipt=dict(taskId='return', status='failed', reason='unreachable')))
+            (folder / 'goal.json').write_text(json.dumps(goal))
+            result = progress.report(folder)['goal']
+            self.assertEqual(result['killProof']['taskId'], 'fight')
+            self.assertEqual(result['postCombat']['receipt']['taskId'], 'return')
+            self.assertEqual(result['status'], 'needs_plan')
+            self.assertNotIn('unused', result['killProof'])
+
     def test_latest_gather_run_includes_delivery_and_missing_terminal_result(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)

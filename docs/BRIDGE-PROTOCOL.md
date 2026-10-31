@@ -478,7 +478,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | Task | Kind | Args | Milestone |
 |---|---|---|---|
 | `stop` | body | — | M1 |
-| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool) | M1 |
+| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false) | M1 |
 | `follow` | body | `player` (name or id); `distance` (default 3.5); `run`: `"auto"` matches the leader | M1 |
 | `look_at` | instant | `to`: position or entity | M1 |
 | `say` | instant | `text`; `channel`: `normal`, `shout` or `whisper`; `to` (whisper target) | M1 |
@@ -670,6 +670,16 @@ Notes:
   a key held down.
 
 ### 7.3 Movement inside the plugin
+
+- **Dry home travel:** home returns request `dry:true`. Native movement uses
+  validated route hints or incremental local routing with supported endpoints
+  and midpoints at least 0.2m above water, including bridge/floor support. It
+  rechecks the immediate movement corridor and cannot switch back to an
+  unchecked navmesh shortcut through water. Stuck strafes receive the same
+  check; jumping/climbing recovery is disabled for this mode. If already wet,
+  the existing bounded shore search first targets dry land and continues out
+  of shallow water before planning onward. Other movement keeps its default
+  policy. Dry planning retains the existing node, time and per-frame limits.
 
 - **Successful route hints:** completed point `move_to` tasks can retain
   and reuse their actual grounded trail (up to 256 points, 24 trails per game session).
