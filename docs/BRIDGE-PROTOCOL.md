@@ -608,6 +608,9 @@ Notes:
     output. It requires movement/gather and session pickup permission, an empty
     locally simulated fire-backed cooking station, active food, safe health,
     dry footing, no nearby hostile and room for the full possible yield.
+    A cold station may first use one carried Wood on its uniquely matched empty
+    supporting fire; wood, fuel and actual heat receipts are required before
+    input insertion. No repeated fuel use follows uncertain or blocked heat.
     Exact input/owned-slot/spawn/inventory receipts are required. Stop or
     interruption leaves any partial batch on the station or in the world;
     it never resumes automatically. The food keeper waits to consume this

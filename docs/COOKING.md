@@ -2,7 +2,7 @@
 
 Owners and configured operators can say `Tas cook food` (or use `cook food`
 in the panel). Tas selects carried raw boar meat, deer meat or a neck tail,
-and a freshly observed, empty, heated cooking station within 12 m in three
+and a freshly observed, empty cooking station within 12 m in three
 dimensions. The order cooks **one input**, watches it and collects its actual
 output, including the game's possible cooking bonus. It replaces the current
 body order, as other explicit commands do. It does not yet form an automatic
@@ -22,7 +22,14 @@ never claims ownership itself. Native cooking additionally checks the actual
 recipe, ward access, sight/reach, active food, 80% health, dry footing, nearby
 hostiles and space/weight for the complete possible yield. Missing ingredients,
 busy stations and a dead fire produce a refusal with the missing prerequisite.
-Automatic ingredient withdrawal and fire fueling are follow-up composition.
+The station needs a working fire, or one carried `Wood` for its unique empty
+supporting fire. Before inserting food, the native routine matches the station's
+fire-check points against the fire's actual burning-area bounds (including
+inactive box/sphere areas), verifies sight/reach/access and uses that wood
+normally. It requires the inventory decrease, synchronized fuel increase and
+actual station heat before continuing. It never adds a second wood on an
+uncertain receipt or to an already fueled but blocked fire. Automatic ingredient
+withdrawal, continued fire tending and bulk cooking remain follow-up composition.
 
 The station's normal `UseItem` action consumes one carried ingredient. Success
 requires the matching inventory decrease and a single matching cooking slot

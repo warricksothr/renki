@@ -35,7 +35,7 @@ func (b *Brain) cook(from origin) (session.Order, string, bool) {
 	best, distance := "", 12.0
 	for _, station := range seen.Structures {
 		c := station.Cooking
-		if station.ID == "" || station.Kind != protocol.StructureStation || c == nil || !c.Supported || !c.Heated || len(c.Slots) == 0 || len(c.Slots) > 16 {
+		if station.ID == "" || station.Kind != protocol.StructureStation || c == nil || !c.Supported || !c.Heated && pack.Count("Wood") < 1 || len(c.Slots) == 0 || len(c.Slots) > 16 {
 			continue
 		}
 		if slices.ContainsFunc(c.Slots, func(s protocol.CookingSlotStatus) bool { return s.Item != "" || s.State != "empty" }) {
@@ -47,7 +47,7 @@ func (b *Brain) cook(from origin) (session.Order, string, bool) {
 		}
 	}
 	if best == "" {
-		b.say(from, "I need an empty cooking station over a working fire within 12 metres. I won't take an existing batch.")
+		b.say(from, "I need an empty cooking station within 12 metres, with a working fire or carried wood to light it.")
 		return session.Order{}, "", false
 	}
 	return session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: best, Cook: raw}, TimeoutS: 180},

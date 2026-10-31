@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-31T16:51:23Z
+updated_at: 2026-10-31T17:05:06Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -74,3 +74,11 @@ Implemented the first native cooking slice on t3/cooking-food, stacked above PR1
 Added current fire fuel/lit and cooking slot/heat telemetry, shared fixtures, protocol/policy/permission/cancellation/command tests, docs/COOKING.md, and just vm cooking-check. The live-check recipe can join under the enabled native startup guard, inspect unique current home chests for one raw ingredient using verified receipts, and always logs out/stops after admission while preserving panel/video. It prints compact results and retains full evidence. Ordinary food resupply candidate defaults are unchanged; the helper now optionally supports an explicit ingredient allowlist. Ghost-only memories cannot inflate the cooking search set.
 
 Focused cooking core checks, controller protocol/chat checks, native build, cooking supervisor and existing resupply supervisor checks passed. Full just check ci is running. No live cooking success yet. This is a single explicit batch primitive and proof tool, not the complete automatic tending/resupply/escort-maintenance composition. Fermenter/beehive/ore AC stay open, as does live proof of avoiding burnt food.
+
+**agent:codex/renki-milestones** at 2026-10-31T17:05:06Z
+
+The first guarded live proof on fd2ac62 safely withdrew one RawMeat from chest 1:70031 with matched native container/inventory receipts. The supervisor then falsely timed out because it matched task response id rather than the protocol's re field. Raw failed evidence is retained in .checks/cooking-20261031T165430Z; no cooking was attempted. Corrected the parser and added a regression against the shared native task_failed fixture.
+
+Both current nearby cooking stations (1:70085 and 1:70084) were empty but cold; their supporting campfire 1:70049 had zero fuel. Added native preparation using one carried Wood through normal Fireplace.UseItem. It matches actual station fire-check points against inactive burning-area geometry, requires a unique empty wood fire, ward access and sight/reach, and confirms wood consumption, synchronized fuel increase and actual station heat. Unconfirmed or blocked fires never trigger another fuel attempt. Chat and proof-tool selection admit cold empty stations only with carried wood. Broader automatic resupply, repeated tending and fermenter/beehive/ore AC remain open.
+
+Focused cooking core, supervisor, chat and protocol checks passed. Full just check ci is in progress. Tas remains logged out inside home, about30.9/30.9 HP, with the retrieved raw meat and carried wood. Native startup recovery guard remains enabled; home.afterOutage remains temporarily false. Next: commit/review/deploy and repeat one continuously supervised batch. Raised-floor reach remains a possible live blocker; sight/access checks will remain enforced.

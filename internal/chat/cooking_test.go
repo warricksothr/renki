@@ -66,3 +66,15 @@ func TestCookMissingPrerequisitesDoesNotDisplaceTheCurrentBody(t *testing.T) {
 		})
 	}
 }
+
+func TestCookCanUseCarriedWoodForAnEmptyColdStation(t *testing.T) {
+	b, f := cookingBrain()
+	f.inventory.Items = append(f.inventory.Items, protocol.InventoryItem{Prefab: "Wood", Stack: 3})
+	f.perception.Structures[0].Cooking.Heated = false
+	if err := b.FromPanel("Sothr", "cook food"); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.tasks()) != 1 || f.sent()[0].Args.(*protocol.InteractArgs).Cook != "NeckTail" {
+		t.Fatal(f.sent())
+	}
+}

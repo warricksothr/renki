@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 from pathlib import Path
 from resupply_trial import candidates
 
@@ -27,6 +28,8 @@ for changed in [dict(supported=False), dict(heated=False), dict(slots=[]), dict(
     modified = dict(station, cooking=station['cooking'] | changed)
     assert cooking.choose_station(status, dict(mapped, perception={'structures': [modified]})) is None
 assert cooking.choose_station(status, dict(mapped, perception={'structures': [dict(station, pos=[0, 45, 0])]})) is None
+cold = dict(station, cooking=station['cooking'] | dict(heated=False))
+assert cooking.choose_station(status, dict(mapped, perception={'structures': [cold]}), wood=True) == '1:2'
 
 chest = dict(id='chest', kind='container', pos=[2, 30, 0])
 storage = {'perception': {'structures': [chest, dict(chest)]}, 'containers': []}
@@ -39,8 +42,11 @@ opened = {'chest': dict(entity='chest', pos=[2, 30, 0], items=[dict(prefab='Deer
 options = candidates(status, storage, {}, opened, foods=cooking.RAW)
 assert len(options) == 1 and options[0][3] == 'DeerMeat'
 assert candidates(status, storage, {}, opened) == []  # Ordinary resupply still excludes raw ingredients.
-history = [{'frame': dict(type='task', id='t-1', status='running')}, {'frame': dict(type='task', id='t-2', status='succeeded')},
-           {'frame': dict(type='task', id='t-1', status='failed', reason='refused')}]
+history = [{'frame': dict(type='task', id='t-1', task='withdraw')}, {'frame': dict(type='task', re='t-1', status='running')},
+           {'frame': dict(type='task', re='t-2', status='succeeded')},
+           {'frame': dict(type='task', re='t-1', status='failed', reason='refused')}]
 assert cooking.terminal({'value': history}, 't-1')['status'] == 'failed'
 assert cooking.terminal(history, 'missing') is None
+native = json.loads((cooking.ROOT / 'internal/protocol/testdata/plugin/task_failed.json').read_text())
+assert cooking.terminal([{'frame': native}], native['re'])['status'] == 'failed'
 print('cooking supervision, unique chest candidates and scoped receipts passed')

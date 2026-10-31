@@ -16,6 +16,7 @@ namespace Renki.Plugin
         readonly string id, raw;
         readonly CookingStation station;
         readonly MoveToTask approach;
+        readonly CookingFire fire;
         readonly List<Character> creatures = new List<Character>();
         readonly List<ItemDrop> outputs = new List<ItemDrop>();
         CookingBatch batch;
@@ -69,6 +70,7 @@ namespace Renki.Plugin
             if (!Supported(station) || !CookingBatch.Supported(args.Cook))
                 throw new TaskRefused(Wire.ReasonInvalidTarget, "cooking currently supports basic fire-backed meat/neck-tail stations");
             this.id = id; raw = args.Cook; Output = CookingBatch.Result(raw); this.station = station;
+            fire = new CookingFire(station, id);
             var pos = station.transform.position;
             approach = new MoveToTask(new MoveToArgs
             {
@@ -125,6 +127,11 @@ namespace Renki.Plugin
                 if (maxYield > 10 || !me.GetInventory().CanAddItem(conversion.m_to.m_itemData, maxYield) ||
                     me.GetInventory().GetTotalWeight() + conversion.m_to.m_itemData.GetWeight() * maxYield > me.GetMaxCarryWeight())
                     return Finish(Outcome.Failed(Wire.ReasonInventoryFull, "reserve space and carry weight for the full possible cooking yield"));
+                if (!UseReach.Near(me, station.gameObject, 2.5f))
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the cooking station is not in sight/reach"));
+                var fireResult = fire.Tick(me, out var warming);
+                if (fireResult != null) return Finish(fireResult);
+                if (warming) return null;
                 batch = new CookingBatch(raw, ZNet.GetUID(), Count(me, raw), Count(me, Output), maxYield, conversion.m_cookTime);
                 began = Time.unscaledTime;
             }

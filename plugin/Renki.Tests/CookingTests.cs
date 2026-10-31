@@ -10,6 +10,38 @@ namespace Renki.Tests
 {
     public sealed class CookingTests
     {
+        [Fact]
+        public void SupportingFireConsumesOneWoodAndRequiresFuelAndHeatReceipts()
+        {
+            var fuel = new CookingFuel(10, 0);
+            Assert.Equal(CookingFuelAction.Add, fuel.Next(0, 10, 0, false));
+            Assert.Equal(CookingFuelAction.Wait, fuel.Next(.1, 9, 0, false));
+            Assert.Equal(CookingFuelAction.Wait, fuel.Next(1, 9, .99, false));
+            Assert.Equal(CookingFuelAction.Ready, fuel.Next(2, 9, .98, true));
+            Assert.Equal(CookingFuelAction.Ready, fuel.Next(3, 9, .98, true));
+        }
+
+        [Theory]
+        [InlineData(10, 1, true)]
+        [InlineData(9, 0, false)]
+        [InlineData(9, 1, false)]
+        public void BlockedOrUnconfirmedFireDoesNotConsumeAnotherWood(int wood, double fuel, bool heated)
+        {
+            var receipt = new CookingFuel(10, 0);
+            Assert.Equal(CookingFuelAction.Add, receipt.Next(0, 10, 0, false));
+            Assert.Equal(CookingFuelAction.Wait, receipt.Next(1, wood, fuel, heated));
+            Assert.Equal(CookingFuelAction.Failed, receipt.Next(6, wood, fuel, heated));
+            Assert.Equal(CookingFuelAction.Failed, receipt.Next(7, 10, 0, false));
+            Assert.Contains("not adding again", receipt.Failure);
+        }
+
+        [Fact]
+        public void FuelingRequiresAnEmptyFireAndCarriedWood()
+        {
+            Assert.Equal(CookingFuelAction.Failed, new CookingFuel(0, 0).Next(0, 0, 0, false));
+            Assert.Equal(CookingFuelAction.Failed, new CookingFuel(10, 1).Next(0, 10, 1, false));
+        }
+
         static CookSlot[] Empty() => new[] { new CookSlot(), new CookSlot() };
         static CookSlot[] Food(string item = "RawMeat", int status = 0, long peer = 7) =>
             new[] { new CookSlot { Item = item, Status = status, Producer = peer }, new CookSlot() };

@@ -18,7 +18,7 @@ RAW = ('RawMeat', 'DeerMeat', 'NeckTail')
 def terminal(history, task_id):
     rows = history.get('value', []) if isinstance(history, dict) else history
     return next((r['frame'] for r in reversed(rows) if r.get('frame', {}).get('type') == 'task'
-                 and r['frame'].get('id') == task_id and r['frame'].get('status') in
+                 and r['frame'].get('re') == task_id and r['frame'].get('status') in
                  ('succeeded', 'failed', 'rejected', 'cancelled')), None)
 
 
@@ -33,13 +33,13 @@ def safe(status, previous=None):
     return None
 
 
-def choose_station(status, mapped):
+def choose_station(status, mapped, wood=False):
     if (status.get('world'), status.get('connection')) != (mapped.get('world'), mapped.get('connection')): return None
     choices = []
     for s in (mapped.get('perception') or {}).get('structures', []):
         c = s.get('cooking') or {}
         slots = c.get('slots') or []
-        if (s.get('id') and s.get('kind') == 'station' and s.get('pos') and c.get('supported') and c.get('heated')
+        if (s.get('id') and s.get('kind') == 'station' and s.get('pos') and c.get('supported') and (c.get('heated') or wood)
                 and 0 < len(slots) <= 16 and all(not x.get('item') and x.get('state') == 'empty' for x in slots)):
             distance = math.dist(status['pos'], s['pos'])
             if distance <= 12: choices.append((distance, s['id']))
@@ -165,9 +165,9 @@ def main():
                 elif result['status'] == 'succeeded': raise RuntimeError('succeeded transfer without ingredient receipt')
         if not raw: raise RuntimeError('no verified raw ingredient in pack or eligible home chests')
         status = observe(); mapped = call('panel', 'GET', '/api/map')
-        station = choose_station(status, mapped)
+        station = choose_station(status, mapped, wood=count(pack(), 'Wood') > 0)
         (folder / 'before-map.json').write_text(json.dumps(mapped, indent=2)+'\n')
-        if not station: raise RuntimeError('no fresh empty heated station within 12 m')
+        if not station: raise RuntimeError('no fresh empty station with heat or carried wood within 12 m')
         summary.update(input=raw, station=station)
         result, history = task('interact', dict(entity=station, cook=raw), 120)
         rows = history.get('value', []) if isinstance(history, dict) else history
