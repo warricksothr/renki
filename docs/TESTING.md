@@ -986,7 +986,15 @@ retains compact progress, the final goal record
 and full observations in `.checks/`. A changed target or a close confirmed
 attacker can produce another native attempt, while unchanged failures exhaust a
 bounded recovery wait and request a new plan. Discovery now tries a fresh
-host-selected bearing after an attempt; an exact empty-search-and-return
+host-selected area after an attempt. Each area has a fixed world center and
+local radius, selected from a bounded pool around the goal anchor. Native dry
+travel must reach a clear entry before local scouting starts. The area search
+returns to that entry, rather than spending its local budget retracing the
+migration to the task departure. Inspect `travel_search_area`,
+`search_area_arrived`, local outbound/return legs, and exact task receipts
+separately. A refused journey or incomplete local return is not empty coverage.
+The compact supervisor retains requested/arrived centers and travel evidence.
+An exact empty-search-and-return
 receipt consumes the existing budgets without triggering the repeated-failure
 stop. Incomplete attempts remain distinct from empty search evidence, and
 ordinary failures retain their three-repeat stop. A goal success requires an exact

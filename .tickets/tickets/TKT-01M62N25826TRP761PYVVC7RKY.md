@@ -20,15 +20,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/post-combat-return
+  branch: t3/regional-combat-search
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 9548b59760be3d66d75b52667d77a98aaf326a06
+  commit: 6f0ee3b23b9d6c1284e2b502af4cb1e9f2c90f55
   session: null
-  claimed_at: 2026-10-31T03:41:32Z
+  claimed_at: 2026-10-31T04:41:22Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T04:37:00Z
+updated_at: 2026-10-31T04:52:01Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,11 +49,11 @@ extensions: {}
 
 ## Implementation plan
 
-Add opt-in returnHome to combat goals, keeping old saved goals and kill-only semantics intact. New panel/supervisor goals opt into a pinned known home inside the authorized work sphere. Persist the destination before combat; retain six combat attempts and add one dedicated return task slot, not extra combat retries. Keep the exact kill Proof independent from postCombat phase/receipt so return failure, cancellation, restart uncertainty or observation failure never erases the kill or fabricates round-trip success.
+### Distinct search areas
 
-After verified death, the host uses bounded fresh-observation recovery waits (80% health,40 stamina, active food, no encumbrance/swimming or nearby live creature threat). It dispatches one existing native move_to to the pinned home; native C# owns pathfinding, supported motion, route reuse, obstruction and off-level recovery. Do not puppet movement or weaken scout terrain/character limits. Checkpoint return intent before dispatch; consume only its matching receipt. Require native success plus a fresh post-receipt observation within3m horizontally and1.5m vertically of the unchanged home before whole-goal success. A failed return remains needs_plan with kill Proof and return diagnostics preserved. Keep original deadline/wait bounds and never replay uncertain actions after restart. Scope/permission/new-order ownership remain with existing host/engine controls.
+Keep the merged dry-return/recovery work (PR127) intact. Replace per-task drifting sector offsets in new durable discovery plans with a fixed bounded pool of areas around the goal anchor. Choose an unused nearby area, checkpoint its absolute center and local radius, and let one native attack routine travel on dry ground before starting local scouting around the observed area arrival. Local scouting returns to that area, rather than replaying the entire migration. Persist separate attempted/unreachable and exact-empty evidence; uncertain/restarted tasks cannot become coverage or replay. Preserve six encounter attempts, task reservation for post-kill home return, goal envelope and deadline. Existing sector requests and saved ledgers remain compatible.
 
-Add focused goal/App/supervisor regressions for kill preservation, return receipt identity and position/height confirmation, recovery/readiness/threat/scope/home changes, budgets, cancellation/restart/checkpoint failures and legacy kill-only records. Expose phase and separate kill/return receipts in panel and compact trial summaries. Run focused just checks, formatting, full just check ci, commit and just check review. Deploy with verified checksums, run one changed-build autonomous persistent-goal trial, inspect native kill/return/block/dodge/detour evidence without inferring missing actions, and independently verify offline/combat-off/panel/standby cleanup. Keep remaining live detour and defensive-action acceptance open if not exercised.
+Add protocol/interop and native maths/policy tests, goal selection and durable-ledger regressions, compact diagnostic fields, and documentation. Verify real migration distance, local search, native receipts and optional kill/return separately; do not infer block/dodge from travel. Run focused just checks, just check ci before commit, committed review, checksum deployment and one changed-build autonomous trial.
 
 ## Notes
 
@@ -430,3 +430,13 @@ Verified t-3 withdrew4CookedDeerMeat and t-5 withdrew3CookedMeat using exact con
 The b37a795 goal from home exhausted six attempts without an eligible Greyling. Later native legs did reach 118.5 m from the goal center (304.6 m observed travel), so earlier progress at 30 m was not the final extent. Two searches earned exact empty receipts; other sectors were unreachable or ended in native retreat after route/return refusal. No kill, combined post-combat return, actual block/dodge, or scouting return-detour proof was earned. Evidence: .checks/combat-trial-20261031T043222522104Z/summary.json. Isolated dry home return, verified food transfers and recovery remain passed separately.
 
 User requested distinct selectable search areas with local search inside each. Current sector offsets vary bearings around each task's current position and do not establish separate area travel/local search phases. Continue that work after landing this verified return/recovery increment; retain all safety limits and separate unreachable areas from genuinely searched empty areas.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:52:01Z
+
+### Distinct area implementation
+
+New durable discovery chooses the nearest unused area from a fixed eight-center pool around the original goal anchor (default 200 m goal: 80 m center distance, 24 m local radius). Each absolute center/radius/departure/bearing is checkpointed before dispatch. Failed and exact-empty attempts both consume the area without conflating their evidence; legacy sector ledger entries remain respected. The six-attempt/task reservation, three ordinary failure stop, original deadline and uncertainty semantics remain.
+
+One native attack routine migrates through dry MoveTo navigation, with five clear entry candidates within 8 m, a 90-second/200 m travel bound and 140 m departure-to-center limit, then starts the existing bounded local scout. Local return targets the observed region entry. Eligible Greylings encountered in transit trigger a local fighting-ground survey. The host also supplies its immutable searchAnchor/searchLimit (goal radius minus 52 m), enforced each native search/travel tick so winding detours cannot spend the combat/escape reserve. Protocol validation rejects malformed, mixed and out-of-scope fields; shared fixtures cover interop.
+
+Focused goal/behaviour/protocol/application, native parser and region-policy checks pass. Tests cover fixed centers, nearest unused selection, durable area ledger and uncertainty, local return relative to actual area arrival, finite entry/time/travel budgets, absolute scope versus a winding detour, and malformed protocol bounds. Compact progress now exposes pending/attempted area centers and native area-arrival/travel evidence. Full gate, committed review and changed-build live verification pending; no combined kill/return or block/dodge proof is claimed.

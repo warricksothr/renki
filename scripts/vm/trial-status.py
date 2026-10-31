@@ -78,9 +78,11 @@ def report(folder, now=None):
         pending_search = (goal.get('pending') or {}).get('search')
         result['goal']['pendingSector'] = pending_search.get('sector') if pending_search else None
         result['goal']['pendingOffset'] = pending_search.get('offset', 0) if pending_search else None
+        result['goal']['pendingSearchCenter'] = pending_search.get('center') if pending_search else None
         if goal.get('id') in goal_ranges:
             result['goal']['maxObservedRangeM'] = round(goal_ranges[goal['id']], 1)
         result['goal']['searches'] = [dict(sector=s['plan']['sector'], empty=s['empty'],
+                                           center=s['plan'].get('center'), radius=s['plan'].get('radius'),
                                            offset=s['plan'].get('offset', 0),
                                            reason=s['outcome'].get('reason')) for s in goal.get('searches', [])]
     return result
