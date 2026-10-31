@@ -780,6 +780,10 @@ water and character checks. The separate 4 m building clearance applies to
 search staging and fighting-ground selection, rather than individual travel
 corners; an outbound position must not become forbidden merely by being a
 return waypoint. New physical obstacles still invalidate the return.
+Enemy-free scouting uses the same player-passage policy as ordinary search
+preparation: it may walk past players, but planned destinations stay at least
+2 m away. Hostile and neutral creature buffers remain 15 m and 8 m. Acquisition
+and combat retain their separate character-clearance checks.
 The planner reserves travel for that winding trail rather than just distance
 from the origin. A refused return or unsafe body state still exits immediately.
 Return legs do not count as outbound search coverage. Compact trial reports
