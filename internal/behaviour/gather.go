@@ -135,6 +135,24 @@ func gatherClear(v View, resource protocol.PerceivedResource) bool {
 }
 
 func gatherReady(v View) error {
+	for _, character := range v.Perception.Characters {
+		if character.HPFrac > 0 && distance(character.Pos, v.State.Pos) < 15 {
+			return errors.New("a character is too close to start harvesting")
+		}
+	}
+	return gatherSupplied(v)
+}
+
+func gatherTravelReady(v View) error {
+	for _, c := range v.Perception.Characters {
+		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, v.State.Pos) < 15 {
+			return errors.New("a threat is too close to prepare or travel to the gathering site")
+		}
+	}
+	return gatherSupplied(v)
+}
+
+func gatherSupplied(v View) error {
 	s := v.State
 	if !finite(s.HP) || !finite(s.HPMax) || s.HPMax <= 0 || s.HP < s.HPMax*.8 ||
 		s.Stranded() || s.Encumbered() || slices.Contains(s.Flags, "swimming") || s.Location != nil && s.Location.InWater {
@@ -142,11 +160,6 @@ func gatherReady(v View) error {
 	}
 	if s.Food == nil || len(s.Food.Active) == 0 {
 		return errors.New("eat before gathering")
-	}
-	for _, character := range v.Perception.Characters {
-		if character.HPFrac > 0 && distance(character.Pos, s.Pos) < 15 {
-			return errors.New("a character is too close to start gathering or travel to its site")
-		}
 	}
 	packWeight := 0.0
 	for _, item := range v.Inventory.Items {
@@ -282,7 +295,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	if !r.prepared {
 		r.prepared = true
 		if r.p.ReturnHome && gatherAxe(v, 0) && !gatherAxe(v, .9) {
-			if err := gatherReady(v); err != nil && !errors.Is(err, errGatherTool) {
+			if err := gatherTravelReady(v); err != nil && !errors.Is(err, errGatherTool) {
 				return nil, err
 			}
 			var station *protocol.PerceivedStructure
@@ -303,7 +316,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		}
 	}
 	if !r.arrived {
-		if err := gatherReady(v); err != nil {
+		if err := gatherTravelReady(v); err != nil {
 			return nil, err
 		}
 		r.arrived = true

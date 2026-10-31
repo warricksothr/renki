@@ -233,6 +233,9 @@ durability at a currently observed home workbench. It uses `interact` with
 The station routine also repairs other eligible carried gear through the same
 normal game button. This does not craft replacements, upgrade equipment or
 infer that a workbench can repair gear needing a forge.
+Players near home do not prevent repair or the outbound trip. Nearby hostiles
+or confirmed pursuers still prevent preparation; all bystander and falling-tree
+exclusions apply again before harvesting.
 
 `maxTrees` defaults to one for older definitions and accepts at most three.
 At most nine harvest tasks and eight minutes per requested tree are allowed.

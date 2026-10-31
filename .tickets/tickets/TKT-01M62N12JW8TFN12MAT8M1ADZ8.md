@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T11:09:46Z
+updated_at: 2026-10-31T11:18:09Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -345,3 +345,10 @@ Root cause: AfterBreak skipped retreat whenever Tas was5.5m from the resource pi
 Normal home return then timed out120s (.checks/task-wtnzub8x.json), despite zero observed injury. Tas safely stopped with offline panel restored. The eastern log-pile section repeatedly planned and recovered, then near[-39.89,32.36,1.62] stopped0.164m from a0.15m corner[-39.76,32.23,1.72]. PathFollower also applies the1.75m home-marker height allowance to measured support waypoints, allowing an under-floor point to consume a higher route within that height gap.
 
 Candidate: checked routes use0.6m support-height tolerance in both consumption and off-level replanning. A near corner within0.4m can advance only when a fresh normal physical/support/water probe validates the direct leg from the actual body to the following point at the measured height. Never skip final points or another floor; do not loosen arrival or collision checks. Regression covers the exact0.164m capture, blocked shortcut, farther body, wrong floor and final point. Bounded local-route traces include the first four points. Focused LocalRouteTests pass .checks/20261031T110922Z-cVrptY.log. Need complete CI/review/deploy, the under-floor return and fresh two-tree/home/gains-only deposit proof. No milestone acceptance ticked.
+
+**agent:codex/renki-milestones** at 2026-10-31T11:18:09Z
+
+### Installed under-floor return passed; harmless home visitors may depart
+629e5d6 passed full CI .checks/20261031T110946Z-xTVPCd.log, review .checks/20261031T111208Z-ohdIqD.log and checksum installation .checks/20261031T111220Z-p3kq6j.log. Exact native under-floor return now passed in10s from[-41.71,31.56,1.79] to[-36.56,36.09,7.7] (.checks/20261031T111331Z-eQLfUc.log). Both meals active, full health. Broad long-route repeat proof remains next.
+
+Fresh gather trial .checks/gather-trial-20261031T111416971900Z/summary.json correctly retained inventory and stopped with zero damage before any native step because another ordinary player was inside home. The controller incorrectly reused harvesting's15m all-character exclusion for repair and outbound travel. Separate the shared health/food/tool/capacity prerequisites from travel's nearby hostile/confirmed-pursuer guard and harvesting's unchanged all-character exclusion. No relaxation to native swing protection, falling-tree clearance or actual dry hostile-aware routing. Regressions prove a player permits repair/departure but still prevents swinging at the site; a hostile/confirmed pursuer prevents repair even when the tool is below25%. Focused behavior suite passes .checks/20261031T111747Z-NDYx6r.log. Full gate/review/deployment and exact fresh-two-tree/log gains-only final-home trial follow. Tas remains offline at home, combat false and panel available after cleanup.

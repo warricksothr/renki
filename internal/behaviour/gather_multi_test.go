@@ -202,3 +202,39 @@ func TestGatherRepairsAtHomeThenRequiresFreshActuallyRestoredAxeBeforeLeaving(t 
 		})
 	}
 }
+
+func TestGatherCanRepairAndLeaveWithPlayerAtHomeButNeverSwingNearThem(t *testing.T) {
+	r, v := gathering(t)
+	r.p.Return, r.p.ReturnHome = false, true
+	r.p.Site.Pos = protocol.Vec3{50, 0, 0}
+	home := protocol.Vec3{0, 0, 0}
+	v.Home = &home
+	v.Inventory.Items[0].Durability = 10
+	v.Perception.Structures = []protocol.PerceivedStructure{{ID: "bench", Kind: protocol.StructureStation, Prefab: "piece_workbench"}}
+	v.Perception.Characters = []protocol.PerceivedCharacter{{ID: "friend", Kind: protocol.CharacterPlayer, HPFrac: .49}}
+	nextTask(t, r, v, nil, protocol.TaskInteract)
+	v.Inventory.Seq++
+	v.Inventory.Items[0].Durability = 100
+	nextTask(t, r, v, success("repair"), protocol.TaskMoveTo)
+	v.State.Pos, v.Perception.Characters[0].Pos = r.p.Site.Pos, r.p.Site.Pos
+	v.Perception.Structures = nil
+	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("near friend", protocol.ResourceTree, 55)}
+	if order, err := r.Next(v, success("site")); order != nil || err == nil {
+		t.Fatal("travel permission authorized swinging near a player", order, err)
+	}
+}
+
+func TestGatherCannotIgnoreNearbyThreatToRepairABrokenAxe(t *testing.T) {
+	for _, targeting := range []bool{false, true} {
+		r, v := gathering(t)
+		r.p.Return, r.p.ReturnHome = false, true
+		home := protocol.Vec3{}
+		v.Home = &home
+		v.Inventory.Items[0].Durability = 10
+		v.Perception.Structures = []protocol.PerceivedStructure{{ID: "bench", Kind: protocol.StructureStation, Prefab: "piece_workbench"}}
+		v.Perception.Characters = []protocol.PerceivedCharacter{{HPFrac: 1, Hostile: !targeting, TargetingMe: targeting}}
+		if order, err := r.Next(v, nil); order != nil || err == nil {
+			t.Fatal(order, err)
+		}
+	}
+}

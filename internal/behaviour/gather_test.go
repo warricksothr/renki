@@ -261,7 +261,7 @@ func TestGatherRefusesUnsafeDescendantsWithoutCuttingAnotherTree(t *testing.T) {
 }
 
 func TestGatherHealthToolsCapacityAndScopeGuards(t *testing.T) {
-	for _, scenario := range []string{"health", "food", "axe", "weight", "pack weight", "unknown weight", "slots", "stamina", "world", "stale perception", "time", "near character before travel"} {
+	for _, scenario := range []string{"health", "food", "axe", "weight", "pack weight", "unknown weight", "slots", "stamina", "world", "stale perception", "time", "near threat before travel"} {
 		t.Run(scenario, func(t *testing.T) {
 			r, v := gathering(t)
 			switch scenario {
@@ -287,9 +287,9 @@ func TestGatherHealthToolsCapacityAndScopeGuards(t *testing.T) {
 				v.State.T += 6
 			case "time":
 				r.began = v.Now.Add(-8 * time.Minute)
-			case "near character before travel":
+			case "near threat before travel":
 				v.State.Pos[0] = 50
-				v.Perception.Characters = []protocol.PerceivedCharacter{{HPFrac: 1, Pos: v.State.Pos}}
+				v.Perception.Characters = []protocol.PerceivedCharacter{{HPFrac: 1, Hostile: true, Pos: v.State.Pos}}
 			}
 			if order, err := r.Next(v, nil); order != nil || err == nil {
 				t.Fatal(order, err)
