@@ -110,11 +110,24 @@ namespace Renki.Plugin
                 if (result.Status != Wire.StatusSucceeded) return Finish(result);
                 arrived = true;
             }
-            // Locally simulated output is required for exact spawn receipts.
-            if (!station.m_nview.IsOwner())
-                return Finish(Outcome.Failed(Wire.ReasonRefused, "the cooking station must be simulated locally to verify its output"));
+            // Normal UseItem acquires an unowned station. Do not preempt that
+            // path, but never insert into a station simulated by another peer.
+            // After insertion, local simulation is mandatory for spawn receipts.
+            if (!station.m_nview.IsOwner() && (batch != null || station.m_nview.HasOwner()))
+            {
+                Trace("station simulation unavailable", new Dictionary<string, object>
+                {
+                    ["hasOwner"] = station.m_nview.HasOwner(),
+                    ["owner"] = station.m_nview.GetZDO().GetOwner(),
+                    ["localPeer"] = ZNet.GetUID()
+                });
+                return Finish(Outcome.Failed(Wire.ReasonRefused, "the cooking station must be unowned or simulated locally to verify its output"));
+            }
             if (batch == null)
             {
+                var currentSlots = Slots(station);
+                if (currentSlots == null || currentSlots.Any(s => !string.IsNullOrEmpty(s.Item)))
+                    return Finish(Outcome.Failed(Wire.ReasonRefused, "the cooking station is busy or unavailable; not fueling another batch"));
                 if (InventoryGui.instance == null)
                     return Finish(Outcome.Failed(Wire.ReasonRefused, "the normal game inventory interface is unavailable"));
                 var conversion = station.GetItemConversion(raw);

@@ -17,8 +17,9 @@ Plain interaction with a cooking station remains refused.
 
 This first slice supports ordinary fire-backed stations with direct item use,
 not ovens, cauldrons or stations using fuel switches. The station must be
-locally simulated so the plugin can witness the exact output spawn; the task
-never claims ownership itself. Native cooking additionally checks the actual
+locally simulated so the plugin can witness the exact output spawn. An unowned
+station may be acquired by the game's normal ingredient insertion; the task
+never claims ownership itself or displaces another peer's simulation. Native cooking additionally checks the actual
 recipe, ward access, sight/reach, active food, 80% health, dry footing, nearby
 hostiles and space/weight for the complete possible yield. Missing ingredients,
 busy stations and a dead fire produce a refusal with the missing prerequisite.

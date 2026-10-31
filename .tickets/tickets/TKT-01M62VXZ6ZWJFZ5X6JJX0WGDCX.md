@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-31T17:05:06Z
+updated_at: 2026-10-31T17:09:28Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -82,3 +82,9 @@ The first guarded live proof on fd2ac62 safely withdrew one RawMeat from chest 1
 Both current nearby cooking stations (1:70085 and 1:70084) were empty but cold; their supporting campfire 1:70049 had zero fuel. Added native preparation using one carried Wood through normal Fireplace.UseItem. It matches actual station fire-check points against inactive burning-area geometry, requires a unique empty wood fire, ward access and sight/reach, and confirms wood consumption, synchronized fuel increase and actual station heat. Unconfirmed or blocked fires never trigger another fuel attempt. Chat and proof-tool selection admit cold empty stations only with carried wood. Broader automatic resupply, repeated tending and fermenter/beehive/ore AC remain open.
 
 Focused cooking core, supervisor, chat and protocol checks passed. Full just check ci is in progress. Tas remains logged out inside home, about30.9/30.9 HP, with the retrieved raw meat and carried wood. Native startup recovery guard remains enabled; home.afterOutage remains temporarily false. Next: commit/review/deploy and repeat one continuously supervised batch. Raised-floor reach remains a possible live blocker; sight/access checks will remain enforced.
+
+**agent:codex/renki-milestones** at 2026-10-31T17:09:28Z
+
+The second guarded trial on9590dfc joined healthy, approached station1:70085 from inside home, and refused before fuel or ingredient use because the station was not locally simulated. No injury was observed; final health30.8/30.8 and feet[-33.25,36.15,9.21]. The corrected response parser recognized the terminal result and cleanup logged out/stopped Tas and restored the panel. Evidence: .checks/cooking-20261031T170704Z. The panel's video track remained live through offline standby.
+
+Inspection of the actual normal cooking path shows it claims an unowned station during ingredient use. Adjusted native admission to allow this normal path while still refusing another peer's station before consumption and requiring local simulation after insertion for exact output-spawn provenance. The plugin itself never claims ownership. Added owner/local-peer trace fields on refusal and surfaced native refusal detail directly in the compact proof output. Full just check ci is running for this follow-up; positive cooking evidence remains pending.

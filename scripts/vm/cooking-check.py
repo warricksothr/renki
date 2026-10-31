@@ -174,7 +174,9 @@ def main():
         receipts = [r['frame'] for r in rows if r.get('frame', {}).get('type') == 'trace'
                     and r['frame'].get('source') == 'cooking' and (r['frame'].get('data') or {}).get('id') == summary['tasks'][-1]['id']]
         summary['cookingReceipts'] = receipts
-        if result['status'] != 'succeeded' or not any(r.get('msg') == 'normal station output spawned' for r in receipts) or not any(
+        if result['status'] != 'succeeded':
+            raise RuntimeError('native cooking ' + result['status'] + ' (' + result.get('reason', '') + '): ' + result.get('detail', ''))
+        if not any(r.get('msg') == 'normal station output spawned' for r in receipts) or not any(
                 r.get('msg') == 'verified cooking drop pickup' for r in receipts) or not any(
                 r.get('msg') == 'verified cooked inventory receipt' for r in receipts):
             raise RuntimeError('cooking lacks succeeded native status and matched spawn/inventory receipts')
