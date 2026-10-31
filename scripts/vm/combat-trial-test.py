@@ -168,7 +168,7 @@ class CombatTrialTests(unittest.TestCase):
 
     def test_resupply_waits_for_startup_home_but_stops_on_damage_or_takeover(self):
         import types
-        for mode in ('finished', 'damage', 'owner', 'connection'):
+        for mode in ('finished', 'damage', 'owner', 'connection', 'failed', 'far'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 observed, commands = 0, []
                 audit = Path(directory) / 'audit.jsonl'
@@ -192,10 +192,12 @@ class CombatTrialTests(unittest.TestCase):
                             value['task'] = dict(id='owner', task='follow')
                         elif mode == 'connection':
                             value['connection'] = 2
+                        elif mode == 'far':
+                            value['pos'] = [20, 32, 0]
                     elif args[:3] == ['panel', 'GET', '/api/map']:
                         value = dict(perception={})
                     elif args[:2] == ['panel', 'GET'] and args[2].startswith('/api/task?'):
-                        value = []
+                        value = [dict(frame=dict(re='home', status='failed' if mode == 'failed' else 'succeeded'))] if observed > 1 else []
                     elif args[0] == 'audit-window':
                         value = str(audit)
                     return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
@@ -208,6 +210,60 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertEqual(prepare.call_count, 1 if mode == 'finished' else 0)
                 self.assertFalse(any(c[0] == 'task' for c in commands))
                 self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
+
+    def test_combat_waits_for_verified_existing_home_and_never_replaces_other_work(self):
+        for mode in ('finished', 'unknown', 'owner', 'newhome', 'damage', 'failed', 'far', 'timeout', 'worldUid', 'homeChanged'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                observed, commands = 0, []
+                audit = Path(directory) / 'audit.jsonl'
+                audit.write_text('')
+                home = [0, 32, 0]
+
+                def run(command, **kwargs):
+                    nonlocal observed
+                    args = command[2:]
+                    commands.append(args)
+                    value = ''
+                    if args[:3] == ['panel', 'GET', '/api/status']:
+                        observed += 1
+                        value = dict(self.status, world='one', connection=1, home=dict(world='one', pos=home),
+                                     food=dict(active=[dict(prefab='Honey')]))
+                        if observed == 1 or mode == 'timeout':
+                            value['task'] = dict(id='home', task='move_to')
+                        elif mode == 'owner':
+                            value['task'] = dict(id='owner', task='follow')
+                        elif mode == 'newhome':
+                            value['task'] = dict(id='owner', task='move_to')
+                        elif mode == 'damage':
+                            value['hp'] = 77
+                        elif mode == 'far':
+                            value['pos'] = [20, 32, 0]
+                        elif mode == 'worldUid':
+                            value['worldUid'] = 'other'
+                        elif mode == 'homeChanged':
+                            value['home'] = dict(world='one', pos=[1, 32, 0])
+                    elif args[:3] == ['panel', 'GET', '/api/map']:
+                        value = self.mapped
+                    elif args[:2] == ['panel', 'GET'] and args[2].startswith('/api/task?id=home'):
+                        value = [dict(dir='out', frame=dict(type='task', id='home', task='move_to',
+                                      args=dict(to=[10, 32, 0] if mode == 'unknown' else home)))]
+                        if observed > 1:
+                            value.append(dict(frame=dict(re='home', status='failed' if mode == 'failed' else 'succeeded')))
+                    elif args[:2] == ['panel', 'GET'] and args[2].startswith('/api/task?id=trial'):
+                        value = [dict(frame=dict(re='trial', status='succeeded'))]
+                    elif args[0] == 'task':
+                        self.assertGreaterEqual(observed, 2)
+                        value = dict(id='trial')
+                    elif args[0] == 'audit-window':
+                        value = str(audit)
+                    return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
+
+                clock = mock.Mock(side_effect=lambda: observed * 121) if mode == 'timeout' else trial.time.monotonic
+                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--wait-s', '0']), mock.patch.object(trial.time, 'sleep'), mock.patch.object(trial.time, 'monotonic', side_effect=clock), contextlib.redirect_stdout(io.StringIO()):
+                    code = trial.main()
+                self.assertEqual(code, 0 if mode == 'finished' else 1)
+                sent = [c for c in commands if c[0] == 'task']
+                self.assertEqual([c[1] for c in sent], ['attack'] if mode == 'finished' else [])
 
     def test_gather_dispatch_proof_and_cleanup_survive_partial_failures(self):
         for mode in ('success', 'lost_save_response', 'bad_proof', 'missing_audit', 'missing_proof', 'cleanup_failure', 'audit_damage'):

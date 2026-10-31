@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T23:59:13Z
+updated_at: 2026-10-31T00:04:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -288,3 +288,7 @@ The shared local routing prerequisite is now being fixed on TKT-01M638V1XC9DX4XJ
 **agent:codex/renki-milestones** at 2026-10-30T23:59:13Z
 
 PR117 checksum deployment succeeded. Native trial .checks/combat-trial-20261030T235205486981Z/summary.json and audit .checks/audit-window-kmT130.jsonl prove successful raised-house egress and143.2m observed movement, with zero damage and final82.6HP. It submitted13 outbound and4 return legs, then refused cannot return along a checked scouting route on a grade rejection toward[-12.96,30.83,38.71]. No enemy was acquired and owner death/block/dodge remain unproved. The physical route was being checked in ScoutRoute and independently queried again in Walker.SetGoal. Implemented exact checked-route steering without alternate replanning/strafe/climb, consumed-corner revalidation and fully checked short direct return fallback. Added local-grade/support diagnostics and bounded report fields. Focused CoreTests and native plugin build passed (.checks/20261030T235745Z-PEtips.log, .checks/20261030T235746Z-3nKhuJ.log); full just check ci is running before commit/review. The separate outdoor M2 run actually felled a beech with7 local hits before an approaching enemy cancelled harvesting; see wood ticket for exact proof. Tas is offline with combat restored false and panel online.
+
+**agent:codex/renki-milestones** at 2026-10-31T00:04:45Z
+
+PR118 merged as4cbf80d after full just check ci (.checks/20261030T235844Z-UJtGhS.log) and clean committed just check review (.checks/20261031T000102Z-pFlff5.log). Checksum just check vm install passed (.checks/20261031T000146Z-qozYAm.log). Changed-build trial .checks/combat-trial-20261031T000202157208Z/summary.json aborted before native attack because the controller had already dispatched move_to home on rejoin. Zero damage, final80.1HP at[-7.79,33.86,17.16], successful cleanup; this does not validate the route fix. Generalizing the existing food-supervisor startup wait to all trial modes: observe only an exact outgoing home task, keep task ID/scope/injury checks, wait at most120s, require native success and fresh position within3m of home before trial work. Unknown destinations, newer tasks, failed return and injury still abort. Focused just check vm test-combat-trial passed (.checks/20261031T000425Z-r22ZuZ.log). Compact trial-status also now includes current combat mode and native terminal failure detail so the next operator need not dump full raw summaries.
