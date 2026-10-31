@@ -44,6 +44,8 @@ namespace Renki.Plugin
             var seed = Convert.ToVector3(HarvestContactSearch.Seed(Convert.ToV3(bounds.min), Convert.ToV3(bounds.max), attempt));
             // Use the seed's ground before measuring axe contact. An endpoint
             // below a hanging log must not borrow the log's height as its floor.
+            if (ZoneSystem.instance == null || !ZoneSystem.instance.GetGroundHeight(seed, out var ground)) return false;
+            seed.y = ground;
             if (!Contact(active, resource, seed.y, seed, height, true, out var contact, out _) ||
                 !GroundGoal(target, resource, contact, seed, (float)HarvestReach.StandOff(reach, false), out goal)) return false;
             if (!Contact(active, resource, goal.y, goal, height, true, out contact, out _) ||

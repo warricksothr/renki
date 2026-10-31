@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T06:55:34Z
+updated_at: 2026-10-31T07:34:56Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -222,3 +222,12 @@ Half 1464700962:189 rolled from [-90.07,29.57,-49.45] to [-95.3,31.2,-44.47], be
 
 ### Food recovery and bounded search readiness
 The automatic return/resupply check passed with zero damage: .checks/resupply-trial-20261031T064707212716Z/summary.json. Tas reached the actual indoor floor at[-35.08,36.09,7.45], withdrew exactly4 Mushroom and ate one, and retained CookedDeerMeat. The return recovered from under-stair/doorway stalls through local routing and strafe, so this does not prove smooth doorway navigation. It took11 food requests/10 chests because the supervisor sought a second transferred food despite already carrying four meat. The supervisor now ends further chest searches once at least one transfer is verified and current scoped inventory contains at least three each of two ordinary food types. Existing reserves never count as a transfer receipt. Regression and full CI pass (.checks/20261031T065304Z-DHjmIl.log). A fresh two-tree trial is running from home with the rolling-log candidate.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:34:56Z
+
+### Complete primary log chain, then raised collateral trunk failure
+The two-tree trial .checks/gather-trial-20261031T072343944638Z/summary.json completed selected Beech1 1:20626 and its main log plus both halves with exact local-hit breaks. Native half receipts collected10 and11 Wood. It then followed the newly observed collateral trunk2463067676:73 beyond the old site circle, using the new tracked chain and a successful dry move_to. This is useful multi-resource evidence but not the requested full-loop pass: t-7 refused after no hits and20 rejected alternative contacts, before a second selected tree or delivery. Zero damage. Audit .checks/audit-window-kiGAJy.jsonl; screenshot .checks/camera-20261031T072720418485Z.jpg shows that trunk resting high across stumps.
+
+The alternative-contact search claimed to use ground but actually started from the log bounds centreY44.05. Its downward support rays could not reach terrainY35, so every side/end candidate failed without testing the accessible lower trunk. Alternatives now first project their seed onto actual loaded game terrain, then measure target contact, physical standing support, reach, sight and dry route as before. The exact failed trunk is being retried to validate this correction.
+
+Separately, committed e11691f captures the keep counts before leaving the departure point, so outbound incidental product pickups are delivered too. Focused regression covers that path. Installation hit the already-observed transient controller.exe copy lock again; the VM recipe now retries package copy at most3 times, stopping/releasing the panel between attempts, and still requires checksum verification before installation. A retry installed the current candidate successfully. Full CI is running. Need fresh stand after rescuing/storing the current cargo; measured terrain at[0,-96] is40.6m and within the150m home envelope, but resource eligibility must be checked in person.
