@@ -61,6 +61,24 @@ func TestGatherAvoidsWallSegmentsAbsentFromInteractableStructures(t *testing.T) 
 	}
 }
 
+func TestGatherKeepsKnownGreylingsOutsideTheWorkSiteApproachMargin(t *testing.T) {
+	_, v := gathering(t)
+	tree := gatherResource("tree", protocol.ResourceTree, 5)
+	v.Perception.Characters = []protocol.PerceivedCharacter{{Kind: protocol.CharacterCreature,
+		Prefab: "Greyling", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{43, 0, 0}}}
+	if gatherClear(v, tree) {
+		t.Fatal("selected work inside the known Greyling avoidance margin")
+	}
+	v.Perception.Characters[0].Prefab = "Deer"
+	if !gatherClear(v, tree) {
+		t.Fatal("extended the falling-tree bystander exclusion for a distant passive deer")
+	}
+	v.Perception.Characters[0].Pos[0] = 30
+	if gatherClear(v, tree) {
+		t.Fatal("ignored the existing falling-tree bystander exclusion")
+	}
+}
+
 func gatherFinishedTarget(t *testing.T, r *gatherRun, v *View, wood int, resources ...protocol.PerceivedResource) (*session.Order, error) {
 	t.Helper()
 	id := r.pending.ID

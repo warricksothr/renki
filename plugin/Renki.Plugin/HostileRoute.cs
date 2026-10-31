@@ -10,7 +10,7 @@ namespace Renki.Plugin
     sealed class HostileRoute
     {
         readonly List<Character> characters = new List<Character>();
-        readonly List<V3> threats = new List<V3>();
+        readonly List<HostileClearance.Threat> threats = new List<HostileClearance.Threat>();
         int frame = -1;
         bool saturated, available;
 
@@ -32,6 +32,7 @@ namespace Renki.Plugin
                     {
                         ["entity"] = c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetZDO().m_uid.ToString() : null,
                         ["prefab"] = c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetPrefabName() : null,
+                        ["radius"] = HostileClearance.RadiusFor(c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetPrefabName() : null, c.GetLevel()),
                         ["pos"] = Convert.ToArray(c.transform.position),
                     }).ToArray(),
             };
@@ -48,7 +49,8 @@ namespace Renki.Plugin
                 if (saturated) return false;
                 foreach (var c in characters)
                     if (c != null && c != player && !c.IsDead() && c.GetComponent<MonsterAI>() != null && BaseAI.IsEnemy(player, c))
-                        threats.Add(Convert.ToV3(c.transform.position));
+                        threats.Add(new HostileClearance.Threat(Convert.ToV3(c.transform.position),
+                            c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetPrefabName() : null, c.GetLevel()));
                 available = true;
             }
             return available && !saturated && HostileClearance.Clear(from, to, threats);

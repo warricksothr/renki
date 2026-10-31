@@ -697,8 +697,10 @@ Notes:
 
 - **Work-trip hostile clearance:** `move_to` can opt into `avoidHostiles:true`
   with `dry:true`. Native navmesh validation, local planning and immediate
-  movement keep a 40 m horizontal clearance from loaded hostile MonsterAI
-  creatures within 64 m. Passive animals do not create exclusion areas.
+  movement keep a horizontal clearance from loaded hostile MonsterAI
+  creatures within 64 m: 40 m by default, 24 m for unstarred boars and 16 m for
+  unstarred Necks. These avoidance margins do not establish that a creature
+  cannot acquire the bot. Passive animals do not create exclusion areas.
   A body already inside an area may move monotonically away; it cannot cross
   through the creature. Threat positions refresh once per physics frame and
   all support, water and solid-collision checks still apply. A saturated

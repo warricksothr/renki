@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T10:06:13Z
+updated_at: 2026-10-31T10:17:30Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -313,3 +313,10 @@ The scoped chest search completed without food (.checks/resupply-trial-20261031T
 Native dry foraging approaches correctly refused before entering hostile clearance (.checks/task-p9d3mlbk.json and .checks/task-g6osfkt0.json). Fresh perception identified ordinary Neck309910011:906 at[5.6,31.1,49.5], next to the mushroom patch[11,31.1,51.6]. Tas is safely offline after his last meal expired,25/25HP, no new damage. Do not claim gathering progress.
 
 Extend explicit native melee eligibility to an unstarred wild hostile Neck, preserving the same normal health/stamina/physical/by-stander gates, weapon inputs, exact native death proof, encounter/work/leash bounds and AllowCombat. Untargeted search remains Greyling-only; the native-confirmed emergency defense mode remains Greyling-only. Do not silently choose Necks as a substitute target. Add bounded loaded-threat identities/positions to failed avoidance route traces, so planning exclusions beyond normal perception are explainable. Full gate/review/deployment precede live explicit encounter, food collection and resumed two-tree benchmark. Cooking is a separate future primitive rather than a prerequisite shortcut in this change.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:17:30Z
+
+### Explainable threat profiles and successful food collection
+353d626 passed CI .checks/20261031T100613Z-f93Ehy.log, review .checks/20261031T100850Z-eauWWx.log and checksum deployment .checks/20261031T100858Z-mMRkbS.log. Explicit native Neck lure t-2 ended honestly with enemy did not follow, then a bounded retreat (.checks/task-6cniv9tm.json); no kill is claimed. The Neck moved away from Tas instead of pursuing. A normal physically checked dry approach reached the mushroom site (.checks/20261031T101208Z-j7Fhox.log). Controller collect completed, activated Mushroom and retained one reserve; HP regenerated from25 to33/39.6 without observed injury. The temporary preparation behavior was deleted. Current product baseline is Wood4/Resin2, including incidental outbound pickups; do not reuse old Wood2 proof.
+
+Blocked-route diagnostics from .checks/task-htfotnzq.json identify six actual loaded threats. Applying40m to every ordinary shore creature overconstrained escape from the mushroom patch (156 nodes,778 hostile rejections) despite harmless northward space. Use40m by default,24m for unstarred Boar and16m for unstarred Neck; starred/unknown creatures keep40m, passive animals stay excluded. All existing per-step support/water/collision checks, starting-inside outward-only constraint, snapshot and planning bounds remain. The captured-coordinate mixed-threat regression must find a checked detour (the initial straight leg must still fail), and preserve clearance for Greylings. Wood-site selection also excludes freshly known Greylings within40m of a resource rather than selecting work inside its travel exclusion. Tas is safely offline with the panel running during verification; reserve food remains available. Need full gate/review/deploy, return/replenish berries and exact two-tree gains-only home storage proof. Consider the northeast stand around[65,35,28] away from the loaded southeast Greyling1960390678:2623 at[44.7,33.3,84.9], revalidating every actual tree on arrival.

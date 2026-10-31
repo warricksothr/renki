@@ -97,7 +97,11 @@ func gatherClear(v View, resource protocol.PerceivedResource) bool {
 		radius = 32
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (distance(c.Pos, v.State.Pos) < 15 || distance(c.Pos, resource.Pos) < radius) {
+		clearance := radius
+		if c.Kind == protocol.CharacterCreature && c.Hostile && c.Prefab == "Greyling" {
+			clearance = math.Max(clearance, 40)
+		}
+		if c.HPFrac > 0 && (distance(c.Pos, v.State.Pos) < 15 || distance(c.Pos, resource.Pos) < clearance) {
 			return false
 		}
 	}
