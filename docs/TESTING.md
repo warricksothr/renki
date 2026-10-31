@@ -1097,3 +1097,15 @@ explicit `defensive:true` request. Require a native-confirmed recent ordinary
 Greyling attacker and the food, armour, health and stamina reserves documented
 in BRIDGE-PROTOCOL.md. A refusal is a refusal, never death proof. Retain the
 exact task death receipt and audit, then restore combat off and stop the game.
+
+When planning accepts a leg that live movement refuses, retain the refused
+approach while replanning that goal. Only physical body-cast/overlap refusals
+are retained; backing away and other storeys remain eligible. Evidence expires
+after 45 s or immediately when its measured collider changes, and a new goal
+clears it. Check an under-house wood stack and the doorway return without
+allowing the planner to retry the identical failed approach indefinitely.
+
+Dry route probes must also check the exact flat half-metre lookahead used by
+movement when the planned edge is longer. Check a diagonal across uneven
+wood-stack support: valid full-edge endpoints must not conceal an unsupported
+or obstructed first movement prefix.

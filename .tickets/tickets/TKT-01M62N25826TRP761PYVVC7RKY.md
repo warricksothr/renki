@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T08:49:08Z
+updated_at: 2026-10-31T09:20:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -479,3 +479,10 @@ The direct encounter counted max(bot displacement, enemy displacement) against t
 Checksum-deployed pursuit/footing candidate completed explicit attack t-3 against Boar1960390678:1454 in5.05s, using native approach, strike and wait, and an owner_callback death observation. Receipt: .checks/task-jl7_xclh.json; audit .checks/audit-window-nw94xy.jsonl. The bounded native dry preparation is .checks/task-hz3mwguw.json. No human staging or clearing was required. This is a positive single-Boar melee check, not a block/dodge check; those modes were not observed and the second AC remains open.
 
 The earlier sprint attempt paused airborne over a terrain seam and immediately retreated. The candidate now allows at most0.5s with every held movement/attack input cleared over measured shallow dry support, only while closing outside6m and still healthy with escape stamina. Sprint ends outside8m, giving room to settle before close combat. Deep/unsupported/wet footing or a nearby enemy still refuses; no steering or swing runs airborne. Existing ScoutFooting bounds supply the pause. All core tests and full CI pass (.checks/20261031T072143Z-ewXJde.log). Combat is being switched off and the original two-tree/home/storage benchmark is restarting after this prerequisite.
+
+**agent:codex/renki-milestones** at 2026-10-31T09:20:44Z
+
+### Autonomous search/draw/melee death and defensive refusal fallback
+Native untargeted kite attack t-15 succeeded in36.8s against Greyling1313705408:53, with owner_callback death observation. It left the building through preparation, scouted, selected ground, drew/kited the creature and performed approach/strike/wait without observed combat damage. .checks/task-iccbblj2.json and .checks/audit-window-9rqXJh.jsonl; just vm combat-evidence reports the modes. This is the second Greyling; original846416140:195 is not proven dead. No block/dodge was observed.
+
+Separate live audit .checks/audit-window-qhk1k6.jsonl contains one Greyling hit during food preparation, automatic defensive request t-11 refused by native entry checks, and fallback flee t-12 one second later. This is positive refusal/fallback evidence, not successful defensive combat. The carried loadout has only ArmorRagsChest; two armour is required for defensive entry. Full prior CI/review and checksum deployment are recorded on the harvesting ticket. Routing failed on under-floor support/wood-stack geometry afterward; Tas safely stopped with combat false and panel available.

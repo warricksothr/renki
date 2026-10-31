@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T08:54:38Z
+updated_at: 2026-10-31T09:20:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -274,3 +274,17 @@ Collect now counts at most one freshly observed activation/refresh of the exact 
 386a7ee fixes fresh food consumption accounting and is deployed; CI .checks/20261031T082834Z-nCtEF9.log and committed review .checks/20261031T083150Z-r4dBeH.log passed. Live gather trial .checks/gather-trial-20261031T083217973420Z/summary.json selected/felled Beech1 1:42721, but Greyling846416140:195 interrupted its new log1313705408:137. It did not complete a tree chain or deposit; this is not positive two-tree evidence. The older trunk731390815:75 is also unfinished and cannot count as a fresh tree. Site[23,44.4,-131] can reach further standing beeches1:42716,1:42732,1:42984.
 
 Tas has been safely stopped with combat disabled and the panel restored (.checks/20261031T084404Z-HQuj4L.log). Latest observed HP34.4/45.1 and pose[-55.52,31.29,57.12] are stale. Rag armour is equipped, axe was repaired, Wood2 is the carried preservation baseline. Repeated standard combat setup failed because 80% entry preparation cannot safely regenerate while pursued; adding separate native-confirmed bounded defensive recovery on the M3 ticket, preserving ordinary combat entry requirements. Full multi-tree/home/deposit acceptance remains unearned.
+
+**agent:codex/renki-milestones** at 2026-10-31T09:16:53Z
+
+### Positive food/combat checks; under-house routing still open
+Installed 2ad07e5 passed CI .checks/20261031T085351Z-klJoak.log, committed review .checks/20261031T085645Z-kbbKnf.log and checksum installation .checks/20261031T085702Z-thuxA0.log. Tas recovered inside home, then completed M2 forage recovery (collect, two targets, keep6, Mushroom) at[3,40,-55]; the refreshed meal and one reserve food were observed. Temporary behavior was deleted. Wood2 remains carried baseline.
+
+Untargeted native kite attack t-15 completed in36.8s: preparation, scouting, selected fighting ground, draw/hold/kite, approach/strike and owner_callback observed death of Greyling1313705408:53. Receipt .checks/task-iccbblj2.json, audit .checks/audit-window-9rqXJh.jsonl. Zero damage events in that combat audit. This was the second Greyling, not proof of killing the original pursuer846416140:195. No block/dodge or emergency-defense live claim.
+
+Home return t-16 from east then timed out90s (.checks/task-0tjvzuyr.json). It repeatedly planned an approach beneath the floor and immediately refused wood_stack(Clone)/log in a body cast near[-28.5,34.5,-2]. Actual movement refusals were forgotten by each local replan. Add bounded goal-local negative approach evidence shared by navmesh/replay/local candidates, valid only while the exact collider bounds/transform stay unchanged, for45s. Backing out and other storeys remain available; a new goal clears evidence. Core tests and installed-game build pass. Tas safely stopped, combat disabled, original outage setting reset to config, panel restored (.checks/20261031T091118Z-knulUl.log). Need installed under-floor return and full two-tree proof after CI/review.
+
+**agent:codex/renki-milestones** at 2026-10-31T09:20:44Z
+
+### Match diagonal planning to executed lookahead
+The retained flee audit .checks/audit-window-qhk1k6.jsonl shows a second concrete discrepancy: a diagonal grid edge from[-33.44,35.15,-1.7] to[-32.94,35.48,-2.2] repeatedly passed planning, while its shorter0.5m movement prefix failed endpoint_support. Full-edge midpoint/endpoint support does not sample that prefix. Dry planning now checks the exact flat first0.5m prefix as well as the complete edge; a prefix refusal invalidates the candidate before movement. New regression simulates the intervening log-pile support spike. Focused DryTravel tests and game build pass (.checks/20261031T091931Z-pNAv6b.log, .checks/20261031T091933Z-mDzI33.log). Full gate follows for the combined prefix and negative-evidence candidate.

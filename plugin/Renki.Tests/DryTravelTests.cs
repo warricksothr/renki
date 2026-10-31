@@ -7,6 +7,26 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void DiagonalPlanningCannotSkipTheBodiesShorterLookahead()
+        {
+            var from = new V3(0, 35.14, 0); var to = new V3(.5, 35.48, -.5);
+            var calls = 0;
+            V3? Physical(V3 a, V3 b)
+            {
+                calls++;
+                // Both endpoints of the full edge are supported; its first
+                // half-metre lands on the higher corner of a log pile.
+                return V3.FlatDistance(a, b) > .6 ? b : (V3?)null;
+            }
+            Assert.Null(DryTravel.Probe(from, to, Physical));
+            Assert.Equal(2, calls);
+            calls = 0;
+            Assert.Null(DryTravel.Probe(from, new V3(.3, 35.14, 0), Physical));
+            Assert.Equal(1, calls);
+            Assert.Equal(to, DryTravel.Probe(from, to, (a, b) => b));
+        }
+
+        [Fact]
         public void CapturedRainSurfaceAndBodyStepOffsetInvalidateAMarginalShorePath()
         {
             var support = new V3(-30.64, 30.8, -17.65);
