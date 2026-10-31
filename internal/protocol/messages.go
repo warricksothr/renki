@@ -149,6 +149,14 @@ type CarriedFood struct {
 	CanEat bool    `json:"canEat"`
 }
 
+type EscortStatus struct {
+	ID     string `json:"id"`
+	Leader string `json:"leader"`
+	Mode   string `json:"mode"`
+	Entity string `json:"entity,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
 type CombatStatus struct {
 	ID        string `json:"id"`
 	Entity    string `json:"entity"`
@@ -174,6 +182,7 @@ type State struct {
 	PVP        *bool             `json:"pvp,omitempty"`
 	Food       *FoodStatus       `json:"food,omitempty"`
 	Combat     *CombatStatus     `json:"combat,omitempty"`
+	Escort     *EscortStatus     `json:"escort,omitempty"`
 	Stamina    float64           `json:"stamina"`
 	StaminaMax float64           `json:"staminaMax"`
 	Eitr       float64           `json:"eitr"`

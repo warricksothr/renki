@@ -107,6 +107,10 @@ namespace Renki.Plugin
                         }
                         return new FleeTask(fl, threatPos, threat, safePos, safe);
                     }
+                case EscortArgs escort:
+                    if (Players.Find(escort.Player) == null)
+                        throw new TaskRefused(Wire.ReasonInvalidTarget, $"no player \"{escort.Player}\" in range");
+                    return new EscortTask(req.Id, escort);
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)
                         throw new TaskRefused(Wire.ReasonInvalidTarget, $"no player \"{f.Player}\" in range");

@@ -1027,6 +1027,7 @@ namespace Renki.Plugin
 
         ItemDrop drop;
         readonly string prefab;
+        readonly bool safeTravel;
         readonly int before;
         int taken;
         readonly Walker walker = new Walker();
@@ -1034,14 +1035,15 @@ namespace Renki.Plugin
         float arrivedAt = -1;
         int tries;
 
-        public PickupTask(ItemDrop drop)
+        public PickupTask(ItemDrop drop, bool safeTravel = false)
         {
             this.drop = drop;
+            this.safeTravel = safeTravel;
             prefab = drop.m_itemData.m_dropPrefab.name;
             var p = Player.m_localPlayer;
             before = Carried(p, prefab);
             goal = drop.transform.position;
-            walker.SetGoal(p.transform.position, goal);
+            walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             walker.ResetStuck(p.transform.position);
         }
 
@@ -1057,7 +1059,7 @@ namespace Renki.Plugin
                 // The game merges nearby drops of an item into one stack.
                 drop = merged;
                 goal = drop.transform.position;
-                walker.SetGoal(p.transform.position, goal);
+                walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             }
             if (drop == null)
             {
@@ -1071,7 +1073,7 @@ namespace Renki.Plugin
             {
                 // Auto-pickup pulls drops toward the player, and they roll.
                 goal = drop.transform.position;
-                walker.SetGoal(p.transform.position, goal);
+                walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             }
             var pos = p.transform.position;
             if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), Close))
@@ -1171,6 +1173,7 @@ namespace Renki.Plugin
         const float RepathAfter = 2f;
 
         readonly FollowArgs args;
+        readonly bool safeTravel;
         readonly FollowPace pace = new FollowPace();
         readonly Walker walker = new Walker();
         Vector3 pathedTo;
@@ -1185,9 +1188,10 @@ namespace Renki.Plugin
         /// <summary>Faster than a jog (4 m/s) means the leader is sprinting.</summary>
         const float RunningSpeed = 5.5f;
 
-        public FollowTask(FollowArgs args)
+        public FollowTask(FollowArgs args, bool safeTravel = false)
         {
             this.args = args;
+            this.safeTravel = safeTravel;
             lastSeen = Time.time;
             pathedTo = new Vector3(float.MaxValue, 0, 0);
         }
@@ -1227,7 +1231,9 @@ namespace Renki.Plugin
             leaderLast = lead;
             var nearWall = gap <= args.Distance + pace.Slack && System.Math.Abs(pos.y - lead.y) <= Arrival.Level &&
                            !WallRoute.Clear(Convert.ToV3(pos), Convert.ToV3(lead), WorldNavigation.Walls);
-            var gait = pace.Decide(gap, args.Distance, args.Run, leaderSpeed > RunningSpeed, nearWall);
+            var mayStop = !safeTravel || System.Math.Abs(pos.y - lead.y) <= Arrival.Level &&
+                WallRoute.Clear(Convert.ToV3(pos), Convert.ToV3(lead), WorldNavigation.Walls);
+            var gait = pace.Decide(gap, args.Distance, args.Run, leaderSpeed > RunningSpeed, nearWall, mayStop);
             if (gait != lastGait)
             {
                 Tracer.Emit("follow", gait.ToString().ToLowerInvariant(), new Dictionary<string, object>
@@ -1253,7 +1259,7 @@ namespace Renki.Plugin
             }
             if ((lead - pathedTo).sqrMagnitude > RepathAfter * RepathAfter)
             {
-                walker.SetGoal(pos, lead);
+                walker.SetGoal(pos, lead, reuseRoutes: safeTravel, dryGround: safeTravel, avoidHostiles: safeTravel);
                 pathedTo = lead;
             }
             if (Walker.Stranded(p) is Outcome stranded)

@@ -377,9 +377,19 @@ try {
     deviceScaleFactor: 1,
   });
   await sheetPage.goto(origin + "/artifacts/contact-sheet.html");
-  await sheetPage.evaluate(() =>
-    Promise.all([...document.images].map((i) => i.decode())),
-  );
+  // Decode in order: a large contact sheet can exceed Chromium's concurrent
+  // image decode budget even though each retained PNG is valid.
+  await sheetPage.evaluate(async () => {
+    for (const image of document.images) {
+      try {
+        await image.decode();
+      } catch (error) {
+        throw new Error(
+          `Contact sheet image ${image.getAttribute("src")} (complete=${image.complete}, width=${image.naturalWidth}): ${error.message}`,
+        );
+      }
+    }
+  });
   await sheetPage.screenshot({
     path: join(out, "contact-sheet.png"),
     fullPage: true,

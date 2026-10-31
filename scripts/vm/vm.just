@@ -364,3 +364,11 @@ gather-trial *ARGS:
 
 test-gather-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/gather-trial-test.py"
+
+# Start native escort in an already joined/recovered game; retain bounded evidence.
+[positional-arguments]
+escort-check +ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/escort-check.py" "$@"
+
+test-escort-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/escort-check-test.py"

@@ -340,7 +340,7 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	// Follow too: from the panel the owner may not be in the world at all,
 	// and a follow that loses its leader sends the bot home. Refused
 	// before it counts as an order, so it cancels nothing.
-	case cmdCome, cmdSetHome, cmdPickup, cmdFollow:
+	case cmdCome, cmdSetHome, cmdPickup, cmdFollow, cmdEscort:
 		if !located(c) {
 			b.say(from, fmt.Sprintf("I can't see you, %s, so I don't know where you mean.", c.From.Name))
 			return
@@ -567,16 +567,19 @@ const (
 	cmdOpenDoor
 	cmdCloseDoor
 	cmdFetch
+	cmdEscort
 )
 
 func (c command) String() string {
 	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
-		"go to bed", "claim the bed", "get the door", "open the door", "close the door", "get your things"}[c]
+		"go to bed", "claim the bed", "get the door", "open the door", "close the door", "get your things", "escort"}[c]
 }
 
 var grammar = map[string]command{
 	"follow": cmdFollow, "follow me": cmdFollow,
-	"stop": cmdStop, "halt": cmdStop,
+	"escort": cmdEscort, "escort me": cmdEscort, "guard me": cmdEscort,
+	"stay out of it": cmdStop,
+	"stop":           cmdStop, "halt": cmdStop,
 	"status": cmdStatus, "report": cmdStatus,
 	"come": cmdCome, "come here": cmdCome, "come to me": cmdCome,
 	"wait": cmdWait, "wait here": cmdWait, "stay": cmdWait, "stay here": cmdWait,
@@ -630,6 +633,9 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		if order, ack, ok = b.use(cmd, c, from); !ok {
 			return
 		}
+	case cmdEscort:
+		order = session.Order{Task: protocol.TaskEscort, Args: &protocol.EscortArgs{Player: c.From.Name, Protect: slices.Clone(b.live().Owners)}}
+		ack = "I’ll follow, collect nearby materials, and defend you and the configured owners and operators when it’s safe."
 	case cmdFollow:
 		order = session.Order{Task: protocol.TaskFollow, Args: &protocol.FollowArgs{Player: c.From.Name, Run: protocol.RunAuto}}
 		ack = "Right behind you."

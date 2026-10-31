@@ -144,6 +144,7 @@ namespace Renki.Plugin
             if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Food = Food(p);
             if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Pvp = Perceiver.Pvp(p);
             if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Combat = KiteTask.Active?.Status ?? MeleeTask.Active?.Status;
+            if (phase == Wire.PhaseInWorld && !p.IsDead()) s.Escort = EscortTask.Active?.Status;
             s.Stamina = Round(p.GetStamina());
             s.StaminaMax = Round(p.GetMaxStamina());
             s.Eitr = Round(p.GetEitr());

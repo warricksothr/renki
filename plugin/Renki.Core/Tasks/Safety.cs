@@ -32,6 +32,7 @@ namespace Renki.Tasks
                 case "use_item": return true;
                 case "move_to":
                 case "follow":
+                case "escort":
                 // It walks there; what it may use is InteractRule's call.
                 case "interact":
                 // Running away is never the unsafe choice, so it needs no

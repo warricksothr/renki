@@ -143,6 +143,17 @@ namespace Renki.Tasks
                 return;
             }
 
+            // A wrapper cannot grant a capability withheld by either safety layer.
+            if (args is EscortArgs escort &&
+                (!allowed.Contains(TaskNames.Follow) || !allowed.Contains(TaskNames.Flee) ||
+                 escort.Defend && (!allowed.Contains(TaskNames.Attack) || !safety.Permits(TaskNames.Attack)) ||
+                 escort.Collect && (!allowed.Contains(TaskNames.Pickup) || !allowed.Contains(TaskNames.Interact) ||
+                    !safety.Permits(TaskNames.Pickup) || !safety.Permits(TaskNames.Interact))))
+            {
+                Reply(req, Wire.StatusRejected, Wire.ReasonNotAllowed, "escort requires follow/flee and its enabled pickup/interact/attack permissions");
+                return;
+            }
+
             if (req.Task == TaskNames.Stop)
             {
                 Reply(req, Wire.StatusAccepted);
