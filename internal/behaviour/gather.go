@@ -77,6 +77,7 @@ type gatherRun struct {
 	home                                      *protocol.Vec3
 	homePhase                                 string
 	homeReceipt                               *uint64
+	repairHomeScan                            uint64
 	stow                                      *stowRun
 	prepared, repairPending                   bool
 	repairBefore                              uint64
@@ -250,9 +251,15 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		if r.homeReceipt == nil {
 			seq := v.State.Seq
 			r.homeReceipt = &seq
+			if v.Perception != nil {
+				r.repairHomeScan = v.Perception.Seq
+			}
 			return nil, ErrWait
 		}
 		if v.State.Seq <= *r.homeReceipt {
+			return nil, ErrWait
+		}
+		if r.homePhase == "repair" && (!freshPerception(v) || v.Perception.Seq <= r.repairHomeScan) {
 			return nil, ErrWait
 		}
 		if math.Hypot(v.State.Pos[0]-r.home[0], v.State.Pos[2]-r.home[2]) > 3 || math.Abs(v.State.Pos[1]-r.home[1]) > 1.75 {
@@ -265,7 +272,11 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 			r.finished = true
 			return nil, nil
 		}
-		r.startStow()
+		if phase == "repair" {
+			r.prepared = false
+		} else {
+			r.startStow()
+		}
 		result = nil
 	}
 	if r.stow != nil {
@@ -326,6 +337,9 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 				}
 			}
 			if station == nil {
+				if math.Hypot(v.State.Pos[0]-r.home[0], v.State.Pos[2]-r.home[2]) > 3 || math.Abs(v.State.Pos[1]-r.home[1]) > 1.75 {
+					return r.goHome("repair"), nil
+				}
 				return nil, errors.New("repair the axe at an accessible home workbench before gathering")
 			}
 			r.repairPending = true

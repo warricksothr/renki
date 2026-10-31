@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T12:47:57Z
+updated_at: 2026-10-31T12:53:50Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -411,3 +411,10 @@ Add one20s observation window for out-of-range passive wildlife. Preserve20m app
 Allow one15s wait for a single exact confirmed unstarred Greyling pursuer within40m to enter the existing20m native attack admission. Healthy/fed/stamina/tool/bystander checks and two-defense/whole-work budgets still apply before waiting. Preserve the current tree/log chain and starting cargo; do not chase, dispatch combat beyond20m, substitute an entity or infer death. Timeout or another pursuer still stops. Regression covers waiting after exact full-tree success, same unfinished-log resume after exact defense+freshness, timeout, identity change, multiple attackers, inadequate health and unconfirmed targets. Initial focused failure was test setup missing the runner start time; corrected before rerun.
 
 Tas is safely offline, panel available,38.0/38.0HP with zero native damage. Last pose[88.5,40.59,46.86], Mushroom570s at the last supervisor observation, no reserve. Starting products for the failed trial were Wood27/Resin5/BeechSeeds2; its4seed gain remains carried. Earlier/fresh logs coexist around the stand; next benchmark must still prove two distinct complete fresh trees and gains-only home storage, not count these partial cuts. Need gate/review/controller deployment and the complete live proof.
+
+**agent:codex/renki-milestones** at 2026-10-31T12:53:50Z
+
+### Autonomous repair preparation after a partial work trip
+88d0596 passed full CI (.checks/20261031T124757Z-o3M1SI.log), committed review (.checks/20261031T125029Z-1l2JJT.log), controller deployment (.checks/20261031T125046Z-I0Rvxk.log) and push. Live two-tree trial .checks/gather-trial-20261031T125105693010Z stopped before any cut because the axe is now below the departure 90% threshold and Tas is at the work site, not within 12 m of the home workbench. No damage; final 37.8 HP, safely offline/panel restored. The pursuer wait itself remains unexercised.
+
+Make repair preparation complete its own prerequisite: if no currently observed nearby home workbench is available while away, perform the existing native dry hostile-aware home return. Require exact success, a subsequent state on the pinned home floor and a subsequent fresh local perception before selecting the workbench. Repair through ordinary interact, require a newer actually restored axe inventory, then resume the outbound trip preserving the initial gains-only cargo baseline. Missing bench at home, failed return, under-floor pose and stale scan cannot dispatch repair or loop. Focused behavior checks passed .checks/20261031T125338Z-dH0uoK.log; full gate/review/deployment and renewed two-fresh-tree/log/store/home proof follow.

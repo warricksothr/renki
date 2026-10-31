@@ -148,6 +148,69 @@ func TestGatherHomeProofCannotComeFromBelowTheFloor(t *testing.T) {
 	}
 }
 
+func TestGatherReturnsFromWorkSiteForRepairThenResumesWithOriginalCargo(t *testing.T) {
+	for _, mode := range []string{"repaired", "failed return", "below floor", "stale scan", "missing bench"} {
+		t.Run(mode, func(t *testing.T) {
+			r, v := gathering(t)
+			r.p.Return, r.p.ReturnHome, r.p.MaxTrees = false, true, 2
+			r.p.Site.Pos = protocol.Vec3{100, 0, 0}
+			v.State.Pos = r.p.Site.Pos
+			home := protocol.Vec3{0, 1.5, 0}
+			v.Home = &home
+			v.Inventory.Items[0].Durability = 80
+			order := nextTask(t, r, v, nil, protocol.TaskMoveTo)
+			args := order.Args.(*protocol.MoveToArgs)
+			if *args.To.Pos != home || !args.Dry || !args.AvoidHostiles || r.trees != 0 {
+				t.Fatal(order, r)
+			}
+			if mode == "failed return" {
+				if order, err := r.Next(v, &Result{Status: protocol.StatusFailed}); order != nil || err == nil {
+					t.Fatal(order, err)
+				}
+				return
+			}
+			if _, err := r.Next(v, success("home")); !errors.Is(err, ErrWait) {
+				t.Fatal(err)
+			}
+			v.State.Seq++
+			v.State.Pos = protocol.Vec3{}
+			if mode == "below floor" {
+				v.State.Pos[1] = -3
+			}
+			if mode != "stale scan" {
+				v.Perception.Seq++
+			}
+			v.Perception.Structures = []protocol.PerceivedStructure{{ID: "bench", Kind: protocol.StructureStation, Prefab: "piece_workbench"}}
+			if mode == "missing bench" {
+				v.Perception.Structures = nil
+			}
+			order, err := r.Next(v, success("home"))
+			if mode == "stale scan" {
+				if order != nil || !errors.Is(err, ErrWait) {
+					t.Fatal(order, err)
+				}
+				return
+			}
+			if mode != "repaired" {
+				if order != nil || err == nil || errors.Is(err, ErrWait) {
+					t.Fatal(order, err)
+				}
+				return
+			}
+			if err != nil || order == nil || order.Task != protocol.TaskInteract || !order.Args.(*protocol.InteractArgs).Repair {
+				t.Fatal(order, err)
+			}
+			v.Inventory.Seq++
+			v.Inventory.Items[0].Durability = 100
+			v.Inventory.Items[1].Stack += 3 // Incidental pickup on the repair trip is new cargo.
+			order = nextTask(t, r, v, success("repair"), protocol.TaskMoveTo)
+			if *order.Args.(*protocol.MoveToArgs).To.Pos != r.p.Site.Pos || r.keep["Wood"] != 12 || r.stow != nil || r.trees != 0 {
+				t.Fatal(order, r)
+			}
+		})
+	}
+}
+
 func TestGatherRepairsAtHomeThenRequiresFreshActuallyRestoredAxeBeforeLeaving(t *testing.T) {
 	for _, mode := range []string{"repaired", "stale", "unchanged", "failed", "wrong station"} {
 		t.Run(mode, func(t *testing.T) {

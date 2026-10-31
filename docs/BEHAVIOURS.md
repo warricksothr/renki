@@ -242,7 +242,12 @@ range. The unfinished tree/log chain stays pinned while Tas waits. This never
 authorizes a chase, a substitute attacker, or combat outside that admission range.
 
 Before leaving home, `returnHome` gathering repairs a carried axe below 90%
-durability at a currently observed home workbench. It uses `interact` with
+durability at a currently observed home workbench. When started away from home
+without a nearby home workbench, it
+first makes a dry, hostile-aware return, verifies the home floor and a newer
+local scan, then repairs and resumes the outbound trip with the original cargo
+baseline. A missing home workbench stops preparation without looping.
+It uses `interact` with
 `repair:true`, then requires a newer actual inventory reporting an axe at least
 90% repaired. Failed, stale or ineffective repair cannot start the journey.
 The station routine also repairs other eligible carried gear through the same
