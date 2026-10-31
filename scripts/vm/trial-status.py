@@ -14,6 +14,7 @@ def report(folder, now=None):
     result = dict(evidence=str(folder), outcome='preparing')
     previous = latest = first = None
     travelled = 0
+    goal_ranges = {}
     observations = folder / 'observations.jsonl'
     if observations.exists():
         for line in observations.open():
@@ -27,6 +28,11 @@ def report(folder, now=None):
                 continue
             if previous and (previous.get('world'), previous.get('connection')) == (state.get('world'), state.get('connection')):
                 travelled += math.dist(previous['pos'], state['pos'])
+            for observed_goal in state.get('goals', []):
+                if (observed_goal.get('status') == 'running' and observed_goal.get('world') == state.get('world')
+                        and observed_goal.get('center')):
+                    goal_id = observed_goal['id']
+                    goal_ranges[goal_id] = max(goal_ranges.get(goal_id, 0), math.dist(state['pos'], observed_goal['center']))
             first = first or row
             latest, previous = row, state
     if latest:
@@ -65,8 +71,11 @@ def report(folder, now=None):
                 result['result'] = {k: final['result'][k] for k in ('status', 'reason', 'detail') if k in final['result']}
     if goal:
         result['goal'] = {k: goal[k] for k in ('status', 'reason', 'attempts', 'maxAttempts', 'taskCount', 'waitS') if k in goal}
-        result['goal']['pendingSector'] = ((goal.get('pending') or {}).get('search') or {}).get('sector')
-        result['goal']['pendingOffset'] = ((goal.get('pending') or {}).get('search') or {}).get('offset', 0)
+        pending_search = (goal.get('pending') or {}).get('search')
+        result['goal']['pendingSector'] = pending_search.get('sector') if pending_search else None
+        result['goal']['pendingOffset'] = pending_search.get('offset', 0) if pending_search else None
+        if goal.get('id') in goal_ranges:
+            result['goal']['maxObservedRangeM'] = round(goal_ranges[goal['id']], 1)
         result['goal']['searches'] = [dict(sector=s['plan']['sector'], empty=s['empty'],
                                            offset=s['plan'].get('offset', 0),
                                            reason=s['outcome'].get('reason')) for s in goal.get('searches', [])]

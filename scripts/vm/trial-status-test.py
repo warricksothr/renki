@@ -15,6 +15,20 @@ spec.loader.exec_module(progress)
 
 
 class Progress(unittest.TestCase):
+    def test_goal_range_uses_observed_positions_in_the_matching_running_world(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            now = datetime.datetime(2026, 10, 30, tzinfo=datetime.timezone.utc)
+            goal = dict(id='goal', world='one', status='running', center=[100, 0, 0])
+            rows = []
+            for second, world, status, x in [(0, 'one', 'running', 100), (1, 'one', 'running', 170),
+                                              (2, 'one', 'needs_plan', 250), (3, 'two', 'running', 300)]:
+                rows.append(json.dumps(dict(at=(now + datetime.timedelta(seconds=second)).isoformat(),
+                    status=dict(phase='in_world', world=world, pos=[x, 0, 0], goals=[dict(goal, status=status)]))))
+            (folder / 'observations.jsonl').write_text('\n'.join(rows))
+            (folder / 'goal.json').write_text(json.dumps(dict(goal, status='needs_plan')))
+            self.assertEqual(progress.report(folder, now)['goal']['maxObservedRangeM'], 70)
+
     def test_goal_progress_shows_attempted_bearings_without_policy_or_perception(self):
         with tempfile.TemporaryDirectory() as name:
             folder = Path(name)
@@ -34,6 +48,7 @@ class Progress(unittest.TestCase):
             self.assertEqual(result['status'], 'needs_plan')
             self.assertEqual(result['attempts'], 6)
             self.assertIsNone(result['pendingSector'])
+            self.assertIsNone(result['pendingOffset'])
             (folder / 'summary.json').unlink()
             (folder / 'goal.json').write_text('{')
             self.assertNotIn('goal', progress.report(folder))

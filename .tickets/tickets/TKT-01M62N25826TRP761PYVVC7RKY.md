@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: in-progress
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/outer-search-travel
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 1c8bdb792968155571ca9d073154c939a99ef2cb
-  session: null
-  claimed_at: 2026-10-31T01:47:59Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T01:48:00Z
+updated_at: 2026-10-31T02:02:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -330,3 +323,13 @@ The persistent changed-build trial used all six native tasks, progressing throug
 This earns live multi-attempt search progression and separation of empty/incomplete outcomes, not complete sector coverage or the wider M3 acceptance. Do not rerun the unchanged local search. Next useful development is native checked travel into additional search origins within the authorized goal sphere, with the host persisting attempted regions and the native side choosing supported terrain/return routes. Keep existing budget, permission, body-ownership and exact-death proof bounds; do not infer terrain endpoints from the current Y, increase every budget, or ask players to stage/clear enemies. Kill/death callback, block, dodge and broader owner-defense checks remain open.
 
 Independent final status .checks/20261031T010608Z-bhXJVF.log: Valheim stopped, controller/panel running and Tas disconnected. Trial cleanup restored combat off. Returning this unfinished ticket to ready and releasing the claim for the next development pass; acceptance boxes remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T02:02:51Z
+
+PR125 (Plan farther combat searches with bounded native route alternatives) adds discovery-only searchOffset and native outward travel with a finite progress-making leg fan. The first two host attempts remain local, later attempts use offsets40/60m; radius plus offset is clamped inside the existing goal envelope and52m combat/escape reserve, at most120m reach. Native short legs choose current supported terrain Y, and a distance/breadcrumb allowance can end outbound travel early without increasing90/150s or300m budgets. Offset is checkpointed in intents and outcomes; old records retain zero offset. Empty/partial travel cannot prove an encounter or complete coverage. Reviewed/deployed source:9cad753. Full just check ci passed with419C# tests and42browser scenarios (.checks/20261031T015220Z-ZisCVD.log); committed just check review clean (.checks/20261031T015514Z-HL1sbg.log); checksum installation passed (.checks/20261031T015529Z-3eQ3Sa.log).
+
+Changed-build persistent trial .checks/combat-trial-20261031T015552588371Z/summary.json used all six attempts and286.7m observed travel, with zero native damage events and final74.4HP at[-27.75,30.87,-19.3]. Goal ended needs_plan / attempt/native-task budget exhausted. Sectors4,2,6,1 returned empty-search receipts; sector0 had no completed route; sector5 stopped on an unsafe return and remained incomplete/refused. Later offsets were dispatched and native alternatives produced real outbound/return travel (including north, which previously completed no leg), but the requested farther regions were NOT reached. Supervisor samples peaked48.4m from the goal center; the full native audit peaked51.94m at[8.1,32,34.04] during t-5. Only a Deer and two Necks were observed; no Greyling, combat proof, block or dodge occurred. Audit:.checks/audit-window-nvwH5p.jsonl. Console:.checks/20261031T015552Z-edul1K.log. Diagnostic camera:.checks/camera-20261031T015851949232Z.jpg (open hillside near home, no visible close enemy).
+
+Concrete blockers: t-4 returned after grade rejection; t-5 exhausted alternatives near a character (8 character_near_destination rejections). t-6 encountered wet terrain, returned partway, then refused grade30.6 degrees on the connector from[-27.61,30.93,-19] toward supported[-27.49,31.18,-18.6]. With no acquired enemy, KiteTask.Abort sets retreat mode and stops; it did NOT execute an enemy-escape routine or return to the search origin. Keep that distinction honest. Do not rerun unchanged attempts or relax grade/character limits. Next development should find fully checked detours around rejected terrain/character corridors and unsafe return connectors, likely using the existing incremental LocalRoute/PlanningProbe machinery, with bounded per-frame work and full route revalidation. Preserve bends/roughness checks across planned corners; a fine grid must not bypass GroundCorridor by resetting its history on each tiny edge. Need a pending-plan state rather than treating an in-progress search as a route failure. No controller movement puppeting or player staging/clearing is required.
+
+Added compact maxObservedRangeM plus pending/recorded offsets to just vm trial-status, with matching-world/running-goal tests, to make this distinction visible without ad hoc perception dumps. Focused supervisor/progress checks passed (.checks/20261031T020209Z-DK2Kss.log); final full gate and review follow before landing the evidence/tool update. Independent final VM status .checks/20261031T020106Z-kxYV3p.log: Valheim stopped, controller/panel running, Tas disconnected. just vm combat reports AllowCombat=false. Streaming check .checks/20261031T020108Z-Fx1bIe.log confirms capture/watchdog/OBS/relay running, private output active and Renki Offline scene. This unfinished ticket returns to ready/released with acceptance criteria unchanged; kill/death callback, blocking, dodging and broader M3 owner defense remain open.

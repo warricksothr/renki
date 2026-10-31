@@ -931,6 +931,9 @@ requests, and reports success only from the completed supervisor summary.
 Persistent trials also include a compact goal checkpoint: consumed attempts,
 pending sector and attempted bearings with empty/incomplete native outcomes.
 The pending and recorded offsets show when later attempts seek farther ground.
+`maxObservedRangeM` measures sampled position distance from the active goal's
+center, using observations from its running world; the native audit may record
+a larger peak between supervisor polls.
 Use actual task-scoped position evidence to confirm that ground was reached;
 requesting an offset or completing one checked leg is not that proof.
 This reads local `goal.json` while running and the terminal summary afterward;
