@@ -98,6 +98,14 @@ namespace Renki.Movement
 
         public int Count => points.Count;
 
+        /// <summary>A copy of the unconsumed checked route, for live validation.
+        /// Consumed corners must not send a walker backwards on revalidation.</summary>
+        public IReadOnlyList<V3> Remaining(V3 pos)
+        {
+            if (!Next(pos).HasValue) return new V3[0];
+            return points.GetRange(index, points.Count - index);
+        }
+
         /// <summary>Never invent a segment beyond a partial path's end.</summary>
         public V3 Direction(V3 pos) => Next(pos) is V3 next ? (next - pos).Flat : V3.Zero;
 

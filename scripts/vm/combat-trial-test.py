@@ -78,7 +78,9 @@ class CombatTrialTests(unittest.TestCase):
         rows += [trace('scout', {})] * 20 + [trace('scout_return', {})]
         rows += [trace('scout_route', dict(returning=False)), trace('scout_route', dict(returning=True, trailPoints=4, returnDistance=20))]
         rows += [trace('scout_recovery', dict(reason='route changed')), trace('scout_recovery', dict(reason='route changed'), task='old')]
-        rows += [trace('scout_rejected', dict(goal=[1, 2, 3], reason='blocked_' + str(i))) for i in range(10)]
+        rows += [trace('scout_rejected', dict(goal=[1, 2, 3], reason='blocked_' + str(i),
+                                             angle=34, previousAngle=10, roughness=.2,
+                                             supported=[1, 2, 3])) for i in range(10)]
         rows += [trace('scout_rejected', dict(reason='blocked_0'))]
         with tempfile.TemporaryDirectory() as directory:
             audit = Path(directory) / 'audit.jsonl'
@@ -93,6 +95,8 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['scouting']['recoveries'], {'route changed': 1})
         self.assertEqual(summary['scouting']['returnHint'], dict(trailPoints=4, returnDistance=20))
         self.assertEqual(len(summary['scouting']['examples']), 6)
+        self.assertEqual(summary['scouting']['examples'][1]['angle'], 34)
+        self.assertEqual(summary['scouting']['examples'][1]['supported'], [1, 2, 3])
 
     def test_footing_and_death_diagnostics_keep_only_latest_matching_task_evidence(self):
         def trace(message, data, task='trial'):

@@ -761,6 +761,11 @@ that leg and advance to another bearing, with at most four recoveries and the
 same candidate/time/travel bounds. At the limit Tas returns instead of starting
 another excursion. A bounded trail records actual outbound positions; current
 path/support/grade/water/character checks must approve every return connector.
+Scouting follows the exact checked corners, with no second navmesh query,
+strafe, jump or automatic detour. Revalidation uses only the unconsumed route.
+If the navmesh refuses a short return connector, its direct physical connector
+may be tried under the same checks; recorded positions alone never authorize it.
+Scouting rejection traces retain the failing support points and local grades.
 The planner reserves travel for that winding trail rather than just distance
 from the origin. A refused return or unsafe body state still exits immediately.
 Return legs do not count as outbound search coverage. Compact trial reports

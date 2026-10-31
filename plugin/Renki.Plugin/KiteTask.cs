@@ -21,6 +21,7 @@ namespace Renki.Plugin
         readonly WorldNavigation.PlanningProbe probe = new WorldNavigation.PlanningProbe(diagnostics: true);
         readonly List<Character> characters = new List<Character>();
         readonly List<Vector3> approachPath = new List<Vector3>();
+        readonly List<V3> scoutPath = new List<V3>();
         readonly Collider[] nearby = new Collider[256];
         Character enemy;
         string entity = "", mode = "survey", reason;
@@ -348,7 +349,6 @@ namespace Renki.Plugin
                 if (!walking || Vector3.Distance(walkGoal, goal) > .2f)
                 {
                     walkGoal = goal; walking = true;
-                    walker.SetGoal(pos, goal, 1); walker.ResetStuck(pos);
                     Tracer.Emit("combat", "scout_route", new Dictionary<string, object>
                     {
                         ["goal"] = Convert.ToArray(goal),
@@ -358,6 +358,7 @@ namespace Renki.Plugin
                         ["returnDistance"] = scouting.ReturnDistance
                     });
                 }
+                walker.SetCheckedRoute(goal, scoutPath);
                 Mode(scouting.Returning ? "scout_return" : "scout");
             }
             if (scoutAction != ScoutAction.Walk) return null;
@@ -387,21 +388,48 @@ namespace Renki.Plugin
 
         V3? ScoutRoute(Player p, V3 desired)
         {
-            string rejected = "wet_or_unloaded_terrain";
-            if (!Ground(Convert.ToVector3(desired), out var goal)) return RejectScout(desired, rejected);
+            scoutPath.Clear();
+            groundFailure = null;
+            if (!Ground(Convert.ToVector3(desired), out var goal)) return RejectScout(desired, "wet_or_unloaded_terrain");
+            // Recheck exactly the unconsumed route we are following. A fresh
+            // navmesh query can choose a different bend or another floor.
+            if (walking && Vector3.Distance(walkGoal, goal) <= .01f)
+                return ValidateScoutPath(p, desired, goal, walker.RemainingCheckedRoute(p.transform.position));
             approachPath.Clear();
-            if (Pathfinding.instance == null || !Pathfinding.instance.GetPath(p.transform.position, goal, approachPath,
-                Pathfinding.AgentType.Humanoid, true, true, false) || approachPath.Count == 0 || approachPath.Count > 32 ||
-                Vector3.Distance(approachPath[approachPath.Count - 1], goal) > 1.5f)
-                return RejectScout(desired, "no_complete_navmesh_route");
+            var complete = Pathfinding.instance != null && Pathfinding.instance.GetPath(p.transform.position, goal, approachPath,
+                Pathfinding.AgentType.Humanoid, true, true, false) && approachPath.Count > 0 && approachPath.Count <= 32 &&
+                Vector3.Distance(approachPath[approachPath.Count - 1], goal) <= 1.5f;
+            if (complete)
+            {
+                var result = ValidateScoutPath(p, desired, goal, approachPath.ConvertAll(Convert.ToV3));
+                if (result.HasValue) return result;
+            }
+            else RejectScout(desired, "no_complete_navmesh_route");
+            // A nearby observed return breadcrumb may have a clear physical
+            // connector even if the navmesh detours onto nearby scenery. This
+            // is a new checked route, never permission to replay stale ground.
+            if (scouting.Returning && Vector3.Distance(p.transform.position, goal) <= Scouting.LegLength)
+            {
+                groundFailure = null;
+                var direct = ValidateScoutPath(p, desired, goal, new V3[0]);
+                if (direct.HasValue)
+                    Tracer.Emit("combat", "scout_direct_return", new Dictionary<string, object>
+                    { ["from"] = Convert.ToArray(p.transform.position), ["goal"] = desired.ToArray() });
+                return direct;
+            }
+            return null;
+        }
+
+        V3? ValidateScoutPath(Player p, V3 desired, Vector3 goal, IReadOnlyList<V3> points)
+        {
+            scoutPath.Clear();
             probe.BeginSlice();
             if (!Ground(p.transform.position, out var supportedStart)) return RejectScout(desired, "unsupported_start");
             var previous = Convert.ToV3(supportedStart);
             double length = 0;
-            // Include the exact destination after the navmesh endpoint.
-            for (var i = 0; i <= approachPath.Count; i++)
+            for (var i = 0; i <= points.Count; i++)
             {
-                var point = i == approachPath.Count ? goal : approachPath[i];
+                var point = i == points.Count ? goal : Convert.ToVector3(points[i]);
                 if (!Ground(point, out var supported) || Math.Abs(point.y - supported.y) > 1)
                     return RejectScout(desired, "unsupported_navmesh_corner");
                 var next = Convert.ToV3(supported);
@@ -414,8 +442,6 @@ namespace Renki.Plugin
                     if (Scouting.RouteDistance(previous, next, Convert.ToV3(c.transform.position)) < (BaseAI.IsEnemy(p, c) ? 15 : 8))
                         return RejectScout(desired, "character_near_route");
                 }
-                // A 16 m scouting leg can be one straight navmesh edge;
-                // the local corridor checker accepts at most 12 m per call.
                 var parts = Math.Max(1, (int)Math.Ceiling((next - previous).Length / 8));
                 var segment = previous;
                 for (var part = 1; part <= parts; part++)
@@ -423,11 +449,12 @@ namespace Renki.Plugin
                     var endpoint = previous + (next - previous) * ((double)part / parts);
                     if (!Ground(Convert.ToVector3(endpoint), out var supportedEnd)) return RejectScout(desired, "unsupported_navmesh_corner");
                     endpoint = Convert.ToV3(supportedEnd);
-                    var failure = (endpoint - segment).Length < .05 ? null : GroundCorridor.Inspect(segment, endpoint, DryProbe);
-                    if (failure != null) return RejectScout(desired, failure.Reason);
+                    groundFailure = (endpoint - segment).Length < .05 ? null : GroundCorridor.Inspect(segment, endpoint, DryProbe);
+                    if (groundFailure != null) return RejectScout(desired, groundFailure.Reason);
                     segment = endpoint;
                 }
                 if (!ClearScenery(supported)) return RejectScout(desired, "structure_near_route");
+                if (scoutPath.Count == 0 || (scoutPath[scoutPath.Count - 1] - next).Length > .01) scoutPath.Add(next);
                 previous = next;
             }
             return Convert.ToV3(goal);
@@ -435,8 +462,18 @@ namespace Renki.Plugin
 
         V3? RejectScout(V3 goal, string why)
         {
-            Tracer.Emit("combat", "scout_rejected", new Dictionary<string, object>
-            { ["goal"] = goal.ToArray(), ["reason"] = why });
+            var data = new Dictionary<string, object>
+            { ["goal"] = goal.ToArray(), ["reason"] = why };
+            if (groundFailure != null)
+            {
+                data["from"] = groundFailure.From.ToArray(); data["desired"] = groundFailure.Desired.ToArray();
+                if (groundFailure.Supported.HasValue) data["supported"] = groundFailure.Supported.Value.ToArray();
+                if (groundFailure.Angle.HasValue) data["angle"] = Math.Round(groundFailure.Angle.Value, 2);
+                if (groundFailure.PreviousAngle.HasValue) data["previousAngle"] = Math.Round(groundFailure.PreviousAngle.Value, 2);
+                if (groundFailure.Roughness.HasValue) data["roughness"] = Math.Round(groundFailure.Roughness.Value, 3);
+            }
+            Tracer.Emit("combat", "scout_rejected", data);
+            scoutPath.Clear();
             return null;
         }
 

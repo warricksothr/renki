@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T23:50:59Z
+updated_at: 2026-10-30T23:59:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Latch the selected Character's authoritative owner-side m_onDeath callback before ZNetScene.Destroy resets its ZDO. Bind observation to the exact Character/ZDO, local player, ZNet and scene; consume it before invalid-target checks, keep it across kite-to-melee handoff, and unsubscribe/clear it on cancellation, retreat and completion. Character.CheckDeath/OnDeath are owner-only; the installed DestroyZDO RPC carries IDs without death reasons, so remote deletion alone remains target_lost. Do not add network ownership changes or infer death from disappearance, damage or drops. Cover death-then-destruction, ordinary unload, wrong source, changed identity/scope, handoff and late callbacks after disposal using the same subscription/latch used by native code. Emit only the effective kite/hold mode. Run focused tests, native build, full just check ci and committed just check review; land and deploy. Run one bounded autonomous combat trial on the changed build, then proceed to the M2 gathering/storage benchmark only when its actual guards permit. Keep unobserved live kill/block/dodge and broad milestone criteria open.
+PR115-117 are landed and deployed. Latest live scouting exited the house and travelled143m with zero damage, but return refused on grade after4 checked return legs; no encounter occurred. Bind scouting steering to the exact physically validated route rather than asking Walker to calculate another route. Revalidate the remaining checked points, allow a direct return connector only through the same full route/support/grade/character checks, and retain detailed rejection evidence. Keep all time/travel/health/permission limits. Add route-consumption/bend regressions, run focused checks and full just check ci, commit and run just check review, then land/deploy and perform one changed-build native trial. Independently run the M2 gather trial from the new outdoor view. Keep unobserved live kill/block/dodge and full hauling acceptance open.
 
 ## Notes
 
@@ -284,3 +284,7 @@ Implemented enemy-free scouting settling: at most0.5s, within0.4m of current dry
 PR116 merged asb484e00 after full CI (.checks/20261030T233955Z-QfnoG4.log) and clean committed review (.checks/20261030T234226Z-rTXWU6.log), with checksum installation .checks/20261030T234325Z-9sEtqt.log. Its native trial .checks/combat-trial-20261030T234338632221Z/summary.json failed before scouting: 'no reachable clear search origin after bounded travel preparation'. Three egress plans each expanded222nodes without movement; five other endpoints correctly refused. Audit .checks/audit-window-rud4oZ.jsonl, console .checks/20261030T234338Z-3Xq1CZ.log. No settling or death-callback evidence occurred, no acquired enemy, zero damage, final84/84HP at sheltered[-37.57,36.09,6.36], cleanup successful.
 
 The shared local routing prerequisite is now being fixed on TKT-01M638V1XC9DX4XJ2ZV1EKGNRS (Follow: stuck outside a wall, the leader inside, path straight through):0.75m grid steps can skip three quarter-metre stair treads beyond the0.6m support bound. A0.5m stride passes ascent/descent and existing route regressions without relaxing physical clearance. Land/deploy that changed build before retrying the same origin. M3 kill/block/dodge and live settling remain open.
+
+**agent:codex/renki-milestones** at 2026-10-30T23:59:13Z
+
+PR117 checksum deployment succeeded. Native trial .checks/combat-trial-20261030T235205486981Z/summary.json and audit .checks/audit-window-kmT130.jsonl prove successful raised-house egress and143.2m observed movement, with zero damage and final82.6HP. It submitted13 outbound and4 return legs, then refused cannot return along a checked scouting route on a grade rejection toward[-12.96,30.83,38.71]. No enemy was acquired and owner death/block/dodge remain unproved. The physical route was being checked in ScoutRoute and independently queried again in Walker.SetGoal. Implemented exact checked-route steering without alternate replanning/strafe/climb, consumed-corner revalidation and fully checked short direct return fallback. Added local-grade/support diagnostics and bounded report fields. Focused CoreTests and native plugin build passed (.checks/20261030T235745Z-PEtips.log, .checks/20261030T235746Z-3nKhuJ.log); full just check ci is running before commit/review. The separate outdoor M2 run actually felled a beech with7 local hits before an approaching enemy cancelled harvesting; see wood ticket for exact proof. Tas is offline with combat restored false and panel online.
