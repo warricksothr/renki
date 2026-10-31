@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N12JW8TFN12MAT8M1ADZ8
 title: "Controller: go chop wood: pick a site and gather on its own"
 type: task
-status: in-progress
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -23,17 +23,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/scout-footing-settle
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 2e525311e5e34a3c4ddd2eb03ccb663f761cbc49
-  session: null
-  claimed_at: 2026-10-30T17:46:20Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T23:58:30Z
+updated_at: 2026-10-31T00:36:19Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -144,3 +137,11 @@ The first freshly fed full gather trial started from home and found zero current
 **agent:codex/renki-milestones** at 2026-10-30T23:58:30Z
 
 Outdoor controller gather trial on33be3ba selected isolated full beech1:61548 at[23.62,31.37,33.53] from five observed trees. Native move_to succeeded. Harvest t-2 proved pivot-ray trunk contact at[24.09,32.17,33.98] and resource broke after7 local hits: the full beech was actually felled. Before safe completion, an enemy approached within15m and harvesting refused; controller retreat followed, with1 damage event and final77.1HP at[25.9,32.33,19.45]. Evidence .checks/gather-trial-20261030T235528819650Z/summary.json, .checks/audit-window-L4JQb3.jsonl, .checks/20261030T235528Z-xBSA4E.log. Cleanup succeeded. This is live full-tree/contact proof, not log splitting, collected gains, chest delivery or full M2 completion. Do not repeat a full-tree benchmark against this now-felled tree; any log follow-up needs fresh identity/guards. One newly observed enemy supports the next autonomous M3 trial after the checked-scout-route fix.
+
+**agent:codex/renki-milestones** at 2026-10-31T00:36:12Z
+
+The full-beech contact/felling proof from .checks/gather-trial-20261030T235528819650Z/summary.json stands: beech 1:61548 broke after seven local hits before an enemy interrupted the remaining harvest sequence. This does not establish log splitting, collected gains, gain-only chest receipts, return or repeated hauling.
+
+The later M3 scouting fixes are merged/deployed through 8969d8d. Its final trial completed 225.9 m of local search and return with zero damage, but final fresh perception again contained zero full beech trees. Selection was evaluated from the retained fresh observation without starting another unchanged gathering trial. Do not treat this as proof there are no trees beyond perception, and do not retry the now-felled tree.
+
+Next M2 work is remembered resource/worksite discovery and refreshing a candidate site before beginning the strict benchmark's baseline and exact tree selection. Ordinary trees are currently excluded by notableResource in internal/memory/landmarks.go; StartWood can reuse its saved chat-created last site but otherwise relies on fresh nearby trees. Old coordinates are destination hints only, never permission to cut or proof of new logs. Preserve full tree identity, new-log and exact delivery receipts in any extended test. Full gather and multi-trip acceptance remains open. Returning this unfinished ticket to ready and releasing the claim for handoff.
