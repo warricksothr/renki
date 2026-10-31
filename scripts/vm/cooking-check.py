@@ -9,7 +9,7 @@ import subprocess
 import time
 from urllib.parse import urlencode
 from harvest_trial import health_loss
-from resupply_trial import candidates, count
+from resupply_trial import candidates, count, FOODS
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ('RawMeat', 'DeerMeat', 'NeckTail')
@@ -47,11 +47,11 @@ def delivery_receipt(receipts):
     return dict(evidence=mode, output=final.get('output'), count=count) if sum(drops.values()) == count and picked == drops else None
 
 
-def safe(status, previous=None):
+def safe(status, previous=None, require_food=True):
     hp, maximum = status.get('hp', 0), status.get('hpMax', 0)
     if not status.get('connected') or status.get('phase') != 'in_world': return 'not in world'
     if not math.isfinite(hp) or not math.isfinite(maximum) or maximum <= 0 or hp < max(20, maximum * .4): return 'unsafe health'
-    if not (status.get('food') or {}).get('active'): return 'no active food'
+    if require_food and not (status.get('food') or {}).get('active'): return 'no active food'
     if (status.get('location') or {}).get('inWater') or 'swimming' in status.get('flags', []): return 'unsafe water'
     if previous and ((status.get('world'), status.get('connection')) != (previous.get('world'), previous.get('connection'))
                      or health_loss(previous, status)): return 'scope changed or actual injury'
@@ -77,16 +77,24 @@ def search_chests(status, mapped):
     return {c[2] for c in candidates(status, mapped, {}, foods=RAW)} & live
 
 
+def home_search_ready(status):
+    home = status.get('home') or {}
+    return bool(home.get('world') == status.get('world') and home.get('pos')
+                and math.dist(status['pos'], home['pos']) <= 32)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--join', action='store_true', help='start once with the opt-in native recovery guard already enabled')
     parser.add_argument('--search-home', action='store_true', help='inspect the finite set of unique visible home chests for one raw ingredient')
+    parser.add_argument('--refresh-food', action='store_true', help='withdraw one ready meal near home and observe eating/recovery before cooking')
     args = parser.parse_args()
     folder = ROOT / '.checks' / ('cooking-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
     log = (folder / 'commands.log').open('a')
     summary = dict(outcome='failed', reason='not started', tasks=[], checkedChests=0, evidence=str(folder))
     launch, owns_game, previous = None, False, None
+    preparing_food = args.refresh_food
     deadline = time.monotonic() + 600
 
     def call(*arguments, decode=True):
@@ -100,7 +108,7 @@ def main():
         status = call('panel', 'GET', '/api/status')
         with (folder / 'observations.jsonl').open('a') as out:
             out.write(json.dumps(dict(at=datetime.datetime.now(datetime.timezone.utc).isoformat(), status=status)) + '\n')
-        reason = safe(status, previous)
+        reason = safe(status, previous, require_food=not preparing_food)
         if reason: raise RuntimeError(reason)
         if time.monotonic() > deadline: raise RuntimeError('bounded cooking proof deadline')
         previous = status
@@ -157,13 +165,53 @@ def main():
                 raise RuntimeError('scoped inventory unavailable')
             return payload['inventory']
 
+        if args.refresh_food:
+            if not home_search_ready(status): raise RuntimeError('ready-food preparation requires Tas near known home')
+            mapped = call('panel', 'GET', '/api/map')
+            live = {s['id'] for s in (mapped.get('perception') or {}).get('structures', [])
+                    if s.get('kind') == 'container' and s.get('id')}
+            eligible = {c[2] for c in candidates(status, mapped, {}, foods=FOODS)} & live
+            opened, attempted, unavailable = {}, set(), set()
+            meal = None
+            while not meal:
+                status = observe(); mapped = call('panel', 'GET', '/api/map')
+                options = [c for c in candidates(status, mapped, {}, opened, foods=FOODS)
+                           if c[2] in eligible and (c[2], c[3]) not in attempted and c[2] not in unavailable]
+                if not options: raise RuntimeError('no verified ready meal in eligible home chests')
+                _, _, chest, prefab, _ = options[0]; attempted.add((chest, prefab))
+                before = pack()
+                result, history = task('withdraw', dict(container=chest, items=[dict(prefab=prefab, count=1)]), 45)
+                rows = history.get('value', []) if isinstance(history, dict) else history
+                receipt = next((r['frame'] for r in rows if r.get('frame', {}).get('type') == 'container'
+                                and r['frame'].get('task') == summary['tasks'][-1]['id'] and r['frame'].get('entity') == chest
+                                and r['frame'].get('direction') == 'withdraw'), None)
+                if receipt: opened[chest] = receipt
+                else: unavailable.add(chest)
+                if (receipt or {}).get('moved', {}).get(prefab, 0) == 1:
+                    after = pack(); status = observe()
+                    active = {f['prefab'] for f in (status.get('food') or {}).get('active', [])}
+                    gain = count(after, prefab) - count(before, prefab)
+                    if after.get('seq', 0) <= before.get('seq', 0) or gain not in (0, 1) or gain == 0 and prefab not in active:
+                        raise RuntimeError('ready meal lacks matched transfer/inventory/food receipt')
+                    meal = prefab; summary['foodReceipt'] = receipt
+                elif result['status'] == 'succeeded': raise RuntimeError('ready meal transfer succeeded without its receipt')
+            until = min(deadline, time.monotonic() + 180)
+            while True:
+                status = observe()
+                active = (status.get('food') or {}).get('active', [])
+                if any(f['prefab'] == meal and f.get('remainingS', 0) >= 120 for f in active) and status['hp'] >= status['hpMax'] * .8: break
+                if time.monotonic() >= until: raise RuntimeError('ready meal eating/recovery was not observed')
+                if status.get('task'): raise RuntimeError('body ownership changed during meal recovery')
+                time.sleep(1)
+            preparing_food = False
+            summary['foodPreparation'] = dict(prefab=meal, hp=status['hp'], hpMax=status['hpMax'])
+
         inventory = pack()
         raw = next((p for p in RAW if count(inventory, p) > 0), None)
         opened, attempted, unavailable = {}, set(), set()
         if not raw and args.search_home:
             mapped = call('panel', 'GET', '/api/map')
-            home = status.get('home') or {}
-            if home.get('world') != status['world'] or not home.get('pos') or math.dist(status['pos'], home['pos']) > 20:
+            if not home_search_ready(status):
                 raise RuntimeError('ingredient search requires Tas already near known home')
             eligible = search_chests(status, mapped)
             summary['searchChests'] = len(eligible)
@@ -219,7 +267,7 @@ def main():
                 try: call(*arguments, decode=False)
                 except Exception as error: summary['reason'] += '; cleanup: ' + str(error)
         (folder / 'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
-        print(json.dumps({k: v for k, v in summary.items() if k not in ('tasks', 'ingredientReceipt', 'cookingReceipts')} |
+        print(json.dumps({k: v for k, v in summary.items() if k not in ('tasks', 'ingredientReceipt', 'foodReceipt', 'cookingReceipts')} |
                          dict(taskCount=len(summary['tasks']))), flush=True); log.close()
     return 0 if summary['outcome'] == 'succeeded' else 1
 

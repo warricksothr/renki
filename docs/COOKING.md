@@ -24,7 +24,7 @@ recipe, ward access, sight/reach, active food, 80% health, dry footing, nearby
 hostiles and space/weight for the complete possible yield. Missing ingredients,
 busy stations and a dead fire produce a refusal with the missing prerequisite.
 Station and fire reach use the player's configured normal interaction range
-(5 m in the inspected game build) and retain solid obstruction checks. A
+(3.5 m on Tas in the live check; 5 m in the source defaults) and retain solid obstruction checks. A
 currently visible/reachable station does not require an extra approach walk.
 Otherwise cooking measures up to 48 nearby position seeds, one per physics
 tick, including support above and below raised floors. It requires dry support,
@@ -68,8 +68,10 @@ replication or an early merge may conservatively fail a real delivery.
 
 No inventory or world state is written to create food. Normal pickup of the
 identified output instances must produce matched per-drop inventory gains;
-pickup does not substitute another
-drop after a merge. The task completes only after the corresponding full
+remote drops use the game's normal ownership-request RPC and wait up to five
+seconds for its grant before manual pickup. This installs no deferred pickup
+callback that could continue after cancellation. Pickup does not substitute
+another drop after a merge. The task completes only after the corresponding full
 inventory increase. An unrelated gain of the same prefab is insufficient. The food
 keeper waits to eat this output until the native receipt completes.
 
@@ -103,7 +105,7 @@ on TKT-01M62VXZ6 — Controller: tend template: cooking, fermenters, beehives, o
 `just check vm cooking-check` attempts one bounded real batch in an already
 joined, healthy game. `--search-home` may obtain one ingredient through matched
 native chest/inventory receipts, checking the finite set of unique visible
-chests within 32 m of known home; Tas must already be within 20 m of home.
+chests within 32 m of known home; Tas must already be within 32 m of home.
 Remembered contents rank candidates but never prove a transfer. Missing hints
 lead to another observed chest, with each chest/item pair tried once and the
 whole proof limited to ten minutes. `--join` starts once from offline only if
@@ -113,6 +115,11 @@ Admission requires 80% health and active food. Actual injury, unsafe water,
 scope change or the survival floor (20 HP/40% health) aborts. The lower ongoing
 fraction permits a newly eaten meal to increase maximum HP before regeneration;
 native cooking still requires 80% health throughout its body work. The proof
+can first use `--refresh-food` to withdraw one ready meal near known home,
+verify the transfer and inventory receipt, and wait for active food with at
+least two minutes remaining and recovery to 80% health. Only this bounded
+near-home preparation permits absent active food; injury, health, water and
+scope checks still apply. It does not relax native cooking admission. The proof
 retains full data in `.checks/cooking-*` and prints a compact result. Once
 admitted it always logs out/stops and leaves the panel available. It does not
 change combat settings, replace an initial body order or resume escort.

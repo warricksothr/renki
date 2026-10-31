@@ -1034,6 +1034,7 @@ namespace Renki.Plugin
         readonly Walker walker = new Walker();
         Vector3 goal;
         float arrivedAt = -1;
+        float ownershipAt = -1;
         int tries;
 
         public PickupTask(ItemDrop drop, bool safeTravel = false, bool allowMerge = true)
@@ -1099,6 +1100,27 @@ namespace Renki.Plugin
                     if (took > 0)
                         return Outcome.Succeeded($"took {took} {prefab}; the other {drop.m_itemData.m_stack} is too heavy to carry");
                     return Outcome.Failed(Wire.ReasonTooHeavy, $"{prefab} would take it past its carry weight");
+                }
+                if (!drop.CanPickup(false))
+                {
+                    if (ownershipAt < 0)
+                    {
+                        ownershipAt = Time.time;
+                        Tracer.Emit("pickup", "requesting normal drop ownership", new Dictionary<string, object>
+                        { ["entity"] = Perceiver.Id(drop.m_nview), ["prefab"] = prefab });
+                    }
+                    if (Time.time - ownershipAt > 5)
+                        return Outcome.Failed(Wire.ReasonTimeout, "the drop owner did not hand over the item");
+                    // Use the owner's normal RPC grant. Unlike ItemDrop.Pickup,
+                    // this installs no deferred pickup callback after cancellation.
+                    drop.RequestOwn();
+                    return null;
+                }
+                if (ownershipAt >= 0)
+                {
+                    ownershipAt = -1;
+                    Tracer.Emit("pickup", "normal drop ownership granted", new Dictionary<string, object>
+                    { ["entity"] = Perceiver.Id(drop.m_nview), ["prefab"] = prefab });
                 }
                 if (tries++ >= Tries)
                     return took > 0

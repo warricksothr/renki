@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-31T18:03:48Z
+updated_at: 2026-10-31T18:28:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -55,7 +55,7 @@ What it collects goes to `stow`.
 
 ## Acceptance criteria
 
-- [ ] Cooked food comes off before it burns while the bot is in the base
+- [x] Cooked food comes off before it burns while the bot is in the base
 - [ ] Ready fermenters and beehives are emptied and the goods stowed
 - [ ] Ore in the chests is carried to a smelter that takes it
 
@@ -132,3 +132,19 @@ Range correction2348218 passed full just check ci in142s (.checks/20261031T17553
 Added native CookingApproach rather than bypassing sight or driving Tas externally. It first tests actual station/fire usability. Otherwise it measures48 ring seeds (one per physics step), considers live support above/below raised floors, rejects steep/wet support, standing-body collisions, blocked station/fire sight and current/future burning areas, and passes only measured candidates to the existing dry/hostile-aware MoveToTask. Four walks at most,12s each,60s total. Actual reach is checked every step; arrival near the pivot is no longer sufficient. Rejection counts and each selected position are traced for bounded diagnosis.
 
 Refactored UseReach so actual Near delegates to the same ray/collider check from supplied hypothetical feet; actual behavior is preserved. Fire preparation exposes its unique candidate and burning bounds for approach checks without adding fuel or claiming ownership. Physics-dependent placement is checked through native build plus guarded live trial, not fabricated unit mocks. Existing core sight, movement, cooking and receipt checks remain in full just check ci. Native build is running; full gate/review/deploy/live trial follow.
+
+**agent:codex/renki-milestones** at 2026-10-31T18:27:28Z
+
+The raised-floor approach in c32fa87 passed live use. The first inserted RawMeat batch was interrupted by Nimah's explicit come-here command and subsequently burnt; .checks/cooking-20261031T180812Z is failed/interrupted evidence, not delivered food. The user has now reserved Tas for automated cooking trials. Player-command overrides remain intact.
+
+The next trial (.checks/cooking-20261031T181508Z) withdrew one NeckTail, cooked it at station1:70084, observed a normal remote removal and correlated output214050226:5854, but manual pickup failed. Actual game source showed Humanoid.Pickup refuses remote-owned drops; ItemDrop.Pickup's deferred recurring callback would outlive cancellation. PickupTask now uses the ordinary RequestOwn RPC and waits up to5s for the owner's grant before normal Humanoid.Pickup, without direct ownership writes or a deferred pickup callback.
+
+Positive live proof: just check vm cooking-check --join --refresh-food --search-home passed147s on the development package c32fa87-dirty. Evidence .checks/cooking-20261031T182424Z; outer log .checks/20261031T182424Z-UWlbcr.log. Withdrew one prepared NeckTailGrilled from1:70031, observed eating/recovery, then withdrew one NeckTail from1:70041. Native approach found a usable raised-floor position for station1:70085. One input/producer slot, normal removal request to peer214050226 with requestedCount1, new remote output214050226:6350, empty slot, actual per-ID pickup and full inventory receipt all matched. Native result: cooked one NeckTail; collected1 NeckTailGrilled. Evidence mode is remote_correlation with the documented same-origin/time concurrency limitation; this is not a direct witness of another peer's spawn call. This earns cooking AC1; no fermenter/beehive/ore AC is earned.
+
+Added --refresh-food to the bounded proof tool: finite observed home-chest search, exact native transfer/inventory receipt, active meal with120s remaining and80% health before cooking. Only this near-home preparation may be unfed; injury/water/health/scope guards stay enforced. Starting home radius now32m, matching the existing chest area. Supervisor tests and native build passed. Full just check ci and post-commit review follow before push.
+
+Final live health49.5/49.5, injurySeq0, feet[-33.12,36.15,9.7] inside home; one fresh cooked tail carried and another active. Cleanup logged Tas out/stopped the game and restored controller/panel. Browser confirmed connected=false and standby video readyState4 with a live track. RecoveryGuard=true and temporary home.afterOutage=false remain. No live one-wood fueling proof yet; automatic ingredient/cooking/resupply/escort composition, repeated tending and broader M2/M3 completion remain open. Keep Tas reserved for further cooking trials.
+
+**agent:codex/renki-milestones** at 2026-10-31T18:28:13Z
+
+Evidence clarification for the positive trial: saved task traces prove end-to-end remote cooking and actual matched pickup, but contain no requesting/granted normal drop ownership messages. The ordinary automatic pickup path may have acquired the drop before the new explicit wait branch was needed. Do not cite this trial as direct live coverage of the five-second manual owner-wait branch. That branch compiles against actual game RequestOwn/CanPickup APIs; an explicit forced-delay/denied-grant case remains unproved. No additional batch is needed to repeat the already-earned cooking receipt.

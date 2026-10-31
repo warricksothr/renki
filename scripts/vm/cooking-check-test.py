@@ -18,6 +18,17 @@ assert cooking.safe(dict(status, hp=28), status)
 assert cooking.safe(dict(status, connection=2), status)
 # A fresh cooked meal may raise the maximum before regeneration; injury still aborts.
 assert cooking.safe(dict(status, hpMax=60), status) is None
+unfed = status | dict(food={'active': []})
+assert cooking.safe(unfed, require_food=False) is None
+assert cooking.safe(unfed)
+assert cooking.safe(unfed | dict(hp=19), require_food=False)
+assert cooking.safe(unfed | dict(injurySeq=1), status, require_food=False)
+assert cooking.safe(unfed | dict(location={'inWater': True}), require_food=False)
+assert cooking.home_search_ready(status | dict(pos=[21, 30, 0]))
+assert cooking.home_search_ready(status | dict(pos=[32, 30, 0]))
+assert not cooking.home_search_ready(status | dict(pos=[32.1, 30, 0]))
+assert not cooking.home_search_ready(status | dict(world='other'))
+assert not cooking.home_search_ready(status | dict(home={}))
 
 station = dict(id='1:2', kind='station', pos=[2, 30, 0], cooking={'supported': True, 'heated': True,
                'slots': [{'item': '', 'state': 'empty'}]})
