@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:42:44Z
+updated_at: 2026-10-31T20:48:22Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -112,3 +112,11 @@ Complete carried-raw cooking/readiness/return benchmark now passed: just check v
 Added bounded food-to-escort verification to just vm food-check --reserve2 --escort Nimah --keep-online. It requires the persisted continuation run/task identity, matching native request plus accepted/running receipts, ten seconds of quiet same-leader follow/wait at safe home, then a verified stop; collection/defense remain disabled for this handoff-only check. Focused supervisor and compact-progress checks passed; full just check ci142s passed (.checks/20261031T203926Z-oJ3xPR.log). Fixed compact trial status for integer food task counts/string goal IDs and selecting only timestamped evidence directories, avoiding fixture directories and full-log context dumps. No live handoff was attempted.
 
 The user emergency-logged Tas out after a separate base attack while code checks were running. Audit .checks/audit-window-SNFFE5.jsonl shows Greydwarf damage7.97 at20:39:43Z, normal retreatt-20 accepted/running within0.3s, and Greydwarf_Elite damage27.73 at20:39:58Z. Flee made very little movement inside the house. Last native in-world observation20:40:00Z was43.7/67.1HP at[-33.13,36.09,5.99]; no death was observed. just check vm stop and panel-start both passed (.checks/20261031T204033Z-DDrmkJ.log and .checks/20261031T204040Z-Ie9bSf.log). Tas is offline, the independent panel is online, RecoveryGuard remains enabled, and no rejoin will be attempted into the known attack. Keep live escort handoff, cold-fire fuel, hunting and wider M2/M3 open; trapped native escape is a distinct safety failure to prioritize.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:48:22Z
+
+Supersedes the earlier no-rejoin state: user explicitly reported the base clear again. just check vm food-check --join --reserve2 --escort Nimah --keep-online then passed93s (.checks/20261031T204411Z-ww5qmc.log; evidence .checks/food-20261031T204411Z). Passive native startup healing held the injured saved body until recovered, without an armed return or disabled guard. Production goalc7365784629373999f8db6db normally withdrew2 Blueberries from1:70040 with exact matched transfer/inventory proof, satisfied readiness and issued the persisted escort continuationt-2 under runfd3409021ffef814407a81b3a25e4840.
+
+The saved outgoing request and native accepted/running receipts match leaderNimah, resupply=true and current protected commandersNimah/Sothr/jarl. Collection and defense were explicitly false for this bounded handoff check. Native escort stayed in wait while Nimah was out of sight; ten seconds of quiet safe-home observation passed, followed by a normal stop and verified idle body. This earns food-to-native-escort handoff and missing-leader wait, not following a moving player, collection or defense. Final observed67.9/67.9HP at[-34.02,36.09,5.2], sheltered, three active foods, keptOnline=true. Tas remains online and idle at home; no full escort routine was left running.
+
+Cold-fire fuel, live hunting and a complete natural-acquisition-to-readiness goal remain open. The latest map now observes additional unheated supported stations214050226:4621 and214050226:4627 around[-57,32.76,27], roughly29m southwest of home. This is a new candidate for guarded fuel testing, not evidence that supporting fire fuel is zero or that a safe route exists. Current production food cooking selects within12m at home, so this needs explicit bounded travel/native cooking validation rather than treating the remembered station as an immediately usable home cooker. Existing home stations1:70084/70085 remain heated. The trapped normal escape after a Greydwarf/Elite attack remains separately open on TKT-01M62N256 — Plugin: flee task, and retreating when health is low.
