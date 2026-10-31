@@ -22,13 +22,21 @@ namespace Renki.Plugin
         readonly ApproachRecovery approach = new ApproachRecovery();
         readonly EntranceHints entrances = new EntranceHints();
         readonly RouteRefusals refusals = new RouteRefusals();
+        readonly HostileRoute hostiles = new HostileRoute();
+        readonly System.Func<V3, V3, bool> hostileClearance;
+        bool avoidHostiles;
         readonly SprintPacing sprint = new SprintPacing();
         readonly List<Piece> entrancePieces = new List<Piece>();
         Vector3? entrance;
         Vector3 NavigationGoal => entrance ?? goal;
         double NavigationWithin => entrance.HasValue ? .25 : arrivalWithin;
         double NavigationLevel => entrance.HasValue ? .6 : Arrival.Level;
-        readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true);
+        readonly WorldNavigation.PlanningProbe dryProbe;
+        public Walker()
+        {
+            hostileClearance = (from, to) => !avoidHostiles || hostiles.Clear(from, to);
+            dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance);
+        }
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
         readonly RouteTrail trail = new RouteTrail();
@@ -132,7 +140,7 @@ namespace Renki.Plugin
             ApproachRecovery.SafePath(Convert.ToV3(from), candidate, scratch.Select(Convert.ToV3).ToArray(),
                 (a, b) => DeepWater.Crossing(a, b, Ground, WaterLevel) != null);
 
-        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false)
+        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false, bool avoidHostiles = false)
         {
             checkedOnly = false;
             approach.Reset();
@@ -142,6 +150,7 @@ namespace Renki.Plugin
             arrivalWithin = within;
             this.reuseRoutes = reuseRoutes;
             this.dryGround = dryGround;
+            this.avoidHostiles = avoidHostiles;
             WorldNavigation.Focus(to);
             hasGoal = true;
             skipReuse = false;
@@ -206,7 +215,7 @@ namespace Renki.Plugin
                 entrancePieces.Clear();
                 Piece.GetAllPiecesInRadius(goal, 12, entrancePieces);
                 var floors = new List<V3>();
-                var probe = new WorldNavigation.PlanningProbe(dry: true, refusals: refusals);
+                var probe = new WorldNavigation.PlanningProbe(dry: true, refusals: refusals, corridor: hostileClearance);
                 probe.BeginSlice();
                 foreach (var piece in entrancePieces)
                 {
@@ -235,7 +244,7 @@ namespace Renki.Plugin
             if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&
                 WorldNavigation.Routes.Find(Convert.ToV3(from), Convert.ToV3(target)) is RouteHint hint)
             {
-                replayProbe = new WorldNavigation.PlanningProbe(dry: dryGround, refusals: refusals);
+                replayProbe = new WorldNavigation.PlanningProbe(dry: dryGround, refusals: refusals, corridor: hostileClearance);
                 replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, NavigationWithin, NavigationLevel);
                 replayID = hint.ID;
                 replayMs = replayWorstMs = 0;
@@ -614,7 +623,7 @@ namespace Renki.Plugin
                 });
             }
             if (!found) return false;
-            var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, refusals: refusals);
+            var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, refusals: refusals, corridor: hostileClearance);
             var candidate = navmeshCandidates.Try(Convert.ToV3(from), Convert.ToV3(target),
                 scratch.Select(Convert.ToV3).ToArray(), probe.Probe, NavigationWithin, NavigationLevel);
             if (candidate == null) return false;
@@ -637,7 +646,7 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localProbe = new WorldNavigation.PlanningProbe(dry: dryGround, refusals: refusals);
+            localProbe = new WorldNavigation.PlanningProbe(dry: dryGround, refusals: refusals, corridor: hostileClearance);
             localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
                 progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel);
             replay = null; replaying = replayNavmesh = false;
@@ -703,6 +712,7 @@ namespace Renki.Plugin
                 ["supportHits"] = localProbe.SupportHits,
                 ["supportQueries"] = localProbe.SupportQueries,
                 ["boundsRejected"] = localProbe.BoundsRejected,
+                ["hostileRejected"] = localProbe.HostileRejected,
                 ["physicsCasts"] = localProbe.PhysicsCasts,
                 ["saturated"] = localProbe.Saturated,
                 ["ms"] = System.Math.Round(localMs, 2),
@@ -728,7 +738,7 @@ namespace Renki.Plugin
                 return true;
             }
             else navigationFailure = Outcome.Failed(localWaterBlocked != null ? Wire.ReasonDeepWater : Wire.ReasonUnreachable,
-                "no supported, water-safe route around the obstacles within the local search limit");
+                "no supported, water-safe route around the obstacles" + (avoidHostiles ? " and known hostiles" : "") + " within the local search limit");
             localRoute = null;
             return true;
         }
@@ -917,7 +927,7 @@ namespace Renki.Plugin
             this.goal = goal;
             this.entity = entity;
             var p = Player.m_localPlayer;
-            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry);
+            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
             walker.ResetStuck(p.transform.position);
         }
 
@@ -931,7 +941,7 @@ namespace Renki.Plugin
                 if ((entity.transform.position - goal).sqrMagnitude > 4)
                 {
                     goal = entity.transform.position;
-                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry);
+                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
                 }
             }
             var pos = p.transform.position;

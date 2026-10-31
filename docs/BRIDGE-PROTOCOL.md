@@ -479,7 +479,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | Task | Kind | Args | Milestone |
 |---|---|---|---|
 | `stop` | body | — | M1 |
-| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false) | M1 |
+| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false); `avoidHostiles` (bool, requires dry) | M1 |
 | `follow` | body | `player` (name or id); `distance` (default 3.5); `run`: `"auto"` matches the leader | M1 |
 | `look_at` | instant | `to`: position or entity | M1 |
 | `say` | instant | `text`; `channel`: `normal`, `shout` or `whisper`; `to` (whisper target) | M1 |
@@ -694,6 +694,15 @@ Notes:
 
 ### 7.3 Movement inside the plugin
 
+- **Work-trip hostile clearance:** `move_to` can opt into `avoidHostiles:true`
+  with `dry:true`. Native navmesh validation, local planning and immediate
+  movement keep a 24 m horizontal clearance from loaded hostile MonsterAI
+  creatures within 64 m. Passive animals do not create exclusion areas.
+  A body already inside an area may move monotonically away; it cannot cross
+  through the creature. Threat positions refresh once per physics frame and
+  all support, water and solid-collision checks still apply. A saturated
+  creature sample refuses routing. Gather enables this on all of its travel
+  legs, including return home; explicit combat retains its own approach policy.
 - **Dry home travel:** home returns request `dry:true`. Native movement uses
   validated route hints or incremental local routing with supported endpoints
   and midpoints at least 0.2m above water, including bridge/floor support. It

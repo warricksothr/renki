@@ -68,18 +68,19 @@ namespace Renki.Plugin
             readonly SupportMemo support;
             readonly Func<V3, V3, V3?> physical;
             readonly RouteRefusals refusals;
+            readonly Func<V3, V3, bool> corridor;
             readonly bool diagnostics;
             readonly bool dry;
             internal readonly bool Executing;
             long slice;
             internal Failure LastFailure { get; private set; }
-            public int BoundsRejected, PhysicsCasts, Saturated;
+            public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
             public int SupportHits => support.Hits;
             public int SupportQueries => support.Misses;
-            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null)
+            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null)
             {
                 physical = (from, desired) => WorldNavigation.Probe(from, desired, this);
-                this.refusals = refusals;
+                this.refusals = refusals; this.corridor = corridor;
                 this.diagnostics = diagnostics;
                 this.dry = dry;
                 Executing = executing;
@@ -112,6 +113,11 @@ namespace Renki.Plugin
                 };
                 return null;
             }
+            internal bool HostileClear(V3 from, V3 to)
+            {
+                if (corridor == null || corridor(from, to)) return true;
+                HostileRejected++; return false;
+            }
             internal bool RecentlyBlocked(V3 from, V3 to) => refusals != null && refusals.Blocks(from, to, Time.unscaledTime);
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
             internal bool WaterSafe(V3 at, double water) => dry
@@ -125,6 +131,7 @@ namespace Renki.Plugin
             if (!supported.HasValue) return plan.Refuse("endpoint_support", desired);
             if (!middle.HasValue) return plan.Refuse("midpoint_support", (from + desired) * .5);
             var dest = supported.Value;
+            if (!plan.HostileClear(from, dest)) return plan.Refuse("hostile_corridor", dest);
             if (plan.RecentlyBlocked(from, dest)) return plan.Refuse("recent_live_refusal", dest);
             var at = Convert.ToVector3(dest);
             var water = ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000;

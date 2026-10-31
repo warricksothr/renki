@@ -233,7 +233,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		if r.p.Return {
 			r.returning = true
 			pos := r.p.Site.Pos
-			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: true}, TimeoutS: 90}, nil
+			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: true, AvoidHostiles: true}, TimeoutS: 90}, nil
 		}
 		r.finished = true
 		return nil, nil
@@ -296,7 +296,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		// point before choosing a tree, even from the edge of that zone.
 		if distance(v.State.Pos, r.p.Site.Pos) > math.Min(r.p.Site.Radius, 12) {
 			pos := r.p.Site.Pos
-			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: true}, TimeoutS: 90}, nil
+			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: true, AvoidHostiles: true}, TimeoutS: 90}, nil
 		}
 	}
 	if r.pending != nil {
@@ -403,7 +403,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 			pos[1] = v.State.Pos[1]
 		}
 		stop := 10.0
-		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Dry: true}, TimeoutS: 90}, nil
+		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Dry: true, AvoidHostiles: true}, TimeoutS: 90}, nil
 	}
 	if !r.treeOpen {
 		if !finite(v.State.Stamina) || v.State.Stamina < 40 {
@@ -456,5 +456,5 @@ func (r *gatherRun) goHome(phase string) *session.Order {
 	r.homeReceipt = nil
 	pos := *r.home
 	stop := 2.0
-	return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Dry: true}, TimeoutS: 120}
+	return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Dry: true, AvoidHostiles: true}, TimeoutS: 120}
 }

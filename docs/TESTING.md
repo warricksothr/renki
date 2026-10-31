@@ -1109,3 +1109,9 @@ Dry route probes must also check the exact flat half-metre lookahead used by
 movement when the planned edge is longer. Check a diagonal across uneven
 wood-stack support: valid full-edge endpoints must not conceal an unsupported
 or obstructed first movement prefix.
+
+Gather travel requests dry movement with native hostile clearance. Check the
+inland food-patch Boar/Neck: the route should detour around their loaded
+positions, retain physical dry validation and report hostileRejected in local
+planning diagnostics. Starting inside a clearance may back out; it must not
+route through another creature. Passive deer must not block ordinary travel.

@@ -56,6 +56,7 @@ namespace Renki.Protocol
     public sealed class MoveToArgs
     {
         public bool Dry;
+        public bool AvoidHostiles;
         public Target To;
         public double StopDistance = 1.5;
         public bool Run;
@@ -220,12 +221,15 @@ namespace Renki.Protocol
                         return new TransferArgs { Container = container, Items = parsed.ToArray() };
                     }
                 case TaskNames.MoveTo:
+                    if (Bool(a, "avoidHostiles", false) && !Bool(a, "dry", false))
+                        throw new BadArgsException("avoidHostiles requires dry travel");
                     return new MoveToArgs
                     {
                         To = Target.Parse(a["to"], "to"),
                         StopDistance = Number(a, "stopDistance", 1.5),
                         Run = Bool(a, "run", false),
                         Dry = Bool(a, "dry", false),
+                        AvoidHostiles = Bool(a, "avoidHostiles", false),
                     };
                 case TaskNames.Follow:
                     {

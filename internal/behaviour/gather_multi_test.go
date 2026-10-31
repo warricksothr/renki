@@ -49,7 +49,7 @@ func TestGatherTwoTreesThenVerifiedPinnedHomeAndGainsOnlyDeposit(t *testing.T) {
 		t.Fatal(order)
 	}
 	order = finishGatherTree(t, r, &v, "two")
-	if order.Task != protocol.TaskMoveTo || !order.Args.(*protocol.MoveToArgs).Dry || *order.Args.(*protocol.MoveToArgs).To.Pos != home {
+	if order.Task != protocol.TaskMoveTo || (!order.Args.(*protocol.MoveToArgs).Dry || !order.Args.(*protocol.MoveToArgs).AvoidHostiles) || *order.Args.(*protocol.MoveToArgs).To.Pos != home {
 		t.Fatal(order)
 	}
 	changed := protocol.Vec3{80, 0, 80}
@@ -195,7 +195,7 @@ func TestGatherRepairsAtHomeThenRequiresFreshActuallyRestoredAxeBeforeLeaving(t 
 					t.Fatal(order, err)
 				}
 			case "repaired":
-				if err != nil || order == nil || order.Task != protocol.TaskMoveTo || !order.Args.(*protocol.MoveToArgs).Dry {
+				if err != nil || order == nil || order.Task != protocol.TaskMoveTo || (!order.Args.(*protocol.MoveToArgs).Dry || !order.Args.(*protocol.MoveToArgs).AvoidHostiles) {
 					t.Fatal(order, err)
 				}
 			}

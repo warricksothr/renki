@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T09:20:44Z
+updated_at: 2026-10-31T09:45:57Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -288,3 +288,12 @@ Home return t-16 from east then timed out90s (.checks/task-0tjvzuyr.json). It re
 
 ### Match diagonal planning to executed lookahead
 The retained flee audit .checks/audit-window-qhk1k6.jsonl shows a second concrete discrepancy: a diagonal grid edge from[-33.44,35.15,-1.7] to[-32.94,35.48,-2.2] repeatedly passed planning, while its shorter0.5m movement prefix failed endpoint_support. Full-edge midpoint/endpoint support does not sample that prefix. Dry planning now checks the exact flat first0.5m prefix as well as the complete edge; a prefix refusal invalidates the candidate before movement. New regression simulates the intervening log-pile support spike. Focused DryTravel tests and game build pass (.checks/20261031T091931Z-pNAv6b.log, .checks/20261031T091933Z-mDzI33.log). Full gate follows for the combined prefix and negative-evidence candidate.
+
+**agent:codex/renki-milestones** at 2026-10-31T09:45:57Z
+
+### Exact pursuer cleared; avoid known route hazards
+Under-floor home return passed from[-28.72,34.48,-1.76] to[-36.64,36.09,8.24] with bac378f (.checks/task-lk30wwlo.json), after full CI .checks/20261031T092045Z-cmYgVq.log, committed review .checks/20261031T092341Z-Q2VUBF.log and checksum installation .checks/20261031T092419Z-Avqa9K.log. The next gather trial still stopped after felling its selected tree because original Greyling846416140:195 followed it inland (.checks/gather-trial-20261031T092624244076Z/summary.json).
+
+Exact direct native combat then killed that original pursuer, with zero damage events: .checks/combat-trial-20261031T093047397072Z/summary.json, t-1, owner_callback proof, audit .checks/audit-window-DGNdXN.jsonl. Normal outage setting was reset afterward. The next benchmark correctly refused before work because the post-fight start was162m from home (guard150m), without injury. Returning home exposed Boar1520283559:47 near the inland food patch, with Neck1313705408:82 nearby; Tas fled and regenerated. Explicit final home-floor return t-4 passed (.checks/task-lsncb_jk.json), then game safely stopped with combat false and panel restored (.checks/20261031T094012Z-0NE5rI.log).
+
+Work travel currently ignores known creatures until they are close enough to hit. Add explicit avoidHostiles to dry move_to, enabled by every gather travel leg. Native planning and execution both keep24m from loaded hostile MonsterAI creatures, with one bounded snapshot per physics frame; passive animals are excluded, starting-inside motion may only increase separation, and saturated samples fail closed. Keep all normal physical, support, water and task bounds. A deterministic local A* test finds a genuine detour; protocol/behavior checks and installed-game build pass. Need full gate/review/deployment, then exact two-fresh-tree/new-log gains-only storage proof. More standing beeches were freshly observed in the southern stand, so resources remain available.
