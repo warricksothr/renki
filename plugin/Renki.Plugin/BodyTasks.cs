@@ -20,7 +20,7 @@ namespace Renki.Plugin
         readonly Doorman doors = new Doorman();
         readonly Climber climb = new Climber();
         readonly ApproachRecovery approach = new ApproachRecovery();
-        readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(dry: true);
+        readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true);
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
         readonly RouteTrail trail = new RouteTrail();
@@ -38,7 +38,7 @@ namespace Renki.Plugin
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
-        float localStarted, nextWallCheck, nextNavmeshCheck, nextDryNavmeshTrace;
+        float localStarted, nextWallCheck, nextNavmeshCheck, nextDryNavmeshTrace, nextDryRefusalTrace;
         double localMs, localWorstMs;
         float strafeUntil;
         float strafeSign = 1;
@@ -336,6 +336,7 @@ namespace Renki.Plugin
                 var supported = replayProbe.Probe(Convert.ToV3(pos), replayNext);
                 if (!(supported is V3 at) || (at - replayNext).Length > .65)
                 {
+                    if (Doorman.Waiting(pos)) { Driver.Stand(); stuck.Hold(Time.time); return true; }
                     RejectReplay(pos, "next leg changed");
                     return true;
                 }
@@ -389,6 +390,7 @@ namespace Renki.Plugin
                         ["pos"] = Convert.ToArray(pos),
                         ["center"] = stuck.Center.ToArray(),
                         ["goal"] = Convert.ToArray(goal),
+                        ["next"] = path.Next(Convert.ToV3(pos))?.ToArray(),
                     });
             // A closed door beside a stuck bot is the likeliest wall: open it
             // in place of this round's jump, strafe or re-path.
@@ -420,18 +422,33 @@ namespace Renki.Plugin
             if (Time.time < strafeUntil)
                 dir = Vector3.Cross(Vector3.up, dir.normalized) * strafeSign + dir.normalized * 0.3f;
             Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+            doors.Walk(Player.m_localPlayer, pos, Driver.Move);
             if (dryGround && Driver.Move.sqrMagnitude > .0001f)
             {
                 dryProbe.BeginSlice();
                 var from = Convert.ToV3(pos);
-                if (!dryProbe.Probe(from, from + Convert.ToV3(Driver.Move) * .5).HasValue)
+                var next = path.Next(from);
+                var clearance = DryTravel.ClearanceDistance(from, next, Time.time < strafeUntil);
+                if (!dryProbe.Probe(from, from + Convert.ToV3(Driver.Move) * clearance).HasValue)
                 {
+                    if (Time.unscaledTime >= nextDryRefusalTrace)
+                    {
+                        nextDryRefusalTrace = Time.unscaledTime + 2;
+                        Tracer.Emit("walker", "dry movement corridor refused", new Dictionary<string, object>
+                        {
+                            ["from"] = from.ToArray(),
+                            ["next"] = next?.ToArray(),
+                            ["lookahead"] = clearance,
+                            ["failure"] = dryProbe.LastFailure?.Stage,
+                            ["collider"] = dryProbe.LastFailure?.Collider,
+                        });
+                    }
                     Driver.Stand();
+                    if (Doorman.Waiting(pos)) { stuck.Hold(Time.time); return true; }
                     BeginLocal(pos, goal);
                     return true;
                 }
             }
-            doors.Walk(Player.m_localPlayer, pos, Driver.Move);
             // A strafe walks, so it cannot carry the bot out of the stuck
             // circle on its own and pass for progress.
             Driver.Run = run && Time.time >= strafeUntil;
@@ -446,6 +463,7 @@ namespace Renki.Plugin
                 ["why"] = why,
                 ["route"] = replayID,
                 ["pos"] = Convert.ToArray(pos),
+                ["next"] = path.Next(Convert.ToV3(pos))?.ToArray(),
                 ["checking"] = replay?.Checking?.ToArray(),
                 ["samples"] = replay?.Samples,
                 ["failure"] = replayProbe?.LastFailure?.Stage,

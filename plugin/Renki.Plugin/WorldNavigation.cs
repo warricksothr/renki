@@ -27,6 +27,7 @@ namespace Renki.Plugin
         internal static void Reset()
         {
             Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null;
+            Doorman.Reset();
             Array.Clear(supportHits, 0, supportHits.Length);
             Array.Clear(castHits, 0, castHits.Length);
             Array.Clear(overlaps, 0, overlaps.Length);
@@ -63,15 +64,17 @@ namespace Renki.Plugin
             readonly SupportMemo support;
             readonly bool diagnostics;
             readonly bool dry;
+            internal readonly bool Executing;
             long slice;
             internal Failure LastFailure { get; private set; }
             public int BoundsRejected, PhysicsCasts, Saturated;
             public int SupportHits => support.Hits;
             public int SupportQueries => support.Misses;
-            public PlanningProbe(bool diagnostics = false, bool dry = false)
+            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false)
             {
                 this.diagnostics = diagnostics;
                 this.dry = dry;
+                Executing = executing;
                 support = new SupportMemo((at, y) =>
                 {
                     var result = Support(at, y, out var full);
@@ -123,8 +126,7 @@ namespace Renki.Plugin
             // permitted step; the lower part must be able to climb stairs.
             bool Obstacle(Collider c)
             {
-                if (Doorman.Enabled && c.GetComponentInParent<Door>() != null &&
-                    PrivateArea.CheckAccess(c.transform.position, 0f, false, false)) return false;
+                if (Doorman.MayIgnoreCollider(c.GetComponentInParent<Door>(), plan.Executing)) return false;
                 return true;
             }
             plan.PhysicsCasts++;

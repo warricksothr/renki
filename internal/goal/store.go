@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,10 +42,11 @@ type Intent struct {
 // A sector is an attempted bearing, not proof that its entire area was seen.
 // The host chooses plans; policy state cannot reset this ledger.
 type SearchPlan struct {
-	Sector int           `json:"sector"`
-	Origin protocol.Vec3 `json:"origin"`
-	Radius float64       `json:"radius"`
-	Offset float64       `json:"offset,omitempty"`
+	Sector int            `json:"sector"`
+	Origin protocol.Vec3  `json:"origin"`
+	Radius float64        `json:"radius"`
+	Offset float64        `json:"offset,omitempty"`
+	Center *protocol.Vec3 `json:"center,omitempty"`
 }
 type SearchAttempt struct {
 	Plan    SearchPlan `json:"plan"`
@@ -339,7 +341,19 @@ func validateRecord(r Record) error {
 				return errors.New("invalid search origin")
 			}
 		}
-		if distance(plan.Origin, r.Center)+plan.Radius+plan.Offset+52 > r.Radius+1e-6 {
+		anchor := plan.Origin
+		if plan.Center != nil {
+			anchor = *plan.Center
+			for _, n := range anchor {
+				if !finite(n) {
+					return errors.New("invalid search area center")
+				}
+			}
+			if plan.Offset != 0 || plan.Radius > 24 || distance(plan.Origin, r.Center) > r.Radius-52+1e-6 || areaSector(r.Center, anchor) != plan.Sector || math.Hypot(anchor[0]-plan.Origin[0], anchor[2]-plan.Origin[2]) > 140 {
+				return errors.New("invalid regional search plan")
+			}
+		}
+		if distance(anchor, r.Center)+plan.Radius+plan.Offset+52 > r.Radius+1e-6 {
 			return errors.New("search plan exceeds goal envelope")
 		}
 		seen[plan.Sector] = true

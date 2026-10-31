@@ -98,6 +98,9 @@ namespace Renki.Protocol
         public double? SearchRadius;
         public int? SearchSector;
         public double? SearchOffset;
+        public V3? SearchCenter;
+        public V3? SearchAnchor;
+        public double? SearchLimit;
     }
 
     public sealed class PickupArgs
@@ -287,7 +290,32 @@ namespace Renki.Protocol
                             throw new BadArgsException("`searchOffset` requires a search sector, 0–60 m offset and at most 120 m total reach");
                         if (style == "") style = "melee";
                         if (style != "melee" && style != "auto") throw new BadArgsException("this build supports melee or auto attack style");
-                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset };
+                        V3? searchCenter = null;
+                        if (a["searchCenter"] != null)
+                        {
+                            searchCenter = Target.Parse(a["searchCenter"], "searchCenter").Pos;
+                            if (!searchCenter.HasValue || !kite || !string.IsNullOrWhiteSpace(entity) || at.HasValue || sector.HasValue || offset.HasValue)
+                                throw new BadArgsException("`searchCenter` requires untargeted kite discovery without sector/offset");
+                            foreach (var coordinate in new[] { searchCenter.Value.X, searchCenter.Value.Y, searchCenter.Value.Z })
+                                if (double.IsNaN(coordinate) || double.IsInfinity(coordinate)) throw new BadArgsException("`searchCenter` requires finite coordinates");
+                            if (searchRadius > 24) throw new BadArgsException("area discovery limits local `searchRadius` to 24 m");
+                        }
+                        V3? searchAnchor = null;
+                        double? searchLimit = null;
+                        if (a["searchAnchor"] != null || a["searchLimit"] != null)
+                        {
+                            if (!searchCenter.HasValue || a["searchAnchor"] == null || a["searchLimit"] == null)
+                                throw new BadArgsException("regional bounds require searchCenter, searchAnchor and searchLimit");
+                            searchAnchor = Target.Parse(a["searchAnchor"], "searchAnchor").Pos;
+                            searchLimit = Number(a, "searchLimit", 0);
+                            if (!searchAnchor.HasValue || double.IsNaN(searchLimit.Value) || double.IsInfinity(searchLimit.Value) || searchLimit <= 0 || searchLimit > 500)
+                                throw new BadArgsException("regional search bounds must be finite and positive, at most 500 m");
+                            foreach (var coordinate in new[] { searchAnchor.Value.X, searchAnchor.Value.Y, searchAnchor.Value.Z })
+                                if (double.IsNaN(coordinate) || double.IsInfinity(coordinate)) throw new BadArgsException("searchAnchor requires finite coordinates");
+                            if ((searchCenter.Value - searchAnchor.Value).Length + (searchRadius ?? 24) > searchLimit + 1e-6)
+                                throw new BadArgsException("search area exceeds native search bounds");
+                        }
+                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset, SearchCenter = searchCenter, SearchAnchor = searchAnchor, SearchLimit = searchLimit };
                     }
                 case TaskNames.Harvest:
                     {

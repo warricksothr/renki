@@ -19,6 +19,9 @@ type combatParams struct {
 	SearchRadius *float64        `json:"searchRadius,omitempty"`
 	SearchSector *int            `json:"searchSector,omitempty"`
 	SearchOffset *float64        `json:"searchOffset,omitempty"`
+	SearchCenter *protocol.Vec3  `json:"searchCenter,omitempty"`
+	SearchAnchor *protocol.Vec3  `json:"searchAnchor,omitempty"`
+	SearchLimit  *float64        `json:"searchLimit,omitempty"`
 }
 
 func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error) {
@@ -47,6 +50,15 @@ func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error)
 	}
 	if p.SearchOffset != nil {
 		args["searchOffset"] = *p.SearchOffset
+	}
+	if p.SearchCenter != nil {
+		args["searchCenter"] = *p.SearchCenter
+	}
+	if p.SearchAnchor != nil {
+		args["searchAnchor"] = *p.SearchAnchor
+	}
+	if p.SearchLimit != nil {
+		args["searchLimit"] = *p.SearchLimit
 	}
 	encoded, err := json.Marshal(args)
 	if err != nil {

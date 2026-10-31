@@ -98,6 +98,7 @@ def ground_diagnostics(audit, task_id):
     detour_states, detour_examples = Counter(), []
     detour_max_nodes = detour_worst_ms = 0
     return_hint = None
+    area_travel = dict(routes=0, arrival=None)
     footing = dict(settles=0, lastRefusal=None)
     death = None
     with Path(audit).open() as lines:
@@ -109,7 +110,7 @@ def ground_diagnostics(audit, task_id):
                 continue
             data = frame.get('data') or {}
             message = frame.get('msg')
-            if message in ('prepare_search', 'position', 'search', 'scout_plan', 'scout', 'scout_return', 'scout_settle', 'draw', 'kite', 'hold',
+            if message in ('prepare_search', 'travel_search_area', 'position', 'search', 'scout_plan', 'scout', 'scout_return', 'scout_settle', 'draw', 'kite', 'hold',
                            'engage', 'approach', 'strike', 'block', 'dodge', 'wait', 'retreat') and message not in modes:
                 modes.append(message)
             if message == 'scout_settle':
@@ -136,6 +137,10 @@ def ground_diagnostics(audit, task_id):
                     detour_examples = detour_examples[-4:]
             if message == 'search_egress_route':
                 scout_routes['preparation'] += 1
+            if message == 'search_area_travel':
+                area_travel['routes'] += 1
+            if message == 'search_area_arrived':
+                area_travel['arrival'] = {k: data[k] for k in ('requested', 'pos', 'radius', 'travel') if k in data}
             if message in ('scout_rejected', 'search_egress_rejected'):
                 reason = data.get('reason', 'unknown')
                 if reason not in scout_reasons and len(scout_examples) < 6:
@@ -158,7 +163,7 @@ def ground_diagnostics(audit, task_id):
                                 'colliderCenter') if k in data})
     return dict(candidates=sum(reasons.values()), reasons=dict(reasons), probeStages=dict(stages), regions=dict(regions), examples=examples,
                 selected=selected, modes=modes, footing=footing, death=death, scouting=dict(routes=dict(scout_routes), reasons=dict(scout_reasons),
-                recoveries=dict(scout_recoveries), returnHint=return_hint, examples=scout_examples,
+                recoveries=dict(scout_recoveries), returnHint=return_hint, areaTravel=area_travel, examples=scout_examples,
                 detours=dict(states=dict(detour_states), maxExpanded=detour_max_nodes, worstFrameMs=detour_worst_ms, examples=detour_examples)))
 
 
@@ -450,7 +455,7 @@ def main():
     if summary.get('goalId'):
         report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof', 'home', 'postCombat')}
         report['encounters'] = [dict(taskId=e['taskId'], status=e['status'], reason=e['reason'],
-            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','recoveries','returnHint')},
+            entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','recoveries','returnHint','areaTravel')},
             detours={k:e['ground']['scouting']['detours'][k] for k in ('states','maxExpanded','worstFrameMs')})
             for e in summary.get('encounters', [])]
     if harvesting:
@@ -463,7 +468,7 @@ def main():
         report['tasks'] = len(summary.get('tasks', []))
     if summary.get('ground'):
         report['ground'] = {k: summary['ground'][k] for k in ('candidates', 'reasons', 'probeStages', 'modes', 'selected', 'footing', 'death')}
-        report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons', 'recoveries', 'returnHint', 'detours')}
+        report['scouting'] = {k: summary['ground']['scouting'][k] for k in ('routes', 'reasons', 'recoveries', 'returnHint', 'areaTravel', 'detours')}
     print(json.dumps(report, indent=2))
     return 0 if summary['outcome'] == 'succeeded' and not summary.get('cleanupErrors') else 1
 

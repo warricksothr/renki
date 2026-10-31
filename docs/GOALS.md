@@ -114,6 +114,7 @@ after restart. The same engine permission, body-ownership and owner-stop rules
 cover both combat and return.
 
 The first goal has a ten-minute deadline, six attempts/native tasks, a
+fixed pool of eight candidate search areas around its immutable anchor, a
 three-consecutive-failure limit and 120 seconds of total observation/recovery
 waits. Waits are at most 30 seconds each. Budgets persist through resume. A
 2 m position bucket, target identity/targeting state and readiness buckets
@@ -130,38 +131,72 @@ unsafe persistent conditions and exhausted budgets become `needs_plan` with a
 compact diagnostic. There is no assumption that every world state offers a
 safe fight or that reaching needs-plan proves melee works.
 
-Discovery attempts search one of eight bearings, trying east, west, north,
-south, then diagonals (sectors 0,4,2,6,1,5,3,7 in Unity X/Z). Each native
-attempt advances through three distances on its assigned spoke, projects
-terrain and validates short legs locally, and returns along checked travel
-before reporting an empty search. Time, travel, stamina and recovery limits can
-end the attempt early; this is **attempted ground, not exhaustive coverage**.
-The host checkpoints sector/origin/radius/offset in the dispatch intent, then records
-the matching native receipt in `searches`. Incomplete attempts are retained and
-consume their bearing without being labelled empty. Only the exact native
-empty-search-and-return receipt, with no bound target, is expected search
-progress rather than a repeated failure. It still consumes task, attempt and
-deadline budgets. Unsafe/incomplete repeated failures retain the three-failure
-stop. Six tasks do not promise all eight bearings.
+Discovery chooses from eight fixed candidate areas around the immutable goal
+anchor. The default 200 m goal uses centers 80 m from that anchor and a 24 m
+local search radius. Smaller scopes reduce both while preserving the 52 m
+combat/escape reserve; scopes too small for separate areas cannot invent more
+room. The host selects the nearest unused reachable-range candidate, using a
+stable bearing order to break ties. Attempted areas are not chosen again within
+the goal, including areas with failed travel. This is attempted ground, not
+exhaustive coverage or a claim that an area remains empty indefinitely.
 
-The first two search attempts remain local. Later attempts shift their three
-outbound distances by 40 m, then 60 m, to seek farther ground on fresh bearings.
-The host reduces both offset and radius as needed to retain the same goal sphere
-and 52 m combat/escape reserve. Total planned reach is at most 120 m. These are
-horizontal planning hints; native code projects each short leg onto currently
-supported terrain rather than assuming the starting elevation at a distant
-endpoint. Outer travel may try four progress-making leg alternatives (direct,
-30 degrees either side, then a shorter direct step), at most one route probe per
-decision. Failed alternatives consume the existing recovery/time bounds.
-Return travel still follows revalidated observed breadcrumbs. A conservative
-allowance for return distance and breadcrumb decisions can end outbound travel
-early; the 90/150 s work/return and 300 m travel limits are unchanged. A partial
-or empty search does not prove that the requested farther region was reached.
+The host checkpoints center, departure, bearing ID and local radius before
+native dispatch. One C# routine travels on checked dry ground, tries a finite
+set of clear entries within 8 m of the center, then starts local scouting around
+that center at the measured arrival height. Local return goes to the observed
+entry, so it does not consume its budget walking back to the distant departure.
+An eligible enemy found in transit triggers a nearby fighting-ground survey.
+Area travel is bounded to 90 seconds, 200 m of actual movement, five entries and
+140 m horizontal departure-to-center range. Native search and travel also check
+the absolute goal-anchor envelope, leaving the same 52 m combat/escape reserve
+when migration detours wind away from their destination. Local scouting retains its
+90/150-second work/return and 300 m travel bounds. These phases share the native
+task timeout and original durable goal deadline and attempts.
 
-Policy cannot choose/reset bearings, alter their radius/offset or turn travel into a
-kill. Completed ledgers survive explicit resume; pending searches after restart
-remain uncertain and cannot replay. Existing records without a ledger remain
-readable and their stored policy source/hash stays unchanged.
+The matching native receipt records the area attempt in `searches`. Only an
+exact bounded area-search-and-return receipt, with no bound enemy, is empty
+search evidence. Unreachable travel, incomplete searches and failed returns
+remain separate failures. Three consecutive ordinary failures still stop; six
+attempts do not promise that all eight areas will be searched. Kill and return
+proof remain independent from area travel or empty observations.
+
+Legacy explicit sector/offset task requests and saved ledger entries remain
+supported. Policy cannot choose/reset area centers, change the local radius or
+turn travel into a kill. Completed ledgers survive explicit resume; pending
+searches after restart remain uncertain and cannot replay. Existing records
+remain readable and their stored policy source/hash stays unchanged.
+
+## Planned production work and maintenance cycles
+
+Production work should combine repeated harvesting, opportunistic combat and
+collection before choosing storage, resupply or repair. The one-kill combat
+trial remains a verification goal. A work-cycle goal keeps its work site,
+progress, cargo and intended continuation across bounded native tasks; one tree
+or enemy need not complete that objective.
+
+The host should derive pressures from free slots, carried weight/capacity,
+owner-defined cargo value and reserves, food, tool and armour durability,
+health/stamina, nearby danger, and estimated travel cost/risk to home or known
+permitted storage. Route confidence matters: nearest by straight-line distance
+need not be the best destination. Policy receives compact measured pressures
+and supported choices; it cannot change native safety bounds. Inventory value
+and return risk can justify an earlier deposit even with room remaining.
+
+Use hysteresis and a committed return phase so a small inventory change does
+not alternate work and storage every tick. Immediate survival and owner orders
+still interrupt. At storage, matched transfer receipts and fresh inventory
+confirm unloading. Restock food and other allowed supplies, repair usable tools
+and armour at appropriate accessible game stations, verify actual durability
+changes and remaining failures, then resume the remembered work site when the
+readiness conditions are met. Missing stations, access, materials or routes
+produce explicit alternatives or a bounded replan rather than an endless loop.
+
+Repair is a native station interaction; choosing when/where to maintain gear
+belongs to the work-cycle goal. Prefer repair over replacement where possible;
+crafting/upgrading remains subject to the existing progression and resource
+policy. Diagnostics should retain pressure inputs, the selected destination,
+travel confidence, action receipts and the reason for continuing or returning.
+This work-cycle and armour-maintenance slice is planned, not yet implemented.
 
 ## Model escape hatch and generated patterns
 

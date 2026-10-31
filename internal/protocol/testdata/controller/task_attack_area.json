@@ -1,0 +1,1 @@
+{"v":1,"type":"task","seq":0,"t":0,"id":"area-1","task":"attack","args":{"kite":true,"searchCenter":[80,30,0],"searchRadius":24,"searchAnchor":[0,30,0],"searchLimit":148},"timeoutS":270}

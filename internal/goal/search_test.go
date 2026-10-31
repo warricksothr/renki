@@ -19,7 +19,7 @@ func TestEmptySearchesAdvanceBearingsWithoutClaimingCombatOrResettingBudgets(t *
 			t.Fatalf("sector %d: %v %v", sector, order, err)
 		}
 		args := order.Args.(*protocol.AttackArgs)
-		if args.SearchSector == nil || *args.SearchSector != sector || args.Entity != "" || !args.Kite {
+		if args.SearchCenter == nil || areaSector(protocol.Vec3{}, *args.SearchCenter) != sector || args.SearchSector != nil || args.Entity != "" || !args.Kite {
 			t.Fatal(args)
 		}
 		g, _ := host.Store.Get(id)
@@ -82,7 +82,7 @@ func TestSearchLedgerSurvivesExplicitResumeAndUncertainNextIntentCannotReplay(t 
 	v.State.Stamina = 60
 	fresh(&v, 10)
 	order, err := r.Next(v, nil)
-	if err != nil || order == nil || *order.Args.(*protocol.AttackArgs).SearchSector != 4 {
+	if err != nil || order == nil || order.Args.(*protocol.AttackArgs).SearchCenter == nil || areaSector(protocol.Vec3{}, *order.Args.(*protocol.AttackArgs).SearchCenter) != 4 {
 		t.Fatal(order, err)
 	}
 	if err := r.Dispatched("search-2"); err != nil {
@@ -175,52 +175,61 @@ func TestPolicyCannotChooseItsOwnSectorOrEnlargeSearchRadius(t *testing.T) {
 	}
 }
 
-func TestLaterSearchesReachFartherWithoutLeavingTheGoalEnvelope(t *testing.T) {
-	for _, tc := range []struct{ radius, position, wantOffset float64 }{{200, 0, 60}, {100, 0, 36}, {200, 120, 16}} {
-		t.Run(fmt.Sprintf("radius=%g/position=%g", tc.radius, tc.position), func(t *testing.T) {
+func TestAreaSearchesStayAnchoredAndPersistWithoutLeavingTheGoalEnvelope(t *testing.T) {
+	for _, radius := range []float64{100, 200} {
+		t.Run(fmt.Sprint(radius), func(t *testing.T) {
 			host, r, v, id := fixture(t)
-			if err := host.Store.update(id, func(g *Record) error { g.Radius = tc.radius; return nil }); err != nil {
+			if err := host.Store.update(id, func(g *Record) error { g.Radius = radius; return nil }); err != nil {
 				t.Fatal(err)
 			}
-			v.State.Pos[0] = tc.position
 			v.Perception.Characters = nil
 			order, err := r.Next(v, nil)
+			seen := map[protocol.Vec3]bool{}
 			for i := 0; i < 6; i++ {
 				if err != nil || order == nil {
 					t.Fatal(order, err)
 				}
 				args := order.Args.(*protocol.AttackArgs)
-				offset := 0.0
-				if args.SearchOffset != nil {
-					offset = *args.SearchOffset
+				if args.SearchCenter == nil || seen[*args.SearchCenter] || args.SearchOffset != nil || args.SearchSector != nil {
+					t.Fatal(args)
 				}
-				if i < 2 && offset != 0 || i >= 4 && offset != tc.wantOffset || offset+*args.SearchRadius+tc.position+52 > tc.radius+1e-6 {
-					t.Fatalf("attempt %d: %+v offset=%g", i, args, offset)
-				}
+				seen[*args.SearchCenter] = true
 				g, _ := host.Store.Get(id)
-				if g.Pending.Search.Offset != offset {
-					t.Fatal("outer plan missing from durable intent", g.Pending)
+				if distance(*args.SearchCenter, g.Center)+*args.SearchRadius+52 > radius+1e-6 {
+					t.Fatal("area escaped scope", args)
 				}
-				task := fmt.Sprintf("outer-%d", i)
+				if g.Pending.Search.Center == nil || *g.Pending.Search.Center != *args.SearchCenter {
+					t.Fatal("area not checkpointed")
+				}
+				task := fmt.Sprintf("area-%d", i)
 				if err := r.Dispatched(task); err != nil {
 					t.Fatal(err)
 				}
-				order, err = r.Next(v, &behaviour.Result{TaskID: task, Status: protocol.StatusFailed, Reason: protocol.ReasonInvalidTarget, Detail: emptySectorDetail})
+				// Native local searches finish around their selected area, rather than
+				// resetting the next task's search anchor to a drifting return point.
+				v.State.Pos = *args.SearchCenter
+				order, err = r.Next(v, &behaviour.Result{TaskID: task, Status: protocol.StatusFailed, Reason: protocol.ReasonInvalidTarget, Detail: emptyAreaDetail})
 			}
 			reopened, err := Open(host.Store.path)
 			if err != nil {
 				t.Fatal(err)
 			}
 			g, _ := reopened.Get(id)
-			if g.Attempts != 6 || len(g.Searches) != 6 || g.Searches[5].Plan.Offset != tc.wantOffset || g.Proof != nil {
+			if g.Attempts != 6 || len(g.Searches) != 6 || g.Proof != nil {
 				t.Fatal(g)
 			}
-			g.Searches[5].Plan.Offset = 61
+			for _, search := range g.Searches {
+				if !search.Empty || search.Plan.Center == nil {
+					t.Fatal(search)
+				}
+			}
+			original := *g.Searches[5].Plan.Center
+			(*g.Searches[5].Plan.Center)[0] += 1000
 			if err := validateRecord(g); err == nil {
-				t.Fatal("invalid outer reach was accepted")
+				t.Fatal("out of bounds area accepted")
 			}
 			g, _ = reopened.Get(id)
-			if g.Searches[5].Plan.Offset != tc.wantOffset {
+			if *g.Searches[5].Plan.Center != original {
 				t.Fatal("snapshot aliased store")
 			}
 		})

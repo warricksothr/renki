@@ -4,5 +4,5 @@ def step(context, state, outcome):
     if not context["target"]:
         return {"action": "wait", "waitS": 5, "reason": "wait for a fresh or alternate eligible Greyling", "state": state}
     if context.get("discovery", False):
-        return {"action": "run", "template": "combat", "params": context["params"], "reason": "scout a fresh bounded sector for an eligible Greyling", "state": {"phase": "discovery"}}
+        return {"action": "run", "template": "combat", "params": context["params"], "reason": "travel to a fresh search area and scout locally for an eligible Greyling", "state": {"phase": "discovery"}}
     return {"action": "run", "template": "combat", "params": context["params"], "reason": "try native encounter with a changed observation", "state": {"phase": "encounter"}}

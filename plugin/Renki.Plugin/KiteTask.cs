@@ -50,6 +50,7 @@ namespace Renki.Plugin
         bool hasArea, areaChecked, positioned, walking, cancelled;
         float nextSurvey, nextAreaCheck, nextSample, followingUntil, nextAim, escapeAt, nextSearch, nextScout;
         float surveyBegan;
+        V3 ScoutOrigin => args.SearchCenter.HasValue ? SearchAreaTravel.LocalOrigin(args.SearchCenter.Value, Convert.ToV3(area)) : Convert.ToV3(origin);
 
         internal CombatStatus Status => melee != null ? melee.Status :
             new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
@@ -60,16 +61,24 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             origin = p.transform.position; began = Time.unscaledTime;
             surveyOrigin = encounterOrigin = origin; surveyBegan = began;
-            searchRadius = args.SearchRadius ?? (string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue ? 60 : 12);
+            searchRadius = args.SearchRadius ?? (args.SearchCenter.HasValue ? 24 : string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue ? 60 : 12);
             searchOffset = args.SearchOffset ?? 0;
-            searchReach = searchRadius + searchOffset;
+            searchReach = searchRadius + searchOffset + (args.SearchCenter.HasValue ? V3.FlatDistance(Convert.ToV3(origin), args.SearchCenter.Value) : 0);
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 40)
                 throw new TaskRefused(Wire.ReasonRefused, "recover to 80% health and 40 stamina before drawing an enemy");
             if (MeleeTask.Best(p) == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable melee weapon");
             if (args.At.HasValue && Vector3.Distance(origin, Convert.ToVector3(args.At.Value)) > 12)
                 throw new TaskRefused(Wire.ReasonRefused, "preferred fighting ground must be within 12 m");
             walker.ResetStuck(origin);
-            if (string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue)
+            if (args.SearchCenter.HasValue)
+            {
+                if (V3.FlatDistance(Convert.ToV3(origin), args.SearchCenter.Value) > SearchAreaTravel.Range)
+                    throw new TaskRefused(Wire.ReasonRefused, "selected search area exceeds native travel range");
+                preparing = true; hasArea = positioned = true;
+                preparationLast = origin; preparationBegan = began;
+                Mode("travel_search_area", "travel on checked dry ground before searching the selected area");
+            }
+            else if (string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue)
             {
                 // Searching needs a safe walking route, not an arena at the
                 // starting spot. Survey combat ground only after discovery.
@@ -113,6 +122,9 @@ namespace Renki.Plugin
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
                 return Abort(p, "health, stamina or equipment no longer supports kiting");
             if (p.IsSwimming() || p.IsEncumbered()) return UnsafeFooting(p, double.NaN);
+            if (enemy == null && args.SearchAnchor.HasValue &&
+                !SearchAreaTravel.WithinScope(args.SearchAnchor.Value, args.SearchLimit.Value, Convert.ToV3(p.transform.position)))
+                return Abort(p, "regional search reached its authorized scope boundary");
             // Ordinary entrance travel owns its normal step/jump recovery.
             // Enemy-free scouting may pause briefly over shallow dry support;
             // neither steering nor acquisition runs during that pause.
@@ -131,7 +143,26 @@ namespace Renki.Plugin
             }
             if (Vector3.Distance(origin, p.transform.position) > searchReach + Kiting.TravelLimit)
                 return Abort(p, "overall search and encounter travel limit");
-            if (preparing) return PrepareSearch(p, dt);
+            if (preparing)
+            {
+                // An eligible enemy encountered in transit can be fought on
+                // nearby surveyed ground; do not walk past it to a waypoint.
+                if (args.SearchCenter.HasValue && Time.unscaledTime >= nextSearch)
+                {
+                    nextSearch = Time.unscaledTime + .5f;
+                    Acquire(p);
+                    if (enemy != null)
+                    {
+                        preparation?.Cancel(); preparation = null; preparing = false;
+                        ObserveEnemy(p);
+                        surveyOrigin = encounterOrigin; surveyBegan = Time.unscaledTime;
+                        hasArea = positioned = areaChecked = false; survey = 0; nextSurvey = 0;
+                        Mode("survey", "eligible enemy found while travelling to search area");
+                        return null;
+                    }
+                }
+                return PrepareSearch(p, dt);
+            }
             if (!positioned && Time.unscaledTime - surveyBegan >= 25)
                 return Finish(Outcome.Failed(Wire.ReasonTimeout, "local encounter preparation time limit"));
             if (!hasArea)
@@ -182,7 +213,7 @@ namespace Renki.Plugin
                 }
                 positioned = true; walking = false; Mode("search");
                 if (enemy == null)
-                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
+                    scouting = new Scouting(ScoutOrigin, Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
             }
             if (enemy == null && policy == null)
             {
@@ -195,9 +226,7 @@ namespace Renki.Plugin
                     return Scout(p);
                 CancelDetour();
                 walking = false;
-                entity = enemy.m_nview.GetZDO().m_uid.ToString();
-                death = new CharacterDeathObservation(enemy, entity);
-                encounterOrigin = p.transform.position;
+                ObserveEnemy(p);
                 if (!areaChecked || Kiting.NeedsLocalArea(Convert.ToV3(encounterOrigin), Convert.ToV3(area), args.At.HasValue))
                 {
                     // Search can range widely; the lure stays local to the
@@ -289,23 +318,34 @@ namespace Renki.Plugin
             enemy = selected;
         }
 
+        void ObserveEnemy(Player p)
+        {
+            entity = enemy.m_nview.GetZDO().m_uid.ToString();
+            death = new CharacterDeathObservation(enemy, entity);
+            encounterOrigin = p.transform.position;
+        }
+
         Outcome PrepareSearch(Player p, double dt)
         {
             Driver.ClearCombat();
             var pos = p.transform.position;
             preparationTravel += Vector3.Distance(pos, preparationLast); preparationLast = pos;
-            if (Time.unscaledTime - preparationBegan >= 60 || preparationTravel > 64 || Vector3.Distance(origin, pos) > searchRadius + .25)
+            var regional = args.SearchCenter.HasValue;
+            if (regional ? !SearchAreaTravel.WithinBudget(Convert.ToV3(origin), Convert.ToV3(pos), Time.unscaledTime - preparationBegan, preparationTravel)
+                : Time.unscaledTime - preparationBegan >= 60 || preparationTravel > 64 || Vector3.Distance(origin, pos) > searchRadius + .25)
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search travel preparation exhausted its time or travel budget"));
             if (!ClearTravelCharacters(p, pos, false)) return Abort(p, "a creature is too close during search travel preparation");
             if (preparation == null)
             {
-                if (preparationAttempts >= 8)
+                if (preparationAttempts >= (regional ? SearchAreaTravel.Attempts : 8))
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no reachable clear search origin after bounded travel preparation"));
-                var angle = preparationAttempts++ * Math.PI / 4;
-                var candidate = origin + new Vector3((float)Math.Cos(angle), 0, (float)Math.Sin(angle)) * (float)Math.Min(16, searchRadius - 1);
+                var attempt = preparationAttempts++;
+                var angle = attempt * Math.PI / 4;
+                var candidate = regional ? Convert.ToVector3(SearchAreaTravel.Candidate(args.SearchCenter.Value, attempt))
+                    : origin + new Vector3((float)Math.Cos(angle), 0, (float)Math.Sin(angle)) * (float)Math.Min(16, searchRadius - 1);
                 // Leave room for arrival error: the exact endpoint can be
                 // clear while the old 1 m stopping circle touches the house.
-                if (!Ground(candidate, out preparationGoal) || Vector3.Distance(origin, preparationGoal) > searchRadius ||
+                if (!Ground(candidate, out preparationGoal) || (!regional && Vector3.Distance(origin, preparationGoal) > searchRadius) ||
                     !ClearScenery(preparationGoal, .5f) || !ClearTravelCharacters(p, preparationGoal, true))
                 {
                     Tracer.Emit("combat", "search_egress_rejected", new Dictionary<string, object>
@@ -313,15 +353,15 @@ namespace Renki.Plugin
                     return null;
                 }
                 preparation = new MoveToTask(new MoveToArgs
-                { To = new Target { Pos = Convert.ToV3(preparationGoal) }, StopDistance = .25, Run = false }, preparationGoal, null);
+                { To = new Target { Pos = Convert.ToV3(preparationGoal) }, StopDistance = .25, Run = false, Dry = regional }, preparationGoal, null);
                 preparationLegAt = Time.unscaledTime;
-                Mode("prepare_search", "ordinary checked travel to open ground");
-                Tracer.Emit("combat", "search_egress_route", new Dictionary<string, object>
+                Mode(regional ? "travel_search_area" : "prepare_search", "ordinary checked travel to open ground");
+                Tracer.Emit("combat", regional ? "search_area_travel" : "search_egress_route", new Dictionary<string, object>
                 { ["goal"] = Convert.ToArray(preparationGoal), ["attempt"] = preparationAttempts });
             }
             if (!ClearScenery(preparationGoal, .5f) || !ClearTravelCharacters(p, preparationGoal, true))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search preparation destination became unsafe"));
-            var ended = Time.unscaledTime - preparationLegAt >= 25
+            var ended = Time.unscaledTime - preparationLegAt >= (regional ? 60 : 25)
                 ? Outcome.Failed(Wire.ReasonTimeout, "search travel leg time limit") : preparation.Tick(dt);
             if (ended == null) return null;
             if (ended.Status == Wire.StatusSucceeded && !p.IsOnGround()) return null;
@@ -344,7 +384,9 @@ namespace Renki.Plugin
                 return null;
             }
             preparing = false; area = supported;
-            scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
+            scouting = new Scouting(ScoutOrigin, Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
+            if (regional) Tracer.Emit("combat", "search_area_arrived", new Dictionary<string, object>
+            { ["requested"] = args.SearchCenter.Value.ToArray(), ["pos"] = Convert.ToArray(pos), ["radius"] = searchRadius, ["travel"] = preparationTravel });
             Mode("search", "reached open ground through ordinary checked travel");
             return null;
         }
@@ -364,7 +406,7 @@ namespace Renki.Plugin
                 if (scoutAction == ScoutAction.Done)
                     return Finish(scouting.CompletedLegs == 0
                         ? Outcome.Failed(Wire.ReasonUnreachable, "no completed scouting route; creature search has no coverage")
-                        : Outcome.Failed(Wire.ReasonInvalidTarget, args.SearchSector.HasValue
+                        : Outcome.Failed(Wire.ReasonInvalidTarget, args.SearchCenter.HasValue ? "no eligible single Greyling after bounded area scouting and return" : args.SearchSector.HasValue
                             ? "no eligible single Greyling after bounded sector scouting and return"
                             : "no eligible single Greyling after bounded local scouting and return"));
                 if (scoutAction == ScoutAction.Wait) { walking = false; Mode(detour?.Status == RouteStatus.Searching ? "scout_plan" : "search"); return null; }
@@ -379,6 +421,7 @@ namespace Renki.Plugin
                         ["attempts"] = scouting.Attempts,
                         ["sector"] = args.SearchSector,
                         ["offset"] = searchOffset,
+                        ["searchCenter"] = args.SearchCenter?.ToArray(),
                         ["trailPoints"] = scouting.TrailPoints,
                         ["returnDistance"] = scouting.ReturnDistance
                     });

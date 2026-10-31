@@ -704,7 +704,14 @@ Notes:
   enforce a 0.6 m maximum step; capsule probes check clearance.
   Point movement accepts a supported arrival inside the task's requested
   stopping distance, rather than requiring an occupied target's exact centre.
-  Closed doors remain usable through the normal door handler. Unknown support and water
+  Closed doors remain usable through the normal door handler. Planning can
+  provisionally pass a closed door only with door handling enabled, valid live
+  door data, ward/key access and no active refusal cooldown. Dry movement checks
+  the actual door/frame colliders and waits for a bounded opening request;
+  requesting an opening is not evidence of physical clearance. Open doors never
+  exempt their frames or swinging leaves from physics checks. Nearby door scans
+  and route-leg validation use current objects/geometry after rebuilding a base;
+  old door refusals are cleared on world/session reset. Unknown support and water
   more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
   48 m from its start on each axis, and 8 s. It advances at most eight nodes
   per physics step, with a 2 ms target budget, holding movement and the stuck
@@ -1014,7 +1021,23 @@ short walking legs; acquisition farther from the initial area triggers a local
 fighting-ground survey. The local 40 m lure bound and melee leash remain
 unchanged. The final receipt binds the selected entity as described in 6.6.
 
-Untargeted discovery also accepts optional integer `searchSector` (0–7): east
+For distinct area travel, untargeted discovery accepts `searchCenter:[x,y,z]`:
+native dry navigation travels to a terrain
+entry within 8 m of that center before local scouting begins. `searchRadius`
+then defaults to 24 m (12–24 allowed) around the requested center; the entry
+height is measured on arrival. Travel has its own 90-second/200 m budget,
+five entry candidates, and at most 140 m horizontal departure-to-center range.
+Area scouting returns to its observed entry rather than the original departure.
+An eligible Greyling found in transit triggers a local fighting-ground survey.
+This option requires untargeted `kite:true`, and cannot combine with `entity`,
+`at`, `searchSector` or `searchOffset`. Route refusal is not empty-area evidence.
+Optional paired `searchAnchor:[x,y,z]` and `searchLimit` (positive, at most 500 m)
+also bound actual search/travel against an absolute sphere, including detours.
+The requested local area must fit inside it. Durable goals always supply their
+immutable anchor and radius minus the 52 m combat/escape reserve; native code
+checks this envelope every search/travel tick before acquiring an enemy.
+
+The legacy `searchSector` option selects east
 then successive 45 degree bearings toward positive Z. It requires `kite:true`
 without `entity` or `at`. The native scout attempts three progressive distances
 on that bearing and returns using the same checked short-leg policy and existing

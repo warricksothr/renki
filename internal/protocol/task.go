@@ -197,6 +197,9 @@ type AttackArgs struct {
 	SearchRadius *float64 `json:"searchRadius,omitempty"`
 	SearchSector *int     `json:"searchSector,omitempty"`
 	SearchOffset *float64 `json:"searchOffset,omitempty"`
+	SearchCenter *Vec3    `json:"searchCenter,omitempty"`
+	SearchAnchor *Vec3    `json:"searchAnchor,omitempty"`
+	SearchLimit  *float64 `json:"searchLimit,omitempty"`
 }
 
 func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
@@ -208,6 +211,9 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 		SearchRadius *float64        `json:"searchRadius"`
 		SearchSector json.RawMessage `json:"searchSector"`
 		SearchOffset *float64        `json:"searchOffset"`
+		SearchCenter json.RawMessage `json:"searchCenter"`
+		SearchAnchor json.RawMessage `json:"searchAnchor"`
+		SearchLimit  json.RawMessage `json:"searchLimit"`
 	}
 	if err := json.Unmarshal(raw, &wire); err != nil {
 		return err
@@ -233,10 +239,71 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 		}
 		a.At = &Vec3{*values[0], *values[1], *values[2]}
 	}
+	if wire.SearchCenter != nil {
+		var values []*float64
+		if err := json.Unmarshal(wire.SearchCenter, &values); err != nil {
+			return err
+		}
+		if len(values) != 3 || values[0] == nil || values[1] == nil || values[2] == nil {
+			return errors.New("`searchCenter` requires a finite [x,y,z] position")
+		}
+		a.SearchCenter = &Vec3{*values[0], *values[1], *values[2]}
+	}
+	if wire.SearchAnchor != nil {
+		var values []*float64
+		if err := json.Unmarshal(wire.SearchAnchor, &values); err != nil {
+			return err
+		}
+		if len(values) != 3 || values[0] == nil || values[1] == nil || values[2] == nil {
+			return errors.New("`searchAnchor` requires a finite [x,y,z] position")
+		}
+		a.SearchAnchor = &Vec3{*values[0], *values[1], *values[2]}
+	}
+	if wire.SearchLimit != nil {
+		var n float64
+		if bytes.Equal(bytes.TrimSpace(wire.SearchLimit), []byte("null")) {
+			return errors.New("searchLimit requires a positive number")
+		}
+		if err := json.Unmarshal(wire.SearchLimit, &n); err != nil {
+			return err
+		}
+		a.SearchLimit = &n
+	}
 	return nil
 }
 
 func (a *AttackArgs) validate() error {
+	if a.SearchAnchor != nil || a.SearchLimit != nil {
+		if a.SearchCenter == nil || a.SearchAnchor == nil || a.SearchLimit == nil || math.IsNaN(*a.SearchLimit) || math.IsInf(*a.SearchLimit, 0) || *a.SearchLimit <= 0 || *a.SearchLimit > 500 {
+			return errors.New("regional bounds require searchCenter, finite searchAnchor and searchLimit in (0,500]")
+		}
+		for _, n := range *a.SearchAnchor {
+			if math.IsNaN(n) || math.IsInf(n, 0) {
+				return errors.New("searchAnchor requires finite coordinates")
+			}
+		}
+		radius := 24.0
+		if a.SearchRadius != nil {
+			radius = *a.SearchRadius
+		}
+		delta := Vec3{(*a.SearchCenter)[0] - (*a.SearchAnchor)[0], (*a.SearchCenter)[1] - (*a.SearchAnchor)[1], (*a.SearchCenter)[2] - (*a.SearchAnchor)[2]}
+		if math.Sqrt(delta[0]*delta[0]+delta[1]*delta[1]+delta[2]*delta[2])+radius > *a.SearchLimit+1e-6 {
+			return errors.New("search area exceeds native search bounds")
+		}
+	}
+	if a.SearchCenter != nil {
+		if !a.Kite || strings.TrimSpace(a.Entity) != "" || a.At != nil || a.SearchSector != nil || a.SearchOffset != nil {
+			return errors.New("`searchCenter` requires untargeted kite discovery without sector/offset")
+		}
+		for _, n := range *a.SearchCenter {
+			if math.IsNaN(n) || math.IsInf(n, 0) {
+				return errors.New("`searchCenter` requires finite coordinates")
+			}
+		}
+		if a.SearchRadius != nil && *a.SearchRadius > 24 {
+			return errors.New("area discovery limits local `searchRadius` to 24 m")
+		}
+	}
 	if a.SearchOffset != nil {
 		radius := 60.0
 		if a.SearchRadius != nil {

@@ -279,7 +279,7 @@ func TestDiscoveryBindsOnlyTheNativeFinalReceipt(t *testing.T) {
 }
 
 func TestDiscoveryRadiusLeavesRoomForLocalCombatAndEscape(t *testing.T) {
-	for _, test := range []struct{ radius, offset, want float64 }{{200, 0, 60}, {100, 0, 48}, {200, 120, 28}, {200, 140, 0}} {
+	for _, test := range []struct{ radius, offset, want float64 }{{200, 0, 24}, {100, 0, 12}, {200, 120, 24}, {200, 149, 0}} {
 		t.Run(fmt.Sprintf("radius=%g/offset=%g", test.radius, test.offset), func(t *testing.T) {
 			host, r, v, id := fixture(t)
 			if err := host.Store.update(id, func(g *Record) error { g.Radius = test.radius; return nil }); err != nil {
@@ -298,7 +298,7 @@ func TestDiscoveryRadiusLeavesRoomForLocalCombatAndEscape(t *testing.T) {
 				t.Fatal("no discovery")
 			}
 			args := order.Args.(*protocol.AttackArgs)
-			if args.SearchRadius == nil || *args.SearchRadius != test.want || *args.SearchRadius+test.offset+52 > test.radius {
+			if args.SearchRadius == nil || args.SearchCenter == nil || *args.SearchRadius != test.want || distance(*args.SearchCenter, protocol.Vec3{})+*args.SearchRadius+52 > test.radius {
 				t.Fatal(args)
 			}
 		})
