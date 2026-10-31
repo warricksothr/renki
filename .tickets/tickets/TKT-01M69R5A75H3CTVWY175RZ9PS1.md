@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:36:38Z
+updated_at: 2026-10-31T20:42:44Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -104,3 +104,11 @@ Next just check vm food-check --reserve2 --keep-online also passed (.checks/2026
 Exact follow-up production food goal6c40aee16794f82b1e5573bb succeeded in two native steps with reserve2 and keep-online verified (.checks/food-20261031T203429Z). Taskt-2 normally withdrew3 Blueberries from1:70031 with matched transfer/fresh-pack receipt; no cooking was necessary. Final66.2/68.5HP, same sheltered home-floor position, no injury reported. Tas stayed logged in between trials.
 
 That fresh chest receipt now contains actual supported raw stock (NeckTail3 and RawMeat4), unlike the earlier empty-stock snapshots. A normal one-tail withdrawal passed through just check vm task-check withdraw (.checks/20261031T203613Z-qzG5sb.log). Beginning a new guarded production goal using that carried ingredient and existing normal stow-ready staging into excluded chest1:70040; this should earn complete cook/readiness/return evidence without pretending food acquisition or cold-fire fuel was exercised in this run. The real raw-drop pickup and live mushroom foraging remain independently earned in the earlier trials.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:42:44Z
+
+Complete carried-raw cooking/readiness/return benchmark now passed: just check vm food-check --reserve1 --storage <eight bounded chests> --stow-ready1:70040 --require-cooking --keep-online, evidence .checks/food-20261031T203634Z and .checks/20261031T203634Z-GfNlWF.log. Goal49a97e3b768d462d64b37fdc succeeded in10 native steps. Normal staging deposited2 Blueberries into excluded1:70040; carried raw NeckTail came from the separately verified normal one-tail withdrawal. Taskt-15 at station1:70085 earned full direct_spawn cooking removal/output/pickup/inventory proof forNeckTailGrilled1. Taskt-16 returned to the original home floor; final70/70HP, position[-34.86,36.09,7.36], safe keep-online verified. This directly exercises the return-before-extra-acquisition fix. Actual cold-fire fuel was not exercised. Earlier natural raw pickup/home return and mushroom foraging/eating stay separate primitive evidence; no new full acquisition-to-readiness goal is claimed.
+
+Added bounded food-to-escort verification to just vm food-check --reserve2 --escort Nimah --keep-online. It requires the persisted continuation run/task identity, matching native request plus accepted/running receipts, ten seconds of quiet same-leader follow/wait at safe home, then a verified stop; collection/defense remain disabled for this handoff-only check. Focused supervisor and compact-progress checks passed; full just check ci142s passed (.checks/20261031T203926Z-oJ3xPR.log). Fixed compact trial status for integer food task counts/string goal IDs and selecting only timestamped evidence directories, avoiding fixture directories and full-log context dumps. No live handoff was attempted.
+
+The user emergency-logged Tas out after a separate base attack while code checks were running. Audit .checks/audit-window-SNFFE5.jsonl shows Greydwarf damage7.97 at20:39:43Z, normal retreatt-20 accepted/running within0.3s, and Greydwarf_Elite damage27.73 at20:39:58Z. Flee made very little movement inside the house. Last native in-world observation20:40:00Z was43.7/67.1HP at[-33.13,36.09,5.99]; no death was observed. just check vm stop and panel-start both passed (.checks/20261031T204033Z-DDrmkJ.log and .checks/20261031T204040Z-Ie9bSf.log). Tas is offline, the independent panel is online, RecoveryGuard remains enabled, and no rejoin will be attempted into the known attack. Keep live escort handoff, cold-fire fuel, hunting and wider M2/M3 open; trapped native escape is a distinct safety failure to prioritize.

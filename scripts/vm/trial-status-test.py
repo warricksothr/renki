@@ -15,6 +15,19 @@ spec.loader.exec_module(progress)
 
 
 class Progress(unittest.TestCase):
+    def test_food_summary_keeps_checkpoint_and_accepts_integer_task_count(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            (folder / 'goal.json').write_text(json.dumps(dict(id='food-id', status='succeeded',
+                food=dict(phase='complete', reserve=1, batches=1, receipts=[dict(action='cook')]))))
+            (folder / 'summary.json').write_text(json.dumps(dict(goal='food-id', outcome='succeeded', tasks=10,
+                batches=1, keptOnline=True)))
+            result = progress.report(folder)
+            self.assertEqual(result['goal']['status'], 'succeeded')
+            self.assertEqual(result['goal']['food']['receipts'], 1)
+            self.assertEqual(result['taskCount'], 10)
+            self.assertTrue(result['keptOnline'])
+
     def test_goal_range_uses_observed_positions_in_the_matching_running_world(self):
         with tempfile.TemporaryDirectory() as name:
             folder = Path(name)
@@ -70,6 +83,7 @@ class Progress(unittest.TestCase):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
             (root / '.checks' / 'combat-trial-20261030T100000Z').mkdir(parents=True)
+            (root / '.checks' / 'escort-ui').mkdir()
             folder = root / '.checks' / 'gather-trial-20261030T110000Z'
             folder.mkdir()
             (folder / 'summary.json').write_text(json.dumps(dict(outcome='failed', deposited={'Wood': 20},

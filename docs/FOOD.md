@@ -142,3 +142,13 @@ failure it stops the game and restores the independent panel. Observations,
 compact results and an audit window stay under `.checks/recovery-*`.
 Use `just check plugin test-core RecoveryReturnTests` and
 `just check vm test-recover-home` for policy bounds and cleanup checks.
+
+`just vm food-check --reserve 2 --escort Nimah --keep-online` also verifies
+the food goal's durable handoff to a named current commander. This bounded
+check disables collection and defense, requires exact native request,
+acceptance/running receipts and the pinned escort identity, and observes ten
+seconds of quiet follow/wait at safe home before stopping escort. It proves
+the handoff without requiring the leader to be present; it does not prove
+following a moving player or defending one. Normal escort settings and combat
+permission remain separate. `just vm trial-status` reads compact progress for
+food, cooking, recovery and escort evidence as well as harvesting/combat.

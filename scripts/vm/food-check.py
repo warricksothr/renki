@@ -42,6 +42,25 @@ def goal_owned_task(status, goal):
                for row in goal.get('history', []))
 
 
+def escort_active(status, intent, leader):
+    body, escort = status.get('task') or {}, status.get('escort') or {}
+    return (bool(intent.get('run')) and bool(intent.get('taskId')) and
+            body.get('id') == intent['taskId'] and body.get('task') == 'escort' and
+            escort.get('id') == intent['taskId'] and escort.get('leader') == leader and
+            escort.get('mode') in ('follow', 'wait'))
+
+
+def escort_receipt(history, intent, leader):
+    rows = history.get('value', []) if isinstance(history, dict) else history
+    frames = [r.get('frame', {}) for r in rows]
+    requested = any(f.get('type') == 'task' and f.get('id') == intent.get('taskId') and
+                    f.get('task') == 'escort' and f.get('args', {}).get('player') == leader and
+                    f.get('args', {}).get('defend') is False and f.get('args', {}).get('collect') is False
+                    for f in frames)
+    outcomes = {f.get('status') for f in frames if f.get('type') == 'task' and f.get('re') == intent.get('taskId')}
+    return bool(intent.get('run')) and bool(intent.get('taskId')) and requested and {'accepted', 'running'} <= outcomes
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--join', action='store_true')
@@ -52,6 +71,7 @@ def main():
     parser.add_argument('--require-acquisition', action='store_true', help='require verified collection outside storage')
     parser.add_argument('--keep-online', action='store_true', help='keep Tas online only after success and verified safe idle shelter near home')
     parser.add_argument('--stow-ready', help='stage a shortage by normally depositing carried ready meals into this excluded chest')
+    parser.add_argument('--escort', help='verify a bounded food-to-escort handoff for this commander, then stop escort at home')
     args = parser.parse_args()
     folder = ROOT / '.checks' / ('food-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
@@ -130,6 +150,12 @@ def main():
                     if receipt.get('moved', {}).get(prefab) != n or any(i['prefab'] == prefab for i in after['items']): raise RuntimeError('staging ready food was not fully stowed')
                 summary['staged'] = receipt['moved']
         spec = dict(kind='food_resupply', world=status['world'], center=home['pos'], radius=150, reserve=args.reserve)
+        if args.escort:
+            commanders = list(status.get('owners') or []) + [name for name, role in
+                (status.get('players') or {}).get('profiles', {}).items() if role == 'operator']
+            if args.escort not in commanders or args.reserve < 2:
+                raise RuntimeError('handoff check needs a current commander and reserve of at least two')
+            spec['escort'] = dict(player=args.escort, collect=False, defend=False, resupply=True)
         if args.storage: spec['storage'] = args.storage.split(',')
         goal = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)))
         summary['goal'] = goal['id']
@@ -160,6 +186,42 @@ def main():
         if args.require_acquisition and not acquired: raise RuntimeError('goal succeeded but requested acquisition evidence is absent')
         if args.require_cooking and not cooks: raise RuntimeError('goal succeeded but requested cooking evidence is absent')
         if args.require_fuel and not fuel: raise RuntimeError('goal succeeded but requested cold-fire fuel evidence is absent')
+        if args.escort:
+            until = time.monotonic() + 8
+            while time.monotonic() < until:
+                goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=goal['id'])))
+                intent = (goal.get('food') or {}).get('continuation') or {}
+                if intent.get('taskId'): break
+                time.sleep(1)
+            else: raise RuntimeError('food goal has no assigned escort continuation')
+            summary['tasks'] = goal['taskCount']
+            (folder / 'goal.json').write_text(json.dumps(goal, indent=2)+'\n')
+            until = time.monotonic() + 8
+            while time.monotonic() < until:
+                history = call('panel', 'GET', '/api/task?' + urlencode(dict(id=intent['taskId'], at=goal['created'])))
+                (folder / 'escort.json').write_text(json.dumps(history, indent=2)+'\n')
+                if escort_receipt(history, intent, args.escort): break
+                time.sleep(1)
+            else: raise RuntimeError('escort handoff lacks matching native request/acceptance/running evidence')
+            until, modes = time.monotonic() + 10, set()
+            while time.monotonic() < until:
+                status = observe()
+                if not escort_active(status, intent, args.escort):
+                    raise RuntimeError('escort identity, leader or quiet mode changed')
+                mapped = call('panel', 'GET', '/api/map')
+                if not safe_to_remain(status | dict(task=None), mapped):
+                    raise RuntimeError('handoff trial left safe home conditions')
+                modes.add(status['escort']['mode']); time.sleep(1)
+            call('task', 'stop', '{}', '5')
+            until = time.monotonic() + 5
+            while time.monotonic() < until:
+                status = observe()
+                if not status.get('task'): break
+                if (status.get('task') or {}).get('id') != intent['taskId']:
+                    raise RuntimeError('new owner after escort stop')
+                time.sleep(1)
+            else: raise RuntimeError('escort stop not observed')
+            summary['escortHandoff'] = dict(taskId=intent['taskId'], leader=args.escort, modes=sorted(modes), stopped=True)
         summary.update(outcome='succeeded', reason='production food goal verified reserve, active food and recovery')
     except Exception as error:
         summary['reason'] = str(error)
