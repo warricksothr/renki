@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:08:16Z
+updated_at: 2026-10-31T20:18:00Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -72,3 +72,13 @@ Added compact panel acquisition counts and --require-acquisition to just vm food
 Full CI for the supervisor follow-up passed140s (.checks/20261031T200408Z-JG7Wdr.log). The initial live run .checks/food-20261031T200147Z verified a normal one-tail deposit then encountered a supervisor sampling race after six storage tasks: status named a completed goal task while the newer checkpoint already named the next. Fixed local supervision to accept only exact completed task IDs in this goal's bounded history (with final native outcomes), refresh both samples once for the dispatch/checkpoint window, and still reject an owner's new task or unproven task. Focused just check vm test-food-check passed.
 
 The second live run .checks/food-20261031T200408Z earned real acquisition: goal c395aa1d54278d059e3bb0b4 normally picked up NeckTail drop2402772000:167 with task t-9 and measured inventory gain1, then returned to the pinned home floor through task t-10. No injury was observed. Cooking t-11 at station1:70085 failed unreachable before inserting any food. It tried48 relative-angle seeds:114 floor candidates,73 body rejections,41 reach/fire-footing rejections, zero walk attempts. This is the same station used successfully in .checks/cooking-20261031T182424Z from another arrival bearing. The earlier success used position[-33.28,36.22,10.74]. Native approach sampling is being extended with fixed world bearings independent of arrival angle, preserving one seed per tick, all support/body/sight/fire checks, four walks and the60s deadline. No cooking success is claimed by the new goal yet. Tas was safely logged out and the independent panel restored after the failure.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:18:00Z
+
+Native fixed-bearing cooking sampling passed just check plugin test-core CookingApproachesTests and full just check ci136s (.checks/20261031T200844Z-GB47Y9.log); committed/reviewed/pushed0a41550 with no review findings (.checks/20261031T201130Z-Ylr0jM.log). just check vm install verified controller and plugin package/installed checksums (.checks/20261031T201155Z-BNcuy9.log).
+
+Live goal56244f17e16a09ae75ac81ce in .checks/food-20261031T201244Z successfully used the fixed approach at station1:70085 and cooked the previously naturally collected NeckTail. Native taskt-9 earned the full matched removal/output/pickup/inventory receipt, outputNeckTailGrilled1, remote_correlation. No actual cold-fire fueling occurred. The goal then unnecessarily visited a mushroom site because readiness away from the home marker fell through into acquisition. It did earn live foraging at mushroom1:86252 (taskt-11, fresh measured gain1) and eating that new Mushroom (taskt-12, observed active-food refresh).
+
+The extra slot increased max health from53.4 to68.4 while HP stayed53.4; injurySeq stayed0. A nearby threat then correctly stopped the goal before return. Cleanup logged Tas out at the eastern forage site near[11.42,33.22,-8.2] and restored the panel. This is not full goal success or keep-online proof. Do not mistake the food maximum increase for an injury. Native startup recovery remains enabled and may refuse an unsafe outdoor rejoin; no manual enemy-clear request is needed.
+
+Fixed host ordering so an already satisfied reserve/nourishment/health predicate dispatches its home return immediately before any extra source search. Added a regression with a tempting extra live berry source and cooking outside the home marker; it must return and complete in exactly two tasks, preserving cooking proof. Focused just check controller test-packages ./internal/goal passed (.checks/20261031T201538Z-IG1iTm.log); full just check ci is running in .checks/20261031T201606Z-0avurn.log. Wider M2/M3, cold-fire fueling, live hunting and escort continuation remain open.

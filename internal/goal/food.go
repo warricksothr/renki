@@ -217,7 +217,10 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	fillSlot := itemToEat != "" && s.Food != nil && len(s.Food.Active) < 3 && remaining(s, itemToEat) == 0
 	// A reserve is measured after filling eligible food slots, so the normal
 	// keeper cannot immediately eat the entire newly prepared reserve.
-	if !fillSlot && mealCount(v.Inventory) >= f.Reserve && nourished(s) && s.HP >= s.HPMax*.8 && foodAtHome(s.Pos, g.Center) {
+	if !fillSlot && mealCount(v.Inventory) >= f.Reserve && nourished(s) && s.HP >= s.HPMax*.8 {
+		if !foodAtHome(s.Pos, g.Center) {
+			return r.foodDispatch(g, v, "food_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 120})
+		}
 		d, err := Evaluate(g.Policy, map[string]any{"objectiveSatisfied": true}, g.State, g.Last)
 		if err != nil || d.Action != "done" {
 			return r.need("food policy refused host readiness")

@@ -400,3 +400,32 @@ func TestFoodLostHuntCanSelectDifferentPreyButNeverReplayTheFirst(t *testing.T) 
 		t.Fatal(o, err, g)
 	}
 }
+
+func TestFoodReadyAfterCookingReturnsBeforeSeekingAnyAdditionalSources(t *testing.T) {
+	h, r, v, id := acquireFixture(t)
+	if err := h.Store.update(id, func(g *Record) error { g.Food.Reserve = 1; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	v.Inventory.Items = []protocol.InventoryItem{{Prefab: "NeckTail", Stack: 1}}
+	// A tempting live source must not cause another trip after readiness.
+	v.Perception.Resources = []protocol.PerceivedResource{forageResource("extra", "Raspberry", protocol.Vec3{20, 0, 0})}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil || o.Args.(*protocol.InteractArgs).Cook != "NeckTail" {
+		t.Fatal(o, err)
+	}
+	last := acquireResult(t, r, &v, "cook", protocol.StatusSucceeded, "")
+	last.Cooking = deliveryRows("cook", "NeckTailGrilled", "station")
+	v.State.Pos = protocol.Vec3{5, 0, 0}
+	v.Inventory.Items = []protocol.InventoryItem{{Prefab: "NeckTailGrilled", Stack: 1}}
+	o, err = r.Next(v, last)
+	if err != nil || o == nil || o.Task != protocol.TaskMoveTo || *o.Args.(*protocol.MoveToArgs).To.Pos != *v.Home {
+		t.Fatal(o, err)
+	}
+	last = acquireResult(t, r, &v, "home", protocol.StatusSucceeded, "")
+	v.State.Pos = *v.Home
+	o, err = r.Next(v, last)
+	g, _ := h.Store.Get(id)
+	if err != nil || o != nil || g.Status != "succeeded" || g.TaskCount != 2 || g.Food.Batches != 1 {
+		t.Fatal(o, err, g)
+	}
+}
