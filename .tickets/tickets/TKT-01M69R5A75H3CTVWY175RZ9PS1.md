@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:28:26Z
+updated_at: 2026-10-31T20:36:38Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -90,3 +90,17 @@ Return-order fix committed as178337a after full just check ci148s (.checks/20261
 The saved outdoor login exposes a separate recovery gap: passive StartupRecovery correctly refuses exposed healing and all body tasks, so it cannot bring an adequately supplied body home. Implementing an explicit expiring same-world home return inside native recovery, without disabling the guard or lowering its ordinary healing release. The one-shot order comes from the exact world's saved controller home, is consumed before movement, and requires50HP/70%max, two foods,25stamina, dry grounded admission and6m hostile clearance. Normal native dry/hostile-aware movement stays under120s/160m travelled/80m from home; injury, close threats, water, lost permissions/session, stop or low stamina log out. Home floor/shelter/12m clearance hands back to passive95% healing. All ordinary body tasks remain blocked. The reusable just vm recover-home WORLD supervisor records bounded observations/audit and cleans up on failure; no manual supply/enemy-clear requests.
 
 Focused just check plugin test-core RecoveryReturnTests passed (.checks/20261031T202431Z-dx1Lpj.log). Initial plugin build caught a V3/double-array adapter mismatch before deployment; corrected and just check plugin build passed (.checks/20261031T202626Z-uDQvNl.log). just check vm test-recover-home passed (.checks/20261031T202728Z-wPHY0U.log). New recovery is not deployed or live-proved yet; Tas remains offline at the last recorded eastern forage site. Full food goal, cold-fire fuel, live hunting and escort handoff remain unearned.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:35:05Z
+
+Recovery implementation cea8d61 passed full just check ci136s (.checks/20261031T202826Z-6VtK5c.log), clean just check review aa39fe2..HEAD (.checks/20261031T203051Z-8lc5h7.log), and package/installed native/controller checksums (.checks/20261031T203104Z-9sm2Kk.log). First helper attempt stopped before game launch on a PowerShell reserved variable; corrected to savedHome. The arm preflight then found Windows SSH drops an empty quoted WorldBase64 argument on clear; the recipe now omits that optional parameter. Actual arm/clear passed on BLIGHT. Follow-up full just check ci140s passed (.checks/20261031T203213Z-BhWUxn.log).
+
+just check vm recover-home DizzysHellheim passed (.checks/20261031T203218Z-6Yollp.log). Evidence .checks/recovery-20261031T203218Z and audit .checks/audit-window-iAKBxb.jsonl retain native startup return from[11.43,33.22,-8.2] to observed original home floor/shelter at[-37.54,36.09,8.87]. Native traces show return start20:33:02Z, arrival20:34:06Z and passive healing release.349 in-world state frames have minimumHP53.4; final66.8/66.8 and controller injurySeq0. Sampled travel83.4m includes the checked approach around/below the raised house before reaching the proper floor; no below-floor success was accepted. The one-shot order was consumed/cleared and Tas remained online, idle, sheltered with three active foods. No guard was disabled, items fabricated or enemies manually cleared.
+
+Next just check vm food-check --reserve2 --keep-online also passed (.checks/20261031T203429Z-0QLxxv.log). Recording the exact goal/storage/native receipts next; this is whole production food readiness success, not proof of a new combined acquisition/cooking sequence or cold-fire fueling. Wider M2/M3, cold-fire fuel, live hunt and escort handoff remain separate open checks.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:36:38Z
+
+Exact follow-up production food goal6c40aee16794f82b1e5573bb succeeded in two native steps with reserve2 and keep-online verified (.checks/food-20261031T203429Z). Taskt-2 normally withdrew3 Blueberries from1:70031 with matched transfer/fresh-pack receipt; no cooking was necessary. Final66.2/68.5HP, same sheltered home-floor position, no injury reported. Tas stayed logged in between trials.
+
+That fresh chest receipt now contains actual supported raw stock (NeckTail3 and RawMeat4), unlike the earlier empty-stock snapshots. A normal one-tail withdrawal passed through just check vm task-check withdraw (.checks/20261031T203613Z-qzG5sb.log). Beginning a new guarded production goal using that carried ingredient and existing normal stow-ready staging into excluded chest1:70040; this should earn complete cook/readiness/return evidence without pretending food acquisition or cold-fire fuel was exercised in this run. The real raw-drop pickup and live mushroom foraging remain independently earned in the earlier trials.

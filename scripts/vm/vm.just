@@ -405,8 +405,10 @@ recovery-return ACTION='arm' WORLD='': need-target
     set -euo pipefail
     [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
     encoded=$(printf '%s' "$2" | base64 -w0)
+    worldarg=()
+    [ -z "$encoded" ] || worldarg=(-WorldBase64 "$encoded")
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery-return.ps1" "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/"
-    {{ssh}} "{{ps}} -File {{dir}}/recovery-return.ps1 -Action '$1' -WorldBase64 '$encoded'"
+    {{ssh}} "{{ps}} -File {{dir}}/recovery-return.ps1 -Action '$1' ${worldarg[*]}"
 
 # One-shot native sheltered healing guard; observes threats every physics step.
 [positional-arguments]

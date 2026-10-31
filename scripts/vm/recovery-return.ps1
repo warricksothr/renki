@@ -18,13 +18,13 @@ if ($Action -eq 'arm') {
     $memory = Get-Content (Join-Path $dataDir 'memory.json') -Raw | ConvertFrom-Json
     $saved = @($memory.homes.PSObject.Properties | Where-Object { $_.Name -ceq $world })
     if ($saved.Count -ne 1) { throw 'No unique saved home for that world' }
-    $home = $saved[0].Value
-    if ($home.pos.Count -ne 3) { throw 'No pinned controller home' }
-    foreach ($coordinate in $home.pos) {
+    $savedHome = $saved[0].Value
+    if ($savedHome.pos.Count -ne 3) { throw 'No pinned controller home' }
+    foreach ($coordinate in $savedHome.pos) {
         $number = [double]$coordinate
         if ([double]::IsNaN($number) -or [double]::IsInfinity($number)) { throw 'Invalid home coordinate' }
     }
-    $value = @{ World = $world; Pos = @($home.pos); Expires = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + 300 } | ConvertTo-Json -Compress
+    $value = @{ World = $world; Pos = @($savedHome.pos); Expires = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + 300 } | ConvertTo-Json -Compress
 }
 $pattern = '(?m)^RecoveryReturn\s*=.*$'
 if ([regex]::IsMatch($raw, $pattern)) {
