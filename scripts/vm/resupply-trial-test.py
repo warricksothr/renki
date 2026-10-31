@@ -67,12 +67,14 @@ class Resupply(unittest.TestCase):
         self.assertEqual(choices[0][2:], ('chest', 'Blueberries', 4))
 
     def test_resupply_requires_task_matched_receipts_and_fresh_inventory(self):
-        for mode in ('valid', 'return_completed_after_poll', 'new_order_after_return', 'stale_completion', 'wrong_receipt', 'stale_inventory', 'damaged', 'new_connection'):
+        for mode in ('valid', 'carried_food', 'return_completed_after_poll', 'new_order_after_return', 'stale_completion', 'wrong_receipt', 'stale_inventory', 'damaged', 'new_connection'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as folder:
                 status, mapped, requests = self.status(), self.mapped(), []
                 if mode in ('return_completed_after_poll', 'new_order_after_return', 'stale_completion'):
                     status['pos'] = [8, 0, 0]
                 inventory = dict(seq=1, size=[8, 4], items=[])
+                if mode == 'carried_food':
+                    inventory['items'] = [dict(prefab='CookedDeerMeat', stack=4)]
                 active_task, history = None, []
 
                 def observe():
@@ -120,11 +122,11 @@ class Resupply(unittest.TestCase):
                     return next(r['frame'] for r in rows if r['frame'].get('type') == 'task' and r['frame']['re'] == task_id)
 
                 summary = {}
-                if mode in ('valid', 'return_completed_after_poll'):
+                if mode in ('valid', 'carried_food', 'return_completed_after_poll'):
                     resupply.run(summary, call, observe, terminal, Path(folder))
                     self.assertEqual(summary['outcome'], 'succeeded')
-                    self.assertEqual(summary['supplied'], dict(Honey=4, Raspberry=4))
-                    self.assertEqual(len(requests), 2)
+                    self.assertEqual(summary['supplied'], dict(Honey=4) if mode == 'carried_food' else dict(Honey=4, Raspberry=4))
+                    self.assertEqual(len(requests), 1 if mode == 'carried_food' else 2)
                 elif mode == 'stale_completion':
                     with mock.patch.object(resupply.time, 'monotonic', side_effect=itertools.count()), mock.patch.object(resupply.time, 'sleep'):
                         with self.assertRaisesRegex(RuntimeError, 'completion state remained stale'):

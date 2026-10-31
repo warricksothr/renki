@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T06:48:11Z
+updated_at: 2026-10-31T06:55:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -217,3 +217,8 @@ That stand had three full beeches, but Necks within32m of all candidates correct
 The inland two-tree trial felled Beech1 1:20623 and split its trunk and one half (t-2/t-3/t-4, task-matched local-hit breaks; t-4 collected 10 Wood) without damage. Evidence: .checks/gather-trial-20261031T063955031626Z/summary.json and .checks/audit-window-8bJS9J.jsonl. It stopped before a second tree or delivery; this is not a complete-loop pass.
 
 Half 1464700962:189 rolled from [-90.07,29.57,-49.45] to [-95.3,31.2,-44.47], beyond both site and original-tree circles. A collateral full trunk 1464700962:226 also appeared. The controller now binds new log identities after a completed cut (32m from original tree or24m from that cut), keeps unfinished tracked IDs across rolling/missing observations, and allows dry approaches out to60m from the original tree. Native health, character, structure, footing and break checks remain authoritative. Missing/unsafe descendants cannot silently authorize a fresh tree. A nine-cut per-chain bound covers collateral trunks; the total per-tree deadline is unchanged. Regression checks cover rolling beyond the site, dry approach, and missing tracked work. Focused controller and benchmark tests passed; candidate checksum installed. Returning home for food before retrying the two-tree benchmark. Full CI is running.
+
+**agent:codex/renki-milestones** at 2026-10-31T06:55:34Z
+
+### Food recovery and bounded search readiness
+The automatic return/resupply check passed with zero damage: .checks/resupply-trial-20261031T064707212716Z/summary.json. Tas reached the actual indoor floor at[-35.08,36.09,7.45], withdrew exactly4 Mushroom and ate one, and retained CookedDeerMeat. The return recovered from under-stair/doorway stalls through local routing and strafe, so this does not prove smooth doorway navigation. It took11 food requests/10 chests because the supervisor sought a second transferred food despite already carrying four meat. The supervisor now ends further chest searches once at least one transfer is verified and current scoped inventory contains at least three each of two ordinary food types. Existing reserves never count as a transfer receipt. Regression and full CI pass (.checks/20261031T065304Z-DHjmIl.log). A fresh two-tree trial is running from home with the rolling-log candidate.
