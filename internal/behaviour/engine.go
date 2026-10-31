@@ -154,6 +154,19 @@ func (e *Engine) List() []Status {
 	_ = json.Unmarshal(raw, &cloned)
 	return cloned
 }
+
+// PreparingFood reserves newly cooked output until its native and host
+// inventory receipts are checked. Normal meal upkeep resumes after the batch.
+func (e *Engine) PreparingFood() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	i := e.instances[e.active]
+	if i == nil || i.definition.Template != "marker_food" {
+		return false
+	}
+	var p MarkerFoodParams
+	return Decode(i.definition.Params, &p) == nil && p.Marker.Kind == "cooking"
+}
 func (e *Engine) Put(ctx context.Context, name string, raw json.RawMessage, by string) error {
 	var d Definition
 	if err := Decode(raw, &d); err != nil {

@@ -175,3 +175,22 @@ func TestMarkerFoodCookingRequiresHeatedCookerAndMatchedDelivery(t *testing.T) {
 		})
 	}
 }
+
+func TestPreparingFoodReservesKeeperForActiveKitchenOnly(t *testing.T) {
+	e := &Engine{instances: map[string]*instance{}}
+	if e.PreparingFood() {
+		t.Fatal("idle keeper reserved")
+	}
+	for _, kind := range []string{"cooking", "berries", "storage"} {
+		d := MarkerFoodDefinition(Marker{World: "one", Name: "work", Kind: kind})
+		e.instances["work"] = &instance{definition: d, pending: true}
+		if e.PreparingFood() {
+			t.Fatal("queued work reserved keeper")
+		}
+		e.active = "work"
+		if e.PreparingFood() != (kind == "cooking") {
+			t.Fatal("wrong active food reservation", kind)
+		}
+		e.active = ""
+	}
+}

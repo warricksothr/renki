@@ -1072,14 +1072,14 @@ namespace Renki.Plugin
                     ? Outcome.Succeeded($"took {took} {prefab}")
                     : Outcome.Failed(Wire.ReasonTargetLost, $"the {prefab} is gone");
             }
-            if ((drop.transform.position - goal).sqrMagnitude > 1)
+            if (PickupTracking.Retarget(Convert.ToV3(goal), Convert.ToV3(drop.transform.position)))
             {
                 // Auto-pickup pulls drops toward the player, and they roll.
                 goal = drop.transform.position;
                 walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             }
             var pos = p.transform.position;
-            if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), Close))
+            if (PickupTracking.Reached(Convert.ToV3(pos), Convert.ToV3(drop.transform.position), Close))
             {
                 Driver.Stand();
                 // Standing still on purpose is not being stuck.
