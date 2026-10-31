@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T07:01:21Z
+updated_at: 2026-10-31T07:09:29Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -465,3 +465,10 @@ Build 2b889ba trial .checks/combat-trial-20261031T051425054736Z/summary.json sel
 Owner reported a rebuilt door layout. Current near/forward/far collider refresh and live validation discover changed solids and new doors; destroyed/moved cache entries are checked against current objects. Successful route hints are bounded session-only guidance, not durable base topology or failed-traversal memory. The failed home section repeatedly accepted geometry-clear routes, made no progress, and replanned without remembering the failed approach; no door-opening trace identifies the door itself as the root cause.
 
 Found and corrected an independent door discrepancy: planning previously exempted every accessible Door-parent collider regardless of open/refused state. Planning may now speculate through only a valid closed, permitted/key-accessible door outside its refusal cooldown. Dry execution uses actual colliders, including frames and open/swinging leaves, and holds for a bounded asynchronous opening. Refusal feeds back into planning; door requests on another storey are excluded. World/session reset clears door transient records. Stuck/replay rejection traces now include the attempted next waypoint for the remaining body-versus-probe investigation. Core closed-door/physical-execution/refused/keyless/upper-floor regressions and installed-game plugin build pass; full gate, review and live result follow. Do not claim the rebuilt layout or house loop is validated yet.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:09:29Z
+
+### Explicit boar obstruction and premature pursuit refusal
+Native dry move_to t-1 succeeded from the home floor to[-58.25,34.99,-64.48] with full72.4/72.4 HP (.checks/task-sqvo8ta2.json). Exact Boar1960390678:1454 was still targeting Tas. Kiting t-2 ended honestly as enemy stopped following and completed its25m dry escape; direct t-4 then refused on pursuit leash before hitting (.checks/task-vwo1fuls.json, .checks/task-mlqgck3m.json; .checks/audit-window-4vWolf.jsonl). Neither is a kill. Tas remained at full current health.
+
+The direct encounter counted max(bot displacement, enemy displacement) against the bot's12m pursuit leash. At refusal Tas had advanced only a few metres while the Boar moved north beyond12m from the anchor. The host now supplies only actual bot displacement, preserving its12m travel bound, and the policy independently refuses a target beyond30m. Existing45s encounter/12s no-progress, health/stamina and scenery guards remain. Mode traces now include bot travel, target distance/health and current health/stamina so this can be diagnosed from bounded evidence. Focused MeleeTests pass, including independent bot-leash and target-range bounds. No acceptance criterion is advanced on this change alone.

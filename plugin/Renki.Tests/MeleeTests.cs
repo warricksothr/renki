@@ -68,13 +68,17 @@ namespace Renki.Tests
             Assert.False(policy.Engaged);
             f.TargetDistance = f.DistanceFromStart = 20;
             Assert.Equal(MeleeAction.Closing, policy.Decide(f, 4));
-            // The host reanchors at the bot's position when within 12 m.
-            f.TargetDistance = f.DistanceFromStart = 12;
-            Assert.Equal(MeleeAction.Approach, policy.Decide(f, 8));
+            // Passing within 12 m is still approach, not a fight yet.
+            f.TargetDistance = 12; f.DistanceFromStart = 18;
+            Assert.Equal(MeleeAction.Closing, policy.Decide(f, 8));
+            Assert.False(policy.Engaged);
+            // The host reanchors immediately before supplying this frame.
+            f.TargetDistance = 3; f.DistanceFromStart = 0;
+            Assert.Equal(MeleeAction.Approach, policy.Decide(f, 9));
             Assert.True(policy.Engaged);
             f.InRange = true; f.TargetDistance = 1; f.DistanceFromStart = 11;
             Assert.Equal(MeleeAction.Strike, policy.Decide(f, 13));
-            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 20));
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 21));
             Assert.Equal("no observed progress against target", policy.Reason);
         }
 
@@ -171,6 +175,31 @@ namespace Renki.Tests
             Assert.True(MeleeEncounter.SearchEligible("Boar", 1, false, false, true, true));
             Assert.False(MeleeEncounter.SearchEligible("Boar", 1, false, true, true, true));
             Assert.False(MeleeEncounter.SearchEligible("Troll", 1, false, false, true, true));
+        }
+
+        [Fact]
+        public void MovingEnemyDoesNotSpendTheBotsPursuitLeash()
+        {
+            var policy = new MeleeEncounter(0, 20); var f = Healthy();
+            f.InRange = false; f.TargetDistance = 14; f.DistanceFromStart = 3;
+            Assert.Equal(MeleeAction.Approach, policy.Decide(f, 1));
+            f.TargetDistance = 31;
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 2));
+            f.TargetDistance = 3; f.DistanceFromStart = 13;
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 3));
+        }
+
+        [Fact]
+        public void ClosingCanRunOnlyWithAttackDefenseEscapeAndExtraReserve()
+        {
+            var f = Healthy(); f.TargetDistance = 10; f.Stamina = 61;
+            Assert.True(MeleeEncounter.RunApproach(f, 1.4));
+            f.Stamina = 60;
+            Assert.False(MeleeEncounter.RunApproach(f, 1.4));
+            f.Stamina = 61; f.Incoming = true;
+            Assert.False(MeleeEncounter.RunApproach(f, 1.4));
+            f.Incoming = false; f.TargetDistance = 3;
+            Assert.False(MeleeEncounter.RunApproach(f, 1.4));
         }
 
         [Theory]

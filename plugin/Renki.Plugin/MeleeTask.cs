@@ -27,6 +27,7 @@ namespace Renki.Plugin
         float nextAim, nextDodge, escapingAt;
         bool walking, cancelled, enemyWasAttacking;
         string mode = "approach", reason;
+        MeleeFrame lastFrame;
 
         internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
 
@@ -111,7 +112,7 @@ namespace Renki.Plugin
             var pos = p.transform.position;
             var targetPos = enemy.transform.position;
             var targetDistance = Vector3.Distance(pos, targetPos);
-            if (!encounter.Engaged && targetDistance <= MeleeEncounter.Leash) start = pos;
+            if (!encounter.Engaged && targetDistance <= MeleeEncounter.EngagementRange) start = pos;
             var eye = pos + Vector3.up * weapon.m_shared.m_attack.m_attackHeight;
             var collider = enemy.GetCollider();
             if (collider == null || !collider.enabled) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target collider is unavailable"));
@@ -140,9 +141,10 @@ namespace Renki.Plugin
                 CanBlock = p.GetCurrentBlocker()?.GetBlockPower(p.GetSkillFactor(Skills.SkillType.Blocking)) > 0,
                 InRange = Vector3.Distance(eye, contact) <= reach,
                 TargetHp = enemy.GetHealth(),
-                DistanceFromStart = Math.Max(Vector3.Distance(start, pos), Vector3.Distance(start, targetPos)),
+                DistanceFromStart = Vector3.Distance(start, pos),
                 TargetDistance = targetDistance,
             };
+            lastFrame = frame;
             var action = encounter.Decide(frame, Time.unscaledTime);
             enemyWasAttacking = attackWindow;
             SetMode(!encounter.Engaged && action != MeleeAction.Retreat ? "closing" : action.ToString().ToLowerInvariant(), encounter.Reason);
@@ -164,7 +166,7 @@ namespace Renki.Plugin
                     walker.SetGoal(pos, goal, .2, dryGround: true); walker.ResetStuck(pos); walkGoal = targetPos; walking = true; nextAim = Time.unscaledTime + .5f;
                 }
                 if (walker.Refused() is Outcome refusal) return Retreat(p, refusal.Detail ?? refusal.Reason);
-                if (!walker.Steer(pos, false, climbObstacles: false)) return Retreat(p, "cannot approach target");
+                if (!walker.Steer(pos, MeleeEncounter.RunApproach(frame, reach), climbObstacles: false)) return Retreat(p, "cannot approach target");
             }
             else
             {
@@ -224,7 +226,16 @@ namespace Renki.Plugin
         {
             if (mode == next && reason == why) return;
             mode = next; reason = why;
-            Tracer.Emit("combat", next, new Dictionary<string, object> { ["entity"] = entity, ["reason"] = why });
+            Tracer.Emit("combat", next, new Dictionary<string, object>
+            {
+                ["entity"] = entity,
+                ["reason"] = why,
+                ["travelFromStart"] = lastFrame?.DistanceFromStart,
+                ["targetDistance"] = lastFrame?.TargetDistance,
+                ["targetHealth"] = lastFrame?.TargetHp,
+                ["health"] = lastFrame?.Hp,
+                ["stamina"] = lastFrame?.Stamina,
+            });
         }
 
         Outcome Finish(Outcome result) { result.Entity = entity; Cancel(); return result; }

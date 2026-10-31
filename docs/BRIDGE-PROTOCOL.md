@@ -652,9 +652,9 @@ Notes:
   ranged is not yet supported. AllowCombat and AllowMovement must both be on.
   It uses carried ordinary melee weapons, moving-target aim, stamina-aware
   block/dodge and supported movement. Players/tamed creatures are refused.
-  It starts at 80% health and accepts a target within 30 m. Outside 12 m,
-  a closing phase walks within the initial 30 m area for at most 12 s,
-  requiring 0.5 m distance progress every 4 s. On first reaching 12 m,
+  It starts at 80% health and accepts a target within 30 m. Outside 3 m,
+  a closing phase moves within the initial 30 m area for at most 12 s,
+  requiring 0.5 m distance progress every 4 s. On first reaching 3 m,
   the bot's position anchors the encounter's 12 m pursuit leash, 45 s work budget and
   12 s without observed target-health progress. Unsafe conditions trigger an
   ordinary bounded flee inside the same task; the encounter still fails and

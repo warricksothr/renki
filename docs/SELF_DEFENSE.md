@@ -39,11 +39,14 @@ the previous segment's continuation. This accepts mild terrain mesh joins
 while rejecting abrupt ledges and ridges. Dry footing and body clearance
 are still required.
 
-An explicit target outside 12 m first enters `closing`: supported walking
+An explicit target outside 3 m first enters `closing`: supported movement
 within 30 m of the starting position, at most 12 seconds, with at least
 0.5 m of distance progress every 4 seconds. Health, stamina and nearby-threat
-checks apply throughout. When the target first comes within 12 m, the bot's
+checks apply throughout. When the target first comes within 3 m, the bot's
 position anchors the fighting leash and starts the encounter budgets.
+A distant approach may sprint while stamina covers attack, the larger defense
+cost, the escape reserve and an additional20 points. The bot's displacement
+uses the12m pursuit leash; a target beyond30m is independently refused.
 An encounter has a 12 m leash, 45 s work limit and 12 s no-progress limit.
 Low health/stamina, lost equipment, another nearby creature or unsafe scenery
 selects a bounded ordinary flee. That escape stays part of the attack task;
