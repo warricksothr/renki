@@ -6,6 +6,33 @@ namespace Renki.Tests
 {
     public sealed class GroundCorridorTests
     {
+        [Fact]
+        public void GridCornersAndZeroLengthPointsCannotHideASharpJoin()
+        {
+            var probe = Terrain((x, _) => x <= .5 ? -.4 * x : .4 * x - .4);
+            var middle = new V3(.5, -.2, 0);
+            var end = new V3(1, 0, 0);
+            Assert.Null(GroundCorridor.Inspect(V3.Zero, middle, probe));
+            Assert.Null(GroundCorridor.Inspect(middle, end, probe));
+            var cursor = new GroundCorridor.Cursor();
+            Assert.Null(cursor.Inspect(V3.Zero, middle, probe));
+            Assert.Null(cursor.Inspect(middle, middle, probe));
+            var branch = cursor.Fork();
+            Assert.Equal("sharp_change", branch.Inspect(middle, end, probe).Reason);
+            Assert.Equal(middle, cursor.At.Value);
+            Assert.InRange(cursor.LastAngle.Value, -22, -21);
+        }
+
+        [Fact]
+        public void ChangedSupportCannotContinueAnOldGroundHistory()
+        {
+            var height = 0.0;
+            var cursor = new GroundCorridor.Cursor();
+            var probe = Terrain((_, __) => height);
+            Assert.Null(cursor.Inspect(V3.Zero, new V3(.5, 0, 0), probe));
+            height = .1;
+            Assert.Equal("ground_changed", cursor.Inspect(new V3(.5, 0, 0), new V3(1, 0, 0), probe).Reason);
+        }
         // Model the live probe's single-step reach. Long corridors must follow
         // changing support heights instead of probing from the original level.
         static Func<V3, V3, V3?> Terrain(Func<double, double, double> height) => (from, at) =>

@@ -30,6 +30,11 @@ namespace Renki.Plugin
         Kiting policy;
         Scouting scouting;
         ScoutAction scoutAction;
+        ScoutDetour detour;
+        V3 detourRequest;
+        bool detourReturning;
+        int detourAttempts;
+        double detourMs, detourWorstMs;
         GroundCorridor.Failure groundFailure;
         string groundRegion;
         V3? escapeEnd;
@@ -188,6 +193,7 @@ namespace Renki.Plugin
                 }
                 if (enemy == null)
                     return Scout(p);
+                CancelDetour();
                 walking = false;
                 entity = enemy.m_nview.GetZDO().m_uid.ToString();
                 death = new CharacterDeathObservation(enemy, entity);
@@ -346,12 +352,13 @@ namespace Renki.Plugin
         Outcome Scout(Player p)
         {
             var pos = p.transform.position;
+            AdvanceDetour(p);
             if (Time.unscaledTime >= nextScout)
             {
                 nextScout = Time.unscaledTime + .5f;
                 var recoveries = scouting.Recoveries;
                 scoutAction = scouting.Decide(Convert.ToV3(pos), p.GetStamina(), ClearTravelCharacters(p, pos, false),
-                    Time.unscaledTime, goal => ScoutRoute(p, goal));
+                    Time.unscaledTime, goal => ScoutRoute(p, goal), () => detour?.Status == RouteStatus.Searching);
                 if (scouting.Recoveries != recoveries) TraceScoutRecovery();
                 if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
                 if (scoutAction == ScoutAction.Done)
@@ -360,7 +367,7 @@ namespace Renki.Plugin
                         : Outcome.Failed(Wire.ReasonInvalidTarget, args.SearchSector.HasValue
                             ? "no eligible single Greyling after bounded sector scouting and return"
                             : "no eligible single Greyling after bounded local scouting and return"));
-                if (scoutAction == ScoutAction.Wait) { walking = false; Mode("search"); return null; }
+                if (scoutAction == ScoutAction.Wait) { walking = false; Mode(detour?.Status == RouteStatus.Searching ? "scout_plan" : "search"); return null; }
                 var goal = Convert.ToVector3(scouting.Goal);
                 if (!walking || Vector3.Distance(walkGoal, goal) > .2f)
                 {
@@ -387,6 +394,17 @@ namespace Renki.Plugin
 
         Outcome RecoverScout(Player p, string why)
         {
+            Driver.Stand();
+            if (detour == null && detourAttempts < ScoutDetour.AttemptLimit)
+            {
+                BeginDetour(p, scouting.Goal);
+                if (detour?.Status == RouteStatus.Searching)
+                {
+                    scoutAction = scouting.HoldForDetour(Time.unscaledTime);
+                    Mode("scout_plan", why);
+                    return null;
+                }
+            }
             scoutAction = scouting.RejectRoute(why);
             walking = false;
             if (scoutAction == ScoutAction.Abort) return Abort(p, scouting.Reason);
@@ -408,11 +426,34 @@ namespace Renki.Plugin
         {
             scoutPath.Clear();
             groundFailure = null;
-            if (!Ground(Convert.ToVector3(desired), out var goal)) return RejectScout(desired, "wet_or_unloaded_terrain");
+            if (detour != null)
+            {
+                if (scouting.Returning == detourReturning && (desired - detourRequest).Length <= .05)
+                {
+                    if (detour.Status != RouteStatus.Found) return null;
+                    var points = detour.Path;
+                    var end = Convert.ToVector3(points[points.Count - 1]);
+                    var result = ValidateScoutPath(p, desired, end, points);
+                    if (!result.HasValue) TraceDetour("invalidated");
+                    detour = null;
+                    return result;
+                }
+                CancelDetour();
+            }
+            if (!Ground(Convert.ToVector3(desired), out var goal))
+            {
+                RejectScout(desired, "wet_or_unloaded_terrain");
+                return BeginDetour(p, desired);
+            }
             // Recheck exactly the unconsumed route we are following. A fresh
             // navmesh query can choose a different bend or another floor.
             if (walking && Vector3.Distance(walkGoal, goal) <= .01f)
-                return ValidateScoutPath(p, desired, goal, walker.RemainingCheckedRoute(p.transform.position));
+            {
+                var checkedRoute = ValidateScoutPath(p, desired, goal, walker.RemainingCheckedRoute(p.transform.position));
+                if (checkedRoute.HasValue) return checkedRoute;
+                walking = false;
+                return BeginDetour(p, desired);
+            }
             approachPath.Clear();
             var complete = Pathfinding.instance != null && Pathfinding.instance.GetPath(p.transform.position, goal, approachPath,
                 Pathfinding.AgentType.Humanoid, true, true, false) && approachPath.Count > 0 && approachPath.Count <= 32 &&
@@ -433,9 +474,80 @@ namespace Renki.Plugin
                 if (direct.HasValue)
                     Tracer.Emit("combat", "scout_direct_return", new Dictionary<string, object>
                     { ["from"] = Convert.ToArray(p.transform.position), ["goal"] = desired.ToArray() });
-                return direct;
+                if (direct.HasValue) return direct;
             }
+            return BeginDetour(p, desired);
+        }
+
+        V3? BeginDetour(Player p, V3 desired)
+        {
+            if (detourAttempts >= ScoutDetour.AttemptLimit) return RejectScout(desired, "scout_detour_budget");
+            if (!Ground(p.transform.position, out var start)) return RejectScout(desired, "unsupported_detour_start");
+            var target = scouting.Returning ? desired : scouting.Destination;
+            // Far targets are horizontal hints: LocalRoute stops at a checked
+            // progress leg before their height matters. Nearby destinations
+            // and observed return breadcrumbs require current dry support.
+            if (V3.FlatDistance(Convert.ToV3(start), target) <= LocalRoute.FrontierDistance * 1.5)
+            {
+                if (!Ground(Convert.ToVector3(target), out var supported)) return RejectScout(desired, "unsupported_detour_target");
+                target = Convert.ToV3(supported);
+            }
+            detourAttempts++; detourRequest = desired; detourReturning = scouting.Returning;
+            detourMs = detourWorstMs = 0;
+            detour = new ScoutDetour(Convert.ToV3(start), target, DetourProbe, Time.unscaledTime);
+            walking = false;
+            TraceDetour("started");
             return null;
+        }
+
+        V3? DetourProbe(V3 from, V3 desired)
+        {
+            var supported = DryProbe(from, desired);
+            if (!supported.HasValue || (supported.Value - Convert.ToV3(origin)).Length > searchReach + .25) return null;
+            foreach (var c in Character.GetAllCharacters())
+            {
+                if (c == null || c == Player.m_localPlayer || c.IsDead()) continue;
+                if (!Scouting.TravelSeparated(Scouting.RouteDistance(from, supported.Value, Convert.ToV3(c.transform.position)),
+                    c is Player, BaseAI.IsEnemy(Player.m_localPlayer, c), destination: false)) return null;
+            }
+            return supported;
+        }
+
+        void AdvanceDetour(Player p)
+        {
+            if (detour?.Status != RouteStatus.Searching) return;
+            if ((Convert.ToV3(p.transform.position) - detour.Origin).Length > .5 || !ClearTravelCharacters(p, p.transform.position, false))
+            {
+                detour.Cancel(); TraceDetour("invalidated"); return;
+            }
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            probe.BeginSlice();
+            for (var i = 0; i < ScoutDetour.SliceLimit && watch.Elapsed.TotalMilliseconds < 2 && detour.Status == RouteStatus.Searching; i++)
+                detour.Advance(Time.unscaledTime);
+            watch.Stop();
+            detourMs += watch.Elapsed.TotalMilliseconds;
+            detourWorstMs = Math.Max(detourWorstMs, watch.Elapsed.TotalMilliseconds);
+            if (detour.Status != RouteStatus.Searching) TraceDetour(detour.Status == RouteStatus.Found ? "found" : "failed");
+        }
+
+        void TraceDetour(string state) => Tracer.Emit("combat", "scout_detour_" + state, new Dictionary<string, object>
+        {
+            ["request"] = detourRequest.ToArray(),
+            ["origin"] = detour.Origin.ToArray(),
+            ["target"] = detour.Target.ToArray(),
+            ["returning"] = detourReturning,
+            ["attempt"] = detourAttempts,
+            ["expanded"] = detour.Expanded,
+            ["probes"] = detour.Probes,
+            ["reason"] = detour.Reason,
+            ["ms"] = Math.Round(detourMs, 2),
+            ["worstFrameMs"] = Math.Round(detourWorstMs, 2),
+        });
+
+        void CancelDetour()
+        {
+            if (detour == null) return;
+            detour.Cancel(); TraceDetour("cancelled"); detour = null;
         }
 
         V3? ValidateScoutPath(Player p, V3 desired, Vector3 goal, IReadOnlyList<V3> points)
@@ -445,6 +557,7 @@ namespace Renki.Plugin
             if (!Ground(p.transform.position, out var supportedStart)) return RejectScout(desired, "unsupported_start");
             if (!ClearTravelCharacters(p, goal, true)) return RejectScout(desired, "character_near_destination");
             var previous = Convert.ToV3(supportedStart);
+            var ground = new GroundCorridor.Cursor();
             double length = 0;
             for (var i = 0; i <= points.Count; i++)
             {
@@ -469,7 +582,7 @@ namespace Renki.Plugin
                     var endpoint = previous + (next - previous) * ((double)part / parts);
                     if (!Ground(Convert.ToVector3(endpoint), out var supportedEnd)) return RejectScout(desired, "unsupported_navmesh_corner");
                     endpoint = Convert.ToV3(supportedEnd);
-                    groundFailure = (endpoint - segment).Length < .05 ? null : GroundCorridor.Inspect(segment, endpoint, DryProbe);
+                    groundFailure = ground.Inspect(segment, endpoint, DryProbe);
                     if (groundFailure != null) return RejectScout(desired, groundFailure.Reason);
                     segment = endpoint;
                 }
@@ -660,6 +773,7 @@ namespace Renki.Plugin
         Outcome Finish(Outcome result) { result.Entity = string.IsNullOrEmpty(entity) ? null : entity; Cancel(); return result; }
         public void Cancel()
         {
+            CancelDetour();
             cancelled = true; death?.Dispose(); melee?.Cancel(); escape?.Cancel(); preparation?.Cancel();
             if (ReferenceEquals(Active, this)) Active = null;
             Driver.ClearCombat();

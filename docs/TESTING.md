@@ -853,6 +853,28 @@ Use `just vm combat-evidence AUDIT TASK_ID` to print the same bounded projection
 from a retained audit without starting the game. Relative audit paths resolve
 from the repository root.
 
+If the scouting navmesh route and checked direct return fail, native scouting
+can now search for a checked local detour. Each task permits at most four plans,
+each bounded to 1,024 expanded nodes, four seconds and 24 m of path cost. The
+physics loop schedules at most eight expansions per step with a two-millisecond
+target; one expansion can exceed that target, so inspect `worstFrameMs` rather
+than treating it as a hard CPU deadline. Planning holds movement and consumes
+the existing scouting time/travel allowances. Changes of phase, movement away
+from the plan origin, target acquisition and task cancellation invalidate plans.
+Every edge retains dry support, body/wall and character checks; a continuous
+ground cursor carries grade history through corners. The exact resulting path
+is validated again before use and while following. A failed return stays an
+honest failure; a planned leg never establishes combat or exhaustive coverage.
+
+Use `just check plugin test-core ScoutDetourTests`, `GroundCorridorTests` and
+`ScoutingTests` for detour bounds, creature buffers, wrong-floor rejection,
+corner history and pending-plan transitions. The steep-connector regression
+uses captured segment coordinates with an explicitly modeled neighborhood;
+it does not replay the live world's heightmap. Trial scouting summaries retain
+detour-state counts, maximum expanded nodes, worst planning step and the last
+four terminal diagnostics, including both requested connector and actual target.
+The full audit remains on disk for further investigation.
+
 The corrected build (33cd427) also returned `unreachable` from the same hillside
 on 2026-10-30 UTC. Its 34 candidate traces reported 16 grade refusals, 8 sharp
 changes and 10 support/clearance failures. No enemy was acquired; no damage was

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/checked-scout-detours
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 568e4f4c65148fa5b7cb09359be36bc5a86e0576
+  session: null
+  claimed_at: 2026-10-31T02:42:14Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T02:02:51Z
+updated_at: 2026-10-31T02:52:57Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -42,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-Continue M3 by extending later persistent search attempts to farther ground inside the existing goal sphere. Add discovery-only searchOffset (0–60 m, requires a sector, radius plus offset at most 120 m). Native scouting projects each short leg onto currently supported dry terrain; offset destinations are horizontal planning hints, never an assumed terrain Y. Keep local defaults unchanged. The first two host-selected bearings stay local; later bearings progressively use offsets 40/60 m, reduced with radius to fit the same goal envelope and 52 m combat/escape reserve. Persist offset with each intent/attempt and keep scripts unable to modify it. Native outer travel may try a small finite fan of progress-making alternatives after a blocked leg, spread across decision ticks; return travel remains on rechecked observed breadcrumbs. Include a conservative return-time allowance within the existing 90/150 s work/return and 300 m travel limits. Preserve target eligibility, player/creature clearances, damage/food/permission gates, exact death proof and uncertain-intent handling. Add protocol parity, outer-travel/bounded detour/return, host envelope and checkpoint tests. Run focused recipes, full just check ci, commit and just check review, deploy the reviewed change, then one changed-build persistent-goal trial. Record actual farthest observed travel and encounter evidence; do not label dispatch, partial travel or empty searches combat success. Finish with normal logout/combat-off/panel and standby checks. Keep unobserved M3 kill/block/dodge/owner-defense acceptance open.
+Reproduce the recorded over-grade return connector offline (captured segment coordinates, explicitly modelled neighboring terrain rather than a claimed full-world replay), then add native incremental checked detours. Reuse LocalRoute with optional continuous GroundCorridor state per search node, keeping incoming grade in node identity so sharp joins cannot be hidden by grid corners. Carry the same ground history through full-path validation. Bound scouting detours to24m path cost,1024nodes,4s, at most8expansions and about2ms per physics step; pending planning holds motion and consumes the existing scout work/return/deadline budgets instead of being counted as failure. Use currently measured support, unchanged30degree grade/bend/roughness, dry/body/wall checks and existing creature/player clearances on every edge. Return detours target observed breadcrumbs; outbound detours may find a checked progress leg toward the existing horizontal destination without guessing distant terrain height. Revalidate the exact resulting route before walking and while following; movement, target acquisition, new orders and scope/readiness changes invalidate pending plans. Add offline return, creature-clearance, corner-history, pending/timeout/cancellation and bounded-work regressions. Run focused just checks, full just check ci, commit and just check review; checksum-deploy the reviewed change and run one persistent-goal live check. Keep travel/empty outcomes separate from combat proof and M3 acceptance, retain compact planning diagnostics, and verify normal offline/combat-off/panel/OBS cleanup.
 
 ## Notes
 
@@ -333,3 +340,9 @@ Changed-build persistent trial .checks/combat-trial-20261031T015552588371Z/summa
 Concrete blockers: t-4 returned after grade rejection; t-5 exhausted alternatives near a character (8 character_near_destination rejections). t-6 encountered wet terrain, returned partway, then refused grade30.6 degrees on the connector from[-27.61,30.93,-19] toward supported[-27.49,31.18,-18.6]. With no acquired enemy, KiteTask.Abort sets retreat mode and stops; it did NOT execute an enemy-escape routine or return to the search origin. Keep that distinction honest. Do not rerun unchanged attempts or relax grade/character limits. Next development should find fully checked detours around rejected terrain/character corridors and unsafe return connectors, likely using the existing incremental LocalRoute/PlanningProbe machinery, with bounded per-frame work and full route revalidation. Preserve bends/roughness checks across planned corners; a fine grid must not bypass GroundCorridor by resetting its history on each tiny edge. Need a pending-plan state rather than treating an in-progress search as a route failure. No controller movement puppeting or player staging/clearing is required.
 
 Added compact maxObservedRangeM plus pending/recorded offsets to just vm trial-status, with matching-world/running-goal tests, to make this distinction visible without ad hoc perception dumps. Focused supervisor/progress checks passed (.checks/20261031T020209Z-DK2Kss.log); final full gate and review follow before landing the evidence/tool update. Independent final VM status .checks/20261031T020106Z-kxYV3p.log: Valheim stopped, controller/panel running, Tas disconnected. just vm combat reports AllowCombat=false. Streaming check .checks/20261031T020108Z-Fx1bIe.log confirms capture/watchdog/OBS/relay running, private output active and Renki Offline scene. This unfinished ticket returns to ready/released with acceptance criteria unchanged; kill/death callback, blocking, dodging and broader M3 owner defense remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T02:52:57Z
+
+Implemented native bounded scouting detours after navmesh/direct-connector failure. Optional continuous ground history in LocalRoute and exact-path validation preserves the existing grade/bend/roughness proof across tiny grid corners. Plans retain incoming grade, current support, dry/body/wall/character guards, existing scout deadlines and travel bounds. Work is limited to four plans per task, 1,024 expanded nodes/four seconds/24m each, at most eight expansions per physics step with a measured two-millisecond scheduling target. A single expansion can exceed that CPU target. Pending plans hold movement; return phase replaces outward requests and target acquisition/cancellation clears work. Completed paths are fully revalidated before walking and during following.
+
+Focused ScoutDetourTests, GroundCorridorTests, ScoutingTests and vm test-combat-trial pass. The over-grade connector uses the captured segment and an explicitly modeled planar neighborhood, not a claimed replay of the live heightmap. Creature-buffer detours and their return paths, bounded nodes/slices/deadlines/cancellation, wrong-floor failure, changed obstacles, cross-corner ground history and pending return transitions are covered. Compact audit diagnostics include target vs connector, outcome counts, maximum expanded nodes and worst planning step; full logs remain on disk. Full just check ci is running before commit/review. Live progress and combat proof remain outstanding; no acceptance criterion checked. Next: reviewed checksum deployment, one changed-build persistent goal trial and independent offline/combat-off/standby cleanup verification.
