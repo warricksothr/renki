@@ -82,6 +82,10 @@ class CombatTrialTests(unittest.TestCase):
                                              angle=34, previousAngle=10, roughness=.2,
                                              supported=[1, 2, 3])) for i in range(10)]
         rows += [trace('scout_rejected', dict(reason='blocked_0'))]
+        rows += [trace('scout_detour_found', dict(expanded=9999, worstFrameMs=999), task='old')]
+        rows += [trace('scout_detour_started', dict(attempt=1))]
+        rows += [trace('scout_detour_failed', dict(attempt=i, returning=True, expanded=100+i,
+                       worstFrameMs=1+i*.1, reason='bounded', target=[1, 2, 3])) for i in range(8)]
         with tempfile.TemporaryDirectory() as directory:
             audit = Path(directory) / 'audit.jsonl'
             audit.write_text(''.join(json.dumps(r) + '\n' for r in rows))
@@ -98,6 +102,13 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['scouting']['examples'][0]['pos'], [1, 2, 3])
         self.assertEqual(summary['scouting']['examples'][1]['angle'], 34)
         self.assertEqual(summary['scouting']['examples'][1]['supported'], [1, 2, 3])
+        detours = summary['scouting']['detours']
+        self.assertEqual(detours['states'], dict(started=1, failed=8))
+        self.assertEqual(detours['maxExpanded'], 107)
+        self.assertAlmostEqual(detours['worstFrameMs'], 1.7)
+        self.assertEqual(len(detours['examples']), 4)
+        self.assertEqual(detours['examples'][0]['attempt'], 4)
+        self.assertEqual(detours['examples'][-1]['target'], [1, 2, 3])
 
     def test_footing_and_death_diagnostics_keep_only_latest_matching_task_evidence(self):
         def trace(message, data, task='trial'):

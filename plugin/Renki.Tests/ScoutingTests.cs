@@ -11,6 +11,54 @@ namespace Renki.Tests
         static Scouting Search(double radius = 60) => new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, radius);
 
         [Fact]
+        public void PendingDetourHoldsMotionWithoutSpendingRecoveryOrResettingTheDeadline()
+        {
+            var s = Search(); var planning = true; var requested = V3.Zero;
+            V3? Route(V3 at) { requested = at; return planning ? (V3?)null : at; }
+            Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 2, Route, () => planning));
+            var first = requested;
+            Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 3, Route, () => planning));
+            Assert.Equal(first, requested);
+            Assert.Equal(1, s.Attempts);
+            Assert.Equal(0, s.Recoveries);
+            Assert.Equal(0, s.CompletedLegs);
+            planning = false;
+            Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 4, Route, () => planning));
+            Assert.Equal(first, s.Goal);
+            Assert.Equal(ScoutAction.Abort, s.Decide(V3.Zero, 60, true, Scouting.ReturnLimit, Route, () => true));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ReturnPlanningWaitsButNeverClaimsArrivalOrIgnoresUnsafeState(bool unsafeState)
+        {
+            var s = Search();
+            s.Decide(V3.Zero, 60, true, 2, Clear);
+            var bot = s.Goal;
+            Assert.Equal(ScoutAction.Wait, s.Decide(bot, 29, true, 3, _ => null, () => true));
+            Assert.True(s.Returning);
+            Assert.Equal(ScoutAction.Abort, s.Decide(bot, 60, !unsafeState, 4, _ => null, () => false));
+        }
+
+        [Fact]
+        public void ReturnTransitionReplacesThePendingOutboundRequest()
+        {
+            var s = Search();
+            Assert.Equal(ScoutAction.Walk, s.Decide(V3.Zero, 60, true, 2, Clear));
+            var bot = s.Goal;
+            var requested = V3.Zero;
+            V3? Pending(V3 at) { requested = at; return null; }
+            Assert.Equal(ScoutAction.Wait, s.Decide(bot, 60, true, 3, Pending, () => true));
+            var outbound = requested;
+            Assert.Equal(ScoutAction.Wait, s.Decide(bot, 29, true, 4, Pending, () => true));
+            Assert.True(s.Returning);
+            Assert.NotEqual(outbound, requested);
+            Assert.True((requested - bot).Length > 1.5);
+            Assert.Equal(0, s.Recoveries);
+        }
+
+        [Fact]
         public void OuterSearchProjectsShortLegsIntoFartherGroundAndReturnsToObservedOrigin()
         {
             var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 0, 60);

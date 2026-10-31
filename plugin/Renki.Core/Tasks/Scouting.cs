@@ -24,6 +24,9 @@ namespace Renki.Tasks
         double progressAt, bestDistance;
         bool hasGoal, hasDestination, ending;
         int legAlternative;
+        bool awaitingRoute;
+        V3 pendingDesired;
+        public V3 Destination => destination;
         public V3 Goal { get; private set; }
         public bool Returning { get; private set; }
         public int Attempts { get; private set; }
@@ -62,7 +65,7 @@ namespace Renki.Tasks
             trail.Add(area);
         }
 
-        public ScoutAction Decide(V3 bot, double stamina, bool safe, double now, Func<V3, V3?> route)
+        public ScoutAction Decide(V3 bot, double stamina, bool safe, double now, Func<V3, V3?> route, Func<bool> planning = null)
         {
             Reason = null;
             if (!safe) return Abort("another character is too close to scout safely");
@@ -90,8 +93,22 @@ namespace Renki.Tasks
             if (ending && !Returning)
             {
                 Returning = true; hasGoal = false; hasDestination = false;
+                awaitingRoute = false;
             }
             if (Returning && (bot - area).Length <= 1.5) return ScoutAction.Done;
+            if (awaitingRoute)
+            {
+                var planned = route(pendingDesired);
+                if (planning?.Invoke() == true) return ScoutAction.Wait;
+                awaitingRoute = false;
+                if (!planned.HasValue || !WithinBounds(planned.Value) ||
+                    (Returning ? (planned.Value - pendingDesired).Length > 1.5 :
+                        V3.FlatDistance(planned.Value, destination) >= V3.FlatDistance(bot, destination) - .1))
+                    return Returning ? Abort("cannot return along a checked scouting detour") : RejectRoute("no checked scouting detour");
+                Goal = planned.Value; hasGoal = true;
+                bestDistance = (bot - Goal).Length; progressAt = now;
+                return ScoutAction.Walk;
+            }
             if (!hasGoal)
             {
                 if (Returning)
@@ -116,6 +133,7 @@ namespace Renki.Tasks
                     ? delta.Length <= LegLength ? destination : bot + delta.Normalized * LegLength
                     : LegCandidate(bot, destination, legAlternative);
                 var supported = route(desired);
+                if (planning?.Invoke() == true) return Await(desired, now);
                 if (!supported.HasValue || !WithinBounds(supported.Value) ||
                     !Returning && this.offset > 0 && V3.FlatDistance(supported.Value, destination) >= V3.FlatDistance(bot, destination) - .1)
                 {
@@ -136,6 +154,7 @@ namespace Renki.Tasks
             else
             {
                 var supported = route(Goal);
+                if (planning?.Invoke() == true) return Await(Goal, now);
                 if (!supported.HasValue || !WithinBounds(supported.Value) || (supported.Value - Goal).Length > .65)
                     return RejectRoute("scouting route changed or became unsafe");
             }
@@ -149,6 +168,7 @@ namespace Renki.Tasks
         // finite allowance. No retry resets travel/time/candidate accounting.
         public ScoutAction RejectRoute(string reason)
         {
+            awaitingRoute = false;
             if (Returning) return Abort(reason);
             Recoveries = Math.Min(RecoveryLimit, Recoveries + 1);
             hasGoal = hasDestination = false;
@@ -159,6 +179,15 @@ namespace Renki.Tasks
             Reason = reason;
             return ScoutAction.Wait;
         }
+
+        ScoutAction Await(V3 desired, double now)
+        {
+            pendingDesired = desired; awaitingRoute = true; hasGoal = false;
+            progressAt = now;
+            return ScoutAction.Wait;
+        }
+
+        public ScoutAction HoldForDetour(double now) => Await(Goal, now);
 
         bool WithinBounds(V3 at) => Finite(at) && (at - origin).Length <= radius + offset + .25;
         ScoutAction Abort(string reason) { Reason = reason; return ScoutAction.Abort; }
