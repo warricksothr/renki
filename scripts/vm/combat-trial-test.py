@@ -74,7 +74,7 @@ class CombatTrialTests(unittest.TestCase):
             return dict(frame=dict(type='trace', source='combat', task=task, msg=message, data=data))
         rows = [trace('scout', {}, 'old'), trace('ground_selected', dict(area=[1, 2, 3], escape=[7, 2, 3], stanceRadius=3))]
         rows += [trace('prepare_search', {}), trace('search_egress_route', dict(goal=[2,3,4]))]
-        rows += [trace('search_egress_rejected', dict(reason='endpoint_not_dry_clear_or_separated'))]
+        rows += [trace('search_egress_rejected', dict(reason='endpoint_not_dry_clear_or_separated', pos=[1, 2, 3]))]
         rows += [trace('scout', {})] * 20 + [trace('scout_return', {})]
         rows += [trace('scout_route', dict(returning=False)), trace('scout_route', dict(returning=True, trailPoints=4, returnDistance=20))]
         rows += [trace('scout_recovery', dict(reason='route changed')), trace('scout_recovery', dict(reason='route changed'), task='old')]
@@ -95,6 +95,7 @@ class CombatTrialTests(unittest.TestCase):
         self.assertEqual(summary['scouting']['recoveries'], {'route changed': 1})
         self.assertEqual(summary['scouting']['returnHint'], dict(trailPoints=4, returnDistance=20))
         self.assertEqual(len(summary['scouting']['examples']), 6)
+        self.assertEqual(summary['scouting']['examples'][0]['pos'], [1, 2, 3])
         self.assertEqual(summary['scouting']['examples'][1]['angle'], 34)
         self.assertEqual(summary['scouting']['examples'][1]['supported'], [1, 2, 3])
 

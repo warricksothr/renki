@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T00:04:45Z
+updated_at: 2026-10-31T00:08:19Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -292,3 +292,7 @@ PR117 checksum deployment succeeded. Native trial .checks/combat-trial-20261030T
 **agent:codex/renki-milestones** at 2026-10-31T00:04:45Z
 
 PR118 merged as4cbf80d after full just check ci (.checks/20261030T235844Z-UJtGhS.log) and clean committed just check review (.checks/20261031T000102Z-pFlff5.log). Checksum just check vm install passed (.checks/20261031T000146Z-qozYAm.log). Changed-build trial .checks/combat-trial-20261031T000202157208Z/summary.json aborted before native attack because the controller had already dispatched move_to home on rejoin. Zero damage, final80.1HP at[-7.79,33.86,17.16], successful cleanup; this does not validate the route fix. Generalizing the existing food-supervisor startup wait to all trial modes: observe only an exact outgoing home task, keep task ID/scope/injury checks, wait at most120s, require native success and fresh position within3m of home before trial work. Unknown destinations, newer tasks, failed return and injury still abort. Focused just check vm test-combat-trial passed (.checks/20261031T000425Z-r22ZuZ.log). Compact trial-status also now includes current combat mode and native terminal failure detail so the next operator need not dump full raw summaries.
+
+**agent:codex/renki-milestones** at 2026-10-31T00:08:19Z
+
+The generalized startup wait succeeded live: t-1 returned home with a matching succeeded receipt before combat t-3 was sent. Trial .checks/combat-trial-20261031T000445756934Z/summary.json and audit .checks/audit-window-0tr5iK.jsonl then exposed a separate preparation boundary: east travel used its25s leg budget; north endpoint[-36.9,31.89,-7.91] passed scenery checks, but ordinary1m arrival stopped at[-36.36,32.25,-7.33] inside the4m building-clearance sphere. Trial refused before scouting/acquisition; zero damage, final79.7HP, cleanup successful. No checked-scout or combat proof earned. Tightened preparation arrival to0.25m and added0.5m endpoint scenery margin, retaining the4m actual-position check. An unsuitable actual arrival now traces its pose and tries the next candidate within the same8-attempt/60s budgets. No guard was lowered. Full CI is rerunning for this native change before final commit/review/deployment. The prior startup/tooling source gate passed .checks/20261031T000445Z-F4W15I.log and its initial committed review was clean .checks/20261031T000707Z-s39J0S.log; final review must include this additional native change.

@@ -753,6 +753,9 @@ task ID, scope and injury evidence checked for at most 120 seconds. Native
 success and arrival within 3 m of home are required before trial work; other
 active orders and failed returns abort. `just vm trial-status` includes the
 current combat mode and native terminal failure detail without raw log dumps.
+Search preparation uses a 0.25 m arrival tolerance and an extra 0.5 m of
+endpoint building clearance. An unsuitable arrival records its actual position
+and tries the next endpoint within the existing eight-attempt/60-second bound.
 Additional creatures, unsafe
 health, exhausted escape, lost task ownership and more than 40 m travel abort
 the trial. No eligible encounter is an aborted trial, never a pass. Optional

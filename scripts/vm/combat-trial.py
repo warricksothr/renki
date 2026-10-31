@@ -103,7 +103,7 @@ def ground_diagnostics(audit, task_id):
             if message in ('scout_rejected', 'search_egress_rejected'):
                 reason = data.get('reason', 'unknown')
                 if reason not in scout_reasons and len(scout_examples) < 6:
-                    scout_examples.append({k: data[k] for k in ('goal', 'reason', 'from', 'desired', 'supported',
+                    scout_examples.append({k: data[k] for k in ('goal', 'reason', 'pos', 'from', 'desired', 'supported',
                                                                'angle', 'previousAngle', 'roughness') if k in data})
                 scout_reasons[reason] += 1
             if message != 'ground_rejected':
