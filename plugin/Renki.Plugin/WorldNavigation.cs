@@ -44,7 +44,7 @@ namespace Renki.Plugin
         }
 
         // Start at this floor's level; never snap onto a different storey.
-        static V3? Support(V3 at, double fromY, out bool saturated)
+        static V3? Support(V3 at, double fromY, out bool saturated, bool footing = false)
         {
             var top = new Vector3((float)at.X, (float)fromY + Step + .05f, (float)at.Z);
             var count = Physics.RaycastNonAlloc(top, Vector3.down, supportHits, Step * 2 + .1f, Mask, QueryTriggerInteraction.Ignore);
@@ -52,7 +52,9 @@ namespace Renki.Plugin
             if (saturated) return null;
             RaycastHit? support = null;
             for (var i = 0; i < count; i++)
-                if (supportHits[i].normal.y >= .35f && (!support.HasValue || supportHits[i].point.y > support.Value.point.y)) support = supportHits[i];
+                if (supportHits[i].normal.y >= .35f && (footing
+                    ? DryTravel.PreferFooting(fromY, supportHits[i].point.y, support?.point.y)
+                    : !support.HasValue || supportHits[i].point.y > support.Value.point.y)) support = supportHits[i];
             return support.HasValue && Math.Abs(support.Value.point.y - fromY) <= Step ? Convert.ToV3(support.Value.point) : (V3?)null;
         }
 
@@ -67,6 +69,7 @@ namespace Renki.Plugin
                 public double[] SupportHeights;
             }
             readonly SupportMemo support;
+            readonly SupportMemo footing;
             readonly Func<V3, V3, V3?> physical;
             readonly RouteRefusals refusals;
             readonly Func<V3, V3, bool> corridor;
@@ -75,9 +78,12 @@ namespace Renki.Plugin
             internal readonly bool Executing;
             long slice;
             internal Failure LastFailure { get; private set; }
+            // Local search may wait for an asynchronous navmesh retry after
+            // exhausting its frontier. Keep diagnostic evidence across slices.
+            internal Failure LastRefusal { get; private set; }
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
-            public int SupportHits => support.Hits;
-            public int SupportQueries => support.Misses;
+            public int SupportHits => support.Hits + footing.Hits;
+            public int SupportQueries => support.Misses + footing.Misses;
             public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null)
             {
                 physical = (from, desired) => WorldNavigation.Probe(from, desired, this);
@@ -88,6 +94,12 @@ namespace Renki.Plugin
                 support = new SupportMemo((at, y) =>
                 {
                     var result = Support(at, y, out var full);
+                    if (full) Saturated++;
+                    return result;
+                });
+                footing = new SupportMemo((at, y) =>
+                {
+                    var result = Support(at, y, out var full, footing: true);
                     if (full) Saturated++;
                     return result;
                 });
@@ -112,6 +124,7 @@ namespace Renki.Plugin
                     Collider = collider != null ? collider.transform.root.name + "/" + collider.name : null,
                     ColliderCenter = collider != null ? Convert.ToV3(collider.bounds.center) : (V3?)null
                 };
+                LastRefusal = LastFailure;
                 return null;
             }
             internal bool HostileClear(V3 from, V3 to)
@@ -126,7 +139,7 @@ namespace Renki.Plugin
             internal bool SupportSafe(V3 from, V3 middle, V3 to)
             {
                 if (!dry) return true;
-                var start = Sample(from, from.Y);
+                var start = footing.Sample(from, from.Y, Time.unscaledTime, slice);
                 if (start.HasValue && DryTravel.ContinuousSupport(from, start.Value, middle, to)) return true;
                 Refuse("support_step", to);
                 if (LastFailure != null && start.HasValue)

@@ -550,6 +550,7 @@ namespace Renki.Plugin
                 ["checking"] = replay?.Checking?.ToArray(),
                 ["samples"] = replay?.Samples,
                 ["failure"] = replayProbe?.LastFailure?.Stage,
+                ["supportHeights"] = replayProbe?.LastFailure?.SupportHeights,
                 ["collider"] = replayProbe?.LastFailure?.Collider,
                 ["ms"] = System.Math.Round(replayMs, 2),
                 ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
@@ -656,7 +657,7 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localProbe = new WorldNavigation.PlanningProbe(dry: dryGround, refusals: refusals, corridor: hostileClearance);
+            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance);
             localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
                 progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel);
             replay = null; replaying = replayNavmesh = false;
@@ -726,6 +727,8 @@ namespace Renki.Plugin
                 ["hostiles"] = !found && avoidHostiles && localProbe.HostileRejected > 0 ? hostiles.Snapshot() : null,
                 ["physicsCasts"] = localProbe.PhysicsCasts,
                 ["saturated"] = localProbe.Saturated,
+                ["failure"] = !found ? localProbe.LastRefusal?.Stage : null,
+                ["supportHeights"] = !found ? localProbe.LastRefusal?.SupportHeights : null,
                 ["ms"] = System.Math.Round(localMs, 2),
                 ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),
                 ["waypoints"] = found ? localRoute.Path.Count : 0,

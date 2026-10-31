@@ -16,10 +16,13 @@ namespace Renki.Movement
             Math.Abs(middle.Y - from.Y) <= .3 + 1e-6 && Math.Abs(to.Y - middle.Y) <= .3 + 1e-6;
 
         // The body's capsule can stand above the surface on a slope or log.
-        // Compare surface heights on all three samples, while refusing to
-        // reinterpret an overhead floor or a distant surface as its footing.
+        // Compare surface heights on all three samples. A normal stair tread
+        // can overlap the foot during stepping; a higher floor cannot.
+        public static bool PreferFooting(double bodyY, double candidateY, double? previousY) =>
+            candidateY <= bodyY + .3 + 1e-6 && bodyY - candidateY <= .6 + 1e-6 &&
+            (!previousY.HasValue || Math.Abs(candidateY - bodyY) < Math.Abs(previousY.Value - bodyY));
         public static bool ContinuousSupport(V3 body, V3 supportedFrom, V3 middle, V3 to) =>
-            supportedFrom.Y <= body.Y + .05 && body.Y - supportedFrom.Y <= .6 + 1e-6 &&
+            PreferFooting(body.Y, supportedFrom.Y, null) &&
             ContinuousSupport(supportedFrom, middle, to);
         // Do not probe through an obstacle beyond a checked short corner.
         // Strafing leaves that route, so it retains the full lookahead.

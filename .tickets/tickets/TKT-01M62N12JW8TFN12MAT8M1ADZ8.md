@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T12:04:35Z
+updated_at: 2026-10-31T12:13:28Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -375,3 +375,12 @@ Dry continuity now samples the starting support as well as midpoint/endpoint. It
 684ed40 passed full CI .checks/20261031T115118Z-x7JR2O.log, review .checks/20261031T115358Z-9zafOM.log and checksum install .checks/20261031T115423Z-gEz5yw.log. Resupply .checks/resupply-trial-20261031T115440976800Z verified the dry return from the eastern wood pile to indoor floor[-37.07,36.09,6.38] with exact successful move receipt and no damage. It checked10of11 unique home chests, finding no ordinary edible food. The remaining chest1:48783 is unreachable from the current arrangement; its old snapshot contained Wood/Resin, so no food is inferred there. Tas has no food remaining,25/25HP and59.2/300 carried weight, AxeFlint96.8/100, Wood27/Resin5/BeechSeeds2.
 
 Normal dry hostile-aware travel toward remembered food[0.5,33,-19] left through the gates, then failed (.checks/task-4c65wmuv.json): captured body34.07163m, measured start33.75901m, midpoint33.72362m, endpoint33.69058m. The surface is continuous but the capsule/step offset exceeds0.3m. This supersedes the previous note's0.3m body-offset bound: use the existing0.6m physical support sampling bound, preserving the0.05m overhead exclusion and0.3m rise/drop per measured half-edge. Added exact stair-exit regression. Tas stopped safely; need gate/review/install and resume normal food collection, then the two-tree benchmark.
+
+**agent:codex/renki-milestones** at 2026-10-31T12:13:28Z
+
+### Successful stair exit; starting-footing selection
+06ff5bf passed CI .checks/20261031T120435Z-p7u3Xw.log, review .checks/20261031T120710Z-zQWNbT.log and checksum deployment .checks/20261031T120718Z-ZabtvA.log. Native dry hostile-aware travel from the stair exit to[-2.31,33.12,-18.55] succeeded (.checks/task-wlxs0pc6.json), validating the0.6m capsule settling bound and preserving a reusable checked trail. Known nearby raspberry/mushroom pickables there are already picked; fresh perception showed mushroom1:45431 at[6.93,38.93,-56.34]. An empty collection definition completed without claimed food and was deleted.
+
+Travel toward that fresh mushroom failed at[-4.59,33,-22.98] (.checks/task-v5lrc08r.json). Final local search expanded one node with17support queries and zero physical casts; diagnostics could not expose which support sample failed. Camera .checks/camera-20261031T121141753185Z.jpg shows open sloping ground. Tas remains25/25HP, safely offline/panel online. Do not claim actual support heights at that last failure: they were not traced.
+
+Starting-footing rays must choose the nearest supported surface, rather than the highest surface in the destination step scan. A separate per-slice memo selects the nearest sample within0.6m below or one ordinary0.3m tread above the body; higher floor lips stay excluded. This supersedes the earlier0.05m upward-origin bound, which did not allow ordinary tread overlap. Surface continuity remains0.3m per half-edge. Failed local routes/navmesh rejection now retain support-stage/heights, to distinguish this hypothesis from future actual physical obstacles. Regression covers surface preference, tread overlap, overhead0.56m lip and missing/distant footing. Need gate/review/install, food collection, and exact two-tree final-home/store trial. No broad M2 criterion checked.

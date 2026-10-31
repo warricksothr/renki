@@ -266,8 +266,9 @@ be skipped this way.
 Dry probes also require the rise to be shared across their midpoint: each
 half-edge allows at most 0.3 m. This preserves ordinary stair treads while
 rejecting a vertical floor lip that endpoint-only step checks can misread.
-All three heights use measured support. A nearby surface below the body's
-capsule accounts for its slope offset; an overhead floor cannot become footing.
+All three heights use measured support. Starting footing uses the nearest
+surface within the existing 0.6 m downward sampling range or one 0.3 m tread
+above the feet while stepping; a higher floor cannot become footing.
 
 Between complete trees, capacity or axe-durability pressure chooses delivery
 rather than another cut. Low stamina gets one bounded 20-second rest; insufficient

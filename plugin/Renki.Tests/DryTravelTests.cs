@@ -7,6 +7,20 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void FootingChoosesTheNearestSurfaceWithoutSnappingUpAFloorLip()
+        {
+            const double body = 33;
+            Assert.True(DryTravel.PreferFooting(body, 32.85, null));
+            Assert.True(DryTravel.PreferFooting(body, 33.08, 32.85));
+            Assert.False(DryTravel.PreferFooting(body, 33.56, 33.08));
+            Assert.False(DryTravel.PreferFooting(body, 32.3, null));
+            Assert.False(DryTravel.PreferFooting(body, double.NaN, null));
+            Assert.False(DryTravel.PreferFooting(body, double.PositiveInfinity, null));
+            Assert.True(DryTravel.ContinuousSupport(new V3(0, 33, 0),
+                new V3(0, 33.08, 0), new V3(.25, 33.2, 0), new V3(.5, 33.33, 0)));
+        }
+
+        [Fact]
         public void CapsuleOffsetDoesNotTurnSupportedDescentIntoAFloorLip()
         {
             var body = new V3(-29.9, 35.4, -2.01);
