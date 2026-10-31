@@ -5,6 +5,9 @@ namespace Renki.Movement
     /// without rebuilding paths for centimetre-scale physics jitter.</summary>
     public static class PickupTracking
     {
+        // The route planner and pickup task must agree on the final radius.
+        public const double PickupDistance = 1;
+
         public static bool Retarget(V3 planned, V3 observed) => (observed - planned).Length > .25;
 
         // Arrival uses the actual item, never the old navigation endpoint.

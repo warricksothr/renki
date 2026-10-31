@@ -198,6 +198,12 @@ func (r *markerFoodRun) store(v View, result *Result) (*session.Order, error) {
 	return r.stow.Next(v, result)
 }
 func (r *markerFoodRun) cook(v View, result *Result) (*session.Order, error) {
+	if r.returning {
+		if result == nil || result.Status != protocol.StatusSucceeded {
+			return nil, errors.New("cooking finished but return to marker was not verified")
+		}
+		return nil, nil
+	}
 	if r.cooking != "" {
 		if result == nil || result.Status != protocol.StatusSucceeded || result.TaskID == "" {
 			return nil, errors.New("missing successful cooking result; partial batch will not be retried")
@@ -220,7 +226,7 @@ func (r *markerFoodRun) cook(v View, result *Result) (*session.Order, error) {
 		r.cooking = ""
 	}
 	if r.batches >= 3 {
-		return nil, nil
+		return r.cookReturn(v)
 	}
 	raw := ""
 	for _, p := range rawMeals {
@@ -233,7 +239,7 @@ func (r *markerFoodRun) cook(v View, result *Result) (*session.Order, error) {
 		if r.batches == 0 {
 			return nil, errors.New("no carried raw food below the 20-item cooked stock limit")
 		}
-		return nil, nil
+		return r.cookReturn(v)
 	}
 	id := ""
 	best := math.Inf(1)
@@ -254,4 +260,14 @@ func (r *markerFoodRun) cook(v View, result *Result) (*session.Order, error) {
 	r.beforeRaw, r.beforeCooked = v.Inventory.Count(raw), v.Inventory.Count(cookedMeals[raw])
 	r.beforeFood = activeFoodRemaining(v, cookedMeals[raw])
 	return &session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: id, Cook: raw}, TimeoutS: 180}, nil
+}
+
+func (r *markerFoodRun) cookReturn(v View) (*session.Order, error) {
+	if distance(v.State.Pos, r.marker.Pos) <= 1 {
+		return nil, nil
+	}
+	r.returning = true
+	pos := r.marker.Pos
+	within := 1.0
+	return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &within, Dry: true, AvoidHostiles: true}, TimeoutS: 60}, nil
 }

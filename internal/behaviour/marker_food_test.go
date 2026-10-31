@@ -180,6 +180,30 @@ func TestMarkerFoodCookingRequiresHeatedCookerAndMatchedDelivery(t *testing.T) {
 	}
 }
 
+func TestMarkerFoodLeavesTheCookingPickupPositionBeforeCompleting(t *testing.T) {
+	for _, status := range []string{protocol.StatusSucceeded, protocol.StatusFailed} {
+		t.Run(status, func(t *testing.T) {
+			r := foodRunner(t, "cooking")
+			r.batches = 1 // a batch with verified delivery has just finished
+			v := markerView("cooking")
+			v.State.Pos = protocol.Vec3{2, 0, 0}
+			order, err := r.Next(v, nil)
+			if err != nil || order == nil || order.Task != protocol.TaskMoveTo {
+				t.Fatal("left Tas at the cooker pickup position", order, err)
+			}
+			args := order.Args.(*protocol.MoveToArgs)
+			if args.To.Pos == nil || *args.To.Pos != v.Waypoints[0].Pos || !args.Dry || !args.AvoidHostiles || args.StopDistance == nil || *args.StopDistance != 1 {
+				t.Fatal(args)
+			}
+			v.State.Pos = v.Waypoints[0].Pos
+			order, err = r.Next(v, &Result{Status: status})
+			if order != nil || (err == nil) != (status == protocol.StatusSucceeded) {
+				t.Fatal("return outcome was not respected", order, err)
+			}
+		})
+	}
+}
+
 func TestPreparingFoodReservesKeeperForActiveKitchenOnly(t *testing.T) {
 	e := &Engine{instances: map[string]*instance{}}
 	if e.PreparingFood() {

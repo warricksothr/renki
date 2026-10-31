@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T21:06:00Z
-updated_at: 2026-10-31T22:12:17Z
+updated_at: 2026-10-31T22:24:17Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -86,3 +86,13 @@ Clean cooking retry .checks/marker-food-20261031T214114Z yielded at preflight be
 User released Tas from following for the remaining food trials. Fresh state is idle, sheltered at home with 25/25 HP, no active meals and RawMeat1. Production resupply .checks/food-20261031T220959Z boundedly searched 11 unique chests and stopped needs_plan because the Mushroom chest 1:70040 was in use and cooking requires an active meal. Another chest was unreachable, not empty. Cleanup logged Tas out and stopped the client safely.
 
 The accessible raw-food chest reported MushroomYellow7, but ready-food selection excluded this valid edible. Extend production resupply, marker surplus storage and food-check staging to recognize yellow mushrooms; preserve native CanEat and health gates. Replay the exact failed-probe-to-verified-starter flow and reserve-preserving yellow-mushroom deposit. Focused just check controller test-packages ./internal/goal ./internal/behaviour passed (.checks/20261031T221151Z-OtUAM2.log). Deploy the controller after full CI, then run resupply, clean idle cooking, western forage and storage in that order. No new natural gathering or whole-trial success earned yet.
+
+**agent:codex/renki-milestones** at 2026-10-31T22:24:17Z
+
+Yellow-mushroom support passed full just check ci (.checks/20261031T221216Z-YhLhXU.log), committed review (.checks/20261031T221531Z-sffeTE.log), and controller deployment (.checks/20261031T221453Z-Twu7LD.log), pushed as 25af8cc. Resupply .checks/food-20261031T221507Z succeeded with an actual mushroom withdrawal/eating/recovery in two tasks; the previously busy Mushroom chest had become free. This does not live-prove yellow-mushroom withdrawal, which is replay-tested.
+
+Clean cooking attempt .checks/marker-food-20261031T221631Z still failed collection: station 1:70085 spawned CookedMeat802026012:103, but its dry pickup route stalled. Cooking itself had no injury; Tas remained online. Audit .checks/audit-window-O0qwzK.jsonl shows dry navmesh endpoint [-33.6,36.21,10.53] within the existing 1m pickup radius, but outside the walker's default 0.5m final radius. NavmeshCandidates consequently rejected the useful close endpoint. Ordinary exact-ID pickup t-5 then recovered the output (.checks/task-dt5cwbo3.json), but standing at that pickup point caused repeated 2HP fire hits before the western visit. Audit .checks/audit-window-tRmYS0.jsonl records these; food regeneration restored health. Do not characterize the separate recovery as injury-free.
+
+Align pickup planner and task arrival radius, allow normal sight/range-checked hand pickup to avoid walking closer to a visible item, and return completed marker cooking to its marker waiting point. Actual floor/visibility, normal inventory/ownership, dry routing, injury and receipts remain enforced. Recorded-position native replay passed (.checks/20261031T222229Z-C9nFEK.log); cooking-return regression passed (.checks/20261031T222314Z-R4Q5fy.log). Full just check ci passed (.checks/20261031T222048Z-RnGODS.log). Native deployment and changed-build cooking retry are next, after the current western visit returns.
+
+Western idle gathering .checks/marker-food-20261031T222103Z earned runs=1,last=completed with Mushroom2 -> Mushroom4 and unchanged injury baseline2187. Home return is still in progress at this note; do not yet claim a complete round trip or storage delivery.

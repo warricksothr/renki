@@ -1012,7 +1012,7 @@ namespace Renki.Plugin
     sealed class PickupTask : IBodyTask
     {
         /// <summary>How close counts as standing on the drop.</summary>
-        const float Close = 1.0f;
+        const float Close = (float)PickupTracking.PickupDistance;
 
         /// <summary>How long to leave auto-pickup to it before picking up by hand.</summary>
         const float AutoFor = 1.0f;
@@ -1046,7 +1046,7 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             before = Carried(p, prefab);
             goal = drop.transform.position;
-            walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
+            walker.SetGoal(p.transform.position, goal, within: Close, dryGround: safeTravel, avoidHostiles: safeTravel);
             walker.ResetStuck(p.transform.position);
         }
 
@@ -1062,7 +1062,7 @@ namespace Renki.Plugin
                 // The game merges nearby drops of an item into one stack.
                 drop = merged;
                 goal = drop.transform.position;
-                walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
+                walker.SetGoal(p.transform.position, goal, within: Close, dryGround: safeTravel, avoidHostiles: safeTravel);
             }
             if (drop == null)
             {
@@ -1076,10 +1076,16 @@ namespace Renki.Plugin
             {
                 // Auto-pickup pulls drops toward the player, and they roll.
                 goal = drop.transform.position;
-                walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
+                walker.SetGoal(p.transform.position, goal, within: Close, dryGround: safeTravel, avoidHostiles: safeTravel);
             }
             var pos = p.transform.position;
-            if (PickupTracking.Reached(Convert.ToV3(pos), Convert.ToV3(drop.transform.position), Close))
+            var reach = p.m_maxInteractDistance;
+            // A normal visible hand pickup need not walk onto a product
+            // beside a fire or inside an obstacle's navigation clearance.
+            var byHand = float.IsFinite(reach) && reach > 0 &&
+                PickupTracking.Reached(Convert.ToV3(pos), Convert.ToV3(drop.transform.position), reach) &&
+                UseReach.Near(p, drop.gameObject, reach);
+            if (byHand || PickupTracking.Reached(Convert.ToV3(pos), Convert.ToV3(drop.transform.position), Close))
             {
                 Driver.Stand();
                 // Standing still on purpose is not being stuck.
