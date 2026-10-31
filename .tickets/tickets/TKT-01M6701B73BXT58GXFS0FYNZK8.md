@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-30T18:09:31Z
-updated_at: 2026-10-31T19:15:31Z
+updated_at: 2026-10-31T20:43:28Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -77,3 +77,9 @@ Live evidence: .checks/food-20261031T190130Z exposed normal empty-transfer reaso
 A staged shortage trial .checks/food-20261031T190904Z normally deposited the carried ready meals into excluded storage1:70031, with exact moved/fresh-pack receipts. The production goal checked the eight scoped candidate chests (one inaccessible), reconciled stale hints, withdrew one remaining cooked tail from1:70039, then exhausted available raw ingredients and stopped needs_plan after9 native tasks. There are no observed supported raw drops nearby. Relevant recent actual contents of1:70031 and1:70040 also contain no supported raw ingredient. Nearby cooking-backed fires remain lit/fueled. No combined raw-to-cooked live success or actual cold-fire fuel receipt is earned. Keep those checks open; do not invent supplies, alter network ownership or request manual setup as a prerequisite to committing the implementation.
 
 The final ready-food trial .checks/food-20261031T191150Z refused a newly observed nearby threat before any task, without observed injury, then logged out. Tas remains reserved for cooking/resupply trials. Added just vm food-check with --keep-online: success can retain the client only at verified idle shelter near home with scoped surroundings and no nearby threats; failed/unsafe/uncertain outcomes log out. Native DLL updates still need restart; controller-only changes use just vm deploy-controller. No repetitive login is required between safe trials on the same installed plugin. Native escort handoff is replay-tested, not yet live-tested. Wider M2/M3, fuel proof and autonomous raw-food acquisition remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:43:28Z
+
+The final carried-raw cooking/readiness/home-return benchmark succeeded under production food goal49a97e3b768d462d64b37fdc (.checks/food-20261031T203634Z):10 native steps, full direct_spawn cooking receipt at1:70085 forNeckTailGrilled1, exact native returnt-16 to original home floor,70/70HP, safe keep-online. No cold-fire fuel was required. A separate ready-storage goal6c40aee16794f82b1e5573bb also passed with matched3-Blueberries withdrawal/fresh-pack evidence and reserve2. New native one-shot guarded startup return passed83.4m from the eastern forage site to actual home floor/shelter (.checks/recovery-20261031T203218Z), without relaxing passive critical-health healing or disabling RecoveryGuard.
+
+Live escort handoff is still unearned. Added a bounded just vm food-check --reserve2 --escort Nimah --keep-online verifier, with exact persisted continuation task/native request/accepted/running evidence and a10s quiet safe-home observation followed by stop. Focused checks and full just check ci142s passed (.checks/20261031T203926Z-oJ3xPR.log); no live execution occurred before the user emergency logout during a later separate base attack. That attack exposed trapped normal fleeing inside the raised house, recorded on TKT-01M62N256 — Plugin: flee task, and retreating when health is low. Last native health43.7/67.1; game stopped, independent panel online, no rejoin into the known attack. Full natural-acquisition-to-readiness, cold-fire fuel, live hunting and escort handoff remain open; earlier actual raw-drop/forage primitive receipts are recorded on child acquisition ticketTKT-01M69R5A75H3CTVWY175RZ9PS1.
