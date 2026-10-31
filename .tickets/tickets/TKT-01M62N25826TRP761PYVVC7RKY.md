@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: in-progress
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/checked-scout-detours
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 568e4f4c65148fa5b7cb09359be36bc5a86e0576
-  session: null
-  claimed_at: 2026-10-31T02:42:14Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T02:52:57Z
+updated_at: 2026-10-31T02:58:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -44,7 +37,7 @@ extensions: {}
 
 ## Acceptance criteria
 
-- [ ] attack fights an entity until it dies or the task is stopped
+- [x] attack fights an entity until it dies or the task is stopped
 - [ ] It blocks and dodges, and is refused unless AllowCombat is on
 
 ## Implementation plan
@@ -346,3 +339,13 @@ Added compact maxObservedRangeM plus pending/recorded offsets to just vm trial-s
 Implemented native bounded scouting detours after navmesh/direct-connector failure. Optional continuous ground history in LocalRoute and exact-path validation preserves the existing grade/bend/roughness proof across tiny grid corners. Plans retain incoming grade, current support, dry/body/wall/character guards, existing scout deadlines and travel bounds. Work is limited to four plans per task, 1,024 expanded nodes/four seconds/24m each, at most eight expansions per physics step with a measured two-millisecond scheduling target. A single expansion can exceed that CPU target. Pending plans hold movement; return phase replaces outward requests and target acquisition/cancellation clears work. Completed paths are fully revalidated before walking and during following.
 
 Focused ScoutDetourTests, GroundCorridorTests, ScoutingTests and vm test-combat-trial pass. The over-grade connector uses the captured segment and an explicitly modeled planar neighborhood, not a claimed replay of the live heightmap. Creature-buffer detours and their return paths, bounded nodes/slices/deadlines/cancellation, wrong-floor failure, changed obstacles, cross-corner ground history and pending return transitions are covered. Compact audit diagnostics include target vs connector, outcome counts, maximum expanded nodes and worst planning step; full logs remain on disk. Full just check ci is running before commit/review. Live progress and combat proof remain outstanding; no acceptance criterion checked. Next: reviewed checksum deployment, one changed-build persistent goal trial and independent offline/combat-off/standby cleanup verification.
+
+**agent:codex/renki-milestones** at 2026-10-31T02:57:40Z
+
+PR126 (Find checked local detours during scouting and return): https://github.com/warricksothr/renki/pull/126. Source 3d1f108 passed just check ci (430 C# tests and42 browser scenarios; .checks/20261031T025216Z-O9MsFS.log), just check review with no findings (.checks/20261031T025443Z-1pGsF8.log), and checksum just check vm install (.checks/20261031T025453Z-Sq03As.log).
+
+The changed-build autonomous persistent goal SUCCEEDED on its first native attempt, without player staging, clearing or movement puppeting. t-1 discovered ordinary Greyling888724446:65, selected fighting ground[-6.72,33.11,-19.48] with a checked escape, drew/kited it in, entered melee at4.12m, issued two strike transitions, and recorded death_observed with owner_callback for that exact entity. The native terminal receipt says observed Greyling death and matches the durable goal proof. This earns acceptance criterion1. No block or dodge was observed, so criterion2 remains open. Broader M3 owner defense remains unfinished.
+
+Evidence: .checks/combat-trial-20261031T025506622229Z/summary.json; native audit .checks/audit-window-miox0v.jsonl; console .checks/20261031T025506Z-nZ7HQS.log; camera .checks/camera-20261031T025637362179Z.jpg. The supervisor observed42.3m travel and30.6m maximum range from the trial center. Native audit confirms zero damage events, minimum/final73.2HP, final position[-2.72,32.94,-23.16]. Food-derived max health declined during the trial; this is not damage. No detour planner ran in this successful encounter, so real-terrain detour cost/success and checked detour return remain LIVE-UNVERIFIED; do not claim that the combat result proves them. No return-home completion was observed after the kill; cleanup deliberately logged out there.
+
+Independent cleanup: just check vm status (.checks/20261031T025702Z-rx8j6r.log) shows Valheim stopped, controller/panel running and Tas disconnected; just vm combat reports AllowCombat=false. just check streaming windows-status passed (.checks/20261031T025702Z-TLBEpw.log), confirming private output/standby services. No cleanup errors were reported. Next useful checks are native block/dodge under real attack, safe post-combat return, live detour/return activation and broader owner defense. Do not repeat an unchanged local search solely to hunt another kill; retain the positive proof and choose a distinct remaining acceptance case.
