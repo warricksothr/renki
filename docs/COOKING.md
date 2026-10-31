@@ -23,6 +23,9 @@ ownership itself or displaces another peer's simulation. Native cooking checks t
 recipe, ward access, sight/reach, active food, 80% health, dry footing, nearby
 hostiles and space/weight for the complete possible yield. Missing ingredients,
 busy stations and a dead fire produce a refusal with the missing prerequisite.
+Station and fire reach use the player's configured normal interaction range
+(5 m in the inspected game build) and retain solid obstruction checks. A
+currently visible/reachable station does not require an extra approach walk.
 The station needs a working fire, or one carried `Wood` for its unique empty
 supporting fire. Before inserting food, the native routine matches the station's
 fire-check points against the fire's actual burning-area bounds (including

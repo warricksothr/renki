@@ -86,6 +86,9 @@ namespace Renki.Plugin
         static int Count(Player me, string prefab) => me.GetInventory().GetAllItems()
             .Where(i => i.m_dropPrefab != null && i.m_dropPrefab.name == prefab).Sum(i => i.m_stack);
 
+        internal static float InteractionRange(Player me) => float.IsFinite(me.m_maxInteractDistance) && me.m_maxInteractDistance > 0
+            ? me.m_maxInteractDistance : 0;
+
         public Outcome Tick(double dt)
         {
             var me = Player.m_localPlayer;
@@ -105,9 +108,12 @@ namespace Renki.Plugin
                 return Finish(Outcome.Failed(Wire.ReasonRefused, "a hostile is too close to tend food"));
             if (!arrived)
             {
-                var result = approach.Tick(dt);
-                if (result == null) return null;
-                if (result.Status != Wire.StatusSucceeded) return Finish(result);
+                if (!UseReach.Near(me, station.gameObject, InteractionRange(me)))
+                {
+                    var result = approach.Tick(dt);
+                    if (result == null) return null;
+                    if (result.Status != Wire.StatusSucceeded) return Finish(result);
+                }
                 arrived = true;
             }
             if (batch == null)
@@ -127,7 +133,7 @@ namespace Renki.Plugin
                 if (maxYield > 10 || !me.GetInventory().CanAddItem(conversion.m_to.m_itemData, maxYield) ||
                     me.GetInventory().GetTotalWeight() + conversion.m_to.m_itemData.GetWeight() * maxYield > me.GetMaxCarryWeight())
                     return Finish(Outcome.Failed(Wire.ReasonInventoryFull, "reserve space and carry weight for the full possible cooking yield"));
-                if (!UseReach.Near(me, station.gameObject, 2.5f))
+                if (!UseReach.Near(me, station.gameObject, InteractionRange(me)))
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the cooking station is not in sight/reach"));
                 var fireResult = fire.Tick(me, out var warming);
                 if (fireResult != null) return Finish(fireResult);
@@ -175,7 +181,7 @@ namespace Renki.Plugin
                 return null;
             }
             Driver.Stand(); Driver.LookAt = station.transform.position; Driver.LookUntil = Time.time + 1;
-            if (!UseReach.Near(me, station.gameObject, 2.5f))
+            if (!UseReach.Near(me, station.gameObject, InteractionRange(me)))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the cooking station is no longer in sight/reach"));
             if (action == CookAction.Insert)
             {

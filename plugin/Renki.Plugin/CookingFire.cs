@@ -33,7 +33,7 @@ namespace Renki.Plugin
                 fire = candidates[0];
                 if (!PrivateArea.CheckAccess(fire.transform.position, 0f, false, false))
                     return Outcome.Failed(Wire.ReasonNotAllowed, "the supporting cooking fire is behind a ward");
-                if (!UseReach.Near(me, fire.gameObject, 2.5f))
+                if (!UseReach.Near(me, fire.gameObject, CookingTask.InteractionRange(me)))
                     return Outcome.Failed(Wire.ReasonUnreachable, "the supporting fire is not in sight/reach");
                 receipt = new CookingFuel(Wood(me), fire.m_nview.GetZDO().GetFloat(ZDOVars.s_fuel));
                 began = Time.unscaledTime;

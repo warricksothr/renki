@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-31T17:48:53Z
+updated_at: 2026-10-31T17:55:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -116,3 +116,11 @@ Focused CookingTests, native plugin build, supervisor receipt/count/identity reg
 Expanded focused CookingTests pass, including the final normal-request receipt and no-crafter path. Native plugin build and supervisor identity/count tests pass. Full gate initially stopped on formatting in the new bounded diagnostic trace; formatting was corrected. Two subsequent full gates reached46/46 passing panel scenarios but failed only in contact-sheet assembly: Chromium reported that mobile-controls-keyboard-waypoint.png could not be decoded despite complete=true/naturalWidth390. The retained PNG opened successfully, and the exact isolated mobile controls-keyboard/contact-sheet recipe passed. Evidence logs: .checks/20261031T174216Z-U0jRF7.log, .checks/20261031T174440Z-QUE0p8.log, and .checks/20261031T174728Z-uCUBgc.log.
 
 Corrected the incidental CI artifact issue in panel/ui/run.mjs: source screenshots are fetched/decoded individually into bounded thumbnails; originals remain intact and linked, and the portable HTML contact sheet embeds the thumbnails. This avoids keeping all full-resolution sources active in Chromium. The focused thumbnail contact-sheet recipe passed (.checks/20261031T174800Z-6yh1Cn.log). Full just check ci is running again on the final code. No production panel behavior changed and Tas is still offline. No live success is claimed yet.
+
+**agent:codex/renki-milestones** at 2026-10-31T17:55:34Z
+
+Multiplayer implementation762339a and contact-sheet correction4250c87 passed full just check ci in139s (.checks/20261031T174813Z-snOXKx.log) and just check review HEAD~2..HEAD without findings. They are pushed to PR131. Verified install succeeded in10s (.checks/20261031T175102Z-LEdWTw.log).
+
+Guarded live trial .checks/cooking-20261031T175115Z passed the former simulation-owner admission gate, then refused the station sight/reach check before fuel or ingredient consumption. It cleaned up and left Tas offline with the panel available. The outer trial log is .checks/20261031T175115Z-jx6LU6.log. No cooked output has been attempted/proved yet.
+
+Investigation found the task used an arbitrary2.5m eye-to-collider range while the installed game's Player.FindHoverObject uses Player.m_maxInteractDistance, default5m, for normal interaction. Corrected cooking station/fire reach to the actual configured finite positive range while retaining the existing physical obstruction check. If already actually visible/reachable, the task skips an unnecessary walk to the station pivot. This is the first correction before implementing larger candidate-standing-position search: if an actual obstruction remains, it must still fail and be solved through native approach/routing, not sight bypass. Other interaction tasks retain their existing limits; scope is cooking. Full checks and another guarded trial follow.
