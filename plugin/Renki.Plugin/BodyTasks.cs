@@ -20,6 +20,13 @@ namespace Renki.Plugin
         readonly Doorman doors = new Doorman();
         readonly Climber climb = new Climber();
         readonly ApproachRecovery approach = new ApproachRecovery();
+        readonly EntranceHints entrances = new EntranceHints();
+        readonly SprintPacing sprint = new SprintPacing();
+        readonly List<Piece> entrancePieces = new List<Piece>();
+        Vector3? entrance;
+        Vector3 NavigationGoal => entrance ?? goal;
+        double NavigationWithin => entrance.HasValue ? .25 : arrivalWithin;
+        double NavigationLevel => entrance.HasValue ? .6 : Arrival.Level;
         readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true);
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
@@ -128,6 +135,7 @@ namespace Renki.Plugin
         {
             checkedOnly = false;
             approach.Reset();
+            entrances.Reset(); entrance = null;
             goal = to;
             arrivalWithin = within;
             this.reuseRoutes = reuseRoutes;
@@ -187,15 +195,46 @@ namespace Renki.Plugin
             replaying = false;
             replayNavmesh = false;
             replayWaypoint = null;
+            if (entrance.HasValue && Arrival.Reached(Convert.ToV3(from), Convert.ToV3(entrance.Value), .5, .6))
+            {
+                entrance = null; navmeshCandidates.Reset();
+            }
+            if (!entrance.HasValue && dryGround && Doorman.Enabled)
+            {
+                entrancePieces.Clear();
+                Piece.GetAllPiecesInRadius(goal, 12, entrancePieces);
+                var floors = new List<V3>();
+                var probe = new WorldNavigation.PlanningProbe(dry: true);
+                probe.BeginSlice();
+                foreach (var piece in entrancePieces)
+                {
+                    if (!piece.TryGetComponent<Door>(out var door) || door.m_nview == null || !door.m_nview.IsValid()) continue;
+                    var at = Convert.ToV3(door.transform.position);
+                    // Door pivots sit above their threshold. Sample the actual
+                    // supported entrance floor, never substitute the pivot.
+                    var floor = probe.Sample(at, at.Y - 1);
+                    if (floor.HasValue) floors.Add(floor.Value);
+                }
+                if (entrances.Select(Convert.ToV3(from), Convert.ToV3(goal), floors) is V3 selected)
+                {
+                    entrance = Convert.ToVector3(selected); navmeshCandidates.Reset();
+                    Tracer.Emit("walker", "routing raised goal through observed entrance", new Dictionary<string, object>
+                    {
+                        ["from"] = Convert.ToArray(from),
+                        ["goal"] = Convert.ToArray(goal),
+                        ["entrance"] = selected.ToArray(),
+                    });
+                }
+            }
             path.Reach = 1;
-            path.FinalReach = arrivalWithin;
+            path.FinalReach = NavigationWithin;
             var target = approach.Target is V3 via
-                ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : goal;
+                ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : NavigationGoal;
             if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&
                 WorldNavigation.Routes.Find(Convert.ToV3(from), Convert.ToV3(target)) is RouteHint hint)
             {
                 replayProbe = new WorldNavigation.PlanningProbe(dry: dryGround);
-                replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, arrivalWithin);
+                replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, NavigationWithin, NavigationLevel);
                 replayID = hint.ID;
                 replayMs = replayWorstMs = 0;
                 path.Set(new V3[0]);
@@ -309,7 +348,7 @@ namespace Renki.Plugin
         public bool Steer(Vector3 pos, bool run, bool climbObstacles = true)
         {
             if (!hasGoal) return true;
-            navmeshCandidates.Observe(Convert.ToV3(pos), Convert.ToV3(goal));
+            navmeshCandidates.Observe(Convert.ToV3(pos), Convert.ToV3(NavigationGoal));
             if (checkedOnly)
             {
                 Driver.Move = Toward(pos).normalized;
@@ -447,13 +486,14 @@ namespace Renki.Plugin
                     }
                     Driver.Stand();
                     if (Doorman.Waiting(pos)) { stuck.Hold(Time.time); return true; }
-                    BeginLocal(pos, goal);
+                    BeginLocal(pos, NavigationGoal);
                     return true;
                 }
             }
             // A strafe walks, so it cannot carry the bot out of the stuck
             // circle on its own and pass for progress.
-            Driver.Run = run && Time.time >= strafeUntil;
+            var player = Player.m_localPlayer;
+            Driver.Run = player != null && sprint.Run(run && Time.time >= strafeUntil, player.GetStamina(), player.GetMaxStamina());
             return true;
         }
 
@@ -478,7 +518,7 @@ namespace Renki.Plugin
                 replay = null; replaying = replayNavmesh = false;
                 // An asynchronous candidate must not discard the local search
                 // or restart its elapsed-time bound after a failed validation.
-                if (localRoute == null) BeginLocal(pos, goal);
+                if (localRoute == null) BeginLocal(pos, NavigationGoal);
                 else path.Set(new V3[0]);
             }
             else Repath(pos, true);
@@ -499,7 +539,7 @@ namespace Renki.Plugin
             if (replay.Status == RouteStatus.Searching) return true;
             if (replay.Status != RouteStatus.Found)
             {
-                var prefix = replayNavmesh ? navmeshCandidates.CheckedPrefix(replay, Convert.ToV3(pos), Convert.ToV3(goal)) : System.Array.Empty<V3>();
+                var prefix = replayNavmesh ? navmeshCandidates.CheckedPrefix(replay, Convert.ToV3(pos), Convert.ToV3(NavigationGoal)) : System.Array.Empty<V3>();
                 if (prefix.Count > 0)
                 {
                     FollowReplay(pos, prefix, "following validated dry prefix before refused navmesh leg");
@@ -553,7 +593,7 @@ namespace Renki.Plugin
             if (!found) return false;
             var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true);
             var candidate = navmeshCandidates.Try(Convert.ToV3(from), Convert.ToV3(target),
-                scratch.Select(Convert.ToV3).ToArray(), probe.Probe, arrivalWithin);
+                scratch.Select(Convert.ToV3).ToArray(), probe.Probe, NavigationWithin, NavigationLevel);
             if (candidate == null) return false;
             replayProbe = probe; replay = candidate;
             replayNavmesh = true; replayID = 0;
@@ -575,8 +615,8 @@ namespace Renki.Plugin
             localWaterBlocked = Blocked;
             Blocked = null;
             localProbe = new WorldNavigation.PlanningProbe(dry: dryGround);
-            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, arrivalWithin,
-                progressHorizon: LocalRoute.FrontierDistance + arrivalWithin);
+            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
+                progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
@@ -596,7 +636,7 @@ namespace Renki.Plugin
                 nextNavmeshCheck = Time.unscaledTime + 1;
                 if (dryGround)
                 {
-                    if (BeginDryNavmesh(pos, goal)) return true;
+                    if (BeginDryNavmesh(pos, NavigationGoal)) return true;
                 }
                 else
                 {
@@ -658,6 +698,12 @@ namespace Renki.Plugin
             }
             else if (Player.m_localPlayer?.IsSwimming() == true)
                 Blocked = "no safe route from the water; seeking shore";
+            else if (entrance.HasValue)
+            {
+                entrance = null;
+                Repath(pos, true);
+                return true;
+            }
             else navigationFailure = Outcome.Failed(localWaterBlocked != null ? Wire.ReasonDeepWater : Wire.ReasonUnreachable,
                 "no supported, water-safe route around the obstacles within the local search limit");
             localRoute = null;

@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T07:59:37Z
+updated_at: 2026-10-31T08:16:58Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -249,3 +249,12 @@ The full CI gate caught that applying a shorter horizon to every LocalRoute also
 Trial .checks/gather-trial-20261031T074916703323Z/summary.json reached the measured inland site without damage but both full trees were protected by a nearby Neck. Native dry scouting found five full beeches near[12,43.3,-132]. Trials .checks/gather-trial-20261031T075400910468Z/summary.json and .checks/gather-trial-20261031T075716005696Z/summary.json refused before swinging because wood walls stood30m from their selected full trees. Zero damage and no harvest gains. These were honest protection refusals, not partial-tree success.
 
 Root cause: Perception.Structures intentionally contains interactables, while solid walls arrive separately in Layout. Controller gatherClear and owner wood-site planning inspected only Structures, so they discarded known wall geometry. Engine View now includes current-session/world layout walls; gatherClear checks the nearest point of each full wall segment and its height with1m thickness clearance against the unchanged tree/log protection radii. Both owner planning and actual gathering consume that check. Focused behavior/session checks pass (.checks/20261031T075913Z-ddOS9i.log), including segment interiors, wall height, cross-world layout clearing, owner selection and gather selection. Native protection remains authoritative and now records actual collider centre for compact diagnosis. Complete CI, review and changed-build trial follow; full two-tree delivery is still unproven.
+
+**agent:codex/renki-milestones** at 2026-10-31T08:16:58Z
+
+### Wall-aware harvest passed; returning under pressure exposed entrance/stamina limits
+Installed fb4f0d4 passed full CI (.checks/20261031T075937Z-aZy5gy.log), committed review (.checks/20261031T080218Z-XdaYrd.log), and checksummed installation (.checks/20261031T080224Z-lnI26Y.log). The changed-build trial correctly skipped wall-protected beeches and felled1:42708. It approached newly created trunk731390815:75, but Greyling846416140:195 approached and dealt4.55 damage before cancellation. No log/storage completion; .checks/gather-trial-20261031T080240336216Z/summary.json, audit .checks/audit-window-4Ajaj1.jsonl. Full loop remains unproven.
+
+The Greyling followed the normal outage home return140m; startup combat trial stopped honestly after damage on the ground below home (.checks/combat-trial-20261031T080526815462Z/summary.json). Manual native melee was attempted with the explicit target but correctly retreated with near-zero stamina (.checks/task-qeu_nawo.json). Sustained fleeing recruited another Greyling1960390678:2623. Native dry return again reached[-39.9,32.3,1.5] below home before being replaced by a safety flee. Tas was safely logged out with combat disabled and offline panel restored (.checks/20261031T081310Z-TJrVwz.log). Do not claim a combat win or completed gather.
+
+Next candidate adds loaded-door entrance hints for raised dry destinations: at most3 measured threshold floors near the original goal, all routes physically checked and doorway permissions unchanged; portal arrival uses0.6m height tolerance rather than the1.75m eye-height home allowance. Failed/changed entrance searches fall back boundedly. Ordinary Walker sprint pacing walks below20%/10 stamina and regenerates to65%/20 before sprinting again. Focused core suite and installed-game plugin build pass (.checks/20261031T081619Z-Ylg9s3.log, .checks/20261031T081622Z-aoLg4K.log). Full CI/review/deploy and live return, recovery and resumed multi-tree work follow. The untouched fallen trunk remains near[5,53,-149].

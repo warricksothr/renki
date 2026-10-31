@@ -22,7 +22,7 @@ namespace Renki.Movement
         public void Observe(V3 at, V3 goal) => nearest = Math.Min(nearest, V3.FlatDistance(at, goal));
 
         public RouteValidation Try(V3 from, V3 goal, IReadOnlyList<V3> points,
-            Func<V3, V3, V3?> probe, double within)
+            Func<V3, V3, V3?> probe, double within, double arrivalLevel = Arrival.Level)
         {
             Observe(from, goal);
             if (!origin.HasValue || (from - origin.Value).Length >= 2)
@@ -31,14 +31,14 @@ namespace Renki.Movement
             }
             if (points.Count == 0 || points.Count > RouteValidation.MaxSamples) return null;
             var end = points[points.Count - 1];
-            var complete = Arrival.Reached(end, goal, within);
+            var complete = Arrival.Reached(end, goal, within, arrivalLevel);
             // A checked prefix can bring local search to the obstacle without
             // inventing the missing final leg or declaring the goal reached.
             if ((!complete && nearest - V3.FlatDistance(end, goal) < MinProgress) ||
                 attempted.Count >= MaxAttempts || attempted.Any(old => Same(old, points))) return null;
             var copy = points.ToArray();
             attempted.Add(copy);
-            return new RouteValidation(from, complete ? goal : end, new RouteHint(0, copy), probe, complete ? within : .15);
+            return new RouteValidation(from, complete ? goal : end, new RouteHint(0, copy), probe, complete ? within : .15, complete ? arrivalLevel : Arrival.Level);
         }
 
         /// <summary>A failure can leave useful checked ground before the
