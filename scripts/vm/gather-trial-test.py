@@ -99,6 +99,36 @@ class GatherEvidence(unittest.TestCase):
             with self.subTest(kind=kind), self.assertRaises(RuntimeError):
                 self.verify(s, rows)
 
+    def test_two_tree_home_trial_requires_two_complete_chains_and_exact_combined_deposit(self):
+        summary, rows = self.fixture()
+        summary.update(maxTrees=2, returnHome=True, home=[0, 30, -10], finalPos=[0, 30, -9])
+        rows[0]['frame']['resources'] += [dict(id='tree2', kind='tree', prefab='Beech1'),
+            dict(id='c', kind='log', prefab='beech_log'), dict(id='d', kind='log', prefab='beech_log_half')]
+        extra = []
+        for key, entity in [('h4', 'tree2'), ('h5', 'c'), ('h6', 'd')]:
+            extra += [dict(msg='behaviour step', attrs=dict(instance='trial', id=key, task='harvest')),
+                dict(conn=7, frame=dict(type='task', id=key, task='harvest', args=dict(entity=entity))),
+                dict(conn=7, frame=dict(type='trace', task=key, source='harvest', msg='resource broke after local hit', data=dict(entity=entity, hits=5))),
+                dict(conn=7, frame=dict(type='task', re=key, status='succeeded'))]
+        insertion = next(i for i,r in enumerate(rows) if r.get('attrs',{}).get('id') == 'd1')
+        rows[insertion:insertion] = extra
+        for r in rows:
+            f=r.get('frame',{})
+            if f.get('type')=='inventory': f['items'][0]['stack']=62
+            if f.get('type')=='container': f['moved']['Wood']=40
+            if f.get('id')=='r1': f['args']['to']=summary['home']
+        result=self.verify(summary,rows)
+        self.assertEqual((result['treesHarvested'],result['logsHarvested'],result['woodGain']),(2,4,40))
+        for failure in ('same_tree_twice','missing_log_chain','wrong_deposit','under_home'):
+            s,rr=copy.deepcopy(summary),copy.deepcopy(rows)
+            if failure=='same_tree_twice': next(r['frame'] for r in rr if r.get('frame',{}).get('id')=='h4')['args']['entity']='tree'
+            if failure=='missing_log_chain':
+                # Two complete tree declarations cannot replace two completed log chains.
+                next(r['frame'] for r in rr if r.get('frame',{}).get('id')=='h3')['args']['entity']='tree2'
+            if failure=='wrong_deposit': next(r['frame'] for r in rr if r.get('frame',{}).get('type')=='container')['moved']['Wood']=20
+            if failure=='under_home': s['finalPos']=[0,25,-10]
+            with self.subTest(failure=failure),self.assertRaises(RuntimeError): self.verify(s,rr)
+
     def test_failures_keep_step_receipts_without_inventing_success(self):
         summary, rows = self.fixture()
         summary['outcome'] = 'failed'

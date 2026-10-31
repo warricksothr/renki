@@ -242,6 +242,7 @@ func TestGatherSiteTravelBoundsAndValidation(t *testing.T) {
 	nextTask(t, r, v, nil, protocol.TaskMoveTo)
 	r, v = gathering(t)
 	r.targets = 5
+	r.treeOpen, r.trees = true, 1
 	r.center = protocol.Vec3{5, 0, 0}
 	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("new", protocol.ResourceLog, 6)}
 	if order, err := r.Next(v, nil); order != nil || err == nil || !strings.Contains(err.Error(), "five-resource") {

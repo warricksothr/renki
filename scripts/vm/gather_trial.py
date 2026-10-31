@@ -50,7 +50,7 @@ def destinations(status, mapped):
     return result[:16]
 
 
-def run(summary, call, observe, saved):
+def run(summary, call, observe, saved, trees=1, site=None):
     status, mapped = observe()
     scope = (status.get('world'), status.get('worldUid'), status.get('connection'))
     if not all(scope) or status.get('task') or status.get('phase') != 'in_world':
@@ -59,26 +59,32 @@ def run(summary, call, observe, saved):
     if (pack.get('world'), pack.get('connection')) != (scope[0], scope[2]) or not pack_ready(pack):
         raise RuntimeError('controller gather needs a scoped usable axe and spare capacity')
     target, summary['selection'] = select_site(status, mapped.get('perception') or {})
-    if target is None:
+    if target is None and site is None:
         raise RuntimeError('no nearby isolated full beech for the controller gather benchmark')
+    if site is not None and (not status.get('home') or math.dist(site, status['home']['pos']) > 150):
+        raise RuntimeError('gather work-site hint must remain within 150 m of home')
+    worksite = site if site is not None else target['pos']
+    if site is not None:
+        target = None  # The controller binds an observed tree after native travel.
     chests = destinations(status, mapped)
     initial_behaviours = records(call('panel', 'GET', '/api/behaviours', as_json=True))
     if any(b.get('pending') or b.get('running') for b in initial_behaviours):
         raise RuntimeError('another behavior is pending/running; gather will not replace it')
     name = 'M2 gather ' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     summary.update(mode='controller_gather', origin=status['pos'], world=scope[0], worldUid=scope[1],
-                   connection=scope[2], site=target['pos'], tree=target, before=counts(pack),
+                   connection=scope[2], site=worksite, tree=target, before=counts(pack), maxTrees=trees,
+                   home=status.get('home', {}).get('pos'), returnHome=trees > 1,
                    beforeInventorySeq=pack['inventory']['seq'], to=chests,
                    initialResourceIDs=[r['id'] for r in (mapped.get('perception') or {}).get('resources', [])])
-    definition = dict(template='gather', params=dict(site=dict(world=scope[0], pos=target['pos'], radius=20),
-                      to=chests, **{'return': True}), trigger=dict(kind='manual'), repeat=dict(mode='once'),
+    definition = dict(template='gather', params=dict(site=dict(world=scope[0], pos=worksite, radius=30 if trees > 1 else 20),
+                      to=chests, maxTrees=trees, returnHome=trees > 1, **{'return': trees == 1}), trigger=dict(kind='manual'), repeat=dict(mode='once'),
                       priority=10, enabled=False)
     # Mark for cleanup before the write: a lost response may still have saved it.
     summary['behaviourName'] = name
     call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=name, definition=definition)), as_json=True)
     call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='start', name=name)), as_json=True)
     previous_health = status
-    deadline = time.monotonic() + 490
+    deadline = time.monotonic() + trees * 480 + 10
     while time.monotonic() < deadline:
         current, mp = observe()
         if (current.get('world'), current.get('worldUid'), current.get('connection')) != scope or current.get('phase') != 'in_world':
@@ -131,7 +137,8 @@ def verify(audit, summary):
     if any(f.get('worldUid') and f['worldUid'] != summary['worldUid'] for f in frames if f.get('type') in ('state', 'inventory', 'perception', 'container')):
         return _fail('gather audit world changed')
     harvests = [s for s in steps if s['task'] == 'harvest']
-    if not 3 <= len(harvests) <= 5:
+    required_trees = summary.get('maxTrees', 1)
+    if not required_trees * 3 <= len(harvests) <= required_trees * 5:
         return _fail('full tree and two log harvests not verified')
     known = {}
     for f in frames:
@@ -139,20 +146,31 @@ def verify(audit, summary):
             for r in f.get('resources', []):
                 known[r['id']] = r
     harvested = set()
+    trees = logs = chain_logs = 0
     for index, step in enumerate(harvests):
         key = step['id']
         resource = known.get(requests.get(key, {}).get('args', {}).get('entity'), {})
         full_tree = resource.get('prefab') == 'Beech1' and resource.get('kind') == 'tree'
         new_log = (resource.get('kind') == 'log' and resource.get('prefab', '').lower().startswith('beech')
                    and resource.get('id') not in summary['initialResourceIDs'])
-        if not (full_tree if index == 0 else new_log):
+        if not (full_tree or new_log) or index == 0 and not full_tree:
             return _fail('harvest resource identity/kind missing from observations')
-        if resource['id'] in harvested or (index == 0 and resource['id'] != summary['tree']['id']):
+        if resource['id'] in harvested or (index == 0 and summary.get('tree') and resource['id'] != summary['tree']['id']):
             return _fail('harvest substituted or repeated a resource')
+        if full_tree:
+            if trees and chain_logs < 2:
+                return _fail('another tree started before splitting its predecessor')
+            trees += 1
+            chain_logs = 0
+        else:
+            logs += 1
+            chain_logs += 1
         harvested.add(resource['id'])
         if results.get(key, {}).get('status') != 'succeeded' or not any(f.get('type') == 'trace' and f.get('task') == key and f.get('source') == 'harvest'
                and f.get('msg') == 'resource broke after local hit' and f.get('data', {}).get('entity') == resource['id'] and f.get('data', {}).get('hits', 0) > 0 for f in frames):
             return _fail('missing task-matched harvest break proof')
+    if trees != required_trees or chain_logs < 2:
+        return _fail('required distinct complete trees not verified')
     deposits = [f for f in frames if f.get('type') == 'container' and f.get('task') in ids and f.get('direction') == 'deposit']
     moved = Counter()
     seen = set()
@@ -178,11 +196,12 @@ def verify(audit, summary):
             return _fail('gain-only delivery or preservation of original products not verified')
     last = steps[-1]['id']
     final = requests.get(last, {})
-    if final.get('task') != 'move_to' or final.get('args', {}).get('to') != summary['site'] or results.get(last, {}).get('status') != 'succeeded' or math.dist(summary['finalPos'], summary['site']) > 3:
-        return _fail('missing successful return to the work site')
+    destination = summary['home'] if summary.get('returnHome') else summary['site']
+    if final.get('task') != 'move_to' or final.get('args', {}).get('to') != destination or results.get(last, {}).get('status') != 'succeeded' or math.dist(summary['finalPos'], destination) > 3:
+        return _fail('missing successful return to the requested destination')
     if summary['afterInventorySeq'] <= max(r.get('seq', 0) for r in deposits):
         return _fail('final inventory predates deposit receipts')
-    return dict(proof, outcome='succeeded', logsHarvested=len(harvests)-1, woodGain=moved['Wood'], deposited=dict(moved), returned=True)
+    return dict(proof, outcome='succeeded', treesHarvested=trees, logsHarvested=logs, woodGain=moved['Wood'], deposited=dict(moved), returned=True)
 
 
 def _fail(reason):

@@ -65,7 +65,11 @@ func (e *Engine) StartWood(ctx context.Context, by string) (string, error) {
 	if e.o.Containers != nil && v.State != nil {
 		hints = e.o.Containers(v.State.World)
 	}
-	p, remembered, err := planWood(v, last, hints)
+	var landmarks []home.Landmark
+	if e.o.Landmarks != nil {
+		landmarks = e.o.Landmarks(v.State.World)
+	}
+	p, remembered, err := planWood(v, last, hints, landmarks...)
 	if err != nil {
 		return "", err
 	}
@@ -94,11 +98,11 @@ func (e *Engine) StartWood(ctx context.Context, by string) (string, error) {
 	if remembered {
 		where = "my last wood work site"
 	}
-	return "I'll gather one beech at " + where + ", deliver the new wood to home storage, and return to the site. Tell me stop to cancel.", nil
+	return "I'll gather up to two beeches at " + where + ", then return home and store the new wood. I'll return sooner if my pack or axe needs it. Tell me stop to cancel.", nil
 }
 
-func planWood(v View, last *GatherParams, hints []home.RememberedContainer) (GatherParams, bool, error) {
-	p := GatherParams{Return: true}
+func planWood(v View, last *GatherParams, hints []home.RememberedContainer, landmarks ...home.Landmark) (GatherParams, bool, error) {
+	p := GatherParams{MaxTrees: 2, ReturnHome: true}
 	fail := func(message string) (GatherParams, bool, error) { return p, false, errors.New(message) }
 	if v.State == nil || v.State.Phase != protocol.PhaseInWorld || v.State.World == "" || !freshPerception(v) ||
 		v.Inventory == nil || v.StateAt.IsZero() || v.PerceptionAt.IsZero() ||
@@ -156,7 +160,24 @@ func planWood(v View, last *GatherParams, hints []home.RememberedContainer) (Gat
 	} else if best != nil {
 		p.Site.Pos = best.Pos
 	} else {
-		return fail("I don't know a safe beech work site nearby; trees near characters or buildings must stay standing")
+		var hint *home.Landmark
+		for _, l := range landmarks {
+			// A locally visible absence/unsafe tree supersedes memory. Distant
+			// hints are travel destinations only, with full revalidation there.
+			if l.Kind != protocol.ResourceTree || l.Prefab != "Beech1" || l.MinTool == nil || *l.MinTool != 0 ||
+				l.At.After(v.Now) || v.Now.Sub(l.At) > 7*24*time.Hour || distance(l.Pos, *v.Home) > 150 || distance(l.Pos, v.State.Pos) <= 60 ||
+				!gatherClear(v, protocol.PerceivedResource{Kind: protocol.ResourceTree, Pos: l.Pos}) {
+				continue
+			}
+			if hint == nil || targetCost(v, l.Pos) < targetCost(v, hint.Pos) || targetCost(v, l.Pos) == targetCost(v, hint.Pos) && l.Entity < hint.Entity {
+				copy := l
+				hint = &copy
+			}
+		}
+		if hint == nil {
+			return fail("I don't know a safe beech work site nearby; trees near characters or buildings must stay standing")
+		}
+		p.Site.Pos = hint.Pos
 	}
 	positions := map[string]protocol.Vec3{}
 	for _, c := range hints {

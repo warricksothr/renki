@@ -29,6 +29,7 @@ type Options struct {
 	Owners     func() []string
 	Home       func() (protocol.Vec3, bool)
 	Containers func(world string) []home.RememberedContainer
+	Landmarks  func(world string) []home.Landmark
 	Danger     func(world string, now time.Time) []home.DangerZone
 	Logger     *slog.Logger
 	Now        func() time.Time

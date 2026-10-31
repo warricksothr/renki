@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N12JW8TFN12MAT8M1ADZ8
 title: "Controller: go chop wood: pick a site and gather on its own"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -23,10 +23,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/multi-tree-home-storage
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: b704d7318813c104f6e7bbaf1516192079eae5e6
+  session: null
+  claimed_at: 2026-10-31T05:33:39Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T00:36:19Z
+updated_at: 2026-10-31T05:42:11Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -50,7 +57,11 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 
 ## Implementation plan
 
-Complete the bounded controller tree/log/collected-gains/storage/return trial on the deployed pivot-contact build. Prepare food through native home travel and verified storage transfers. The first resupply return succeeded but the supervisor rejected an older pre-completion pose; refresh scoped, injury-checked status after a terminal receipt and wait at most five seconds for that task to clear before assessing arrival or starting another task. A different task, changed scope, damage or stale completion still aborts. Cover the observation/history race and stale/new-order cases, then focused checks and the full CI/review gate. Land alongside the bounded scouting-footing recovery needed by M3, deploy, and run one changed-build combat check followed by the full M2 gather benchmark when eligible. Preserve gains-only storage proof and all falling-tree/bystander/health guards. Keep broad M2 acceptance open until full delivery, site inference and repeated hauling are observed.
+Complete the owner's explicit autonomous multi-harvest -> home -> verified storage objective. The gate/review/checksum-deployed door correction in merged PR128 passed an isolated staircase-to-home return in 5.9 seconds through the two current gates; exact food resupply and indoor floor were verified with zero damage (.checks/resupply-trial-20261031T052940675235Z/summary.json). Directly-under-floor routing is still unproven.
+
+Extend the existing gather runner with an explicit bounded tree count (legacy definitions remain one tree), finish each tree's observed new-log chain before selecting another, and preserve one initial product baseline for gains-only delivery. Check capacity and axe durability between complete trees; these pressures choose storage rather than abandoning completed cargo. Pin known home for an opt-in return-home phase before storage, use native dry movement for work/home approaches, and verify arrival from a subsequent state before depositing. Keep health, bystander, structures/falling-tree, freshness, ownership, failure and uncertainty guards. Bound per-tree work, total native cuts, and reserve logistics time.
+
+Update the owner command and repeatable VM benchmark for two distinct full trees and their new logs, with exact task-matched break/collection/storage proof and final home pose. Select/approach safe sites autonomously; diagnose changed-layout route failures from recorded next-waypoint/physics evidence and fix the underlying behavior without extending return timeouts or asking for manual staging. Focused checks, full CI, committed review, deployment and iterative changed-build live tests precede landing and acceptance updates. Repair/resupply only as actual prerequisites require; leave broader production-pressure/value/armour policy draft.
 
 ## Notes
 
@@ -145,3 +156,13 @@ The full-beech contact/felling proof from .checks/gather-trial-20261030T23552881
 The later M3 scouting fixes are merged/deployed through 8969d8d. Its final trial completed 225.9 m of local search and return with zero damage, but final fresh perception again contained zero full beech trees. Selection was evaluated from the retained fresh observation without starting another unchanged gathering trial. Do not treat this as proof there are no trees beyond perception, and do not retry the now-felled tree.
 
 Next M2 work is remembered resource/worksite discovery and refreshing a candidate site before beginning the strict benchmark's baseline and exact tree selection. Ordinary trees are currently excluded by notableResource in internal/memory/landmarks.go; StartWood can reuse its saved chat-created last site but otherwise relies on fresh nearby trees. Old coordinates are destination hints only, never permission to cut or proof of new logs. Preserve full tree identity, new-log and exact delivery receipts in any extended test. Full gather and multi-trip acceptance remains open. Returning this unfinished ticket to ready and releasing the claim for handoff.
+
+**agent:codex/renki-milestones** at 2026-10-31T05:42:11Z
+
+### Two-tree controller cycle implemented
+
+Added maxTrees (legacy default one, bounded to three), complete per-tree new-log chains, one retained initial product baseline, and delivery before selecting another tree under capacity/axe pressure or insufficient remaining time. Native cuts remain bounded to five per tree; total work is eight minutes per requested tree, with a bounded between-tree stamina rest. Missing/unsafe descendants and native failures cannot advance to another full tree. Opt-in returnHome pins known home, uses a 120-second dry native move before storage, requires a subsequent floor-correct pose, stows through existing task-matched receipts using dry approaches, and finishes at the pinned home. Existing return-to-site definitions remain compatible and mutually exclusive with returnHome.
+
+The owner wood command now requests up to two trees and a home finish. Bounded landmark memory records ordinary full beech hints; recent distant hints can select travel destinations, with fresh acquisition/safety checks after arrival. VM gather benchmark accepts a bounded tree count and optional known work-site coordinates, and requires the requested distinct full trees, completed log chains, exact combined gains-only deposits and final destination proof. Two-tree, pressure delivery, stale/under-floor home receipt, changed home pin, remembered-hint scope/age, evidence-substitution and baseline-preservation checks pass. Full gate/review/deployment and live proof follow; no multi-tree game completion is claimed yet.
+
+First live destination hint is the previously observed south stand around [-43,36,-85], within 150 m of home, rather than manual enemy/tree staging. Fresh native observations must still authorize each cut. Door PR128 landed as b704d73; isolated staircase-to-home return on d2ee29b took 5.9 seconds through the current two gates, verified exact food withdrawals and indoor floor, and took zero damage. This is not proof of the directly-under-house approach.

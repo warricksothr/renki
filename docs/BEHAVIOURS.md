@@ -186,13 +186,13 @@ for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
 
 ## Bounded beech gathering
 
-`gather` visits an explicit world/site, fells one nearby isolated tier-zero
-full beech, harvests newly observed nearby beech logs, and stows only the
+`gather` visits an explicit world/site, fells a bounded number of isolated tier-zero
+full beeches, harvests each tree's newly observed nearby beech logs, and stows only the
 products gained during that run. For example, use these template parameters:
 
 ```json
 {"site":{"world":"DizzysHellheim","pos":[175,84,-260],"radius":30},
- "to":["<destination-chest-id>"],"return":true}
+ "to":["<destination-chest-id>"],"maxTrees":2,"returnHome":true}
 ```
 
 An authorized player can say `Tas, go chop wood` (also `chop wood` or `gather
@@ -201,7 +201,11 @@ wood`) in game or through the panel. This creates/starts the manual once-only
 safe trees confirm it, or travels to a distant saved site and revalidates there.
 Otherwise it chooses an isolated tier-zero beech in current perception within
 60 m, preferring lower remembered danger, and orders known chests within 10 m
-of home. Home and the selected site must remain within the 150 m home range.
+of home. Recent remembered beech locations can supply a distant work-site hint;
+the controller rechecks actual trees and surroundings after arrival. Ordinary
+beech observations now enter the bounded landmark memory. Home and the selected
+site must remain within the 150 m home range. The command requests up to two
+complete trees, returns home and deposits only this run's product gains.
 Missing tools, food, capacity, fresh observations, safe trees or storage produce
 an explanation. Existing active or queued work must be stopped first. `Tas,
 stop` cancels through ordinary owner controls. A saved command definition does
@@ -219,21 +223,39 @@ must be at least 40. Native C# owns every approach, strike, falling-log escape a
 collection. Protection distances remain 32 m for standing trees, 8 m for logs,
 and 15 m around Tas, with authoritative native checks before swings.
 
-At most five harvest tasks and eight minutes are allowed. Existing resource IDs
-are excluded from the log chain; nearby new IDs are candidates, not proof of
+`maxTrees` defaults to one for older definitions and accepts at most three.
+At most five harvest tasks and eight minutes per requested tree are allowed.
+Each full tree/log chain must finish with measured Wood gain before selecting
+another tree. Existing resource IDs at that tree's start
+are excluded from its log chain; nearby new IDs are candidates, not proof of
 spawn lineage. A successful native task must be followed by fresh inventory and
 perception, with its target gone. Missing/unsafe logs stop the run. It requires
 at least two log harvests and measured Wood gain before delivery. Baseline Wood,
 BeechSeeds, Resin and Feathers are retained; only gains in those products enter
 the existing ordered-chest stow routine. Optional return revisits the site's
-center. Storage failures keep items in the pack and use stow's shortfall status.
+center. `returnHome` instead pins known home, uses native dry travel to confirm
+the home floor before storage, and finishes at home after the deposit. It cannot
+combine with `return`. A matching native home receipt and a strictly later pose
+are required; standing below a floor does not confirm arrival. Each home move
+retains its 120-second bound. Storage failures keep items in the pack and use
+stow's shortfall status.
+
+Between complete trees, capacity or axe-durability pressure chooses delivery
+rather than another cut. Low stamina gets one bounded 20-second rest; insufficient
+recovery chooses delivery. Less than four minutes left also chooses delivery.
+Missing/unsafe descendants still stop the run; they cannot authorize cutting a
+different tree. These checks are the first bounded work-cycle controls, not the
+planned broader cargo-value, repair and resupply policy.
 
 Owner orders, stop, permissions and session/world changes revoke the run through
 the engine. The command remembers its requested site in the saved behavior;
-it does not infer work sites from watching owners, mine rocks, craft tools or
-loop across multiple trees.
+it does not infer work sites from watching owners, mine rocks or craft tools.
 Focused checks: `just check controller test-packages ./internal/behaviour`.
-Controller-level full gathering/delivery remains a separate live check.
+Controller-level full gathering/delivery remains a separate live check. Run
+`just check vm gather-trial --gather-trees 2` to require two distinct complete
+trees, task-matched break proof, combined gains-only storage and final home.
+`--gather-site X Y Z` supplies a known location hint without binding a stale
+resource ID; the controller acquires fresh eligible trees there.
 
 ## Combat
 
