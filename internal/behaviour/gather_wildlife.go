@@ -43,6 +43,7 @@ func (r *gatherRun) clearWildlife(v View, result *Result) (*session.Order, error
 		}
 		if gatherClear(v, tree) {
 			r.wildlifeUntil = time.Time{}
+			r.wildlifeObserveUntil = time.Time{}
 			return nil, nil
 		}
 		if gatherClearance(v, tree, true) && (candidate == nil || targetCost(v, tree.Pos) < targetCost(v, candidate.Pos) ||
@@ -77,8 +78,15 @@ func (r *gatherRun) clearWildlife(v View, result *Result) (*session.Order, error
 		}
 	}
 	if deer == nil {
+		if r.wildlifeObserveUntil.IsZero() {
+			r.wildlifeObserveUntil = v.Now.Add(20 * time.Second)
+		}
+		if v.Now.Before(r.wildlifeObserveUntil) {
+			return nil, ErrWait
+		}
 		return nil, errors.New("passive wildlife blocks the work site outside bounded approach range")
 	}
+	r.wildlifeObserveUntil = time.Time{}
 	r.clearingWildlife = true
 	r.wildlifeAttempts++
 	pos, stop, run := deer.Pos, 8.0, true

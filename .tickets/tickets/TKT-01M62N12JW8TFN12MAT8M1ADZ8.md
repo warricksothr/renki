@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T12:30:56Z
+updated_at: 2026-10-31T12:38:49Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -395,3 +395,10 @@ Two-tree .checks/gather-trial-20261031T122113029178Z reached stand[94.03,41.81,4
 Add one bounded normal running approach when only passive deer block otherwise safe full beeches. Stop8m from a fresh fixed deer position within20m of Tas,40m of site and150m of pinned home; native dry/hostile-aware movement owns the route,30s maximum. Require a newer perception after the exact success receipt, then wait up to20s for all original exclusions to become clear. At most maxTrees such approaches per run. No moving-target chase, attack or relaxed harvest protection. Other threats, players, walls, structures, supplied-body conditions and storage pressure retain existing handling. Do not classify passive Deer as an actual travel threat merely because Valheim reports hostile faction; targeted/modded aggression remains blocking. The trial's proximity guard uses that same narrow passive-deer exception while native harvest still checks full exclusion.
 
 Captured stand and policy checks cover exact fixed movement, unchanged starting cargo, no premature harvest, no repeated chasing, success+freshness, timeout/failure, other actors, wall/building exclusions, range and stamina/attempt limits. Need focused checks/full CI/committed review/controller deployment, then retry the uninterrupted two-tree/log gain-only final-home/store benchmark. No broad criterion earned yet.
+
+**agent:codex/renki-milestones** at 2026-10-31T12:38:49Z
+
+### Wait for moving wildlife before declaring its approach unavailable
+bf5add6 passed CI .checks/20261031T123056Z-OTRJav.log, review .checks/20261031T123341Z-vid8ih.log and controller deployment .checks/20261031T123358Z-YIJnAu.log. Trial .checks/gather-trial-20261031T123414063362Z stopped before movement/cutting because the passive deer was outside approach bounds at the decision. The retained audit places Deer1:62150 at[127.43,50.2,45.1], then[122.26,48.33,44.93], then[118.19,45.73,49.22] immediately before failure07:35:28 local. Supervisor's later observation showed it back at[105.42,42.75,52.76], within20m of Tas and150m of home. The instantaneous refusal lost that opportunity.
+
+Add one20s observation window for out-of-range passive wildlife. Preserve20m approach,40m site,150m home and30s native movement bounds. A fresh range change may authorize the existing one-time approach; cleared exclusions permit cutting. Persistent obstruction still stops after the window, with no chase and no native task dispatched merely to wait. Tests cover transition into range and deadline exhaustion. Tas is healthy38.6/38.6HP, zero audit damage, safely offline at[92.67,41.63,44.35] with Mushroom655s in the latest supervisor observation, and no cuts/cargo changes. Original products Wood27/Resin5/BeechSeeds2. Need gate/review/controller deployment, then uninterrupted two-tree/log gain-only home/store proof.

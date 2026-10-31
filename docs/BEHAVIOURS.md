@@ -234,6 +234,8 @@ and bystander exclusions clear. It never attacks or follows a moving deer.
 Approaches have a 30-second bound; their destinations must be within 40 m of the
 work site and 150 m of home. At most one per requested tree is allowed in a run.
 Players, other creatures, structures and walls keep their original protections.
+Wildlife outside the approach bounds receives one 20-second observation window
+to leave or come within range, rather than an immediate failure or a longer chase.
 
 Before leaving home, `returnHome` gathering repairs a carried axe below 90%
 durability at a currently observed home workbench. It uses `interact` with

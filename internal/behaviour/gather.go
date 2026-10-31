@@ -87,6 +87,7 @@ type gatherRun struct {
 	clearingWildlife                          bool
 	wildlifeAttempts                          int
 	wildlifeUntil                             time.Time
+	wildlifeObserveUntil                      time.Time
 	wildlifeScan                              uint64
 }
 

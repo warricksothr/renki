@@ -103,6 +103,28 @@ func TestGatherWildlifeClearanceHasReceiptAndObservationDeadlines(t *testing.T) 
 	}
 }
 
+func TestGatherObservesOutOfRangeWildlifeWithoutChasingIt(t *testing.T) {
+	for _, movesIntoRange := range []bool{false, true} {
+		r, v := gathering(t)
+		worksiteDeer(&v)
+		v.Perception.Characters[0].Pos[0] = 26
+		if order, err := r.Next(v, nil); order != nil || !errors.Is(err, ErrWait) || r.wildlifeAttempts != 0 {
+			t.Fatal(order, err, r)
+		}
+		v.Perception.Seq++
+		if movesIntoRange {
+			v.Now = v.Now.Add(5 * time.Second)
+			v.Perception.Characters[0].Pos[0] = 15
+			nextTask(t, r, v, nil, protocol.TaskMoveTo)
+		} else {
+			v.Now = v.Now.Add(21 * time.Second)
+			if order, err := r.Next(v, nil); order != nil || err == nil || errors.Is(err, ErrWait) {
+				t.Fatal("observation did not expire", order, err)
+			}
+		}
+	}
+}
+
 func TestCapturedBeechStandWithOnePassiveDeerGetsABoundedApproach(t *testing.T) {
 	r, v := gathering(t)
 	r.p.Return, r.p.ReturnHome, r.p.MaxTrees = false, true, 2
