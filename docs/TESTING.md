@@ -1011,7 +1011,12 @@ least six meters toward the goal, validate to its own endpoint, and leave local
 search to finish the approach. Asynchronous candidate rejections do not reset
 the ongoing local search or its elapsed bound. The same stationary
 candidate is not retried, and at most eight distinct candidates are validated
-until two meters of actual movement or a new goal resets that allowance. Check a
+until two meters of actual movement or a new goal resets that allowance.
+Partial endpoints and checked prefixes must improve on the closest actual
+position of the whole trip, including local travel. Moving away to reach a gate
+cannot make a previously reached interior corner count as progress again. This
+baseline resets on a new goal; complete validated routes can still detour.
+Check a
 raised-floor entrance, a removed ramp, an invalid wet shortcut and changed tiles;
 keep recorded-trail reuse distinct from validated navmesh guidance in evidence.
 A failed candidate can retain its already checked prefix when that prefix alone

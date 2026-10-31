@@ -27,13 +27,13 @@ claim:
   actor: agent:codex/renki-milestones
   branch: t3/multi-tree-home-storage
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: b704d7318813c104f6e7bbaf1516192079eae5e6
+  commit: 5b3af40290c425391c4a7f0c4bec5b51c3160558
   session: null
   claimed_at: 2026-10-31T05:33:39Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T05:50:19Z
+updated_at: 2026-10-31T05:58:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -174,3 +174,11 @@ First live destination hint is the previously observed south stand around [-43,3
 The last verified native pack has AxeFlint durability38/100, insufficient for a dependable two-tree chain. Added explicit interact repair:true for crafting stations, behind the existing movement/AllowGather/access gates. The native routine approaches on checked dry ground, requires normal interaction sight/reach and observed current station/UI, and invokes the game's repair-button method. Game shelter, recipe, station type/level and repair eligibility remain authoritative. The installed CraftingStation.Interact API returns false even when it opens; completion therefore uses observed station/UI, not that return flag. No-cost mode is refused. A click needs one verified durability increase, emitted with task-attributed slot/prefab/before/after/max; at most32 clicks/10 seconds after opening. Completion/cancellation closes the station UI. Other station-specific worn gear is not claimed repaired.
 
 Return-home gathering automatically performs that preparation at a currently observed home workbench when no carried axe is at least90% repaired, then waits for fresh actual inventory before leaving. Stale, failed or ineffective repair cannot advance. Cross-language protocol fixtures, parser conflict/type checks, station-kind and permission checks, native installed-game build and focused controller readiness/repair regressions pass. One fixture omitted required round-trip envelope defaults and was corrected after reading its diagnostic. Full gate/review/deployment and the live two-tree check follow. ec47825's earlier full gate/review passed; draft PR129 is linked.
+
+**agent:codex/renki-milestones** at 2026-10-31T05:58:05Z
+
+### First multi-tree trial: repair passed, departure failed
+
+Deployed 5b3af40 repaired AxeFlint from38 to100 and waited for fresh actual inventory. The two-tree trial never reached a tree: native t-3 move_to timed out at90 seconds while cycling between gate(-39.77,36.99,11.2) and interior(-33.2,36.09,3.33). There were zero native damage events; cleanup stopped the game and left the panel online. Evidence: .checks/gather-trial-20261031T055350005997Z/summary.json; .checks/audit-window-dvD8hf.jsonl. No harvesting or storage proof.
+
+The partial-navmesh progress check used the current position. A necessary doorway detour moved farther from the worksite, making an old interior endpoint falsely earn six meters of progress again. Add a whole-trip nearest-distance baseline, observed during actual local and navmesh travel, to reject recycled partial endpoints and rejected-candidate prefixes. Complete routes still allow detours and retain physical validation; reset only on a new goal. Captured-position regression plus partial-prefix/reset checks pass via just check plugin test-core NavmeshCandidatesTests. Full CI, commit review, deployment and another live attempt follow.

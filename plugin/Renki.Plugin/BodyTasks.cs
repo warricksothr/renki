@@ -136,6 +136,7 @@ namespace Renki.Plugin
             hasGoal = true;
             skipReuse = false;
             navmeshCandidates.Reset();
+            navmeshCandidates.Observe(Convert.ToV3(from), Convert.ToV3(to));
             nextDryNavmeshTrace = 0;
             trailStarted = false;
             RecordGrounded(from);
@@ -308,6 +309,7 @@ namespace Renki.Plugin
         public bool Steer(Vector3 pos, bool run, bool climbObstacles = true)
         {
             if (!hasGoal) return true;
+            navmeshCandidates.Observe(Convert.ToV3(pos), Convert.ToV3(goal));
             if (checkedOnly)
             {
                 Driver.Move = Toward(pos).normalized;
@@ -497,7 +499,7 @@ namespace Renki.Plugin
             if (replay.Status == RouteStatus.Searching) return true;
             if (replay.Status != RouteStatus.Found)
             {
-                var prefix = replayNavmesh ? NavmeshCandidates.CheckedPrefix(replay, Convert.ToV3(pos), Convert.ToV3(goal)) : System.Array.Empty<V3>();
+                var prefix = replayNavmesh ? navmeshCandidates.CheckedPrefix(replay, Convert.ToV3(pos), Convert.ToV3(goal)) : System.Array.Empty<V3>();
                 if (prefix.Count > 0)
                 {
                     FollowReplay(pos, prefix, "following validated dry prefix before refused navmesh leg");

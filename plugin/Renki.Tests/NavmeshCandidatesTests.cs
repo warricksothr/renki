@@ -86,9 +86,10 @@ namespace Renki.Tests
         {
             var start = new V3(0, 30.4, 0); var goal = new V3(20, 30.4, 0);
             V3? Probe(V3 from, V3 to) => to.X >= 8 && to.X <= 12 ? (V3?)null : to;
-            var candidate = new NavmeshCandidates().Try(start, goal, new[] { goal }, Probe, .25);
+            var candidates = new NavmeshCandidates();
+            var candidate = candidates.Try(start, goal, new[] { goal }, Probe, .25);
             Assert.Equal(RouteStatus.NoRoute, Finish(candidate));
-            var prefix = NavmeshCandidates.CheckedPrefix(candidate, start, goal);
+            var prefix = candidates.CheckedPrefix(candidate, start, goal);
             Assert.NotEmpty(prefix);
             Assert.All(prefix, p => Assert.True(p.X < 8));
             Assert.False(Arrival.Reached(prefix.Last(), goal, .25));
@@ -97,7 +98,41 @@ namespace Renki.Tests
             // in charge rather than replacing it with tiny speculative steps.
             candidate = new NavmeshCandidates().Try(start, goal, new[] { goal }, (a, b) => b.X >= 2 ? null : b, .25);
             Assert.Equal(RouteStatus.NoRoute, Finish(candidate));
-            Assert.Empty(NavmeshCandidates.CheckedPrefix(candidate, start, goal));
+            Assert.Empty(candidates.CheckedPrefix(candidate, start, goal));
+        }
+
+        [Fact]
+        public void DoorDetourCannotRecycleAnInteriorPartialEndpointAsProgress()
+        {
+            var candidates = new NavmeshCandidates();
+            var goal = new V3(-43, 36, -85);
+            var start = new V3(-33.9, 36.09, 6.06);
+            var gate = new V3(-39.32, 36.09, 10.5);
+            var interior = new V3(-33.2, 36.14, 3.33);
+            candidates.Observe(start, goal);
+            // Captured positions: the doorway backs away from the distant
+            // worksite. Its partial path returns to the same interior corner.
+            Assert.True(V3.FlatDistance(gate, goal) - V3.FlatDistance(interior, goal) > NavmeshCandidates.MinProgress);
+            Assert.Null(candidates.Try(gate, goal, new[] { interior }, (_, b) => b, 2));
+            // A complete physically checked route remains eligible, even
+            // when reaching it first requires moving away from the goal.
+            var complete = candidates.Try(gate, goal, new[] { interior, goal }, (_, b) => b, 2);
+            Assert.NotNull(complete);
+            Assert.Equal(RouteStatus.Found, Finish(complete));
+            Assert.NotEmpty(candidates.CheckedPrefix(complete, gate, goal));
+        }
+
+        [Fact]
+        public void RejectedPrefixesRespectActualLocalProgressUntilANewGoal()
+        {
+            var candidates = new NavmeshCandidates();
+            var goal = new V3(20, 0, 0);
+            candidates.Observe(new V3(7, 0, 0), goal);
+            var route = candidates.Try(V3.Zero, goal, new[] { goal }, (_, b) => b.X >= 8 ? null : b, .25);
+            Assert.Equal(RouteStatus.NoRoute, Finish(route));
+            Assert.Empty(candidates.CheckedPrefix(route, V3.Zero, goal));
+            candidates.Reset();
+            Assert.NotEmpty(candidates.CheckedPrefix(route, V3.Zero, goal));
         }
 
         [Fact]
