@@ -43,7 +43,8 @@ func idleMarkerValid(i *instance, v View) bool {
 		return false
 	}
 	w, ok := i.definition.Trigger.Marker.resolve(v)
-	return ok && w == *i.idleMarker && withinMarker(v.State.Pos, w)
+	journey, travels := i.runner.(IdleJourney)
+	return ok && w == *i.idleMarker && (withinMarker(v.State.Pos, w) || travels && journey.TravelFromIdleMarker())
 }
 func (e *Engine) idleTrigger(name string, i *instance, v View, now time.Time) {
 	if e.active == name {

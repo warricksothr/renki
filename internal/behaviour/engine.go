@@ -51,6 +51,7 @@ type Engine struct {
 	drops               map[string]bool
 }
 type instance struct {
+	episodeID             string
 	definition            Definition
 	pending               bool
 	completed             int
@@ -70,6 +71,7 @@ type instance struct {
 	idleMarker            *home.Waypoint
 }
 type Status struct {
+	EpisodeID     string       `json:"episodeId,omitempty"`
 	Name          string       `json:"name"`
 	Definition    Definition   `json:"definition"`
 	Runs          int          `json:"runs"`
@@ -145,7 +147,11 @@ func (e *Engine) List() []Status {
 			copy.Chests = slices.Clone(copy.Chests)
 			storage = &copy
 		}
-		out = append(out, Status{Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage})
+		episode := i.episodeID
+		if provider, ok := i.runner.(Episode); ok {
+			episode = provider.EpisodeID()
+		}
+		out = append(out, Status{EpisodeID: episode, Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	// Neither callers nor templates can mutate the engine's definitions.
@@ -471,6 +477,15 @@ func (e *Engine) candidate(v View, now time.Time) string {
 }
 
 func (e *Engine) ended(i *instance, why string) {
+	if provider, ok := i.runner.(Episode); ok {
+		i.episodeID = provider.EpisodeID()
+	}
+	if life, ok := i.runner.(RunLifecycle); ok {
+		if err := life.EndRun(why); err != nil {
+			e.o.Logger.Error("episode checkpoint failed", "err", err)
+		}
+	}
+
 	if life, ok := e.o.Templates[i.definition.Template].(Lifecycle); ok {
 		if err := life.End(i.definition.Params, why); err != nil {
 			e.o.Logger.Error("behaviour checkpoint failed", "err", err)
@@ -648,6 +663,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		e.active, e.lease = best, lease
 		i.pending = false
 		i.step = 0
+		i.episodeID = ""
 		i.result = nil
 		i.waitingSince = time.Time{}
 		raw := append(json.RawMessage(nil), i.definition.Params...)

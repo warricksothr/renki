@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/bridge"
 	"github.com/warricksothr/renki/internal/bridge/bridgetest"
 	"github.com/warricksothr/renki/internal/config"
@@ -21,10 +22,10 @@ import (
 	"github.com/warricksothr/renki/internal/session"
 )
 
-func goalFixture(t *testing.T) (*App, *bridgetest.Plugin, func(string, string, bool, bool) *httptest.ResponseRecorder, func(string, float64, bool)) {
+func goalFixture(t *testing.T, extraTasks ...string) (*App, *bridgetest.Plugin, func(string, string, bool, bool) *httptest.ResponseRecorder, func(string, float64, bool)) {
 	t.Helper()
 	a := New(config.Default(), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
-	tasks := []string{"attack", "stop", "move_to"}
+	tasks := append([]string{"attack", "stop", "move_to"}, extraTasks...)
 	url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome { return &protocol.Welcome{AllowedTasks: tasks} }}, a.Session)
 	p := bridgetest.Connect(t, url, tasks)
 	send := func(entity string, x float64, targeting bool) {
@@ -250,5 +251,55 @@ func TestGoalPermissionFailureAndOfflineStopRemainSafe(t *testing.T) {
 	}
 	if !bytes.Contains(w.Body.Bytes(), []byte(`"status":"cancelled"`)) {
 		t.Fatal(w.Body.String())
+	}
+}
+
+func TestStopFactoryCreatedGoalStopsTheActualOwningBehaviour(t *testing.T) {
+	a, p, call, _ := goalFixture(t, "withdraw")
+	if _, err := a.Home.SetHome(protocol.Vec3{}, "test"); err != nil {
+		t.Fatal(err)
+	}
+	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 110}, World: "one", Phase: protocol.PhaseInWorld, HP: 80, HPMax: 80, WeightMax: 300, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Mushroom", RemainingS: 1000}}}})
+	p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Mushroom", Stack: 3}}})
+	p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 110}, Structures: []protocol.PerceivedStructure{{ID: "box", Kind: protocol.StructureContainer, Pos: protocol.Vec3{1, 0, 0}}}})
+	until := time.Now().Add(time.Second)
+	for time.Now().Before(until) {
+		v := a.Session.Perception()
+		if v != nil && len(v.Structures) > 0 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	spec := goal.Spec{Kind: "food_resupply", World: "one", Radius: 200, Storage: []string{"box"}, Stock: &goal.FoodStock{Targets: map[string]int{"Mushroom": 4}}}
+	params, _ := json.Marshal(spec)
+	raw, _ := json.Marshal(behaviour.Definition{Template: "household_food", Params: params, Trigger: behaviour.Trigger{Kind: "manual"}, Repeat: behaviour.Repeat{Mode: "once"}, Enabled: true})
+	ctx := context.Background()
+	if err := a.Behaviours.Put(ctx, "household-job", raw, "test"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Behaviours.Action(ctx, "household-job", "start", "test"); err != nil {
+		t.Fatal(err)
+	}
+	a.Behaviours.Tick(ctx)
+	req := p.NextTask()
+	if req.Task != "withdraw" {
+		t.Fatal(req)
+	}
+	records := a.Goals.List()
+	if len(records) != 1 {
+		t.Fatal(records)
+	}
+	stopped := createdGoal(t, call("POST", `{"action":"stop","id":"`+records[0].ID+`"}`, true, true))
+	if stopped.Status != "cancelled" || stopped.Pending == nil || stopped.Pending.TaskID != req.ID {
+		t.Fatal(stopped)
+	}
+	stop := p.NextTask()
+	if stop.Task != "stop" {
+		t.Fatal("native household action kept running", stop)
+	}
+	for _, row := range a.Behaviours.List() {
+		if row.Name == "household-job" && row.Running {
+			t.Fatal(row)
+		}
 	}
 }

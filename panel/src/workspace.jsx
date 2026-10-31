@@ -172,6 +172,64 @@ export function Supplies() {
         <button id="goal-combat" type="button" disabled>
           Test a Greyling encounter and return home
         </button>
+        <details>
+          <summary>Household food</summary>
+          <p>
+            Keep Tas supplied, then gather, cook and store food toward a
+            household target.
+          </p>
+          <div class="household-targets">
+            <label>
+              Food to stock{" "}
+              <select id="goal-stock-food" defaultValue="Mushroom">
+                <option value="Mushroom">Mushrooms</option>
+                <option value="MushroomYellow">Yellow mushrooms</option>
+                <option value="Raspberry">Raspberries</option>
+                <option value="Blueberries">Blueberries</option>
+                <option value="Honey">Honey</option>
+                <option value="CookedMeat">Cooked boar meat</option>
+                <option value="CookedDeerMeat">Cooked deer meat</option>
+                <option value="NeckTailGrilled">Grilled neck tails</option>
+              </select>
+            </label>
+            <label>
+              Meals in storage{" "}
+              <input
+                id="goal-stock-count"
+                type="number"
+                min="1"
+                max="20"
+                defaultValue="4"
+              />
+            </label>
+            <label>
+              Destination chest IDs{" "}
+              <input id="goal-stock-storage" placeholder="1:70031" />
+            </label>
+            <label>
+              Forage markers{" "}
+              <input
+                id="goal-stock-sources"
+                placeholder="west mushrooms, berries"
+              />
+            </label>
+            <label>
+              Idle storage marker{" "}
+              <input id="goal-stock-marker" defaultValue="home storage" />
+            </label>
+          </div>
+          <div class="actions">
+            <button id="goal-stock-start" type="button" disabled>
+              Stock once
+            </button>
+            <button id="goal-stock-idle" type="button" disabled>
+              Enable idle food work
+            </button>
+            <button id="goal-stock-disable" type="button">
+              Disable idle food work
+            </button>
+          </div>
+        </details>
         <p id="goal-result" role="status"></p>
         <div id="goal-list"></div>
       </details>

@@ -39,3 +39,10 @@ assert not food.escort_receipt(history[:-1], intent, 'Nimah')
 assert not food.escort_receipt(history, dict(taskId='escort-task'), 'Nimah')
 assert not food.escort_receipt(history, intent, 'other')
 assert not food.escort_receipt(history, dict(run='old', taskId='old-task'), 'Nimah')
+
+
+definition = food.household_definition(dict(world='one', stock=dict(targets=dict(Mushroom=4))), 'storage')
+assert definition['trigger']['marker'] == dict(world='one', name='storage', kind='storage')
+assert definition['trigger']['dwellS'] == 30
+assert definition['repeat'] == dict(mode='trigger', cooldownS=300, maxRuns=1)
+print('household idle episode uses the admitted finite repeat policy')

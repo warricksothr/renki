@@ -152,3 +152,76 @@ the handoff without requiring the leader to be present; it does not prove
 following a moving player or defending one. Normal escort settings and combat
 permission remain separate. `just vm trial-status` reads compact progress for
 food, cooking, recovery and escort evidence as well as harvesting/combat.
+
+## Household storage targets and idle episodes
+
+A `food_resupply` goal can add `stock` to produce food beyond Tas's personal
+reserve. `stock.targets` maps supported ready-food prefabs to desired totals in
+an explicit `storage` chest set. Counts are1–20 per food and at most40 overall.
+For example, submit through `/api/goals` with `action:"start"` and this spec,
+using the current world, its actual home coordinate and current chest IDs:
+
+```json
+{
+  "kind": "food_resupply",
+  "world": "your-world",
+  "center": [-35.9, 37.66, 6.53],
+  "radius": 200,
+  "reserve": 2,
+  "storage": ["1:70031"],
+  "stock": {
+    "targets": {"Mushroom": 4, "NeckTailGrilled": 2},
+    "sources": ["west mushrooms"]
+  }
+}
+```
+
+The panel's Household food controls configure one food target, destination IDs
+and named forage markers; the API supports several foods in the same episode.
+A named source must be a current `berries` marker, no more than120m from home
+and within the goal's travel envelope. Its position, kind, radius and revision
+are pinned. Editing/deleting it stops the episode. Sources select search areas;
+only currently observed safe pickables/drops can earn collection receipts.
+Explicit household source markers replace automatic remembered-site search;
+no household hunts are admitted. Omitting sources keeps the existing bounded
+live-yield/remembered-forage search, without hunting.
+
+Personal eating, recovery and carried reserve take precedence. At home, normal
+one-meal withdrawal requests inspect each unique destination; these can move
+one available meal into the pack. Matching container snapshots are authoritative
+for three minutes in the current controller run. Memory cannot satisfy a target,
+and unavailable or missing chests leave stock unknown. A moved probe meal is
+retained for personal needs or returned as surplus. Deposits require an exact
+task/chest/direction receipt plus newer inventory showing the measured decrease.
+Partial/full destinations are tried once per food before requesting a new plan.
+Only freshly observed stored totals count toward household completion.
+
+Pressure decisions favour existing surplus deposits, usable home ingredients,
+then safe nearby sources. Collection can continue across multiple yields;
+fulfilled cargo, low free slots,70% carry weight, raw ingredients needing home
+cooking, distance or danger pressure commit the episode to delivery. It keeps
+that return phase until arriving on the original home floor. Unrelated cargo
+that prevents further work reports a capacity problem. Sources are visited at
+most once per episode; depleted/unsafe areas do not restart their budgets.
+The existing ten-minute deadline,256 tasks,12 collections, six visits and four
+cooking batches remain hard bounds. Long explicit source visits/returns permit
+180s within that deadline. Missing fuel, stations or sources request a new plan.
+After each household cooking batch, a precise dry move returns to the home
+waiting point before eating or passive healing. This slice does not cultivate
+crops or repair equipment.
+
+“Enable idle food work” saves a `household_food` behaviour at the chosen storage
+marker:30 seconds idle, five-minute cooldown, at most12 episodes per controller
+session. Each episode creates its own durable goal under the engine's existing
+body lease. It may leave the admission marker to collect, while marker identity,
+world, injury, threat, footing and ownership checks continue. Commands interrupt;
+queued and active episodes never restart uncertain native actions. The behaviour
+status exposes its `episodeId`, including the last completed episode, and the
+goal reports known stock, shortages and the current pressure decision. Idle work
+is opt-in and can be disabled in the panel.
+
+Use `just vm food-check --storage IDS --stock-target Mushroom=4 --sources
+"west mushrooms" --keep-online` for a supervised one-shot trial. Repeat
+`--stock-target` for several foods; `--require-deposit` requires a verified
+household deposit. Add `--idle-marker "home storage"` to verify the idle dwell
+and episode handoff. That helper disables its temporary behaviour afterward.
