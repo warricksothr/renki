@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T04:28:35Z
+updated_at: 2026-10-31T04:37:00Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -414,3 +414,19 @@ The candidate gate now permits a partial navmesh prefix only with at least six m
 ### Checked prefix authority
 
 A navmesh candidate refused at a later physical sample can also retain only its already validated prefix, provided that prefix itself earns at least six meters of goal progress. The refused sample is never installed. Following each prefix still rechecks its immediate support and actual motion corridor, then resumes local planning at its endpoint. A regression covers a long wet shortcut retaining dry ground before the bank and a near-start refusal retaining no speculative movement. This addresses paths whose complete endpoint is nominally near home but whose final physical leg is blocked.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:33:40Z
+
+### b37a795 isolated native dry return and recovery passed
+
+just check vm resupply-food --wait-s 60 passed. Tas traveled47.7m observed from[-28.08,31.45,-14.43] to home[-36.76,36.09,6.24],1.81m from the marker. Native t-1 move_to succeeded on the raised floor. The native navmesh ended below home at[-37.47,34.14,6.13]. Checked prefixes reached that obstacle; local planning then found the entrance (583nodes initially,141.72ms total,2.62ms worst slice), with further guarded replans around stairs/doorway. Initial candidate validation measured8.19ms worst slice, so the approximate two-ms scheduler remains an honest soft target.
+
+Verified t-3 withdrew4CookedDeerMeat and t-5 withdrew3CookedMeat using exact container receipts, followed by active meals and recovery to98.9/114.3HP. Zero native damage events; no cleanup errors. Full evidence .checks/resupply-trial-20261031T042917716712Z/summary.json, audit .checks/audit-window-5zlAse.jsonl, console .checks/20261031T042917Z-afdLuI.log. Full gate passed440C#tests and42panel scenarios before b37a795, committed review and checksum installation passed. This proves isolated dry home return plus resupply/recovery, not a combined post-kill round trip or actual block/dodge. A changed-start combat check is now running from the raised home with replenished food.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:37:00Z
+
+### Final pre-regional-search combat check
+
+The b37a795 goal from home exhausted six attempts without an eligible Greyling. Later native legs did reach 118.5 m from the goal center (304.6 m observed travel), so earlier progress at 30 m was not the final extent. Two searches earned exact empty receipts; other sectors were unreachable or ended in native retreat after route/return refusal. No kill, combined post-combat return, actual block/dodge, or scouting return-detour proof was earned. Evidence: .checks/combat-trial-20261031T043222522104Z/summary.json. Isolated dry home return, verified food transfers and recovery remain passed separately.
+
+User requested distinct selectable search areas with local search inside each. Current sector offsets vary bearings around each task's current position and do not establish separate area travel/local search phases. Continue that work after landing this verified return/recovery increment; retain all safety limits and separate unreachable areas from genuinely searched empty areas.
