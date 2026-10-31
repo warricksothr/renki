@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M638V1XC9DX4XJ2ZV1EKGNRS
 title: "Follow: stuck outside a wall, the leader inside, path straight through"
 type: bug
-status: in-progress
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -17,17 +17,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/local-stair-resolution
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: b484e0059ddbe377a2dcc209c7defba65c280274
-  session: null
-  claimed_at: 2026-10-30T17:24:39Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-30T23:50:59Z
+updated_at: 2026-10-31T00:36:19Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -132,3 +125,9 @@ PR #86 landed as 41110b0 after just check plugin test-core LocalRouteTests, just
 **agent:codex/renki-milestones** at 2026-10-30T23:50:59Z
 
 Changed local grid spacing0.75m ->0.5m without loosening support, wall, body, water or floor checks, and without raising node/frame bounds. Fourteen focused LocalRouteTests passed, including new quarter-metre stair ascent/descent cases in which the former stride exceeds the0.6m support-height limit (.checks/20261030T234746Z-HFKv15.log). Full just check ci passed, including390C# checks and42browser scenarios (.checks/20261030T234822Z-qXdT0z.log). This establishes the geometric regression, not live house egress. Next: committed review, PR, checksum install and one native trial from the same sheltered pose.
+
+**agent:codex/renki-milestones** at 2026-10-31T00:36:12Z
+
+The shared movement prerequisite landed in PR117 (33be3ba): local route spacing is 0.5 m so ordinary 45-degree stairs stay within the unchanged 0.6 m support-step bound. Native raised-house egress was observed in the subsequent scouting trial, and a matching startup return-home succeeded before attack dispatch in .checks/combat-trial-20261031T000445756934Z/summary.json.
+
+Further scouting-specific fixes are deployed through 8969d8d. The final native run completed its entire local search and return with zero damage (.checks/combat-trial-20261031T003101022705Z/summary.json). These results do not verify the remaining near-leader waiting criterion in this Follow ticket; leave it unchecked. Returning this unfinished ticket to ready and releasing our claim rather than leaving it held at handoff.
