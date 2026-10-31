@@ -6,7 +6,7 @@ namespace Renki.Protocol
     /// <summary>The task names this plugin knows (7.2).</summary>
     public static class TaskNames
     {
-        public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", LookAt = "look_at",
+        public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", Escort = "escort", LookAt = "look_at",
             Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
             Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw";
 
@@ -19,7 +19,7 @@ namespace Renki.Protocol
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
         public const string Harvest = "harvest", UseItem = "use_item", Attack = "attack";
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest, UseItem, Attack };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest, UseItem, Attack };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -71,6 +71,15 @@ namespace Renki.Protocol
         public string Player;
         public double Distance = 3.5;
         public RunMode Run = RunMode.Auto;
+    }
+
+    public sealed class EscortArgs
+    {
+        public string Player;
+        public string[] Protect = Array.Empty<string>();
+        public double Distance = 3.5;
+        public bool Collect = true;
+        public bool Defend = true;
     }
 
     public sealed class LookAtArgs
@@ -231,6 +240,27 @@ namespace Renki.Protocol
                         Dry = Bool(a, "dry", false),
                         AvoidHostiles = Bool(a, "avoidHostiles", false),
                     };
+                case TaskNames.Escort:
+                    {
+                        var player = Str(a, "player");
+                        if (string.IsNullOrWhiteSpace(player) || player.Length > 64) throw new BadArgsException("`player` is required (up to 64 characters)");
+                        var distance = Number(a, "distance", 3.5);
+                        if (double.IsNaN(distance) || double.IsInfinity(distance) || distance < 2 || distance > 8)
+                            throw new BadArgsException("`distance` must be between 2 and 8 m");
+                        var protect = Array.Empty<string>();
+                        if (a["protect"] != null && a["protect"].Type != JTokenType.Null)
+                        {
+                            if (!(a["protect"] is JArray names) || names.Count > 128) throw new BadArgsException("`protect` must contain at most 128 player names");
+                            protect = new string[names.Count];
+                            for (var i = 0; i < names.Count; i++)
+                            {
+                                if (names[i].Type != JTokenType.String || string.IsNullOrWhiteSpace((string)names[i]) || ((string)names[i]).Length > 64)
+                                    throw new BadArgsException("`protect` contains an invalid player name");
+                                protect[i] = (string)names[i];
+                            }
+                        }
+                        return new EscortArgs { Player = player, Protect = protect, Distance = distance, Collect = Bool(a, "collect", true), Defend = Bool(a, "defend", true) };
+                    }
                 case TaskNames.Follow:
                     {
                         var player = Str(a, "player");

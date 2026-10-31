@@ -24,6 +24,37 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "escort-status": async ({ page, check, shot }) => {
+    await page.evaluate(() =>
+      renkiPreview.stream.emit("status", {
+        ...renkiPreview.status,
+        combat: null,
+        escort: {
+          id: "e-1",
+          leader: "Nimah",
+          mode: "follow",
+          reason: "rejoining leader",
+        },
+      }),
+    );
+    await check("Escort status identifies leader and phase", async () => {
+      await expect(page.locator("#combat")).toHaveText(
+        "escort Nimah: follow · rejoining leader",
+      );
+    });
+    await page.locator("#combat").scrollIntoViewIfNeeded();
+    await shot("escort-follow");
+    await page.evaluate(() =>
+      renkiPreview.stream.emit("status", {
+        ...renkiPreview.status,
+        connected: false,
+        phase: "menu",
+      }),
+    );
+    await check("Offline state clears companion status", async () => {
+      await expect(page.locator("#combat")).toHaveText("");
+    });
+  },
   "log-boundaries": async ({ page, check, shot }) => {
     const initial = await snapshot(page);
     const [x, y, z] = initial.data.bot;

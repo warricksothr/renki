@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "id": "t-17", "seq": 90, "t": 18234.0,
+  "task": "escort", "args": { "player": "Nimah", "protect": ["Nimah", "Sothr"], "distance": 3.5, "collect": true, "defend": true }, "timeoutS": 0 }

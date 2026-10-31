@@ -158,9 +158,9 @@ namespace Renki.Movement
         public double Slack = 1.0;
         bool stopped = true;
 
-        public Gait Decide(double gap, double distance, RunMode mode, bool leaderRunning, bool blocked = false)
+        public Gait Decide(double gap, double distance, RunMode mode, bool leaderRunning, bool blocked = false, bool mayStop = true)
         {
-            if (gap <= distance || ((stopped || blocked) && gap <= distance + Slack))
+            if (mayStop && (gap <= distance || ((stopped || blocked) && gap <= distance + Slack)))
             {
                 stopped = true;
                 return Gait.Stop;

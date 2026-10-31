@@ -186,22 +186,33 @@ func probe(ctx context.Context, o *OBS, c Config, g *Gate) (video.Health, error)
 
 // Run owns no game process or output lifecycle. The independent watchdog
 // revokes Program scene if this process dies; panel assertions also expire.
+type runDependencies struct {
+	connect  func(context.Context, string) (*OBS, error)
+	probe    func(context.Context, *OBS, Config, *Gate) (video.Health, error)
+	write    func(string, any) error
+	interval time.Duration
+}
+
 func Run(ctx context.Context, c Config, watchdog bool) error {
+	return run(ctx, c, watchdog, runDependencies{Connect, probe, Atomic, time.Second})
+}
+
+func run(ctx context.Context, c Config, watchdog bool, deps runDependencies) error {
 	var o *OBS
 	defer func() {
-		Atomic(c.HealthFile, video.Health{})
+		deps.write(c.HealthFile, video.Health{})
 		if o != nil {
 			_ = o.Scene(context.Background(), Offline)
 			o.Close()
 		}
 	}()
 	var gate Gate
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(deps.interval)
 	defer ticker.Stop()
 	for ctx.Err() == nil {
 		if o == nil {
 			var err error
-			o, err = Connect(ctx, c.OBSPassword)
+			o, err = deps.connect(ctx, c.OBSPassword)
 			if err == nil {
 				err = o.Scene(ctx, Offline)
 			}
@@ -210,7 +221,7 @@ func Run(ctx context.Context, c Config, watchdog bool) error {
 					o.Close()
 					o = nil
 				}
-				Atomic(c.HealthFile, video.Health{})
+				deps.write(c.HealthFile, video.Health{})
 				gate.Reset()
 			}
 		}
@@ -225,7 +236,7 @@ func Run(ctx context.Context, c Config, watchdog bool) error {
 					}
 				}
 			} else {
-				h, err := probe(ctx, o, c, &gate)
+				h, err := deps.probe(ctx, o, c, &gate)
 				reason := "Verified changing game frames"
 				if err != nil {
 					h = video.Health{}
@@ -245,10 +256,19 @@ func Run(ctx context.Context, c Config, watchdog bool) error {
 					o.Close()
 					o = nil
 				}
-				if Atomic(c.HealthFile, h) != nil {
-					return errors.New("Cannot write capture health")
+				if deps.write(c.HealthFile, h) != nil {
+					// A Windows reader may temporarily prevent replacement.
+					// Keep the verifier alive, but revoke presentation until a
+					// new sequence of independently verified frames can publish.
+					h = video.Health{}
+					gate.Reset()
+					reason = "Cannot write capture health; retrying"
+					if o != nil && o.Scene(ctx, Offline) != nil {
+						o.Close()
+						o = nil
+					}
 				}
-				_ = Atomic(filepath.Join(filepath.Dir(c.HealthFile), "status.json"), map[string]any{"gameplay": h.Gameplay, "reason": reason, "observedAt": time.Now()})
+				_ = deps.write(filepath.Join(filepath.Dir(c.HealthFile), "status.json"), map[string]any{"gameplay": h.Gameplay, "reason": reason, "observedAt": time.Now()})
 			}
 		}
 		select {

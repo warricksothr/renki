@@ -18,6 +18,8 @@ namespace Renki.Plugin
             if (amount > 0 && attacker != null) { aggressor = attacker; hurtAt = Time.unscaledTime; }
         }
         internal static void ClearAggressor() { aggressor = null; }
+        internal static Character RecentAttacker => aggressor != null && Time.unscaledTime - hurtAt <= 15 ? aggressor : null;
+        readonly Func<Player, bool> safeAlly;
         readonly bool defensive;
         readonly Character enemy;
         readonly string entity, id, prefab;
@@ -40,9 +42,9 @@ namespace Renki.Plugin
 
         internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason, Defensive = defensive };
 
-        public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null)
+        public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null, Func<Player, bool> safeAlly = null)
         {
-            this.id = id; entity = args.Entity;
+            this.id = id; entity = args.Entity; this.safeAlly = safeAlly;
             enemy = obj != null ? obj.GetComponent<Character>() : null;
             var p = Player.m_localPlayer;
             if (enemy == null || !Eligible(p, enemy) || enemy.IsDead())
@@ -218,12 +220,15 @@ namespace Renki.Plugin
             foreach (var c in characters)
             {
                 if (c == null || c == p || c == enemy || c.IsDead()) continue;
+                if (c is Player ally && safeAlly != null && safeAlly(ally)) continue;
                 var distance = Vector3.Distance(p.transform.position, c.transform.position);
                 if (distance <= radius || distance <= 6 && BaseAI.IsEnemy(p, c)) return true;
             }
             var count = Physics.OverlapSphereNonAlloc(p.transform.position + Vector3.up, radius, nearby, ~0, QueryTriggerInteraction.Ignore);
             if (count == nearby.Length) return true;
-            for (var i = 0; i < count; i++) if (nearby[i].GetComponentInParent<Piece>() != null) return true;
+            for (var i = 0; i < count; i++)
+                if (nearby[i].GetComponentInParent<Piece>() != null ||
+                    safeAlly != null && (nearby[i].GetComponentInParent<TreeLog>() != null || nearby[i].GetComponentInParent<TreeBase>() != null)) return true;
             return false;
         }
 

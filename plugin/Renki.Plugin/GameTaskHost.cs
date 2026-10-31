@@ -22,6 +22,8 @@ namespace Renki.Plugin
 
         public IBodyTask StartBody(TaskRequest req, object args)
         {
+            if (Driver.RecoveryHold)
+                throw new TaskRefused(Wire.ReasonNotAllowed, "startup recovery holds the body; retry after healing");
             if (Player.m_localPlayer == null || Player.m_localPlayer.IsDead())
                 throw new TaskRefused(Wire.ReasonStopped, "not in the world");
             // Every body task walks.
@@ -107,6 +109,10 @@ namespace Renki.Plugin
                         }
                         return new FleeTask(fl, threatPos, threat, safePos, safe);
                     }
+                case EscortArgs escort:
+                    // Escort is a standing order: its leader may join or enter
+                    // loaded range later. Ordinary follow still requires sight.
+                    return new EscortTask(req.Id, escort);
                 case FollowArgs f:
                     if (Players.Find(f.Player) == null)
                         throw new TaskRefused(Wire.ReasonInvalidTarget, $"no player \"{f.Player}\" in range");
