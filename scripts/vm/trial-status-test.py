@@ -52,6 +52,17 @@ class Progress(unittest.TestCase):
             (folder / 'summary.json').write_text(json.dumps(dict(outcome='succeeded', supplied=dict(Honey=4))))
             self.assertEqual(progress.report(folder, now)['supplied'], dict(Honey=4))
 
+    def test_combat_failure_is_visible_without_opening_raw_summary(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            native = dict(status='failed', reason='refused', detail='cannot return along a checked scouting route',
+                          seq=777, re='t-1')
+            (folder / 'summary.json').write_text(json.dumps(dict(outcome='failed', result=native)))
+            result = progress.report(folder)
+            self.assertEqual(result['result'], {k: native[k] for k in ('status', 'reason', 'detail')})
+            self.assertEqual(result['outcome'], 'failed')
+            self.assertEqual(result['tasks'], [])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -37,6 +37,7 @@ def report(folder, now=None):
                       observedTravelM=round(travelled, 1),
                       homeDistanceM=(state.get('home') or {}).get('distance'),
                       task=state.get('task'),
+                      combatMode=(state.get('combat') or {}).get('mode'),
                       activeFood=[f['prefab'] for f in (state.get('food') or {}).get('active', [])])
         result['elapsedS'] = round((datetime.datetime.fromisoformat(latest['at']) -
                                     datetime.datetime.fromisoformat(first['at'])).total_seconds(), 1)
@@ -52,6 +53,8 @@ def report(folder, now=None):
                     result[key] = final[key]
             result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: (t.get('result') or {}).get(k)
                                for k in ('status', 'reason', 'detail')}) for t in final.get('tasks', [])[-6:]]
+            if final.get('result'):
+                result['result'] = {k: final['result'][k] for k in ('status', 'reason', 'detail') if k in final['result']}
     return result
 
 

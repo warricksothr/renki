@@ -747,7 +747,16 @@ and no owner staging/clearance prerequisite. It restarts Tas, temporarily enable
 combat, delegates local ground/target selection and kiting to C#, requires active
 food/80% health/40 stamina, and records evidence under `.checks/combat-trial-*`.
 It always logs out/stops/restores combat off, then restarts only the
-controller so the web panel stays available while Tas is offline. Additional creatures, unsafe
+controller so the web panel stays available while Tas is offline. A return-home
+task already dispatched on rejoin may finish first, with its exact destination,
+task ID, scope and injury evidence checked for at most 120 seconds. Native
+success and arrival within 3 m of home are required before trial work; other
+active orders and failed returns abort. `just vm trial-status` includes the
+current combat mode and native terminal failure detail without raw log dumps.
+Search preparation uses a 0.25 m arrival tolerance and an extra 0.5 m of
+endpoint building clearance. An unsuitable arrival records its actual position
+and tries the next endpoint within the existing eight-attempt/60-second bound.
+Additional creatures, unsafe
 health, exhausted escape, lost task ownership and more than 40 m travel abort
 the trial. No eligible encounter is an aborted trial, never a pass. Optional
 `--entity` restricts native target selection, `--at X Y Z` names preferred nearby

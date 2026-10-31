@@ -294,21 +294,23 @@ namespace Renki.Plugin
                     return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no reachable clear search origin after bounded travel preparation"));
                 var angle = preparationAttempts++ * Math.PI / 4;
                 var candidate = origin + new Vector3((float)Math.Cos(angle), 0, (float)Math.Sin(angle)) * (float)Math.Min(16, searchRadius - 1);
+                // Leave room for arrival error: the exact endpoint can be
+                // clear while the old 1 m stopping circle touches the house.
                 if (!Ground(candidate, out preparationGoal) || Vector3.Distance(origin, preparationGoal) > searchRadius ||
-                    !ClearScenery(preparationGoal) || !ClearTravelCharacters(p, preparationGoal, true))
+                    !ClearScenery(preparationGoal, .5f) || !ClearTravelCharacters(p, preparationGoal, true))
                 {
                     Tracer.Emit("combat", "search_egress_rejected", new Dictionary<string, object>
                     { ["goal"] = Convert.ToArray(candidate), ["reason"] = "endpoint_not_dry_clear_or_separated", ["attempt"] = preparationAttempts });
                     return null;
                 }
                 preparation = new MoveToTask(new MoveToArgs
-                { To = new Target { Pos = Convert.ToV3(preparationGoal) }, StopDistance = 1, Run = false }, preparationGoal, null);
+                { To = new Target { Pos = Convert.ToV3(preparationGoal) }, StopDistance = .25, Run = false }, preparationGoal, null);
                 preparationLegAt = Time.unscaledTime;
                 Mode("prepare_search", "ordinary checked travel to open ground");
                 Tracer.Emit("combat", "search_egress_route", new Dictionary<string, object>
                 { ["goal"] = Convert.ToArray(preparationGoal), ["attempt"] = preparationAttempts });
             }
-            if (!ClearScenery(preparationGoal) || !ClearTravelCharacters(p, preparationGoal, true))
+            if (!ClearScenery(preparationGoal, .5f) || !ClearTravelCharacters(p, preparationGoal, true))
                 return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search preparation destination became unsafe"));
             var ended = Time.unscaledTime - preparationLegAt >= 25
                 ? Outcome.Failed(Wire.ReasonTimeout, "search travel leg time limit") : preparation.Tick(dt);
@@ -322,7 +324,16 @@ namespace Renki.Plugin
                 return null;
             }
             if (!Ground(pos, out var supported) || Math.Abs(pos.y - supported.y) > 1 || !ClearScenery(pos))
-                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "search travel ended without clear terrain support"));
+            {
+                Tracer.Emit("combat", "search_egress_rejected", new Dictionary<string, object>
+                {
+                    ["goal"] = Convert.ToArray(preparationGoal),
+                    ["pos"] = Convert.ToArray(pos),
+                    ["reason"] = "arrival_not_clear_terrain",
+                    ["attempt"] = preparationAttempts
+                });
+                return null;
+            }
             preparing = false; area = supported;
             scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius);
             Mode("search", "reached open ground through ordinary checked travel");
@@ -522,9 +533,9 @@ namespace Renki.Plugin
             return height > ZoneSystem.instance.m_waterLevel + .2f;
         }
 
-        bool ClearScenery(Vector3 at)
+        bool ClearScenery(Vector3 at, float margin = 0)
         {
-            var count = Physics.OverlapSphereNonAlloc(at + Vector3.up, 4, nearby, ~0, QueryTriggerInteraction.Ignore);
+            var count = Physics.OverlapSphereNonAlloc(at + Vector3.up, 4 + margin, nearby, ~0, QueryTriggerInteraction.Ignore);
             if (count == nearby.Length) return false;
             for (var i = 0; i < count; i++) if (nearby[i].GetComponentInParent<Piece>() != null) return false;
             return true;

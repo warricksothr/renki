@@ -103,7 +103,7 @@ def ground_diagnostics(audit, task_id):
             if message in ('scout_rejected', 'search_egress_rejected'):
                 reason = data.get('reason', 'unknown')
                 if reason not in scout_reasons and len(scout_examples) < 6:
-                    scout_examples.append({k: data[k] for k in ('goal', 'reason', 'from', 'desired', 'supported',
+                    scout_examples.append({k: data[k] for k in ('goal', 'reason', 'pos', 'from', 'desired', 'supported',
                                                                'angle', 'previousAngle', 'roughness') if k in data})
                 scout_reasons[reason] += 1
             if message != 'ground_rejected':
@@ -219,7 +219,9 @@ def main():
         call('combat', 'false' if harvesting or args.resupply_food else 'true')
         call('start', timeout=330)
         deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
+        startup_deadline = time.monotonic() + 120
         startup_id, startup_health, startup_scope = None, None, None
+        startup_anchor, startup_home_pos = None, None
         while True:
             status, mapped = observe()
             reason = abort_reason(status)
@@ -227,31 +229,41 @@ def main():
                 raise RuntimeError(reason)
             if startup_id:
                 from harvest_trial import health_loss
-                if (status.get('world'), status.get('connection')) != startup_scope or health_loss(startup_health, status):
+                if ((status.get('world'), status.get('worldUid'), status.get('connection')) != startup_scope
+                        or (status.get('home') or {}).get('pos') != startup_home_pos or health_loss(startup_health, status)):
                     raise RuntimeError('startup home return changed scope or suffered damage')
                 startup_health = status
             chars = (mapped.get('perception') or {}).get('characters', [])
             # Do not wait for regeneration while being chased, or replace an escape.
             if status.get('task'):
-                if args.resupply_food and status['task'].get('task') == 'move_to':
+                if status['task'].get('task') == 'move_to':
                     from resupply_trial import startup_home
                     active_id = status['task']['id']
                     if startup_id and active_id != startup_id:
                         raise RuntimeError('startup home return was replaced')
                     if not startup_id:
-                        anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
-                        history = call('panel', 'GET', '/api/task?id=' + active_id + '&at=' + anchor, as_json=True)
+                        startup_anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
+                        history = call('panel', 'GET', '/api/task?id=' + active_id + '&at=' + startup_anchor, as_json=True)
                         if not startup_home(status, history):
                             raise RuntimeError('another task is active; trial will not replace it')
                         startup_id, startup_health = active_id, status
-                        startup_scope = (status.get('world'), status.get('connection'))
+                        startup_scope = (status.get('world'), status.get('worldUid'), status.get('connection'))
+                        startup_home_pos = list(status['home']['pos'])
                         summary['startupHomeTask'] = active_id
                         print('Waiting for the existing native return-home task', flush=True)
-                    if time.monotonic() >= deadline:
+                    if time.monotonic() >= startup_deadline:
                         raise RuntimeError('startup home return preparation time limit')
                     time.sleep(1)
                     continue
                 raise RuntimeError('another task is active; trial will not replace it')
+            if startup_id:
+                history = call('panel', 'GET', '/api/task?id=' + startup_id + '&at=' + startup_anchor, as_json=True)
+                ended = terminal(history, startup_id)
+                if not ended or ended.get('status') != 'succeeded' or distance(status['pos'], startup_home_pos) > 3:
+                    raise RuntimeError('startup home return did not complete successfully at home')
+                summary['startupHomeResult'] = {k: ended[k] for k in ('status', 'reason', 'detail') if k in ended}
+                startup_id = None
+                deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
             ready = (status.get('hp', 0) >= status.get('hpMax', 1) * .8
                      and status.get('stamina', 0) >= 40 and status.get('food', {}).get('active'))
             if ready or args.resupply_food:
