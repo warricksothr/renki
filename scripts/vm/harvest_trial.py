@@ -12,6 +12,8 @@ def diagnostics(audit, task_ids):
         'physical strike contact visible': ('entity', 'contact', 'origin', 'reach', 'probe'),
         'approaching physical contact': ('contact', 'goal', 'reach', 'attackHeight', 'resource', 'feet', 'probe'),
         'contact outside supported strike reach': ('resource', 'contact', 'goal', 'reach', 'attackHeight', 'probe'),
+        'searching alternative log contact': ('reason', 'attempts'),
+        'alternative log contact selected': ('attempt', 'goal', 'resource'),
         'resource broke after local hit': ('entity', 'hits'),
         'protected collider': ('collider', 'radius', 'center', 'boundsDistance', 'character', 'piece'),
         'safety scan': ('phase', 'radius', 'previousCapacity', 'capacity', 'count', 'complete'),
@@ -109,6 +111,28 @@ def pack_ready(pack):
                for i in inv.get('items', []))
 
 
+def approach_logs(center, call, snapshot, terminal, saved):
+    anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
+    goal = dict(to=center, stopDistance=10, dry=True)
+    task_id = call('task', 'move_to', json.dumps(goal), '120', as_json=True)['id']
+    deadline = time.monotonic() + 125
+    receipt = None
+    while time.monotonic() < deadline:
+        status, _ = snapshot()
+        history = call('panel', 'GET', '/api/task?id=' + task_id + '&at=' + anchor, as_json=True)
+        (saved / 'approach.json').write_text(json.dumps(history, indent=2) + '\n')
+        receipt = terminal(history, task_id)
+        if receipt:
+            if receipt.get('status') != 'succeeded':
+                raise RuntimeError('log recovery approach failed: ' + str(receipt))
+            if not status.get('task') and distance(status['pos'], center) <= 12:
+                return dict(id=task_id, goal=goal, result=receipt, pos=status['pos'])
+        if status.get('task') and status['task'].get('id') != task_id:
+            raise RuntimeError('log recovery approach lost body ownership')
+        time.sleep(.5)
+    raise RuntimeError('log recovery approach time limit')
+
+
 def run(summary, call, observe, terminal, saved, log_center=None):
     status, mapped = observe()
     world, connection, origin = status.get('world'), status.get('connection'), status['pos']
@@ -125,7 +149,7 @@ def run(summary, call, observe, terminal, saved, log_center=None):
                 or st.get('connection') != connection or mp.get('world') != world or mp.get('connection') != connection):
             raise RuntimeError('harvest world or connection changed')
         if (st.get('hpMax', 0) <= 0 or st.get('hp', 0) < st['hpMax'] * .8
-                or st.get('location', {}).get('inWater') or distance(st['pos'], origin) > 40
+                or st.get('location', {}).get('inWater') or distance(st['pos'], origin) > (180 if log_center is not None else 40)
                 or 'encumbered' in st.get('flags', [])):
             raise RuntimeError('harvest health, footing, weight or travel guard')
         if health_loss(previous_health, st):
@@ -147,6 +171,14 @@ def run(summary, call, observe, terminal, saved, log_center=None):
     before = pack_snapshot()
     if not pack_ready(before):
         raise RuntimeError('harvest needs a usable axe, four free slots and 60 spare carry weight')
+    if log_center is not None:
+        if len(log_center) != 3 or not all(math.isfinite(n) for n in log_center) or distance(origin, log_center) > 150:
+            raise RuntimeError('log recovery hint must be finite and within 150 m')
+        if distance(status['pos'], log_center) > 12:
+            travel = approach_logs(log_center, call, snapshot, terminal, saved)
+            summary['approach'] = travel
+            status, mapped = snapshot()
+            before = pack_snapshot()
     perception = mapped.get('perception') or {}
     logs_only = log_center is not None
     target = select_resource(status, perception, set(), log_center) if logs_only else select_resource(status, perception)

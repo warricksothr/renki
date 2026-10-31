@@ -42,6 +42,9 @@ namespace Renki.Plugin
         bool walking, retreatReady, retreated, broken, cancelled, injured, forceApproach, strikeLogged;
         float brokeAt, quietSince = -1, nextCollect, swingSince = -1;
         int hitsAtSwingStart, collected, contactRetries, retreatAttempts;
+        int alternativeAttempts;
+        bool findingApproach, alternativeApproach;
+        Vector3 alternativeAnchor;
         PickupTask pickup;
 
         public HarvestTask(HarvestArgs args, GameObject target)
@@ -182,18 +185,33 @@ namespace Renki.Plugin
                 return null;
             }
             var attackHeight = tool.m_shared.m_attack.m_attackHeight;
-            var eye = p.transform.position + Vector3.up * attackHeight;
-            var contactBaseHeight = rolling && !tallTree ? p.transform.position.y : origin.y;
-            if (!HarvestApproach.Contact(targetColliders, origin, contactBaseHeight, p.transform.position, attackHeight, rolling && !tallTree, out var surface, out var contactMethod))
-                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
+            if (findingApproach)
+            {
+                if (alternativeAttempts >= HarvestContactSearch.Limit)
+                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported visible log contact after bounded alternative approaches"));
+                if (!HarvestApproach.Alternative(p, target, targetColliders, origin, attackHeight, reach, alternativeAttempts++, out var alternative)) return null;
+                alternativeAnchor = alternative;
+                alternativeApproach = true; findingApproach = false; walking = false; forceApproach = false;
+                Tracer.Emit("harvest", "alternative log contact selected", new Dictionary<string, object>
+                {
+                    ["attempt"] = alternativeAttempts,
+                    ["goal"] = Convert.ToArray(alternative),
+                    ["resource"] = Convert.ToArray(origin),
+                });
+            }
+            var eye = p.transform.position + Vector3.up * attackHeight;
+            var contactFrom = alternativeApproach ? alternativeAnchor : p.transform.position;
+            var contactBaseHeight = rolling && !tallTree ? contactFrom.y : origin.y;
+            if (!HarvestApproach.Contact(targetColliders, origin, contactBaseHeight, contactFrom, attackHeight, rolling && !tallTree, out var surface, out var contactMethod))
+                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no physical contact on the resource"));
             if (forceApproach && (p.transform.position - walkGoal).sqrMagnitude <= .0225f) forceApproach = false;
             var inRange = HarvestReach.InRange(Convert.ToV3(p.transform.position), Convert.ToV3(surface), attackHeight, reach);
             if (inRange && !forceApproach && !HarvestApproach.ClearStrike(p, target, surface, attackHeight, reach))
-                return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the measured strike contact is occluded or unavailable"));
+                return AnotherApproach("the measured strike contact is occluded or unavailable");
             if (forceApproach || !inRange)
             {
-                if (!HarvestApproach.GroundGoal(target, origin, surface, p.transform.position,
+                if (!HarvestApproach.GroundGoal(target, origin, surface, contactFrom,
                     (float)HarvestReach.StandOff(reach, contactRetries > 0), out var goal))
                 {
                     Tracer.Emit("harvest", "unsupported physical contact", new Dictionary<string, object>
@@ -211,7 +229,7 @@ namespace Renki.Plugin
                             max = Convert.ToArray(c.bounds.max),
                         }).ToArray(),
                     });
-                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "no supported, water-safe position beside the resource"));
+                    return AnotherApproach("no supported, water-safe position beside the resource");
                 }
                 if (!HarvestReach.InRange(Convert.ToV3(goal), Convert.ToV3(surface), attackHeight, reach))
                 {
@@ -224,11 +242,11 @@ namespace Renki.Plugin
                         ["attackHeight"] = attackHeight,
                         ["probe"] = contactMethod,
                     });
-                    return Finish(Outcome.Failed(Wire.ReasonUnreachable, "the physical contact cannot be reached from supported ground"));
+                    return AnotherApproach("the physical contact cannot be reached from supported ground");
                 }
                 if (!walking || Vector3.Distance(walkGoal, goal) > .45f)
                 {
-                    walker.SetGoal(p.transform.position, goal, .15f);
+                    walker.SetGoal(p.transform.position, goal, .15f, dryGround: rolling && !tallTree);
                     walker.ResetStuck(p.transform.position);
                     walkGoal = goal; walking = true; retreatReady = false; retreatAttempts = 0;
                     Tracer.Emit("harvest", "approaching physical contact", new Dictionary<string, object>
@@ -243,10 +261,10 @@ namespace Renki.Plugin
                         ["probe"] = contactMethod,
                     });
                 }
-                if (walker.Unreachable(p.transform.position, .15f) is Outcome no) return Finish(no);
-                if (walker.Refused() is Outcome refused) return Finish(refused);
+                if (walker.Unreachable(p.transform.position, .15f) is Outcome no) return AnotherApproach(no.Detail);
+                if (walker.Refused() is Outcome refused) return AnotherApproach(refused.Detail);
                 if (!walker.Steer(p.transform.position, false, climbObstacles: Vector3.Distance(p.transform.position, origin) > 3))
-                    return Finish(Outcome.Failed(Wire.ReasonStuck, "cannot approach the resource"));
+                    return AnotherApproach("cannot approach the resource");
                 swingSince = -1;
                 return null;
             }
@@ -325,6 +343,18 @@ namespace Renki.Plugin
                 return null;
             }
             Driver.HarvestAttack = true;
+            return null;
+        }
+
+        Outcome AnotherApproach(string reason)
+        {
+            if (!rolling || tallTree) return Finish(Outcome.Failed(Wire.ReasonUnreachable, reason));
+            findingApproach = true; alternativeApproach = false; walking = false; swingSince = -1;
+            Tracer.Emit("harvest", "searching alternative log contact", new Dictionary<string, object>
+            {
+                ["reason"] = reason,
+                ["attempts"] = alternativeAttempts,
+            });
             return null;
         }
 

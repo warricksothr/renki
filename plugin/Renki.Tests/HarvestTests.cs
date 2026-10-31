@@ -61,6 +61,43 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void AlternateContactSeedsExploreBothSidesAndDifferentPartsOfALongLog()
+        {
+            var min = new V3(-40, 38, -67);
+            var max = new V3(-24, 40, -65);
+            var seeds = new List<V3>();
+            for (var i = 0; i < HarvestContactSearch.Limit; i++)
+            {
+                var seed = HarvestContactSearch.Seed(min, max, i);
+                seeds.Add(seed);
+                Assert.True(seed.X < min.X || seed.X > max.X || seed.Z < min.Z || seed.Z > max.Z);
+                Assert.Equal(39, seed.Y);
+            }
+            Assert.Contains(seeds, s => s.Z < min.Z && s.X < -37);
+            Assert.Contains(seeds, s => s.Z > max.Z && s.X > -27);
+            Assert.Contains(seeds, s => s.X < min.X);
+            Assert.Contains(seeds, s => s.X > max.X);
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.Seed(min, max, HarvestContactSearch.Limit));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.Seed(min, max, -1));
+        }
+
+        [Fact]
+        public void RotatingALogExchangesTheSearchAxesWithoutChangingItsCoverage()
+        {
+            var min = new V3(-8, 0, -1); var max = new V3(8, 2, 1);
+            for (var i = 0; i < HarvestContactSearch.Limit; i++)
+            {
+                var seed = HarvestContactSearch.Seed(min, max, i);
+                var rotated = HarvestContactSearch.Seed(new V3(min.Z, min.Y, min.X), new V3(max.Z, max.Y, max.X), i);
+                Assert.Equal(seed.X, rotated.Z);
+                Assert.Equal(seed.Z, rotated.X);
+            }
+            // The captured near endpoint is above reachable ground; a search
+            // seed alone must not relax the physical strike-range decision.
+            Assert.False(HarvestReach.InRange(new V3(-38.21, 36.01, -60.71), new V3(-37.52, 38.56, -60.05), .8, 1.4));
+        }
+
+        [Fact]
         public void CanopyContactCannotBeReachedByWalkingUnderneathIt()
         {
             var resource = new V3(23.62, 31.37, 33.53);

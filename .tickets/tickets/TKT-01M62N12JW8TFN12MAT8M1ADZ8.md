@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T05:58:05Z
+updated_at: 2026-10-31T06:07:10Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -182,3 +182,11 @@ Return-home gathering automatically performs that preparation at a currently obs
 Deployed 5b3af40 repaired AxeFlint from38 to100 and waited for fresh actual inventory. The two-tree trial never reached a tree: native t-3 move_to timed out at90 seconds while cycling between gate(-39.77,36.99,11.2) and interior(-33.2,36.09,3.33). There were zero native damage events; cleanup stopped the game and left the panel online. Evidence: .checks/gather-trial-20261031T055350005997Z/summary.json; .checks/audit-window-dvD8hf.jsonl. No harvesting or storage proof.
 
 The partial-navmesh progress check used the current position. A necessary doorway detour moved farther from the worksite, making an old interior endpoint falsely earn six meters of progress again. Add a whole-trip nearest-distance baseline, observed during actual local and navmesh travel, to reject recycled partial endpoints and rejected-candidate prefixes. Complete routes still allow detours and retain physical validation; reset only on a new goal. Captured-position regression plus partial-prefix/reset checks pass via just check plugin test-core NavmeshCandidatesTests. Full CI, commit review, deployment and another live attempt follow.
+
+**agent:codex/renki-milestones** at 2026-10-31T06:07:10Z
+
+### Departure passed; first trunk contact needs alternatives
+
+91d957e passed full CI, committed review and checksum installation. Trial .checks/gather-trial-20261031T060050082660Z left the changed house, traveled to the south stand and felled Beech1 entity1:20627 in t-2 with7 attributed local hits. Zero damage events; automatic cleanup passed. t-3 then refused a tilted fallen log: measured contact[-37.52,38.56,-60.05] was outside axe reach from supported floor[-38.21,36.01,-60.71]. Audit .checks/audit-window-fYG8sm.jsonl. This is a positive departure/felling slice, not a full tree or storage pass.
+
+Implement bounded native search along both sides/ends of the actual log's bounds after nearest-contact/support/sight/approach failure. Bounds seed measurements only; every selected candidate needs actual collider contact, real ground, unchanged weapon reach, strike sight and ordinary dry routing before swinging. Pin the selected side during approach; one candidate per physics step,20 total within existing180-second task bound. Preserve damage, hostile, falling/rolling, bystander, permission and cancellation checks. A synthetic seed-exterior regression exposed an end-seed offset entering the bounds; correct the generator rather than relaxing the assertion. Test/deploy and recover the existing log before another fresh two-tree trial.

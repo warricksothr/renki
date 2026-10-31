@@ -41,6 +41,32 @@ namespace Renki.Tasks
             InRange(feet, contact, height, reach) && InteractionSight.Visible(hits);
     }
 
+    /// <summary>Seeds along a fallen trunk, outside its measured bounds.
+    /// Every seed still needs physical contact, ground, sight and routing.</summary>
+    public static class HarvestContactSearch
+    {
+        public const int Limit = 20;
+
+        public static V3 Seed(V3 min, V3 max, int attempt)
+        {
+            if (attempt < 0 || attempt >= Limit) throw new ArgumentOutOfRangeException(nameof(attempt));
+            var center = (min + max) * .5;
+            var extent = (max - min) * .5;
+            var station = attempt / 4;
+            var fraction = station == 0 ? 0 : (station <= 2 ? .5 : .9) * (station % 2 == 1 ? 1 : -1);
+            var alongX = extent.X >= extent.Z;
+            var along = alongX ? new V3(extent.X * fraction, 0, 0) : new V3(0, 0, extent.Z * fraction);
+            // The two long sides give different chopping heights on slopes;
+            // the other sides also sample the physical ends of the trunk.
+            var side = attempt % 4;
+            if (side >= 2) along = alongX ? new V3(0, 0, extent.Z * fraction) : new V3(extent.X * fraction, 0, 0);
+            var offset = alongX
+                ? side < 2 ? new V3(0, 0, (extent.Z + 2) * (side == 0 ? 1 : -1)) : new V3((extent.X + 2) * (side == 2 ? 1 : -1), 0, 0)
+                : side < 2 ? new V3((extent.X + 2) * (side == 0 ? 1 : -1), 0, 0) : new V3(0, 0, (extent.Z + 2) * (side == 2 ? 1 : -1));
+            return center + along + offset;
+        }
+    }
+
     public static class HarvestHealth
     {
         public static bool Ready(double hp, double maximum) => maximum > 0 && hp >= maximum * .8;

@@ -694,6 +694,10 @@ X Y Z --wait-s 60` with the known log area's center. This explicitly considers
 existing nearby tier-zero beech logs, uses the same safety/cleanup bounds, and
 reports `mode: logs_only`. A pass requires a log break, collected Wood and no
 observed unfinished nearby logs; it does not claim a full-tree benchmark.
+An explicit log-area hint within 150 m can request a native dry approach to
+within 10 m before fresh resource selection. Its exact successful receipt and
+observed arrival are both required. Health, scope, body ownership and the
+eight-minute trial limit still apply; travel is bounded to 180 m from departure.
 
 Physical reach uses actual collider contact and strike sight from axe height;
 a bounds center is never contact evidence. Logs probe at Tas's strike height
@@ -701,6 +705,14 @@ with a 3D collider-ray fallback. Support projection uses the lower of the pivot
 and measured contact. High or unsupported contacts still refuse.
 For supported box/sphere/capsule/convex-mesh log colliders, exact nearest-surface
 queries precede the ray fallback; nonconvex meshes retain physical rays.
+An unreachable or occluded nearest log contact starts a bounded search of
+20 seeds along both sides and ends of its collider bounds, one per physics
+step. Bounds only place seeds: each candidate needs measured surface contact,
+ground projection, weapon reach and strike sight. Native dry routing checks
+the journey; an unavailable candidate tries the next within the existing
+180-second task limit. The selected side stays pinned while approaching.
+Inspect the compact alternative-contact traces alongside local-hit proof;
+selection alone is not a successful cut.
 Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
 refuse rather than consume truncated results. Before swings, up to seven
 outward six-metre escape corridors are checked, one per physics tick, with

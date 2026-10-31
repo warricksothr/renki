@@ -55,6 +55,27 @@ class HarvestTrialTests(unittest.TestCase):
         self.assertFalse(harvest.pack_ready(dict(self.pack, inventory=dict(size=[8, 4], items=[dict(self.axe, durability=0)]))))
         self.assertFalse(harvest.pack_ready(dict(self.pack, inventory=None)))
 
+    def test_log_recovery_uses_checked_native_travel_and_receipt_plus_arrival(self):
+        center = [80, 32, 0]
+        sent = []
+        receipt = dict(id='travel', status='succeeded')
+
+        def call(*args, **kwargs):
+            sent.append(args)
+            return dict(id='travel') if args[0] == 'task' else receipt
+
+        states = iter([dict(self.status, task=dict(id='travel')), dict(self.status, pos=[72, 32, 0])])
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(harvest.time, 'sleep'):
+            result = harvest.approach_logs(center, call, lambda: (next(states), {}), lambda h, _: h, Path(directory))
+        self.assertEqual(result['pos'], [72, 32, 0])
+        self.assertEqual(json.loads(sent[0][2]), dict(to=center, stopDistance=10, dry=True))
+        self.assertEqual(sent[0][1], 'move_to')
+        self.assertEqual(len(sent), 3)  # Success receipt alone did not finish travel.
+        for status, terminal in ((dict(self.status, task=dict(id='another')), None),
+                                 (dict(self.status), dict(status='failed', reason='unreachable'))):
+            with tempfile.TemporaryDirectory() as directory, self.assertRaises(RuntimeError):
+                harvest.approach_logs(center, call, lambda: (status, {}), lambda h, _: terminal, Path(directory))
+
     def test_diagnostics_scope_and_bound_repeated_contacts_and_report_saturation(self):
         def trace(task, message, **data):
             return dict(frame=dict(type='trace', source='harvest', task=task, msg=message, data=data))
