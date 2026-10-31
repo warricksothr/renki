@@ -114,7 +114,7 @@ install: need-target
 deploy: install
     just --justfile "{{justfile()}}" vm start
 
-# Deploy a controller-only change and refresh the bridge without restarting Valheim.
+# Deploy a controller-only change; preserve the running/offline game state.
 deploy-controller: need-target
     #!/usr/bin/env bash
     set -euo pipefail

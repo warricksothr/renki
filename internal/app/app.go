@@ -150,7 +150,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	if len(goals) > 0 && goals[0] != nil {
 		a.Goals = goals[0]
 	}
-	a.goalTemplate = &goal.Template{Store: a.Goals}
+	a.goalTemplate = &goal.Template{Store: a.Goals, Landmarks: homes.Landmarks, Allowed: a.Session.Allowed}
 	a.supplyLog = log.With("part", "resupply")
 	a.Food.SetReserved(a.Goals.FoodRunning)
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate},

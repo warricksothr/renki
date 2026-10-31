@@ -83,3 +83,37 @@ Trials log out after unsafe, uncertain or failed outcomes. `--keep-online`
 retains Tas after success only with a fresh safe idle shelter observation near
 home and no nearby observed threats. Native plugin changes still require a
 client restart; controller-only changes can use `just vm deploy-controller`.
+
+New food goals can also acquire missing supplies after storage is exhausted.
+They prefer exact live ready-food yields and loose raw ingredients, then visit
+remembered raspberry, blueberry or mushroom sites within 80 m of home. A
+remembered site offers a position to check; it never proves a harvest or an
+empty area. Cold cooking fires can obtain wood from observed branches or
+loose wood when storage has none. The native movement task checks dry ground,
+known obstacles and hostile avoidance for each visit.
+
+If those sources cannot supply food, current attack permission can admit an
+explicitly selected isolated unstarred wild Boar or Neck within 30 m of Tas.
+Active food, recovered health, stamina, pack capacity and the native weapon,
+bystander, pursuit and retreat guards remain required. There is no blind
+wildlife discovery attack, and no hunt when combat permission is disabled.
+Observed death is a separate receipt from food collection: meat must still
+appear as an eligible live drop and reach the pack. Any injury still stops the
+food goal; this adapter does not reset the injury baseline to continue hunting.
+
+The acquisition checkpoint limits a goal to 12 resource interactions/pickups,
+six remembered-site visits and two hunts, within the original overall task and
+time budgets. A failed visit consumes its attempt but does not assert that the
+site was empty. Pickable products have a short persisted observation deadline;
+matching nearby drops can be picked up once, or fresh measured inventory gain
+can prove ordinary auto-pickup. Success text, disappearance and remembered
+stock do not prove a gain. Every uncertain action remains non-replayable.
+After acquisition, Tas returns to the original home floor before cooking,
+completion or escort handoff. Older saved goals without an acquisition
+checkpoint retain their original storage-only scope on explicit resume.
+
+`just vm food-check --require-acquisition` additionally requires a verified
+collection receipt outside storage. The panel shows bounded forage-visit,
+collection and hunt counts; the full checkpoint retains source attempts.
+Controller-only deployment now preserves an offline game as well as a running
+one, keeping the independent panel available without launching Valheim.

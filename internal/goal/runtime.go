@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/behaviour"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -58,7 +59,7 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 		}
 		r.Policy, r.PolicyHash = foodPolicy, hash(foodPolicy)
 		r.MaxTasks, r.MaxAttempts = 256, 256
-		r.Food = &FoodProgress{Phase: "home", Reserve: reserve, Storage: spec.Storage, Escort: spec.Escort}
+		r.Food = &FoodProgress{Phase: "home", Reserve: reserve, Storage: spec.Storage, Escort: spec.Escort, Acquisition: &FoodAcquisition{}}
 	}
 	if r.ReturnHome {
 		r.MaxTasks++
@@ -67,7 +68,11 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 }
 func decode(raw []byte, to any) error { return behaviour.Decode(raw, to) }
 
-type Template struct{ Store *Store }
+type Template struct {
+	Store     *Store
+	Landmarks func(string) []home.Landmark
+	Allowed   func(string) bool
+}
 type params struct {
 	ID string `json:"id"`
 }

@@ -5,6 +5,7 @@ if (-not $s.ControllerExe) { throw 'The VM does not run a local controller' }
 $next = Join-Path $PSScriptRoot 'controller.next.exe'
 if (-not (Test-Path $next)) { throw "Missing upload: $next" }
 $controllers = @(Get-Controller $s)
+$gameWasRunning = [bool](Get-Valheim)
 try {
     $controllers | Stop-Process
     $controllers | Wait-Process -Timeout 10
@@ -21,5 +22,9 @@ try {
     }
     Remove-Item $next
 } finally {
-    Start-ScheduledTask -TaskName RenkiStart
+    if ($gameWasRunning) {
+        Start-ScheduledTask -TaskName RenkiStart
+    } else {
+        & (Join-Path $PSScriptRoot 'start-panel.ps1')
+    }
 }

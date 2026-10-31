@@ -41,6 +41,7 @@ def main():
     parser.add_argument('--reserve', type=int, choices=range(1, 4), default=2)
     parser.add_argument('--require-cooking', action='store_true')
     parser.add_argument('--require-fuel', action='store_true')
+    parser.add_argument('--require-acquisition', action='store_true', help='require verified collection outside storage')
     parser.add_argument('--keep-online', action='store_true', help='keep Tas online only after success and verified safe idle shelter near home')
     parser.add_argument('--stow-ready', help='stage a shortage by normally depositing carried ready meals into this excluded chest')
     args = parser.parse_args()
@@ -139,13 +140,15 @@ def main():
         if goal['status'] != 'succeeded': raise RuntimeError(summary['reason'])
         receipts = goal['food'].get('receipts', [])
         cooks = [r for r in receipts if r['action'] == 'cook']
+        acquired = [r for r in receipts if r['action'] == 'collect']
         fuel = []
         for receipt in cooks:
             history = call('panel', 'GET', '/api/task?' + urlencode(dict(id=receipt['taskId'], at=goal['created'])))
             (folder / (receipt['taskId'] + '.json')).write_text(json.dumps(history, indent=2)+'\n')
             rows = history.get('value', []) if isinstance(history, dict) else history
             fuel += [r['frame'] for r in rows if r.get('frame', {}).get('msg') == 'verified wood fuel and station heat receipt']
-        summary.update(cooked=cooks, fueled=bool(fuel), hp=status['hp'], hpMax=status['hpMax'], pos=status['pos'])
+        summary.update(cooked=cooks, acquired=acquired, fueled=bool(fuel), hp=status['hp'], hpMax=status['hpMax'], pos=status['pos'])
+        if args.require_acquisition and not acquired: raise RuntimeError('goal succeeded but requested acquisition evidence is absent')
         if args.require_cooking and not cooks: raise RuntimeError('goal succeeded but requested cooking evidence is absent')
         if args.require_fuel and not fuel: raise RuntimeError('goal succeeded but requested cold-fire fuel evidence is absent')
         summary.update(outcome='succeeded', reason='production food goal verified reserve, active food and recovery')
