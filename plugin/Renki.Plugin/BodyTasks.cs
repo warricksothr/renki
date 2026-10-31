@@ -38,7 +38,7 @@ namespace Renki.Plugin
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
-        float localStarted, nextWallCheck, nextNavmeshCheck;
+        float localStarted, nextWallCheck, nextNavmeshCheck, nextDryNavmeshTrace;
         double localMs, localWorstMs;
         float strafeUntil;
         float strafeSign = 1;
@@ -136,6 +136,7 @@ namespace Renki.Plugin
             hasGoal = true;
             skipReuse = false;
             navmeshCandidates.Reset();
+            nextDryNavmeshTrace = 0;
             trailStarted = false;
             RecordGrounded(from);
             Repath(from);
@@ -478,32 +479,58 @@ namespace Renki.Plugin
             if (replay.Status == RouteStatus.Searching) return true;
             if (replay.Status != RouteStatus.Found)
             {
+                var prefix = replayNavmesh ? NavmeshCandidates.CheckedPrefix(replay, Convert.ToV3(pos), Convert.ToV3(goal)) : System.Array.Empty<V3>();
+                if (prefix.Count > 0)
+                {
+                    FollowReplay(pos, prefix, "following validated dry prefix before refused navmesh leg");
+                    return true;
+                }
                 RejectReplay(pos, "live route validation failed");
                 return true;
             }
-            path.Set(replay.Path);
+            FollowReplay(pos, replay.Path, replayNavmesh ? "following validated dry navmesh route" : "reusing recorded route");
+            return true;
+        }
+
+        void FollowReplay(Vector3 pos, IReadOnlyList<V3> points, string message)
+        {
+            path.Set(points);
             path.Reach = .15;
             replaying = true;
             localRoute = null;
-            Tracer.Emit("walker", replayNavmesh ? "following validated dry navmesh route" : "reusing recorded route", new Dictionary<string, object>
+            Tracer.Emit("walker", message, new Dictionary<string, object>
             {
                 ["route"] = replayID,
                 ["samples"] = replay.Samples,
-                ["waypoints"] = replay.Path.Count,
+                ["waypoints"] = points.Count,
+                ["failure"] = replayProbe.LastFailure?.Stage,
+                ["end"] = points[points.Count - 1].ToArray(),
                 ["ms"] = System.Math.Round(replayMs, 2),
                 ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
                 ["physicsCasts"] = replayProbe.PhysicsCasts,
             });
             replay = null;
             ResetStuck(pos);
-            return true;
         }
 
         bool BeginDryNavmesh(Vector3 from, Vector3 target)
         {
             scratch.Clear();
-            if (Pathfinding.instance == null ||
-                !Pathfinding.instance.GetPath(from, target, scratch, Pathfinding.AgentType.Humanoid, false, true, false)) return false;
+            var found = Pathfinding.instance != null &&
+                Pathfinding.instance.GetPath(from, target, scratch, Pathfinding.AgentType.Humanoid, false, true, false);
+            if (Time.unscaledTime >= nextDryNavmeshTrace)
+            {
+                nextDryNavmeshTrace = Time.unscaledTime + 30;
+                Tracer.Emit("walker", "dry navmesh query", new Dictionary<string, object>
+                {
+                    ["found"] = found,
+                    ["waypoints"] = scratch.Count,
+                    ["from"] = Convert.ToArray(from),
+                    ["to"] = Convert.ToArray(target),
+                    ["end"] = scratch.Count > 0 ? Convert.ToArray(scratch[scratch.Count - 1]) : null,
+                });
+            }
+            if (!found) return false;
             var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true);
             var candidate = navmeshCandidates.Try(Convert.ToV3(from), Convert.ToV3(target),
                 scratch.Select(Convert.ToV3).ToArray(), probe.Probe, arrivalWithin);

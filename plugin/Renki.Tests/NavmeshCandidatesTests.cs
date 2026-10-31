@@ -58,7 +58,8 @@ namespace Renki.Tests
                 new[] { new V3(-7, 30.4, 0), new V3(-4, 33.4, 0), new V3(0, 33.4, 0) },
                 (a, b) => b.X > -6 && b.X < -4 ? null : Probe(a, b), .5);
             Assert.Equal(RouteStatus.NoRoute, Finish(removed));
-            Assert.Null(candidates.Try(start, goal, new[] { new V3(0, 30.4, 0) }, Probe, .5));
+            var wrongFloor = candidates.Try(start, goal, new[] { new V3(0, 30.4, 0) }, Probe, .5);
+            Assert.Equal(RouteStatus.NoRoute, Finish(wrongFloor));
         }
 
         [Fact]
@@ -78,6 +79,39 @@ namespace Renki.Tests
             Assert.NotNull(candidates.Try(new V3(2, 0, 0), goal, new[] { goal }, (_, b) => b, .25));
             candidates.Reset();
             Assert.NotNull(candidates.Try(V3.Zero, goal, new[] { goal }, (_, b) => b, .25));
+        }
+
+        [Fact]
+        public void FailedCandidateRetainsOnlyUsefulPhysicallyCheckedGroundBeforeWater()
+        {
+            var start = new V3(0, 30.4, 0); var goal = new V3(20, 30.4, 0);
+            V3? Probe(V3 from, V3 to) => to.X >= 8 && to.X <= 12 ? (V3?)null : to;
+            var candidate = new NavmeshCandidates().Try(start, goal, new[] { goal }, Probe, .25);
+            Assert.Equal(RouteStatus.NoRoute, Finish(candidate));
+            var prefix = NavmeshCandidates.CheckedPrefix(candidate, start, goal);
+            Assert.NotEmpty(prefix);
+            Assert.All(prefix, p => Assert.True(p.X < 8));
+            Assert.False(Arrival.Reached(prefix.Last(), goal, .25));
+            Assert.True(candidate.Checking.Value.X >= 8);
+            // A refusal before meaningful progress must leave local planning
+            // in charge rather than replacing it with tiny speculative steps.
+            candidate = new NavmeshCandidates().Try(start, goal, new[] { goal }, (a, b) => b.X >= 2 ? null : b, .25);
+            Assert.Equal(RouteStatus.NoRoute, Finish(candidate));
+            Assert.Empty(NavmeshCandidates.CheckedPrefix(candidate, start, goal));
+        }
+
+        [Fact]
+        public void ValidatedPartialNavmeshGuidesLocalSearchWithoutInventingAFinalLeg()
+        {
+            var start = new V3(-27.95, 31.49, -14.41);
+            var goal = new V3(-35.9, 37.66, 6.53);
+            var below = new V3(-35.9, 34.1, 6.53);
+            var candidate = new NavmeshCandidates().Try(start, goal, new[] { below }, (_, b) => b, 2);
+            Assert.NotNull(candidate);
+            Assert.Equal(RouteStatus.Found, Finish(candidate));
+            Assert.True((below - candidate.Path.Last()).Length < .15);
+            Assert.False(Arrival.Reached(candidate.Path.Last(), goal, 2));
+            Assert.All(candidate.Path, p => Assert.True(p.Y <= below.Y + 1e-8));
         }
 
         [Fact]

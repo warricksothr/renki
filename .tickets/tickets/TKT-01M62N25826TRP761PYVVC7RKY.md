@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T04:16:53Z
+updated_at: 2026-10-31T04:28:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -392,3 +392,25 @@ Evidence: .checks/combat-trial-20261031T040947354794Z/summary.json and .checks/a
 ### Native dry navmesh guidance
 
 Added bounded NavmeshCandidates and incremental RouteValidation for complete dry navmesh candidates, with distinct provenance from recorded successful trails. Every half-meter segment must pass the live dry support/body/water probe before movement; immediate-leg and actual corridor checks remain active. Rejected asynchronous candidates preserve local search and its elapsed budget. At most eight distinct stationary candidates are checked; a repeated candidate is suppressed until two meters of real movement or a new goal. Rejection includes focused stage/collider diagnostics. Core regressions cover an inlet shortcut, dry local fallback, a raised entrance and demolished ramp, async candidate changes, stationary attempt bounds, incomplete routes and sample limits. Full gate and live recheck pending.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:22:18Z
+
+### 7422354 live scouting result
+
+Changed build deployed with verified checksums after full gate (438 C# tests, 42 panel scenarios) and clean committed review. Goal 6f1626f42e84c575dd2ae2c5 exhausted six bounded scouting attempts with no eligible enemy: three empty-search receipts and three unreachable sectors. Tas traveled 162 m observed, with zero native damage events. No kill, dry home return, block or dodge proof was earned. Cleanup completed without errors. Evidence: .checks/combat-trial-20261031T041832915195Z/summary.json and .checks/audit-window-tpJLwE.jsonl.
+
+No automatic startup return was dispatched from the saved dry position 23 m from home, so this did not exercise the new dry route. Isolating that check via the existing bounded food-resupply supervisor, whose home move now also requests dry travel. This can replenish decaying food while testing the native raised-home approach, without requiring an enemy or a manually staged encounter.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:26:25Z
+
+### Isolated dry return result and prefix correction
+
+The isolated resupply home approach at source7422354 failed before movement with zero damage; no chest was opened. Full evidence .checks/resupply-trial-20261031T042231812609Z/summary.json and .checks/audit-window-KhiOrM.jsonl. Local search expanded3185nodes before its eight-second deadline, with13.27ms worst measured slice. No complete navmesh candidate was accepted.
+
+The candidate gate now permits a partial navmesh prefix only with at least six meters of horizontal goal progress, validates every leg to its own endpoint through dry physical probes, and leaves the absent final segment to local planning. This retains the existing successful prefix strategy without treating the endpoint as home. Added modeled captured-height regression showing a supported prefix below the raised home remains distinct from goal arrival. Rate-limited native query diagnostics now report missing/incomplete navmesh endpoints as well as candidate validation failures. Food-resupply returns also opt into dry native movement. Next changed-build check remains isolated home/resupply before another encounter search.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:28:35Z
+
+### Checked prefix authority
+
+A navmesh candidate refused at a later physical sample can also retain only its already validated prefix, provided that prefix itself earns at least six meters of goal progress. The refused sample is never installed. Following each prefix still rechecks its immediate support and actual motion corridor, then resumes local planning at its endpoint. A regression covers a long wet shortcut retaining dry ground before the bank and a near-start refusal retaining no speculative movement. This addresses paths whose complete endpoint is nominally near home but whose final physical leg is blocked.
