@@ -485,7 +485,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
-| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (bool, beds only) | M2 |
+| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only) | M2 |
 | `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (carried food prefab; eat one) | M2 |
@@ -493,7 +493,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `withdraw` | body | `container`; `items` | M2 |
 | `craft` | body | `recipe` (prefab); `count`; walks to the needed station | M2 |
 | `sleep` (planned standalone task) | body | Chat currently uses `interact` with `sleep:true` | M2 |
-| `repair_all` | body | `station` | M2 |
+| `repair_all` (planned standalone task) | body | Currently use `interact` with `repair:true` and a station entity | M2 |
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `guard` | body | `around`: player or position; `radius` | M3 |
 | `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
@@ -570,7 +570,17 @@ Notes:
   - A tombstone is the bot's own grave when all of it fits in the pack, and
     using it takes everything; otherwise it counts as a chest. If the pack
     has filled by the time the bot gets there, it fails `inventory_full`.
-  - Drops (`pickup`), chests (`deposit`, `withdraw`), crafting stations,
+  - `repair:true` permits a crafting station through its normal interaction,
+    then uses the game's repair-button method for eligible carried tools and
+    armour. It requires movement and `AllowGather`, normal game rules (no
+    no-cost mode), current ward access and physical sight/reach. The game checks
+    shelter, station type/level and item recipe. Each click must cause one
+    observed durability gain; `repair` traces include item slot/prefab and
+    before/after/max durability. At most 32 clicks and 10 seconds after opening
+    are allowed. Completion/cancellation closes the station UI. Success means
+    no more damaged gear repairable at that station; other station types may
+    still be needed. `repair` cannot combine with `sleep`, `alt` or `hold`.
+  - Drops (`pickup`), chests (`deposit`, `withdraw`), ordinary crafting-station use,
     portals and signs are `invalid_target`, since they have their own tasks
     or open a window the bot cannot use. So is a thing with several parts to
     use and none named, such as a smelter's ore, fuel and output.

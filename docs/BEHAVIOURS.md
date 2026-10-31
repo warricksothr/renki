@@ -223,6 +223,14 @@ must be at least 40. Native C# owns every approach, strike, falling-log escape a
 collection. Protection distances remain 32 m for standing trees, 8 m for logs,
 and 15 m around Tas, with authoritative native checks before swings.
 
+Before leaving home, `returnHome` gathering repairs a carried axe below 90%
+durability at a currently observed home workbench. It uses `interact` with
+`repair:true`, then requires a newer actual inventory reporting an axe at least
+90% repaired. Failed, stale or ineffective repair cannot start the journey.
+The station routine also repairs other eligible carried gear through the same
+normal game button. This does not craft replacements, upgrade equipment or
+infer that a workbench can repair gear needing a forge.
+
 `maxTrees` defaults to one for older definitions and accepts at most three.
 At most five harvest tasks and eight minutes per requested tree are allowed.
 Each full tree/log chain must finish with measured Wood gain before selecting

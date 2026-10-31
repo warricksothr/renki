@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T05:42:11Z
+updated_at: 2026-10-31T05:50:19Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -166,3 +166,11 @@ Added maxTrees (legacy default one, bounded to three), complete per-tree new-log
 The owner wood command now requests up to two trees and a home finish. Bounded landmark memory records ordinary full beech hints; recent distant hints can select travel destinations, with fresh acquisition/safety checks after arrival. VM gather benchmark accepts a bounded tree count and optional known work-site coordinates, and requires the requested distinct full trees, completed log chains, exact combined gains-only deposits and final destination proof. Two-tree, pressure delivery, stale/under-floor home receipt, changed home pin, remembered-hint scope/age, evidence-substitution and baseline-preservation checks pass. Full gate/review/deployment and live proof follow; no multi-tree game completion is claimed yet.
 
 First live destination hint is the previously observed south stand around [-43,36,-85], within 150 m of home, rather than manual enemy/tree staging. Fresh native observations must still authorize each cut. Door PR128 landed as b704d73; isolated staircase-to-home return on d2ee29b took 5.9 seconds through the current two gates, verified exact food withdrawals and indoor floor, and took zero damage. This is not proof of the directly-under-house approach.
+
+**agent:codex/renki-milestones** at 2026-10-31T05:50:19Z
+
+### Necessary repair prerequisite
+
+The last verified native pack has AxeFlint durability38/100, insufficient for a dependable two-tree chain. Added explicit interact repair:true for crafting stations, behind the existing movement/AllowGather/access gates. The native routine approaches on checked dry ground, requires normal interaction sight/reach and observed current station/UI, and invokes the game's repair-button method. Game shelter, recipe, station type/level and repair eligibility remain authoritative. The installed CraftingStation.Interact API returns false even when it opens; completion therefore uses observed station/UI, not that return flag. No-cost mode is refused. A click needs one verified durability increase, emitted with task-attributed slot/prefab/before/after/max; at most32 clicks/10 seconds after opening. Completion/cancellation closes the station UI. Other station-specific worn gear is not claimed repaired.
+
+Return-home gathering automatically performs that preparation at a currently observed home workbench when no carried axe is at least90% repaired, then waits for fresh actual inventory before leaving. Stale, failed or ineffective repair cannot advance. Cross-language protocol fixtures, parser conflict/type checks, station-kind and permission checks, native installed-game build and focused controller readiness/repair regressions pass. One fixture omitted required round-trip envelope defaults and was corrected after reading its diagnostic. Full gate/review/deployment and the live two-tree check follow. ec47825's earlier full gate/review passed; draft PR129 is linked.

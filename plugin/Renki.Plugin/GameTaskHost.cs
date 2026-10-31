@@ -84,12 +84,14 @@ namespace Renki.Plugin
                         if (it == null) throw new TaskRefused(Wire.ReasonInvalidTarget, $"nothing to use at {ia.Entity} in range");
                         if (ia.Sleep && !(it is Bed))
                             throw new TaskRefused(Wire.ReasonInvalidTarget, "sleep requires a bed");
-                        if (InteractRule.Check(InteractTask.Kind(it), safety) is Outcome no)
+                        if (ia.Repair && !(it is CraftingStation))
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, "repair requires a crafting station");
+                        if (InteractRule.Check(InteractTask.Kind(it), safety, ia.Repair) is Outcome no)
                             throw new TaskRefused(no.Reason, no.Detail);
                         // Section 8: nothing behind a ward the bot has no access to.
                         if (!PrivateArea.CheckAccess(obj.transform.position, 0f, false, false))
                             throw new TaskRefused(Wire.ReasonNotAllowed, $"the {InteractTask.Name(it)} is behind a ward");
-                        return new InteractTask(ia, it);
+                        return ia.Repair ? (IBodyTask)new RepairTask((CraftingStation)it) : new InteractTask(ia, it);
                     }
                 case FleeArgs fl:
                     {

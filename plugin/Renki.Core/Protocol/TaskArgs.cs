@@ -128,6 +128,9 @@ namespace Renki.Protocol
 
         /// <summary>Beds only: claim/set spawn if needed, then lie down.</summary>
         public bool Sleep;
+
+        /// <summary>Stations only: repair eligible carried gear through the game UI.</summary>
+        public bool Repair;
     }
 
     public sealed class FleeArgs
@@ -327,8 +330,9 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false) };
+                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false) };
                         if (args.Sleep && (args.Alt || args.Hold)) throw new BadArgsException("`sleep` cannot be combined with `alt` or `hold`");
+                        if (args.Repair && (args.Sleep || args.Alt || args.Hold)) throw new BadArgsException("`repair` cannot combine with sleep, alt or hold");
                         return args;
                     }
                 case TaskNames.Flee:

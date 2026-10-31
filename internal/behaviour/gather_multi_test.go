@@ -129,3 +129,58 @@ func TestGatherHomeProofCannotComeFromBelowTheFloor(t *testing.T) {
 		t.Fatal("under-floor pose authorized storage", order, err)
 	}
 }
+
+func TestGatherRepairsAtHomeThenRequiresFreshActuallyRestoredAxeBeforeLeaving(t *testing.T) {
+	for _, mode := range []string{"repaired", "stale", "unchanged", "failed", "wrong station"} {
+		t.Run(mode, func(t *testing.T) {
+			r, v := gathering(t)
+			r.p.Return = false
+			r.p.ReturnHome = true
+			r.p.Site.Pos = protocol.Vec3{50, 0, 0}
+			home := protocol.Vec3{0, 0, 0}
+			v.Home = &home
+			v.Inventory.Items[0].Durability = 38
+			v.Perception.Structures = []protocol.PerceivedStructure{{ID: "bench", Kind: protocol.StructureStation, Prefab: "piece_workbench"}}
+			if mode == "wrong station" {
+				v.Perception.Structures[0].Prefab = "piece_cookingstation"
+				if order, err := r.Next(v, nil); order != nil || err == nil {
+					t.Fatal(order, err)
+				}
+				return
+			}
+			order := nextTask(t, r, v, nil, protocol.TaskInteract)
+			if args := order.Args.(*protocol.InteractArgs); !args.Repair || args.Entity != "bench" {
+				t.Fatal(args)
+			}
+			result := success("repair")
+			if mode == "failed" {
+				result = &Result{Status: protocol.StatusFailed}
+				if order, err := r.Next(v, result); order != nil || err == nil {
+					t.Fatal(order, err)
+				}
+				return
+			}
+			if mode != "stale" {
+				v.Inventory.Seq++
+			}
+			if mode != "unchanged" {
+				v.Inventory.Items[0].Durability = 100
+			}
+			order, err := r.Next(v, result)
+			switch mode {
+			case "stale":
+				if order != nil || !errors.Is(err, ErrWait) {
+					t.Fatal(order, err)
+				}
+			case "unchanged":
+				if order != nil || err == nil {
+					t.Fatal(order, err)
+				}
+			case "repaired":
+				if err != nil || order == nil || order.Task != protocol.TaskMoveTo || !order.Args.(*protocol.MoveToArgs).Dry {
+					t.Fatal(order, err)
+				}
+			}
+		})
+	}
+}

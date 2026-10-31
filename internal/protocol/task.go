@@ -462,6 +462,7 @@ type InteractArgs struct {
 	Alt    bool   `json:"alt,omitempty"`
 	Hold   bool   `json:"hold,omitempty"`
 	Sleep  bool   `json:"sleep,omitempty"`
+	Repair bool   `json:"repair,omitempty"`
 }
 
 func (a *InteractArgs) validate() error {
@@ -470,6 +471,9 @@ func (a *InteractArgs) validate() error {
 	}
 	if a.Sleep && (a.Alt || a.Hold) {
 		return errors.New("`sleep` cannot be combined with `alt` or `hold`")
+	}
+	if a.Repair && (a.Sleep || a.Alt || a.Hold) {
+		return errors.New("`repair` cannot combine with sleep, alt or hold")
 	}
 	return nil
 }

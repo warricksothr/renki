@@ -76,6 +76,8 @@ type gatherRun struct {
 	homePhase                                 string
 	homeReceipt                               *uint64
 	stow                                      *stowRun
+	prepared, repairPending                   bool
+	repairBefore                              uint64
 }
 
 func (r *gatherRun) Recover(result Result) bool {
@@ -130,13 +132,20 @@ func gatherReady(v View) error {
 	if !finite(s.Weight) || !finite(s.WeightMax) || !finite(packWeight) || s.WeightMax-math.Max(s.Weight, packWeight) < 60 || v.Inventory.Free() < 4 {
 		return errGatherCapacity
 	}
-	for _, item := range v.Inventory.Items {
-		if slices.Contains([]string{"AxeStone", "AxeFlint", "AxeBronze", "AxeIron", "AxeBlackMetal"}, item.Prefab) &&
-			item.Stack > 0 && finite(item.Durability) && finite(item.DurabilityMax) && item.DurabilityMax > 0 && item.Durability >= item.DurabilityMax*.25 {
-			return nil
-		}
+	if gatherAxe(v, .25) {
+		return nil
 	}
 	return errGatherTool
+}
+
+func gatherAxe(v View, fraction float64) bool {
+	for _, item := range v.Inventory.Items {
+		if slices.Contains([]string{"AxeStone", "AxeFlint", "AxeBronze", "AxeIron", "AxeBlackMetal"}, item.Prefab) &&
+			item.Stack > 0 && finite(item.Durability) && finite(item.DurabilityMax) && item.DurabilityMax > 0 && item.Durability >= item.DurabilityMax*fraction {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
@@ -219,6 +228,41 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	if v.Inventory == nil || !freshPerception(v) {
 		return nil, ErrWait
+	}
+	if r.repairPending {
+		if result == nil || result.Status != protocol.StatusSucceeded {
+			return nil, errors.New("gather station repair did not succeed")
+		}
+		if v.Inventory.Seq <= r.repairBefore {
+			return nil, ErrWait
+		}
+		if !gatherAxe(v, .9) {
+			return nil, errors.New("station did not restore a usable axe to 90% durability")
+		}
+		r.repairPending = false
+	}
+	if !r.prepared {
+		r.prepared = true
+		if r.p.ReturnHome && gatherAxe(v, 0) && !gatherAxe(v, .9) {
+			if err := gatherReady(v); err != nil && !errors.Is(err, errGatherTool) {
+				return nil, err
+			}
+			var station *protocol.PerceivedStructure
+			for _, s := range v.Perception.Structures {
+				if s.Kind == protocol.StructureStation && s.Prefab == "piece_workbench" && s.ID != "" &&
+					distance(s.Pos, *r.home) <= 10 && distance(v.State.Pos, s.Pos) <= 12 &&
+					(station == nil || distance(v.State.Pos, s.Pos) < distance(v.State.Pos, station.Pos)) {
+					copy := s
+					station = &copy
+				}
+			}
+			if station == nil {
+				return nil, errors.New("repair the axe at an accessible home workbench before gathering")
+			}
+			r.repairPending = true
+			r.repairBefore = v.Inventory.Seq
+			return &session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: station.ID, Repair: true}, TimeoutS: 90}, nil
+		}
 	}
 	if !r.arrived {
 		if err := gatherReady(v); err != nil {

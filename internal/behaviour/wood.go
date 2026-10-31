@@ -45,7 +45,7 @@ func (e *Engine) StartWood(ctx context.Context, by string) (string, error) {
 			return "", errors.New("stop the queued behavior first")
 		}
 	}
-	for _, task := range []string{protocol.TaskMoveTo, protocol.TaskHarvest, protocol.TaskDeposit, protocol.TaskStop} {
+	for _, task := range []string{protocol.TaskMoveTo, protocol.TaskHarvest, protocol.TaskDeposit, protocol.TaskInteract, protocol.TaskStop} {
 		if !slices.Contains(e.o.Session.AllowedTasks(), task) {
 			return "", fmt.Errorf("%s is not allowed", task)
 		}
