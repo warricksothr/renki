@@ -407,7 +407,7 @@ def main():
                 summary.setdefault('cleanupErrors', []).append(str(error))
 
         urgent = any(reason in summary.get('reason', '').lower() for reason in
-                     ('hostile', 'health', 'damage', 'ownership', 'unsafe water'))
+                     ('hostile', 'health', 'damage', 'ownership', 'unsafe water', 'footing'))
         if urgent:
             # Do not leave an aborted, stationary bot exposed while slow SSH
             # diagnostics or automation deletion consume its threat buffer.

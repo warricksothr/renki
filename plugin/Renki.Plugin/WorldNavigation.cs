@@ -24,6 +24,9 @@ namespace Renki.Plugin
         const float Radius = .4f;
 
         internal static void Focus(Vector3 target) => focus = target;
+        internal static double WaterLevel(V3 at) => Math.Max(
+            ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000,
+            Floating.GetLiquidLevel(Convert.ToVector3(at)));
         internal static void Reset()
         {
             Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null;
@@ -104,7 +107,8 @@ namespace Renki.Plugin
                 return null;
             }
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
-            internal bool WaterSafe(V3 at, double water) => dry ? DryTravel.Clear(at, water) : at.Y >= water - .5;
+            internal bool WaterSafe(V3 at, double water) => dry
+                ? DryTravel.Clear(at, WaterLevel(at), DryTravel.TravelMargin) : at.Y >= water - .5;
         }
 
         static V3? Probe(V3 from, V3 desired, PlanningProbe plan)

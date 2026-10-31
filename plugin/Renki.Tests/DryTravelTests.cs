@@ -7,6 +7,21 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void CapturedRainSurfaceAndBodyStepOffsetInvalidateAMarginalShorePath()
+        {
+            var support = new V3(-30.64, 30.8, -17.65);
+            Assert.True(DryTravel.Clear(support, 30)); // Old static sea-level check.
+            Assert.False(DryTravel.Clear(support, 30.46, DryTravel.TravelMargin));
+            var higher = new V3(-30.64, 31.5, -17.65);
+            Assert.True(DryTravel.Clear(higher, 30.46, DryTravel.TravelMargin));
+            // Even if the body stands a full step below the sample, it stays
+            // clear of that observed surface with the base dry margin.
+            Assert.True(DryTravel.Clear(higher - new V3(0, .6, 0), 30.46));
+            Assert.False(DryTravel.Clear(higher, 31, DryTravel.TravelMargin));
+            Assert.True(DryTravel.Clear(new V3(0, 36, 0), 31, DryTravel.TravelMargin));
+        }
+
+        [Fact]
         public void MotionGuardStopsAtTheCheckedCornerWhileStrafingKeepsFullClearance()
         {
             var from = new V3(0, 31, 0);

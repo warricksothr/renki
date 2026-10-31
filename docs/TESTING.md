@@ -711,6 +711,9 @@ step. Bounds only place seeds: each candidate needs measured surface contact,
 ground projection, weapon reach and strike sight. Native dry routing checks
 the journey; an unavailable candidate tries the next within the existing
 180-second task limit. The selected side stays pinned while approaching.
+Once a log contact is reached, eight seconds without another actual resource
+hit selects another approach. Briefly slipping out of range cannot renew that
+clock; movement, aim and an escape plan alone do not establish cutting progress.
 Inspect the compact alternative-contact traces alongside local-hit proof;
 selection alone is not a successful cut.
 Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
@@ -1016,6 +1019,12 @@ stops the game, restores combat off and starts the controller/panel alone.
 
 Native dry home travel can use a navmesh candidate only after incremental
 physical support, water and body-clearance validation of every half-meter leg.
+Dry probes use the higher of the base sea level and the game's current liquid
+surface, with 0.8 m support clearance for the body's step/slope offset. Every
+immediate movement probe samples the current surface again. A rain/wave rise
+must invalidate a marginal shore route while raised bridges/floors remain
+eligible. A dry task also treats actual shallow-water contact as requiring
+shore recovery, rather than waiting for the swimming state.
 An inlet-crossing candidate must fail without becoming movement authority;
 local dry planning then routes around it. Asynchronous candidates do not reset
 the goal or invent a missing final segment: a partial candidate must advance at

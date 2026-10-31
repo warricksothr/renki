@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T06:23:21Z
+updated_at: 2026-10-31T06:41:42Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -200,3 +200,13 @@ Implement bounded native search along both sides/ends of the actual log's bounds
 A Boar and later a Greyling interrupted the live work. The Greyling hit at01:18:07-05:00 occurred4.3 seconds after native harvesting had already refused for a hostile inside15m (.checks/harvest-trial-20261031T061351430235Z/summary.json; .checks/audit-window-IiX1vf.jsonl). Slow diagnostic imagery/deletion delayed logout. Urgent health/hostile/ownership/water aborts now logout before diagnostics/deletion and omit camera retrieval; regression verifies that order. Add hostile monitoring during explicit recovery travel and skip travel when a fresh safe log is already within native acquisition range. The subsequent retry rejoined into a pursuing enemy and fled; it earned no new harvesting proof (.checks/harvest-trial-20261031T062051801073Z/summary.json). Tas stayed above the80% gathering floor and was stopped; no user cleanup requested.
 
 Use the existing bounded combat-and-return goal to resolve the Greyling exposure and return home, then resume multi-harvest testing. Record each native receipt separately; no completed multi-tree loop yet. Avoid retrying the same unchanged approach or treating felling as complete log/wood proof.
+
+**agent:codex/renki-milestones** at 2026-10-31T06:41:42Z
+
+### Shoreline clearance and alternate work site
+
+Direct native t-14 move_to succeeded back on the indoor home floor, full86.1/86.1 HP, after the pursuer recovery (.checks/task-pjoeqlt4.json). The combat attempts earned no kill: unsafe initial footing and a later pursuit-leash refusal both ran native escape. Broader dry escape/defense remains unproven; do not treat direct home recovery as a combat-goal pass.
+
+The next multi-tree attempt entered shallow rain/wave water at[-30.64,30.36,-17.65], liquid depth0.1, while navigating a static-water-validated shoreline. Zero damage; supervisor stopped it (.checks/gather-trial-20261031T063105795442Z/summary.json; audit .checks/audit-window-1z2ucq.jsonl). Dry physics probes now use max(base sea,current actual liquid surface) and0.8m support clearance (.2m dry margin plus.6m body step allowance), with live rechecks. Actual shallow-water contact also starts shore recovery. Focused DryTravelTests and installed-game build pass; checksum-deployed candidate then traversed the shoreline to[-45.48,34.75,-99.83] without water or damage (.checks/gather-trial-20261031T063612114189Z/summary.json). Full CI passed in .checks/20261031T063708Z-FQbYFc.log.
+
+That stand had three full beeches, but Necks within32m of all candidates correctly prevented felling. No harvesting proof there. Retrying a previously observed inland stand near[-60,35,-65], preserving all native safety bounds and fresh resource selection. Existing tilted trunk and the two-tree storage benchmark remain incomplete.

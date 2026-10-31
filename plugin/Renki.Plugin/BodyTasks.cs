@@ -691,7 +691,8 @@ namespace Renki.Plugin
                 dryProbe.BeginSlice();
                 var at = Convert.ToV3(pos);
                 var support = dryProbe.Sample(at, at.Y);
-                wet |= support.HasValue && !DryTravel.Clear(support.Value, WaterLevel);
+                wet |= p.InWater() || support.HasValue && !DryTravel.Clear(support.Value,
+                    WorldNavigation.WaterLevel(support.Value), DryTravel.TravelMargin);
             }
             if (p == null || !wet)
             {
@@ -735,8 +736,9 @@ namespace Renki.Plugin
             {
                 // A failed search is not run again every frame.
                 if (Time.time - noShoreAt < 2f) return false;
-                shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel, tried: triedShores,
-                    maxDepth: dryGround ? -DryTravel.Margin : .3);
+                shore = DeepWater.Shore(Convert.ToV3(pos), Ground,
+                    dryGround ? WorldNavigation.WaterLevel(Convert.ToV3(pos)) : WaterLevel, tried: triedShores,
+                    maxDepth: dryGround ? -DryTravel.TravelMargin : .3);
                 var why = Blocked != null ? "swimming, the way on is refused" : "swimming, low on stamina";
                 Tracer.Emit("walker", shore != null ? why + ": making for shore" : why + ", and no shore in reach",
                     new Dictionary<string, object>
