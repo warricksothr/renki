@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M69WH7CNZABZZEYKXAE64A0N
 title: Run bounded food work while idle near typed markers
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/food-acquisition
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: d19708daf64a40ecd06fe2f4ca7d10ffe9ea598a
-  session: null
-  claimed_at: 2026-10-31T21:06:37Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-31T21:06:00Z
-updated_at: 2026-10-31T22:24:17Z
+updated_at: 2026-10-31T22:32:52Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -47,7 +40,7 @@ Implement the user's requested first marker-idle food slice: bounded wild-food c
 - [x] Marker idle triggers require fresh same-world floor-aware dwell, have cooldowns, and invalidate queued work on leave/edit/reconnect or commands
 - [x] Berry collection, carried-raw cooking and surplus storage use bounded native routines and verified receipts while retaining personal food
 - [x] Panel exposes opt-in marker work and last outcomes; unattended jobs do not spin on empty sites
-- [ ] Focused replay checks and full CI pass; deployment and earned live results are recorded
+- [x] Focused replay checks and full CI pass; deployment and earned live results are recorded
 
 ## Implementation plan
 
@@ -96,3 +89,17 @@ Clean cooking attempt .checks/marker-food-20261031T221631Z still failed collecti
 Align pickup planner and task arrival radius, allow normal sight/range-checked hand pickup to avoid walking closer to a visible item, and return completed marker cooking to its marker waiting point. Actual floor/visibility, normal inventory/ownership, dry routing, injury and receipts remain enforced. Recorded-position native replay passed (.checks/20261031T222229Z-C9nFEK.log); cooking-return regression passed (.checks/20261031T222314Z-R4Q5fy.log). Full just check ci passed (.checks/20261031T222048Z-RnGODS.log). Native deployment and changed-build cooking retry are next, after the current western visit returns.
 
 Western idle gathering .checks/marker-food-20261031T222103Z earned runs=1,last=completed with Mushroom2 -> Mushroom4 and unchanged injury baseline2187. Home return is still in progress at this note; do not yet claim a complete round trip or storage delivery.
+
+**agent:codex/renki-milestones** at 2026-10-31T22:32:51Z
+
+Native kitchen changes deployed and checksum-verified as916d4e4 (.checks/20261031T222803Z-u0U1rO.log). The changed-build idle trial .checks/marker-food-20261031T222941Z succeeded completely and retained Tas online in safe shelter. Native t-3 cooked one NeckTail and collected one NeckTailGrilled; t-4 returned to the marker waiting point; t-5 ate the product normally. Injury baseline remained0 for this connection, including the subsequent recovery observation. Full audit .checks/audit-window-ZDEqPX.jsonl. Final verified state85.2/85.2HP, sheltered at[-34.07,36.09,8.93], idle.
+
+Western forage .checks/marker-food-20261031T222103Z completed its local idle batch with Mushroom2 -> Mushroom4 and unchanged injury2187. Initial home return t-12 timed out; bounded recovery t-14 ultimately returned to verified shelter without injury. The overall supervisor remains failed for the first timeout. Filed draft TKT-01M6A1D13A2A9WXTEZH9MS1WZA (Avoid repeating stalled stair approaches on raised-home return) under M2; do not mark that routing defect fixed.
+
+Surplus storage .checks/marker-food-20261031T222655Z succeeded through actual idle dwell and matched native deposit receipts: Mushroom3 -> Mushroom2. This used naturally collected surplus, after ordinary meal refresh, not a staged chest withdrawal/deposit. Test cleanup disabled all finite trial definitions.
+
+Enabled and verified the canonical local presets for home cooking, home storage and west mushrooms through the authenticated idle-food API. They require30s idle near their own current marker/floor, yield to body commands and danger, and retain five-minute cooldown/session attempt bounds. There is no automatic trip between these sites, crop cultivation, hunting or ingredient withdrawal in these marker presets. Last full just check ci: .checks/20261031T222048Z-RnGODS.log; extra cooking-return replay: .checks/20261031T222314Z-R4Q5fy.log; committed just check review: .checks/20261031T222424Z-OZDtAU.log, no findings. PR134 remains draft on the existing stack; broader M2/M3 and production goals remain open.
+
+## Summary
+
+Implemented, committed, pushed and deployed marker-scoped idle food work in PR134 (https://github.com/warricksothr/renki/pull/134). Local wild-food gathering, carried-ingredient cooking and reserve-preserving storage have earned live evidence. Enabled the three validated presets; current Tas is safely sheltered and fed. Native pickup tracks settling products, aligns route/pickup radius, uses ordinary visible hand reach and returns marker cooking to its waiting point. Automated checks and committed review passed. The western home-return timeout remains a separate draft navigation bug; this does not close broader M2/M3 or cross-site food production work.
