@@ -47,6 +47,20 @@ namespace Renki.Tasks
     {
         public const int Limit = 20;
 
+        // Upright trees need trunk-height candidates, not canopy bounds.
+        // Bias the first candidate toward the bot, then cover both sides
+        // on three small rings. Physics still owns contact and ground.
+        public static V3 TreeSeed(V3 resource, V3 from, int attempt)
+        {
+            if (attempt < 0 || attempt >= Limit) throw new ArgumentOutOfRangeException(nameof(attempt));
+            var away = (from - resource).Flat.Normalized;
+            if (away.Length < .01) away = V3.Forward;
+            var side = new V3(-away.Z, 0, away.X);
+            var index = attempt % 8;
+            var angle = ((index + 1) / 2) * (index % 2 == 1 ? 1 : -1) * Math.PI / 4;
+            return resource + (away * Math.Cos(angle) + side * Math.Sin(angle)) * (2 + attempt / 8);
+        }
+
         public static V3 Seed(V3 min, V3 max, int attempt)
         {
             if (attempt < 0 || attempt >= Limit) throw new ArgumentOutOfRangeException(nameof(attempt));

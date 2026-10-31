@@ -34,21 +34,23 @@ namespace Renki.Plugin
         // One bounded candidate per physics step. Bounds only place the
         // measurement seed; they never establish a contact or standing floor.
         internal static bool Alternative(Player player, GameObject target, Collider[] colliders, Vector3 resource,
-            float height, float reach, int attempt, out Vector3 goal)
+            float height, float reach, int attempt, bool upright, out Vector3 goal)
         {
             goal = default;
             var active = colliders.Where(c => c != null && c.enabled && !c.isTrigger && c.gameObject.activeInHierarchy).ToArray();
             if (active.Length == 0) return false;
             var bounds = active[0].bounds;
             foreach (var c in active.Skip(1)) bounds.Encapsulate(c.bounds);
-            var seed = Convert.ToVector3(HarvestContactSearch.Seed(Convert.ToV3(bounds.min), Convert.ToV3(bounds.max), attempt));
+            var seed = Convert.ToVector3(upright
+                ? HarvestContactSearch.TreeSeed(Convert.ToV3(resource), Convert.ToV3(player.transform.position), attempt)
+                : HarvestContactSearch.Seed(Convert.ToV3(bounds.min), Convert.ToV3(bounds.max), attempt));
             // Use the seed's ground before measuring axe contact. An endpoint
             // below a hanging log must not borrow the log's height as its floor.
             if (ZoneSystem.instance == null || !ZoneSystem.instance.GetGroundHeight(seed, out var ground)) return false;
             seed.y = ground;
-            if (!Contact(active, resource, seed.y, seed, height, true, out var contact, out _) ||
+            if (!Contact(active, resource, seed.y, seed, height, !upright, out var contact, out _) ||
                 !GroundGoal(target, resource, contact, seed, (float)HarvestReach.StandOff(reach, false), out goal)) return false;
-            if (!Contact(active, resource, goal.y, goal, height, true, out contact, out _) ||
+            if (!Contact(active, resource, goal.y, goal, height, !upright, out contact, out _) ||
                 !GroundGoal(target, resource, contact, goal, (float)HarvestReach.StandOff(reach, false), out goal)) return false;
             return Vector3.Distance(player.transform.position, goal) <= 18 &&
                 ClearStrikeAt(player, target, goal, contact, height, reach);

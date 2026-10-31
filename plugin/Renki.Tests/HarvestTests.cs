@@ -10,6 +10,36 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void UprightTreeSearchCoversTrunkSidesWithoutBorrowingCanopyHeight()
+        {
+            var tree = new V3(91.37, 40.62, 47.89);
+            var from = new V3(95.04, 42.2, 43.86);
+            var seeds = new List<V3>();
+            for (var i = 0; i < HarvestContactSearch.Limit; i++)
+            {
+                var seed = HarvestContactSearch.TreeSeed(tree, from, i);
+                seeds.Add(seed);
+                Assert.Equal(tree.Y, seed.Y);
+                Assert.InRange(V3.FlatDistance(seed, tree), 1.999, 4.001);
+            }
+            Assert.Contains(seeds, p => p.X < tree.X && p.Z < tree.Z);
+            Assert.Contains(seeds, p => p.X > tree.X && p.Z > tree.Z);
+            Assert.Equal(tree.Z + 2, HarvestContactSearch.TreeSeed(tree, tree, 0).Z);
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.TreeSeed(tree, from, -1));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.TreeSeed(tree, from, HarvestContactSearch.Limit));
+
+            // Captured upslope support cannot reach the original low contact.
+            // A higher measured trunk contact can work only with clear sight.
+            var feet = new V3(92.55, 41.97, 46.6);
+            var low = new V3(91.91, 41.42, 47.3);
+            Assert.False(HarvestReach.InRange(feet, low, .8, 1.4));
+            var measured = new V3(91.91, feet.Y + .8, 47.3);
+            Assert.True(HarvestReach.CanStrike(feet, measured, .8, 1.4, new[] { new SightHit(.95, false, true) }));
+            Assert.False(HarvestReach.CanStrike(feet, measured, .8, 1.4,
+                new[] { new SightHit(.5, false, false), new SightHit(.95, false, true) }));
+        }
+
+        [Fact]
         public void SlippingOutOfRangeCannotRenewAnUnproductiveLogContactForever()
         {
             var progress = new HarvestContactProgress();

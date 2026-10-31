@@ -727,6 +727,14 @@ hit selects another approach. Briefly slipping out of range cannot renew that
 clock; movement, aim and an escape plan alone do not establish cutting progress.
 Inspect the compact alternative-contact traces alongside local-hit proof;
 selection alone is not a successful cut.
+An upright tree with an unreachable or occluded initial contact uses the same
+20-attempt bound. Its seeds circle the trunk on 2–4 m rings, using the current
+side first and then both directions. Ground and physical trunk contact are
+measured twice so an upslope standing point can aim at a higher trunk surface.
+Canopy bounds never choose the standing height. Every candidate still needs
+weapon reach, clear strike sight and a native route; falling-tree protection
+remains in force before a swing. Inspect `alternative tree contact selected`
+and task-matched break evidence separately.
 Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
 refuse rather than consume truncated results. Before swings, up to seven
 outward six-metre escape corridors are checked, one per physics tick, with

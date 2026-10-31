@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T13:22:28Z
+updated_at: 2026-10-31T13:36:03Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -441,3 +441,14 @@ Allow up to 16 seconds for the same local search to finish its existing 4096 nod
 Use the engine's outstanding TaskID correlation when the native harvest-refusal receipt omits entity, retaining the original explicit pending resource. A conflicting reported entity or an uncorrelated empty receipt remains invalid; failed/refused never counts as a cut. A bridge/engine regression reproduces the missing-entity receipt and requires native attack of the confirmed pursuer while preserving the same unfinished tree. Also admit the same bounded defense before preparation when a fresh confirmed pursuer is already at the work site, preserving healthy/fed/tool/stamina/bystander/identity/budget gates and refusing unrelated distant fights.
 
 The trial cleanup then took8.5s before logout because its urgency classifier did not recognize the word enemy. Greyling1692447902:106 hit for3.57HP during that avoidable diagnostic delay. Final nativeHP32.1, safely offline at[77.67,37.71,46.72]; one damage event, no successful defense or delivery claimed. Treat enemy/pursuer failures as urgent logout before behavior cleanup/camera, with regression for each actual reason shape. Do not relax gathering's injury guard: this damage was in cleanup, not an authorized successful defense. Need final focused checks, full gate/review/controller deployment and two-fresh-tree/log gain-only home/storage proof.
+
+**agent:codex/renki-milestones** at 2026-10-31T13:36:03Z
+
+### Food replenished; upright-tree contact needs alternate supported approaches
+1e1a0de passed CI .checks/20261031T132231Z-1XZQrk.log, review .checks/20261031T132501Z-edMkAO.log and controller deployment .checks/20261031T132540Z-1bCPQ1.log. The exact Greyling preparation check .checks/combat-trial-20261031T132544670496Z correctly refused because the entity had wandered outside the30m native closing range. No damage; no chase or kill claimed.
+
+Native dry hostile-aware travel to freshly revalidated berry bushes succeeded (.checks/task-eusxw028.json). Ordinary interacts at1:60375,1:60376,1:60374 succeeded (.checks/task-dhrbugox.json, task-e5df233r.json, task-wz22_0f9.json); normal food upkeep ate Raspberry. Exact pickup receipts .checks/task-y9uz3ch3.json and task-8cfybdae.json collected two reserve berries. Current food/inventory snapshots retained in .checks/forage-status-current.json and forage-inventory-current.json; zero injury sequence, full38.5/38.5currentHP, Raspberry538s and2carried before trial preparation. No food staged by owner.
+
+Trial .checks/gather-trial-20261031T133053030525Z safely reached the stand, then stopped before any cut: full tree1:61667 at[91.37,40.62,47.89] had measured contact[91.91,41.42,47.3], but the projected upslope feet[92.55,41.97,46.6] leave that contact beyond the1.4m weapon reach from0.8m attack height. The older bounded contact search applies only to fallen logs, so a standing tree fails its first unsuitable side. Final31.5/31.5HP, zero damage, offline/panel restored. The harvest-refusal/defense fix remains unexercised live.
+
+Extend the existing20-candidate physical contact search to upright trees. Seed2-4m rings around the trunk, current side first then both angular directions; do not use canopy bounds as a trunk/height substitute. Reuse the existing two passes of measured contact and ground projection, preserve the selected supported anchor height when approaching, require final actual strike sight/range and route, and retain all180s/attempt, food/injury, falling-tree/bystander/structure and tool guards. Fallen-log seeds/policies remain unchanged. Add captured slope reach/occlusion and trunk-ring coverage/bounds regressions plus compact native tree-contact evidence. Focused HarvestTests and plugin build pass (.checks/20261031T133507Z-6fsJMD.log, .checks/20261031T133510Z-hZEejv.log). Need gate/review/plugin install and uninterrupted two-fresh-tree/log gain-only store/home proof.

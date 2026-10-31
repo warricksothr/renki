@@ -14,6 +14,8 @@ def diagnostics(audit, task_ids):
         'contact outside supported strike reach': ('resource', 'contact', 'goal', 'reach', 'attackHeight', 'probe'),
         'searching alternative log contact': ('reason', 'attempts'),
         'alternative log contact selected': ('attempt', 'goal', 'resource'),
+        'searching alternative tree contact': ('reason', 'attempts'),
+        'alternative tree contact selected': ('attempt', 'goal', 'resource'),
         'resource broke after local hit': ('entity', 'hits'),
         'protected collider': ('collider', 'radius', 'center', 'boundsDistance', 'character', 'piece'),
         'safety scan': ('phase', 'radius', 'previousCapacity', 'capacity', 'count', 'complete'),
