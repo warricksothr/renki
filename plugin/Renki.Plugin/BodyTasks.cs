@@ -22,6 +22,8 @@ namespace Renki.Plugin
         readonly ApproachRecovery approach = new ApproachRecovery();
         readonly EntranceHints entrances = new EntranceHints();
         readonly RouteRefusals refusals = new RouteRefusals();
+        readonly RouteProgress execution = new RouteProgress();
+        V3? commandedLeg;
         readonly HostileRoute hostiles = new HostileRoute();
         readonly System.Func<V3, V3, bool> hostileClearance;
         bool avoidHostiles;
@@ -145,6 +147,7 @@ namespace Renki.Plugin
             checkedOnly = false;
             approach.Reset();
             refusals.Clear();
+            execution.Reset(); commandedLeg = null;
             entrances.Reset(); entrance = null;
             goal = to;
             arrivalWithin = within;
@@ -361,6 +364,18 @@ namespace Renki.Plugin
         public bool Steer(Vector3 pos, bool run, bool climbObstacles = true)
         {
             if (!hasGoal) return true;
+            var attempted = commandedLeg;
+            commandedLeg = null;
+            if (dryGround && !checkedOnly && execution.Stalled(Convert.ToV3(pos), attempted, Time.unscaledTime))
+            {
+                var from = Convert.ToV3(pos);
+                refusals.Remember(from, attempted.Value, Time.unscaledTime, () => true);
+                Tracer.Emit("walker", "remembered stalled execution approach", new Dictionary<string, object>
+                { ["from"] = from.ToArray(), ["to"] = attempted.Value.ToArray(), ["count"] = refusals.Count });
+                Repath(pos, true);
+                Driver.Stand();
+                return true;
+            }
             navmeshCandidates.Observe(Convert.ToV3(pos), Convert.ToV3(NavigationGoal));
             if (checkedOnly)
             {
@@ -535,6 +550,8 @@ namespace Renki.Plugin
             // circle on its own and pass for progress.
             var player = Player.m_localPlayer;
             Driver.Run = player != null && sprint.Run(run && Time.time >= strafeUntil, player.GetStamina(), player.GetMaxStamina());
+            if (dryGround && Driver.Move.sqrMagnitude > .0001f)
+                commandedLeg = path.Next(Convert.ToV3(pos)) ?? Convert.ToV3(NavigationGoal);
             return true;
         }
 

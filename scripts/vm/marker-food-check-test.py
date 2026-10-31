@@ -19,6 +19,11 @@ class Safety(unittest.TestCase):
         return dict(connected=True, phase='in_world', world='one', connection=1, hp=70, hpMax=70,
                     pos=[0, 0, 0], flags=['in_shelter'], injurySeq=0, home=dict(world='one', pos=[0, 0, 0]))
 
+    def test_long_travel_requires_a_current_active_meal(self):
+        self.assertFalse(m.travel_ready(self.status()))
+        self.assertFalse(m.travel_ready(dict(self.status(), food=dict(active=[dict(remainingS=299)]))))
+        self.assertTrue(m.travel_ready(dict(self.status(), food=dict(active=[dict(remainingS=300)]))))
+
     def test_decay_is_not_injury(self):
         before = self.status()
         after = dict(before, hp=65, hpMax=65)
@@ -36,6 +41,7 @@ class Safety(unittest.TestCase):
             self.assertFalse(m.safe_home(status, dict(mapped, **change)))
         self.assertFalse(m.safe_home(dict(status, task=dict(id='owner')), mapped))
         self.assertFalse(m.safe_home(dict(status, flags=[]), mapped))
+        self.assertFalse(m.safe_home(dict(status, pos=[0, -3, 0]), mapped))
 
 
 if __name__ == '__main__':

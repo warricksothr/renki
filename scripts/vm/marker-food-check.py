@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Supervise one local marker-food batch with normal body controls and receipts."""
+"""Supervise a marker-food batch or dry round trip with normal controls and receipts."""
 import argparse
 import datetime
 import json
@@ -37,20 +37,27 @@ def safe_home(status, mapped, previous=None):
     perception = mapped.get('perception')
     return (not unsafe(status, previous) and not status.get('task') and 'in_shelter' in status.get('flags', [])
             and home.get('world') == status.get('world') and bool(home.get('pos'))
-            and math.dist(status['pos'], home['pos']) <= 8
+            and math.dist(status['pos'], home['pos']) <= 8 and abs(status['pos'][1] - home['pos'][1]) <= 1.75
             and (mapped.get('world'), mapped.get('connection')) == (status.get('world'), status.get('connection'))
             and isinstance(perception, dict) and 'characters' in perception
             and not any(c.get('hpFrac', 0) > 0 and (c.get('hostile') or c.get('targetingMe'))
                         and math.dist(c['pos'], status['pos']) < 20 for c in perception['characters']))
 
 
+def travel_ready(status):
+    return any(f.get('remainingS', 0) >= 300 for f in (status.get('food') or {}).get('active', []))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('marker')
     parser.add_argument('--go', action='store_true', help='move to this marker before starting')
+    parser.add_argument('--travel-only', action='store_true', help='verify the outward/home journey without food work; requires --go')
     parser.add_argument('--idle', action='store_true', help='verify automatic 30-second idle dwell rather than manual start')
     parser.add_argument('--keep-online', action='store_true', help='remain online only after a verified safe home return')
     args = parser.parse_args()
+    if args.travel_only and (not args.go or args.idle):
+        parser.error('--travel-only requires --go and cannot use --idle')
     folder = ROOT / '.checks' / ('marker-food-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
     summary = dict(outcome='failed', marker=args.marker, evidence=str(folder))
@@ -123,47 +130,56 @@ def main():
             raise RuntimeError('missing or unsupported food marker')
         marker = markers[0]
         if args.go:
+            if not pinned_home or not travel_ready(status):
+                raise RuntimeError('outdoor travel needs a pinned home and active meal; resupply first')
             task('move_to', dict(to=marker['pos'], dry=True, avoidHostiles=True), 120)
-        before = call('panel', 'GET', '/api/inventory')
-        (folder / 'before-pack.json').write_text(json.dumps(before))
-        scope = dict(world=world, name=marker['name'], kind=marker['kind'])
-        name = 'marker food check ' + folder.name
-        trigger = dict(kind='idle', marker=scope, dwellS=30) if args.idle else dict(kind='manual')
-        definition = dict(template='marker_food', params=dict(marker=scope), trigger=trigger,
-                          repeat=dict(mode='trigger', cooldownS=300, maxRuns=1) if args.idle else dict(mode='once'), priority=-10, enabled=True)
-        call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=name, definition=definition)))
-        saved_definition = definition
-        owns_body = True
-        if not args.idle:
-            call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='start', name=name)))
-        started = False
-        while time.monotonic() < deadline:
             status = observe()
-            instances = rows(call('panel', 'GET', '/api/behaviours'))
-            row = next(r for r in instances if r['name'] == name)
-            (folder / 'behaviour.json').write_text(json.dumps(row, indent=2))
-            if row.get('last') == 'new order':
-                yielded = True
-                raise RuntimeError('new command interrupted marker food work')
-            started = started or row['running']
-            if row['runs'] > 0:
-                if row.get('last') != 'completed':
-                    raise RuntimeError(row.get('last', 'food work did not complete'))
-                break
-            if started and not row['running']:
-                yielded = row.get('last') == 'new order'
-                raise RuntimeError('food work interrupted: ' + row.get('last', 'unknown'))
-            time.sleep(2)
+        if args.travel_only:
+            summary.update(outcome='succeeded', reason='bounded dry round trip completed with native receipts', travelOnly=True)
         else:
-            raise RuntimeError('marker-food batch deadline')
-        after = call('panel', 'GET', '/api/inventory')
-        (folder / 'after-pack.json').write_text(json.dumps(after))
-        summary.update(outcome='succeeded', reason='bounded marker food batch completed with native receipts', kind=marker['kind'], idle=args.idle)
+            before = call('panel', 'GET', '/api/inventory')
+            (folder / 'before-pack.json').write_text(json.dumps(before))
+            scope = dict(world=world, name=marker['name'], kind=marker['kind'])
+            name = 'marker food check ' + folder.name
+            trigger = dict(kind='idle', marker=scope, dwellS=30) if args.idle else dict(kind='manual')
+            definition = dict(template='marker_food', params=dict(marker=scope), trigger=trigger,
+                              repeat=dict(mode='trigger', cooldownS=300, maxRuns=1) if args.idle else dict(mode='once'), priority=-10, enabled=True)
+            call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=name, definition=definition)))
+            saved_definition = definition
+            owns_body = True
+            if not args.idle:
+                call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='start', name=name)))
+            started = False
+            while time.monotonic() < deadline:
+                status = observe()
+                instances = rows(call('panel', 'GET', '/api/behaviours'))
+                row = next(r for r in instances if r['name'] == name)
+                (folder / 'behaviour.json').write_text(json.dumps(row, indent=2))
+                if row.get('last') == 'new order':
+                    yielded = True
+                    raise RuntimeError('new command interrupted marker food work')
+                started = started or row['running']
+                if row['runs'] > 0:
+                    if row.get('last') != 'completed':
+                        raise RuntimeError(row.get('last', 'food work did not complete'))
+                    break
+                if started and not row['running']:
+                    yielded = row.get('last') == 'new order'
+                    raise RuntimeError('food work interrupted: ' + row.get('last', 'unknown'))
+                time.sleep(2)
+            else:
+                raise RuntimeError('marker-food batch deadline')
+            after = call('panel', 'GET', '/api/inventory')
+            (folder / 'after-pack.json').write_text(json.dumps(after))
+            summary.update(outcome='succeeded', reason='bounded marker food batch completed with native receipts', kind=marker['kind'], idle=args.idle)
         home = status.get('home') or {}
-        if home.get('world') != world or not home.get('pos'):
+        if home.get('world') != world or home.get('pos') != pinned_home:
             raise RuntimeError('no pinned home for return')
         if not safe_home(status, call('panel', 'GET', '/api/map'), previous):
             task('move_to', dict(to=home['pos'], dry=True, avoidHostiles=True), 120)
+        status = observe()
+        if not safe_home(status, call('panel', 'GET', '/api/map'), previous):
+            raise RuntimeError('return receipt lacks fresh safe home-floor arrival')
     except Exception as error:
         summary.update(outcome='failed', reason=str(error))
     finally:
