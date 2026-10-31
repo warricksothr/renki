@@ -46,6 +46,7 @@ namespace Renki.Plugin
         bool findingApproach, alternativeApproach;
         Vector3 alternativeAnchor;
         readonly HarvestContactProgress contactProgress = new HarvestContactProgress();
+        readonly HarvestApproachProgress approachProgress = new HarvestApproachProgress();
         PickupTask pickup;
 
         public HarvestTask(HarvestArgs args, GameObject target)
@@ -189,8 +190,8 @@ namespace Renki.Plugin
             var reach = (float)HarvestReach.Range(tool.m_shared.m_attack.m_attackRange);
             // Range/footing can oscillate on a slope. Small reapproaches must
             // not reset the clock forever without an actual hit on this log.
-            if (rolling && !tallTree && contactProgress.Stalled(Time.unscaledTime, evidence.LocalHits))
-                return AnotherApproach("no local hit after reaching log contact");
+            if (rolling && contactProgress.Stalled(Time.unscaledTime, evidence.LocalHits))
+                return AnotherApproach("no local hit after reaching resource contact");
             if (findingApproach)
             {
                 if (alternativeAttempts >= HarvestContactSearch.Limit)
@@ -249,9 +250,11 @@ namespace Renki.Plugin
                     });
                     return AnotherApproach("the physical contact cannot be reached from supported ground");
                 }
+                if (rolling && approachProgress.Stalled(Time.unscaledTime, V3.FlatDistance(Convert.ToV3(p.transform.position), Convert.ToV3(goal))))
+                    return AnotherApproach("no approach progress toward the supported resource contact");
                 if (!walking || Vector3.Distance(walkGoal, goal) > .45f)
                 {
-                    walker.SetGoal(p.transform.position, goal, .15f, dryGround: rolling && !tallTree);
+                    walker.SetGoal(p.transform.position, goal, .15f, dryGround: rolling);
                     walker.ResetStuck(p.transform.position);
                     walkGoal = goal; walking = true; retreatReady = false; retreatAttempts = 0;
                     Tracer.Emit("harvest", "approaching physical contact", new Dictionary<string, object>
@@ -357,6 +360,7 @@ namespace Renki.Plugin
             if (!rolling) return Finish(Outcome.Failed(Wire.ReasonUnreachable, reason));
             findingApproach = true; alternativeApproach = false; walking = false; swingSince = -1;
             retreatReady = false; retreatAttempts = 0;
+            approachProgress.Reset();
             strikeLogged = false; contactProgress.Reset();
             Tracer.Emit("harvest", tallTree ? "searching alternative tree contact" : "searching alternative log contact", new Dictionary<string, object>
             {

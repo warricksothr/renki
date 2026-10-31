@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T13:42:45Z
+updated_at: 2026-10-31T13:50:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -459,3 +459,10 @@ Extend the existing20-candidate physical contact search to upright trees. Seed2-
 0731ae5 passed full CI .checks/20261031T133603Z-QV4WeL.log, committed review .checks/20261031T133832Z-XHiSuc.log, push and checksum installation .checks/20261031T133845Z-pup59e.log. Trial .checks/gather-trial-20261031T133855833865Z reproduced the low-contact reach refusal on tree1:61667, then selected upright candidate1 at[92.57,41.91,46.53], measured actual trunk contact[91.94,42.71,47.24], reached it and confirmed clear physical strike sight. No tree was broken: all seven outward escape candidates at that side were rejected, so the old escape-failure branch terminated instead of invoking the now-available alternate contact search. Zero damage, final31.1/31.1HP, safely offline/panel restored; fresh Raspberry and two reserves remain. Successful normal food collection/consumption is also retained in .checks/audit-window-FuZetb.jsonl.
 
 An exhausted escape fan or no clear current side now selects the next bounded contact candidate. Reset only that position's escape fan when switching contacts; keep the global20-candidate/180-second work limit and all measured support, weapon, actual sight, protection and injury gates. No swing is authorized until a checked escape exists. Existing contact/escape mathematics checks and the full gate/review/plugin install precede retry. The two-tree/log gains-only storage and final home proof is still open.
+
+**agent:codex/renki-milestones** at 2026-10-31T13:50:44Z
+
+### Fallen log blocked trunk approach; repeated local replans hid the stall
+ a80b87f passed CI .checks/20261031T134245Z-o3TdjK.log, review .checks/20261031T134542Z-GHufgm.log and checksum installation .checks/20261031T134556Z-ootZRT.log. Ongoing trial .checks/gather-trial-20261031T134605874381Z has not completed a cut. Camera .checks/camera-20261031T134752836935Z.jpg shows an existing fallen log across the path to the upright tree. Narrow audit .checks/audit-window-0Vlg9G.jsonl proves repetitive stuck/strafe/repath cycles near[93.0,41.39,46.1], with each non-dry local plan accepting a one-probe step to[92.55,41.88,46.34]. The0.49m log lip is the same false step already excluded by dry support continuity on other travel. Replanning resets the walker's own stuck attempts without producing a local hit.
+
+Use the existing dry support-continuity routing for full-tree approaches as well as fallen logs. Add per-contact approach progress: after20s without at least0.25m reduction in actual remaining flat distance, select another bounded physical contact. Replanning and small oscillations do not renew the deadline; real progress does, and switching candidates explicitly resets its window. Extend the existing8s no-local-hit contact guard to upright trees after contact is reached. All20-candidate/180s, protected-actor, measured strike/escape and injury guards stay. Regression covers captured rocking without progress, new candidate reset, genuine continued progress and invalid distance. Focused HarvestTests and plugin build pass .checks/20261031T134947Z-S3xmsv.log and .checks/20261031T134950Z-klSibC.log. Trial terminal outcome, gate/review/install and full two-tree/home/store proof follow; no success is inferred from the photograph or a planned route.

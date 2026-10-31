@@ -10,6 +10,24 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void RockingAndReplanningAtALogLipCannotRenewTreeApproachProgress()
+        {
+            var progress = new HarvestApproachProgress();
+            Assert.False(progress.Stalled(100, 2));
+            Assert.False(progress.Stalled(110, 1));
+            Assert.False(progress.Stalled(120, .85));
+            Assert.True(progress.Stalled(131, .9));
+            // A new candidate gets a fresh approach window; actual progress
+            // can continue through a longer checked route.
+            progress.Reset();
+            Assert.False(progress.Stalled(140, 5));
+            Assert.False(progress.Stalled(159, 4.5));
+            Assert.False(progress.Stalled(178, 4));
+            Assert.True(progress.Stalled(199, 4));
+            Assert.True(progress.Stalled(200, double.NaN));
+        }
+
+        [Fact]
         public void UprightTreeSearchCoversTrunkSidesWithoutBorrowingCanopyHeight()
         {
             var tree = new V3(91.37, 40.62, 47.89);

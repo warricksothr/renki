@@ -738,6 +738,11 @@ and task-matched break evidence separately.
 If every outward escape at one strike position is blocked, the next bounded
 contact candidate must find both a strike and a safe escape. Each new position
 gets its own escape fan; the overall 20-contact/180-second limits still apply.
+Full-tree approaches use the same dry support continuity as fallen logs, so an
+old log lip cannot masquerade as a walkable step. Twenty seconds without at
+least 0.25 m improvement toward a contact selects another candidate; replanning
+or rocking at the same obstruction cannot renew that window. Once in range,
+the eight-second local-hit requirement applies to full trees as well as logs.
 Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
 refuse rather than consume truncated results. Before swings, up to seven
 outward six-metre escape corridors are checked, one per physics tick, with

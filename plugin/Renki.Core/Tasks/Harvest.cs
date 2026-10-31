@@ -81,6 +81,21 @@ namespace Renki.Tasks
         }
     }
 
+    public sealed class HarvestApproachProgress
+    {
+        double best = double.PositiveInfinity, progressed;
+        public void Reset() => best = double.PositiveInfinity;
+        // Replanning or changing a nearby goal cannot renew a stalled
+        // contact. Allow a complete sliced local search, but require real
+        // distance improvement rather than rocking against a log edge.
+        public bool Stalled(double now, double remaining)
+        {
+            if (double.IsNaN(remaining) || double.IsInfinity(remaining) || remaining < 0) return true;
+            if (remaining < best - .25) { best = remaining; progressed = now; }
+            return now - progressed > 20;
+        }
+    }
+
     public sealed class HarvestContactProgress
     {
         double since = double.NaN;
