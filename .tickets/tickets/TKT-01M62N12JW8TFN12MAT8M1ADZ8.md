@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T12:53:50Z
+updated_at: 2026-10-31T13:01:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -418,3 +418,10 @@ Tas is safely offline, panel available,38.0/38.0HP with zero native damage. Last
 88d0596 passed full CI (.checks/20261031T124757Z-o3M1SI.log), committed review (.checks/20261031T125029Z-1l2JJT.log), controller deployment (.checks/20261031T125046Z-I0Rvxk.log) and push. Live two-tree trial .checks/gather-trial-20261031T125105693010Z stopped before any cut because the axe is now below the departure 90% threshold and Tas is at the work site, not within 12 m of the home workbench. No damage; final 37.8 HP, safely offline/panel restored. The pursuer wait itself remains unexercised.
 
 Make repair preparation complete its own prerequisite: if no currently observed nearby home workbench is available while away, perform the existing native dry hostile-aware home return. Require exact success, a subsequent state on the pinned home floor and a subsequent fresh local perception before selecting the workbench. Repair through ordinary interact, require a newer actually restored axe inventory, then resume the outbound trip preserving the initial gains-only cargo baseline. Missing bench at home, failed return, under-floor pose and stale scan cannot dispatch repair or loop. Focused behavior checks passed .checks/20261031T125338Z-dH0uoK.log; full gate/review/deployment and renewed two-fresh-tree/log/store/home proof follow.
+
+**agent:codex/renki-milestones** at 2026-10-31T13:01:44Z
+
+### Repair-home route needs measured local failure evidence
+f7386f4 passed CI .checks/20261031T125350Z-WtLJdq.log, review .checks/20261031T125631Z-nnnvKS.log, push and controller deployment .checks/20261031T125643Z-OzZBRU.log. The next trial .checks/gather-trial-20261031T125647540073Z dispatched its own repair-home prerequisite and travelled 128 m safely, then stopped outside home at [-27.63,34.02,5.31]. No cut, no repair and no damage; final 37.1 HP, offline/panel restored. Audit .checks/audit-window-Gd4nUQ.jsonl shows raised entrance hints [-39.77,36.09,11.2] and [-39,36.09,13.04], rejected navmesh samples with support heights [34.9718,34.9718,34.6494,34.4953], and local searches ending around 2000 expansions with the final stage body_cast. The existing trace omits that collider and does not distinguish the 8-second slice window from exhausted frontier/node bounds. Do not infer a physical cause from the final stage alone.
+
+Add bounded local-search diagnostics: counts by refusal stage, the last measured point/collider/support heights for each stage, actual search status and elapsed time. No search/safety limits or movement authority change. The plugin build passes .checks/20261031T130105Z-rxbPHf.log. Need full gate/review/plugin install and a new physical route observation before deciding the correction. Two complete fresh trees, gain-only storage and final home proof remain open.

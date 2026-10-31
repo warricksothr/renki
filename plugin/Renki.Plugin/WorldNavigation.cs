@@ -81,6 +81,19 @@ namespace Renki.Plugin
             // Local search may wait for an asynchronous navmesh retry after
             // exhausting its frontier. Keep diagnostic evidence across slices.
             internal Failure LastRefusal { get; private set; }
+            readonly Dictionary<string, int> failureCounts = new Dictionary<string, int>();
+            readonly Dictionary<string, Failure> failureExamples = new Dictionary<string, Failure>();
+            internal object Failures => new
+            {
+                counts = failureCounts,
+                examples = failureExamples.Select(pair => new
+                {
+                    stage = pair.Key,
+                    at = pair.Value.At.ToArray(),
+                    collider = pair.Value.Collider,
+                    supportHeights = pair.Value.SupportHeights
+                }).ToArray()
+            };
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
             public int SupportHits => support.Hits + footing.Hits;
             public int SupportQueries => support.Misses + footing.Misses;
@@ -125,6 +138,8 @@ namespace Renki.Plugin
                     ColliderCenter = collider != null ? Convert.ToV3(collider.bounds.center) : (V3?)null
                 };
                 LastRefusal = LastFailure;
+                failureCounts[stage] = failureCounts.TryGetValue(stage, out var count) ? count + 1 : 1;
+                failureExamples[stage] = LastFailure;
                 return null;
             }
             internal bool HostileClear(V3 from, V3 to)
