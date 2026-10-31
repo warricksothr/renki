@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T07:46:59Z
+updated_at: 2026-10-31T07:59:37Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -242,3 +242,10 @@ Temporary cargo preparation completed with exact native t-10 receipt:87 Wood,23 
 **agent:codex/renki-milestones** at 2026-10-31T07:46:59Z
 
 The full CI gate caught that applying a shorter horizon to every LocalRoute also truncated a combat scout's checked return route. The revised change makes progressHorizon explicit, preserves the planner's existing default for scout detours, and opts the ordinary Walker into16m plus task stopping distance. All core tests pass (.checks/20261031T074620Z-rAA7Cp.log); complete CI rerun follows. Native station repair succeeded for the carried axe (.checks/task-7l82jg37.json), with fresh inventory100/100 durability. Healthy Tas remains sheltered at home.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:59:37Z
+
+### Fresh stand selection exposed omitted wall geometry
+Trial .checks/gather-trial-20261031T074916703323Z/summary.json reached the measured inland site without damage but both full trees were protected by a nearby Neck. Native dry scouting found five full beeches near[12,43.3,-132]. Trials .checks/gather-trial-20261031T075400910468Z/summary.json and .checks/gather-trial-20261031T075716005696Z/summary.json refused before swinging because wood walls stood30m from their selected full trees. Zero damage and no harvest gains. These were honest protection refusals, not partial-tree success.
+
+Root cause: Perception.Structures intentionally contains interactables, while solid walls arrive separately in Layout. Controller gatherClear and owner wood-site planning inspected only Structures, so they discarded known wall geometry. Engine View now includes current-session/world layout walls; gatherClear checks the nearest point of each full wall segment and its height with1m thickness clearance against the unchanged tree/log protection radii. Both owner planning and actual gathering consume that check. Focused behavior/session checks pass (.checks/20261031T075913Z-ddOS9i.log), including segment interiors, wall height, cross-world layout clearing, owner selection and gather selection. Native protection remains authoritative and now records actual collider centre for compact diagnosis. Complete CI, review and changed-build trial follow; full two-tree delivery is still unproven.

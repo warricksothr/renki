@@ -106,6 +106,21 @@ func gatherClear(v View, resource protocol.PerceivedResource) bool {
 			return false
 		}
 	}
+	// Solid walls have their own layout snapshot and do not appear among
+	// interactable structures. Include their full segments, with clearance
+	// for wall thickness, before asking native harvest to approach a tree.
+	for _, wall := range v.Walls {
+		dx, dz := wall.B[0]-wall.A[0], wall.B[2]-wall.A[2]
+		t := 0.0
+		if length := dx*dx + dz*dz; length > 0 {
+			t = math.Max(0, math.Min(1, ((resource.Pos[0]-wall.A[0])*dx+(resource.Pos[2]-wall.A[2])*dz)/length))
+		}
+		foot := protocol.Vec3{wall.A[0] + t*dx, wall.A[1] + t*(wall.B[1]-wall.A[1]), wall.A[2] + t*dz}
+		foot[1] = math.Max(foot[1], math.Min(foot[1]+wall.H, resource.Pos[1]))
+		if distance(foot, resource.Pos) < radius+1 {
+			return false
+		}
+	}
 	return true
 }
 

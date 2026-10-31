@@ -32,6 +32,16 @@ func TestWoodPlanSelectsSafeTreeAndHomeChestHintsPreservingReturn(t *testing.T) 
 	}
 }
 
+func TestWoodPlanAvoidsKnownSolidWallsWithoutAnInteractable(t *testing.T) {
+	v := woodView(t)
+	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("near wall", protocol.ResourceTree, 10), gatherResource("clear", protocol.ResourceTree, 50)}
+	v.Walls = []protocol.Wall{{A: protocol.Vec3{0, 0, -50}, B: protocol.Vec3{0, 0, 50}, H: 2}}
+	p, _, err := planWood(v, nil, nil)
+	if err != nil || p.Site.Pos[0] != 50 {
+		t.Fatal(p, err)
+	}
+}
+
 func TestWoodPlanReusesSameWorldSiteButDoesNotReuseUnsafeLocalOrForeignSites(t *testing.T) {
 	v := woodView(t)
 	last := GatherParams{Site: Place{World: "test", Pos: protocol.Vec3{80, 0, 0}, Radius: 20}}

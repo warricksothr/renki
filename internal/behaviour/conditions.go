@@ -18,6 +18,7 @@ type View struct {
 	Inventory    *protocol.Inventory
 	InjurySeq    *uint64
 	Perception   *protocol.Perception
+	Walls        []protocol.Wall
 	Containers   []*protocol.Container
 	Owners       []string
 	Home         *protocol.Vec3

@@ -40,6 +40,27 @@ func gatherResource(id, kind string, x float64) protocol.PerceivedResource {
 	return protocol.PerceivedResource{ID: id, Kind: kind, Prefab: prefab, Pos: protocol.Vec3{x, 0, 0}, MinTool: &tier}
 }
 
+func TestGatherAvoidsWallSegmentsAbsentFromInteractableStructures(t *testing.T) {
+	r, v := gathering(t)
+	v.Walls = []protocol.Wall{{A: protocol.Vec3{-26, 0, -50}, B: protocol.Vec3{-26, 0, 50}, H: 2}}
+	second := gatherResource("clear tree", protocol.ResourceTree, 10)
+	v.Perception.Resources = append(v.Perception.Resources, second)
+	order := nextTask(t, r, v, nil, protocol.TaskHarvest)
+	if order.Args.(*protocol.HarvestArgs).Entity != second.ID {
+		t.Fatal("selected a tree within falling range of a known wall", order)
+	}
+	// Nearby upper walls still protect their full height, while a genuinely
+	// distant storey does not become an infinitely tall exclusion column.
+	v.Walls = []protocol.Wall{{A: protocol.Vec3{5, -5, -50}, B: protocol.Vec3{5, -5, 50}, H: 6}}
+	if gatherClear(v, v.Perception.Resources[0]) {
+		t.Fatal("ignored wall height")
+	}
+	v.Walls[0].A[1], v.Walls[0].B[1] = 40, 40
+	if !gatherClear(v, v.Perception.Resources[0]) {
+		t.Fatal("unrelated upper storey blocked the tree")
+	}
+}
+
 func gatherFinishedTarget(t *testing.T, r *gatherRun, v *View, wood int, resources ...protocol.PerceivedResource) (*session.Order, error) {
 	t.Helper()
 	id := r.pending.ID

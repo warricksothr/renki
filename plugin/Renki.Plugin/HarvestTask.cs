@@ -418,6 +418,7 @@ namespace Renki.Plugin
                     ["collider"] = c.transform.root.name + "/" + c.name,
                     ["radius"] = radius,
                     ["center"] = Convert.ToArray(center),
+                    ["colliderCenter"] = Convert.ToArray(c.bounds.center),
                     ["boundsDistance"] = Math.Sqrt(c.bounds.SqrDistance(center)),
                     ["character"] = character != null && character != p,
                     ["piece"] = piece != null,
