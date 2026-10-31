@@ -293,4 +293,5 @@ escape; phase reports never produce extra movement orders from this template.
 The controller and plugin must separately allow combat. Editing an active
 instance cancels it through the normal lease/stop handshake; a new manual
 start validates the new goal. No instance is installed or enabled by default.
-See SELF_DEFENSE.md for the current single-Greyling limits and live-test status.
+See SELF_DEFENSE.md for single-enemy limits and live-test status. Autonomous
+combat discovery still selects Greylings; wild Boars require an explicit target.

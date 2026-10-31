@@ -27,7 +27,10 @@ namespace Renki.Tasks
         }
 
         public static bool Eligible(string prefab, int level, bool player, bool tamed, bool hostile) =>
-            prefab == "Greyling" && level == 1 && !player && !tamed && hostile;
+            (prefab == "Greyling" || prefab == "Boar") && level == 1 && !player && !tamed && hostile;
+
+        public static bool SearchEligible(string prefab, int level, bool player, bool tamed, bool hostile, bool explicitlyNamed) =>
+            Eligible(prefab, level, player, tamed, hostile) && (prefab == "Greyling" || explicitlyNamed);
 
         public MeleeAction Decide(MeleeFrame f, double now)
         {

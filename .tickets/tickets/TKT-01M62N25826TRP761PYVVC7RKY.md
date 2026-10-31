@@ -20,15 +20,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/regional-combat-search
+  branch: t3/multi-tree-home-storage
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 6f0ee3b23b9d6c1284e2b502af4cb1e9f2c90f55
+  commit: 348eb3980f7ce7f1d06c28a823afcc2fff2b5ee5
   session: null
   claimed_at: 2026-10-31T04:41:22Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T05:26:48Z
+updated_at: 2026-10-31T07:01:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,11 +49,8 @@ extensions: {}
 
 ## Implementation plan
 
-### Distinct search areas
-
-Keep the merged dry-return/recovery work (PR127) intact. Replace per-task drifting sector offsets in new durable discovery plans with a fixed bounded pool of areas around the goal anchor. Choose an unused nearby area, checkpoint its absolute center and local radius, and let one native attack routine travel on dry ground before starting local scouting around the observed area arrival. Local scouting returns to that area, rather than replaying the entire migration. Persist separate attempted/unreachable and exact-empty evidence; uncertain/restarted tasks cannot become coverage or replay. Preserve six encounter attempts, task reservation for post-kill home return, goal envelope and deadline. Existing sector requests and saved ledgers remain compatible.
-
-Add protocol/interop and native maths/policy tests, goal selection and durable-ledger regressions, compact diagnostic fields, and documentation. Verify real migration distance, local search, native receipts and optional kill/return separately; do not infer block/dodge from travel. Run focused just checks, just check ci before commit, committed review, checksum deployment and one changed-build autonomous trial.
+### Clear the harvesting-route obstruction without manual staging
+Keep existing regional Greyling discovery and proof. An ordinary wild Boar followed Tas and interrupted the multi-tree trip within10m; the supervisor stopped without injury (.checks/gather-trial-20261031T065519945710Z/summary.json). Add an explicitly named unstarred hostile wild Boar to bounded melee eligibility, including optional native kiting of that exact entity. Unnamed acquisition remains Greyling-only; tame/player/starred/unknown targets remain refused. Emit the actual observed species in native death receipts, keeping existing Greyling-goal proof unchanged. Melee approach/dodge and flee use dry-ground physics after prior shoreline escapes entered water. Keep health/stamina, bystander, structure, pursuit and work limits. Focused policy tests and installed-game build precede a supervised exact-entity live check; no kill or block/dodge claim without native evidence. Finish the two-tree/home/storage objective after this prerequisite. Full CI, committed review and checksum deployment gate landing.
 
 ## Notes
 

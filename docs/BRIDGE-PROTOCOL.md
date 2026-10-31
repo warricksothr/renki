@@ -331,7 +331,8 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 
 A final receipt may include `entity`, the exact native-selected target ID.
 For an acquisition/kiting attack this binds the enemy selected after dispatch.
-Successful combat requires `detail: "observed Greyling death"` and a bound
+Successful combat requires `detail: "observed Greyling death"` (or
+`"observed Boar death"` for an explicitly named wild boar) and a bound
 target; disappearance or unloading does not prove death. An explicitly named
 target cannot be substituted by another receipt entity.
 
@@ -646,7 +647,8 @@ Notes:
   Choosing a tree and chaining newly spawned logs/stumps are the controller's
   job; this primitive does not silently harvest neighbouring resources.
 - `attack` currently implements explicit bounded melee against one unstarred
-  hostile Greyling. `style` defaults to `melee`; `auto` also selects melee;
+  hostile Greyling or explicitly named wild Boar. Unnamed search still selects
+  only Greylings. `style` defaults to `melee`; `auto` also selects melee;
   ranged is not yet supported. AllowCombat and AllowMovement must both be on.
   It uses carried ordinary melee weapons, moving-target aim, stamina-aware
   block/dodge and supported movement. Players/tamed creatures are refused.

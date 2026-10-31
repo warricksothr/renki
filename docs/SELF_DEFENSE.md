@@ -13,9 +13,10 @@ owner guarding below are subsequent work.
 
 An explicit `attack` accepts `entity` and optional `style` (`melee` or `auto`,
 which currently selects melee). Native preparation is available with `kite=true`
-and optional preferred `at` ground. This build accepts only one unstarred hostile
-Greyling, within 30 m, starting at 80% health or higher. Players, tame creatures,
-other species, ranged style and unusable weapons are refused. Combat and
+and optional preferred `at` ground. This build accepts one unstarred hostile
+Greyling or an explicitly named wild Boar, within 30 m, starting at 80% health
+or higher. Automatic target search still selects only Greylings. Players,
+tame creatures, other species, ranged style and unusable weapons are refused. Combat and
 movement permissions are both required. A confirmed Greyling already targeting
 Tas within 4 m can enter melee immediately when Tas is within 2 m of the
 surveyed fighting-ground center and the enemy is within its 6 m area. This
@@ -49,7 +50,9 @@ selects a bounded ordinary flee. That escape stays part of the attack task;
 its final result reports the failed encounter and the escape outcome. The
 controller recognizes matching combat/task IDs and lets healthy closing, melee or an
 active fallback flee run, while stale/unsafe attack state still allows retreat.
-Only observed target death succeeds; unloading reports target_lost. Stop,
+Escape uses dry-ground routing, with live liquid clearance checks, rather than
+allowing a shoreline shortcut into water. Only observed target death succeeds;
+unloading reports target_lost. Stop,
 replacement, timeout and session cancellation clear held inputs and pending
 attack/dodge queues. An already-started swing or roll follows normal animation.
 

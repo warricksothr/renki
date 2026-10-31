@@ -147,6 +147,11 @@ namespace Renki.Tests
 
         [Theory]
         [InlineData("Greyling", 1, false, false, true, true)]
+        [InlineData("Boar", 1, false, false, true, true)]
+        [InlineData("Boar", 2, false, false, true, false)]
+        [InlineData("Boar", 1, false, true, true, false)]
+        [InlineData("Boar", 1, true, false, true, false)]
+        [InlineData("Boar", 1, false, false, false, false)]
         [InlineData("Greyling", 2, false, false, true, false)]
         [InlineData("Greyling", 1, false, true, true, false)]
         [InlineData("Greyling", 1, true, false, true, false)]
@@ -156,6 +161,16 @@ namespace Renki.Tests
         public void HostilityAloneCannotChooseAnArbitraryCreature(string prefab, int level, bool player, bool tamed, bool hostile, bool allowed)
         {
             Assert.Equal(allowed, MeleeEncounter.Eligible(prefab, level, player, tamed, hostile));
+        }
+
+        [Fact]
+        public void BoarsRequireAnExplicitTargetWhileSearchStillChoosesGreylings()
+        {
+            Assert.True(MeleeEncounter.SearchEligible("Greyling", 1, false, false, true, false));
+            Assert.False(MeleeEncounter.SearchEligible("Boar", 1, false, false, true, false));
+            Assert.True(MeleeEncounter.SearchEligible("Boar", 1, false, false, true, true));
+            Assert.False(MeleeEncounter.SearchEligible("Boar", 1, false, true, true, true));
+            Assert.False(MeleeEncounter.SearchEligible("Troll", 1, false, false, true, true));
         }
 
         [Theory]

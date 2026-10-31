@@ -12,12 +12,12 @@ namespace Renki.Plugin
     {
         internal static MeleeTask Active;
         readonly Character enemy;
-        readonly string entity, id;
+        readonly string entity, id, prefab;
         Vector3 start;
         readonly MeleeEncounter encounter;
         readonly CharacterDeathObservation death;
         readonly Walker walker = new Walker();
-        readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe();
+        readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe(dry: true);
         readonly List<Character> characters = new List<Character>();
         readonly Collider[] nearby = new Collider[256];
         ItemDrop.ItemData weapon;
@@ -36,7 +36,8 @@ namespace Renki.Plugin
             enemy = obj != null ? obj.GetComponent<Character>() : null;
             var p = Player.m_localPlayer;
             if (enemy == null || !Eligible(p, enemy) || enemy.IsDead())
-                throw new TaskRefused(Wire.ReasonInvalidTarget, "melee currently supports one living unstarred hostile Greyling, never players or tamed creatures");
+                throw new TaskRefused(Wire.ReasonInvalidTarget, "melee supports one living unstarred hostile Greyling or wild Boar, never players or tamed creatures");
+            prefab = enemy.m_nview.GetPrefabName();
             start = p.transform.position;
             var distance = Vector3.Distance(start, enemy.transform.position);
             if (distance > MeleeEncounter.ClosingRange)
@@ -89,11 +90,11 @@ namespace Renki.Plugin
                 return ended == null ? null : Finish(Outcome.Failed(ended.Status == Wire.StatusSucceeded ? Wire.ReasonRefused : ended.Reason,
                     reason + "; retreat: " + (ended.Detail ?? ended.Reason)));
             }
-            if (death.Observed) return Finish(Outcome.Succeeded("observed Greyling death"));
+            if (death.Observed) return Finish(Outcome.Succeeded($"observed {prefab} death"));
             var valid = enemy != null && enemy.m_nview != null && enemy.m_nview.IsValid() && enemy.gameObject.activeInHierarchy;
             if (!valid) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!Eligible(p, enemy)) return Retreat(p, "target is no longer an eligible hostile");
-            if (enemy.IsDead()) return Finish(Outcome.Succeeded("observed Greyling death"));
+            if (enemy.IsDead()) return Finish(Outcome.Succeeded($"observed {prefab} death"));
 
             if (!p.GetInventory().ContainsItem(weapon) || !Usable(weapon)) weapon = Best(p);
             if (weapon == null) return Retreat(p, "no usable melee weapon");
@@ -160,7 +161,7 @@ namespace Renki.Plugin
                 {
                     if (!HarvestApproach.GroundGoal(enemy.gameObject, targetPos, contact, pos, Mathf.Min(1, reach * .65f), out var goal))
                         return Retreat(p, "no supported strike stance");
-                    walker.SetGoal(pos, goal, .2); walker.ResetStuck(pos); walkGoal = targetPos; walking = true; nextAim = Time.unscaledTime + .5f;
+                    walker.SetGoal(pos, goal, .2, dryGround: true); walker.ResetStuck(pos); walkGoal = targetPos; walking = true; nextAim = Time.unscaledTime + .5f;
                 }
                 if (walker.Refused() is Outcome refusal) return Retreat(p, refusal.Detail ?? refusal.Reason);
                 if (!walker.Steer(pos, false, climbObstacles: false)) return Retreat(p, "cannot approach target");
@@ -180,7 +181,7 @@ namespace Renki.Plugin
 
         bool Unsafe(Player p, float radius)
         {
-            if (!p.IsOnGround() || p.IsSwimming() || p.IsEncumbered() || p.InPlaceMode()) return true;
+            if (!p.IsOnGround() || p.InWater() || p.IsSwimming() || p.IsEncumbered() || p.InPlaceMode()) return true;
             characters.Clear(); Character.GetCharactersInRange(p.transform.position, Math.Max(8, radius), characters);
             foreach (var c in characters)
             {
