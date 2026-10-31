@@ -149,6 +149,7 @@ namespace Renki.Plugin
             s.StaminaMax = Round(p.GetMaxStamina());
             s.Eitr = Round(p.GetEitr());
             s.EitrMax = Round(p.GetMaxEitr());
+            if (plugin.Recovering) s.Flags.Add("recovering");
             if (p.IsOnGround()) s.Flags.Add("grounded");
             if (p.IsRunning()) s.Flags.Add("running");
             if (p.IsCrouching()) s.Flags.Add("crouching");

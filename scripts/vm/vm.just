@@ -372,3 +372,14 @@ escort-check +ARGS:
 
 test-escort-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/escort-check-test.py"
+
+# One-shot native sheltered healing guard; observes threats every physics step.
+[positional-arguments]
+recovery VALUE='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery.ps1" "{{target}}:/{{dir}}/recovery.ps1"
+    valuearg=()
+    [ -z "$1" ] || valuearg=(-Value "$1")
+    {{ssh}} "{{ps}} -File {{dir}}/recovery.ps1 ${valuearg[*]}"

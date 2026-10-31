@@ -7,7 +7,9 @@ It does not restart after reconnect or death.
 
 The task follows the speaker at 3.5 m, matching pace. It uses dry, hostile-aware
 travel and the same wall, doorway, upper-floor and fallen-log navigation checks
-as other safe travel. A temporarily invisible leader is waited for up to 60 s.
+as other safe travel. An invisible leader is waited for until they enter loaded range; the task
+remains active until stopped/replaced or the session ends. Threat observation
+and escape continue while waiting. It does not infer a distant location.
 Failed following is retried with a short pause; there is no blind walk toward
 an old player sighting.
 
@@ -86,3 +88,17 @@ the observation window. It never replaces a newer human order during cleanup.
 It logs out on a measured survival floor (below 15 HP or 40% health), and does
 not claim combat success merely because following stayed active. It does not
 start the game or enable combat/gather permissions.
+
+For a critically injured saved character, `just vm recovery true` enables an
+opt-in native startup guard on the next game launch. It holds body inputs even
+before the bridge connects, rejects body orders rather than queuing them,
+permits instant food use, and checks nearby hostile
+creatures and injury each physics step and rendered update. After two seconds
+of initialization, recovery requires shelter, dry grounded footing and active
+food; an unsafe condition logs out and suppresses automatic rejoining. It
+releases once health reaches at least 25 HP and 95% of the current maximum.
+It runs only once per plugin lifetime, remains off by default, and does not
+govern ordinary combat after recovery. `just vm recovery false` disables it on
+the next launch. Keep an external health observer running throughout a live
+recovery check and retain the outcome; these policy checks do not establish
+that a particular saved location is safe to rejoin.

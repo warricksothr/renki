@@ -1055,3 +1055,16 @@ func TestEscortUsesTheSpeakerAndOnlyConfiguredCommanders(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestPanelEscortMayWaitForAnUnseenConfiguredLeader(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, Character: "Bjorn"}
+	f.allowed = append(f.allowed, protocol.TaskEscort)
+	if err := b.FromPanel("Sothr", "escort me"); err != nil {
+		t.Fatal(err)
+	}
+	orders := f.sent()
+	if len(orders) != 1 || orders[0].Task != protocol.TaskEscort || orders[0].Args.(*protocol.EscortArgs).Player != "Sothr" {
+		t.Fatal(orders)
+	}
+}

@@ -24,7 +24,7 @@ namespace Renki.Plugin
         int collectionAmount;
         string mode = "follow", reason, entity;
         Vector3 leaderLast;
-        float stillSince, lastSeen, nextScan, childAt, retryAt, nextCollect;
+        float stillSince, nextScan, childAt, retryAt, nextCollect;
         bool cancelled;
 
         internal EscortStatus Status => new EscortStatus { Id = id, Leader = args.Player, Mode = mode, Entity = entity, Reason = reason };
@@ -33,7 +33,7 @@ namespace Renki.Plugin
         {
             this.id = id; this.args = args;
             protectedNames = new HashSet<string>(args.Protect, StringComparer.OrdinalIgnoreCase) { args.Player };
-            lastSeen = stillSince = Time.unscaledTime;
+            stillSince = Time.unscaledTime;
             Active = this;
         }
 
@@ -50,7 +50,6 @@ namespace Renki.Plugin
             var visible = leader != null;
             if (visible)
             {
-                lastSeen = now;
                 if (Vector3.Distance(leaderLast, leader.transform.position) > .6f)
                 { leaderLast = leader.transform.position; stillSince = now; }
             }
@@ -84,8 +83,6 @@ namespace Renki.Plugin
                     if (mode == "wait" && visible) Reset("follow", "leader is visible again");
                 }
             }
-            if (!visible && now - lastSeen > 60)
-            { Cancel(); return Outcome.Failed(Wire.ReasonTargetLost, "escort leader absent for 60 seconds"); }
             if (child == null && mode == "follow" && visible && now >= retryAt)
                 child = new FollowTask(new FollowArgs { Player = args.Player, Distance = args.Distance }, safeTravel: true);
             if (mode == "collect" && now - childAt >= EscortPolicy.DetourSeconds)

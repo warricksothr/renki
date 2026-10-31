@@ -16,6 +16,9 @@ namespace Renki.Plugin
         /// <summary>The controller holds a session: the bot has the controls.</summary>
         public static bool Active;
 
+        // Opt-in recovery must hold inputs even before the bridge welcomes us.
+        internal static bool RecoveryHold;
+
         /// <summary>The world-space direction to move in; zero stands still.</summary>
         public static Vector3 Move;
 
@@ -104,7 +107,7 @@ namespace Renki.Plugin
     {
         static bool Prefix(PlayerController __instance)
         {
-            if (!Driver.Active) return true;
+            if (!Driver.Active && !Driver.RecoveryHold) return true;
             var player = __instance.m_character;
             if (player == null || player != Player.m_localPlayer) return true;
             if (__instance.m_nview != null && !__instance.m_nview.IsOwner()) return false;
@@ -118,7 +121,7 @@ namespace Renki.Plugin
     static class PlayerControllerLateUpdate
     {
         static bool Prefix(PlayerController __instance) =>
-            !Driver.Active || __instance.m_character != Player.m_localPlayer;
+            (!Driver.Active && !Driver.RecoveryHold) || __instance.m_character != Player.m_localPlayer;
     }
 
     static class Convert

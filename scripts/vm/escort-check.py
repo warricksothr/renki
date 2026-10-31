@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 import subprocess
 import time
+from urllib.parse import urlencode
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -30,6 +31,10 @@ def protected(status, leader):
     if leader not in names:
         raise RuntimeError('escort leader must be a configured owner/operator')
     return names
+
+
+def history_path(task_id, anchor):
+    return "/api/task?" + urlencode(dict(id=task_id, at=anchor))
 
 
 def main():
@@ -63,9 +68,8 @@ def main():
             raise RuntimeError('recover to 30 HP/80% health with active food before supervised escort')
         names = protected(initial, args.leader)
         mapped = call('panel', 'GET', '/api/map')
-        if not any(c.get('kind') == 'player' and c.get('name') == args.leader
-                   for c in (mapped.get('perception') or {}).get('characters', [])):
-            raise RuntimeError('leader is not currently visible')
+        (folder / 'initial-map.json').write_text(json.dumps(mapped, indent=2) + '\n')
+        anchor = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
         task = call('task', 'escort', json.dumps(dict(player=args.leader, protect=names)), '0')
         task_id, started = task['id'], True
         started_at = time.monotonic()
@@ -88,7 +92,7 @@ def main():
                 if not matched and time.monotonic() - started_at < 5:
                     time.sleep(1)
                     continue
-                history = call('panel', 'GET', '/api/task?id=' + task_id)
+                history = call('panel', 'GET', history_path(task_id, anchor))
                 (folder / 'task.json').write_text(json.dumps(history, indent=2) + '\n')
                 # Native/controller retreat or a newer human order owns the body.
                 outcome, reason = 'interrupted', 'escort ended or another task took ownership'

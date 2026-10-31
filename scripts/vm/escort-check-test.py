@@ -15,4 +15,7 @@ try:
     raise AssertionError('companion received operator protection')
 except RuntimeError:
     pass
+from urllib.parse import parse_qs, urlsplit
+query = parse_qs(urlsplit(escort.history_path('t-2', '2026-10-31T15:45:00Z')).query)
+assert query == {'id': ['t-2'], 'at': ['2026-10-31T15:45:00Z']}
 print('escort supervision policies passed')
