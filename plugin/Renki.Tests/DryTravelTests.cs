@@ -7,6 +7,24 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void CapsuleOffsetDoesNotTurnSupportedDescentIntoAFloorLip()
+        {
+            var body = new V3(-29.9, 35.4, -2.01);
+            var support = new V3(-29.9, 35.24, -2.01);
+            var middle = new V3(-29.65, 35.08, -2.01);
+            var to = new V3(-29.4, 34.9, -2.01);
+            Assert.False(DryTravel.ContinuousSupport(body, middle, to));
+            Assert.True(DryTravel.ContinuousSupport(body, support, middle, to));
+            // Offset compensation cannot authorize an actual abrupt lip,
+            // an overhead floor, or a body without nearby support.
+            Assert.False(DryTravel.ContinuousSupport(body, support, support, to - new V3(0, .3, 0)));
+            var overhead = body + new V3(0, .56, 0);
+            Assert.False(DryTravel.ContinuousSupport(body, overhead, overhead, overhead));
+            var below = body - new V3(0, .56, 0);
+            Assert.False(DryTravel.ContinuousSupport(body, below, below, below));
+        }
+
+        [Fact]
         public void ContinuousSupportFindsTheRampInsteadOfWalkingIntoAFloorLip()
         {
             double Height(V3 p) => p.X <= 0 ? .56 : p.X >= 2 || p.Z < 2 ? 0 : (2 - p.X) * .28;

@@ -14,6 +14,13 @@ namespace Renki.Movement
         // must share the rise; a half-metre floor lip is not a staircase.
         public static bool ContinuousSupport(V3 from, V3 middle, V3 to) =>
             Math.Abs(middle.Y - from.Y) <= .3 + 1e-6 && Math.Abs(to.Y - middle.Y) <= .3 + 1e-6;
+
+        // The body's capsule can stand above the surface on a slope or log.
+        // Compare surface heights on all three samples, while refusing to
+        // reinterpret an overhead floor or a distant surface as its footing.
+        public static bool ContinuousSupport(V3 body, V3 supportedFrom, V3 middle, V3 to) =>
+            supportedFrom.Y <= body.Y + .05 && body.Y - supportedFrom.Y <= .3 &&
+            ContinuousSupport(supportedFrom, middle, to);
         // Do not probe through an obstacle beyond a checked short corner.
         // Strafing leaves that route, so it retains the full lookahead.
         public static double ClearanceDistance(V3 from, V3? next, bool strafing = false) =>

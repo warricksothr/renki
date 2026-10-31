@@ -500,6 +500,7 @@ namespace Renki.Plugin
                             ["next"] = next?.ToArray(),
                             ["lookahead"] = clearance,
                             ["failure"] = dryProbe.LastFailure?.Stage,
+                            ["supportHeights"] = dryProbe.LastFailure?.SupportHeights,
                             ["collider"] = dryProbe.LastFailure?.Collider,
                         });
                     }

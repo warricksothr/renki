@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T11:42:08Z
+updated_at: 2026-10-31T11:51:18Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -361,3 +361,10 @@ Installed a4f3d03 passed full CI .checks/20261031T111809Z-UBogRz.log, review .ch
 Controller collect completed two fresh mushroom targets around[100,40.5,62.5], refreshed Mushroom and was deleted after completion. Greyling1801365054:118 attacked during preparation; the ordinary retreat took Tas north. The first exact combat trial was interrupted by the configured outage home return. Temporarily setting home.afterOutage=false allowed .checks/combat-trial-20261031T113323615879Z/summary.json to kill that exact pursuer with owner_callback proof, native block/approach/strike/wait traces and0.49 damage. Normal outage setting was reset to config immediately; combat false restored by trial cleanup. No dodge claim.
 
 Long native hostile-aware running return then timed out120s at the eastern floor edge (.checks/task-ll5la3ln.json); Tas remains healthy and is safely offline with panel restored. The new first-four-point trace exposed the actual false path: from[-31.09,35.53,-0.5] to[-31.59,36.09,0], treating a0.56m vertical lip as a walkable step. Endpoint tolerance alone permits it; measured midpoint support puts that entire rise into one half-edge. Add dry-only support continuity, at most0.3m rise/drop per half-edge, in both planning and execution. Existing0.6m overall sampling bounds, native physical casts, water, threats, tight corner validation and arrival checks stay intact. Captured regression preserves two0.25m stair treads, and a real LocalRoute regression must detour to a ramp rather than enter a vertical lip. Focused DryTravelTests pass .checks/20261031T114126Z-UPFvni.log. Need full CI/review/install, installed return and exact two-fresh-tree/log gains-only final-home trial. No broad milestone criterion earned yet.
+
+**agent:codex/renki-milestones** at 2026-10-31T11:51:18Z
+
+### Deployed continuity follow-up
+1521c9d deployed with checksum verification (.checks/20261031T114543Z-peBH6Z.log). Resupply .checks/resupply-trial-20261031T114726752105Z was stopped deliberately after repeated support_step refusals on a planned wood-pile descent. No native damage; cleanup left Tas offline and the panel online. The planned route used support around35.24m while the body stood around35.4m; counting that capsule offset as terrain rise/drop made execution reject the descent that planning accepted. Retained audit .checks/audit-window-op7Sil.jsonl shows repeated route prefixes and exact movement refusals.
+
+Dry continuity now samples the starting support as well as midpoint/endpoint. It allows only a nearby surface below the capsule (at most0.3m below,0.05m above), retaining each half-edge's0.3m rise/drop limit. Overhead floors and missing/distant footing remain invalid. Refusal traces include body/start/mid/end heights for the next diagnosis. Focused regression covers the capsule offset, true lip, overhead floor and unsupported body. Need full CI, committed review, install, return/resupply and exact two-tree final-home/store evidence before acceptance.
