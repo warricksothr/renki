@@ -1016,6 +1016,10 @@ raised-floor entrance, a removed ramp, an invalid wet shortcut and changed tiles
 keep recorded-trail reuse distinct from validated navmesh guidance in evidence.
 A failed candidate can retain its already checked prefix when that prefix alone
 earns the same six-meter progress; its refused sample is never installed.
+The immediate dry movement probe stops at a nearer checked corner instead of
+looking half a meter straight through a turn. Off-route strafing still probes
+the full half meter. Retained diagnostics distinguish actual corridor refusal
+from a valid plan that the body could not follow.
 See [GOALS.md](GOALS.md) for restart uncertainty and policy boundaries.
 
 ## Game-camera debugging

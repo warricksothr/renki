@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T04:52:01Z
+updated_at: 2026-10-31T05:10:12Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -440,3 +440,21 @@ New durable discovery chooses the nearest unused area from a fixed eight-center 
 One native attack routine migrates through dry MoveTo navigation, with five clear entry candidates within 8 m, a 90-second/200 m travel bound and 140 m departure-to-center limit, then starts the existing bounded local scout. Local return targets the observed region entry. Eligible Greylings encountered in transit trigger a local fighting-ground survey. The host also supplies its immutable searchAnchor/searchLimit (goal radius minus 52 m), enforced each native search/travel tick so winding detours cannot spend the combat/escape reserve. Protocol validation rejects malformed, mixed and out-of-scope fields; shared fixtures cover interop.
 
 Focused goal/behaviour/protocol/application, native parser and region-policy checks pass. Tests cover fixed centers, nearest unused selection, durable area ledger and uncertainty, local return relative to actual area arrival, finite entry/time/travel budgets, absolute scope versus a winding detour, and malformed protocol bounds. Compact progress now exposes pending/attempted area centers and native area-arrival/travel evidence. Full gate, committed review and changed-build live verification pending; no combined kill/return or block/dodge proof is claimed.
+
+**agent:codex/renki-milestones** at 2026-10-31T04:58:29Z
+
+### First regional build live check
+
+f473d3e passed the full gate (461 C# tests, 42 panel scenarios), committed review and checksum deployment; draft PR128 is linked. The first new goal did not dispatch any native task: two visible unsupported Necks at roughly 24 and 31 m blocked discovery under the existing guard until its 120-second wait budget expired. Zero native damage, no area travel/search/kill proof. Evidence .checks/combat-trial-20261031T045502600593Z/summary.json.
+
+The captured known home corridor points away from both Necks (straight-corridor separations about 22 and 36 m). Preparing an isolated bounded native dry return/resupply using existing supervision, before testing regions from home. Do not weaken the discovery guard or repeat the unchanged stalled goal. User requested distinct areas, not broader combat species.
+
+**agent:codex/renki-milestones** at 2026-10-31T05:10:12Z
+
+### Area travel earned a kill; return speed remains open
+
+Native home preparation from the Neck location eventually passed after a slow raised-floor approach: 155.1 m observed travel, exact home success, four cooked deer meat and four raspberries withdrawn, recovery to 114.5 HP, zero damage. Evidence .checks/resupply-trial-20261031T045828727276Z/summary.json. It repeatedly found valid local routes without promptly following them, so this is not a fast return benchmark.
+
+From home, f473d3e selected the east area [43.32,36.09,6.2]. Native travel found Greyling 2378369947:96 en route; t-1 earned the exact observed-death receipt on its first attempt, with zero damage. No area-arrival or empty-local-search proof was earned because discovery interrupted migration. The goal retained proof, recovered and sent t-2 dry home, but its 120-second return timed out below the raised floor. Kill proof remains intact and the whole trip stays incomplete. Evidence .checks/combat-trial-20261031T050443466648Z/summary.json. No actual block/dodge was observed.
+
+Found a concrete dry-following mismatch: actual movement always probed 0.5 m straight ahead, even when the validated next corner was nearer. It can reject the wall beyond a safe turn and continually restart local planning. The motion probe now stops at the nearer checked corner, with full clearance retained for off-route strafing. Added a regression modeling that wall/turn and rate-limited actual-corridor diagnostics. Validate on a changed build without increasing budgets.

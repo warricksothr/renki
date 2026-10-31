@@ -7,6 +7,21 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void MotionGuardStopsAtTheCheckedCornerWhileStrafingKeepsFullClearance()
+        {
+            var from = new V3(0, 31, 0);
+            var corner = new V3(.2, 31, 0);
+            // The safe path turns up Z at x=.2. The wall beyond the turn
+            // rejects the former half-meter straight lookahead.
+            bool Corridor(double lookahead) => lookahead <= .25;
+            Assert.False(Corridor(.5));
+            Assert.True(Corridor(DryTravel.ClearanceDistance(from, corner)));
+            Assert.False(Corridor(DryTravel.ClearanceDistance(from, corner, strafing: true)));
+            Assert.Equal(.5, DryTravel.ClearanceDistance(from, new V3(2, 31, 0)));
+            Assert.Equal(.5, DryTravel.ClearanceDistance(from, null));
+        }
+
+        [Fact]
         public void CapturedWetReturnSupportIsRejectedButBridgeSupportIsDry()
         {
             Assert.False(DryTravel.Clear(new V3(-38.86, 28.1, -33.36), 30));

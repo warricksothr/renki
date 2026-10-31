@@ -20,7 +20,7 @@ namespace Renki.Plugin
         readonly Doorman doors = new Doorman();
         readonly Climber climb = new Climber();
         readonly ApproachRecovery approach = new ApproachRecovery();
-        readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(dry: true);
+        readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true);
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
         readonly RouteTrail trail = new RouteTrail();
@@ -38,7 +38,7 @@ namespace Renki.Plugin
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
-        float localStarted, nextWallCheck, nextNavmeshCheck, nextDryNavmeshTrace;
+        float localStarted, nextWallCheck, nextNavmeshCheck, nextDryNavmeshTrace, nextDryRefusalTrace;
         double localMs, localWorstMs;
         float strafeUntil;
         float strafeSign = 1;
@@ -424,8 +424,22 @@ namespace Renki.Plugin
             {
                 dryProbe.BeginSlice();
                 var from = Convert.ToV3(pos);
-                if (!dryProbe.Probe(from, from + Convert.ToV3(Driver.Move) * .5).HasValue)
+                var next = path.Next(from);
+                var clearance = DryTravel.ClearanceDistance(from, next, Time.time < strafeUntil);
+                if (!dryProbe.Probe(from, from + Convert.ToV3(Driver.Move) * clearance).HasValue)
                 {
+                    if (Time.unscaledTime >= nextDryRefusalTrace)
+                    {
+                        nextDryRefusalTrace = Time.unscaledTime + 2;
+                        Tracer.Emit("walker", "dry movement corridor refused", new Dictionary<string, object>
+                        {
+                            ["from"] = from.ToArray(),
+                            ["next"] = next?.ToArray(),
+                            ["lookahead"] = clearance,
+                            ["failure"] = dryProbe.LastFailure?.Stage,
+                            ["collider"] = dryProbe.LastFailure?.Collider,
+                        });
+                    }
                     Driver.Stand();
                     BeginLocal(pos, goal);
                     return true;
