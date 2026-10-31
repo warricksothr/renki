@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T08:16:58Z
+updated_at: 2026-10-31T08:28:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -258,3 +258,12 @@ Installed fb4f0d4 passed full CI (.checks/20261031T075937Z-aZy5gy.log), committe
 The Greyling followed the normal outage home return140m; startup combat trial stopped honestly after damage on the ground below home (.checks/combat-trial-20261031T080526815462Z/summary.json). Manual native melee was attempted with the explicit target but correctly retreated with near-zero stamina (.checks/task-qeu_nawo.json). Sustained fleeing recruited another Greyling1960390678:2623. Native dry return again reached[-39.9,32.3,1.5] below home before being replaced by a safety flee. Tas was safely logged out with combat disabled and offline panel restored (.checks/20261031T081310Z-TJrVwz.log). Do not claim a combat win or completed gather.
 
 Next candidate adds loaded-door entrance hints for raised dry destinations: at most3 measured threshold floors near the original goal, all routes physically checked and doorway permissions unchanged; portal arrival uses0.6m height tolerance rather than the1.75m eye-height home allowance. Failed/changed entrance searches fall back boundedly. Ordinary Walker sprint pacing walks below20%/10 stamina and regenerates to65%/20 before sprinting again. Focused core suite and installed-game plugin build pass (.checks/20261031T081619Z-Ylg9s3.log, .checks/20261031T081622Z-aoLg4K.log). Full CI/review/deploy and live return, recovery and resumed multi-tree work follow. The untouched fallen trunk remains near[5,53,-149].
+
+**agent:codex/renki-milestones** at 2026-10-31T08:28:34Z
+
+### Doorway return and autonomous food collection
+Installed f131dfb passed complete CI (.checks/20261031T081659Z-saV9yo.log), committed review (.checks/20261031T081931Z-FPyXX1.log), checksum installation (.checks/20261031T081936Z-Y6ttFH.log). Live native outage return completed in16.2s from[-63.2,31.7,54.6] through observed gate threshold[-39,36.09,13.04] to[-36.36,36.09,7.99]. The candidate used a physically checked local stair route, opened the changed gate and retained~60 stamina. Zero damage events during that return. Audit .checks/audit-window-qOb8RF.jsonl. An additional berry-site return succeeded (.checks/task-9e6z51to.json).
+
+With no Greyling currently perceived, Tas withdrew/equipped the supplied rag armour and used normal dry travel to the known berry waypoint. Four fresh food pickables were found. The collect behavior picked its first raspberry, but automatic food upkeep ate its only product before the next observed inventory; it timed out awaiting a pack gain. This is a real collection/consumption accounting defect, not a successful routine. The failed temporary instance was deleted. Native uses of the remaining bush and two mushrooms succeeded; Tas returned home with three active foods, one spare raspberry, one spare mushroom, full67.5/67.5 HP and90 stamina. Carried Wood2 is now a meaningful preservation baseline for the next gains-only test. Native receipts .checks/task-ap1fnmvh.json, .checks/task-j5vehg5g.json, .checks/task-qsvixd7u.json; repair follows for85/100 axe.
+
+Collect now counts at most one freshly observed activation/refresh of the exact output food, alongside net pack gain; an inventory newer than the interaction remains required. Starting-food counts are subtracted, so merely eating old supplies cannot fake a collection. Focused tests cover new consumption, refresh, stale state, unchanged active food, old stock consumption and a different prefab; behavior checks pass .checks/20261031T082724Z-eO6CCH.log. Full CI/review and controller deployment follow. Need fresh two-tree trial at[12,43.3,-135] (within150m home, reaching farther southern trees); existing fallen trunk near[5,53,-149] must remain excluded baseline, not miscounted as fresh work. Full routine proof remains open.
