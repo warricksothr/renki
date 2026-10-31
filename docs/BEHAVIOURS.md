@@ -232,7 +232,12 @@ normal game button. This does not craft replacements, upgrade equipment or
 infer that a workbench can repair gear needing a forge.
 
 `maxTrees` defaults to one for older definitions and accepts at most three.
-At most five harvest tasks and eight minutes per requested tree are allowed.
+At most nine harvest tasks and eight minutes per requested tree are allowed.
+New logs observed within 32 m of the felled tree or 24 m of a completed cut
+join its unfinished chain. Their identities remain tracked if they roll beyond
+the site; dry approaches are bounded to 60 m from that tree. Missing tracked
+logs stop the chain rather than silently authorizing another tree. The extra
+cut budget covers collateral trunks felled by the first tree.
 Each full tree/log chain must finish with measured Wood gain before selecting
 another tree. Existing resource IDs at that tree's start
 are excluded from its log chain; nearby new IDs are candidates, not proof of

@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T06:41:42Z
+updated_at: 2026-10-31T06:48:11Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -210,3 +210,10 @@ Direct native t-14 move_to succeeded back on the indoor home floor, full86.1/86.
 The next multi-tree attempt entered shallow rain/wave water at[-30.64,30.36,-17.65], liquid depth0.1, while navigating a static-water-validated shoreline. Zero damage; supervisor stopped it (.checks/gather-trial-20261031T063105795442Z/summary.json; audit .checks/audit-window-1z2ucq.jsonl). Dry physics probes now use max(base sea,current actual liquid surface) and0.8m support clearance (.2m dry margin plus.6m body step allowance), with live rechecks. Actual shallow-water contact also starts shore recovery. Focused DryTravelTests and installed-game build pass; checksum-deployed candidate then traversed the shoreline to[-45.48,34.75,-99.83] without water or damage (.checks/gather-trial-20261031T063612114189Z/summary.json). Full CI passed in .checks/20261031T063708Z-FQbYFc.log.
 
 That stand had three full beeches, but Necks within32m of all candidates correctly prevented felling. No harvesting proof there. Retrying a previously observed inland stand near[-60,35,-65], preserving all native safety bounds and fresh resource selection. Existing tilted trunk and the two-tree storage benchmark remain incomplete.
+
+**agent:codex/renki-milestones** at 2026-10-31T06:48:11Z
+
+### Rolling descendants and collateral trunks
+The inland two-tree trial felled Beech1 1:20623 and split its trunk and one half (t-2/t-3/t-4, task-matched local-hit breaks; t-4 collected 10 Wood) without damage. Evidence: .checks/gather-trial-20261031T063955031626Z/summary.json and .checks/audit-window-8bJS9J.jsonl. It stopped before a second tree or delivery; this is not a complete-loop pass.
+
+Half 1464700962:189 rolled from [-90.07,29.57,-49.45] to [-95.3,31.2,-44.47], beyond both site and original-tree circles. A collateral full trunk 1464700962:226 also appeared. The controller now binds new log identities after a completed cut (32m from original tree or24m from that cut), keeps unfinished tracked IDs across rolling/missing observations, and allows dry approaches out to60m from the original tree. Native health, character, structure, footing and break checks remain authoritative. Missing/unsafe descendants cannot silently authorize a fresh tree. A nine-cut per-chain bound covers collateral trunks; the total per-tree deadline is unchanged. Regression checks cover rolling beyond the site, dry approach, and missing tracked work. Focused controller and benchmark tests passed; candidate checksum installed. Returning home for food before retrying the two-tree benchmark. Full CI is running.

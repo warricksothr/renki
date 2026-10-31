@@ -64,6 +64,7 @@ type gatherRun struct {
 	restUntil                                 time.Time
 	arrived, returning, finished              bool
 	baseline, completed                       map[string]bool
+	chain                                     map[string]bool
 	keep                                      map[string]int
 	center                                    protocol.Vec3
 	pending                                   *protocol.PerceivedResource
@@ -289,6 +290,14 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 				return nil, ErrWait
 			}
 		}
+		// Bind newly observed descendants at a completed cut. Once bound,
+		// rolling beyond the work-site circle must not erase unfinished work.
+		for _, resource := range v.Perception.Resources {
+			if beechLog(resource) && resource.ID != "" && !r.baseline[resource.ID] &&
+				(distance(resource.Pos, r.center) <= 32 || distance(resource.Pos, r.pending.Pos) <= 24) {
+				r.chain[resource.ID] = true
+			}
+		}
 		r.completed[r.pending.ID] = true
 		if beechLog(*r.pending) {
 			r.logs++
@@ -301,8 +310,8 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	if r.treeOpen {
 		unfinished := false
-		for _, resource := range v.Perception.Resources {
-			unfinished = unfinished || beechLog(resource) && !r.completed[resource.ID] && !r.baseline[resource.ID] && distance(resource.Pos, r.center) <= 20
+		for id := range r.chain {
+			unfinished = unfinished || !r.completed[id]
 		}
 		if !unfinished {
 			if r.logs-r.chainLogs < 2 || v.Inventory.Count("Wood") <= r.chainWood {
@@ -329,16 +338,19 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		return distance(v.State.Pos, pos)
 	}
 	unfinished := false
+	for id := range r.chain {
+		unfinished = unfinished || !r.completed[id]
+	}
 	for _, resource := range v.Perception.Resources {
 		if resource.ID == "" || r.completed[resource.ID] || resource.MinTool == nil || *resource.MinTool != 0 {
 			continue
 		}
 		eligible := resource.Kind == protocol.ResourceTree && resource.Prefab == "Beech1"
 		if r.treeOpen {
-			eligible = beechLog(resource) && !r.baseline[resource.ID] && distance(resource.Pos, r.center) <= 20
+			eligible = beechLog(resource) && r.chain[resource.ID]
 			unfinished = unfinished || eligible
 		}
-		if !eligible || distance(resource.Pos, r.p.Site.Pos) > r.p.Site.Radius || r.treeOpen && distance(resource.Pos, v.State.Pos) > 18 || !gatherClear(v, resource) {
+		if !eligible || !r.treeOpen && distance(resource.Pos, r.p.Site.Pos) > r.p.Site.Radius || r.treeOpen && distance(resource.Pos, r.center) > 60 || !gatherClear(v, resource) {
 			continue
 		}
 		if best == nil || cost(resource.Pos) < cost(best.Pos) || cost(resource.Pos) == cost(best.Pos) && resource.ID < best.ID {
@@ -355,14 +367,20 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		}
 		return r.deliver(v)
 	}
-	if r.treeOpen && r.targets-r.chainTargets >= 5 {
-		return nil, errors.New("gather reached its five-resource limit; remaining logs left in place")
+	if r.treeOpen && r.targets-r.chainTargets >= 9 {
+		return nil, errors.New("gather reached its nine-resource chain limit; remaining logs left in place")
 	}
 	if err := gatherReady(v); err != nil {
 		return nil, err
 	}
-	if !r.treeOpen && distance(v.State.Pos, best.Pos) > 18 {
+	if distance(v.State.Pos, best.Pos) > 18 {
 		pos := best.Pos
+		if r.treeOpen {
+			// A tilted trunk's network pivot can be high above its ground
+			// contact. Travel toward its horizontal location, then let native
+			// harvest find a supported physical strike point.
+			pos[1] = v.State.Pos[1]
+		}
 		stop := 10.0
 		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Dry: true}, TimeoutS: 90}, nil
 	}
@@ -387,6 +405,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 			}
 		}
 		r.baseline = map[string]bool{}
+		r.chain = map[string]bool{}
 		for _, resource := range v.Perception.Resources {
 			r.baseline[resource.ID] = true
 		}

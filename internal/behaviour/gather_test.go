@@ -118,6 +118,31 @@ func TestGatherNeedsNewInventoryAndPerceptionAfterMatchingNativeSuccess(t *testi
 	}
 }
 
+func TestGatherTracksRollingDescendantsOutsideSiteWithoutLosingMissingWork(t *testing.T) {
+	r, v := gathering(t)
+	nextTask(t, r, v, nil, protocol.TaskHarvest)
+	log := gatherResource("trunk", protocol.ResourceLog, 6)
+	if _, err := gatherFinishedTarget(t, r, &v, 0, log); err != nil {
+		t.Fatal(err)
+	}
+	half1, half2 := gatherResource("a", protocol.ResourceLog, 7), gatherResource("b", protocol.ResourceLog, 33)
+	order, err := gatherFinishedTarget(t, r, &v, 0, half1, half2)
+	if err != nil || order.Args.(*protocol.HarvestArgs).Entity != "a" {
+		t.Fatal(order, err)
+	}
+	half2.Pos[0] = 45 // Bound while splitting, then rolls outside the site.
+	order, err = gatherFinishedTarget(t, r, &v, 10, half2)
+	if err != nil || order == nil || order.Task != protocol.TaskMoveTo || order.Args.(*protocol.MoveToArgs).To.Pos[0] != 45 {
+		t.Fatal(order, err)
+	}
+	// A temporarily unobserved tracked half cannot silently finish the tree.
+	v.Perception.Resources = nil
+	v.Perception.Seq++
+	if order, err = r.Next(v, success("approach")); order != nil || err == nil {
+		t.Fatal(order, err)
+	}
+}
+
 func TestGatherStopsOnHealthLossBetweenNativeTasksButAllowsFoodDecay(t *testing.T) {
 	r, v := gathering(t)
 	nextTask(t, r, v, nil, protocol.TaskHarvest)
@@ -169,7 +194,7 @@ func TestGatherDistinguishesFoodRefreshFromDamageEvenWhenHealthRegenerates(t *te
 }
 
 func TestGatherRefusesUnsafeDescendantsWithoutCuttingAnotherTree(t *testing.T) {
-	for _, scenario := range []string{"character", "structure", "too far", "no log", "no wood", "old only"} {
+	for _, scenario := range []string{"character", "structure", "no log", "no wood", "old only"} {
 		t.Run(scenario, func(t *testing.T) {
 			r, v := gathering(t)
 			nextTask(t, r, v, nil, protocol.TaskHarvest)
@@ -180,8 +205,6 @@ func TestGatherRefusesUnsafeDescendantsWithoutCuttingAnotherTree(t *testing.T) {
 				v.Perception.Characters = []protocol.PerceivedCharacter{{Kind: protocol.CharacterPlayer, HPFrac: 1, Pos: log.Pos}}
 			case "structure":
 				v.Perception.Structures = []protocol.PerceivedStructure{{Pos: log.Pos}}
-			case "too far":
-				resources[0].Pos[0] = 24 // Within 20 m of tree but over 18 m from bot.
 			case "no log", "no wood":
 				resources = nil
 				if scenario == "no wood" {
@@ -241,11 +264,12 @@ func TestGatherSiteTravelBoundsAndValidation(t *testing.T) {
 	v.State.Pos[0] = 50
 	nextTask(t, r, v, nil, protocol.TaskMoveTo)
 	r, v = gathering(t)
-	r.targets = 5
+	r.targets = 9
 	r.treeOpen, r.trees = true, 1
+	r.chain = map[string]bool{"new": true}
 	r.center = protocol.Vec3{5, 0, 0}
 	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("new", protocol.ResourceLog, 6)}
-	if order, err := r.Next(v, nil); order != nil || err == nil || !strings.Contains(err.Error(), "five-resource") {
+	if order, err := r.Next(v, nil); order != nil || err == nil || !strings.Contains(err.Error(), "nine-resource") {
 		t.Fatal(order, err)
 	}
 	for _, raw := range []string{`{}`, `{"site":{"world":"test","radius":41},"to":["a"]}`, `{"site":{"world":"test","radius":20},"to":[]}`, `{"site":{"world":"test","radius":20},"to":["a"],"maxTrees":100}`} {

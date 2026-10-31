@@ -138,7 +138,7 @@ def verify(audit, summary):
         return _fail('gather audit world changed')
     harvests = [s for s in steps if s['task'] == 'harvest']
     required_trees = summary.get('maxTrees', 1)
-    if not required_trees * 3 <= len(harvests) <= required_trees * 5:
+    if not required_trees * 3 <= len(harvests) <= required_trees * 9:
         return _fail('full tree and two log harvests not verified')
     known = {}
     for f in frames:
