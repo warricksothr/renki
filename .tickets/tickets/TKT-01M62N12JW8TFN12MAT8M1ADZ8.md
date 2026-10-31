@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T14:35:27Z
+updated_at: 2026-10-31T14:40:42Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -484,3 +484,12 @@ Next navigation design: transient per-collider log footprints, padded for body c
 Implemented separate conservative per-collider log footprints in the existing bounded near/ahead/far discovery, dirty rebuild and sweep. Local mesh/box bounds and correctly scaled sphere/capsule envelopes project to oriented rectangles with vertical extent and0.4m body clearance; moved poses and destroyed/disabled colliders cannot reject routes or appear as current map outlines. Lower-body log-only live casts/overlaps protect undiscovered/moving logs without changing normal stair clearance. Outward overlap escape is allowed; inward crossings and travel along a log interior remain refused. Same geometry streams through optional perception.logObstacles to the panel Log boundaries layer, hover and shared map export; next observation replaces it and offline/scope changes clear it. Up to256 log colliders share the existing4096-record budget. Conservative envelopes may exclude some physically clear gaps; live checks remain required, and no CPU savings are claimed.
 
 Passed focused LogFootprintTests (.checks/20261031T142601Z-h3JEKE.log), shared FixtureTests (.checks/20261031T142906Z-oINg5E.log), controller protocol/session/app checks (.checks/20261031T142906Z-IOYacq.log), and desktop/mobile log-boundary browser checks including hover (.checks/20261031T143121Z-VryjZX.log; .checks/log-boundaries-ui). Inspected both feature screenshots and recorded a scoped visual review there. Full just check ci passed .checks/20261031T143158Z-QhARHq.log. Committed review, installation and bounded live log-clutter trial follow. Full two-tree/home/gains-only-storage proof and M2/M3 acceptance remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T14:40:42Z
+
+### Reviewed, installed and observed live; harvest check interrupted at startup
+da83b50 passed just check ci (.checks/20261031T143158Z-QhARHq.log) and committed just check review HEAD~1..HEAD (.checks/20261031T143534Z-UFOdwv.log); pushed on PR129 and checksum-installed with just check vm install (.checks/20261031T143636Z-Iv0LaL.log).
+
+The bounded just vm harvest-logs trial (.checks/harvest-trial-20261031T143727972667Z; .checks/20261031T143727Z-dJXvmE.log) aborted during its pre-existing automatic return-home task, before dispatching any harvest. Narrow evidence .checks/audit-window-zynRJW.jsonl shows multiple Necks and a Greyling along the route. Neck -226710862:1219 inflicted one4.52 damage event at[41.77,32.82,28.12]; the native controller replaced move_to with flee, then the supervisor detected startup injury and logged out/stopped the game, restored combat off and offline panel. Final23.8HP at[23.21,32.16,11.83]. Do not repeat this unsafe startup without a recovery/route improvement or changed threat observations; no owner staging/clearance is requested.
+
+Live perception emitted19 frames with up to11 log envelopes (nine in the first supervisor observation), including network identity, collider ID, oriented outline and vertical extent. This establishes deployment and native-to-controller transport, not a positive low-log detour or split-lifecycle check. During startup travel, dry route validation completed94-sample and50-sample prefixes with376/204 physics casts, worst planning frame1.25/0.26ms. The sole early obstacle-cache timing trace was its first empty discovery (2.96ms), so it does not measure steady-state log-cache CPU. Core move/rotation/removal/split tests and synthetic desktop/mobile map checks pass; actual log avoidance/rolling/splitting and the uninterrupted two-tree/home/store benchmark remain open. Automatic home preparation selected a mixed-hostile corridor; inspect that existing route/survival behavior before risking another harvesting trial.
