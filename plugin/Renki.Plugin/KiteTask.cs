@@ -16,6 +16,7 @@ namespace Renki.Plugin
         readonly Vector3 origin;
         readonly float began;
         readonly double searchRadius;
+        readonly double searchOffset, searchReach;
         readonly Walker walker = new Walker();
         readonly ScoutFooting footing = new ScoutFooting();
         readonly WorldNavigation.PlanningProbe probe = new WorldNavigation.PlanningProbe(diagnostics: true);
@@ -55,6 +56,8 @@ namespace Renki.Plugin
             origin = p.transform.position; began = Time.unscaledTime;
             surveyOrigin = encounterOrigin = origin; surveyBegan = began;
             searchRadius = args.SearchRadius ?? (string.IsNullOrWhiteSpace(args.Entity) && !args.At.HasValue ? 60 : 12);
+            searchOffset = args.SearchOffset ?? 0;
+            searchReach = searchRadius + searchOffset;
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 40)
                 throw new TaskRefused(Wire.ReasonRefused, "recover to 80% health and 40 stamina before drawing an enemy");
             if (MeleeTask.Best(p) == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable melee weapon");
@@ -76,7 +79,7 @@ namespace Renki.Plugin
                 }
                 else
                 {
-                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius, args.SearchSector);
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
                     Mode("search");
                 }
             }
@@ -121,7 +124,7 @@ namespace Renki.Plugin
                 if (next == ScoutFootingAction.Abort) return UnsafeFooting(p, gap);
                 if (next == ScoutFootingAction.Wait) { Mode("scout_settle"); return null; }
             }
-            if (Vector3.Distance(origin, p.transform.position) > searchRadius + Kiting.TravelLimit)
+            if (Vector3.Distance(origin, p.transform.position) > searchReach + Kiting.TravelLimit)
                 return Abort(p, "overall search and encounter travel limit");
             if (preparing) return PrepareSearch(p, dt);
             if (!positioned && Time.unscaledTime - surveyBegan >= 25)
@@ -174,7 +177,7 @@ namespace Renki.Plugin
                 }
                 positioned = true; walking = false; Mode("search");
                 if (enemy == null)
-                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius, args.SearchSector);
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
             }
             if (enemy == null && policy == null)
             {
@@ -272,7 +275,7 @@ namespace Renki.Plugin
             {
                 if (!MeleeTask.Eligible(p, c) || c.IsDead() || c.m_nview.GetZDO() == null) continue;
                 if (!string.IsNullOrWhiteSpace(args.Entity) && c.m_nview.GetZDO().m_uid.ToString() != args.Entity) continue;
-                if (Vector3.Distance(origin, c.transform.position) > searchRadius + Kiting.SearchRange) continue;
+                if (Vector3.Distance(origin, c.transform.position) > searchReach + Kiting.SearchRange) continue;
                 if (!ClearCharacters(p, c, c.transform.position) || !ClearCharacters(p, c, p.transform.position)) continue;
                 var distance = Vector3.Distance(p.transform.position, c.transform.position);
                 if (distance < best) { selected = c; best = distance; }
@@ -335,7 +338,7 @@ namespace Renki.Plugin
                 return null;
             }
             preparing = false; area = supported;
-            scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius, args.SearchSector);
+            scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius, args.SearchSector, searchOffset);
             Mode("search", "reached open ground through ordinary checked travel");
             return null;
         }
@@ -368,6 +371,7 @@ namespace Renki.Plugin
                         ["returning"] = scouting.Returning,
                         ["attempts"] = scouting.Attempts,
                         ["sector"] = args.SearchSector,
+                        ["offset"] = searchOffset,
                         ["trailPoints"] = scouting.TrailPoints,
                         ["returnDistance"] = scouting.ReturnDistance
                     });
@@ -449,7 +453,7 @@ namespace Renki.Plugin
                     return RejectScout(desired, "unsupported_navmesh_corner");
                 var next = Convert.ToV3(supported);
                 length += (next - previous).Length;
-                if (length > 24 || Vector3.Distance(supported, origin) > searchRadius + .25)
+                if (length > 24 || Vector3.Distance(supported, origin) > searchReach + .25)
                     return RejectScout(desired, "scouting_route_limit");
                 foreach (var c in Character.GetAllCharacters())
                 {

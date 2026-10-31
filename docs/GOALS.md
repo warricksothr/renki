@@ -104,15 +104,29 @@ attempt advances through three distances on its assigned spoke, projects
 terrain and validates short legs locally, and returns along checked travel
 before reporting an empty search. Time, travel, stamina and recovery limits can
 end the attempt early; this is **attempted ground, not exhaustive coverage**.
-The host checkpoints sector/origin/radius in the dispatch intent, then records
+The host checkpoints sector/origin/radius/offset in the dispatch intent, then records
 the matching native receipt in `searches`. Incomplete attempts are retained and
 consume their bearing without being labelled empty. Only the exact native
 empty-search-and-return receipt, with no bound target, is expected search
 progress rather than a repeated failure. It still consumes task, attempt and
 deadline budgets. Unsafe/incomplete repeated failures retain the three-failure
-stop. Six tasks do not promise all eight bearings, and searches still stay
-within their local radius; relocation into more distant regions is future work.
-Policy cannot choose/reset bearings, alter their radius or turn travel into a
+stop. Six tasks do not promise all eight bearings.
+
+The first two search attempts remain local. Later attempts shift their three
+outbound distances by 40 m, then 60 m, to seek farther ground on fresh bearings.
+The host reduces both offset and radius as needed to retain the same goal sphere
+and 52 m combat/escape reserve. Total planned reach is at most 120 m. These are
+horizontal planning hints; native code projects each short leg onto currently
+supported terrain rather than assuming the starting elevation at a distant
+endpoint. Outer travel may try four progress-making leg alternatives (direct,
+30 degrees either side, then a shorter direct step), at most one route probe per
+decision. Failed alternatives consume the existing recovery/time bounds.
+Return travel still follows revalidated observed breadcrumbs. A conservative
+allowance for return distance and breadcrumb decisions can end outbound travel
+early; the 90/150 s work/return and 300 m travel limits are unchanged. A partial
+or empty search does not prove that the requested farther region was reached.
+
+Policy cannot choose/reset bearings, alter their radius/offset or turn travel into a
 kill. Completed ledgers survive explicit resume; pending searches after restart
 remain uncertain and cannot replay. Existing records without a ledger remain
 readable and their stored policy source/hash stays unchanged.

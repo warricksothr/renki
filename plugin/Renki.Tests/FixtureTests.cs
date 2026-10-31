@@ -137,6 +137,11 @@ namespace Renki.Tests
         [InlineData("attack", "{\"kite\":\"true\"}")]
         [InlineData("attack", "{\"kite\":true,\"searchRadius\":81}")]
         [InlineData("attack", "{\"kite\":true,\"searchSector\":8}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":0,\"searchOffset\":61}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":0,\"searchOffset\":-1}")]
+        [InlineData("attack", "{\"kite\":true,\"searchOffset\":40}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":0,\"searchOffset\":60,\"searchRadius\":80}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":0,\"searchOffset\":\"40\"}")]
         [InlineData("attack", "{\"kite\":true,\"searchSector\":-1}")]
         [InlineData("attack", "{\"kite\":true,\"searchSector\":1.5}")]
         [InlineData("attack", "{\"kite\":true,\"searchSector\":\"1\"}")]
@@ -205,6 +210,7 @@ namespace Renki.Tests
             Assert.False(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\",\"collect\":false}"))).Collect);
             foreach (var sector in new[] { 0, 7 })
                 Assert.Equal(sector, ((AttackArgs)TaskArgs.Parse(Req("attack", "{\"kite\":true,\"searchSector\":" + sector + "}"))).SearchSector);
+            Assert.Null(((AttackArgs)TaskArgs.Parse(Req("attack", "{\"kite\":true,\"searchOffset\":null}"))).SearchOffset);
         }
     }
 }

@@ -96,6 +96,7 @@ namespace Renki.Protocol
         public V3? At;
         public double? SearchRadius;
         public int? SearchSector;
+        public double? SearchOffset;
     }
 
     public sealed class PickupArgs
@@ -278,9 +279,13 @@ namespace Renki.Protocol
                             sector = value.Value<int>();
                         }
                         if (at.HasValue && searchRadius > 12) throw new BadArgsException("a fixed fighting area limits `searchRadius` to 12 m");
+                        double? offset = a["searchOffset"] == null || a["searchOffset"].Type == JTokenType.Null ? (double?)null : Number(a, "searchOffset", 0);
+                        if (offset.HasValue && (!sector.HasValue || double.IsNaN(offset.Value) || double.IsInfinity(offset.Value) || offset < 0 || offset > 60 ||
+                            (searchRadius ?? 60) + offset > 120))
+                            throw new BadArgsException("`searchOffset` requires a search sector, 0–60 m offset and at most 120 m total reach");
                         if (style == "") style = "melee";
                         if (style != "melee" && style != "auto") throw new BadArgsException("this build supports melee or auto attack style");
-                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector };
+                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector, SearchOffset = offset };
                     }
                 case TaskNames.Harvest:
                     {

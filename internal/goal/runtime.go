@@ -327,6 +327,9 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 		var search *SearchPlan
 		if args.SearchSector != nil {
 			search = &SearchPlan{Sector: *args.SearchSector, Origin: v.State.Pos, Radius: *args.SearchRadius}
+			if args.SearchOffset != nil {
+				search.Offset = *args.SearchOffset
+			}
 		}
 		if err = r.t.Store.update(r.id, func(g *Record) error {
 			g.Observation = r.observation
@@ -377,16 +380,28 @@ func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage,
 		ctx["target"], ctx["changed"], ctx["params"] = true, true, p
 		return ctx, raw, fp
 	}
-	searchRadius := math.Min(60, g.Radius-distance(v.State.Pos, g.Center)-52)
+	remaining := g.Radius - distance(v.State.Pos, g.Center) - 52
 	// Opposite bearings first distribute bounded effort before filling gaps.
 	// Completed and incomplete attempts both consume a sector. This never
 	// treats an interruption as coverage or retries an uncertain intent.
 	sectors := [...]int{0, 4, 2, 6, 1, 5, 3, 7}
-	if !discoveryBlocked && searchRadius >= 12 && len(g.Searches) < len(sectors) {
+	if !discoveryBlocked && remaining >= 12 && len(g.Searches) < len(sectors) {
 		sector := sectors[len(g.Searches)]
-		fp := fmt.Sprintf("search:%d:%d:%d:%d:%d", sector, int(math.Floor(v.State.Pos[0]/2)), int(math.Floor(v.State.Pos[2]/2)), int(v.State.HP/10), int(v.State.Stamina/20))
+		offset := 0.0
+		if len(g.Searches) >= 2 {
+			offset = 40
+		}
+		if len(g.Searches) >= 4 {
+			offset = 60
+		}
+		offset = math.Min(offset, remaining-12)
+		searchRadius := math.Min(60, remaining-offset)
+		fp := fmt.Sprintf("search:%d:%g:%d:%d:%d:%d", sector, offset, int(math.Floor(v.State.Pos[0]/2)), int(math.Floor(v.State.Pos[2]/2)), int(v.State.HP/10), int(v.State.Stamina/20))
 		if fp != g.LastFingerprint {
 			p := map[string]any{"world": g.World, "searchRadius": searchRadius, "searchSector": sector}
+			if offset > 0 {
+				p["searchOffset"] = offset
+			}
 			raw, _ := json.Marshal(p)
 			ctx["target"], ctx["changed"], ctx["discovery"], ctx["params"] = true, true, true, p
 			return ctx, raw, fp

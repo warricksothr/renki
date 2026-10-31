@@ -43,6 +43,7 @@ type SearchPlan struct {
 	Sector int           `json:"sector"`
 	Origin protocol.Vec3 `json:"origin"`
 	Radius float64       `json:"radius"`
+	Offset float64       `json:"offset,omitempty"`
 }
 type SearchAttempt struct {
 	Plan    SearchPlan `json:"plan"`
@@ -295,7 +296,7 @@ func validateRecord(r Record) error {
 		plans = append(plans, *r.Pending.Search)
 	}
 	for _, plan := range plans {
-		if plan.Sector < 0 || plan.Sector > 7 || seen[plan.Sector] || !finite(plan.Radius) || plan.Radius < 12 || plan.Radius > 60 {
+		if plan.Sector < 0 || plan.Sector > 7 || seen[plan.Sector] || !finite(plan.Radius) || plan.Radius < 12 || plan.Radius > 60 || !finite(plan.Offset) || plan.Offset < 0 || plan.Offset > 60 || plan.Offset+plan.Radius > 120 {
 			return errors.New("invalid or repeated search sector")
 		}
 		for _, n := range plan.Origin {
@@ -303,7 +304,7 @@ func validateRecord(r Record) error {
 				return errors.New("invalid search origin")
 			}
 		}
-		if distance(plan.Origin, r.Center)+plan.Radius+52 > r.Radius+1e-6 {
+		if distance(plan.Origin, r.Center)+plan.Radius+plan.Offset+52 > r.Radius+1e-6 {
 			return errors.New("search plan exceeds goal envelope")
 		}
 		seen[plan.Sector] = true

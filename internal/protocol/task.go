@@ -196,6 +196,7 @@ type AttackArgs struct {
 	At           *Vec3    `json:"at,omitempty"`
 	SearchRadius *float64 `json:"searchRadius,omitempty"`
 	SearchSector *int     `json:"searchSector,omitempty"`
+	SearchOffset *float64 `json:"searchOffset,omitempty"`
 }
 
 func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
@@ -206,11 +207,12 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 		At           json.RawMessage `json:"at"`
 		SearchRadius *float64        `json:"searchRadius"`
 		SearchSector json.RawMessage `json:"searchSector"`
+		SearchOffset *float64        `json:"searchOffset"`
 	}
 	if err := json.Unmarshal(raw, &wire); err != nil {
 		return err
 	}
-	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, SearchRadius: wire.SearchRadius}
+	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, SearchRadius: wire.SearchRadius, SearchOffset: wire.SearchOffset}
 	if wire.SearchSector != nil {
 		var sector int
 		if bytes.Equal(bytes.TrimSpace(wire.SearchSector), []byte("null")) {
@@ -235,6 +237,15 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 }
 
 func (a *AttackArgs) validate() error {
+	if a.SearchOffset != nil {
+		radius := 60.0
+		if a.SearchRadius != nil {
+			radius = *a.SearchRadius
+		}
+		if a.SearchSector == nil || math.IsNaN(*a.SearchOffset) || math.IsInf(*a.SearchOffset, 0) || *a.SearchOffset < 0 || *a.SearchOffset > 60 || radius+*a.SearchOffset > 120 {
+			return errors.New("`searchOffset` requires a search sector, 0–60 m offset and at most 120 m total reach")
+		}
+	}
 	if a.SearchSector != nil && (!a.Kite || strings.TrimSpace(a.Entity) != "" || a.At != nil || *a.SearchSector < 0 || *a.SearchSector > 7) {
 		return errors.New("`searchSector` requires untargeted kite discovery and an integer from 0 to 7")
 	}
