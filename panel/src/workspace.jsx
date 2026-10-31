@@ -288,6 +288,23 @@ export function Places() {
           </div>
         </form>
         <p id="place-result" role="status"></p>
+        <div id="place-idle" hidden>
+          <p class="place-help">
+            Idle food work: gather wild food at berry markers, cook carried raw
+            food at cooking markers, or store surplus at storage markers. Starts
+            after 30 seconds idle; pauses 5 minutes between batches. Keeps two
+            meals of each kind. Limited to 12 batches per controller session.
+          </p>
+          <div class="place-toolbar">
+            <button id="place-idle-enable" type="button">
+              Enable idle food work
+            </button>
+            <button id="place-idle-disable" type="button">
+              Disable idle food work
+            </button>
+          </div>
+          <p id="place-idle-status" role="status"></p>
+        </div>
         <div id="place-nearby"></div>
         <p class="place-help">
           Tas marks standard locations from things he observes. Your changes

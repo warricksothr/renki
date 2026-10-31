@@ -1,12 +1,14 @@
 package app
 
 import (
+	"github.com/warricksothr/renki/internal/home"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/panel"
@@ -54,6 +56,40 @@ func TestBehaviourControlsRequireAuthenticationAndValidateBeforeSaving(t *testin
 	for _, body := range []string{`{"name":"trip","action":"clone","target":"copy"}`, `{"name":"copy","action":"enable"}`, `{"name":"copy","action":"disable"}`, `{"name":"copy","action":"delete"}`} {
 		if status := call(http.MethodPost, body, true, true); status != http.StatusOK {
 			t.Fatal(status, body)
+		}
+	}
+}
+
+func TestIdleFoodPresetUsesCurrentMarkerAndReplacesOneDefinition(t *testing.T) {
+	a := New(config.Default(), nil, nil, nil, nil, nil)
+	marker := home.Waypoint{Name: "pantry", Kind: "storage", At: time.Now(), Radius: 6}
+	if err := a.Memory.Store.EditWaypoint("one", "", &marker, nil); err != nil {
+		t.Fatal(err)
+	}
+	call := func(body string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("POST", "/api/behaviours", strings.NewReader(body))
+		r.Header.Set(panel.ActHeader, "1")
+		w := httptest.NewRecorder()
+		a.BehaviourHandler().ServeHTTP(w, r)
+		return w
+	}
+	for _, enabled := range []string{"true", "false", "true"} {
+		w := call(`{"action":"idle-food","marker":{"world":"one","name":"pantry","kind":"storage"},"enabled":` + enabled + `}`)
+		if w.Code != 200 {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		rows := a.Behaviours.List()
+		if len(rows) != 1 || rows[0].Definition.Enabled != (enabled == "true") || rows[0].Definition.Trigger.DwellS != 30 || rows[0].Definition.Repeat.CooldownS != 300 {
+			t.Fatal(rows)
+		}
+	}
+	for _, bad := range []string{
+		`{"action":"idle-food","marker":{"world":"two","name":"pantry","kind":"storage"},"enabled":true}`,
+		`{"action":"idle-food","marker":{"world":"one","name":"pantry","kind":"cooking"},"enabled":true}`,
+		`{"action":"idle-food","marker":{"world":"one","name":"pantry","kind":"storage"}}`,
+	} {
+		if w := call(bad); w.Code != 400 {
+			t.Fatal(w.Code, w.Body.String())
 		}
 	}
 }

@@ -158,6 +158,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
 		Landmarks:  homes.Landmarks,
+		Waypoints:  homes.Waypoints,
 		Danger:     homes.DangerZones,
 		Notify: func(ctx context.Context, line string) {
 			_, err := s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}, TimeoutS: 5})

@@ -387,6 +387,14 @@ test-cooking-check:
 food-check *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/food-check.py" "$@"
 
+# One bounded marker food batch, optional movement and automatic idle dwell.
+[positional-arguments]
+marker-food-check *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/marker-food-check.py" "$@"
+
+test-marker-food-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/marker-food-check-test.py"
+
 test-food-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/food-check-test.py"
 

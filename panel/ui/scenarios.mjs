@@ -459,6 +459,41 @@ export const scenarios = {
     await expect(page.locator("#place-name")).toBeFocused();
     await shot("places");
   },
+  "marker-idle-food": async ({ page, check, shot }) => {
+    await page.locator("#places summary").click();
+    await page.locator("#place-list").selectOption("home storage");
+    await check(
+      "Typed food markers expose opt-in work and scoped controls",
+      async () => {
+        await expect(page.locator("#place-idle")).toBeVisible();
+        await expect(page.locator("#place-idle-status")).toContainText("Off");
+        await page.locator("#place-idle-enable").click();
+        await expect(page.locator("#place-idle-status")).toContainText(
+          "Read-only preview",
+        );
+        const request = await page.evaluate(() =>
+          renkiPreview.requests.findLast(
+            (r) => r.path === "/api/behaviours" && r.method === "POST",
+          ),
+        );
+        const body = JSON.parse(request.body);
+        assert.equal(request.headers["X-Renki-Act"], "1");
+        assert.equal(body.action, "idle-food");
+        assert.equal(body.marker.name, "home storage");
+        assert.equal(body.marker.kind, "storage");
+        assert.ok(body.marker.world);
+        assert.equal(body.enabled, true);
+      },
+    );
+    await shot("marker-idle-food");
+    await check(
+      "Other marker types do not offer unsupported food work",
+      async () => {
+        await page.locator("#place-list").selectOption("wood");
+        await expect(page.locator("#place-idle")).toBeHidden();
+      },
+    );
+  },
   overview: async ({ page, check }) => {
     await check("Recorded JPEG really decodes at 960×540", async () => {
       await expect(page.locator("#camera-image")).toHaveJSProperty(

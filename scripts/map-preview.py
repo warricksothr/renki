@@ -125,6 +125,7 @@ window.fetch=async(path,options={})=>{
  switch(url.pathname){
  case '/api/video': return respond({enabled:preview.videoState!=='disabled',content:['gameplay','stalled','no-source'].includes(preview.videoState)?'gameplay':'standby',reason:preview.videoState==='disabled'?'Video is not configured':'Waiting for verified game capture',scope:preview.status.connection+':'+preview.status.world+':'+(preview.status.worldUid||'')});
  case '/api/status': return respond(preview.status);
+ case '/api/behaviours': return respond([]);
  case '/api/map': return respond(preview.mapped);
  case '/api/atlas/worlds': return respond(preview.worlds);
  case '/api/atlas/map': return respond(preview.atlas);
