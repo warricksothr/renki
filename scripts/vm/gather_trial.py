@@ -65,6 +65,12 @@ def defense_target(current, task_records, name):
     return args.get('entity') if args.get('kite') is True and args.get('entity') == combat.get('entity') else None
 
 
+def nearby_threat(current, perception, allowed=None):
+    return any(c.get('id') != allowed and c.get('hostile') and c.get('hpFrac', 0) > 0
+               and not (c.get('kind') == 'creature' and c.get('prefab') == 'Deer' and not c.get('targetingMe'))
+               and math.dist(c['pos'], current['pos']) < 10 for c in perception.get('characters', []))
+
+
 def run(summary, call, observe, saved, trees=1, site=None, defend=False):
     status, mapped = observe()
     scope = (status.get('world'), status.get('worldUid'), status.get('connection'))
@@ -117,8 +123,7 @@ def run(summary, call, observe, saved, trees=1, site=None, defend=False):
             at = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
             task_records = call('panel', 'GET', '/api/task?id=' + task_id + '&at=' + at, as_json=True)
             allowed = defense_target(current, task_records, name)
-        if any(c.get('id') != allowed and c.get('hostile') and c.get('hpFrac', 0) > 0 and math.dist(c['pos'], current['pos']) < 10
-               for c in (mp.get('perception') or {}).get('characters', [])):
+        if nearby_threat(current, mp.get('perception') or {}, allowed):
             raise RuntimeError('hostile approached the controller gather trial')
         entries = records(call('panel', 'GET', '/api/behaviours', as_json=True))
         own = next((b for b in entries if b['name'] == name), None)

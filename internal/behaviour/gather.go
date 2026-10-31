@@ -84,6 +84,10 @@ type gatherRun struct {
 	defenses                                  int
 	defenseReceipt                            *gatherDefenseReceipt
 	resume                                    *protocol.PerceivedResource
+	clearingWildlife                          bool
+	wildlifeAttempts                          int
+	wildlifeUntil                             time.Time
+	wildlifeScan                              uint64
 }
 
 func (r *gatherRun) Recover(result Result) bool {
@@ -98,11 +102,22 @@ func beechLog(resource protocol.PerceivedResource) bool {
 }
 
 func gatherClear(v View, resource protocol.PerceivedResource) bool {
+	return gatherClearance(v, resource, false)
+}
+
+func passiveDeer(c protocol.PerceivedCharacter) bool {
+	return c.Kind == protocol.CharacterCreature && c.Prefab == "Deer" && !c.TargetingMe
+}
+
+func gatherClearance(v View, resource protocol.PerceivedResource, withoutDeer bool) bool {
 	radius := 8.0
 	if resource.Kind == protocol.ResourceTree {
 		radius = 32
 	}
 	for _, c := range v.Perception.Characters {
+		if withoutDeer && passiveDeer(c) {
+			continue
+		}
 		clearance := radius
 		if c.Kind == protocol.CharacterCreature && c.Hostile && c.Prefab == "Greyling" {
 			clearance = math.Max(clearance, 40)
@@ -145,7 +160,7 @@ func gatherReady(v View) error {
 
 func gatherTravelReady(v View) error {
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, v.State.Pos) < 15 {
+		if c.HPFrac > 0 && !passiveDeer(c) && (c.Hostile || c.TargetingMe) && distance(c.Pos, v.State.Pos) < 15 {
 			return errors.New("a threat is too close to prepare or travel to the gathering site")
 		}
 	}
@@ -367,6 +382,9 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	if v.Now.Before(r.settleUntil) {
 		return nil, ErrWait
 	}
+	if r.clearingWildlife {
+		return r.clearWildlife(v, result)
+	}
 	if order, err := r.defend(v); order != nil || err != nil {
 		return order, err
 	}
@@ -393,6 +411,11 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 				return nil, errors.New("log splitting and collected Wood are not verified")
 			}
 			r.treeOpen = false
+		}
+	}
+	if !r.treeOpen && r.trees < r.p.treeLimit() && r.p.workLimit()-v.Now.Sub(r.began) >= 4*time.Minute {
+		if order, err := r.clearWildlife(v, result); order != nil || err != nil {
+			return order, err
 		}
 	}
 	if r.trees > 0 && !r.treeOpen {

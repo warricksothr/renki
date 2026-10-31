@@ -9,6 +9,14 @@ from harvest_trial import health_loss
 
 
 class GatherEvidence(unittest.TestCase):
+    def test_passive_deer_is_not_a_hostile_trial_approach(self):
+        current = dict(pos=[0, 0, 0])
+        deer = dict(id='deer', kind='creature', prefab='Deer', hostile=True, hpFrac=1, pos=[8, 0, 0])
+        self.assertFalse(gather.nearby_threat(current, dict(characters=[deer])))
+        for change in (dict(prefab='Neck'), dict(prefab='Greyling'), dict(targetingMe=True), dict(kind='player')):
+            self.assertTrue(gather.nearby_threat(current, dict(characters=[dict(deer, **change)])))
+        self.assertFalse(gather.nearby_threat(current, dict(characters=[dict(deer, prefab='Greyling')]), 'deer'))
+
     def test_defense_proximity_exception_requires_attributed_matching_native_attack(self):
         current = dict(task=dict(id='fight', task='attack'), combat=dict(id='fight', entity='pursuer'))
         rows = [dict(msg='behaviour step', attrs=dict(instance='trial', id='fight')),

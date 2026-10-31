@@ -226,6 +226,15 @@ After a tree or rolling log breaks, Tas completes its checked escape leg before
 waiting for the descendants to settle. Distance from the old network pivot
 cannot skip retreat when striking near the end of a long trunk.
 
+When only passive deer block otherwise safe full trees, gathering may make one
+short running approach toward a freshly observed deer within 20 m, stopping 8 m
+from its recorded position. Native dry routing and hostile avoidance still apply.
+It waits at most 20 seconds for newer observations to show all original falling
+and bystander exclusions clear. It never attacks or follows a moving deer.
+Approaches have a 30-second bound; their destinations must be within 40 m of the
+work site and 150 m of home. At most one per requested tree is allowed in a run.
+Players, other creatures, structures and walls keep their original protections.
+
 Before leaving home, `returnHome` gathering repairs a carried axe below 90%
 durability at a currently observed home workbench. It uses `interact` with
 `repair:true`, then requires a newer actual inventory reporting an axe at least

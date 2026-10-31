@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T12:13:28Z
+updated_at: 2026-10-31T12:30:56Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -384,3 +384,14 @@ Normal dry hostile-aware travel toward remembered food[0.5,33,-19] left through 
 Travel toward that fresh mushroom failed at[-4.59,33,-22.98] (.checks/task-v5lrc08r.json). Final local search expanded one node with17support queries and zero physical casts; diagnostics could not expose which support sample failed. Camera .checks/camera-20261031T121141753185Z.jpg shows open sloping ground. Tas remains25/25HP, safely offline/panel online. Do not claim actual support heights at that last failure: they were not traced.
 
 Starting-footing rays must choose the nearest supported surface, rather than the highest surface in the destination step scan. A separate per-slice memo selects the nearest sample within0.6m below or one ordinary0.3m tread above the body; higher floor lips stay excluded. This supersedes the earlier0.05m upward-origin bound, which did not allow ordinary tread overlap. Surface continuity remains0.3m per half-edge. Failed local routes/navmesh rejection now retain support-stage/heights, to distinguish this hypothesis from future actual physical obstacles. Regression covers surface preference, tread overlap, overhead0.56m lip and missing/distant footing. Need gate/review/install, food collection, and exact two-tree final-home/store trial. No broad M2 criterion checked.
+
+**agent:codex/renki-milestones** at 2026-10-31T12:30:56Z
+
+### Foraging passed; bounded passive-deer work-site preparation
+073b01c passed CI .checks/20261031T121328Z-K3WX4C.log, review .checks/20261031T121555Z-7qeglt.log and checksum deployment .checks/20261031T121608Z-0D7MyG.log. Dry hostile-aware travel to the freshly observed north mushroom passed (.checks/task-p_fct3n2.json). Controller collection completed normal interact/pickup; task-matched use_item activated Mushroom, no reserve remains. Audit .checks/audit-window-59u3YE.jsonl retains native collection/consumption; no injury observed. Tas recovered to36.2/39.3HP before the next test.
+
+Two-tree .checks/gather-trial-20261031T122113029178Z reached stand[94.03,41.81,44.71] successfully after142.3m observed travel, then refused before any cut. Nine eligible beeches and no interactable structures were observed, but Deer1:62150 at[105.21,43.77,47.4] was within every tree's32m falling exclusion and13m of Tas. No damage; safely offline with panel restored. Current position[92.73,41.64,44.31],38.8/38.8HP, food remains active, original product baseline still Wood27/Resin5/BeechSeeds2. This proves route/site arrival, not tree completion.
+
+Add one bounded normal running approach when only passive deer block otherwise safe full beeches. Stop8m from a fresh fixed deer position within20m of Tas,40m of site and150m of pinned home; native dry/hostile-aware movement owns the route,30s maximum. Require a newer perception after the exact success receipt, then wait up to20s for all original exclusions to become clear. At most maxTrees such approaches per run. No moving-target chase, attack or relaxed harvest protection. Other threats, players, walls, structures, supplied-body conditions and storage pressure retain existing handling. Do not classify passive Deer as an actual travel threat merely because Valheim reports hostile faction; targeted/modded aggression remains blocking. The trial's proximity guard uses that same narrow passive-deer exception while native harvest still checks full exclusion.
+
+Captured stand and policy checks cover exact fixed movement, unchanged starting cargo, no premature harvest, no repeated chasing, success+freshness, timeout/failure, other actors, wall/building exclusions, range and stamina/attempt limits. Need focused checks/full CI/committed review/controller deployment, then retry the uninterrupted two-tree/log gain-only final-home/store benchmark. No broad criterion earned yet.
