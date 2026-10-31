@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:00:18Z
+updated_at: 2026-10-31T20:08:16Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -66,3 +66,9 @@ Implemented an optional typed acquisition checkpoint on new food goals; saved ol
 Remembered edible/branch sites within 80 m are travel hints only; six visits, consolidated in four-metre cells, do not assert area coverage. Twelve resource actions are allowed. Current native attack permission can admit only exact fresh isolated unstarred wild Boar/Neck targets; normal native equipment, ground, bystander and retreat checks still decide. Target-lost/unreachable hunts can advance to distinct prey, never retry the same ID. An exact task/target/species observed death is distinct from obtaining any ingredient. Existing injury baseline remains strict. Every collected yield outside home returns to the original floor before cooking/completion/escort continuation; a below-floor arrival cannot pass.
 
 Added compact panel acquisition counts and --require-acquisition to just vm food-check. Corrected controller-only deployment to preserve an offline client while bringing back the independent panel. Focused just check controller test-packages ./internal/goal ./internal/app ./internal/chat passed in .checks/20261031T195547Z-S9C5dC.log; subsequent checks include the added distinct-prey negative recovery. Initial full gate caught stale panel output; rebuilt through just check panel build. Final just check ci is running in .checks/20261031T195717Z-pOcFBT.log. Live acquisition, combined raw-to-cooked fallback, cold-fire fueling and escort continuation are not yet claimed. Tas remains reserved for automated food trials; no manual setup requests.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:08:16Z
+
+Full CI for the supervisor follow-up passed140s (.checks/20261031T200408Z-JG7Wdr.log). The initial live run .checks/food-20261031T200147Z verified a normal one-tail deposit then encountered a supervisor sampling race after six storage tasks: status named a completed goal task while the newer checkpoint already named the next. Fixed local supervision to accept only exact completed task IDs in this goal's bounded history (with final native outcomes), refresh both samples once for the dispatch/checkpoint window, and still reject an owner's new task or unproven task. Focused just check vm test-food-check passed.
+
+The second live run .checks/food-20261031T200408Z earned real acquisition: goal c395aa1d54278d059e3bb0b4 normally picked up NeckTail drop2402772000:167 with task t-9 and measured inventory gain1, then returned to the pinned home floor through task t-10. No injury was observed. Cooking t-11 at station1:70085 failed unreachable before inserting any food. It tried48 relative-angle seeds:114 floor candidates,73 body rejections,41 reach/fire-footing rejections, zero walk attempts. This is the same station used successfully in .checks/cooking-20261031T182424Z from another arrival bearing. The earlier success used position[-33.28,36.22,10.74]. Native approach sampling is being extended with fixed world bearings independent of arrival angle, preserving one seed per tick, all support/body/sight/fire checks, four walks and the60s deadline. No cooking success is claimed by the new goal yet. Tas was safely logged out and the independent panel restored after the failure.

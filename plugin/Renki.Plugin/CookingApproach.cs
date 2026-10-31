@@ -71,16 +71,12 @@ namespace Renki.Plugin
                 return null;
             }
             Driver.Stand();
-            if (seed >= 48 || walks >= 4)
+            if (seed >= CookingApproaches.Limit || walks >= 4)
                 return Failed("no supported, clear cooking position after bounded alternate approaches");
             // One bounded seed per physics tick; support may be on either side
             // of a raised floor. Sight and body clearance reject the wrong one.
             var index = seed++;
-            var spoke = index % 12;
-            var turn = spoke % 2 == 0 ? spoke / 2 : -(spoke + 1) / 2;
-            var bearing = angle + turn * Mathf.PI / 6;
-            var radius = 1.25f + index / 12;
-            var at = station.transform.position + new Vector3(Mathf.Cos(bearing), 0, Mathf.Sin(bearing)) * radius;
+            var at = station.transform.position + Convert.ToVector3(CookingApproaches.Offset(index, angle));
             var hits = Physics.RaycastNonAlloc(at + Vector3.up * 4, Vector3.down, supports, 8, GroundMask, QueryTriggerInteraction.Ignore);
             if (hits == supports.Length) return null;
             foreach (var hit in supports.Take(hits).OrderBy(h => Mathf.Abs(h.point.y - me.transform.position.y)))

@@ -34,6 +34,14 @@ def safe_to_remain(status, mapped):
                    and math.dist(c['pos'], status['pos']) < 20 for c in perception['characters'])
 
 
+def goal_owned_task(status, goal):
+    """A sampled task can have completed between the status and goal reads."""
+    active = (status.get('task') or {}).get('id')
+    if not active or active == (goal.get('pending') or {}).get('taskId'): return True
+    return any(row.get('taskId') == active and row.get('status') in ('succeeded', 'failed', 'rejected', 'cancelled')
+               for row in goal.get('history', []))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--join', action='store_true')
@@ -130,11 +138,12 @@ def main():
             goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=goal['id'])))
             (folder / 'goal.json').write_text(json.dumps(goal, indent=2)+'\n')
             if goal['status'] in ('succeeded', 'needs_plan', 'cancelled', 'suspended'): break
-            active = (status.get('task') or {}).get('id')
-            if active and active != (goal.get('pending') or {}).get('taskId'):
-                # Avoid misclassifying receipt-to-next-step races; confirm once.
+            if not goal_owned_task(status, goal):
+                # Dispatch can also precede persistence of its assigned ID.
+                # Refresh both samples once, retaining exact task identities.
+                status = observe()
                 goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=goal['id'])))
-                if active != (goal.get('pending') or {}).get('taskId'): raise RuntimeError('body ownership changed')
+                if not goal_owned_task(status, goal): raise RuntimeError('body ownership changed')
             time.sleep(2)
         summary.update(status=goal['status'], tasks=goal['taskCount'], reason=goal.get('reason'), batches=(goal.get('food') or {}).get('batches', 0))
         if goal['status'] != 'succeeded': raise RuntimeError(summary['reason'])

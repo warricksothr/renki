@@ -26,14 +26,16 @@ busy stations and a dead fire produce a refusal with the missing prerequisite.
 Station and fire reach use the player's configured normal interaction range
 (3.5 m on Tas in the live check; 5 m in the source defaults) and retain solid obstruction checks. A
 currently visible/reachable station does not require an extra approach walk.
-Otherwise cooking measures up to 48 nearby position seeds, one per physics
+Otherwise cooking measures up to 144 nearby position seeds, one per physics
 tick, including support above and below raised floors. It requires dry support,
 standing-body clearance, sight/reach to the station and any fire needing fuel,
 and clearance from burning areas (including the unlit supporting fire's bounds).
 Only then does ordinary dry, hostile-aware navigation walk to a candidate.
 At most four walks, 12 seconds each and one minute total, are permitted.
 Actual sight/reach is rechecked after movement; candidate geometry never proves
-successful use. Failed approaches and rejection counts appear in cooking traces.
+successful use. Each distance ring includes arrival-relative and fixed world
+bearings, so a narrow usable side remains a candidate when Tas arrives from a
+different angle. Failed approaches and rejection counts appear in cooking traces.
 The station needs a working fire, or one carried `Wood` for its unique empty
 supporting fire. Before inserting food, the native routine matches the station's
 fire-check points against the fire's actual burning-area bounds (including
