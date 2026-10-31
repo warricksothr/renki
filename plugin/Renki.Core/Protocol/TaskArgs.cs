@@ -76,6 +76,7 @@ namespace Renki.Protocol
 
     public sealed class EscortArgs
     {
+        public bool Resupply;
         public string Player;
         public string[] Protect = Array.Empty<string>();
         public double Distance = 3.5;
@@ -263,7 +264,7 @@ namespace Renki.Protocol
                                 protect[i] = (string)names[i];
                             }
                         }
-                        return new EscortArgs { Player = player, Protect = protect, Distance = distance, Collect = Bool(a, "collect", true), Defend = Bool(a, "defend", true) };
+                        return new EscortArgs { Player = player, Protect = protect, Distance = distance, Collect = Bool(a, "collect", true), Defend = Bool(a, "defend", true), Resupply = Bool(a, "resupply", false) };
                     }
                 case TaskNames.Follow:
                     {

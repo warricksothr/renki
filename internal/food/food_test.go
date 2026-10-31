@@ -37,6 +37,21 @@ func scene() (*fake, *Keeper, *time.Time) {
 	return f, k, &now
 }
 func fresh(f *fake) { copy := *f.st; copy.Seq++; f.st = &copy }
+
+func TestReservedFoodGoalOwnsEatingUntilItsLeaseEnds(t *testing.T) {
+	f, k, _ := scene()
+	reserved := true
+	k.SetReserved(func() bool { return reserved })
+	k.Tick(context.Background())
+	if len(f.orders) != 0 {
+		t.Fatal("keeper raced goal eating")
+	}
+	reserved = false
+	k.Tick(context.Background())
+	if len(f.orders) != 1 {
+		t.Fatal("keeper did not resume after goal")
+	}
+}
 func TestFillEmptySlotsBeforeRefreshingAndIgnoreIneligible(t *testing.T) {
 	s := &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Meat"}}, Carried: []protocol.CarriedFood{
 		{Prefab: "Meat", Health: 35, CanEat: true}, {Prefab: "Berry", Health: 10, CanEat: true}, {Prefab: "Locked", Health: 99}}}

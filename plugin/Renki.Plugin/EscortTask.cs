@@ -59,6 +59,13 @@ namespace Renki.Plugin
             {
                 nextScan = now + .25f;
                 var threats = Threats(p, leader, out var threat, out var confirmed);
+                // Yield only at a quiet boundary. The controller owns the home
+                // supply goal and pinned continuation; this routine never puppets it.
+                if (ShouldResupply(p, threats))
+                {
+                    Reset("wait", "food resupply boundary");
+                    return Outcome.Failed(Wire.ReasonRefused, "escort needs food resupply");
+                }
                 var ready = EscortPolicy.Ready(p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(),
                     p.GetFoods().Count > 0, MeleeTask.Best(p) != null);
                 // Existing melee owns its ongoing stamina budget, including block/dodge.
@@ -140,6 +147,17 @@ namespace Renki.Plugin
         }
 
         static bool HasSpace(Player p) => !p.IsEncumbered() && p.GetInventory().GetTotalWeight() < p.GetMaxCarryWeight() * .9f;
+        bool ShouldResupply(Player p, int threats)
+        {
+            var reserve = 0;
+            foreach (var item in p.GetInventory().GetAllItems())
+                if (item.m_shared.m_food > 0 && item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable)
+                    reserve += item.m_stack;
+            var remaining = 0f;
+            foreach (var food in p.GetFoods()) remaining = Math.Max(remaining, food.m_time);
+            return EscortPolicy.Resupply(args.Resupply, mode, threats, p.IsOnGround(), p.InWater() || p.IsSwimming(),
+                p.GetHealth(), p.GetMaxHealth(), reserve, remaining);
+        }
         static bool Material(string prefab) => prefab == "Wood" || prefab == "Stone" || prefab == "Flint" ||
             prefab == "Raspberry" || prefab == "Blueberries" || prefab == "Mushroom" || prefab == "Resin" ||
             prefab == "LeatherScraps" || prefab == "DeerHide" || prefab == "RawMeat" || prefab == "NeckTail" || prefab == "GreydwarfEye";

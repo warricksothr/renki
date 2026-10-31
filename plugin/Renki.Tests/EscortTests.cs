@@ -11,6 +11,28 @@ namespace Renki.Tests
 {
     public sealed class EscortTests
     {
+        [Theory]
+        [InlineData(true, "follow", 0, true, false, 50, 1, 1000, false)]
+        [InlineData(true, "follow", 0, true, false, 50, 0, 1000, true)]
+        [InlineData(true, "wait", 0, true, false, 50, 2, 179, true)]
+        [InlineData(false, "follow", 0, true, false, 50, 0, 10, false)]
+        [InlineData(true, "defend", 0, true, false, 50, 0, 10, false)]
+        [InlineData(true, "escape", 0, true, false, 50, 0, 10, false)]
+        [InlineData(true, "follow", 1, true, false, 50, 0, 10, false)]
+        [InlineData(true, "follow", 0, false, false, 50, 0, 10, false)]
+        [InlineData(true, "follow", 0, true, true, 50, 0, 10, false)]
+        [InlineData(true, "follow", 0, true, false, 30, 0, 10, false)]
+        public void FoodHandoffWaitsForAQuietHealthyDryBoundary(bool enabled, string mode, int threats,
+            bool grounded, bool wet, double hp, int reserve, double remaining, bool expected) =>
+            Assert.Equal(expected, EscortPolicy.Resupply(enabled, mode, threats, grounded, wet, hp, 50, reserve, remaining));
+
+        [Fact]
+        public void FoodMaintenanceIsExplicitAndItsBooleanIsValidated()
+        {
+            Assert.False(((EscortArgs)TaskArgs.Parse(Request())).Resupply);
+            Assert.True(((EscortArgs)TaskArgs.Parse(Request("{\"player\":\"Nimah\",\"resupply\":true}"))).Resupply);
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Request("{\"player\":\"Nimah\",\"resupply\":\"yes\"}")));
+        }
         [Fact]
         public void NearbyLeaderAcrossAWallOrOnAnotherFloorStillNeedsARoute()
         {

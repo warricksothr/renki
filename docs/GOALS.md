@@ -1,5 +1,9 @@
 # Persistent goals and scripted recovery
 
+Bundled goals currently include combat trials and [food resupply](FOOD.md).
+Food uses explicit reconstructible host phases and receipts; arbitrary behavior
+runners do not gain durable checkpoint support by being registered.
+
 A goal owns an objective across individual routine failures. A native task can
 correctly refuse unsafe ground or lose a target while the objective remains
 useful. Repeating the same task indefinitely is not recovery. The goal records
@@ -256,8 +260,8 @@ is deliberately explicit.
 [Authorable procedures and durable decisions](PROCEDURES.md) records the
 follow-on research: general multistep child execution, a host-owned candidate
 ledger, versioned user/model-authored scripts, replay and promotion into native
-routines. The current runtime extracts one attack from a combat child; it does
-not yet preserve arbitrary multistep children. Starlark remains the recommended
+routines. Combat extracts one attack from a child; food uses typed host phases.
+The runtime does not preserve arbitrary multistep children. Starlark remains the recommended
 execution language for those extensions.
 
 Use `just check controller test-packages ./internal/goal ./internal/app ./internal/behaviour`
@@ -269,7 +273,7 @@ individual native failures and cancels an unfinished goal during cleanup.
 
 After M2 and M3, [exploration goals](EXPLORATION.md) will extend this host with
 coverage/frontier evidence, expedition preparation, bounded travel/survey and
-return routines. The proposal is tracked as draft work; `combat_trial` remains
-the only implemented goal kind. Map knowledge, observed coverage, visited ground
+return routines. The proposal is tracked as draft work; `combat_trial` and
+`food_resupply` are the implemented goal kinds. Map knowledge, observed coverage, visited ground
 and revalidated routes are distinct evidence, and discovery plus verified return
 will be required for the initial bounded land expedition.

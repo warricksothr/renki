@@ -382,6 +382,14 @@ cooking-check *ARGS:
 test-cooking-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check-test.py"
 
+# One production food-resupply goal, with optional guarded join and proof predicates.
+[positional-arguments]
+food-check *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/food-check.py" "$@"
+
+test-food-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/food-check-test.py"
+
 # One-shot native sheltered healing guard; observes threats every physics step.
 [positional-arguments]
 recovery VALUE='': need-target

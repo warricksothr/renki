@@ -19,6 +19,15 @@ import (
 func (a *App) GoalHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
+			if id := r.URL.Query().Get("id"); id != "" {
+				record, ok := a.Goals.Get(id)
+				if !ok {
+					http.Error(w, "unknown goal", 404)
+					return
+				}
+				writeJSON(w, 200, record)
+				return
+			}
 			writeJSON(w, 200, a.Goals.Summaries())
 			return
 		}

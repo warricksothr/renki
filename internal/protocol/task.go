@@ -393,6 +393,7 @@ func (a *FollowArgs) validate() error {
 // EscortArgs keeps following through bounded collection and defense detours.
 // Protect is supplied from configured owners/operators by the controller.
 type EscortArgs struct {
+	Resupply bool     `json:"resupply,omitempty"`
 	Player   string   `json:"player"`
 	Protect  []string `json:"protect,omitempty"`
 	Distance *float64 `json:"distance,omitempty"`

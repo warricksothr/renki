@@ -475,7 +475,8 @@ func (*Event) MessageType() string { return TypeEvent }
 
 // Trace is a decision the plugin made on its own, such as a change of
 // gait or a stuck recovery: plugin to controller (6.7). The controller
-// writes it to the audit log and acts on none of it.
+// writes it to the audit log; bounded cooking receipt traces are also retained
+// on their dispatched task for the food goal's delivery predicate.
 type Trace struct {
 	Envelope
 	// Task is the running task's id, when there is one.
