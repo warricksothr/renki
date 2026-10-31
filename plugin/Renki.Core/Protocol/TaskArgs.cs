@@ -55,6 +55,7 @@ namespace Renki.Protocol
 
     public sealed class MoveToArgs
     {
+        public bool Dry;
         public Target To;
         public double StopDistance = 1.5;
         public bool Run;
@@ -217,6 +218,7 @@ namespace Renki.Protocol
                         To = Target.Parse(a["to"], "to"),
                         StopDistance = Number(a, "stopDistance", 1.5),
                         Run = Bool(a, "run", false),
+                        Dry = Bool(a, "dry", false),
                     };
                 case TaskNames.Follow:
                     {

@@ -20,6 +20,8 @@ namespace Renki.Plugin
         readonly Doorman doors = new Doorman();
         readonly Climber climb = new Climber();
         readonly ApproachRecovery approach = new ApproachRecovery();
+        readonly WorldNavigation.PlanningProbe dryProbe = new WorldNavigation.PlanningProbe(dry: true);
+        bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
         readonly RouteTrail trail = new RouteTrail();
         RouteValidation replay;
@@ -50,7 +52,7 @@ namespace Renki.Plugin
         /// swimming bot is not left treading water: Steer takes it ashore
         /// first, and the re-plan there decides.</summary>
         public Outcome Refused() =>
-            Player.m_localPlayer?.IsSwimming() == true ? null : navigationFailure ?? (Blocked != null
+            Player.m_localPlayer?.IsSwimming() == true || dryGround && swimming ? null : navigationFailure ?? (Blocked != null
                 ? Outcome.Failed(Wire.ReasonDeepWater, Blocked) : null);
 
         /// <summary>The terrain's height at x, z, or NaN where it is not
@@ -121,13 +123,14 @@ namespace Renki.Plugin
             ApproachRecovery.SafePath(Convert.ToV3(from), candidate, scratch.Select(Convert.ToV3).ToArray(),
                 (a, b) => DeepWater.Crossing(a, b, Ground, WaterLevel) != null);
 
-        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false)
+        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false)
         {
             checkedOnly = false;
             approach.Reset();
             goal = to;
             arrivalWithin = within;
             this.reuseRoutes = reuseRoutes;
+            this.dryGround = dryGround;
             WorldNavigation.Focus(to);
             hasGoal = true;
             skipReuse = false;
@@ -186,13 +189,21 @@ namespace Renki.Plugin
             if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&
                 WorldNavigation.Routes.Find(Convert.ToV3(from), Convert.ToV3(target)) is RouteHint hint)
             {
-                replayProbe = new WorldNavigation.PlanningProbe();
+                replayProbe = new WorldNavigation.PlanningProbe(dry: dryGround);
                 replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, arrivalWithin);
                 replayID = hint.ID;
                 replayMs = replayWorstMs = 0;
                 path.Set(new V3[0]);
                 OffLevel = StraightLine = false;
                 Blocked = null;
+                return;
+            }
+            if (dryGround)
+            {
+                // A navmesh path can cross this world's inlet. Plan supported dry
+                // legs instead; cached routes above still need current validation.
+                OffLevel = StraightLine = false;
+                BeginLocal(from, target);
                 return;
             }
             scratch.Clear();
@@ -404,6 +415,17 @@ namespace Renki.Plugin
             if (Time.time < strafeUntil)
                 dir = Vector3.Cross(Vector3.up, dir.normalized) * strafeSign + dir.normalized * 0.3f;
             Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
+            if (dryGround && Driver.Move.sqrMagnitude > .0001f)
+            {
+                dryProbe.BeginSlice();
+                var from = Convert.ToV3(pos);
+                if (!dryProbe.Probe(from, from + Convert.ToV3(Driver.Move) * .5).HasValue)
+                {
+                    Driver.Stand();
+                    BeginLocal(pos, goal);
+                    return true;
+                }
+            }
             doors.Walk(Player.m_localPlayer, pos, Driver.Move);
             // A strafe walks, so it cannot carry the bot out of the stuck
             // circle on its own and pass for progress.
@@ -467,7 +489,7 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localProbe = new WorldNavigation.PlanningProbe();
+            localProbe = new WorldNavigation.PlanningProbe(dry: dryGround);
             localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, arrivalWithin);
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
@@ -482,7 +504,7 @@ namespace Renki.Plugin
             // GetPath requests tiles asynchronously. A first query after
             // joining may fail while the usable navmesh is still building.
             // Keep the ongoing search if a retry offers no safe progress.
-            if (Time.unscaledTime >= nextNavmeshCheck && Pathfinding.instance != null)
+            if (!dryGround && Time.unscaledTime >= nextNavmeshCheck && Pathfinding.instance != null)
             {
                 nextNavmeshCheck = Time.unscaledTime + 1;
                 scratch.Clear();
@@ -570,7 +592,15 @@ namespace Renki.Plugin
         bool Swim(Vector3 pos, ref bool run)
         {
             var p = Player.m_localPlayer;
-            if (p == null || !p.IsSwimming())
+            var wet = p != null && p.IsSwimming();
+            if (dryGround && p != null)
+            {
+                dryProbe.BeginSlice();
+                var at = Convert.ToV3(pos);
+                var support = dryProbe.Sample(at, at.Y);
+                wet |= support.HasValue && !DryTravel.Clear(support.Value, WaterLevel);
+            }
+            if (p == null || !wet)
             {
                 shore = null;
                 if (swimming && p != null)
@@ -586,6 +616,7 @@ namespace Renki.Plugin
             }
             swimming = true;
             run = false;
+            if (dryGround) Blocked = "dry-ground travel must first get ashore";
             if (shore is V3 aim)
             {
                 var d = V3.FlatDistance(Convert.ToV3(pos), aim);
@@ -611,7 +642,8 @@ namespace Renki.Plugin
             {
                 // A failed search is not run again every frame.
                 if (Time.time - noShoreAt < 2f) return false;
-                shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel, tried: triedShores);
+                shore = DeepWater.Shore(Convert.ToV3(pos), Ground, WaterLevel, tried: triedShores,
+                    maxDepth: dryGround ? -DryTravel.Margin : .3);
                 var why = Blocked != null ? "swimming, the way on is refused" : "swimming, low on stamina";
                 Tracer.Emit("walker", shore != null ? why + ": making for shore" : why + ", and no shore in reach",
                     new Dictionary<string, object>
@@ -720,7 +752,7 @@ namespace Renki.Plugin
             this.goal = goal;
             this.entity = entity;
             var p = Player.m_localPlayer;
-            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null);
+            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry);
             walker.ResetStuck(p.transform.position);
         }
 
@@ -734,7 +766,7 @@ namespace Renki.Plugin
                 if ((entity.transform.position - goal).sqrMagnitude > 4)
                 {
                     goal = entity.transform.position;
-                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false);
+                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry);
                 }
             }
             var pos = p.transform.position;
@@ -759,7 +791,7 @@ namespace Renki.Plugin
                 Driver.Stand();
                 return wet;
             }
-            if (!walker.Steer(pos, args.Run))
+            if (!walker.Steer(pos, args.Run, climbObstacles: !args.Dry))
             {
                 Driver.Stand();
                 return Outcome.Failed(Wire.ReasonStuck,

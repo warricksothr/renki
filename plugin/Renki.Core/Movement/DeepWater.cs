@@ -50,7 +50,7 @@ namespace Renki.Movement
         /// within Tried of one in tried are passed over: the bot could not get
         /// onto those.</summary>
         public static V3? Shore(V3 pos, Func<double, double, double> ground, double level, double reach = 60,
-            IReadOnlyList<V3> tried = null)
+            IReadOnlyList<V3> tried = null, double maxDepth = .3)
         {
             const int directions = 16;
             for (var r = 4.0; r <= reach; r += 4)
@@ -66,7 +66,7 @@ namespace Renki.Movement
                     // Of the dry points on the nearest ring, the lowest: a
                     // beach a swimmer can walk up, where the highest is
                     // likelier a bank too steep to climb.
-                    if (depth < 0.3 && depth > bestDepth)
+                    if (depth < maxDepth && depth > bestDepth)
                     {
                         best = new V3(x, ground(x, z), z);
                         bestDepth = depth;

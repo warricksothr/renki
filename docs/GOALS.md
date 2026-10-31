@@ -96,11 +96,17 @@ waits are limited to one minute; the full recovery/return phase is limited to
 three minutes within the original goal deadline and shared 120-second wait
 budget. No further encounter can follow a verified kill.
 
-The host dispatches one existing native `move_to` to the pinned home. Native
+The host dispatches one native `move_to` with `dry:true` to the pinned home. Native
 navigation owns route reuse, supported movement and obstruction/off-level
 recovery. The host does not steer intermediate points or change terrain guards.
+Dry travel uses checked route hints or bounded local planning, measures physical
+support above water and rechecks the next movement corridor. An unchecked
+navmesh shortcut across an inlet cannot substitute for that route. If a trial
+rejoins from a previously interrupted wet position, the supervisor may first
+request one bounded native dry return to its known nearby home, requiring food,
+health, stamina and clear surroundings; it never replaces unrelated work.
 Whole-goal success requires that task's matching successful receipt and a
-fresh observation taken afterward, within 3m horizontally and 1.5m vertically
+fresh observation taken afterward, within 3m horizontally and the native 1.75m level bound
 of the unchanged home. A failed, interrupted or unconfirmed return keeps the
 kill proof and remains incomplete. Changed home, missing observations and
 exhausted budgets require a new plan; uncertain return intents never replay

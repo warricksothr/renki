@@ -189,6 +189,9 @@ namespace Renki.Tests
             var m = (MoveToArgs)TaskArgs.Parse(Req("move_to", "{\"to\":\"0:7\"}"));
             Assert.Equal("0:7", m.To.Entity);
             Assert.Equal(1.5, m.StopDistance);
+            Assert.False(m.Dry);
+            Assert.True(((MoveToArgs)TaskArgs.Parse(Req("move_to", "{\"to\":\"0:7\",\"dry\":true}"))).Dry);
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Req("move_to", "{\"to\":\"0:7\",\"dry\":\"yes\"}")));
             var f = (FollowArgs)TaskArgs.Parse(Req("follow", "{\"player\":\"Sothr\"}"));
             Assert.Equal(3.5, f.Distance);
             Assert.Equal(RunMode.Auto, f.Run);

@@ -94,7 +94,7 @@ func TestCombatGoalReturnsThroughTheEngineBeforeReportingTripSuccess(t *testing.
 	}
 	back := p.NextTask()
 	var args protocol.MoveToArgs
-	if err := json.Unmarshal(back.Args, &args); err != nil || back.Task != "move_to" || args.To.Pos == nil || *args.To.Pos != home {
+	if err := json.Unmarshal(back.Args, &args); err != nil || back.Task != "move_to" || !args.Dry || args.To.Pos == nil || *args.To.Pos != home {
 		t.Fatal(back, err)
 	}
 	p.Send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: back.ID}, Status: "succeeded"})

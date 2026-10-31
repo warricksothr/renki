@@ -43,7 +43,7 @@ func TestCombatRoundTripRequiresSeparateMatchingReturnAndFreshArrival(t *testing
 		t.Fatal(g)
 	}
 	o, err := r.Next(v, nil)
-	if err != nil || o == nil || o.Task != protocol.TaskMoveTo || *o.Args.(*protocol.MoveToArgs).To.Pos != *v.Home {
+	if err != nil || o == nil || o.Task != protocol.TaskMoveTo || !o.Args.(*protocol.MoveToArgs).Dry || *o.Args.(*protocol.MoveToArgs).To.Pos != *v.Home {
 		t.Fatal(o, err)
 	}
 	if err = r.Dispatched("return"); err != nil {
@@ -51,6 +51,7 @@ func TestCombatRoundTripRequiresSeparateMatchingReturnAndFreshArrival(t *testing
 	}
 	fresh(&v, 10)
 	v.State.Pos = *v.Home
+	v.State.Pos[1] -= 1.6 // Native Arrival.Level accepts the same floor here.
 	_, err = r.Next(v, &behaviour.Result{TaskID: "return", Status: "succeeded"})
 	var delay *behaviour.Delay
 	if !errors.As(err, &delay) {

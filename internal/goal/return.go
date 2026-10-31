@@ -95,7 +95,9 @@ func (r *runner) afterCombat(g Record, v behaviour.View) (*session.Order, error)
 			return r.returnWait(g, v, "waiting for post-return position")
 		}
 		flat := math.Hypot(v.State.Pos[0]-(*g.Home)[0], v.State.Pos[2]-(*g.Home)[2])
-		if flat > 3 || math.Abs(v.State.Pos[1]-(*g.Home)[1]) > 1.5 {
+		// Match native Arrival.Level; a stricter threshold can reject a valid
+		// floor arrival when the home marker was placed above standing height.
+		if flat > 3 || math.Abs(v.State.Pos[1]-(*g.Home)[1]) > 1.75 {
 			return r.need("native return receipt lacks confirmed home arrival")
 		}
 		return nil, r.t.Store.update(r.id, func(g *Record) error {
@@ -124,7 +126,7 @@ func (r *runner) afterCombat(g Record, v behaviour.View) (*session.Order, error)
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("native return task budget exhausted; kill proof retained")
 	}
-	args := &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}}
+	args := &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true}
 	raw, err := json.Marshal(args)
 	if err != nil {
 		return nil, err
