@@ -1028,6 +1028,7 @@ namespace Renki.Plugin
         ItemDrop drop;
         readonly string prefab;
         readonly bool safeTravel;
+        readonly bool allowMerge;
         readonly int before;
         int taken;
         readonly Walker walker = new Walker();
@@ -1035,10 +1036,11 @@ namespace Renki.Plugin
         float arrivedAt = -1;
         int tries;
 
-        public PickupTask(ItemDrop drop, bool safeTravel = false)
+        public PickupTask(ItemDrop drop, bool safeTravel = false, bool allowMerge = true)
         {
             this.drop = drop;
             this.safeTravel = safeTravel;
+            this.allowMerge = allowMerge;
             prefab = drop.m_itemData.m_dropPrefab.name;
             var p = Player.m_localPlayer;
             before = Carried(p, prefab);
@@ -1054,7 +1056,7 @@ namespace Renki.Plugin
             // The most it has gained: using some on the way does not hide it.
             taken = System.Math.Max(taken, Carried(p, prefab) - before);
             var took = taken;
-            if (drop == null && took == 0 && Merged() is ItemDrop merged)
+            if (allowMerge && drop == null && took == 0 && Merged() is ItemDrop merged)
             {
                 // The game merges nearby drops of an item into one stack.
                 drop = merged;

@@ -13,12 +13,15 @@ namespace Renki.Tasks
     {
         public const string Bed = "bed", Door = "door", Grave = "grave", Boss = "boss", Ship = "ship",
             Pickable = "pickable", Drop = "drop", Container = "container", Station = "station", Text = "text",
-            Ward = "ward", Other = "other";
+            Ward = "ward", Other = "other", Cooking = "cooking";
 
         /// <summary>Null when interact may use a thing of this kind, or the
         /// refusal: a reason and what to say.</summary>
-        public static Outcome Check(string kind, SafetyConfig safety, bool repair = false)
+        public static Outcome Check(string kind, SafetyConfig safety, bool repair = false, bool cook = false)
         {
+            if (cook)
+                return kind != Cooking ? Outcome.Failed(Wire.ReasonInvalidTarget, "cooking requires a cooking station")
+                    : !safety.AllowGather ? Outcome.Failed(Wire.ReasonNotAllowed, "cooking needs AllowGather") : null;
             if (repair)
                 return kind != Station ? Outcome.Failed(Wire.ReasonInvalidTarget, "repair requires a crafting station")
                     : !safety.AllowGather ? Outcome.Failed(Wire.ReasonNotAllowed, "repair needs AllowGather") : null;

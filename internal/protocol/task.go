@@ -503,6 +503,7 @@ type InteractArgs struct {
 	Hold   bool   `json:"hold,omitempty"`
 	Sleep  bool   `json:"sleep,omitempty"`
 	Repair bool   `json:"repair,omitempty"`
+	Cook   string `json:"cook,omitempty"`
 }
 
 func (a *InteractArgs) validate() error {
@@ -514,6 +515,11 @@ func (a *InteractArgs) validate() error {
 	}
 	if a.Repair && (a.Sleep || a.Alt || a.Hold) {
 		return errors.New("`repair` cannot combine with sleep, alt or hold")
+	}
+	if a.Cook != "" {
+		if a.Cook != "RawMeat" && a.Cook != "DeerMeat" && a.Cook != "NeckTail" || a.Repair || a.Sleep || a.Alt || a.Hold {
+			return errors.New("`cook` requires RawMeat, DeerMeat or NeckTail and cannot combine with other interaction modes")
+		}
 	}
 	return nil
 }

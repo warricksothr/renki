@@ -144,6 +144,12 @@ namespace Renki.Tasks
             }
 
             // A wrapper cannot grant a capability withheld by either safety layer.
+            if (args is InteractArgs cooking && cooking.Cook != null &&
+                (!allowed.Contains(TaskNames.Pickup) || !safety.Permits(TaskNames.Pickup)))
+            {
+                Reply(req, Wire.StatusRejected, Wire.ReasonNotAllowed, "cooking requires pickup permission for its output");
+                return;
+            }
             if (args is EscortArgs escort &&
                 (!allowed.Contains(TaskNames.Follow) || !allowed.Contains(TaskNames.Flee) ||
                  escort.Defend && (!allowed.Contains(TaskNames.Attack) || !safety.Permits(TaskNames.Attack)) ||

@@ -1,0 +1,81 @@
+# Cooking one carried ingredient
+
+Owners and configured operators can say `Tas cook food` (or use `cook food`
+in the panel). Tas selects carried raw boar meat, deer meat or a neck tail,
+and a freshly observed, empty, heated cooking station within 12 m in three
+dimensions. The order cooks **one input**, watches it and collects its actual
+output, including the game's possible cooking bonus. It replaces the current
+body order, as other explicit commands do. It does not yet form an automatic
+resupply or escort maintenance loop.
+
+The low-level equivalent is `interact` with
+`{"entity":"<current station id>","cook":"RawMeat"}`; `DeerMeat` and `NeckTail`
+are also accepted. Allow a 90 s timeout for an ordinary nearby station. `cook`
+cannot combine with sleep, repair, alternate use or hold. Native `AllowGather`
+and `AllowMovement`, and session `interact` and `pickup` permissions, are required.
+Plain interaction with a cooking station remains refused.
+
+This first slice supports ordinary fire-backed stations with direct item use,
+not ovens, cauldrons or stations using fuel switches. The station must be
+locally simulated so the plugin can witness the exact output spawn; the task
+never claims ownership itself. Native cooking additionally checks the actual
+recipe, ward access, sight/reach, active food, 80% health, dry footing, nearby
+hostiles and space/weight for the complete possible yield. Missing ingredients,
+busy stations and a dead fire produce a refusal with the missing prerequisite.
+Automatic ingredient withdrawal and fire fueling are follow-up composition.
+
+The station's normal `UseItem` action consumes one carried ingredient. Success
+requires the matching inventory decrease and a single matching cooking slot
+whose recorded producer is this peer. Uncertain insertion is not retried.
+When that slot is cooked, normal station use removes it once. A scoped hook
+observes the game's own spawned output instances; no inventory or world state
+is written to create food. Normal pickup of those exact spawned instances must
+produce matched per-drop inventory gains; pickup does not substitute another
+drop after a merge. The task completes only after the corresponding full
+inventory increase. An unrelated gain of the same prefab is insufficient. The food
+keeper waits to eat this output until the native receipt completes.
+
+A foreign occupied slot, burnt/changed/removed input, lost station ownership,
+unconfirmed output, unrelated food gains, blocked pickup or work deadline ends
+the task without claiming success. State transitions and input/output receipts
+appear as `cooking` traces, with the task/station/slot and actual spawned IDs.
+Other players can still take a batch or its drops; a disappearing item alone
+does not prove delivery.
+
+Stop, replacement, timeout, death or bridge loss ends the composition at once.
+Already inserted food remains on the station and may burn; already removed
+output remains in the world if not collected. Cancellation never performs a
+new interaction and reconnect never resumes a partial batch. A future tending
+routine must reconcile these partial outcomes before attempting another batch.
+
+Perception exposes optional `fire: {fuel, fuelMax, lit}` and
+`cooking: {heated, supported, slots:[{index,item,state,elapsedS}]}` on current
+structures. Empty slots are explicit; absent state means unknown. These are
+live observations, not cached geometry or remembered guarantees. Cooking state
+is `empty`, `cooking`, `done`, `burnt` or `unknown`; elapsed time comes from the
+station's synchronized state. Other machine/fermenter/beehive state is pending.
+
+Use `just check plugin test-core CookingTests` and
+`just check controller test-packages ./internal/protocol ./internal/chat` for
+focused checks; `just check ci` is the full gate. Live proof requires matched
+input, slot, output-spawn and inventory receipts. Policy tests alone do not
+establish successful cooking on the server. Track remaining broader tending
+on TKT-01M62VXZ6 — Controller: tend template: cooking, fermenters, beehives, ore.
+
+`just check vm cooking-check` attempts one bounded real batch in an already
+joined, healthy game. `--search-home` may obtain one ingredient through matched
+native chest/inventory receipts, checking the finite set of unique visible
+chests within 32 m of known home; Tas must already be within 20 m of home.
+Remembered contents rank candidates but never prove a transfer. Missing hints
+lead to another observed chest, with each chest/item pair tried once and the
+whole proof limited to ten minutes. `--join` starts once from offline only if
+the opt-in native recovery guard is already enabled. The supervisor waits for
+its hold flag, avoiding a comparison against rounded recovery thresholds.
+Admission requires 80% health and active food. Actual injury, unsafe water,
+scope change or the survival floor (20 HP/40% health) aborts. The lower ongoing
+fraction permits a newly eaten meal to increase maximum HP before regeneration;
+native cooking still requires 80% health throughout its body work. The proof
+retains full data in `.checks/cooking-*` and prints a compact result. Once
+admitted it always logs out/stops and leaves the panel available. It does not
+change combat settings, replace an initial body order or resume escort.
+Use `just check vm test-cooking-check` for supervisor policy checks.
