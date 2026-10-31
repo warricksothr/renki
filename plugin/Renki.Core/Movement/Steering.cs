@@ -85,6 +85,10 @@ namespace Renki.Movement
         /// <summary>How close counts as reaching a waypoint.</summary>
         public double Reach = 1.0;
 
+        /// <summary>Checked support points use the physical step tolerance;
+        /// a home marker's eye-height allowance must not skip their floor.</summary>
+        public double Level = Arrival.Level;
+
         /// <summary>Optional tighter final tolerance for a precise interaction.
         /// Does not extend a partial path or loosen its existing tolerance.</summary>
         public double FinalReach = double.PositiveInfinity;
@@ -97,6 +101,16 @@ namespace Renki.Movement
         }
 
         public int Count => points.Count;
+
+        /// <summary>A body can stop just short of a tight corner. Consume it
+        /// only after validating the actual shortcut to the following point.</summary>
+        public bool AdvanceChecked(V3 pos, double within, Func<V3, V3, bool> clear)
+        {
+            if (!Next(pos).HasValue || index >= points.Count - 1 ||
+                !Arrival.Reached(pos, points[index], within, Level) || !clear(pos, points[index + 1])) return false;
+            index++;
+            return true;
+        }
 
         /// <summary>A copy of the unconsumed checked route, for live validation.
         /// Consumed corners must not send a walker backwards on revalidation.</summary>
@@ -118,7 +132,7 @@ namespace Renki.Movement
             {
                 var last = index == points.Count - 1;
                 var within = last ? Math.Min(Reach * 0.5, FinalReach) : Reach;
-                if (!Arrival.Reached(pos, points[index], within)) return points[index];
+                if (!Arrival.Reached(pos, points[index], within, Level)) return points[index];
                 if (!last)
                 {
                     index++;

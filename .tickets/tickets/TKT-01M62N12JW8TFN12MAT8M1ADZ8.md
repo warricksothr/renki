@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T10:58:35Z
+updated_at: 2026-10-31T11:09:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -336,3 +336,12 @@ c356b89 passed full CI .checks/20261031T104442Z-6MNeJj.log, committed review .ch
 Trial .checks/gather-trial-20261031T105126279575Z/summary.json repaired the axe, left home, felled Beech1 1:61682 and split its first trunk2433514394:158 and both halves, collecting22 Wood. It then continued another newly bound collateral trunk2433514394:182; contrary to the initial progress report, this was still the first tree chain, not a second standing tree. It broke that log after four local hits, but a37.01 falling-log damage event killed Tas1.12s later. No successful full-loop claim. Audit .checks/audit-window-psdxvO.jsonl records the died event and no other characters at the cut.
 
 Root cause: AfterBreak skipped retreat whenever Tas was5.5m from the resource pivot. Here the pivot[82.29,43.32,24.04] was7.9m from Tas[85.91,42.68,31.08], despite a physical strike contact only~1.4m away. Require reaching within0.5m horizontally of the prevalidated six-metre escape goal[88.76,43.42,36.41] before settling/collection, with unchanged physical rechecks and six-second limit. New captured-coordinate regression passes with just check plugin test-core HarvestTests (.checks/20261031T105749Z-HwxifP.log); emit exact escape-completed evidence. Autonomous ordinary corpse retrieval, food, repair and a fresh two-tree trial follow full CI/review/deployment. Earlier trunk is now baseline work and cannot satisfy fresh-tree proof.
+
+**agent:codex/renki-milestones** at 2026-10-31T11:09:46Z
+
+### Autonomous recovery and checked-corner following
+65126a6 passed full CI .checks/20261031T105835Z-TvVjug.log, review .checks/20261031T110102Z-qKWWuJ.log and checksum deployment .checks/20261031T110255Z-2Tnonz.log. Tas respawned near home, followed a normal dry hostile-aware route to the grave (.checks/20261031T105850Z-BtdSCw.log), and exactly retrieved his supplied axe, rag torso and27 Wood/5 Resin/2 BeechSeeds (.checks/20261031T110020Z-o0rY8D.log). Re-equipped torso normally. Temporary controller collect runs obtained Mushroom from freshly observed1:60574 at[106.75,50.33,26.67] and Raspberry from1:60373. Both completed and were deleted; two active meals and full health observed. No owner staging or invented supplies.
+
+Normal home return then timed out120s (.checks/task-wtnzub8x.json), despite zero observed injury. Tas safely stopped with offline panel restored. The eastern log-pile section repeatedly planned and recovered, then near[-39.89,32.36,1.62] stopped0.164m from a0.15m corner[-39.76,32.23,1.72]. PathFollower also applies the1.75m home-marker height allowance to measured support waypoints, allowing an under-floor point to consume a higher route within that height gap.
+
+Candidate: checked routes use0.6m support-height tolerance in both consumption and off-level replanning. A near corner within0.4m can advance only when a fresh normal physical/support/water probe validates the direct leg from the actual body to the following point at the measured height. Never skip final points or another floor; do not loosen arrival or collision checks. Regression covers the exact0.164m capture, blocked shortcut, farther body, wrong floor and final point. Bounded local-route traces include the first four points. Focused LocalRouteTests pass .checks/20261031T110922Z-cVrptY.log. Need complete CI/review/deploy, the under-floor return and fresh two-tree/home/gains-only deposit proof. No milestone acceptance ticked.

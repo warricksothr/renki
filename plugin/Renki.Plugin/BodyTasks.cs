@@ -172,6 +172,7 @@ namespace Renki.Plugin
             localRoute = null; replay = null;
             climb.Stop(); strafeUntil = 0;
             path.Reach = .25; path.FinalReach = .125;
+            path.Level = .6;
             path.Set(points);
         }
 
@@ -238,6 +239,7 @@ namespace Renki.Plugin
                 }
             }
             path.Reach = 1;
+            path.Level = dryGround ? .6 : Arrival.Level;
             path.FinalReach = NavigationWithin;
             var target = approach.Target is V3 via
                 ? new Vector3((float)via.X, (float)via.Y, (float)via.Z) : NavigationGoal;
@@ -372,6 +374,12 @@ namespace Renki.Plugin
             if (replay != null) return PlanReplay(pos);
             if (localRoute != null) return PlanLocal(pos);
             if (navigationFailure != null) { Driver.Stand(); return true; }
+            if (dryGround && path.AdvanceChecked(Convert.ToV3(pos), .4, (from, to) =>
+            {
+                dryProbe.BeginSlice();
+                var supported = dryProbe.Probe(from, to);
+                return supported.HasValue && (supported.Value - to).Length < .1;
+            })) ResetStuck(pos);
             if (replaying && path.Next(Convert.ToV3(pos)) is V3 replayNext)
             {
                 // Validation is a planning hint, not a lease on unchanged
@@ -398,7 +406,7 @@ namespace Renki.Plugin
                 nextWallCheck = Time.unscaledTime + .25f;
                 var next = path.Next(Convert.ToV3(pos));
                 if (next is V3 above && V3.FlatDistance(Convert.ToV3(pos), above) <= path.Reach &&
-                    System.Math.Abs(pos.y - above.Y) > Arrival.Level)
+                    System.Math.Abs(pos.y - above.Y) > path.Level)
                 {
                     Tracer.Emit("walker", "waypoint on another floor; replanning", new Dictionary<string, object>
                     {
@@ -588,6 +596,7 @@ namespace Renki.Plugin
         {
             path.Set(points);
             path.Reach = .15;
+            path.Level = .6;
             replaying = true;
             localRoute = null;
             Tracer.Emit("walker", message, new Dictionary<string, object>
@@ -721,11 +730,13 @@ namespace Renki.Plugin
                 ["waypoints"] = found ? localRoute.Path.Count : 0,
                 ["progressLeg"] = localRoute.ProgressLeg,
                 ["end"] = found ? localRoute.Path[localRoute.Path.Count - 1].ToArray() : null,
+                ["start"] = found ? localRoute.Path.Take(4).Select(p => p.ToArray()).ToArray() : null,
             });
             if (found)
             {
                 path.Set(localRoute.Path);
                 path.Reach = .15;
+                path.Level = .6;
                 OffLevel = false;
                 Blocked = null;
                 ResetStuck(pos);

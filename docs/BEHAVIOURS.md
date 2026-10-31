@@ -255,6 +255,11 @@ combine with `return`. A matching native home receipt and a strictly later pose
 are required; standing below a floor does not confirm arrival. Each home move
 retains its 120-second bound. Storage failures keep items in the pack and use
 stow's shortfall status.
+Checked movement waypoints use a 0.6 m support-height tolerance, separate from
+the home marker's 1.75 m eye-height allowance. A body within 0.4 m of a tight
+corner may consume it only after a fresh physical probe validates the direct
+connection to the following point; the final point and another floor cannot
+be skipped this way.
 
 Between complete trees, capacity or axe-durability pressure chooses delivery
 rather than another cut. Low stamina gets one bounded 20-second rest; insufficient

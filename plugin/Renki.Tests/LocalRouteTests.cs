@@ -226,6 +226,44 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void BodyStoppedJustShortOfCornerAdvancesOnlyOnAFreshCheckedConnection()
+        {
+            var body = new V3(-39.89, 32.36, 1.62);
+            var corner = new V3(-39.76, 32.23, 1.72);
+            var next = corner + new V3(0, .25, .5);
+            var path = new PathFollower { Reach = .15, Level = .6 };
+            path.Set(new[] { corner, next });
+            Assert.Equal(corner, path.Next(body)); // Captured 0.164 m gap.
+            Assert.False(path.AdvanceChecked(body, .4, (a, b) => false));
+            Assert.Equal(corner, path.Next(body)); // A wall/corner cannot be cut blindly.
+            Assert.True(path.AdvanceChecked(body, .4, (a, b) => a.Equals(body) && b.Equals(next)));
+            Assert.Equal(next, path.Next(body));
+            Assert.False(path.AdvanceChecked(next, .4, (a, b) => true)); // No invented path after the end.
+            path.Set(new[] { corner, next });
+            Assert.False(path.AdvanceChecked(body - new V3(0, 1, 0), .4, (a, b) => true));
+            Assert.False(path.AdvanceChecked(body + new V3(-1, 0, 0), .4, (a, b) => true));
+        }
+
+        [Fact]
+        public void CheckedSupportWaypointsCannotBeConsumedFromBelowTheHomeFloor()
+        {
+            var below = new V3(-28.96, 34.45, -1.63);
+            var floor = new V3(-28.96, 36.09, -1.63);
+            var next = floor + new V3(-.5, 0, 0);
+            Assert.True(Arrival.Reached(below, floor, .15)); // Marker tolerance is too broad.
+            var path = new PathFollower { Reach = .15, Level = .6 };
+            path.Set(new[] { floor, next });
+            Assert.Equal(floor, path.Next(below));
+            Assert.Equal(floor, path.Remaining(below)[0]);
+            Assert.Equal(next, path.Next(floor));
+            Assert.Equal(next, path.Next(next - new V3(0, 1.64, 0)));
+            Assert.Null(path.Next(next));
+            // A real step or small body/support offset still consumes its corner.
+            path.Set(new[] { floor, next });
+            Assert.Equal(next, path.Next(floor - new V3(0, .5, 0)));
+        }
+
+        [Fact]
         public void FollowingWaypointsKeepsTheFloorHeightUntilActuallyReached()
         {
             var above = new V3(1, 3, 1);
