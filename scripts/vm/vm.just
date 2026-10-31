@@ -390,6 +390,24 @@ food-check *ARGS:
 test-food-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/food-check-test.py"
 
+# Return an adequately supplied outdoor bot through guarded native movement.
+[positional-arguments]
+recover-home WORLD:
+    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home.py" "$1"
+
+test-recover-home:
+    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
+
+# Arm/clear a one-shot order using the controller's pinned home.
+[positional-arguments]
+recovery-return ACTION='arm' WORLD='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
+    encoded=$(printf '%s' "$2" | base64 -w0)
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery-return.ps1" "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/"
+    {{ssh}} "{{ps}} -File {{dir}}/recovery-return.ps1 -Action '$1' -WorldBase64 '$encoded'"
+
 # One-shot native sheltered healing guard; observes threats every physics step.
 [positional-arguments]
 recovery VALUE='': need-target

@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:18:00Z
+updated_at: 2026-10-31T20:28:26Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -82,3 +82,11 @@ Live goal56244f17e16a09ae75ac81ce in .checks/food-20261031T201244Z successfully 
 The extra slot increased max health from53.4 to68.4 while HP stayed53.4; injurySeq stayed0. A nearby threat then correctly stopped the goal before return. Cleanup logged Tas out at the eastern forage site near[11.42,33.22,-8.2] and restored the panel. This is not full goal success or keep-online proof. Do not mistake the food maximum increase for an injury. Native startup recovery remains enabled and may refuse an unsafe outdoor rejoin; no manual enemy-clear request is needed.
 
 Fixed host ordering so an already satisfied reserve/nourishment/health predicate dispatches its home return immediately before any extra source search. Added a regression with a tempting extra live berry source and cooking outside the home marker; it must return and complete in exactly two tasks, preserving cooking proof. Focused just check controller test-packages ./internal/goal passed (.checks/20261031T201538Z-IG1iTm.log); full just check ci is running in .checks/20261031T201606Z-0avurn.log. Wider M2/M3, cold-fire fueling, live hunting and escort continuation remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:28:26Z
+
+Return-order fix committed as178337a after full just check ci148s (.checks/20261031T201606Z-0avurn.log), clean just check review aa39fe2..HEAD (.checks/20261031T202135Z-uofXx9.log) and pushed. just check vm deploy-controller passed (.checks/20261031T202154Z-6v0Bsu.log); offline panel reports178337a and the game remained offline.
+
+The saved outdoor login exposes a separate recovery gap: passive StartupRecovery correctly refuses exposed healing and all body tasks, so it cannot bring an adequately supplied body home. Implementing an explicit expiring same-world home return inside native recovery, without disabling the guard or lowering its ordinary healing release. The one-shot order comes from the exact world's saved controller home, is consumed before movement, and requires50HP/70%max, two foods,25stamina, dry grounded admission and6m hostile clearance. Normal native dry/hostile-aware movement stays under120s/160m travelled/80m from home; injury, close threats, water, lost permissions/session, stop or low stamina log out. Home floor/shelter/12m clearance hands back to passive95% healing. All ordinary body tasks remain blocked. The reusable just vm recover-home WORLD supervisor records bounded observations/audit and cleans up on failure; no manual supply/enemy-clear requests.
+
+Focused just check plugin test-core RecoveryReturnTests passed (.checks/20261031T202431Z-dx1Lpj.log). Initial plugin build caught a V3/double-array adapter mismatch before deployment; corrected and just check plugin build passed (.checks/20261031T202626Z-uDQvNl.log). just check vm test-recover-home passed (.checks/20261031T202728Z-wPHY0U.log). New recovery is not deployed or live-proved yet; Tas remains offline at the last recorded eastern forage site. Full food goal, cold-fire fuel, live hunting and escort handoff remain unearned.

@@ -4,6 +4,7 @@ using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
+using Newtonsoft.Json;
 using Renki.Bridge;
 using Renki.Perception;
 using Renki.Protocol;
@@ -38,6 +39,9 @@ namespace Renki.Plugin
         BridgeClient client;
         TaskRunner runner;
         StartupRecovery recovery;
+        RecoveryReturn recoveryReturn;
+        RecoveryReturnOrder recoveryReturnOrder;
+        MoveToTask recoveryWalk;
         readonly System.Collections.Generic.List<Character> recoveryCharacters = new System.Collections.Generic.List<Character>();
         float recoverySince = -1;
         internal bool Recovering => recovery != null && !recovery.Complete;
@@ -96,6 +100,16 @@ namespace Renki.Plugin
                 "The debug `controls` task.").Value;
             recovery = new StartupRecovery(Config.Bind("Safety", "RecoveryGuard", false,
                 "One-shot sheltered healing guard after login. Hold body inputs until recovered; log out if a hostile approaches or recovery is unsafe.").Value);
+            var returnConfig = Config.Bind("Safety", "RecoveryReturn", "",
+                "One-shot expiring same-world home return armed by just vm recover-home. Consumed before movement; critical health still logs out.");
+            if (Recovering && !string.IsNullOrWhiteSpace(returnConfig.Value))
+            {
+                try { recoveryReturnOrder = JsonConvert.DeserializeObject<RecoveryReturnOrder>(returnConfig.Value); }
+                catch (JsonException) { /* Invalid orders fail closed in RecoveryReturn. */ }
+                recoveryReturn = new RecoveryReturn(recoveryReturnOrder);
+                returnConfig.Value = "";
+                Config.Save();
+            }
             Driver.RecoveryHold = Recovering;
             Doorman.Enabled = Config.Bind("Safety", "AllowDoors", true,
                 "Open closed doors in the bot's way, and shut them behind it.").Value;
@@ -107,7 +121,7 @@ namespace Renki.Plugin
                 if (client != null && client.Connected) Send(t);
             };
             runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble);
-            Driver.OnFixedStep = dt => { if (!GuardRecovery() && Driver.Active) runner.FixedTick(dt); };
+            Driver.OnFixedStep = dt => { if (!GuardRecovery(true, dt) && Driver.Active) runner.FixedTick(dt); };
             reporter = new Reporter(this);
             TerrainReporter.Current = terrain;
             inventory = new InventoryReporter(this);
@@ -122,7 +136,7 @@ namespace Renki.Plugin
                            $"tasks allowed by config: {string.Join(", ", TaskNames.Supported.Where(safety.Permits))}");
         }
 
-        bool GuardRecovery()
+        bool GuardRecovery(bool fixedStep = false, float dt = 0)
         {
             if (!Recovering) return false;
             var p = Player.m_localPlayer;
@@ -132,6 +146,51 @@ namespace Renki.Plugin
             recoveryCharacters.Clear(); Character.GetCharactersInRange(p.transform.position, 12, recoveryCharacters);
             var threat = recoveryCharacters.Any(c => c != null && c != p && !(c is Player) && !c.IsDead() &&
                 !c.IsTamed() && !(c.GetBaseAI() is AnimalAI) && BaseAI.IsEnemy(p, c));
+            if (recoveryReturn != null)
+            {
+                var gap = recoveryCharacters.Where(c => c != null && c != p && !(c is Player) && !c.IsDead() &&
+                    !c.IsTamed() && !(c.GetBaseAI() is AnimalAI) && BaseAI.IsEnemy(p, c))
+                    .Select(c => (double)Vector3.Distance(p.transform.position, c.transform.position)).DefaultIfEmpty(double.PositiveInfinity).Min();
+                var actionReturn = recoveryReturn.Decide(ZNet.instance?.GetWorldName(), DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    Time.unscaledTimeAsDouble, Convert.ToV3(p.transform.position), p.GetHealth(), p.GetMaxHealth(),
+                    p.GetStamina(), p.GetFoods().Count, p.IsOnGround(), p.InWater() || p.IsSwimming(), p.InShelter(), gap,
+                    runner.InSession && client.Connected && client.SecondsSinceController <= DeadManSeconds &&
+                        safety.Enabled && safety.AllowMovement && runner.Allowed.Contains(TaskNames.MoveTo),
+                    Time.unscaledTime - recoverySince >= 2);
+                if (actionReturn == RecoveryReturnAction.Move)
+                {
+                    // The guard is sampled from Update too, but only physics may steer.
+                    if (fixedStep)
+                    {
+                        if (recoveryWalk == null)
+                        {
+                            recoveryWalk = new MoveToTask(new MoveToArgs
+                            {
+                                To = new Target { Pos = recoveryReturnOrder.Home },
+                                Dry = true,
+                                AvoidHostiles = true,
+                                Run = false
+                            }, Convert.ToVector3(recoveryReturnOrder.Home), null);
+                            Tracer.Emit("recovery", "bounded startup return started", new Dictionary<string, object>
+                            { ["home"] = recoveryReturnOrder.Pos, ["pos"] = Convert.ToArray(p.transform.position) });
+                        }
+                        var result = recoveryWalk.Tick(dt);
+                        if (result != null)
+                        {
+                            recoveryWalk.Cancel();
+                            // A native move receipt alone cannot prove shelter or home floor.
+                            if (result.Status != Wire.StatusSucceeded) { LogoutRecovery(result.Detail ?? result.Reason); return true; }
+                        }
+                    }
+                    return true;
+                }
+                Driver.ClearCombat();
+                if (actionReturn == RecoveryReturnAction.Logout) { LogoutRecovery(recoveryReturn.Reason); return true; }
+                if (actionReturn == RecoveryReturnAction.Hold) return true;
+                recoveryWalk?.Cancel(); recoveryWalk = null; recoveryReturn = null;
+                Tracer.Emit("recovery", "startup return reached home floor and shelter");
+                // Arrival resumes the original sheltered healing guard, not ordinary tasks.
+            }
             var action = recovery.Decide(true, p.GetHealth(), p.GetMaxHealth(), Time.unscaledTime - recoverySince >= 2,
                 p.InShelter(), p.IsOnGround(), p.GetFoods().Count > 0, p.InWater() || p.IsSwimming(), threat);
             if (action == RecoveryAction.Continue)
@@ -143,11 +202,18 @@ namespace Renki.Plugin
             Driver.Stand(); Driver.ClearCombat();
             if (action == RecoveryAction.Logout)
             {
-                Logger.LogWarning("startup recovery unsafe; logging out");
-                EndSession("startup recovery unsafe"); loggingOut = true; AutoJoinPatch.Suppress = true;
-                Game.instance?.Logout(true, true);
+                LogoutRecovery("startup recovery unsafe");
             }
             return true;
+        }
+
+        void LogoutRecovery(string reason)
+        {
+            Driver.ClearCombat();
+            Tracer.Emit("recovery", "startup recovery logging out", new Dictionary<string, object> { ["reason"] = reason });
+            Logger.LogWarning($"startup recovery unsafe ({reason}); logging out");
+            EndSession(reason); loggingOut = true; AutoJoinPatch.Suppress = true;
+            Game.instance?.Logout(true, true);
         }
 
         void Update()
@@ -230,6 +296,7 @@ namespace Renki.Plugin
                 case Welcome w:
                     // Reconnecting the bridge must not undo an explicit logout.
                     if (loggingOut) { stateSchedule.Reset(); break; }
+                    if (welcome != null && recoveryReturn != null) recoveryReturn.Cancel();
                     welcome = w;
                     cameraReporter.Configure(w.Screenshot);
                     client.ClearScreenshots();
@@ -249,6 +316,7 @@ namespace Renki.Plugin
                     break;
                 case TaskRequest t:
                     runner.Handle(t);
+                    if (t.Task == TaskNames.Stop && recoveryReturn != null) LogoutRecovery("stop during startup return");
                     break;
                 case Config c:
                     if (c.Screenshot != null) { cameraReporter.Configure(c.Screenshot); client.ClearScreenshots(); }
@@ -285,6 +353,8 @@ namespace Renki.Plugin
 
         void EndSession(string why)
         {
+            recoveryWalk?.Cancel();
+            recoveryReturn?.Cancel();
             cameraReporter.Configure(null);
             client.ClearScreenshots();
             sharePosition = null;

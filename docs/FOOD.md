@@ -117,3 +117,28 @@ collection receipt outside storage. The panel shows bounded forage-visit,
 collection and hunt counts; the full checkpoint retains source attempts.
 Controller-only deployment now preserves an offline game as well as a running
 one, keeping the independent panel available without launching Valheim.
+
+## Outdoor startup recovery
+
+`just vm recover-home WORLD` can recover an adequately supplied bot saved
+outside, without disabling `RecoveryGuard`. It reads that exact world's pinned
+home from controller memory while the game is offline and arms a five-minute,
+one-shot native order. The plugin consumes the order before moving. Invalid or
+wrong-world orders log out; an absent order retains passive sheltered healing.
+
+Admission requires at least 50 HP and 70% maximum health, two active foods,
+25 stamina, dry grounded feet and six metres of hostile clearance. Normal
+native dry movement avoids hostiles. Injury, water, less than eight stamina,
+close threats, cancellation, bridge/session loss or permission loss log out.
+The return permits 120 seconds, 160 metres travelled and at most 80 metres
+from home. It cannot combat, collect supplies or accept ordinary body tasks.
+An operator stop aborts it, and reconnect cannot resume it.
+
+Arrival requires the original home floor, actual shelter and twelve metres of
+hostile clearance. It then resumes passive healing; ordinary tasks remain held
+until the existing 95% health guard releases them. The supervisor keeps the
+client online only after same-world, same-connection safe-home evidence. On
+failure it stops the game and restores the independent panel. Observations,
+compact results and an audit window stay under `.checks/recovery-*`.
+Use `just check plugin test-core RecoveryReturnTests` and
+`just check vm test-recover-home` for policy bounds and cleanup checks.
