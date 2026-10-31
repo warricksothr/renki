@@ -34,6 +34,20 @@ type Intent struct {
 	Entity      string          `json:"entity"`
 	TaskID      string          `json:"taskId,omitempty"`
 	Fingerprint string          `json:"fingerprint"`
+	Search      *SearchPlan     `json:"search,omitempty"`
+}
+
+// A sector is an attempted bearing, not proof that its entire area was seen.
+// The host chooses plans; policy state cannot reset this ledger.
+type SearchPlan struct {
+	Sector int           `json:"sector"`
+	Origin protocol.Vec3 `json:"origin"`
+	Radius float64       `json:"radius"`
+}
+type SearchAttempt struct {
+	Plan    SearchPlan `json:"plan"`
+	Outcome Outcome    `json:"outcome"`
+	Empty   bool       `json:"empty"`
 }
 type Observation struct {
 	At      time.Time     `json:"at"`
@@ -71,6 +85,7 @@ type Record struct {
 	Proof           *Outcome        `json:"proof,omitempty"`
 	LastFingerprint string          `json:"lastFingerprint,omitempty"`
 	Repeated        int             `json:"repeated"`
+	Searches        []SearchAttempt `json:"searches,omitempty"`
 }
 type Store struct {
 	mu      sync.Mutex
@@ -264,6 +279,34 @@ func validateRecord(r Record) error {
 	}
 	if len(r.Policy) > MaxSource || r.PolicyHash != hash(r.Policy) || len(r.State) > MaxJSON || !json.Valid(r.State) || len(r.History) > 16 {
 		return errors.New("invalid policy/checkpoint")
+	}
+	if len(r.Searches) > r.Attempts || len(r.Searches) > 8 {
+		return errors.New("invalid search ledger size")
+	}
+	seen := map[int]bool{}
+	plans := make([]SearchPlan, 0, len(r.Searches)+1)
+	for _, search := range r.Searches {
+		if search.Outcome.TaskID == "" || (search.Empty && !emptySearch(search.Outcome)) {
+			return errors.New("invalid search receipt")
+		}
+		plans = append(plans, search.Plan)
+	}
+	if r.Pending != nil && r.Pending.Search != nil {
+		plans = append(plans, *r.Pending.Search)
+	}
+	for _, plan := range plans {
+		if plan.Sector < 0 || plan.Sector > 7 || seen[plan.Sector] || !finite(plan.Radius) || plan.Radius < 12 || plan.Radius > 60 {
+			return errors.New("invalid or repeated search sector")
+		}
+		for _, n := range plan.Origin {
+			if !finite(n) {
+				return errors.New("invalid search origin")
+			}
+		}
+		if distance(plan.Origin, r.Center)+plan.Radius+52 > r.Radius+1e-6 {
+			return errors.New("search plan exceeds goal envelope")
+		}
+		seen[plan.Sector] = true
 	}
 	return nil
 }

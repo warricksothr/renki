@@ -1004,6 +1004,17 @@ short walking legs; acquisition farther from the initial area triggers a local
 fighting-ground survey. The local 40 m lure bound and melee leash remain
 unchanged. The final receipt binds the selected entity as described in 6.6.
 
+Untargeted discovery also accepts optional integer `searchSector` (0–7): east
+then successive 45 degree bearings toward positive Z. It requires `kite:true`
+without `entity` or `at`. The native scout attempts three progressive distances
+on that bearing and returns using the same checked short-leg policy and existing
+budgets. Omission preserves the full local circuit. An empty attempt with at
+least one completed checked leg and successful return reports failed /
+invalid_target with `detail: "no eligible single Greyling after bounded sector
+scouting and return"` and no entity. That is bounded search evidence, not full
+sector coverage or a combat success. A search with no completed leg remains
+unreachable; interrupted or failed returns do not produce this receipt.
+
 ### Rendered camera images
 
 Optional `screenshot` settings on `welcome` and `config` contain `enabled`,

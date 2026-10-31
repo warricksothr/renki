@@ -72,9 +72,9 @@ waits are exposed initially. Fresh, observed targets within 30 m use native
 survey/scouting/kiting; direct melee is an alternative only for a close confirmed attacker.
 When fresh perception contains no live unsupported threat or unchanged eligible
 target, the host can instead offer native local discovery. C# surveys ground,
-scouts and selects the enemy under its existing bounds. An unchanged search
-failure waits for materially changed observations rather than repeating on
-advancing timestamps. Discovery success requires the final native task receipt
+scouts and selects the enemy under its existing bounds. The host assigns a
+fresh search bearing after a finished attempt rather than restarting east.
+Discovery success requires the final native task receipt
 to bind its selected entity as well as report observed death.
 The script can retry after fresh, materially changed observations, reacquire
 another eligible target or wait for readiness. It cannot turn a refused task,
@@ -85,8 +85,8 @@ The first goal has a ten-minute deadline, six attempts/native tasks, a
 three-consecutive-failure limit and 120 seconds of total observation/recovery
 waits. Waits are at most 30 seconds each. Budgets persist through resume. A
 2 m position bucket, target identity/targeting state and readiness buckets
-distinguish changed observations; advancing timestamps alone never enables a
-retry. Host work scope is a 60–250 m sphere; new panel/trial goals explicitly use
+distinguish changed encounter observations; advancing timestamps alone never
+enables the same action again. Host work scope is a 60–250 m sphere; new panel/trial goals explicitly use
 200 m. Discovery receives up to 60 m of search radius, reduced by distance
 from the goal center and a 52 m reserve for local combat/escape. Named-target
 encounters keep the existing local envelope. The host never passes a search
@@ -97,6 +97,25 @@ health/stamina waits for recovery. Missing food/equipment, permission failures,
 unsafe persistent conditions and exhausted budgets become `needs_plan` with a
 compact diagnostic. There is no assumption that every world state offers a
 safe fight or that reaching needs-plan proves melee works.
+
+Discovery attempts search one of eight bearings, trying east, west, north,
+south, then diagonals (sectors 0,4,2,6,1,5,3,7 in Unity X/Z). Each native
+attempt advances through three distances on its assigned spoke, projects
+terrain and validates short legs locally, and returns along checked travel
+before reporting an empty search. Time, travel, stamina and recovery limits can
+end the attempt early; this is **attempted ground, not exhaustive coverage**.
+The host checkpoints sector/origin/radius in the dispatch intent, then records
+the matching native receipt in `searches`. Incomplete attempts are retained and
+consume their bearing without being labelled empty. Only the exact native
+empty-search-and-return receipt, with no bound target, is expected search
+progress rather than a repeated failure. It still consumes task, attempt and
+deadline budgets. Unsafe/incomplete repeated failures retain the three-failure
+stop. Six tasks do not promise all eight bearings, and searches still stay
+within their local radius; relocation into more distant regions is future work.
+Policy cannot choose/reset bearings, alter their radius or turn travel into a
+kill. Completed ledgers survive explicit resume; pending searches after restart
+remain uncertain and cannot replay. Existing records without a ledger remain
+readable and their stored policy source/hash stays unchanged.
 
 ## Model escape hatch and generated patterns
 

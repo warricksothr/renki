@@ -136,6 +136,14 @@ namespace Renki.Tests
         [InlineData("attack", "{\"entity\":\"1:2\",\"style\":\"ranged\"}")]
         [InlineData("attack", "{\"kite\":\"true\"}")]
         [InlineData("attack", "{\"kite\":true,\"searchRadius\":81}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":8}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":-1}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":1.5}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":\"1\"}")]
+        [InlineData("attack", "{\"kite\":true,\"searchSector\":null}")]
+        [InlineData("attack", "{\"kite\":true,\"entity\":\"1:2\",\"searchSector\":1}")]
+        [InlineData("attack", "{\"kite\":true,\"at\":[1,2,3],\"searchSector\":1}")]
+        [InlineData("attack", "{\"entity\":\"1:2\",\"searchSector\":1}")]
         [InlineData("attack", "{\"kite\":true,\"searchRadius\":11}")]
         [InlineData("attack", "{\"entity\":\"1:2\",\"searchRadius\":60}")]
         [InlineData("attack", "{\"kite\":true,\"at\":[1,2,3],\"searchRadius\":60}")]
@@ -195,6 +203,8 @@ namespace Renki.Tests
             Assert.True(TaskNames.IsInstant("equip") && TaskNames.IsInstant("unequip"));
             Assert.True(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\"}"))).Collect);
             Assert.False(((HarvestArgs)TaskArgs.Parse(Req("harvest", "{\"entity\":\"0:1\",\"collect\":false}"))).Collect);
+            foreach (var sector in new[] { 0, 7 })
+                Assert.Equal(sector, ((AttackArgs)TaskArgs.Parse(Req("attack", "{\"kite\":true,\"searchSector\":" + sector + "}"))).SearchSector);
         }
     }
 }

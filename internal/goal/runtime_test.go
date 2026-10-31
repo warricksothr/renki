@@ -222,6 +222,9 @@ func TestWaitBudgetEndsUnchangedObservationLoop(t *testing.T) {
 	host, r, v, id := fixture(t)
 	v.Perception.Characters = nil
 	attack(t, r, v, "search-1")
+	// A fresh unsupported threat prevents blind discovery, even though the
+	// previous search consumed a sector. Advancing timestamps cannot clear it.
+	v.Perception.Characters = []protocol.PerceivedCharacter{{Kind: protocol.CharacterCreature, Prefab: "Neck", Hostile: true, HPFrac: 1}}
 	_, _ = r.Next(v, &behaviour.Result{Status: "failed", Reason: "invalid_target", TaskID: "search-1"})
 	fresh(&v, 5)
 	for i := 1; i < 25; i++ {

@@ -23,6 +23,12 @@ import (
 //go:embed combat.star
 var combatPolicy string
 
+const emptySectorDetail = "no eligible single Greyling after bounded sector scouting and return"
+
+func emptySearch(outcome Outcome) bool {
+	return outcome.Status == protocol.StatusFailed && outcome.Reason == protocol.ReasonInvalidTarget && outcome.Detail == emptySectorDetail && outcome.Entity == ""
+}
+
 type Spec struct {
 	Kind   string        `json:"kind"`
 	World  string        `json:"world"`
@@ -184,12 +190,20 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 			outcome.Reason = "unverified_success"
 		}
 		if err := r.t.Store.update(r.id, func(g *Record) error {
-			if g.Last != nil && g.Last.Reason == outcome.Reason {
+			empty := g.Pending.Search != nil && emptySearch(outcome)
+			if empty {
+				// A checked empty search is expected progress, not a repeated
+				// encounter failure. All task/attempt/deadline bounds still apply.
+				g.Repeated = 0
+			} else if g.Last != nil && g.Last.Reason == outcome.Reason {
 				g.Repeated++
 			} else {
 				g.Repeated = 1
 			}
 			g.Last = &outcome
+			if g.Pending.Search != nil {
+				g.Searches = append(g.Searches, SearchAttempt{Plan: *g.Pending.Search, Outcome: outcome, Empty: empty})
+			}
 			g.Pending = nil
 			g.History = append(g.History, outcome)
 			if len(g.History) > 16 {
@@ -310,6 +324,10 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 		}
 		order.TimeoutS = math.Min(order.TimeoutS, remaining)
 		args := order.Args.(*protocol.AttackArgs)
+		var search *SearchPlan
+		if args.SearchSector != nil {
+			search = &SearchPlan{Sector: *args.SearchSector, Origin: v.State.Pos, Radius: *args.SearchRadius}
+		}
 		if err = r.t.Store.update(r.id, func(g *Record) error {
 			g.Observation = r.observation
 			g.State = directive.State
@@ -318,7 +336,7 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 			g.Wake = time.Time{}
 			g.Reason = directive.Reason
 			g.LastFingerprint = fingerprint
-			g.Pending = &Intent{Template: "combat", Params: directive.Params, Entity: args.Entity, Fingerprint: fingerprint}
+			g.Pending = &Intent{Template: "combat", Params: directive.Params, Entity: args.Entity, Fingerprint: fingerprint, Search: search}
 			return nil
 		}); err != nil {
 			return nil, err
@@ -360,10 +378,15 @@ func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage,
 		return ctx, raw, fp
 	}
 	searchRadius := math.Min(60, g.Radius-distance(v.State.Pos, g.Center)-52)
-	if !discoveryBlocked && searchRadius >= 12 {
-		fp := fmt.Sprintf("search:%d:%d:%d:%d", int(math.Floor(v.State.Pos[0]/2)), int(math.Floor(v.State.Pos[2]/2)), int(v.State.HP/10), int(v.State.Stamina/20))
+	// Opposite bearings first distribute bounded effort before filling gaps.
+	// Completed and incomplete attempts both consume a sector. This never
+	// treats an interruption as coverage or retries an uncertain intent.
+	sectors := [...]int{0, 4, 2, 6, 1, 5, 3, 7}
+	if !discoveryBlocked && searchRadius >= 12 && len(g.Searches) < len(sectors) {
+		sector := sectors[len(g.Searches)]
+		fp := fmt.Sprintf("search:%d:%d:%d:%d:%d", sector, int(math.Floor(v.State.Pos[0]/2)), int(math.Floor(v.State.Pos[2]/2)), int(v.State.HP/10), int(v.State.Stamina/20))
 		if fp != g.LastFingerprint {
-			p := map[string]any{"world": g.World, "searchRadius": searchRadius}
+			p := map[string]any{"world": g.World, "searchRadius": searchRadius, "searchSector": sector}
 			raw, _ := json.Marshal(p)
 			ctx["target"], ctx["changed"], ctx["discovery"], ctx["params"] = true, true, true, p
 			return ctx, raw, fp

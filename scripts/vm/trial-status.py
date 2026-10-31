@@ -41,6 +41,13 @@ def report(folder, now=None):
                       activeFood=[f['prefab'] for f in (state.get('food') or {}).get('active', [])])
         result['elapsedS'] = round((datetime.datetime.fromisoformat(latest['at']) -
                                     datetime.datetime.fromisoformat(first['at'])).total_seconds(), 1)
+    goal = None
+    goal_file = folder / 'goal.json'
+    if goal_file.exists():
+        try:
+            goal = json.loads(goal_file.read_text())
+        except ValueError:
+            pass
     summary = folder / 'summary.json'
     if summary.exists():
         try:
@@ -48,6 +55,7 @@ def report(folder, now=None):
         except ValueError:
             final = None
         if final:
+            goal = final.get('goal') or goal
             for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors', 'mode', 'logsHarvested', 'woodGain', 'deposited', 'returned'):
                 if key in final:
                     result[key] = final[key]
@@ -55,6 +63,11 @@ def report(folder, now=None):
                                for k in ('status', 'reason', 'detail')}) for t in final.get('tasks', [])[-6:]]
             if final.get('result'):
                 result['result'] = {k: final['result'][k] for k in ('status', 'reason', 'detail') if k in final['result']}
+    if goal:
+        result['goal'] = {k: goal[k] for k in ('status', 'reason', 'attempts', 'maxAttempts', 'taskCount', 'waitS') if k in goal}
+        result['goal']['pendingSector'] = ((goal.get('pending') or {}).get('search') or {}).get('sector')
+        result['goal']['searches'] = [dict(sector=s['plan']['sector'], empty=s['empty'],
+                                           reason=s['outcome'].get('reason')) for s in goal.get('searches', [])]
     return result
 
 

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/scouting-live-results
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: f8efacd9d4c5e2d4c78a612cdcf2c3d7af97bf0e
+  session: null
+  claimed_at: 2026-10-31T00:53:15Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T00:36:19Z
+updated_at: 2026-10-31T01:00:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -42,7 +49,7 @@ extensions: {}
 
 ## Implementation plan
 
-PR115-117 are landed and deployed. Latest live scouting exited the house and travelled143m with zero damage, but return refused on grade after4 checked return legs; no encounter occurred. Bind scouting steering to the exact physically validated route rather than asking Walker to calculate another route. Revalidate the remaining checked points, allow a direct return connector only through the same full route/support/grade/character checks, and retain detailed rejection evidence. Keep all time/travel/health/permission limits. Add route-consumption/bend regressions, run focused checks and full just check ci, commit and run just check review, then land/deploy and perform one changed-build native trial. Independently run the M2 gather trial from the new outdoor view. Keep unobserved live kill/block/dodge and full hauling acceptance open.
+The latest local search returned safely without finding a Greyling. Native searches currently always start with the east spoke, so time-bounded retries can revisit the same ground. First make fresh directional search explicit rather than introduce controller-selected terrain endpoints: add an optional discovery-only sector (eight compass bearings, three progressive distances), keep the existing native time/travel/route/return and combat eligibility limits, and have the host persist each sector intent and outcome before offering a different bearing. Try opposite bearings early. Distinguish an empty checked search with observed return from incomplete/unsafe search; neither is kill evidence or exhaustive area coverage. Generic failures retain the three-repeat stop, empty returned searches consume existing attempts/tasks/deadline instead. Preserve uncertain-intent restart handling, immutable policy snapshots, health/food/readiness checks and host-selected scope validation. Add protocol parity, native return/bounds, durable progression/restart/checkpoint and proof regressions. Run focused checks, full just check ci, commit, just check review, land and checksum-deploy, then run one persistent-goal trial. Record actual search/combat evidence and leave unobserved kill/block/dodge acceptance open.
 
 ## Notes
 
@@ -307,3 +314,9 @@ The changed-build native trial completed its bounded local scouting AND return: 
 Do not repeat this unchanged local circuit or ask players to stage/clear enemies. The next M3 development should advance persistent search coverage into additional checked regions inside the goal's allowed area, preserving native movement, body ownership, creature eligibility and injury/travel bounds. Current coordinator discovery still caps each local search at 60 m. Kill/death-callback, blocking and dodging criteria remain open until actually observed; broader owner defense is also unfinished.
 
 Final state independently checked: Valheim stopped, controller/panel running, AllowCombat=false. `just check streaming windows-status` passed (.checks/20261031T003502Z-MMDZvJ.log): capture/watchdog/OBS/relay tasks running, output active, Renki Offline standby scene. No Twitch destination was enabled. Returning this unfinished ticket to ready and releasing the claim for handoff; no acceptance box changed.
+
+**agent:codex/renki-milestones** at 2026-10-31T01:00:21Z
+
+Implemented durable directional discovery in this branch: host assigns fresh bearings in order 0,4,2,6,1,5,3,7; native sector searches keep the same checked short-leg movement, observed return trail and all prior time/travel/health/permission bounds. Dispatch intent checkpoints sector/origin/radius; matching receipts append a bounded attempted-search ledger. Exact empty-return receipts advance without counting as repeated encounter failures, while incomplete searches remain non-empty evidence and generic three-repeat stops remain. Neither search nor travel can satisfy kill proof. This spreads local effort across bearings, not relocation through the full 200 m goal area or exhaustive coverage. Added compact goal/sector progress to just vm trial-status.
+
+Focused controller/goal/behaviour/protocol checks passed (.checks/20261031T005526Z-TlZjTJ.log), native ScoutingTests passed (.checks/20261031T005519Z-bupikk.log), protocol fixture checks passed (.checks/20261031T005627Z-UTKyPr.log), and supervisor/progress checks passed (.checks/20261031T005627Z-kmnXDN.log). Full just check ci passed (.checks/20261031T005631Z-H56LRz.log). Live progression, kill/death-callback, block and dodge remain unproved. Next: commit/review, land/deploy, then one persistent-goal trial with compact evidence and normal offline cleanup.
