@@ -89,6 +89,8 @@ type gatherRun struct {
 	wildlifeUntil                             time.Time
 	wildlifeObserveUntil                      time.Time
 	wildlifeScan                              uint64
+	pursuerWaiting                            string
+	pursuerUntil                              time.Time
 }
 
 func (r *gatherRun) Recover(result Result) bool {

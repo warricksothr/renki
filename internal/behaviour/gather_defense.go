@@ -21,7 +21,7 @@ func (r *gatherRun) defend(v View) (*session.Order, error) {
 	var target *protocol.PerceivedCharacter
 	for _, c := range v.Perception.Characters {
 		if c.ID != "" && c.Kind == protocol.CharacterCreature && c.Prefab == "Greyling" && c.Stars == 0 &&
-			c.Hostile && c.TargetingMe && c.HPFrac > 0 && distance(v.State.Pos, c.Pos) <= 20 {
+			c.Hostile && c.TargetingMe && c.HPFrac > 0 && distance(v.State.Pos, c.Pos) <= 40 {
 			if target != nil {
 				return nil, errors.New("multiple Greyling pursuers; gathering stopped")
 			}
@@ -30,6 +30,8 @@ func (r *gatherRun) defend(v View) (*session.Order, error) {
 		}
 	}
 	if target == nil {
+		r.pursuerWaiting = ""
+		r.pursuerUntil = time.Time{}
 		return nil, nil
 	}
 	if r.defenses >= 2 || r.p.workLimit()-v.Now.Sub(r.began) < 4*time.Minute {
@@ -50,6 +52,21 @@ func (r *gatherRun) defend(v View) (*session.Order, error) {
 			return nil, errors.New("another character prevents work-site defense")
 		}
 	}
+	if r.pursuerWaiting != "" && r.pursuerWaiting != target.ID {
+		return nil, errors.New("confirmed work-site pursuer changed during the bounded wait")
+	}
+	if distance(v.State.Pos, target.Pos) > 20 {
+		if r.pursuerUntil.IsZero() {
+			r.pursuerWaiting = target.ID
+			r.pursuerUntil = v.Now.Add(15 * time.Second)
+		}
+		if v.Now.Before(r.pursuerUntil) {
+			return nil, ErrWait
+		}
+		return nil, errors.New("confirmed work-site pursuer did not enter native defense range")
+	}
+	r.pursuerWaiting = ""
+	r.pursuerUntil = time.Time{}
 	r.defender = target.ID
 	r.defenses++
 	return &session.Order{Task: protocol.TaskAttack,

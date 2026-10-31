@@ -236,6 +236,10 @@ work site and 150 m of home. At most one per requested tree is allowed in a run.
 Players, other creatures, structures and walls keep their original protections.
 Wildlife outside the approach bounds receives one 20-second observation window
 to leave or come within range, rather than an immediate failure or a longer chase.
+With optional work-site defense enabled, a single confirmed ordinary Greyling
+pursuer within 40 m gets up to 15 seconds to enter the existing 20 m native defense
+range. The unfinished tree/log chain stays pinned while Tas waits. This never
+authorizes a chase, a substitute attacker, or combat outside that admission range.
 
 Before leaving home, `returnHome` gathering repairs a carried axe below 90%
 durability at a currently observed home workbench. It uses `interact` with

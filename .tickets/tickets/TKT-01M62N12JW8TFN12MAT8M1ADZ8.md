@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T12:38:49Z
+updated_at: 2026-10-31T12:47:57Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -402,3 +402,12 @@ Captured stand and policy checks cover exact fixed movement, unchanged starting 
 bf5add6 passed CI .checks/20261031T123056Z-OTRJav.log, review .checks/20261031T123341Z-vid8ih.log and controller deployment .checks/20261031T123358Z-YIJnAu.log. Trial .checks/gather-trial-20261031T123414063362Z stopped before movement/cutting because the passive deer was outside approach bounds at the decision. The retained audit places Deer1:62150 at[127.43,50.2,45.1], then[122.26,48.33,44.93], then[118.19,45.73,49.22] immediately before failure07:35:28 local. Supervisor's later observation showed it back at[105.42,42.75,52.76], within20m of Tas and150m of home. The instantaneous refusal lost that opportunity.
 
 Add one20s observation window for out-of-range passive wildlife. Preserve20m approach,40m site,150m home and30s native movement bounds. A fresh range change may authorize the existing one-time approach; cleared exclusions permit cutting. Persistent obstruction still stops after the window, with no chase and no native task dispatched merely to wait. Tests cover transition into range and deadline exhaustion. Tas is healthy38.6/38.6HP, zero audit damage, safely offline at[92.67,41.63,44.35] with Mushroom655s in the latest supervisor observation, and no cuts/cargo changes. Original products Wood27/Resin5/BeechSeeds2. Need gate/review/controller deployment, then uninterrupted two-tree/log gain-only home/store proof.
+
+**agent:codex/renki-milestones** at 2026-10-31T12:47:57Z
+
+### Full-tree and parent-log success; confirmed pursuer waiting gap
+88be667 passed CI .checks/20261031T123849Z-9CSX6g.log, review .checks/20261031T124132Z-SMAV8B.log and controller deployment .checks/20261031T124143Z-yDH7qt.log. Trial .checks/gather-trial-20261031T124153930891Z proceeded beyond wildlife preparation, felled a full Beech1 (t-1 succeeded, gained4BeechSeeds) and split its parent beech_log (t-2 succeeded). No injury; exact harvest hits/breaks and alternate contact/escape traces are retained. It stopped with unfinished new half logs because native-confirmed Greyling1692447902:106 was pursuing from[63.67,34.7,48.31], about25m away. Existing defense admission was20m while gathering excluded nearby Greylings out to40m, creating an immediate-failure gap.
+
+Allow one15s wait for a single exact confirmed unstarred Greyling pursuer within40m to enter the existing20m native attack admission. Healthy/fed/stamina/tool/bystander checks and two-defense/whole-work budgets still apply before waiting. Preserve the current tree/log chain and starting cargo; do not chase, dispatch combat beyond20m, substitute an entity or infer death. Timeout or another pursuer still stops. Regression covers waiting after exact full-tree success, same unfinished-log resume after exact defense+freshness, timeout, identity change, multiple attackers, inadequate health and unconfirmed targets. Initial focused failure was test setup missing the runner start time; corrected before rerun.
+
+Tas is safely offline, panel available,38.0/38.0HP with zero native damage. Last pose[88.5,40.59,46.86], Mushroom570s at the last supervisor observation, no reserve. Starting products for the failed trial were Wood27/Resin5/BeechSeeds2; its4seed gain remains carried. Earlier/fresh logs coexist around the stand; next benchmark must still prove two distinct complete fresh trees and gains-only home storage, not count these partial cuts. Need gate/review/controller deployment and the complete live proof.

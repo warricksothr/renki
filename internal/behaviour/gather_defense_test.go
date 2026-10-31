@@ -17,6 +17,61 @@ func defenseSuccess() *Result {
 	return &Result{Status: protocol.StatusSucceeded, Entity: "pursuer", Detail: "observed Greyling death"}
 }
 
+func TestGatherKeepsItsUnfinishedChainWhileAConfirmedPursuerApproaches(t *testing.T) {
+	r, v := gathering(t)
+	r.p.Defend = true
+	nextTask(t, r, v, nil, protocol.TaskHarvest)
+	gatherPursuer(&v)
+	v.Perception.Characters[0].Pos[0] = 25
+	log := gatherResource("unfinished", protocol.ResourceLog, 6)
+	order, err := gatherFinishedTarget(t, r, &v, 0, log)
+	if order != nil || !errors.Is(err, ErrWait) || !r.completed["tree"] || !r.chain[log.ID] || r.defenses != 0 {
+		t.Fatal(order, err, r)
+	}
+	v.Now = v.Now.Add(5 * time.Second)
+	v.Perception.Seq++
+	v.Perception.Characters[0].Pos[0] = 19
+	nextTask(t, r, v, nil, protocol.TaskAttack)
+	finishDefense(t, r, &v)
+	order = nextTask(t, r, v, defenseSuccess(), protocol.TaskHarvest)
+	if order.Args.(*protocol.HarvestArgs).Entity != log.ID || r.trees != 1 || r.keep["Wood"] != 12 {
+		t.Fatal(order, r)
+	}
+}
+
+func TestGatherPursuerWaitCannotExtendOrSubstituteItsTarget(t *testing.T) {
+	for _, mode := range []string{"timeout", "changed", "multiple", "injured", "unconfirmed"} {
+		t.Run(mode, func(t *testing.T) {
+			r, v := gathering(t)
+			r.p.Defend = true
+			r.arrived = true
+			r.began = v.Now
+			gatherPursuer(&v)
+			v.Perception.Characters[0].Pos[0] = 25
+			if order, err := r.defend(v); order != nil || !errors.Is(err, ErrWait) {
+				t.Fatal(order, err)
+			}
+			v.Now = v.Now.Add(16 * time.Second)
+			switch mode {
+			case "changed":
+				v.Perception.Characters[0].ID = "substitute"
+			case "multiple":
+				other := v.Perception.Characters[0]
+				other.ID = "second"
+				v.Perception.Characters = append(v.Perception.Characters, other)
+			case "injured":
+				v.State.HP = 10
+			case "unconfirmed":
+				v.Perception.Characters[0].TargetingMe = false
+			}
+			order, err := r.defend(v)
+			if order != nil || errors.Is(err, ErrWait) || mode != "unconfirmed" && err == nil || r.defenses != 0 {
+				t.Fatal(order, err, r)
+			}
+		})
+	}
+}
+
 func finishDefense(t *testing.T, r *gatherRun, v *View) {
 	t.Helper()
 	if _, err := r.Next(*v, defenseSuccess()); !errors.Is(err, ErrWait) {
