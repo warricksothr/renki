@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-30T22:11:32Z
-updated_at: 2026-10-31T16:09:52Z
+updated_at: 2026-10-31T16:17:03Z
 created_by:
   id: agent:codex/local-streaming
   name: ""
@@ -75,6 +75,14 @@ Deployment exposed EventSource CLOSED after proxy502 during controller restart: 
 Current read-only BLIGHT diagnostics confirm RenkiCapture Ready/LastResult1 with stale successful observedAt04:58 local, while RenkiCaptureWatchdog, OBS and relay remain Running. Program is Renki Offline and output remains active. The verifier runtime fatal path is an atomic health-publication failure; a transient Windows sharing violation is plausible but the original filesystem error was not retained, so its exact cause is unconfirmed.
 
 Implemented contained publication failure: revoke gameplay, reset freshness, switch Program to standby and keep retrying. Added mock OBS loop regressions for transient and persistent write failures. Added bounded Task Scheduler failure restarts for verifier/watchdog and exposed last-run/result in redacted status. Exact-window/changing-frame/scope verification and independent OBS/relay lifecycle are retained. Focused Go and streaming checks passed. Full CI/review/deployment pending. Tas is safely logged out at3.2HP; no unguarded game restart for capture proof. AC3 desktop/GPU transition evidence remains open.
+
+**agent:codex/renki-milestones** at 2026-10-31T16:17:03Z
+
+Repair committed ate3c444d in PR130 and deployed with just check streaming windows-adapter (.checks/20261031T161240Z-hQDpkd.log). Full just check ci passed147s (.checks/20261031T160856Z-p3v3EI.log); committed just check review HEAD~2..HEAD passed with no findings (.checks/20261031T161134Z-HbjG78.log).
+
+Actual Windows proof: RenkiCapture and RenkiCaptureWatchdog now Running with new process IDs6004/11768 and fresh status, while OBS18488 and relay16200 retain their original processes. In-world verifier observedAt2026-10-31T11:14:35.0061537-05:00 reports Verified changing game frames; exact Valheim source active, Program Renki Gameplay, silent local outputActive true. Browser API content gameplay, matching world scope1:DizzysHellheim:827096491,1280x720 readyState4,8428 decoded frames, same original MediaStream and unchanged one WHEP negotiation. Screenshot visually inspected: /home/sothr/.t3/userdata/browser-artifacts/browser-screenshot-blight-raccoon-grue-ts-net-mvwlqjz6-068edd28.png.
+
+Tas healed under native recovery guard and was logged out/stopped safely at29.7HP. Browser returned to Tas is resting/standby while sameStream stayed true,10465 decoded frames and one WHEP negotiation (.checks/video-offline-after-recovery.json). OBS output duration increased from62070866ms offline after deployment to62137466ms inworld. No output/relay restart or broader capture source was needed. Original exit1 was confirmed; its precise filesystem cause remains unproven. AC3 desktop/minimize/GPU loss/encoder contention trials remain open. This repair does not establish those transitions.
 
 ## Summary
 
