@@ -71,6 +71,10 @@ def report(folder, now=None):
                 result['result'] = {k: final['result'][k] for k in ('status', 'reason', 'detail') if k in final['result']}
     if goal:
         result['goal'] = {k: goal[k] for k in ('status', 'reason', 'attempts', 'maxAttempts', 'taskCount', 'waitS') if k in goal}
+        if goal.get('postCombat'):
+            result['goal']['postCombat'] = goal['postCombat']
+        if goal.get('proof'):
+            result['goal']['killProof'] = {k: goal['proof'][k] for k in ('taskId', 'entity', 'detail') if k in goal['proof']}
         pending_search = (goal.get('pending') or {}).get('search')
         result['goal']['pendingSector'] = pending_search.get('sector') if pending_search else None
         result['goal']['pendingOffset'] = pending_search.get('offset', 0) if pending_search else None

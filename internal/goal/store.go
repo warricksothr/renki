@@ -21,12 +21,13 @@ const MaxJSON = 16 << 10
 const MaxSource = 16 << 10
 
 type Outcome struct {
-	Status string    `json:"status"`
-	Reason string    `json:"reason,omitempty"`
-	Detail string    `json:"detail,omitempty"`
-	TaskID string    `json:"taskId,omitempty"`
-	Entity string    `json:"entity,omitempty"`
-	At     time.Time `json:"at"`
+	Template string    `json:"template,omitempty"`
+	Status   string    `json:"status"`
+	Reason   string    `json:"reason,omitempty"`
+	Detail   string    `json:"detail,omitempty"`
+	TaskID   string    `json:"taskId,omitempty"`
+	Entity   string    `json:"entity,omitempty"`
+	At       time.Time `json:"at"`
 }
 type Intent struct {
 	Template    string          `json:"template"`
@@ -60,6 +61,14 @@ type Observation struct {
 	Target  string        `json:"target,omitempty"`
 	Ready   bool          `json:"ready"`
 }
+
+// PostCombat is independent of the kill proof: arrival must earn its own receipt.
+type PostCombat struct {
+	Phase    string    `json:"phase"`
+	Began    time.Time `json:"began"`
+	Deadline time.Time `json:"deadline"`
+	Receipt  *Outcome  `json:"receipt,omitempty"`
+}
 type Record struct {
 	Observation     *Observation    `json:"observation,omitempty"`
 	ID              string          `json:"id"`
@@ -84,6 +93,9 @@ type Record struct {
 	Last            *Outcome        `json:"last,omitempty"`
 	History         []Outcome       `json:"history,omitempty"`
 	Proof           *Outcome        `json:"proof,omitempty"`
+	ReturnHome      bool            `json:"returnHome,omitempty"`
+	Home            *protocol.Vec3  `json:"home,omitempty"`
+	PostCombat      *PostCombat     `json:"postCombat,omitempty"`
 	LastFingerprint string          `json:"lastFingerprint,omitempty"`
 	Repeated        int             `json:"repeated"`
 	Searches        []SearchAttempt `json:"searches,omitempty"`
@@ -280,6 +292,29 @@ func validateRecord(r Record) error {
 	}
 	if len(r.Policy) > MaxSource || r.PolicyHash != hash(r.Policy) || len(r.State) > MaxJSON || !json.Valid(r.State) || len(r.History) > 16 {
 		return errors.New("invalid policy/checkpoint")
+	}
+	if r.Home != nil {
+		for _, n := range *r.Home {
+			if !finite(n) {
+				return errors.New("invalid pinned home")
+			}
+		}
+		if !r.ReturnHome || distance(*r.Home, r.Center) > r.Radius {
+			return errors.New("home outside goal scope")
+		}
+	}
+	if p := r.PostCombat; p != nil {
+		if !r.ReturnHome || r.Home == nil || r.Proof == nil || p.Began.IsZero() || !p.Deadline.After(p.Began) || p.Deadline.After(r.Deadline) || p.Deadline.Sub(p.Began) > 3*time.Minute {
+			return errors.New("invalid post-combat checkpoint")
+		}
+		switch p.Phase {
+		case "recover", "return", "confirm", "complete":
+		default:
+			return errors.New("invalid post-combat phase")
+		}
+		if p.Receipt != nil && p.Receipt.TaskID == "" {
+			return errors.New("missing return receipt identity")
+		}
 	}
 	if len(r.Searches) > r.Attempts || len(r.Searches) > 8 {
 		return errors.New("invalid search ledger size")

@@ -140,7 +140,7 @@ def ground_diagnostics(audit, task_id):
 def run_persistent_goal(summary, call, observe, saved):
     """One durable objective; a child-task failure is an outcome, not the end."""
     status, _ = observe()
-    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=200)
+    spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=200, returnHome=True)
     created = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)), as_json=True)
     goal_id = created['id']
     summary.update(goalId=goal_id, origin=status['pos'], outcome='running')
@@ -162,9 +162,12 @@ def run_persistent_goal(summary, call, observe, saved):
             # The host must retain exact native evidence; never trust a script claim.
             if goal['status'] == 'succeeded' and not goal.get('proof'):
                 raise RuntimeError('successful goal lacks host proof')
+            if goal['status'] == 'succeeded' and ((goal.get('postCombat') or {}).get('phase') != 'complete'
+                    or ((goal.get('postCombat') or {}).get('receipt') or {}).get('status') != 'succeeded'):
+                raise RuntimeError('successful goal lacks confirmed native home return')
             summary.update(outcome=goal['status'], reason=goal.get('reason', ''))
             return
-        target = (goal.get('pending') or {}).get('entity')
+        target = (goal.get('pending') or {}).get('entity') or (goal.get('proof') or {}).get('entity')
         combat = status.get('combat') or {}
         if combat.get('id') == (goal.get('pending') or {}).get('taskId') and combat.get('entity'):
             target = combat['entity']
@@ -394,7 +397,7 @@ def main():
                     summary['diagnosticError'] = str(e)
             if summary.get('goalId'):
                 try:
-                    attempts = summary.get('goal', {}).get('history', [])[-6:]
+                    attempts = [o for o in summary.get('goal', {}).get('history', []) if o.get('template', 'combat') == 'combat'][-6:]
                     summary['encounters'] = [dict(taskId=attempt['taskId'], status=attempt['status'],
                         reason=attempt.get('reason'), entity=attempt.get('entity'),
                         ground=ground_diagnostics(audit, attempt['taskId'])) for attempt in attempts if attempt.get('taskId')]
@@ -409,7 +412,7 @@ def main():
     if summary.get('result'):
         report['result'] = {k: summary['result'][k] for k in ('status', 'reason', 'detail') if k in summary['result']}
     if summary.get('goalId'):
-        report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof')}
+        report['goal'] = {k: summary.get('goal', {}).get(k) for k in ('id', 'status', 'attempts', 'taskCount', 'reason', 'proof', 'home', 'postCombat')}
         report['encounters'] = [dict(taskId=e['taskId'], status=e['status'], reason=e['reason'],
             entity=e['entity'], modes=e['ground']['modes'], scouting={k:e['ground']['scouting'][k] for k in ('routes','reasons','recoveries','returnHint','detours')})
             for e in summary.get('encounters', [])]

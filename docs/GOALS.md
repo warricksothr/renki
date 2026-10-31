@@ -67,8 +67,9 @@ validation and do not reset the original goal's host budgets.
 
 The first objective is `combat_trial`: observe one native successful encounter
 against an eligible ordinary Greyling while Tas remains healthy, within an
-explicit world/area. Only the existing `combat` runner and bounded observation
-waits are exposed initially. Fresh, observed targets within 30 m use native
+explicit world/area. The policy selects the existing `combat` runner and bounded
+observation waits; an optional host-owned return phase follows verified combat.
+Fresh, observed targets within 30 m use native
 survey/scouting/kiting; direct melee is an alternative only for a close confirmed attacker.
 When fresh perception contains no live unsupported threat or unchanged eligible
 target, the host can instead offer native local discovery. C# surveys ground,
@@ -80,6 +81,31 @@ The script can retry after fresh, materially changed observations, reacquire
 another eligible target or wait for readiness. It cannot turn a refused task,
 unloaded target or missing perception into a kill. The host retains the exact
 successful attack task/target receipt as completion evidence.
+
+New panel and supervised trial goals set `returnHome:true`. These pin the
+currently known home inside the goal sphere before combat. The six encounter
+attempts remain unchanged, with one additional task slot reserved exclusively
+for a native return. Older saved goals and API requests without this option
+retain their original kill-only objective.
+
+For a return goal, the exact kill receipt is retained as `proof` while
+`postCombat` separately records recovery, return and arrival confirmation.
+Recovery requires fresh surroundings, active food, at least 80% health and
+40 stamina, with no nearby live creature, swimming or encumbrance. Readiness
+waits are limited to one minute; the full recovery/return phase is limited to
+three minutes within the original goal deadline and shared 120-second wait
+budget. No further encounter can follow a verified kill.
+
+The host dispatches one existing native `move_to` to the pinned home. Native
+navigation owns route reuse, supported movement and obstruction/off-level
+recovery. The host does not steer intermediate points or change terrain guards.
+Whole-goal success requires that task's matching successful receipt and a
+fresh observation taken afterward, within 3m horizontally and 1.5m vertically
+of the unchanged home. A failed, interrupted or unconfirmed return keeps the
+kill proof and remains incomplete. Changed home, missing observations and
+exhausted budgets require a new plan; uncertain return intents never replay
+after restart. The same engine permission, body-ownership and owner-stop rules
+cover both combat and return.
 
 The first goal has a ten-minute deadline, six attempts/native tasks, a
 three-consecutive-failure limit and 120 seconds of total observation/recovery
@@ -168,7 +194,7 @@ as their host predicates, rather than trusting a script's claim of completion.
 `POST /api/goals` uses panel authentication and `X-Renki-Act: 1`:
 
 ```json
-{"action":"start","spec":{"kind":"combat_trial","world":"DizzysHellheim","center":[184,82,-289],"radius":200}}
+{"action":"start","spec":{"kind":"combat_trial","world":"DizzysHellheim","center":[184,82,-289],"radius":200,"returnHome":true}}
 ```
 
 It returns the durable record with its generated `id`. Subsequent commands are

@@ -970,8 +970,19 @@ Task histories now include the chest receipts naming that task, so the panel's
 task view and preparation supervisor can inspect exact moved/remaining counts
 without reading a complete audit window.
 
-`just check vm goal-trial` submits one durable `combat_trial` goal and follows it
-across failed native tasks. It retains compact progress, the final goal record
+`just check vm goal-trial` submits one durable `combat_trial` goal with
+`returnHome:true` and follows it across failed native tasks. A known home inside
+the goal sphere must be pinned before the first encounter. After observed death,
+the goal retains its kill proof, waits for fresh safe recovery conditions and
+dispatches one native return. Whole-goal success requires that task's matching
+success receipt and a fresh position afterward at home, including its vertical
+level. `just vm trial-status` shows kill proof and post-combat phase/receipt
+separately; a failed or uncertain return must retain the kill and stay incomplete.
+Check low stamina, food decay versus injury, another nearby creature, changed
+home, stale state, blocked/wrong-floor return, cancellation and restart uncertainty.
+Keep live block/dodge and scouting-detour evidence distinct: a successful kill
+and return do not prove actions that were never exercised. The supervisor
+retains compact progress, the final goal record
 and full observations in `.checks/`. A changed target or a close confirmed
 attacker can produce another native attempt, while unchanged failures exhaust a
 bounded recovery wait and request a new plan. Discovery now tries a fresh
