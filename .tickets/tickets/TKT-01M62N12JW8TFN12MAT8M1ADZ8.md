@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T13:01:44Z
+updated_at: 2026-10-31T13:11:38Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -425,3 +425,10 @@ Make repair preparation complete its own prerequisite: if no currently observed 
 f7386f4 passed CI .checks/20261031T125350Z-WtLJdq.log, review .checks/20261031T125631Z-nnnvKS.log, push and controller deployment .checks/20261031T125643Z-OzZBRU.log. The next trial .checks/gather-trial-20261031T125647540073Z dispatched its own repair-home prerequisite and travelled 128 m safely, then stopped outside home at [-27.63,34.02,5.31]. No cut, no repair and no damage; final 37.1 HP, offline/panel restored. Audit .checks/audit-window-Gd4nUQ.jsonl shows raised entrance hints [-39.77,36.09,11.2] and [-39,36.09,13.04], rejected navmesh samples with support heights [34.9718,34.9718,34.6494,34.4953], and local searches ending around 2000 expansions with the final stage body_cast. The existing trace omits that collider and does not distinguish the 8-second slice window from exhausted frontier/node bounds. Do not infer a physical cause from the final stage alone.
 
 Add bounded local-search diagnostics: counts by refusal stage, the last measured point/collider/support heights for each stage, actual search status and elapsed time. No search/safety limits or movement authority change. The plugin build passes .checks/20261031T130105Z-rxbPHf.log. Need full gate/review/plugin install and a new physical route observation before deciding the correction. Two complete fresh trees, gain-only storage and final home proof remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T13:11:38Z
+
+### Measured live frontier was being discarded before its node budget
+b359863 passed CI .checks/20261031T130144Z-FiuHpd.log, review .checks/20261031T130435Z-OInXi2.log and checksum deployment .checks/20261031T130450Z-1wyMrd.log. Trial .checks/gather-trial-20261031T130552435329Z selected the now-visible nearby workbench and attempted ordinary repair approach, but did not reach it. Audit .checks/audit-window-pVetbs.jsonl now proves every local fallback stopped with searchStatus Searching at elapsed 8.0 seconds after 2278-2372 expansions, not an exhausted frontier or the allowed 4096-node bound. Per-stage counts/examples identify walls, floors, wood stacks, water and support discontinuities; no single final collider is inferred to explain the whole failure. Native damage zero, final 36.6/36.6 HP, safely offline/panel restored. Captured view .checks/camera-20261031T130732353406Z.jpg shows Tas beside the eastern wood stacks and exterior ladder.
+
+Allow up to 16 seconds for the same local search to finish its existing 4096 nodes. At eight expansions per 50 Hz physics step that bound alone needs 10.24 seconds; two-ms physical-probe slices reduce actual expansions per step further. Retain the two-ms frame slice, node/range/physical/water/height/hostile limits and unchanged enclosing native task deadline. This corrects premature discard of a live frontier, not a claim that any route must exist. Focused LocalRoute checks, full CI, committed review and installation precede remeasurement. Full repair, two fresh complete trees/logs, exact gain-only storage and final home remain unverified.

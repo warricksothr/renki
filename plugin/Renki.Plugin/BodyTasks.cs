@@ -709,7 +709,12 @@ namespace Renki.Plugin
             localMs += watch.Elapsed.TotalMilliseconds;
             localWorstMs = System.Math.Max(localWorstMs, watch.Elapsed.TotalMilliseconds);
             var elapsed = Time.unscaledTime - localStarted;
-            if (localRoute.Status == RouteStatus.Searching && elapsed < 8) return true;
+            // At eight expansions per physics step the full 4096-node
+            // bound already needs over ten seconds, before physical probes
+            // consume the two-ms slice budget. Do not discard a still-live
+            // entrance search after only half its permitted nodes. Frame
+            // work, node count and the enclosing task timeout remain bounded.
+            if (localRoute.Status == RouteStatus.Searching && elapsed < 16) return true;
             // Even an enclosed start may exhaust the local search before
             // the navmesh's asynchronous tile request has had one retry.
             if (localRoute.Status == RouteStatus.NoRoute && elapsed < 1.25f) return true;

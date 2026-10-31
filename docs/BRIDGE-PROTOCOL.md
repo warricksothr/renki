@@ -748,7 +748,9 @@ Notes:
   and route-leg validation use current objects/geometry after rebuilding a base;
   old door refusals are cleared on world/session reset. Unknown support and water
   more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
-  48 m from its start on each axis, and 8 s. It advances at most eight nodes
+  48 m from its start on each axis, and 16 s. The wall-clock allowance lets
+  the existing node bound finish under sliced physical probes; the enclosing
+  task timeout is unchanged. It advances at most eight nodes
   per physics step, with a 2 ms target budget, holding movement and the stuck
   clock meanwhile. Traces record probes and actual total/worst-frame time.
   For destinations more than 24 m away horizontally, a search may instead
