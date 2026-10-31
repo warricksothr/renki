@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T00:08:19Z
+updated_at: 2026-10-31T00:18:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -296,3 +296,7 @@ PR118 merged as4cbf80d after full just check ci (.checks/20261030T235844Z-UJtGhS
 **agent:codex/renki-milestones** at 2026-10-31T00:08:19Z
 
 The generalized startup wait succeeded live: t-1 returned home with a matching succeeded receipt before combat t-3 was sent. Trial .checks/combat-trial-20261031T000445756934Z/summary.json and audit .checks/audit-window-0tr5iK.jsonl then exposed a separate preparation boundary: east travel used its25s leg budget; north endpoint[-36.9,31.89,-7.91] passed scenery checks, but ordinary1m arrival stopped at[-36.36,32.25,-7.33] inside the4m building-clearance sphere. Trial refused before scouting/acquisition; zero damage, final79.7HP, cleanup successful. No checked-scout or combat proof earned. Tightened preparation arrival to0.25m and added0.5m endpoint scenery margin, retaining the4m actual-position check. An unsuitable actual arrival now traces its pose and tries the next candidate within the same8-attempt/60s budgets. No guard was lowered. Full CI is rerunning for this native change before final commit/review/deployment. The prior startup/tooling source gate passed .checks/20261031T000445Z-F4W15I.log and its initial committed review was clean .checks/20261031T000707Z-s39J0S.log; final review must include this additional native change.
+
+**agent:codex/renki-milestones** at 2026-10-31T00:18:21Z
+
+PR119 merged asf818902 after full just check ci (393C# and42browser scenarios, .checks/20261031T001118Z-1ORkOD.log) and clean committed review (.checks/20261031T001344Z-WBpscb.log); checksum deployment passed (.checks/20261031T001418Z-1qdHkS.log). Changed-build native trial .checks/combat-trial-20261031T001449659091Z/summary.json and audit .checks/audit-window-TQl9YC.jsonl travelled117.6m with6 outbound and19 checked return legs, zero damage and final78.4HP. It failed near the final return breadcrumb[-29.8,32.91,-7.63] with structure_near_route, not the earlier outbound grade rejection. No enemy was acquired. The4m scenery exclusion was tested at navmesh corners only, allowing an outbound segment beside a building and later rejecting its actual sampled return waypoint as a new corner. Enemy-free walking will use the same already-required physical body/support/grade/water/character checks in both directions; retain the separate4m clearance for initial open staging and fighting-ground selection before engagement. This removes a combat-ground buffer from travel, not a body collision check. New physical obstacles still refuse. Run full CI and committed review, land/deploy and perform one changed-build trial; kill/block/dodge and full M2 delivery remain open.

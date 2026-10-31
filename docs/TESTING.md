@@ -775,6 +775,11 @@ strafe, jump or automatic detour. Revalidation uses only the unconsumed route.
 If the navmesh refuses a short return connector, its direct physical connector
 may be tried under the same checks; recorded positions alone never authorize it.
 Scouting rejection traces retain the failing support points and local grades.
+Walking and returning use the same physical body corridor, terrain, grade,
+water and character checks. The separate 4 m building clearance applies to
+search staging and fighting-ground selection, rather than individual travel
+corners; an outbound position must not become forbidden merely by being a
+return waypoint. New physical obstacles still invalidate the return.
 The planner reserves travel for that winding trail rather than just distance
 from the origin. A refused return or unsafe body state still exits immediately.
 Return legs do not count as outbound search coverage. Compact trial reports
