@@ -46,6 +46,28 @@ namespace Renki.Plugin
         static readonly List<Opened> opened = new List<Opened>();
         static readonly Dictionary<Door, float> leave = new Dictionary<Door, float>();
         static readonly Dictionary<Door, float> shut = new Dictionary<Door, float>();
+        static readonly Dictionary<Door, float> refused = new Dictionary<Door, float>();
+
+        internal static void Reset()
+        {
+            opened.Clear(); leave.Clear(); shut.Clear(); refused.Clear();
+        }
+
+        internal static bool MayIgnoreCollider(Door door, bool executing)
+        {
+            if (door == null || door.m_nview == null || !door.m_nview.IsValid()) return false;
+            var me = Player.m_localPlayer;
+            var canOpen = me != null &&
+                (!door.m_checkGuardStone || PrivateArea.CheckAccess(door.transform.position, 0f, false, false)) &&
+                (door.m_keyItem == null || me.GetInventory().HaveItem(door.m_keyItem.m_itemData.m_shared.m_name));
+            return DoorRules.MayIgnoreCollider(Enabled, !IsOpen(door), canOpen,
+                refused.TryGetValue(door, out var until) && Time.time < until, executing);
+        }
+
+        // Opening is asynchronous. Hold at a physical obstruction while the
+        // nearby request settles, rather than replacing the route each frame.
+        internal static bool Waiting(Vector3 pos) => opened.Exists(o => o.Door != null &&
+            Time.time - o.At < SettleFor && Vector3.Distance(pos, o.Door.transform.position) <= DoorRules.StuckReach);
 
         readonly List<Piece> near = new List<Piece>();
         float nextLook;
@@ -85,6 +107,7 @@ namespace Renki.Plugin
                 if (!p.TryGetComponent<Door>(out var door) || IsOpen(door)) continue;
                 if (leave.TryGetValue(door, out var until) && Time.time < until) continue;
                 var at = door.transform.position;
+                if (System.Math.Abs(pos.y - at.y) > DoorRules.Level) continue;
                 if (!wanted(at, door)) continue;
                 var d = Vector3.Distance(pos, at);
                 if (d < bestDistance) (best, bestDistance) = (door, d);
@@ -113,6 +136,7 @@ namespace Renki.Plugin
                 return true;
             }
             leave[best] = Time.time + RefusedFor;
+            refused[best] = Time.time + RefusedFor;
             Tracer.Emit("door", "will not open", data);
             return false;
         }
@@ -154,6 +178,7 @@ namespace Renki.Plugin
                     opened.RemoveAt(i);
                     if (o.SeenOpen) continue; // it opened, and someone has shut it since
                     leave[o.Door] = Time.time + RefusedFor;
+                    refused[o.Door] = Time.time + RefusedFor;
                     Tracer.Emit("door", "will not open", new Dictionary<string, object>
                     {
                         ["door"] = at.ToArray(),

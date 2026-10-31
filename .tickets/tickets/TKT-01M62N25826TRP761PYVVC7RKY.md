@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T05:10:12Z
+updated_at: 2026-10-31T05:26:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -458,3 +458,13 @@ Native home preparation from the Neck location eventually passed after a slow ra
 From home, f473d3e selected the east area [43.32,36.09,6.2]. Native travel found Greyling 2378369947:96 en route; t-1 earned the exact observed-death receipt on its first attempt, with zero damage. No area-arrival or empty-local-search proof was earned because discovery interrupted migration. The goal retained proof, recovered and sent t-2 dry home, but its 120-second return timed out below the raised floor. Kill proof remains intact and the whole trip stays incomplete. Evidence .checks/combat-trial-20261031T050443466648Z/summary.json. No actual block/dodge was observed.
 
 Found a concrete dry-following mismatch: actual movement always probed 0.5 m straight ahead, even when the validated next corner was nearer. It can reject the wall beyond a safe turn and continually restart local planning. The motion probe now stops at the nearer checked corner, with full clearance retained for off-route strafing. Added a regression modeling that wall/turn and rate-limited actual-corridor diagnostics. Validate on a changed build without increasing budgets.
+
+**agent:codex/renki-milestones** at 2026-10-31T05:26:48Z
+
+### Changed-layout investigation and second regional trial
+
+Build 2b889ba trial .checks/combat-trial-20261031T051425054736Z/summary.json selected three distinct immutable areas. The south area earned native arrival and local scouting at measured terrain height; failed/refused regions did not become empty coverage. Targeted t-4 killed Greyling 2108331287:17 with exact observed-death proof. Reserved t-5 dry home timed out at 120 seconds; the proof remains in needs_plan goal 90c1caabde170f5bce72231b. Final native pose [-46.83,33.74,11.06], 360.7 m observed travel, maximum range 98.9 m, HP101.1, zero damage events. Actual block/dodge and combined confirmed-return proof remain unearned. The corner-lookahead correction did not resolve repeated house snags.
+
+Owner reported a rebuilt door layout. Current near/forward/far collider refresh and live validation discover changed solids and new doors; destroyed/moved cache entries are checked against current objects. Successful route hints are bounded session-only guidance, not durable base topology or failed-traversal memory. The failed home section repeatedly accepted geometry-clear routes, made no progress, and replanned without remembering the failed approach; no door-opening trace identifies the door itself as the root cause.
+
+Found and corrected an independent door discrepancy: planning previously exempted every accessible Door-parent collider regardless of open/refused state. Planning may now speculate through only a valid closed, permitted/key-accessible door outside its refusal cooldown. Dry execution uses actual colliders, including frames and open/swinging leaves, and holds for a bounded asynchronous opening. Refusal feeds back into planning; door requests on another storey are excluded. World/session reset clears door transient records. Stuck/replay rejection traces now include the attempted next waypoint for the remaining body-versus-probe investigation. Core closed-door/physical-execution/refused/keyless/upper-floor regressions and installed-game plugin build pass; full gate, review and live result follow. Do not claim the rebuilt layout or house loop is validated yet.

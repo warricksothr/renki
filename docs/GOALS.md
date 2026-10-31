@@ -166,6 +166,38 @@ turn travel into a kill. Completed ledgers survive explicit resume; pending
 searches after restart remain uncertain and cannot replay. Existing records
 remain readable and their stored policy source/hash stays unchanged.
 
+## Planned production work and maintenance cycles
+
+Production work should combine repeated harvesting, opportunistic combat and
+collection before choosing storage, resupply or repair. The one-kill combat
+trial remains a verification goal. A work-cycle goal keeps its work site,
+progress, cargo and intended continuation across bounded native tasks; one tree
+or enemy need not complete that objective.
+
+The host should derive pressures from free slots, carried weight/capacity,
+owner-defined cargo value and reserves, food, tool and armour durability,
+health/stamina, nearby danger, and estimated travel cost/risk to home or known
+permitted storage. Route confidence matters: nearest by straight-line distance
+need not be the best destination. Policy receives compact measured pressures
+and supported choices; it cannot change native safety bounds. Inventory value
+and return risk can justify an earlier deposit even with room remaining.
+
+Use hysteresis and a committed return phase so a small inventory change does
+not alternate work and storage every tick. Immediate survival and owner orders
+still interrupt. At storage, matched transfer receipts and fresh inventory
+confirm unloading. Restock food and other allowed supplies, repair usable tools
+and armour at appropriate accessible game stations, verify actual durability
+changes and remaining failures, then resume the remembered work site when the
+readiness conditions are met. Missing stations, access, materials or routes
+produce explicit alternatives or a bounded replan rather than an endless loop.
+
+Repair is a native station interaction; choosing when/where to maintain gear
+belongs to the work-cycle goal. Prefer repair over replacement where possible;
+crafting/upgrading remains subject to the existing progression and resource
+policy. Diagnostics should retain pressure inputs, the selected destination,
+travel confidence, action receipts and the reason for continuing or returning.
+This work-cycle and armour-maintenance slice is planned, not yet implemented.
+
 ## Model escape hatch and generated patterns
 
 The first version records `needs_plan` but does not call a model automatically.

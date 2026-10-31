@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T21:48:07Z
-updated_at: 2026-10-29T23:06:49Z
+updated_at: 2026-10-31T05:15:07Z
 created_by:
   id: agent:codex/renki-resume
   name: ""
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -51,3 +51,9 @@ Craft and upgrade through game APIs with exact before/after item counts. Upgrade
 **agent:codex/renki-resume** at 2026-10-29T23:06:49Z
 
 Supplied-tool baseline established during the approved harvesting slice: owner placed a new flint axe in rag chest 1:30592. Withdrew exactly AxeFlint 1 and retained its other stock (Stone 1, Flint 3, ArmorRagsChest 1). Pack before work: quality-1 AxeFlint at durability 100/100 and BeechSeeds 15. Evidence .checks/audit-window-Nw78Tk.jsonl. New HarvestTool policy selects eligible carried resource damage, tier and positive durability rather than guessing from prefab name; broken/inappropriate tools report no_tool with required type/tier. This does not yet fetch stored tools automatically, repair, describe material shortages, craft or upgrade, so all tool-readiness acceptance boxes remain open. The supplied axe is benchmark equipment and is not authorization to spend unrelated shared stock on upgrades. Derive recipes/station requirements from live game data in the next slice; keep an explicit upgrade/reserve policy before spending.
+
+**agent:codex/renki-milestones** at 2026-10-31T05:15:07Z
+
+### Equipment maintenance within a production work cycle
+
+Owner clarified that maintenance must cover armour as well as harvesting tools, and fit between verified cargo deposit/restocking and resuming the remembered work site. Prefer repair at an appropriate accessible station before replacement; verify fresh actual durability changes per item and report partial/failed repairs. Durability contributes to a host-derived work/return pressure alongside cargo capacity/value, food, danger and travel cost. See TKT-01M6864352N8E28YCGHA19AN90 (Pressure-driven work, storage and maintenance goals), left in draft as planned follow-up. This note expands design coverage without promoting this equipment ticket.

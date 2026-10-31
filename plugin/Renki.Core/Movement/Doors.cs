@@ -29,6 +29,7 @@ namespace Renki.Movement
         /// <summary>The door is within Reach and in front of the way the bot is going.</summary>
         public static bool Ahead(V3 pos, V3 heading, V3 door)
         {
+            if (Math.Abs(pos.Y - door.Y) > Level) return false;
             var to = new V3(door.X - pos.X, 0, door.Z - pos.Z);
             var d = Math.Sqrt(to.X * to.X + to.Z * to.Z);
             if (d > Reach) return false;
@@ -41,6 +42,13 @@ namespace Renki.Movement
 
         /// <summary>How far above or below a door still counts as level with it.</summary>
         public const double Level = 2;
+
+        /// <summary>Only planning may speculate through a closed door that
+        /// can be opened. Execution always checks its real colliders, including
+        /// the frame and the leaf while it swings. An open door is no reason
+        /// to ignore those solids either.</summary>
+        public static bool MayIgnoreCollider(bool enabled, bool closed, bool canOpen,
+            bool refused, bool executing) => enabled && closed && canOpen && !refused && !executing;
 
         /// <summary>The bot is in the doorway of a door it opened: close to it
         /// and level with it, not on a floor above or below.</summary>

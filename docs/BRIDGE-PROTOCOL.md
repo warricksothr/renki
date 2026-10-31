@@ -704,7 +704,14 @@ Notes:
   enforce a 0.6 m maximum step; capsule probes check clearance.
   Point movement accepts a supported arrival inside the task's requested
   stopping distance, rather than requiring an occupied target's exact centre.
-  Closed doors remain usable through the normal door handler. Unknown support and water
+  Closed doors remain usable through the normal door handler. Planning can
+  provisionally pass a closed door only with door handling enabled, valid live
+  door data, ward/key access and no active refusal cooldown. Dry movement checks
+  the actual door/frame colliders and waits for a bounded opening request;
+  requesting an opening is not evidence of physical clearance. Open doors never
+  exempt their frames or swinging leaves from physics checks. Nearby door scans
+  and route-leg validation use current objects/geometry after rebuilding a base;
+  old door refusals are cleared on world/session reset. Unknown support and water
   more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
   48 m from its start on each axis, and 8 s. It advances at most eight nodes
   per physics step, with a 2 ms target budget, holding movement and the stuck
