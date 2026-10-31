@@ -10,6 +10,49 @@ namespace Renki.Tests
         static V3? Clear(V3 at) => at;
         static Scouting Search(double radius = 60) => new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, radius);
 
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(4)]
+        [InlineData(7)]
+        public void SectorSearchAdvancesAlongItsBearingAndReturnsOnCheckedLegs(int sector)
+        {
+            var origin = new V3(100, 30, -200);
+            var s = new Scouting(origin, origin, origin, 0, 48, sector);
+            var bearing = (Scouting.Candidate(origin, sector * 3, 48) - origin).Normalized;
+            var bot = origin; var farthest = 0.0; var ended = false;
+            for (var i = 0; i < 100; i++)
+            {
+                var action = s.Decide(bot, 60, true, 2 + i * .2, Clear);
+                if (action == ScoutAction.Done) { ended = true; break; }
+                Assert.Equal(ScoutAction.Walk, action);
+                Assert.InRange((s.Goal - bot).Length, 0, Scouting.LegLength + 1e-6);
+                Assert.InRange((s.Goal - origin).Length, 0, 48.001);
+                Assert.InRange(V3.Dot(s.Goal - origin, bearing), -.001, 48.001);
+                Assert.InRange(Scouting.RouteDistance(origin, origin + bearing * 48, s.Goal), 0, .001);
+                if (!s.Returning) farthest = Math.Max(farthest, (s.Goal - origin).Length);
+                bot = s.Goal;
+            }
+            Assert.True(ended);
+            Assert.True(s.Returning);
+            Assert.Equal(3, s.Attempts);
+            Assert.True(s.CompletedLegs > 0);
+            Assert.InRange(farthest, 47.999, 48.001);
+            Assert.InRange((bot - origin).Length, 0, 1.5);
+        }
+
+        [Fact]
+        public void BlockedSectorDoesNotWanderIntoAnotherBearingOrClaimCoverage()
+        {
+            var s = new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 4);
+            for (var i = 0; i < 3; i++)
+                Assert.Equal(ScoutAction.Wait, s.Decide(V3.Zero, 60, true, 2 + i * .1, _ => null));
+            Assert.Equal(ScoutAction.Done, s.Decide(V3.Zero, 60, true, 3, _ => throw new Exception("no more probes")));
+            Assert.Equal(0, s.CompletedLegs);
+            Assert.Equal(3, s.Attempts);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Scouting(V3.Zero, V3.Zero, V3.Zero, 0, 60, 8));
+        }
+
         [Fact]
         public void SearchProgressesOutwardWithoutReturningAfterEveryPoint()
         {

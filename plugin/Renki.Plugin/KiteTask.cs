@@ -76,7 +76,7 @@ namespace Renki.Plugin
                 }
                 else
                 {
-                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius);
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(origin), Time.unscaledTime, searchRadius, args.SearchSector);
                     Mode("search");
                 }
             }
@@ -174,7 +174,7 @@ namespace Renki.Plugin
                 }
                 positioned = true; walking = false; Mode("search");
                 if (enemy == null)
-                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius);
+                    scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(stagingPosition), Time.unscaledTime, searchRadius, args.SearchSector);
             }
             if (enemy == null && policy == null)
             {
@@ -335,7 +335,7 @@ namespace Renki.Plugin
                 return null;
             }
             preparing = false; area = supported;
-            scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius);
+            scouting = new Scouting(Convert.ToV3(origin), Convert.ToV3(area), Convert.ToV3(pos), Time.unscaledTime, searchRadius, args.SearchSector);
             Mode("search", "reached open ground through ordinary checked travel");
             return null;
         }
@@ -354,7 +354,9 @@ namespace Renki.Plugin
                 if (scoutAction == ScoutAction.Done)
                     return Finish(scouting.CompletedLegs == 0
                         ? Outcome.Failed(Wire.ReasonUnreachable, "no completed scouting route; creature search has no coverage")
-                        : Outcome.Failed(Wire.ReasonInvalidTarget, "no eligible single Greyling after bounded local scouting and return"));
+                        : Outcome.Failed(Wire.ReasonInvalidTarget, args.SearchSector.HasValue
+                            ? "no eligible single Greyling after bounded sector scouting and return"
+                            : "no eligible single Greyling after bounded local scouting and return"));
                 if (scoutAction == ScoutAction.Wait) { walking = false; Mode("search"); return null; }
                 var goal = Convert.ToVector3(scouting.Goal);
                 if (!walking || Vector3.Distance(walkGoal, goal) > .2f)
@@ -365,6 +367,7 @@ namespace Renki.Plugin
                         ["goal"] = Convert.ToArray(goal),
                         ["returning"] = scouting.Returning,
                         ["attempts"] = scouting.Attempts,
+                        ["sector"] = args.SearchSector,
                         ["trailPoints"] = scouting.TrailPoints,
                         ["returnDistance"] = scouting.ReturnDistance
                     });

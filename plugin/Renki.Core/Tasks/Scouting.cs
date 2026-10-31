@@ -16,6 +16,7 @@ namespace Renki.Tasks
         const double TrailSpacing = 2;
         readonly V3 origin, area;
         readonly double began, radius;
+        readonly int firstCandidate, candidateCount;
         readonly List<V3> trail = new List<V3>();
         V3 last, destination;
         double progressAt, bestDistance;
@@ -45,9 +46,12 @@ namespace Renki.Tasks
         public double Travel { get; private set; }
         public string Reason { get; private set; }
 
-        public Scouting(V3 origin, V3 area, V3 bot, double now, double radius = 60)
+        public Scouting(V3 origin, V3 area, V3 bot, double now, double radius = 60, int? sector = null)
         {
             if (!Finite(radius) || radius < 12 || radius > Leash) throw new ArgumentOutOfRangeException(nameof(radius));
+            if (sector.HasValue && (sector < 0 || sector > 7)) throw new ArgumentOutOfRangeException(nameof(sector));
+            firstCandidate = (sector ?? 0) * 3;
+            candidateCount = sector.HasValue ? 3 : CandidateLimit;
             this.origin = origin; this.area = area; this.radius = radius;
             last = bot; began = progressAt = now;
             trail.Add(area);
@@ -72,7 +76,7 @@ namespace Renki.Tasks
                 hasGoal = false;
             }
             ending |= now - began >= WorkLimit || stamina < 30 || Travel + ReturnDistance >= TravelLimit - LegLength ||
-                Attempts >= CandidateLimit && (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5);
+                Attempts >= candidateCount && (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5);
             if (ending && !Returning)
             {
                 Returning = true; hasGoal = false; hasDestination = false;
@@ -91,8 +95,8 @@ namespace Renki.Tasks
                 else if (!hasDestination || V3.FlatDistance(bot, destination) <= 1.5)
                 {
                     if (now - began < 2) return ScoutAction.Wait;
-                    if (Attempts >= CandidateLimit) return ScoutAction.Done;
-                    destination = Candidate(origin, Attempts++, radius); hasDestination = true;
+                    if (Attempts >= candidateCount) return ScoutAction.Done;
+                    destination = Candidate(origin, firstCandidate + Attempts++, radius); hasDestination = true;
                 }
                 // Only a short, physically checked leg is committed. More
                 // distant terrain can load before the next leg is considered.
@@ -129,8 +133,8 @@ namespace Renki.Tasks
             hasGoal = hasDestination = false;
             // Advance to the next bearing instead of committing another
             // collinear leg toward a farther point on the rejected spoke.
-            Attempts = Math.Min(CandidateLimit, (Attempts + 2) / 3 * 3);
-            ending |= Recoveries >= RecoveryLimit || Attempts >= CandidateLimit;
+            Attempts = Math.Min(candidateCount, (Attempts + 2) / 3 * 3);
+            ending |= Recoveries >= RecoveryLimit || Attempts >= candidateCount;
             Reason = reason;
             return ScoutAction.Wait;
         }

@@ -928,6 +928,10 @@ During a trial, `just vm trial-status` reads the newest local evidence directory
 and prints only position, observed travel, health, food, task and observation
 age. Pass an evidence directory to inspect a particular run. It makes no VM
 requests, and reports success only from the completed supervisor summary.
+Persistent trials also include a compact goal checkpoint: consumed attempts,
+pending sector and attempted bearings with empty/incomplete native outcomes.
+This reads local `goal.json` while running and the terminal summary afterward;
+policy source, full perception and raw histories stay out of progress output.
 Full observations, task histories and audit frames remain on disk; inspect
 specific diagnostics only when this compact progress indicates a problem.
 Final summaries also derive minimum/final HP and damage-event counts from the
@@ -942,7 +946,11 @@ without reading a complete audit window.
 across failed native tasks. It retains compact progress, the final goal record
 and full observations in `.checks/`. A changed target or a close confirmed
 attacker can produce another native attempt, while unchanged failures exhaust a
-bounded recovery wait and request a new plan. A goal success requires an exact
+bounded recovery wait and request a new plan. Discovery now tries a fresh
+host-selected bearing after an attempt; an exact empty-search-and-return
+receipt consumes the existing budgets without triggering the repeated-failure
+stop. Incomplete attempts remain distinct from empty search evidence, and
+ordinary failures retain their three-repeat stop. A goal success requires an exact
 native “observed Greyling death” receipt; orchestration progress alone does not
 close melee/block/dodge checks. Cleanup cancels unfinished goals, logs out and
 stops the game, restores combat off and starts the controller/panel alone.

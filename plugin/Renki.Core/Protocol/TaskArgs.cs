@@ -95,6 +95,7 @@ namespace Renki.Protocol
         public bool Kite;
         public V3? At;
         public double? SearchRadius;
+        public int? SearchSector;
     }
 
     public sealed class PickupArgs
@@ -267,10 +268,19 @@ namespace Renki.Protocol
                                 if (double.IsNaN(coordinate) || double.IsInfinity(coordinate)) throw new BadArgsException("`at` requires finite coordinates");
                         }
                         var style = Str(a, "style") ?? "melee";
+                        int? sector = null;
+                        if (a["searchSector"] != null)
+                        {
+                            var value = a["searchSector"];
+                            if (value.Type != JTokenType.Integer || value.Value<double>() < 0 || value.Value<double>() > 7 ||
+                                !kite || !string.IsNullOrWhiteSpace(entity) || at.HasValue)
+                                throw new BadArgsException("`searchSector` requires untargeted kite discovery and an integer from 0 to 7");
+                            sector = value.Value<int>();
+                        }
                         if (at.HasValue && searchRadius > 12) throw new BadArgsException("a fixed fighting area limits `searchRadius` to 12 m");
                         if (style == "") style = "melee";
                         if (style != "melee" && style != "auto") throw new BadArgsException("this build supports melee or auto attack style");
-                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius };
+                        return new AttackArgs { Entity = entity, Style = style, Kite = kite, At = at, SearchRadius = searchRadius, SearchSector = sector };
                     }
                 case TaskNames.Harvest:
                     {
