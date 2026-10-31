@@ -53,6 +53,7 @@ def main():
     parser.add_argument('marker')
     parser.add_argument('--go', action='store_true', help='move to this marker before starting')
     parser.add_argument('--travel-only', action='store_true', help='verify the outward/home journey without food work; requires --go')
+    parser.add_argument('--travel-timeout', type=int, choices=range(120, 181), default=120, help='per-leg travel bound in seconds (120–180)')
     parser.add_argument('--idle', action='store_true', help='verify automatic 30-second idle dwell rather than manual start')
     parser.add_argument('--keep-online', action='store_true', help='remain online only after a verified safe home return')
     args = parser.parse_args()
@@ -64,7 +65,7 @@ def main():
     previous, name, world, saved_definition = None, None, None, None
     owns_body, yielded = False, False
     pinned_home = None
-    deadline = time.monotonic() + 540
+    deadline = time.monotonic() + args.travel_timeout * 3 + 180
 
     def call(*arguments):
         result = subprocess.run(['just', 'vm', *arguments], cwd=ROOT, capture_output=True, text=True, timeout=45)
@@ -132,7 +133,7 @@ def main():
         if args.go:
             if not pinned_home or not travel_ready(status):
                 raise RuntimeError('outdoor travel needs a pinned home and active meal; resupply first')
-            task('move_to', dict(to=marker['pos'], dry=True, avoidHostiles=True), 120)
+            task('move_to', dict(to=marker['pos'], dry=True, avoidHostiles=True), args.travel_timeout)
             status = observe()
         if args.travel_only:
             summary.update(outcome='succeeded', reason='bounded dry round trip completed with native receipts', travelOnly=True)
@@ -176,7 +177,7 @@ def main():
         if home.get('world') != world or home.get('pos') != pinned_home:
             raise RuntimeError('no pinned home for return')
         if not safe_home(status, call('panel', 'GET', '/api/map'), previous):
-            task('move_to', dict(to=home['pos'], dry=True, avoidHostiles=True), 120)
+            task('move_to', dict(to=home['pos'], dry=True, avoidHostiles=True), args.travel_timeout)
         status = observe()
         if not safe_home(status, call('panel', 'GET', '/api/map'), previous):
             raise RuntimeError('return receipt lacks fresh safe home-floor arrival')
@@ -199,7 +200,7 @@ def main():
                 if owns_body and not yielded and not remain and not unsafe(status, previous) and not status.get('task') and pinned_home:
                     home = status.get('home') or {}
                     if home.get('world') == world and home.get('pos') == pinned_home:
-                        task('move_to', dict(to=pinned_home, dry=True, avoidHostiles=True), 120)
+                        task('move_to', dict(to=pinned_home, dry=True, avoidHostiles=True), args.travel_timeout)
                         status = call('panel', 'GET', '/api/status')
                         mapped = call('panel', 'GET', '/api/map')
                         remain = safe_home(status, mapped)

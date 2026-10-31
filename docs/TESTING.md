@@ -16,7 +16,9 @@ health under `.checks/marker-food-*`, returns home after success, and disables
 its test definition. `--keep-online` leaves the client running only when a
 fresh final check proves idle shelter near home with no observed threat.
 Use `--go --travel-only` for an outward/home route check without consuming
-resources or waiting for regrowth. Outdoor travel requires a pinned home and
+resources or waiting for regrowth. `--travel-timeout 180` permits a bounded
+longer leg when a dry, hostile-avoiding route requires a wide detour (default120 s).
+Keep any earlier120 s timeout as a failure in the evidence. Outdoor travel requires a pinned home and
 an active meal with at least five minutes remaining; resupply first.
 Command takeover yields without logging out the new owner. Pure safety checks
 run through `just check vm test-marker-food-check`, included in `just check ci`.
