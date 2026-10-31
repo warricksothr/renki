@@ -264,11 +264,26 @@ Owner orders, stop, permissions and session/world changes revoke the run through
 the engine. The command remembers its requested site in the saved behavior;
 it does not infer work sites from watching owners, mine rocks or craft tools.
 Focused checks: `just check controller test-packages ./internal/behaviour`.
+Explicit definitions may opt into `defend:true` (default false). At the work
+site, one freshly observed unstarred Greyling actively targeting Tas within
+20 m may trigger the existing native kite/melee task. This requires normal
+combat permission, food, 80% health, 40 stamina, a usable axe, safe footing and
+no nearby bystander or additional threat. At most two encounters and the same
+overall work budget are allowed, with four minutes remaining before dispatch.
+An interrupted refused cut retries that exact resource; it does not count as
+a break or authorize another tree. Resumption requires the exact native
+Greyling death receipt and subsequent fresh state/perception with no living
+target. The chain and original product baseline survive defense. Injury,
+failed combat or an unavailable interrupted resource stops the run. Owner chat
+does not silently opt into combat.
+
 Controller-level full gathering/delivery remains a separate live check. Run
 `just check vm gather-trial --gather-trees 2` to require two distinct complete
 trees, task-matched break proof, combined gains-only storage and final home.
 `--gather-site X Y Z` supplies a known location hint without binding a stale
 resource ID; the controller acquires fresh eligible trees there.
+`--gather-defend` explicitly enables the optional defense for that trial and
+temporarily enables combat permission, restoring it off during cleanup.
 
 ## Combat
 

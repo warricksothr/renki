@@ -673,6 +673,17 @@ results. `just check vm test-gather-trial` checks proof reconciliation;
 Both are included in `just check ci`. This single cycle does not establish chat
 site inference, repeated hauling or the complete M2 milestone.
 
+For two complete fresh trees and final home-floor return, use
+`just check vm gather-trial --gather-trees 2 --gather-site X Y Z`. Optional
+`--gather-defend` enables bounded work-site Greyling defense and temporarily
+permits native combat. The proximity guard exempts only the exact active
+native attack target, with matching combat ID, request and behavior attribution.
+Other nearby threats and all injury/footing/scope guards still abort. Audit
+proof requires each attributed defense's exact requested target/death trace,
+and retries of a refused cut must follow defense and keep the same resource.
+Only successful local-hit breaks count toward distinct completed tree chains;
+refusals, combat drops and disappearance cannot replace the harvest proof.
+
 Health checks retain the last accepted injury-event sequence from the current
 connection (`injurySeq` in panel status). Any new injury, including one followed
 by regeneration between polls, stops gathering. A meal refresh can clamp HP to

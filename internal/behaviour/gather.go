@@ -21,6 +21,7 @@ type GatherParams struct {
 	Return     bool     `json:"return,omitempty"`
 	MaxTrees   int      `json:"maxTrees,omitempty"`
 	ReturnHome bool     `json:"returnHome,omitempty"`
+	Defend     bool     `json:"defend,omitempty"`
 }
 
 func (p GatherParams) treeLimit() int { return max(1, p.MaxTrees) }
@@ -79,12 +80,17 @@ type gatherRun struct {
 	stow                                      *stowRun
 	prepared, repairPending                   bool
 	repairBefore                              uint64
+	defender                                  string
+	defenses                                  int
+	defenseReceipt                            *gatherDefenseReceipt
+	resume                                    *protocol.PerceivedResource
 }
 
 func (r *gatherRun) Recover(result Result) bool {
-	// Only the existing bounded storage fallback may consume a refusal.
-	// Failed harvesting never advances to a different resource.
-	return r.stow != nil && r.stow.Recover(result)
+	// Storage may try its next chest. Opted-in harvest refusal may defend,
+	// then retry the same resource; it never counts as a completed cut.
+	return r.stow != nil && r.stow.Recover(result) || r.p.Defend && r.pending != nil &&
+		result.Entity == r.pending.ID && result.Status == protocol.StatusFailed && result.Reason == protocol.ReasonRefused
 }
 
 func beechLog(resource protocol.PerceivedResource) bool {
@@ -198,6 +204,12 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	if v.Now.Sub(r.began) >= r.p.workLimit() {
 		return nil, errors.New("gather reached its bounded work limit")
 	}
+	if r.defender != "" {
+		if err := r.confirmDefense(v, result); err != nil {
+			return nil, err
+		}
+		result = nil
+	}
 	if r.homePhase != "" {
 		if result == nil || result.Status != protocol.StatusSucceeded {
 			return nil, errors.New("gather home return lacks native success")
@@ -305,6 +317,15 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	if r.pending != nil {
 		if result == nil || result.Status != protocol.StatusSucceeded {
+			if result != nil && r.Recover(*result) {
+				order, err := r.defend(v)
+				if order != nil {
+					r.resume, r.pending = r.pending, nil
+				}
+				if order != nil || err != nil {
+					return order, err
+				}
+			}
 			return nil, errors.New("gather lacks a successful native harvest result")
 		}
 		if v.Inventory.Seq <= r.beforePack || v.Perception.Seq <= r.beforeScan {
@@ -332,6 +353,22 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	if v.Now.Before(r.settleUntil) {
 		return nil, ErrWait
+	}
+	if order, err := r.defend(v); order != nil || err != nil {
+		return order, err
+	}
+	if r.resume != nil {
+		for _, resource := range v.Perception.Resources {
+			if resource.ID == r.resume.ID && resource.Prefab == r.resume.Prefab &&
+				resource.Kind == r.resume.Kind && gatherClear(v, resource) {
+				if err := gatherReady(v); err != nil {
+					return nil, err
+				}
+				r.resume = nil
+				return r.harvest(v, resource)
+			}
+		}
+		return nil, errors.New("interrupted harvest target is no longer available and safe")
 	}
 	if r.treeOpen {
 		unfinished := false
@@ -433,14 +470,21 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		r.trees++
 		r.chainLogs, r.chainTargets, r.chainWood = r.logs, r.targets, v.Inventory.Count("Wood")
 	}
+	return r.harvest(v, *best)
+}
+
+func (r *gatherRun) harvest(v View, resource protocol.PerceivedResource) (*session.Order, error) {
+	if r.targets-r.chainTargets >= 9 {
+		return nil, errors.New("gather reached its nine-resource chain limit")
+	}
 	remaining := math.Min(195, (r.p.workLimit() - v.Now.Sub(r.began)).Seconds())
 	if remaining < 30 {
 		return nil, errors.New("insufficient remaining gathering budget")
 	}
 	r.targets++
-	r.pending, r.beforePack, r.beforeScan = best, v.Inventory.Seq, v.Perception.Seq
+	r.pending, r.beforePack, r.beforeScan = &resource, v.Inventory.Seq, v.Perception.Seq
 	collect := true
-	return &session.Order{Task: protocol.TaskHarvest, Args: &protocol.HarvestArgs{Entity: best.ID, Collect: &collect}, TimeoutS: remaining}, nil
+	return &session.Order{Task: protocol.TaskHarvest, Args: &protocol.HarvestArgs{Entity: resource.ID, Collect: &collect}, TimeoutS: remaining}, nil
 }
 
 func (r *gatherRun) startStow() {

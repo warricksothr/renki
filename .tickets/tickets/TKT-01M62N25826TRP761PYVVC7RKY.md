@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T10:06:13Z
+updated_at: 2026-10-31T10:44:42Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -495,3 +495,10 @@ The scoped chest search completed without food (.checks/resupply-trial-20261031T
 Native dry foraging approaches correctly refused before entering hostile clearance (.checks/task-p9d3mlbk.json and .checks/task-g6osfkt0.json). Fresh perception identified ordinary Neck309910011:906 at[5.6,31.1,49.5], next to the mushroom patch[11,31.1,51.6]. Tas is safely offline after his last meal expired,25/25HP, no new damage. Do not claim gathering progress.
 
 Extend explicit native melee eligibility to an unstarred wild hostile Neck, preserving the same normal health/stamina/physical/by-stander gates, weapon inputs, exact native death proof, encounter/work/leash bounds and AllowCombat. Untargeted search remains Greyling-only; the native-confirmed emergency defense mode remains Greyling-only. Do not silently choose Necks as a substitute target. Add bounded loaded-threat identities/positions to failed avoidance route traces, so planning exclusions beyond normal perception are explainable. Full gate/review/deployment precede live explicit encounter, food collection and resumed two-tree benchmark. Cooking is a separate future primitive rather than a prerequisite shortcut in this change.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:44:42Z
+
+### Optional bounded defense preserves unfinished work
+Latest two-tree trial .checks/gather-trial-20261031T102921984436Z/summary.json reached [65,35,28] and felled Beech1 1:61675 with nine local hits, then stopped because Greyling1960390678:2623 pursued Tas during log settling. Zero damage; no full-tree chain or delivery claim. Exact native melee subsequently killed that pursuer without damage: .checks/combat-trial-20261031T103338195611Z/summary.json. The preexisting new trunk812124484:165 cannot count as a fresh full tree in the next trial.
+
+Implement opt-in gather defend:true, default false: one fresh ordinary Greyling targeting Tas within20m, normal native kite/melee permission/gates, at most two encounters within the existing work budget. Preserve unfinished tree/log identity and original inventory; a refused cut retries the same resource only after exact native death proof plus subsequent fresh state/perception. Injury still stops. No silent chat combat opt-in. Controller regressions pass .checks/20261031T104237Z-OuwbTQ.log. Trial --gather-defend explicitly enables permission and restores false; proximity exception requires matching attributed task/request/combat target, and proof excludes refused cuts. Trial tests pass .checks/20261031T104406Z-qvf2uN.log and .checks/20261031T104406Z-4YXruV.log. Full CI/review/deploy and exact two-fresh-tree/log gains-only home-storage proof remain next. Broad M2/M3 criteria remain open.

@@ -222,10 +222,11 @@ def main():
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
     parser.add_argument('--gather-trees', type=int, default=1, choices=range(1, 4), help='full trees required by the controller gather benchmark')
     parser.add_argument('--gather-site', type=float, nargs=3, help='known work-site hint; controller revalidates actual resources on arrival')
+    parser.add_argument('--gather-defend', action='store_true', help='opt into bounded native defense of a confirmed Greyling pursuer during gathering')
     args = parser.parse_args()
     harvesting = args.harvest_tree or args.harvest_logs is not None or args.gather_tree
-    if (args.gather_trees != 1 or args.gather_site is not None) and not args.gather_tree:
-        parser.error('gather count/site require --gather-tree')
+    if (args.gather_trees != 1 or args.gather_site is not None or args.gather_defend) and not args.gather_tree:
+        parser.error('gather count/site/defense require --gather-tree')
     if args.gather_site and not all(math.isfinite(v) for v in args.gather_site):
         parser.error('--gather-site must contain finite coordinates')
     if args.persistent and (harvesting or args.resupply_food or args.direct or args.entity or args.at):
@@ -267,7 +268,7 @@ def main():
     try:
         print('Preparing one bounded ' + ('resupply' if args.resupply_food else 'harvest' if harvesting else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
         call('stop', timeout=200)
-        call('combat', 'false' if harvesting or args.resupply_food else 'true')
+        call('combat', 'false' if (harvesting and not args.gather_defend) or args.resupply_food else 'true')
         call('start', timeout=330)
         deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
         startup_deadline = time.monotonic() + 120
@@ -345,8 +346,8 @@ def main():
         elif args.gather_tree:
             from gather_trial import run
             print('Testing controller gather, gains-only delivery and return', flush=True)
-            if args.gather_trees != 1 or args.gather_site is not None:
-                run(summary, call, observe, saved, trees=args.gather_trees, site=args.gather_site)
+            if args.gather_trees != 1 or args.gather_site is not None or args.gather_defend:
+                run(summary, call, observe, saved, trees=args.gather_trees, site=args.gather_site, defend=args.gather_defend)
             else:
                 run(summary, call, observe, saved)
         elif harvesting:

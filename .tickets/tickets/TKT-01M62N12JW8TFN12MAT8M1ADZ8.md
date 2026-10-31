@@ -33,7 +33,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T10:17:30Z
+updated_at: 2026-10-31T10:44:42Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -320,3 +320,10 @@ Extend explicit native melee eligibility to an unstarred wild hostile Neck, pres
 353d626 passed CI .checks/20261031T100613Z-f93Ehy.log, review .checks/20261031T100850Z-eauWWx.log and checksum deployment .checks/20261031T100858Z-mMRkbS.log. Explicit native Neck lure t-2 ended honestly with enemy did not follow, then a bounded retreat (.checks/task-6cniv9tm.json); no kill is claimed. The Neck moved away from Tas instead of pursuing. A normal physically checked dry approach reached the mushroom site (.checks/20261031T101208Z-j7Fhox.log). Controller collect completed, activated Mushroom and retained one reserve; HP regenerated from25 to33/39.6 without observed injury. The temporary preparation behavior was deleted. Current product baseline is Wood4/Resin2, including incidental outbound pickups; do not reuse old Wood2 proof.
 
 Blocked-route diagnostics from .checks/task-htfotnzq.json identify six actual loaded threats. Applying40m to every ordinary shore creature overconstrained escape from the mushroom patch (156 nodes,778 hostile rejections) despite harmless northward space. Use40m by default,24m for unstarred Boar and16m for unstarred Neck; starred/unknown creatures keep40m, passive animals stay excluded. All existing per-step support/water/collision checks, starting-inside outward-only constraint, snapshot and planning bounds remain. The captured-coordinate mixed-threat regression must find a checked detour (the initial straight leg must still fail), and preserve clearance for Greylings. Wood-site selection also excludes freshly known Greylings within40m of a resource rather than selecting work inside its travel exclusion. Tas is safely offline with the panel running during verification; reserve food remains available. Need full gate/review/deploy, return/replenish berries and exact two-tree gains-only home storage proof. Consider the northeast stand around[65,35,28] away from the loaded southeast Greyling1960390678:2623 at[44.7,33.3,84.9], revalidating every actual tree on arrival.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:44:42Z
+
+### Optional bounded defense preserves unfinished work
+Latest two-tree trial .checks/gather-trial-20261031T102921984436Z/summary.json reached [65,35,28] and felled Beech1 1:61675 with nine local hits, then stopped because Greyling1960390678:2623 pursued Tas during log settling. Zero damage; no full-tree chain or delivery claim. Exact native melee subsequently killed that pursuer without damage: .checks/combat-trial-20261031T103338195611Z/summary.json. The preexisting new trunk812124484:165 cannot count as a fresh full tree in the next trial.
+
+Implement opt-in gather defend:true, default false: one fresh ordinary Greyling targeting Tas within20m, normal native kite/melee permission/gates, at most two encounters within the existing work budget. Preserve unfinished tree/log identity and original inventory; a refused cut retries the same resource only after exact native death proof plus subsequent fresh state/perception. Injury still stops. No silent chat combat opt-in. Controller regressions pass .checks/20261031T104237Z-OuwbTQ.log. Trial --gather-defend explicitly enables permission and restores false; proximity exception requires matching attributed task/request/combat target, and proof excludes refused cuts. Trial tests pass .checks/20261031T104406Z-qvf2uN.log and .checks/20261031T104406Z-4YXruV.log. Full CI/review/deploy and exact two-fresh-tree/log gains-only home-storage proof remain next. Broad M2/M3 criteria remain open.
