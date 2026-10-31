@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62N25826TRP761PYVVC7RKY
 title: "Plugin: attack task with blocking and dodging"
 type: task
-status: in-progress
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/scouting-live-results
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: f8efacd9d4c5e2d4c78a612cdcf2c3d7af97bf0e
-  session: null
-  claimed_at: 2026-10-31T00:53:15Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T01:00:21Z
+updated_at: 2026-10-31T01:07:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -320,3 +313,13 @@ Final state independently checked: Valheim stopped, controller/panel running, Al
 Implemented durable directional discovery in this branch: host assigns fresh bearings in order 0,4,2,6,1,5,3,7; native sector searches keep the same checked short-leg movement, observed return trail and all prior time/travel/health/permission bounds. Dispatch intent checkpoints sector/origin/radius; matching receipts append a bounded attempted-search ledger. Exact empty-return receipts advance without counting as repeated encounter failures, while incomplete searches remain non-empty evidence and generic three-repeat stops remain. Neither search nor travel can satisfy kill proof. This spreads local effort across bearings, not relocation through the full 200 m goal area or exhaustive coverage. Added compact goal/sector progress to just vm trial-status.
 
 Focused controller/goal/behaviour/protocol checks passed (.checks/20261031T005526Z-TlZjTJ.log), native ScoutingTests passed (.checks/20261031T005519Z-bupikk.log), protocol fixture checks passed (.checks/20261031T005627Z-UTKyPr.log), and supervisor/progress checks passed (.checks/20261031T005627Z-kmnXDN.log). Full just check ci passed (.checks/20261031T005631Z-H56LRz.log). Live progression, kill/death-callback, block and dodge remain unproved. Next: commit/review, land/deploy, then one persistent-goal trial with compact evidence and normal offline cleanup.
+
+**agent:codex/renki-milestones** at 2026-10-31T01:07:01Z
+
+PR123 (Advance persistent combat goals through fresh search bearings) merged as d07c126 after full just check ci (407 C# tests, 42 browser scenarios, .checks/20261031T005631Z-H56LRz.log) and clean committed just check review (.checks/20261031T010021Z-8fUeL1.log). Checksum just check vm install passed (.checks/20261031T010308Z-Bp8N0d.log).
+
+The persistent changed-build trial used all six native tasks, progressing through sectors 0,4,2,6,1,5 without manual movement or enemy staging. Sectors 4,6,1 returned exact empty-search receipts; sectors 0,2,5 completed no checked leg and remained incomplete/unreachable in the durable ledger. It stopped honestly at needs_plan / attempt/native-task budget exhausted. Observed travel 128.7 m, zero native damage events, final 76.8 HP at [-23.94,33.48,-6.77]. Only a Deer and two Necks appeared in the audit; no Greyling was observed and no combat success/proof was recorded. Evidence: .checks/combat-trial-20261031T010332920297Z/summary.json; audit .checks/audit-window-WTmVsr.jsonl; console .checks/20261031T010332Z-joaUyi.log. just vm trial-status now summarizes the goal, consumed attempts, pending sector and empty/incomplete outcomes without dumping policy or perception.
+
+This earns live multi-attempt search progression and separation of empty/incomplete outcomes, not complete sector coverage or the wider M3 acceptance. Do not rerun the unchanged local search. Next useful development is native checked travel into additional search origins within the authorized goal sphere, with the host persisting attempted regions and the native side choosing supported terrain/return routes. Keep existing budget, permission, body-ownership and exact-death proof bounds; do not infer terrain endpoints from the current Y, increase every budget, or ask players to stage/clear enemies. Kill/death callback, block, dodge and broader owner-defense checks remain open.
+
+Independent final status .checks/20261031T010608Z-bhXJVF.log: Valheim stopped, controller/panel running and Tas disconnected. Trial cleanup restored combat off. Returning this unfinished ticket to ready and releasing the claim for the next development pass; acceptance boxes remain open.
