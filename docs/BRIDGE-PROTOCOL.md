@@ -825,6 +825,15 @@ Notes:
   (`Pathfinding.GetPath(..., AgentType.Humanoid)`). Check every segment against
   the measured wall layout, with body clearance and wall height. Never steer
   past the last waypoint of a partial path toward the original goal.
+  For dry validation, navmesh heights are guidance: smoothing across stairs can
+  put a hint below the actual tread. Each short step follows continuously
+  measured support and must still pass all water, wall, obstacle, body and
+  hostile checks. Arrival uses the measured destination floor. Recorded trails
+  retain their65cm floor-agreement check; only speculative navmesh hints use
+  projection. Both retain the512-sample limit and enclosing task deadline.
+  Rejection traces report validation reason, checked start, expected point and
+  measured support. Accepted/rejected candidates report their largest hint
+  height offset, distinguishing projection rejection from physical clearance.
 - **Local routing:** when the navmesh has no path, ends more than 1.5 m short
   across the ground, crosses a known wall, or stuck recovery asks for another
   route, run local A* on 0.5 m cells. Ground probes preserve floors and

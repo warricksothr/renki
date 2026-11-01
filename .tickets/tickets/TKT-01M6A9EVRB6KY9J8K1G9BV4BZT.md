@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T03:55:31Z
+updated_at: 2026-11-01T04:14:27Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -56,13 +56,11 @@ Use the retained terrain and collider evidence to determine whether a safe route
 
 ## Implementation plan
 
-Continue above #143 (25ac946, passed CI and committed review, pushed as draft). Preserve the prior coastal evidence and earned AC3; the original multi-threat physical route remains unproven. User authorized continuation of combat-aware gathering.
+User authorized autonomous work on raised-house departure, then forage/verified pickup/home/storage and eventual encounter continuation. Work above #144 /3bf4b14 on t3/checked-stair-projection. Tas is presently online, sheltered at home and uninjured; preserve current evidence and physical/hostile clearances.
 
-Current slice: opt-in native recovery for single-use ordinary pickable interactions and loose-item pickup. Reuse the same narrow Greyling defense / checked escape / quiet observation under one task ID, original timeout and shared attempts. Enforce flee/attack permissions at both safety layers, exclude held/alternate/sleep/repair/cooking interactions and unsupported/dangerous pickables, and use checked dry approach. Retain the original child rather than reconstructing an action. Capture exact source identity/item/quantity and carried count before an encounter, then revalidate and rebuild only the approach after recovery. A changed/disappeared source or changed pack is an uncertain outcome, not permission to replay. If pickup has already issued a game use, a new encounter must refuse recovery before combat/escape inputs instead of suspending an unresolved write.
+Code diagnosis: RouteValidation rejects samples after the physical probe succeeds when measured floor differs from the speculative navmesh height by more than.65m. Captured stair candidates near[-41.16,35.29,13.28] repeatedly report no physical failure, consistent with this unreported second rejection. A navmesh is a geometry hint, whereas an actual recorded trail is floor-specific evidence. Let navmesh validation follow continuously probed physical support without requiring each hint's interpolated height to match; retain the existing strict height agreement for recorded route replay. Keep every water/support/body/wall/hostile probe, actual-goal floor/arrival check, bounded samples, original task deadline and exact source/receipt semantics. Add explicit validation rejection reason/from/expected/measured support and largest height offset to native traces so the field hypothesis is testable rather than assumed.
 
-Generalize exact native recovery ownership and the existing goal-wide actual-damage allowance to these two collection intents. Do not widen it to cooking, transfers or tree swings. Reconcile a matched in-flight product's positive fresh inventory gain before subsequent threat/injury decisions, without dispatching another action during accounting. Retain product/task provenance and reject uncertain results or excessive gains. Extend supervisor ownership checks consistently.
-
-Add deterministic tests for wrapper pause/resume and cancellation/terminal failure, source/pack changes, pending-use refusal, protocol/permission gates, goal accounting before threat/injury, uncertain result refusal, and unchanged goal-wide budget. Run focused recipes, full just check ci, commit/review, publish/link a new draft above #143. If reviewed build is ready, install while keeping Valheim offline and restore/confirm the controller panel. No unproven field combat or collection/storage success is claimed. Cooking slot/access-request recovery, harvesting swing recovery and Neck/Boar/group capability remain separate slices. Do not repeat the unchanged trapped return or ask for manual clearing.
+Add deterministic smoothed-stair, wrong-floor arrival, removed support/blocked body/water, recorded-floor-change and sample-bound regressions. Run focused maths/plugin build checks, full just check ci, commit and committed review against3bf4b14, publish/link a draft above #144. Install reviewed controller/plugin together using normal VM tooling; start with existing startup guard. Do not replay the unchanged failed route before this addressed change. Use existing bounded supervised food shortage/collection/storage tools and native tasks, retain exact observed inventory/container receipts and same-task recovery diagnostics. Record partial/failed results honestly. Restore/leave Tas online only after verified safe home conditions. Do not lower physical margins, change home, teleport, disable safeguards or ask for manual creature clearing. If a later independent issue appears, diagnose from retained data before changing it.
 
 ## Notes
 
@@ -163,3 +161,9 @@ Restoration trial just check vm food-check --join --reserve2 --keep-online passe
 Fresh final status/map/pack (.checks/20261101T035339Z-ThmQzj.log, -wxFyMi.log, -fkSNvP.log) confirmed connected in DizzysHellheim,1502720,[-34.62,36.09,7.86],37.7/37.7HP, injurySeq0, grounded+sheltered+near fire, no body task, no observed creatures, Wood35 and Mushroom2. Health maximum fell with food expiry; there were no damaged events in the retained audit. Tas remains logged in, not stopped by test cleanup. Prior gate/review still applies to unchanged production code; validate only new ticket/docs evidence before committing it.
 
 Next focus is reliable checked departure/stair traversal around the raised house and actionable per-candidate physical refusal diagnostics, followed by outdoor forage/return/storage and a real same-task encounter. Preserve clearance, original task deadlines and source/receipt rules; do not claim live Greyling/Neck/Boar/group defense or original coastal AC1/AC2. Earned AC3 stays checked.
+
+**agent:codex/renki-milestones** at 2026-11-01T04:14:27Z
+
+Implemented navmesh-only support projection on t3/checked-stair-projection above #144 /3bf4b14. Raw navmesh height no longer vetoes a successful continuously checked physical step; recorded trails keep their original65cm floor agreement. Support/body/wall/water/hostile probes, measured goal arrival, original512-sample budget and task deadline remain unchanged. Rejection traces now include checkingFrom, supported, validationRejection and maxHintHeightOffset; accepted candidates retain maxHintHeightOffset.
+
+Focused just check plugin test-core Navmesh, just check plugin build and just check plugin fmt passed (.checks/20261101T041120Z-XXTgK3.log, -CiRMCu.log and .checks/20261101T041147Z-58j4SM.log). Full gate is running in .checks/20261101T041210Z-hKXErF.log; no field success is claimed. Synthetic regressions cover smoothed stairs, recorded-floor refusal, wrong-storey arrival, physical refusal and original sample bounds. Live diagnosis must establish whether the previously silent rejection was height mismatch; a further real physical refusal needs its own diagnosis. Original coastal AC1/AC2 remain open.

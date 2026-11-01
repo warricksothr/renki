@@ -1336,6 +1336,13 @@ This proves the opted-in pickup path without an encounter. Creature defense,
 encounter-to-collection resumption and outdoor collection-to-storage remain
 unproven. No physical or hostile clearances were relaxed.
 
+`just check plugin test-core Navmesh` covers smoothed stair hints projected onto
+continuous live support, actual-floor arrival, missing floors, body/water
+refusals, one-way drops, original sample bounds and unchanged recorded-floor
+agreement. Native projection diagnostics must still establish the captured
+raised-house candidate's actual measured height; the synthetic regression alone
+does not prove the field route or authorize movement.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing
