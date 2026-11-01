@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T21:14:39Z
-updated_at: 2026-11-01T21:24:58Z
+updated_at: 2026-11-01T21:29:31Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -47,7 +47,7 @@ The user explicitly wants Tas to take personal risks, including death, to protec
 
 - [ ] Escort fights confirmed hostile attackers at low health and against groups without fleeing solely to preserve Tas
 - [x] Automatic native recovery logout and test shutdown default off; explicit stop and deployment restart still work
-- [ ] Combat enabled and automatic logout disabled on Blight with observed configuration evidence
+- [x] Combat enabled and automatic logout disabled on Blight with observed configuration evidence
 
 ## Implementation plan
 
@@ -62,3 +62,11 @@ Implemented internal escort protection with confirmed hostile targets across spe
 Native Safety.AutoLogout defaults false independently of RecoveryGuard. Failed startup healing/return emits the actual reason, aborts recovery and releases its input hold without ending the bridge or game; explicit/manual logout and deployment restarts are preserved. Combat/harvest/gather/goal/resupply, escort, cooking, food, marker-food, route, recovery and camera harnesses require --allow-logout for cleanup shutdown. Shared combat harness also requires --restart-client for setup restart/permission changes, and no longer restores combat off. Direct unfinished task cleanup checks exact ownership. Structured failure outcomes remain failures while the client is retained.
 
 Validation: just check ci passed in 176 seconds (.checks/20261101T212127Z-waB8L2.log), including game-API plugin build, C#/Go policy/permissions/ownership tests, 46 desktop/mobile UI scenarios, all live harness simulations, and new injured cooking/food/camera lifecycle execution tests. Focused low-health/group protection, startup abort, route retention and combat cleanup tests passed. Initial focused travel test had the obsolete 30 HP expectation; updated to positively accept the 25/25 HP case before full CI compiled and tested it. Live deployment/configuration and actual owner-defence encounter evidence are still pending; leave AC1 and AC3 open.
+
+**agent:codex/renki-milestones** at 2026-11-01T21:29:31Z
+
+Committed implementation at 135c356. just check review HEAD~1..HEAD passed with no findings (.checks/20261101T212459Z-qAe54j.log). just check vm install passed with verified controller/plugin checksums (.checks/20261101T212530Z-4js4ge.log), followed by one explicit required game restart. Blight now runs controller/plugin source 135c356 with AllowCombat=true and Safety.AutoLogout=false; no cleanup restores combat off.
+
+Live negative-path check: armed a bounded startup return while Tas was at home with 25/25 HP and zero active foods. Native trace at 2026-11-01T21:27:23Z recorded startup return refused (unsafe health, food, water or threat clearance), then startup recovery aborted; staying online with autoLogout=false. A fresh state remained connected/in_world at the same home position with no recovering hold, and inventory still held his equipped flint axe (76/100 durability) and rag armour. Evidence .checks/protection-policy/after-status.json, pack.json and audit-path.txt (native traces in the referenced audit). RecoveryReturn is cleared and RecoveryGuard=false is persisted for future launches; the current guard already completed its abort.
+
+just check vm escort-check Nimah --seconds 15 --leave-running passed (.checks/20261101T212827Z-rqx7Yc.log): five observations, minimum25HP, mode wait, body t-1. This exercises actual native escort admission/permissions with no food and without the old 30 HP floor. Tas remains online, waiting for Nimah to enter loaded range; the tool did not log out or disable combat. This is not evidence of a fought encounter. Leave AC1 open for live low-health/group protection; field positioning around buildings and ranged combat remain future checks/work. Archery draft TKT-01M6CFDS8G4KSXAZ349R1PE3H0 remains queued for design/implementation.
