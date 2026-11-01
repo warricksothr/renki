@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T07:02:57Z
-updated_at: 2026-11-01T07:09:37Z
+updated_at: 2026-11-01T07:12:19Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -59,3 +59,7 @@ Finish the in-flight collision-face implementation, retaining existing solid pri
 **agent:codex/renki-milestones** at 2026-11-01T07:07:03Z
 
 Implemented bounded actual building collision faces, broad-phase spatial indexing, live transform/lifetime validation and aggregate route geometry revision. Native walking now includes portal triggers in lower capsule casts/overlaps and ignores unrelated triggers; cache is an optimization only. Observed portal network links and optional known target coordinates flow through shared protocol, per-world durable landmarks and map tooltips. Shared wire fixture plus restart, unlink/retag, unknown-target, copy isolation and persistence rollback regressions pass focused checks. docs/PORTALS.md documents native entry-trigger semantics and a separate future verified travel transition; automatic portal traversal is not yet implemented. Native verification awaits the reviewed deployment and home return.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:12:19Z
+
+Committed651d04f passed full just check ci and just check review f303e66..HEAD, then installed with verified package/DLL checksums while keeping Tas offline. A subsequent final code audit found ordinary navmesh/direct body movement can bypass dry planning probes; added an independent native input-layer portal cast/overlap guard with bounded refusal traces. Rerunning the gate and review before native startup; no portal traversal or safe-arrival result claimed.

@@ -19,7 +19,10 @@ namespace Renki.Plugin
         static readonly RaycastHit[] supportHits = new RaycastHit[64];
         static readonly RaycastHit[] castHits = new RaycastHit[64];
         static readonly Collider[] overlaps = new Collider[64];
+        static readonly RaycastHit[] portalCasts = new RaycastHit[64];
+        static readonly Collider[] portalOverlaps = new Collider[64];
         static Vector3? focus;
+        static float nextPortalRefusalTrace;
         static string world;
         const float Step = .6f;
         const float Radius = .4f;
@@ -32,11 +35,45 @@ namespace Renki.Plugin
             Floating.GetLiquidLevel(Convert.ToVector3(at)));
         internal static void Reset()
         {
-            Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null;
+            Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null; nextPortalRefusalTrace = 0;
             Doorman.Reset();
             Array.Clear(supportHits, 0, supportHits.Length);
             Array.Clear(castHits, 0, castHits.Length);
             Array.Clear(overlaps, 0, overlaps.Length);
+            Array.Clear(portalCasts, 0, portalCasts.Length);
+            Array.Clear(portalOverlaps, 0, portalOverlaps.Length);
+        }
+
+        // The final input guard also covers ordinary navmesh following and
+        // direct body-task movement, which need not use a dry planning probe.
+        internal static bool PortalClear(Vector3 origin, Vector3 direction)
+        {
+            var delta = direction.normalized * .6f;
+            bool Refuse(string stage, Collider collider = null)
+            {
+                if (Time.unscaledTime >= nextPortalRefusalTrace)
+                {
+                    nextPortalRefusalTrace = Time.unscaledTime + 2;
+                    Tracer.Emit("navigation", "movement trigger guard refused", new Dictionary<string, object>
+                    {
+                        ["stage"] = stage,
+                        ["pos"] = Convert.ToArray(origin),
+                        ["to"] = Convert.ToArray(origin + delta),
+                        ["collider"] = collider != null ? collider.transform.root.name + "/" + collider.name : null
+                    });
+                }
+                return false;
+            }
+            var casts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * .45f, origin + Vector3.up * 1.4f,
+                Radius, delta.normalized, portalCasts, delta.magnitude, TriggerMask, QueryTriggerInteraction.Collide);
+            if (casts == portalCasts.Length) return Refuse("cast_saturated");
+            for (var i = 0; i < casts; i++) if (NavigationObstacles.IsPortal(portalCasts[i].collider)) return Refuse("portal_cast", portalCasts[i].collider);
+            var at = origin + delta;
+            var hits = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * .45f, at + Vector3.up * 1.4f,
+                Radius, portalOverlaps, TriggerMask, QueryTriggerInteraction.Collide);
+            if (hits == portalOverlaps.Length) return Refuse("overlap_saturated");
+            for (var i = 0; i < hits; i++) if (NavigationObstacles.IsPortal(portalOverlaps[i])) return Refuse("portal_overlap", portalOverlaps[i]);
+            return true;
         }
         internal static void Update(Player p)
         {

@@ -33,7 +33,9 @@ point, safe terrain or an available return route.
 The game teleports a player on entering a portal trigger; pressing interact
 edits its tag. Ordinary walking avoids these triggers through cached bounds
 and live capsule casts/overlaps, including before cache discovery. Other
-trigger volumes are not treated as solid building parts.
+trigger volumes are not treated as solid building parts. A final native input
+guard also checks ordinary navmesh following and direct body-task movement,
+which may bypass the dry route planner.
 
 ## Controlled travel next
 
