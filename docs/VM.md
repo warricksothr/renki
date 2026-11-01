@@ -21,6 +21,59 @@ retained audit history while Tas is offline. Combat and harvest trial cleanup
 logs Tas out, stops the game, restores combat off, then runs this recipe.
 `just vm stop` still stops both the game and controller when explicitly used.
 
+## Back up before changing server mods
+
+Run `just vm migration-inspect` to list the sources and total size. After
+`just vm stop`, run `just check vm migration-backup` to create a backup under
+`C:\renki\backups\vplus-<UTC timestamp>`. This does not install mods or start
+the game. Both Valheim and the local controller must stay stopped.
+
+The backup includes BepInEx (plugins, configuration and loader assemblies),
+the root Doorstop loader files, the controller executable, local settings and
+secrets, the configured controller data directory (memory, goals and atlas),
+local character/world saves, and any Valheim Steam Cloud save folders found
+under the current account's Steam installation. The base game and server's
+world files on another machine are outside this backup.
+
+Every copied file is checked against the source using SHA256, with another
+source check to detect changes during the copy. `manifest.json` records each
+source path, backup path and checksum. Only a finished, verified copy receives
+`complete.json`; a folder without it is incomplete. Backup permissions allow
+only the current account and SYSTEM because the copy contains secrets. Keep
+the contents on the VM; the command prints paths and counts, never settings
+or save contents.
+
+When rolling back, stop the game and controller, verify the manifest hashes,
+and restore files to the source paths recorded there. Remove only files
+introduced by the migration, such as a newly installed V+ DLL: copying the
+old plugins over the new directory does not remove added mods. Restoring a
+character save rewinds its inventory, so coordinate that with any server
+world rollback rather than restoring it after ordinary play.
+
+## Grantapher Valheim Plus migration
+
+Confirm the host's exact release and settings first. For release 10.4.0.0,
+run `just check vm vplus-stage 10.4.0.0` to download the official GitHub DLL
+and verify its published SHA256 and size. Stop the client/controller and make
+the migration backup above, then run `just check vm vplus-install 10.4.0.0`.
+The installer rechecks the backup and DLL hashes and assembly version. It
+adds only the mod DLL, verifies Renki's DLLs stayed unchanged, and refuses
+existing V+ assemblies or configuration that would need reconciliation.
+
+The existing game and BepInEx runtime are retained. The upstream release
+documents Valheim 1.0.20 with BepInExPack 5.4.2351; Blight had Valheim 1.0.21
+with BepInExPack 5.4.2360 at migration time. Successful local checks do not
+extend upstream's supported version matrix. Check the chosen combination
+instead of downgrading the runtime merely to match the bundled archive.
+
+After startup, `just check vm vplus-inspect` reports DLL versions/hashes,
+selected loader diagnostics, and local non-secret V+ configuration flags.
+It does not report the effective server configuration: V+ synchronizes that
+in memory and restores client values on disconnect. Check sync diagnostics
+and the host's settings as well. With fresh 10.4.0.0 defaults, the optional
+inventory, crafting-from-chests and automatic storage sections are disabled;
+the Server section enables mod enforcement and configuration sync.
+
 ## Once, at the VM, over Remote Desktop
 
 1. **Install the game.** Install Valheim with the bot's own Steam account

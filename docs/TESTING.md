@@ -2012,3 +2012,47 @@ controller and game restarts. Evidence `.checks/cargo-20261101T1900Z/summary.jso
 and `.checks/audit-window-ibzxah.jsonl`; full CI172s and committed review passed.
 The ordinary home-storage idle definition remains enabled with its default
 reserves. These receipts do not close broader M2/M3 route/pantry acceptance.
+
+## Valheim Plus migration, 2026-11-01
+
+The host-selected Grantapher Valheim Plus10.4.0.0 DLL was downloaded with
+`just check vm vplus-stage 10.4.0.0` and checked against the official asset
+SHA256 (`9f6070177a0c58a2edb598b78a7e444dab533d87855c5ecc476e2be244aaae6b`).
+`just check vm vplus-install 10.4.0.0` reverified the102-file,87587416-byte
+backup at `C:\renki\backups\vplus-20261101T201857721Z` and installed only that
+DLL. Renki's installed assemblies remained unchanged. The existing
+Valheim1.0.21/BepInExPack5.4.2360/BepInEx5.4.23.6 runtime was retained; the
+upstream release documents1.0.20/5.4.2351, so these observations establish
+local smoke coverage rather than broader upstream support.
+
+Two guarded joins succeeded into DizzysHellheim as Tasleroch. The server
+reported network41, matching the client; its exact game and loader builds
+were not independently observed (the public server query timed out). V+
+registered462 settings, received server configuration and reapplied patches
+with0 settings changed from the fresh client defaults. Inventory reported
+8x4 slots,300 carrying capacity and the expected tool/armour durability.
+No V+ or Renki patch-loading failure was observed. Two Unity matchmaking
+initialization errors appeared before the successful join.
+
+`just check vm cooking-check --search-home --refresh-food` passed with
+measured chest/pack receipts: withdrew CookedDeerMeat1 and RawMeat1 from live
+chest `1:73565`, then cooked the input at `1:73615` and collected CookedMeat1
+with the native output receipt. The check considered13 unique home chests
+and opened1 for the raw supply. Evidence:
+`.checks/cooking-20261101T202512Z/summary.json` and
+`.checks/modpack-2323/verified-loader.json`.
+
+Four ordinary idle definitions were paused for controlled checks. A later
+move request during the second join's recovery hold was correctly rejected
+with `not_allowed`; it is refusal coverage, not successful movement. Tas
+then recovered to89.3/89.3HP in shelter with injurySeq0 before movement was
+retried. The full `just check ci` gate passed in157s; diagnostics are retained
+in `.checks/20261101T202525Z-0rZChk.log`.
+
+The guarded native retry passed, followed by `just check vm route-benchmark
+--marker "home storage" --home-floor-marker "home cooking" --cycles 1
+--leg-timeout 45 --keep-online`. One round trip had two native receipts and
+observed home-floor arrival, with 7.14m observed movement and minimum88.3HP.
+Evidence: `routes-20261101T202959970535Z` under `.checks/`.
+The four previous idle definitions were restored; Tas was left online at home,
+sheltered and uninjured.

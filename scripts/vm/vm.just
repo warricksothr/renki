@@ -81,6 +81,40 @@ reconnect: need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/reconnect.ps1" "{{target}}:/{{dir}}/reconnect.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/reconnect.ps1"
 
+# Preview migration backup sources without reading settings or save contents to stdout.
+migration-inspect: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/migration-backup.ps1" "{{target}}:/{{dir}}/migration-backup.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/migration-backup.ps1"
+
+# Back up the mod loader, Renki settings/memory and saves; require an offline client/controller.
+migration-backup: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/migration-backup.ps1" "{{target}}:/{{dir}}/migration-backup.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/migration-backup.ps1 -Create"
+
+# Download the official pinned DLL into .checks and verify the release asset digest.
+[positional-arguments]
+vplus-stage VERSION='10.4.0.0':
+    python3 -B "{{justfile_directory()}}/scripts/vm/vplus-stage.py" "$1"
+
+# Install a staged V+ DLL while offline, requiring a completed verified backup.
+[positional-arguments]
+vplus-install VERSION='10.4.0.0': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Use an exact four-part version' >&2; exit 2; }
+    staged="{{justfile_directory()}}/.checks/valheim-plus/$1"
+    sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$staged/release.json")
+    [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || exit 2
+    {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}/staging/vplus-$1' | Out-Null"
+    scp -q -o BatchMode=yes "$staged/ValheimPlus.dll" "$staged/release.json" "{{target}}:/{{dir}}/staging/vplus-$1/"
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/vplus.ps1" "{{target}}:/{{dir}}/vplus.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/vplus.ps1 -Action Install -Version '$1' -Sha256 '$sha'"
+
+# Read versions, selected loader diagnostics and non-secret local V+ flags.
+vplus-inspect: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/vplus.ps1" "{{target}}:/{{dir}}/vplus.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/vplus.ps1"
+
 # Build, stop and install with checksum verification; leave Tas offline.
 install: need-target
     #!/usr/bin/env bash
