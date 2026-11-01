@@ -1507,6 +1507,17 @@ the rolling sixteen native outcomes. The restart regression replaces the
 whole outcome history, then reopens the store and checks cooldown expiry.
 Refused and uncertain visits keep their cooldown; they do not prove arrival.
 
+The next outdoor trial `.checks/food-20261101T063143Z` earned a real Mushroom
+collection but no stock deposit: the ingredient filled Tas's personal reserve.
+Audit `.checks/audit-window-pEgTQ2.jsonl` isolated a return oscillation at
+30.8m support: recovery repeatedly entered and completed on the planning
+boundary without walking until its original eight-second budget expired.
+A subsequent wave set `inWater`, correctly stopping work. Bank completion
+now requires both body and footing to clear the ordinary0.8m planning margin
+plus10cm for settling; entry retains the ordinary margin. A captured boundary
+fixture checks that the state stays in recovery through that narrow band.
+No time/distance budget is renewed and no dry-step guard is relaxed.
+
 Food hunt checks also retain a strictly bounded two-second settlement for a
 matching confirmed death while perception still contains that exact target.
 Other creatures, stale/foreign receipts and the original expiry cannot acquire

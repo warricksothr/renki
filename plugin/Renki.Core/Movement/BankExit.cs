@@ -16,6 +16,14 @@ namespace Renki.Movement
         public int Samples { get; private set; }
         public bool Refused { get; private set; }
 
+        // Finish above the entry threshold, accounting for body settling.
+        // Rounded support at exactly the planning margin must not alternate
+        // recovery/route planning every frame and spend the escape budget idle.
+        public static bool Recovered(V3 body, V3 footing, double water) =>
+            DryTravel.PreferFooting(body.Y, footing.Y, null) &&
+            DryTravel.Clear(body, water, DryTravel.TravelMargin + .1) &&
+            DryTravel.Clear(footing, water, DryTravel.TravelMargin + .1);
+
         public V3? Next(V3 from, V3 toward, double now, Func<V3, V3, V3?> probe)
         {
             if (Refused) return null;

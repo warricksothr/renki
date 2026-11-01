@@ -7,6 +7,18 @@ namespace Renki.Tests
     public sealed class BankExitTests
     {
         [Fact]
+        public void CompletionClearsThePlanningBoundaryAndTheSettledBody()
+        {
+            // Captured recovery alternated at this rounded support height
+            // without walking, until its original eight seconds expired.
+            Assert.False(BankExit.Recovered(new V3(0, 30.86, 0), new V3(0, 30.8, 0), 30));
+            Assert.False(BankExit.Recovered(new V3(0, 30.88, 0), new V3(0, 30.98, 0), 30));
+            Assert.False(BankExit.Recovered(new V3(0, 31.0, 0), new V3(0, 30.88, 0), 30));
+            Assert.True(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30));
+            Assert.False(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30.1));
+        }
+
+        [Fact]
         public void CapturedDryShoreCanLeaveASyntheticBankWithoutAdmittingWadingOrDownhillTravel()
         {
             var body = new V3(-52.47, 30.71, 10.94);

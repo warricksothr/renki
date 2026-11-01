@@ -589,7 +589,8 @@ namespace Renki.Plugin
             bankProbe.BeginSlice();
             var support = bankProbe.Footing(from);
             var water = WorldNavigation.WaterLevel(from);
-            if (support.HasValue && DryTravel.Clear(support.Value, water, DryTravel.TravelMargin))
+            if (support.HasValue && (bankMoving ? BankExit.Recovered(from, support.Value, water) :
+                DryTravel.Clear(from, water, DryTravel.TravelMargin) && DryTravel.Clear(support.Value, water, DryTravel.TravelMargin)))
             {
                 if (!bankMoving) return false;
                 bankMoving = false;
