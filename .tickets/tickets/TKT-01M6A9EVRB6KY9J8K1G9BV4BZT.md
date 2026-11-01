@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T03:29:20Z
+updated_at: 2026-11-01T03:55:31Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -149,3 +149,17 @@ Published draft PR #144, Retain forage and pickup work through bounded encounter
 Installed1502720 on Blight while Valheim was offline with just check vm install; package manifest and installed Renki.Core/Renki.Plugin DLL checksums verified (.checks/20261101T032826Z-haRPEx.log). Restored controller/panel with just check vm panel-start (.checks/20261101T032846Z-uYUuwr.log). Read-only just check vm status0 confirmed game not running, controller running, bot disconnected (.checks/20261101T032900Z-dGnQU6.log). Authenticated just check vm panel GET /api/status confirmed version1502720 and connected:false (.checks/20261101T032900Z-qy0ILT.log). No join, combat or collection/storage field success is claimed.
 
 Verified linked stack #129 through #144 and all layers unwatched. Ticket remains in-progress: earned sheltered-home AC3 stays checked; original coastal route AC1/AC2 and live normal-task recovery-to-collection/storage proof remain open. Tas stays at the retained mixed-threat location without carried meals. Next field work needs a physically checked exit and food readiness, or validated mixed-threat capability; do not replay the unchanged return, relax physical margins or ask for routine manual clearing. Cooking, pending chest access and tree-swing encounter recovery still require separate transactional design.
+
+**agent:codex/renki-milestones** at 2026-11-01T03:55:31Z
+
+User explicitly requested deploy/start and live testing. Verified the already-installed reviewed implementation1502720 (only later ticket-record commits differ), started Tas with just check vm start2, and used existing supervised recipes. No production code or safety setting changed. Native combat was already enabled on Blight; no combat switch was changed.
+
+Live evidence: .checks/audit-window-QhlFlM.jsonl (summary .checks/20261101T035341Z-PEm4yF.log) covers03:39:40–03:53:30UTC. The first food-check (.checks/food-20261101T034151Z) retained normal wire taskt-1 through blocked→changed→walk, reached the actual36.09m home floor, withdrew3 Mushroom from1:70031 and ate1, all without injury. The production goal succeeded; the requested outdoor-acquisition predicate was absent because chest resupply was enough, so the test supervisor correctly reported a failed acquisition proof and logged out. This was a test setup mismatch, not failed resupply.
+
+A staged shortage trial (.checks/food-20261101T034506Z) normally stored2 carried mushrooms in excluded chest1:70031 and searched using1:70040. Search taskt-3 retained its ID through two blocked/changed-condition cycles, then hit its original90s deadline before collection. Last sampled position[-32.36,34.17,23.18],45.2/45.2HP, injurySeq0. Native route candidates repeatedly failed live validation near[-41.16,35.29,13.28] and[-25.84,34.54,20.72]; local searches reported support_step/body_cast and some hostile-corridor refusals. The timeout does not prove no route exists, and raising it alone would not resolve those physical rejections. No collection, storage delivery or combat proof earned.
+
+Restoration trial just check vm food-check --join --reserve2 --keep-online passed (.checks/food-20261101T034826Z / .checks/20261101T034826Z-i9CFx0.log), returning from the south approach and resupplying while leaving Tas online. A later ordinary flint interaction with recovery enabled (t-4, source1:69835) safely refused with unreachable after live navmesh/local body-clearance rejection; Tas remained home. A controlled normal drop of1 Wood (t-5) produced exact drop2008100581:219 and pack35→34. Recovery-enabled pickup t-6 passed with took1 Wood (.checks/task-in0jsm6k.json / .checks/20261101T035310Z-OM4Jy0.log); fresh pack returned to35. This is positive opted-in pickup without a creature encounter, not encounter-resumption proof. All staged Wood recovered; original mushrooms are accounted for by resupply/storage.
+
+Fresh final status/map/pack (.checks/20261101T035339Z-ThmQzj.log, -wxFyMi.log, -fkSNvP.log) confirmed connected in DizzysHellheim,1502720,[-34.62,36.09,7.86],37.7/37.7HP, injurySeq0, grounded+sheltered+near fire, no body task, no observed creatures, Wood35 and Mushroom2. Health maximum fell with food expiry; there were no damaged events in the retained audit. Tas remains logged in, not stopped by test cleanup. Prior gate/review still applies to unchanged production code; validate only new ticket/docs evidence before committing it.
+
+Next focus is reliable checked departure/stair traversal around the raised house and actionable per-candidate physical refusal diagnostics, followed by outdoor forage/return/storage and a real same-task encounter. Preserve clearance, original task deadlines and source/receipt rules; do not claim live Greyling/Neck/Boar/group defense or original coastal AC1/AC2. Earned AC3 stays checked.
