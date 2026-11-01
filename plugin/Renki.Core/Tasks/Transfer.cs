@@ -15,6 +15,12 @@ namespace Renki.Tasks
     /// The adapter must return only what the game actually transferred.</summary>
     public static class Transfer
     {
+        // Alternate standing positions are bounded recovery for local conditional
+        // cargo work, never a retry of permission, water or stopped-task refusals.
+        public static bool CanReposition(bool matchExisting, V3 from, V3 target, Outcome failure) =>
+            matchExisting && (target - from).Length <= 12 && failure != null &&
+            (failure.Reason == Wire.ReasonUnreachable || failure.Reason == Wire.ReasonStuck);
+
         public static bool MatchesDestination(IReadOnlyList<TransferItem> requests, IEnumerable<string> contents)
         {
             var present = new HashSet<string>(contents, StringComparer.Ordinal);

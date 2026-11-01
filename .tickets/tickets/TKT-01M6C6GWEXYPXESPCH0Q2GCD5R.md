@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T18:39:04Z
-updated_at: 2026-11-01T18:50:36Z
+updated_at: 2026-11-01T19:11:49Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -59,6 +59,10 @@ Observe successful local Humanoid.Pickup calls with before/after pack counts, or
 Add marker_cargo on the existing idle engine: fresh safe storage-marker admission, protected food/gear, configured keep counts, finite cargo/chest/time budgets and normal command cancellation. Rank unique nearby chest candidates by known matching contents and then proximity to recent pickup origins; also inspect unknown chests within the storage area. Use existing stow receipts for one prefab at a time, adding a deposit-only matchExisting option so the native transfer opens/observes the chest and moves nothing unless it currently contains that prefab. This closes the inspect/deposit race and prevents empty/wrong chests from becoming assignments. Exhausted/busy/full/unknown destinations retain cargo and report a storage need. Enable one home-storage idle definition after guarded deployment/readiness; do not interfere with a newer human command.
 
 Suppress tutorial Raven.Spawn only for tutorial text on the local plugin through Gameplay.SuppressTutorials, configurable and on by default for the bot. No change to other clients, world collision, or non-tutorial text. Validate focused controller/session/memory/behaviour/protocol and plugin checks, full CI, committed review, stacked PR and installation. Record east-meadow hostile refusal and leave broader route/pantry acceptance open; no unchanged route replay.
+
+Live home unload stored Copper11, BeechSeeds9, Feathers2, Resin7 and Wood25, retaining Wood10 and Coal45. Exact matched receipts and newer pack frames earned the deposits; unknown/mismatched/full candidates moved nothing. A Coal1 drop/pickup produced durable scoped origin evidence that survived a controller-only restart. Local saved plugin configuration confirms SuppressTutorials=true. Two currently perceived exterior chests near the production drops (1:73618/1:73622) could not be reached: validated porch prefix then endpoint_support, no hostile rejection. Tas returned inside uninjured.
+
+Before concluding exterior storage is inaccessible, share cooking's bounded physical interaction approach with conditional chest transfers. After nearby unreachable/stuck only, measure supported, dry, body-clear standing points with actual eye reach and line of sight; use ordinary dry/hostile-avoiding move_to, at most144 seeds/four walks/60s. Never retry water/permission/stopped refusals or alter chest access and exact transfer verification. Preserve cooking heat/fuel checks through a wrapper. Cover fallback eligibility and shared candidate geometry, compile, full gate, committed review, publish/deploy and retry the two exterior conditional destinations under normal guards. Record safe refusal honestly if they still cannot be used.
 
 ## Notes
 

@@ -1953,10 +1953,36 @@ covers pickup scope/dedup/persistence/retry, matching preference, origin ranking
 protected cargo, refused candidate exhaustion and receipt verification.
 `just check plugin test-core TransferTests` covers current destination matching
 and deposit-only argument parsing. A native copper/coal stow and a new live ground
-pickup/restart proof remain required beyond these deterministic checks.
+pickup/restart proof require native evidence beyond these deterministic checks.
 
 `[Gameplay] SuppressTutorials = true` suppresses local tutorial raven spawns via
 `Raven.Spawn`; non-tutorial raven text is retained. It does not mark tutorials
 seen or change other players/server settings. Set false to restore normal
 spawning. Deploy/restart before the next join so no earlier tutorial bird remains
 in that scene.
+
+Native home-storage check on2026-11-01 (`b0ca753`, evidence
+`.checks/cargo-20261101T1900Z`, audit `.checks/audit-window-jYhjca.jsonl`): the
+automatic idle trigger stored Copper11, BeechSeeds9, Feathers2, Resin7 and
+Wood25, with matching native receipts/newer pack frames. It kept Wood10,
+equipped gear and food, reducing carry weight from299.7 to114.5. Coal45 stayed
+in the pack: ten unique home-floor candidates had no currently matching coal
+destination. Older contents were only hints; conditional refusals moved nothing.
+A temporary Coal1 reserve was removed after the check. A native Coal1 drop and
+pickup produced the exact source position/entity, world UID, count and timestamp;
+the same origin record survived a controller-only restart. Automatic eating
+subsequently consumed the carried meal. Saved local plugin configuration confirms
+`SuppressTutorials = true`; this does not establish that a raven caused any
+previous path failure.
+
+Two exterior chests beside the copper/coal production drops (`1:73618` and
+`1:73622`) refused ordinary conditional-transfer routes after a validated porch
+prefix, with `endpoint_support` and zero hostile rejections. Tas returned inside
+without observed injury. This does not prove their contents or complete coal
+storage. Conditional transfers now share cooking's measured interaction approach
+after a nearby unreachable/stuck result: supported dry footing, body clearance,
+actual eye reach and sight, at most144 seeds/four checked walks/60s. Cooking keeps
+its fuel, heat and fire checks. Water, permission and stopped-task refusals cannot
+start this recovery. `just check plugin test-core 'FullyQualifiedName~TransferTests|FullyQualifiedName~InteractionApproachesTests'`
+covers its admission and shared candidate bounds; exterior native retry remains
+required before claiming the access problem resolved.
