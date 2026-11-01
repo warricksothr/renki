@@ -1305,7 +1305,15 @@ threat/injury, unfed bootstrap and distant targeting.
 covers cumulative damage despite healed HP/arbitrary wire sequence gaps,
 unknown/death/reconnect invalidation and preventing a competing emergency body
 while an exact native journey owns recovery. `just check vm test-food-check`
-checks supervisor budget/identity and exact completed travel between polls.
+checks supervisor budget/identity and exact completed travel/collection between polls.
+`just check plugin test-core RecoverableWorkTests` covers collection child
+retention, source/pack revalidation, unresolved-use refusal, failed recovery
+without a false negative-source result, original timeout, stop/death/reconnect/
+deadman cancellation and mode/permission gates. Controller goal/protocol tests
+cover exact forage/pickup ownership, unchanged damage baselines and delayed
+collection gains accounted before threats/injury without dispatching new work.
+Session tests require recovery child capabilities, welcome and live permissions;
+retreat/supervisor checks reject stale journey task types and source substitutions.
 Field coverage still requires the same task ID across encounter recovery and
 actual subsequent travel/collection; policy tests do not establish Unity
 escape clearance or a route through the retained coastal bottleneck.

@@ -548,6 +548,21 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.mu.Unlock()
 		return nil, ErrBodyBusy
 	}
+	// Recheck wrapper children against the live permit after decoding and
+	// waypoint resolution. A permitted body cannot grant withheld combat.
+	recover, defend := false, false
+	switch args := decoded.(type) {
+	case *protocol.MoveToArgs:
+		recover, defend = args.RecoverThreats, args.DefendThreats
+	case *protocol.PickupArgs:
+		recover, defend = args.RecoverThreats, args.DefendThreats
+	case *protocol.InteractArgs:
+		recover, defend = args.RecoverThreats, args.DefendThreats
+	}
+	if recover && !s.permitted(protocol.TaskFlee) || defend && !s.permitted(protocol.TaskAttack) {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("%w: encounter recovery requires its flee/attack permissions", ErrNotAllowed)
+	}
 	if automation == nil && !protocol.Instant(o.Task) {
 		s.automation = nil
 		s.orders++

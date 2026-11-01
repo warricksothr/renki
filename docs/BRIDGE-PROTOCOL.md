@@ -749,7 +749,7 @@ Notes:
   Existing melee checks apply. Defense is limited to12s within the same30s
   recovery attempt; interrupted/refused defense withdraws without resetting it.
   Exact observed death then five quiet seconds permit destination replanning.
-  `state.journey` exposes the matching task ID, mode, attempts and reason so
+  `state.journey` exposes the matching task ID and task type, mode, attempts and reason so
   controller retreat does not compete with the native body owner.
   A refused route may observe changed local water,
   threat or indexed-geometry conditions for up to 30 s before retrying, with
@@ -765,6 +765,20 @@ Notes:
   `journey` traces report mode, reason, attempt count and threat identity.
   See [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md) for staged planning,
   known limits and the remaining field benchmark.
+
+- **Recoverable single-use collection:** `pickup` and ordinary pickable
+  `interact` accept `recoverThreats:true` and optional `defendThreats:true`.
+  Flee and enabled attack permissions are checked by controller dispatch and
+  plugin safety/session gates. The original child, task ID, timeout and lifetime
+  recovery budget survive escape/observation. Resume requires unchanged exact
+  source identity, item, quantity and carried count before approach replanning.
+  Changed evidence or failed recovery returns `stopped`, without replay or an
+  invented collection receipt. Pickup merge substitution is disabled; an issued
+  pickup use cannot be suspended for an encounter. Alternate/held/sleep/repair/
+  cooking modes, extra-drop and aggravating pickables are excluded. Collection
+  approaches keep dry, hostile and obstacle checks. `journey.task` is `pickup`
+  or `interact`; owners must match both ID and type. Controller and plugin must
+  be upgraded together. This does not extend recovery to transfers or swings.
 
 - **Work-trip hostile clearance:** `move_to` can opt into `avoidHostiles:true`
   with `dry:true`. Native navmesh validation, local planning and immediate

@@ -353,12 +353,12 @@ func (r *runner) Check(v behaviour.View) error {
 		return errors.New("unsafe household health, footing, home or capacity")
 	}
 	if g.Food.Injury != nil && (v.InjurySeq == nil || *g.Food.Injury != *v.InjurySeq) {
-		if !r.foodResultBoundary(g, v) && !(r.nativeTravelRecovery(g, v) && foodTravelDamage(g, v)) {
+		if !r.foodResultBoundary(g, v) && !(r.nativeFoodRecovery(g, v) && foodTravelDamage(g, v)) {
 			return errors.New("injury outside owned food travel damage budget")
 		}
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeTravelRecovery(g, v) && !r.foodResultBoundary(g, v) {
+		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeFoodRecovery(g, v) && !r.foodResultBoundary(g, v) {
 			return errors.New("nearby threat interrupts household work")
 		}
 	}
@@ -367,33 +367,52 @@ func (r *runner) Check(v behaviour.View) error {
 
 // The engine validates its body lease before calling Check. Match the live
 // task as well so stale/pending metadata cannot exempt stationary work.
-func (r *runner) nativeTravelRecovery(g Record, v behaviour.View) bool {
+func (r *runner) nativeFoodRecovery(g Record, v behaviour.View) bool {
 	p := g.Pending
-	if !r.travelIntent(g) || v.State.Task == nil ||
-		v.State.Task.ID != p.TaskID || v.State.Task.Task != protocol.TaskMoveTo || v.State.Task.Status != protocol.StatusRunning {
+	task := r.recoveryTask(g)
+	if task == "" || v.State.Task == nil ||
+		v.State.Task.ID != p.TaskID || v.State.Task.Task != task || v.State.Task.Status != protocol.StatusRunning {
 		return false
 	}
 	j := v.State.Journey
-	return j != nil && j.ID == p.TaskID && j.Attempts >= 0 && j.Attempts <= 3 &&
+	return j != nil && j.ID == p.TaskID && j.Task == task && j.Attempts >= 0 && j.Attempts <= 3 &&
 		slices.Contains([]string{"walk", "defend", "escape", "observe", "blocked"}, j.Mode)
 }
 
-func (r *runner) travelIntent(g Record) bool {
+func (r *runner) recoveryTask(g Record) string {
 	p := g.Pending
 	if p == nil || p.Run != r.t.Store.runID || p.TaskID == "" {
-		return false
+		return ""
 	}
-	if !slices.Contains([]string{"search_food", "food_return", "cook_return", "home"}, p.Template) {
-		return false
+	switch p.Template {
+	case "search_food", "food_return", "cook_return", "home":
+		var args protocol.MoveToArgs
+		if json.Unmarshal(p.Params, &args) == nil && args.RecoverThreats && args.Dry && args.AvoidHostiles {
+			return protocol.TaskMoveTo
+		}
+	case "forage":
+		var args protocol.InteractArgs
+		if json.Unmarshal(p.Params, &args) == nil && args.RecoverThreats && args.Entity != "" && args.Entity == p.Entity &&
+			!args.Hold && !args.Alt && !args.Sleep && !args.Repair && args.Cook == "" {
+			return protocol.TaskInteract
+		}
+	case "pickup_food":
+		var args protocol.PickupArgs
+		if json.Unmarshal(p.Params, &args) == nil && args.RecoverThreats && args.Entity != "" && args.Entity == p.Entity {
+			return protocol.TaskPickup
+		}
 	}
-	var args protocol.MoveToArgs
-	return json.Unmarshal(p.Params, &args) == nil && args.RecoverThreats && args.Dry && args.AvoidHostiles
+	return ""
 }
 
 // Yield a completed body's receipt to Next before evaluating an encounter.
 // This grants no action permission: Next requires the exact scoped result.
 func (r *runner) foodResultBoundary(g Record, v behaviour.View) bool {
 	p := g.Pending
+	if p == nil && v.State.Task == nil && g.Food.Acquisition != nil {
+		product := g.Food.Acquisition.Product
+		return product != nil && product.TaskID != "" && product.Run == r.t.Store.runID
+	}
 	return p != nil && p.Run == r.t.Store.runID && p.TaskID != "" &&
 		(v.State.Task == nil || v.State.Task.ID == p.TaskID &&
 			slices.Contains([]string{protocol.StatusSucceeded, protocol.StatusFailed, protocol.StatusRejected, protocol.StatusCancelled}, v.State.Task.Status))

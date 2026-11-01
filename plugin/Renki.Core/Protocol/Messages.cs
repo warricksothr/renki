@@ -178,6 +178,7 @@ namespace Renki.Protocol
     public sealed class JourneyStatus
     {
         [JsonProperty("id")] public string Id;
+        [JsonProperty("task")] public string Task;
         [JsonProperty("mode")] public string Mode;
         [JsonProperty("attempts")] public int Attempts;
         [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;

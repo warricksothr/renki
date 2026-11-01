@@ -62,7 +62,8 @@ namespace Renki.Plugin
                             throw new TaskRefused(Wire.ReasonInventoryFull, $"no room for {drop.m_itemData.m_shared.m_name}");
                         if (PickupTask.TooHeavy(Player.m_localPlayer, drop.m_itemData))
                             throw new TaskRefused(Wire.ReasonTooHeavy, $"{drop.m_itemData.m_shared.m_name} would take it past its carry weight");
-                        return new PickupTask(drop);
+                        var pickup = new PickupTask(drop, safeTravel: pk.RecoverThreats, allowMerge: !pk.RecoverThreats);
+                        return pk.RecoverThreats ? (IBodyTask)new RecoverableWorkTask(pickup, new TravelEncounter(req.Id, pk.DefendThreats, req.Task)) : pickup;
                     }
                 case InteractArgs ia:
                     {
@@ -84,6 +85,9 @@ namespace Renki.Plugin
                             if (parts.Length == 1) it = parts[0];
                         }
                         if (it == null) throw new TaskRefused(Wire.ReasonInvalidTarget, $"nothing to use at {ia.Entity} in range");
+                        if (ia.RecoverThreats && (!(it is Pickable forage) || forage.m_itemPrefab == null ||
+                            !forage.m_extraDrops.IsEmpty() || forage.m_aggravateRange > 0))
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, "encounter recovery supports one ordinary non-aggravating pickable use");
                         if (ia.Sleep && !(it is Bed))
                             throw new TaskRefused(Wire.ReasonInvalidTarget, "sleep requires a bed");
                         if (ia.Repair && !(it is CraftingStation))
@@ -94,7 +98,9 @@ namespace Renki.Plugin
                         if (!PrivateArea.CheckAccess(obj.transform.position, 0f, false, false))
                             throw new TaskRefused(Wire.ReasonNotAllowed, $"the {InteractTask.Name(it)} is behind a ward");
                         if (ia.Cook != null) return new CookingTask(req.Id, ia, (CookingStation)it);
-                        return ia.Repair ? (IBodyTask)new RepairTask((CraftingStation)it) : new InteractTask(ia, it);
+                        if (ia.Repair) return new RepairTask((CraftingStation)it);
+                        var interaction = new InteractTask(ia, it, safeTravel: ia.RecoverThreats);
+                        return ia.RecoverThreats ? (IBodyTask)new RecoverableWorkTask(interaction, new TravelEncounter(req.Id, ia.DefendThreats, req.Task)) : interaction;
                     }
                 case FleeArgs fl:
                     {
