@@ -1001,12 +1001,17 @@ func TestSleepClaimsOnlyAKnownFreeBedAndUsesTheSleepSequence(t *testing.T) {
 		{ID: "taken", Kind: protocol.StructureBed, Pos: protocol.Vec3{11, 0, 10}, Owned: &taken},
 		{ID: "free", Kind: protocol.StructureBed, Pos: protocol.Vec3{12, 0, 10}, Owned: &free},
 	}}
-	b.Chat(line("Visitor", "bjorn sleep"))
+	b.Chat(line("Visitor", "bjorn get in bed please"))
 	if len(f.tasks()) != 0 {
 		t.Fatal("non-owner sent a task")
 	}
-	for _, phrase := range []string{"sleep", "go to sleep", "go to bed", "get some sleep"} {
+	for _, phrase := range []string{"sleep", "go to sleep", "go to bed", "get some sleep", "get in bed please",
+		"get into bed", "go to your bed", "get in your bed", "get into your bed"} {
+		before := len(f.tasks())
 		b.Chat(line("Sothr", "bjorn "+phrase))
+		if len(f.tasks()) != before+1 {
+			t.Fatalf("%q did not dispatch its own bed task", phrase)
+		}
 		sent := f.sent()
 		var last *protocol.InteractArgs
 		for _, o := range sent {

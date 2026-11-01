@@ -612,6 +612,13 @@ waits for the other players. Taken/unknown beds must not be selected for
 claiming. Check the game's roof/fire/wet/enemy/night refusals and stop during
 a claim wait; no later use may occur. Preserve players' beds.
 
+The current escort/combat/food/hauling batch also includes `tas get in bed
+please`: an authorized request must dispatch a new sleep interaction, interrupt
+escort and reach the bed, then confirm `in_bed` or report the game's refusal.
+A conversational promise alone is not execution. Check this at night against
+the current base layout and modpack; do not treat historical success below as
+current live acceptance. Guest requests retain the usual role restrictions.
+
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"
 (day 51, fraction about 0.34). Perception then showed `mine:true,owned:true`;

@@ -32,12 +32,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-10-29T22:41:17Z
+updated_at: 2026-11-01T23:10:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:codex/renki-milestones
   name: ""
 extensions: {}
 ---
@@ -61,6 +61,7 @@ Nimah, 2026-10-28: the bot should claim a bed close to home if one is available,
 - [ ] With a free bed near home, the bot claims it and respawns there after a death
 - [ ] With none, it tells an owner once and says so in status
 - [ ] A refusal from the game (no roof, a ward) is reported with its reason
+- [ ] In the current batch, an authorized nighttime bed request interrupts escort, reaches a suitable bed and confirms in_bed or explains the native refusal
 
 ## Implementation plan
 
@@ -83,3 +84,7 @@ Only acceptance criterion 1 is complete. Criterion 2 includes actual respawn at 
 **agent:codex/renki-resume** at 2026-10-29T22:41:17Z
 
 Nighttime manual sleep passed on deployed 3232dad at 22:40Z–22:41Z: Tas approached his claimed bed, interact succeeded with actual bed attachment, and current state reported in_bed at (-31.08,36.55,15.22), HP25. He was waiting for the other player, so actual shared time-skip sleeping is not claimed. Evidence .checks/audit-window-RxI1SV.jsonl. Sent him home after recording this to continue the approved route-memory deployment/checks. Actual respawn-at-bed, automatic claiming triggers and persistent bed status remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:10:13Z
+
+User added bed/sleep to the current escort, defence, resupply/cooking, harvesting/unloading and pantry test batch on 2026-11-01. Current audit identifies a command-grammar failure: authorized Nimah shouted "tas get in bed please" at23:06:44Z; Tas issued only a conversational say promise at23:06:47Z, without an interact sleep task. TKT-01M6CP0J0A6TVZCHAPVMVB0SGQ — Execute natural get-in-bed requests as sleep commands fixes that concrete parser failure. Keep live nighttime bed entry, escort interruption, bed approach/ownership and real native refusals as batch checks. Existing earlier nighttime success is historical evidence, not proof of the current changed base layout/modpack. A Castile request in the same window was non-operator; do not change role permissions implicitly.
