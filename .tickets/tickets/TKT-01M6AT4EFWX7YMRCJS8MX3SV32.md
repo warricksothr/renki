@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T10:34:00Z
+updated_at: 2026-11-01T10:41:55Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -142,3 +142,9 @@ Reviewed 9f993c2 passed full just check ci (.checks/20261101T102213Z-yEDJii.log)
 Addressing remaining full-floor search ordering with an opt-in 3D distance-to-arrival-cylinder estimate for nearby dry searches. Supported edge/arrival rules, 4096-node/16s-stage limits, ordinary travel clearance and bank budgets remain unchanged. Distant frontier legs and supplied regional guidance keep the original estimate. HeightRouteTests prove fewer expansions through a synthetic stair connection, no invented support and identical distant frontier routing. Add bounded piece-type slope diagnostics and unrounded normals to diagnose native building support rather than guessing at stair colliders.
 
 The automatic camera checkpoint did run but captured a loading screen. Delay the single optional attempt until >=6s after the first in-world state; no camera settings change. This is separate from movement success. Next native return is on the corrected search order after CI/review, not an unchanged retry.
+
+**agent:codex/renki-milestones** at 2026-11-01T10:41:55Z
+
+Reviewed43ee7d8 passed just check ci (.checks/20261101T103450Z-RzYVjq.log), committed review (.checks/20261101T103816Z-JfJM9a.log), push and checksum installation. Changed-policy return .checks/recovery-20261101T103852Z / audit .checks/audit-window-Cb7pe0.jsonl travelled10.6m without observed injury to[-36.92,34.11,7.52], still below home. Its final search remained Searching at2918 expansions/23344 probes after16.02s. Native logout and supervisor cleanup restored controller-only panel. No home/benchmark/pantry success earned. Optional delayed camera now captures actual world imagery.
+
+Exact diagnostics identify a concrete admission bug: rotated wood_floor hits have normal Y1.0000001192092896, and WalkableNormal's exact upper bound1 rejects them as slope. This also prevents observed entrance floors from becoming hints. Correcting only the upper numerical bound to1+1e-6; the lower0.8 slope threshold, support heights, body/portal/water checks and all route/bank deadlines remain unchanged. Captured support and synthetic hint integration regression accept the measured flat floor while rejecting the captured0.446 stair face; boundary cases retain nonfinite/large-overshoot/sub0.8 rejection. CI/review and one corrected-policy native return follow; no unchanged retry.

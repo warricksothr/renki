@@ -68,8 +68,13 @@ namespace Renki.Tests
         [InlineData(.8, true)]
         [InlineData(.9, true)]
         [InlineData(1, true)]
+        [InlineData(1.0000001192092896, true)]
+        [InlineData(1.000002, false)]
         [InlineData(1.1, false)]
         [InlineData(double.NaN, false)]
+        [InlineData(double.PositiveInfinity, false)]
+        [InlineData(double.NegativeInfinity, false)]
+        [InlineData(.79999995, false)]
         public void WalkingSupportRejectsSlidingSlopesWithoutRejectingFlatStairTreads(double normalY, bool walkable)
         {
             Assert.Equal(walkable, DryTravel.WalkableNormal(normalY));

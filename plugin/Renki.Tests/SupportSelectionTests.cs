@@ -6,6 +6,27 @@ namespace Renki.Tests
     public sealed class SupportSelectionTests
     {
         [Fact]
+        public void CapturedRotatedFloorNormalAllowsEntranceSupportWithoutAdmittingTheStairFace()
+        {
+            // Native audit Cb7pe0: the floor was refused as slope solely
+            // because its float normal was slightly above one.
+            var floor = new V3(-42.14382553100586, 36.090484619140625, 9.61785888671875);
+            var ray = new SupportSelection(35.96063232421875, .6, false, true);
+            ray.Consider(floor, 1.0000001192092896);
+            Assert.Equal(floor, ray.Point);
+            Assert.Null(ray.Refusal);
+            Assert.Equal(1, ray.NormalHits);
+            var hints = new EntranceHints();
+            Assert.Equal(floor, hints.Select(new V3(-36.92, 34.11, 7.52),
+                new V3(-35.9, 37.66, 6.53), new[] { ray.Point.Value }));
+
+            var stair = new SupportSelection(35.14154815673828, .6, false, true);
+            stair.Consider(new V3(-42.497379302978516, 35.032344818115234, 15.26430606842041), .44619783759117126);
+            Assert.Null(stair.Point);
+            Assert.Equal("slope", stair.Refusal);
+        }
+
+        [Fact]
         public void WalkingSlopeRefusalIsDistinctFromMissingSupport()
         {
             var ray = new SupportSelection(31.37, .6, false, true);

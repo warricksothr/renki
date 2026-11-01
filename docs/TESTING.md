@@ -1741,4 +1741,24 @@ just below0.8 is not printed as an apparently accepted0.8. Per-world building
 support-slope diagnostics retain at most eight distinct piece types, allowing
 native stair/roof collider refusals to be distinguished from terrain without
 logging every probe. Normal, support-height, body, portal and water admission
-remain unchanged. The height-aware change still requires native validation.
+remain unchanged.
+
+Build43ee7d8 passed full `just check ci` and committed review before the
+changed-policy return `.checks/recovery-20261101T103852Z` (audit
+`.checks/audit-window-Cb7pe0.jsonl`). Tas travelled about10.6m without
+observed injury and reached[-36.92,34.11,7.52], still below the home floor.
+A staging route was selected after1158 expansions/9264 probes. The final
+search remained `Searching` at2918 expansions/23344 probes after16.02s;
+the return failed and the supervisor stopped the game and restored the panel.
+The delayed optional camera captured usable world imagery this time.
+
+The exact-normal diagnostics exposed a separate floor-admission bug:
+rotated `wood_floor` ray hits have native normal Y1.0000001192092896.
+The exact upper bound1 rejected these flat surfaces as `slope`, including
+support at[-42.14382553100586,36.090484619140625,9.61785888671875].
+`WalkableNormal` now tolerates at most1e-6 overshoot above one; the lower0.8
+walking threshold is unchanged. Captured support-selection and entrance-hint
+regressions accept that floor while retaining refusal of the captured
+`wood_stair` face with normal Y0.44619783759117126, nonfinite values,
+larger overshoot, and values just below0.8. This is a numerical correction,
+not proof of a complete entrance route; native return validation remains open.
