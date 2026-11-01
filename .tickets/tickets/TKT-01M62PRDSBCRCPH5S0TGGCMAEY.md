@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-01T23:41:48Z
+updated_at: 2026-11-01T23:55:54Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -61,7 +61,7 @@ Nimah, 2026-10-28: the bot should claim a bed close to home if one is available,
 - [ ] With a free bed near home, the bot claims it and respawns there after a death
 - [ ] With none, it tells an owner once and says so in status
 - [ ] A refusal from the game (no roof, a ward) is reported with its reason
-- [ ] In the current batch, an authorized nighttime bed request interrupts escort, reaches a suitable bed and confirms in_bed or explains the native refusal
+- [x] In the current batch, an authorized nighttime bed request interrupts escort, reaches a suitable bed and confirms in_bed or explains the native refusal
 
 ## Implementation plan
 
@@ -108,3 +108,15 @@ The plugin already streams State.Time (day, dayFraction, night), but PanelStatus
 Added live-native time.day/dayFraction/night to PanelStatus, scoped to connected in-world state and copied from the plugin's existing clock. Menu/offline status clears it. Wire-level day/night and clearing tests passed via just check controller test-packages ./internal/app (.checks/20261101T233658Z-tkKBuJ.log); full just check ci passed172s (.checks/20261101T233750Z-bDaQos.log). No plugin or UI control change is required.
 
 Route benchmark admission correctly refused the initial attempt because Tas was still4.2m horizontally from home after cooking, outside its pinned-home start envelope (.checks/routes-20261101T233953074211Z). No movement was dispatched. The northern marker is also outside this benchmark's60m limit, so use an eligible nearby marker for that bounded check, and ordinary bounded native movement if prospecting farther north. This is preparation/coverage, not a navigation failure.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:51:37Z
+
+Continuing the current live batch with bounded just vm sleep-check: require fresh native clock, an observed owned bed and idle scoped body; optionally admit a finite native escort before interrupting it with an exact sleep interaction; retain receipts and newer in_bed state. No logout or cleanup order displaces a newer human command. Existing authorized chat alias regressions cover grammar separately; this helper proves the native sequence.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:55:54Z
+
+Current-layout nighttime check passed at23:54Z using just vm sleep-check --interrupt-escort Nimah. It observed admitted native escort t-8, then exact cancellation by bounded sleep interaction t-9 against Tas-owned bed1:99058. Native success "used the Bed: I'm in bed." (seq5240) was followed by newer scoped in_bed state at[-31.08,36.55,15.19]. sleeping remainedfalse because other players had not all slept; injurySeq remained0 and Tas stayed online. Evidence .checks/sleep-20261101T235436372847Z; wrapper .checks/20261101T235436Z-UfRl26.log. Earlier daytime helper admission .checks/sleep-20261101T235342749509Z dispatched nothing, as intended.
+
+Also verified the original natural wording through the authorized panel command path: Nimah "get in bed please" dispatched its own interact sleep:true t-10 to the same owned bed, immediately succeeded and retained bed attachment (.checks/audit-window-GCl57t.jsonl). This command was sent after the native escort-interruption check, while already in bed; do not describe it as a separate walking or moving-escort trial.
+
+The new helper retains compact observations, exact receipts and summary under .checks/sleep-*. It rejects daytime, other body owners, stale scoped state/perception and non-owned beds; no cleanup mutation, wake or logout follows success/refusal/failure. Nine synthetic checks cover receipt/state agreement, exact escort cancellation and takeover. just check vm test-sleep-check passed (.checks/20261101T235405Z-4mZ0r2.log). Full just check ci passed168s (.checks/20261101T235159Z-VFRmjo.log), including the final helper revision. Automatic bed claiming/no-free-bed notices and real respawn-at-bed remain unimplemented/unverified; keep the parent in progress.

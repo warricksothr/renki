@@ -432,6 +432,14 @@ escort-check +ARGS:
 test-escort-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/escort-check-test.py"
 
+# Native nighttime bed entry; optionally interrupt a finite owner/operator escort.
+[positional-arguments]
+sleep-check *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check.py" "$@"
+
+test-sleep-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check-test.py"
+
 # One real cooking batch, optionally finding one ingredient in known home chests.
 # Retain the client after the proof; --allow-logout explicitly enables shutdown.
 [positional-arguments]

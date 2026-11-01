@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T18:35:20Z
+updated_at: 2026-11-01T23:52:37Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -273,3 +273,9 @@ Explicit legacy-floor admission now pins the existing home-storage Y36.09 refere
 Negative admissions .checks/routes-20261101T182921964637Z (SSH freshness budget) and .checks/routes-20261101T183041237466Z (starting feet drifted beyond 3m) dispatched no task. A normal checked move_to restored the recorded home start (.checks/20261101T183123Z-NHT3U5.log). First benchmark .checks/routes-20261101T183156038798Z passed storage out/home: 2 receipts, 6.5m sampled travel, actual floor return[-36.48,36.09,6.6], no observed injury. South-meadow benchmark .checks/routes-20261101T183240074821Z passed: 2 receipts, 95.9m sampled travel, return[-36.24,36.09,7.05], no observed injury. East-meadow test now running; no success claimed yet.
 
 Focused just check vm test-route-benchmark passed including legacy reference, admission fence retention, stale post-receipt state, malformed/changed reference, command/scope cleanup revocation, request latency and actual just observation launcher without network (.checks/20261101T183335Z-CxkXVU.log). Previously passing just check controller test-map confirms the restart-cancelled terrain regression was already committed. Full CI currently running. Original coastal AC1/AC2, native escape/resume, ten-return reliability, combat progression and repeated fresh pantry delivery remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:52:37Z
+
+Current-batch berry route .checks/routes-20261101T234215761121Z reached the outward marker (t-2 receipt, position[-1.02,33.1,-19.34]) but first return t-3 failed after trying both observed doorway floors. It retained Tas online near[-40.01,33.72,9.69], beneath the raised floor. Recorded-route/navmesh candidates were rejected for hostile_corridor and slope; local entrance searches reached no goal-floor nodes. Captured support_step examples include actual support33.7365, midpoint34.0905, endpoint34.0931 at the western stair toe, a0.354m half-edge discontinuity against the0.3m rule. Other hits include steep stair faces and terrain; this does not justify broadly lowering slope/water/clearance guards.
+
+An ordinary native bed interaction from that same area subsequently found the entrance and reached upstairs[-32.54,36.09,17.91] before reporting the real native refusal "You are wet" (.checks/task-x7kbeky_.json). Thus a physical entrance route exists, but current strict dry planning has not proved it. Preserve this as a failed hauling prerequisite, not a successful round trip or proof that the house is unreachable. Next investigation should use the captured stair-toe support/geometry and route sampling alignment to distinguish missed intermediate support from a genuinely oversized step; do not repeat the same unchanged benchmark or relax terrain slope admission indiscriminately. No automatic or cleanup logout was requested.

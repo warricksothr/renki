@@ -622,6 +622,23 @@ The shared status API includes native `time.day`, `time.dayFraction` and
 `time.night` while in-world, clearing them at menu/disconnect. Use that clock
 to schedule nighttime checks; actual bed entry still requires native evidence.
 
+`just vm sleep-check` selects a currently observed bed already owned by Tas,
+within 20 m, and sends one bounded native sleep interaction. It requires a
+fresh scoped nighttime observation and an idle body before dispatch. Use
+`just vm sleep-check --interrupt-escort Nimah` to admit a finite native escort
+first and verify that the bed interaction cancels that exact task. The leader
+must be a configured owner/operator. This tests native interruption; the chat
+alias/permission regressions separately cover the owner's natural command.
+
+Evidence under `.checks/sleep-*` includes task receipts, compact observations
+and a summary. A pass requires the successful interaction receipt plus newer
+native `in_bed` state beside the selected bed; it distinguishes attachment
+from a shared time skip (`sleeping`). Daytime admission dispatches nothing,
+and native wet/fire/roof/enemy refusals remain failed positive checks with the
+actual reason retained. It never wakes Tas, logs out or cancels a newer order.
+`just check vm test-sleep-check` exercises refusal, stale/scope/ownership
+changes, exact escort cancellation and receipt/state agreement without a VM.
+
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"
 (day 51, fraction about 0.34). Perception then showed `mine:true,owned:true`;
