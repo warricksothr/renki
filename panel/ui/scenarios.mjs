@@ -729,6 +729,8 @@ export const scenarios = {
         assert.equal(body.spec.reserve, 2);
         assert.deepEqual(body.spec.storage, ["fixture-chest"]);
         assert.deepEqual(body.spec.stock.targets, { Mushroom: 4 });
+        assert.deepEqual(body.spec.stock.minimum, { Mushroom: 2 });
+        assert.equal(body.spec.stock.allowHunting, false);
       },
     );
     await check(
@@ -747,8 +749,32 @@ export const scenarios = {
         assert.equal(body.definition.template, "household_food");
         assert.equal(body.definition.trigger.marker.kind, "storage");
         assert.equal(body.definition.trigger.dwellS, 30);
-        assert.equal(body.definition.repeat.maxRuns, 12);
+        assert.equal(body.definition.repeat.maxRuns, 100);
         assert.equal(body.definition.repeat.cooldownS, 300);
+      },
+    );
+    await check(
+      "Pantry hunting remains an explicit configured option",
+      async () => {
+        await page.locator("#goal-stock-food").selectOption("CookedMeat");
+        await page.locator("#goal-stock-hunting").check();
+        await page
+          .locator("#goal-stock-hunt-areas")
+          .fill("west meadow, south shore");
+        await page.locator("#goal-stock-start").click();
+        const request = await page.evaluate(() =>
+          renkiPreview.requests.findLast(
+            (r) => r.path === "/api/goals" && r.method === "POST",
+          ),
+        );
+        const body = JSON.parse(request.body);
+        assert.deepEqual(body.spec.stock.targets, { CookedMeat: 4 });
+        assert.deepEqual(body.spec.stock.minimum, { CookedMeat: 2 });
+        assert.equal(body.spec.stock.allowHunting, true);
+        assert.deepEqual(body.spec.stock.huntAreas, [
+          "west meadow",
+          "south shore",
+        ]);
       },
     );
     await shot("household-food");

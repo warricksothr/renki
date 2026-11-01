@@ -217,7 +217,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		}
 		// Reconcile the action first. Only a verified owned recovery result can
 		// acknowledge bounded encounter damage for subsequent stationary work.
-		if last.Status == protocol.StatusSucceeded && r.recoveryTask(g) != "" && foodTravelDamage(g, v) && v.InjurySeq != nil {
+		if last.Status == protocol.StatusSucceeded && (r.recoveryTask(g) != "" || r.foodHuntTask(g)) && foodTravelDamage(g, v) && v.InjurySeq != nil {
 			if err := r.t.Store.update(g.ID, func(g *Record) error {
 				n := *v.InjurySeq
 				g.Food.Injury = &n
@@ -243,6 +243,11 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	}
 	for _, c := range v.Perception.Characters {
 		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, s.Pos) < 15 {
+			// A nearby animal only admits its own eligible hunt. It cannot
+			// exempt chest work, cooking, recovery or another travel action.
+			if prey := r.foodPrey(g, v, foodHuntItems(g, v)); len(prey) > 0 && prey[0].ID == c.ID {
+				return r.foodHuntNext(g, v, foodHuntItems(g, v))
+			}
 			return r.need("nearby threat prevents food resupply")
 		}
 	}
@@ -513,6 +518,8 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 		args.RecoverThreats = action == "forage" && !args.Hold && !args.Alt && !args.Sleep && !args.Repair && args.Cook == "" && fedRecovery
 		args.DefendThreats = args.RecoverThreats && defend
 		recovering = args.RecoverThreats
+	case *protocol.AttackArgs:
+		recovering = action == "hunt_food" && args.Entity == entity && args.Style == "melee" && args.Kite && defend
 	}
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("food native-task budget exhausted")

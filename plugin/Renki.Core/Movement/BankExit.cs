@@ -55,7 +55,7 @@ namespace Renki.Movement
             // Account for the measured body/footing offset and an extra 10cm
             // settling allowance. A recovery may never wade or descend.
             var offset = Math.Max(0, footing.Y - body.Y) + .1;
-            var before = Math.Min(body.Y, footing.Y) - waterFrom;
+            var before = Math.Min(body.Y, footing.Y) - .1 - waterFrom;
             var halfway = middle.Y - offset - waterMiddle;
             var after = to.Y - offset - waterTo;
             return DryTravel.Clear(body, waterFrom, ActualMargin) &&

@@ -22,7 +22,7 @@ func (t *FoodWork) Validate(raw json.RawMessage) error {
 		return errors.New("household work requires food_resupply with stock targets")
 	}
 	// Only configuration may be supplied, never checkpoint evidence.
-	if len(spec.Stock.Pinned) > 0 || spec.Stock.ReturnAfterCooking || spec.Stock.Delivering || spec.Stock.Decision != "" || len(spec.Stock.Known) > 0 || len(spec.Stock.Shortage) > 0 {
+	if len(spec.Stock.Pinned) > 0 || len(spec.Stock.HuntingPinned) > 0 || spec.Stock.Replenishing || spec.Stock.ReturnAfterCooking || spec.Stock.Delivering || spec.Stock.Decision != "" || len(spec.Stock.Known) > 0 || len(spec.Stock.Shortage) > 0 {
 		return errors.New("household params cannot supply stock checkpoint evidence")
 	}
 	_, err := NewRecord(spec, time.Now().UTC())

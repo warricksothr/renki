@@ -1437,3 +1437,24 @@ with a successful native return and fresh idle shelter on the correct home
 floor. The trial still fails its production proof. Injury, ownership changes,
 uncertain results and failed returns do not qualify; failed return diagnostics
 retain the native reason so routing faults are visible on the goal itself.
+
+
+### Pantry maintenance and dry bank escape integration
+
+`just check controller test-packages ./internal/goal ./internal/home` covers
+low/high refill hysteresis, recipe-specific ordinary Boar/Neck admission,
+wrong/extra target and damage limits, explicit hunting opt-in, multi-area
+search/cooldown restart behavior, injected checkpoint rejection and transactional
+goal retention. `just check vm test-food-check` mirrors exact owned hunt damage
+in the supervisor. `just check plugin test-core BankExitTests` includes a
+synthetic gradual uphill step: the same settling allowance applies at both
+ends. Native flee attempts the bounded bank departure before escape-bearing
+preflight; normal route clearance is unchanged.
+
+The first bank build's native trial `.checks/food-20261101T055009Z` failed with
+seven escape prefixes refused (water/hostiles). A newly loaded group of
+Greydwarfs and a Shaman surrounded the shore. No pantry production was earned;
+final audit recorded44HP before logout. This exposed the preflight ordering
+and gradual-slope settling comparison addressed here. Synthetic checks do not
+prove the saved native return or pantry completion; retain live outcomes and
+leave field acceptance criteria open until repeated receipts earn them.

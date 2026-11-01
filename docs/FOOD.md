@@ -104,8 +104,12 @@ Active food, recovered health, stamina, pack capacity and the native weapon,
 bystander, pursuit and retreat guards remain required. There is no blind
 wildlife discovery attack, and no hunt when combat permission is disabled.
 Observed death is a separate receipt from food collection: meat must still
-appear as an eligible live drop and reach the pack. Any injury still stops the
-food goal; this adapter does not reset the injury baseline to continue hunting.
+appear as an eligible live drop and reach the pack. Expected damage during an exact owned hunt uses the same cumulative ten-point
+allowance as owned food travel, with at least 30 HP, 65% maximum HP and no more
+than ten HP lost from the original baseline. Neither healing nor another hunt
+renews it. A new nearby threat, wrong task/target or revoked combat permission
+stops the hunt. Only a matching successful death receipt can acknowledge that
+injury for subsequent stationary work; death still does not prove food gained.
 
 The acquisition checkpoint limits a goal to 12 resource interactions/pickups,
 six remembered-site visits and two hunts, within the original overall task and
@@ -188,9 +192,13 @@ A named source must be a current `berries` marker, no more than120m from home
 and within the goal's travel envelope. Its position, kind, radius and revision
 are pinned. Editing/deleting it stops the episode. Sources select search areas;
 only currently observed safe pickables/drops can earn collection receipts.
-Explicit household source markers replace automatic remembered-site search;
-no household hunts are admitted. Omitting sources keeps the existing bounded
-live-yield/remembered-forage search, without hunting.
+Explicit household source markers replace automatic remembered-site search.
+Hunting is separately opt-in with `allowHunting:true`; `huntAreas` can name up to
+four current `hunting` markers. They pin the same geometry/revision and travel
+scope as forage markers. Missing cooked boar meat admits Boar, and missing
+grilled tails admits Neck; deer hunting is not supported. Only isolated ordinary
+wild prey within 30 m can be selected. Omit hunting areas to use eligible live
+prey within the household envelope without wildlife search travel.
 
 Personal eating, recovery and carried reserve take precedence. At home, normal
 one-meal withdrawal requests inspect each unique destination; these can move
@@ -211,8 +219,11 @@ Once household work has started, returning takes precedence over remote personal
 healing when carried reserves fall short, active nourishment drops below five
 minutes, or health needs recovery. Pending collection gains are accounted for
 first; improved food or capacity during the return does not cancel delivery.
-Unrelated cargo that prevents further work reports a capacity problem. Sources
-are visited at most once per episode; depleted/unsafe areas do not restart their budgets.
+Unrelated cargo that prevents further work reports a capacity problem. Search visits first cover different named areas, then up to two interior
+points for zones at least eight metres wide. Six total visits bound each
+episode. Recorded visits and uncertain dispatches cool a named area for fifteen
+minutes across episodes/restarts; they never assert that an area is empty.
+Depleted/unsafe areas do not restart their budgets.
 The existing ten-minute deadline,256 tasks,12 collections, six visits and four
 cooking batches remain hard bounds. Long explicit source visits/returns permit
 180s within that deadline. Missing fuel, stations or sources request a new plan.
@@ -221,8 +232,8 @@ waiting point before eating or passive healing. This slice does not cultivate
 crops or repair equipment.
 
 “Enable idle food work” saves a `household_food` behaviour at the chosen storage
-marker:30 seconds idle, five-minute cooldown, at most12 episodes per controller
-session. Each episode creates its own durable goal under the engine's existing
+marker:30 seconds idle, five-minute cooldown, with a configurable quota of
+1–100 episodes per controller session (panel default100). Each episode creates its own durable goal under the engine's existing
 body lease. It may leave the admission marker to collect, while marker identity,
 world, injury, threat, footing and ownership checks continue. Commands interrupt;
 queued and active episodes never restart uncertain native actions. The behaviour
@@ -235,3 +246,29 @@ Use `just vm food-check --storage IDS --stock-target Mushroom=4 --sources
 `--stock-target` for several foods; `--require-deposit` requires a verified
 household deposit. Add `--idle-marker "home storage"` to verify the idle dwell
 and episode handoff. That helper disables its temporary behaviour afterward.
+
+
+## Pantry refill thresholds
+
+`stock.minimum` optionally supplies one low count for every entry in `targets`.
+Each is between one and its target. After fresh inspection, an episode does no
+collection while every stored count remains at or above its minimum. Once any
+count is below minimum, the persisted `replenishing` state keeps working toward
+all high targets for that episode. Missing/expired/busy chest observations remain
+unknown and cannot satisfy either threshold. Omitting minimums retains one-shot
+refill-to-target behavior. For example:
+
+```json
+{"targets":{"CookedMeat":4,"NeckTailGrilled":4},"minimum":{"CookedMeat":2,"NeckTailGrilled":2},"allowHunting":true,"huntAreas":["west meadow","south shore"]}
+```
+
+The panel and goal summaries show current counts, thresholds, hunting opt-in,
+collection budgets and the current decision/blocker. The trial tool accepts
+`--stock-minimum PREFAB=N`, `--allow-hunting`, and `--hunt-areas NAMES`; it still
+requires distinct kill, collection, cooking and deposit evidence.
+
+The goal store retains at most64 records. To admit another episode when full,
+it may rotate the oldest resolved record only after its deadline plus fifteen
+minutes, preserving recent source feedback. Active/suspended goals and any
+uncertain pending action are retained. Rotation and admission are one atomic
+write; a store full of recent/unresolved records reports the limit explicitly.

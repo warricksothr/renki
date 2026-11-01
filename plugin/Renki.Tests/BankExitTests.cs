@@ -23,6 +23,14 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void GradualUphillGainUsesTheSameSettlingAllowanceAtBothEnds()
+        {
+            var body = new V3(0, .56, 0);
+            Assert.True(BankExit.Clear(body, body, new V3(.25, .59, 0), new V3(.5, .62, 0), 0, 0, 0));
+            Assert.False(BankExit.Clear(body, body, new V3(.25, .56, 0), new V3(.5, .56, 0), 0, 0, 0));
+        }
+
+        [Fact]
         public void UphillSurfaceCannotConcealABodySettlingBelowTheRequiredDryMargin()
         {
             var body = new V3(0, .35, 0);

@@ -392,7 +392,7 @@ namespace Renki.Plugin
             }
             if (!climbObstacles) { climb.Stop(); climbWaiting = false; }
             RecordGrounded(pos);
-            if (ExitBank(pos)) return true;
+            if (ExitBank(pos, goal)) return true;
             if (Swim(pos, ref run)) return true;
             if (replay != null) return PlanReplay(pos);
             if (localRoute != null) return PlanLocal(pos);
@@ -574,7 +574,13 @@ namespace Renki.Plugin
             { ["from"] = from.ToArray(), ["to"] = to.ToArray(), ["count"] = refusals.Count });
         }
 
-        bool ExitBank(Vector3 pos)
+        public bool DepartDryBank(Vector3 pos, Vector3 toward)
+        {
+            dryGround = avoidHostiles = true;
+            return ExitBank(pos, toward);
+        }
+
+        bool ExitBank(Vector3 pos, Vector3 toward)
         {
             if (!dryGround) return false;
             var p = Player.m_localPlayer;
@@ -589,7 +595,8 @@ namespace Renki.Plugin
                 bankMoving = false;
                 Tracer.Emit("walker", "dry bank departure regained planning buffer", new Dictionary<string, object>
                 { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["support"] = support.Value.ToArray() });
-                Repath(pos); Driver.Stand(); return true;
+                if (hasGoal) Repath(pos);
+                Driver.Stand(); return true;
             }
             if (!bankMoving && (!support.HasValue || p.InWater() || p.IsSwimming() || !p.IsOnGround())) return false;
             Driver.Stand(); stuck.Hold(Time.time);
@@ -601,7 +608,7 @@ namespace Renki.Plugin
             }
             var eligible = support.HasValue && !p.InWater() && !p.IsSwimming() && p.IsOnGround() &&
                 DryTravel.Clear(from, water, BankExit.ActualMargin) && DryTravel.Clear(support.Value, water, BankExit.ActualMargin);
-            var step = eligible ? bankExit.Next(from, Convert.ToV3(goal), Time.unscaledTime, bankProbe.Probe) : null;
+            var step = eligible ? bankExit.Next(from, Convert.ToV3(toward), Time.unscaledTime, bankProbe.Probe) : null;
             if (!eligible || bankExit.Refused)
             {
                 navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure has no checked uphill step");

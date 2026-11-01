@@ -112,3 +112,23 @@ assert definition['trigger']['marker'] == dict(world='one', name='storage', kind
 assert definition['trigger']['dwellS'] == 30
 assert definition['repeat'] == dict(mode='trigger', cooldownS=300, maxRuns=1)
 print('household idle episode uses the admitted finite repeat policy')
+
+# Expected hunt damage belongs only to the exact native target and task.
+hunt_intent = dict(run='current', taskId='hunt', template='hunt_food', entity='boar',
+                   params=dict(entity='boar', style='melee', kite=True))
+hunt = trip | dict(pending=hunt_intent, food=trip['food'] | dict(stock=dict(allowHunting=True)))
+fighting = walking | dict(task=dict(id='hunt', task='attack', status='running'),
+                           combat=dict(id='hunt', entity='boar', mode='strike'))
+hunt_hurt = fighting | dict(hp=35, injurySeq=111, injury=dict(seq=111, damage=5, complete=True))
+assert food.safe(hunt_hurt, fighting, hunt) is None
+for patch in (dict(combat=dict(id='hunt', entity='neck', mode='strike')),
+              dict(combat=dict(id='hunt', entity='boar', mode='strike', defensive=True)),
+              dict(task=dict(id='human', task='attack', status='running')),
+              dict(injury=dict(seq=111, damage=11, complete=True))):
+    assert food.safe(hunt_hurt | patch, fighting, hunt)
+assert food.safe(hunt_hurt, fighting, hunt | dict(food=hunt['food'] | dict(stock=dict(allowHunting=False))))
+finished_hunt = hunt | dict(pending=None, food=hunt['food'] | dict(injury=111),
+    history=[dict(run='current', taskId='hunt', template='hunt_food', status='succeeded', entity='boar')])
+assert food.safe(hunt_hurt | dict(task=None), fighting, finished_hunt, hunt) is None
+assert food.safe(hunt_hurt | dict(task=None), fighting, finished_hunt | dict(history=[]), hunt)
+print('exact food hunt supervision passed')

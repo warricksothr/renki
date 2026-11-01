@@ -2528,8 +2528,12 @@ export function startController() {
         if (g.food.stock) {
           const stock = g.food.stock;
           supply.textContent += ` · Stock: ${Object.entries(stock.targets)
-            .map(([p, n]) => `${p} ${stock.known?.[p] ?? "?"}/${n}`)
+            .map(
+              ([p, n]) =>
+                `${p} ${stock.known?.[p] ?? "?"}/${n}${stock.minimum?.[p] ? ` (refill below ${stock.minimum[p]})` : ""}`,
+            )
             .join(", ")}`;
+          if (stock.allowHunting) supply.textContent += " · Hunting enabled";
           if (stock.decision) supply.textContent += ` · ${stock.decision}`;
         }
         article.append(supply);
@@ -2616,6 +2620,7 @@ export function startController() {
       s.home.world !== s.world
     )
       throw new Error("Tas needs a known home in his current world.");
+    const minimum = Number($("goal-stock-minimum").value);
     const count = Number($("goal-stock-count").value),
       food = $("goal-stock-food").value;
     const storage = $("goal-stock-storage")
@@ -2626,6 +2631,17 @@ export function startController() {
       throw new Error(
         "Choose 1–20 meals and at least one destination chest ID.",
       );
+    if (!Number.isInteger(minimum) || minimum < 1 || minimum > count)
+      throw new Error(
+        "Refill minimum must be between one and the refill target.",
+      );
+    const allowHunting = $("goal-stock-hunting").checked;
+    const huntAreas = $("goal-stock-hunt-areas")
+      .value.split(",")
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean);
+    if (huntAreas.length && !allowHunting)
+      throw new Error("Enable hunting to select hunting areas.");
     return {
       kind: "food_resupply",
       world: s.world,
@@ -2635,6 +2651,9 @@ export function startController() {
       storage,
       stock: {
         targets: { [food]: count },
+        minimum: { [food]: minimum },
+        allowHunting,
+        huntAreas,
         sources: $("goal-stock-sources")
           .value.split(",")
           .map((x) => x.trim())
@@ -2666,6 +2685,9 @@ export function startController() {
           !world.waypoints.some((w) => w.name === name && w.kind === "storage")
         )
           throw new Error("Choose a current storage marker in Tas’s world.");
+        const maxRuns = Number($("goal-stock-runs").value);
+        if (!Number.isInteger(maxRuns) || maxRuns < 1 || maxRuns > 100)
+          throw new Error("Choose 1–100 episodes per controller session.");
         request.definition = {
           template: "household_food",
           params: spec,
@@ -2674,7 +2696,7 @@ export function startController() {
             marker: { world: spec.world, name, kind: "storage" },
             dwellS: 30,
           },
-          repeat: { mode: "trigger", cooldownS: 300, maxRuns: 12 },
+          repeat: { mode: "trigger", cooldownS: 300, maxRuns },
           priority: -10,
           enabled: true,
         };
@@ -2686,7 +2708,7 @@ export function startController() {
       });
       if (!response.ok) throw new Error(await response.text());
       out.textContent = enabled
-        ? "Household food work enabled: 30-second idle dwell, five-minute cooldown, up to 12 episodes per controller session."
+        ? `Pantry maintenance enabled: 30-second idle dwell, five-minute cooldown, up to ${request.definition.repeat.maxRuns} episodes per controller session.`
         : "Household idle food work disabled.";
     } catch (e) {
       out.textContent = e.message;

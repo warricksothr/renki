@@ -18,6 +18,11 @@ import (
 // FoodStock is an optional household objective above the personal reserve.
 // Storage IDs are explicit; observations expire and never come from map hints.
 type FoodStock struct {
+	Minimum            map[string]int  `json:"minimum,omitempty"`
+	AllowHunting       bool            `json:"allowHunting,omitempty"`
+	HuntAreas          []string        `json:"huntAreas,omitempty"`
+	HuntingPinned      []home.Waypoint `json:"huntingPinned,omitempty"`
+	Replenishing       bool            `json:"replenishing,omitempty"`
 	ReturnAfterCooking bool            `json:"returnAfterCooking,omitempty"`
 	Targets            map[string]int  `json:"targets"`
 	Sources            []string        `json:"sources,omitempty"`
@@ -45,6 +50,33 @@ func validateStock(g Record) error {
 	}
 	if total > 40 {
 		return errors.New("household episode target limit is40 meals")
+	}
+	if len(s.Minimum) > 0 && len(s.Minimum) != len(s.Targets) {
+		return errors.New("pantry minimums must cover every target")
+	}
+	for p, n := range s.Minimum {
+		if n < 1 || n > s.Targets[p] {
+			return errors.New("pantry minimum must be between one and its stock target")
+		}
+	}
+	if len(s.HuntAreas) > 4 || len(s.HuntingPinned) > 4 || !s.AllowHunting && len(s.HuntAreas) > 0 {
+		return errors.New("hunting areas require enabled hunting and at most four markers")
+	}
+	seenHunts := map[string]bool{}
+	for _, name := range s.HuntAreas {
+		canonical, err := home.WaypointName(name)
+		if err != nil || canonical != name || seenHunts[name] {
+			return errors.New("hunting areas must be unique canonical marker names")
+		}
+		seenHunts[name] = true
+	}
+	if len(s.HuntingPinned) > 0 && len(s.HuntingPinned) != len(s.HuntAreas) {
+		return errors.New("incomplete pinned hunting areas")
+	}
+	for i, w := range s.HuntingPinned {
+		if w.Name != s.HuntAreas[i] || w.Kind != "hunting" || !validFoodPos(w.Pos) || distance(w.Pos, g.Center) > acquisitionRadius(g) || !finite(w.Radius) || w.Radius < 0 || w.Radius > 40 {
+			return errors.New("invalid pinned hunting area")
+		}
 	}
 	seen := map[string]bool{}
 	for _, id := range g.Food.Storage {
@@ -93,6 +125,11 @@ func stockScope(g Record, v behaviour.View) error {
 	for _, p := range s.Pinned {
 		if !slices.Contains(v.Waypoints, p) {
 			return errors.New("household source marker changed or removed")
+		}
+	}
+	for _, p := range s.HuntingPinned {
+		if !slices.Contains(v.Waypoints, p) {
+			return errors.New("household hunting marker changed or removed")
 		}
 	}
 	return nil
@@ -205,7 +242,11 @@ func (r *runner) stockNext(g Record, v behaviour.View) (*session.Order, error) {
 		}
 		return r.foodDispatch(g, v, "stock_probe", meals[0], unknown.Entity, &session.Order{Task: protocol.TaskWithdraw, Args: &protocol.TransferArgs{Container: unknown.Entity, Items: []protocol.TransferItem{{Prefab: meals[0], Count: 1}}}, TimeoutS: 45})
 	}
-	if len(shortage) == 0 {
+	due := len(s.Minimum) == 0 || s.Replenishing
+	for p, low := range s.Minimum {
+		due = due || known[p] < low
+	}
+	if len(shortage) == 0 || !due {
 		if !foodAtHome(v.State.Pos, g.Center) {
 			return r.stockReturn(g, v, known, shortage, "household targets met; return to home floor")
 		}
@@ -220,8 +261,19 @@ func (r *runner) stockNext(g Record, v behaviour.View) (*session.Order, error) {
 			g.Food.Stock.Shortage = shortage
 			g.Food.Stock.Decision = "household targets met"
 			g.Reason = "verified household storage targets, personal reserve and home-floor arrival"
+			if !due {
+				g.Food.Stock.Decision = "pantry above replenishment minimums"
+				g.Reason = "fresh pantry counts remain above every replenishment minimum"
+			}
 			return nil
 		})
+	}
+	if !s.Replenishing {
+		if err := r.t.Store.update(g.ID, func(g *Record) error { g.Food.Stock.Replenishing = true; return nil }); err != nil {
+			return nil, err
+		}
+		g, _ = r.t.Store.Get(g.ID)
+		f, s = g.Food, g.Food.Stock
 	}
 	surplus := stockSurplus(g, v)
 	atHome := foodAtHome(v.State.Pos, g.Center)
@@ -322,18 +374,33 @@ func (r *runner) stockNext(g Record, v behaviour.View) (*session.Order, error) {
 
 func (r *runner) pinStockSources(g Record, v behaviour.View) error {
 	s := g.Food.Stock
-	if s == nil || len(s.Sources) == 0 || len(s.Pinned) > 0 {
+	if s == nil {
 		return nil
 	}
-	pinned := []home.Waypoint{}
-	for _, name := range s.Sources {
-		i := slices.IndexFunc(v.Waypoints, func(w home.Waypoint) bool { return w.Name == name && w.Kind == "berries" })
-		if i < 0 {
-			return errors.New("household source marker is missing: " + name)
+	pinned := slices.Clone(s.Pinned)
+	if len(pinned) == 0 {
+		for _, name := range s.Sources {
+			i := slices.IndexFunc(v.Waypoints, func(w home.Waypoint) bool { return w.Name == name && w.Kind == "berries" })
+			if i < 0 {
+				return errors.New("household source marker is missing: " + name)
+			}
+			pinned = append(pinned, v.Waypoints[i])
 		}
-		pinned = append(pinned, v.Waypoints[i])
 	}
-	return r.t.Store.update(g.ID, func(g *Record) error { g.Food.Stock.Pinned = pinned; return nil })
+	hunts := slices.Clone(s.HuntingPinned)
+	if len(hunts) == 0 {
+		for _, name := range s.HuntAreas {
+			i := slices.IndexFunc(v.Waypoints, func(w home.Waypoint) bool { return w.Name == name && w.Kind == "hunting" })
+			if i < 0 {
+				return errors.New("household hunting area is missing: " + name)
+			}
+			hunts = append(hunts, v.Waypoints[i])
+		}
+	}
+	if slices.Equal(pinned, s.Pinned) && slices.Equal(hunts, s.HuntingPinned) {
+		return nil
+	}
+	return r.t.Store.update(g.ID, func(g *Record) error { g.Food.Stock.Pinned = pinned; g.Food.Stock.HuntingPinned = hunts; return nil })
 }
 
 // Check runs during native food tasks as well as between decisions.
@@ -353,12 +420,12 @@ func (r *runner) Check(v behaviour.View) error {
 		return errors.New("unsafe household health, footing, home or capacity")
 	}
 	if g.Food.Injury != nil && (v.InjurySeq == nil || *g.Food.Injury != *v.InjurySeq) {
-		if !r.foodResultBoundary(g, v) && !(r.nativeFoodRecovery(g, v) && foodTravelDamage(g, v)) {
+		if !r.foodResultBoundary(g, v) && !((r.nativeFoodRecovery(g, v) || r.nativeFoodHunt(g, v)) && foodTravelDamage(g, v)) {
 			return errors.New("injury outside owned food travel damage budget")
 		}
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeFoodRecovery(g, v) && !r.foodResultBoundary(g, v) {
+		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeFoodRecovery(g, v) && !r.foodResultBoundary(g, v) && !(r.nativeFoodHunt(g, v) && c.ID == g.Pending.Entity) {
 			return errors.New("nearby threat interrupts household work")
 		}
 	}
