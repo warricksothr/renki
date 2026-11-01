@@ -7,6 +7,26 @@ namespace Renki.Tests
     public sealed class DryTravelTests
     {
         [Fact]
+        public void AShoreHintCannotSkipAnInterveningWaterHostileOrBodyRefusal()
+        {
+            var from = new V3(-41.36, 31.11, -43.38);
+            var shore = new V3(-37.66, 31.43, -44.91);
+            var calls = 0;
+            var result = DryTravel.ShoreStep(from, shore, (a, b) =>
+            {
+                calls++;
+                Assert.InRange(V3.FlatDistance(a, b), .499, .501);
+                // A dry distant shore says nothing about the blocked step.
+                return null;
+            });
+            Assert.Null(result);
+            Assert.Equal(1, calls);
+            var shortShore = from + new V3(.1, .05, 0);
+            Assert.Equal(new V3(shortShore.X, from.Y, shortShore.Z), DryTravel.ShoreStep(from, shortShore, (_, at) => at));
+            Assert.Null(DryTravel.ShoreStep(from, from, (_, at) => throw new Exception("no step needed")));
+        }
+
+        [Fact]
         public void FootingChoosesTheNearestSurfaceWithoutSnappingUpAFloorLip()
         {
             const double body = 33;

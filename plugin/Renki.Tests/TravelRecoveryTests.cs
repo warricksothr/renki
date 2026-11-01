@@ -71,6 +71,48 @@ namespace Renki.Tests
             Assert.Equal(TravelMode.Refused, p.Decide(30, true, false));
         }
 
+        [Fact]
+        public void BlockedRouteRequiresObservedChangeAndAQuietWaitBeforeReplanning()
+        {
+            var p = new TravelRecovery();
+            p.Decide(0, false, false);
+            Assert.Equal(TravelMode.Blocked, p.RouteBlocked());
+            Assert.Equal(TravelMode.Blocked, p.Decide(4.99, false, false, routeChanged: true));
+            Assert.Equal(TravelMode.Blocked, p.Decide(5, false, false));
+            Assert.Equal(TravelMode.Blocked, p.Decide(20, false, false));
+            Assert.Equal(TravelMode.Walk, p.Decide(21, false, false, routeChanged: true));
+            Assert.Equal(1, p.Attempts);
+        }
+
+        [Fact]
+        public void ChangedRouteAndEscapeShareTheLifetimeAttemptBudget()
+        {
+            var p = new TravelRecovery();
+            p.Decide(0, false, false); p.RouteBlocked();
+            Assert.Equal(TravelMode.Escape, p.Decide(1, true, false));
+            p.Escaped(true); p.Decide(2, false, false);
+            Assert.Equal(TravelMode.Walk, p.Decide(7, false, false));
+            Assert.Equal(TravelMode.Blocked, p.RouteBlocked());
+            Assert.Equal(TravelMode.Walk, p.Decide(12, false, false, routeChanged: true));
+            Assert.Equal(TravelMode.Refused, p.RouteBlocked());
+            Assert.Equal(3, p.Attempts);
+        }
+
+        [Theory]
+        [InlineData("timeout")]
+        [InlineData("cancel")]
+        [InlineData("unsafe")]
+        [InlineData("clock")]
+        public void WaitingForChangedConditionsCannotExtendAnUnsafeOrExhaustedTask(string reason)
+        {
+            var p = new TravelRecovery();
+            p.Decide(1, false, false); p.RouteBlocked();
+            if (reason == "cancel") p.Cancel();
+            Assert.Equal(TravelMode.Refused, p.Decide(reason == "timeout" ? 31 : reason == "clock" ? 0 : 2,
+                false, reason == "unsafe", routeChanged: true));
+            Assert.Equal(TravelMode.Refused, p.Decide(32, false, false, routeChanged: true));
+        }
+
         [Theory]
         [InlineData(35, true, true, false)]
         [InlineData(22, true, true, true)]

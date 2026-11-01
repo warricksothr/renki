@@ -28,6 +28,15 @@ namespace Renki.Movement
         // Strafing leaves that route, so it retains the full lookahead.
         public static double ClearanceDistance(V3 from, V3? next, bool strafing = false) =>
             !strafing && next.HasValue ? Math.Min(.5, V3.FlatDistance(from, next.Value)) : .5;
+
+        // A distant geometric shore hint cannot authorize the intervening
+        // movement. The caller supplies the full live dry/hostile/body probe.
+        public static V3? ShoreStep(V3 from, V3 shore, Func<V3, V3, V3?> probe)
+        {
+            var delta = (shore - from).Flat;
+            if (delta.Length <= 1e-6) return null;
+            return Probe(from, from + delta.Normalized * Math.Min(.5, delta.Length), probe);
+        }
         // The body checks a half-metre flat lookahead while following a
         // route. A longer diagonal planning edge must validate that exact
         // prefix too: its midpoint and endpoint can miss a support spike.

@@ -37,6 +37,7 @@ seven-threat coastal bottleneck has a physically viable route.
 `avoidHostiles`. The native task samples loaded creatures at 4 Hz, excluding
 players, tamed creatures and passive AnimalAI. Close hostiles or a nearby
 engaged creature can trigger escape; proximity never grants combat permission.
+Loaded threat sampling covers 64 m to match route clearance observations.
 
 One task owns its walking and escape children. It allows at most three
 recovery attempts, each bounded to 30 seconds including observation, and
@@ -46,6 +47,16 @@ observation consumes another attempt. Escape uses current physical support,
 water, obstacle and hostile-corridor checks. Resumption reconstructs the route
 from the actual position and revalidates the original target. The enclosing
 task deadline is never extended.
+
+A refused route can instead hold for changed conditions under that same
+attempt budget. It waits at least five quiet seconds and replans only after
+an observed change to local water level, nearby hostile positions, indexed
+geometry or the body's position. Samples run at 4 Hz with coarse spatial
+quantization; a change requests another physical search, never movement
+permission. Thirty unchanged seconds, unsafe reserves/footing or exhausted
+lifetime attempts produce a failure that retains the original route reason.
+The dry shore fallback also validates each half-metre step through the same
+support, water, body and hostile checks before steering toward a shore hint.
 
 Unsafe reserves/footing, a failed escape or an exhausted budget return a
 precise failure. Cancellation clears child inputs. Mode transitions report

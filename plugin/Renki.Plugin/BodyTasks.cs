@@ -914,6 +914,30 @@ namespace Renki.Plugin
             }
             stuck.Hold(Time.time);
             var dir = Convert.ToVector3(shore.Value) - pos;
+            if (dryGround)
+            {
+                dryProbe.BeginSlice();
+                var step = DryTravel.ShoreStep(Convert.ToV3(pos), shore.Value, dryProbe.Probe);
+                if (!step.HasValue)
+                {
+                    if (Time.unscaledTime >= nextDryRefusalTrace)
+                    {
+                        nextDryRefusalTrace = Time.unscaledTime + 1;
+                        Tracer.Emit("walker", "dry shore step refused", new Dictionary<string, object>
+                        {
+                            ["from"] = Convert.ToArray(pos),
+                            ["shore"] = shore.Value.ToArray(),
+                            ["failure"] = dryProbe.LastFailure?.Stage,
+                        });
+                    }
+                    navigationFailure = Outcome.Failed(Wire.ReasonUnreachable,
+                        "no checked dry shore step: " + (dryProbe.LastFailure?.Stage ?? "unsupported"));
+                    swimming = false;
+                    Driver.Stand();
+                    return true;
+                }
+                dir = Convert.ToVector3(step.Value) - pos;
+            }
             dir.y = 0;
             Driver.Move = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.zero;
             Driver.Run = false;
@@ -1052,7 +1076,8 @@ namespace Renki.Plugin
             if (walker.Refused() is Outcome wet)
             {
                 Driver.Stand();
-                return wet;
+                return encounter != null && (wet.Reason == Wire.ReasonUnreachable || wet.Reason == Wire.ReasonDeepWater)
+                    ? encounter.Blocked(p, wet) : wet;
             }
             if (!walker.Steer(pos, args.Run, climbObstacles: !args.Dry))
             {

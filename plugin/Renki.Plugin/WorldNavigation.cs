@@ -25,6 +25,7 @@ namespace Renki.Plugin
 
         internal static void Focus(Vector3 target) => focus = target;
         internal static List<LogObstacle> LogObstacles() => obstacles.Snapshot();
+        internal static long GeometryRevision => obstacles.Index.Revision;
         internal static double WaterLevel(V3 at) => Math.Max(
             ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000,
             Floating.GetLiquidLevel(Convert.ToVector3(at)));
