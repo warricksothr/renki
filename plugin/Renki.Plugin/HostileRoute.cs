@@ -37,23 +37,32 @@ namespace Renki.Plugin
                     }).ToArray(),
             };
         }
+        internal IReadOnlyList<HostileClearance.Threat> Current()
+        {
+            Observe();
+            return available && !saturated ? threats : null;
+        }
         internal bool Clear(V3 from, V3 to)
+        {
+            Observe();
+            return available && !saturated && HostileClearance.Clear(from, to, threats);
+        }
+        void Observe()
         {
             if (frame != Time.frameCount)
             {
                 frame = Time.frameCount; characters.Clear(); threats.Clear(); available = false;
                 var player = Player.m_localPlayer;
-                if (player == null) return false;
+                if (player == null) return;
                 Character.GetCharactersInRange(player.transform.position, 64, characters);
                 saturated = characters.Count > 128;
-                if (saturated) return false;
+                if (saturated) return;
                 foreach (var c in characters)
                     if (c != null && c != player && !c.IsDead() && c.GetComponent<MonsterAI>() != null && BaseAI.IsEnemy(player, c))
                         threats.Add(new HostileClearance.Threat(Convert.ToV3(c.transform.position),
                             c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetPrefabName() : null, c.GetLevel()));
                 available = true;
             }
-            return available && !saturated && HostileClearance.Clear(from, to, threats);
         }
     }
 }

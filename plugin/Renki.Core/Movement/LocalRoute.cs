@@ -23,7 +23,7 @@ namespace Renki.Movement
         {
             public int X, Z;
             public V3 Pos;
-            public double Cost, Score;
+            public double Cost, Score, Remaining;
             public Node Parent;
             public GroundCorridor.Cursor Ground;
             public long Serial;
@@ -32,7 +32,8 @@ namespace Renki.Movement
         readonly V3 start, goal;
         readonly double within;
         readonly double arrivalLevel;
-        readonly double initialDistance;
+        readonly double initialEstimate;
+        readonly Func<V3, double> guidance;
         readonly Func<V3, V3, V3?> probe;
         readonly int maxNodes;
         readonly double maxCost;
@@ -47,12 +48,14 @@ namespace Renki.Movement
         public IReadOnlyList<V3> Path { get; private set; }
         public int Expanded { get; private set; }
         public int Probes { get; private set; }
+        public bool NodeLimitReached => Status == RouteStatus.NoRoute && Expanded >= maxNodes;
         /// <summary>A found path is only a checked leg, not arrival at the destination.</summary>
         public bool ProgressLeg { get; }
 
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
             bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
-            double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level)
+            double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level,
+            Func<V3, double> guidance = null)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
@@ -63,11 +66,12 @@ namespace Renki.Movement
             this.within = within;
             this.arrivalLevel = arrivalLevel;
             this.maxNodes = maxNodes; this.maxCost = maxCost;
-            initialDistance = V3.FlatDistance(start, goal);
+            this.guidance = guidance;
+            initialEstimate = Remaining(start);
             // Keep taking checked approach legs until the destination is
             // within the local horizon. Starting a full floor/entrance search
             // from 24 m away can spend its entire bound on the lower bank.
-            ProgressLeg = initialDistance > progressHorizon;
+            ProgressLeg = initialEstimate > progressHorizon;
             Add(new Node { Pos = start, Ground = groundCorridor ? new GroundCorridor.Cursor() : null });
         }
 
@@ -89,7 +93,7 @@ namespace Renki.Movement
                 // height may belong to an unloaded hill or raised floor;
                 // intermediate legs follow support, never that final height.
                 if (ProgressLeg && V3.FlatDistance(start, node.Pos) >= FrontierDistance &&
-                    initialDistance - V3.FlatDistance(node.Pos, goal) >= FrontierProgress)
+                    initialEstimate - node.Remaining >= FrontierProgress)
                 {
                     Complete(node, node.Pos);
                     break;
@@ -153,9 +157,17 @@ namespace Renki.Movement
         void Add(Node node)
         {
             costs[Key(node)] = node.Cost;
-            node.Score = node.Cost + V3.FlatDistance(node.Pos, goal);
+            node.Remaining = Remaining(node.Pos);
+            node.Score = node.Cost + node.Remaining;
             node.Serial = serial++;
             open.Add(node);
+        }
+
+        double Remaining(V3 at)
+        {
+            var estimate = guidance != null ? guidance(at) : V3.FlatDistance(at, goal);
+            if (double.IsNaN(estimate) || estimate < 0) throw new ArgumentException("invalid route guidance");
+            return estimate;
         }
     }
 }
