@@ -23,16 +23,16 @@ blocks_on: none
 references: []
 moved_to: null
 claim:
-  actor: agent:codex/renki-resume
-  branch: t3/stow-home-approach
+  actor: agent:codex/renki-milestones
+  branch: t3/valheim-plus-migration
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: b325d9dc1d00f1613f4c4fe678239b486339983f
+  commit: b1c85963ce44fecc12d68d71bab4ba5f725dcb04
   session: null
-  claimed_at: 2026-10-29T22:16:44Z
+  claimed_at: 2026-11-01T23:34:37Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-01T23:10:13Z
+updated_at: 2026-11-01T23:41:48Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -88,3 +88,23 @@ Nighttime manual sleep passed on deployed 3232dad at 22:40Z–22:41Z: Tas approa
 **agent:codex/renki-milestones** at 2026-11-01T23:10:13Z
 
 User added bed/sleep to the current escort, defence, resupply/cooking, harvesting/unloading and pantry test batch on 2026-11-01. Current audit identifies a command-grammar failure: authorized Nimah shouted "tas get in bed please" at23:06:44Z; Tas issued only a conversational say promise at23:06:47Z, without an interact sleep task. TKT-01M6CP0J0A6TVZCHAPVMVB0SGQ — Execute natural get-in-bed requests as sleep commands fixes that concrete parser failure. Keep live nighttime bed entry, escort interruption, bed approach/ownership and real native refusals as batch checks. Existing earlier nighttime success is historical evidence, not proof of the current changed base layout/modpack. A Castile request in the same window was non-operator; do not change role permissions implicitly.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:34:37Z
+
+claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
+
+**agent:codex/renki-milestones** at 2026-11-01T23:34:37Z
+
+Resuming the previous Codex session's same-worktree claim for the user-authorized current test batch. The grammar fix is deployed at880cbc3. Tas was at menu after an explicit logout; user now asked to continue. Performing one explicit client restart to rejoin, with AutoLogout=false and RecoveryGuard=false. Inspect current bed ownership and time before an ordinary sleep interaction; use food resupply/cooking while waiting for a nighttime opportunity. Keep real native task receipts, in_bed/sleeping state and refusal reasons distinct. Do not take another player's bed or replace a new human order.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:36:58Z
+
+Current native bed attempt reached owned bed1:99058 and returned the actual daytime refusal "You can't sleep at this time" in6s, without logging out (.checks/20261101T233513Z-1dcZyU.log; .checks/task-kdimv0il.json). This earns current-layout approach/daytime-refusal evidence, not nighttime in_bed. Tas was then handed to explicit food_resupply; it found and ate cooked deer meat and is observing recovery before further food work.
+
+The plugin already streams State.Time (day, dayFraction, night), but PanelStatus omits it, leaving agent tooling unable to schedule a nighttime retry without auditing raw state. Add that small additive status field, with live-world scope and offline/menu clearing checks, then use it for subsequent sleep validation. Keep deployment at a quiet boundary so a controller reconnect does not interrupt active food work.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:41:48Z
+
+Added live-native time.day/dayFraction/night to PanelStatus, scoped to connected in-world state and copied from the plugin's existing clock. Menu/offline status clears it. Wire-level day/night and clearing tests passed via just check controller test-packages ./internal/app (.checks/20261101T233658Z-tkKBuJ.log); full just check ci passed172s (.checks/20261101T233750Z-bDaQos.log). No plugin or UI control change is required.
+
+Route benchmark admission correctly refused the initial attempt because Tas was still4.2m horizontally from home after cooking, outside its pinned-home start envelope (.checks/routes-20261101T233953074211Z). No movement was dispatched. The northern marker is also outside this benchmark's60m limit, so use an eligible nearby marker for that bounded check, and ordinary bounded native movement if prospecting farther north. This is preparation/coverage, not a navigation failure.

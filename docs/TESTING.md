@@ -618,6 +618,9 @@ escort and reach the bed, then confirm `in_bed` or report the game's refusal.
 A conversational promise alone is not execution. Check this at night against
 the current base layout and modpack; do not treat historical success below as
 current live acceptance. Guest requests retain the usual role restrictions.
+The shared status API includes native `time.day`, `time.dayFraction` and
+`time.night` while in-world, clearing them at menu/disconnect. Use that clock
+to schedule nighttime checks; actual bed entry still requires native evidence.
 
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"

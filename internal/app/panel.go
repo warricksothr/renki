@@ -51,6 +51,7 @@ type PanelStatus struct {
 	Pos           *protocol.Vec3             `json:"pos,omitempty"`
 	Biome         string                     `json:"biome,omitempty"`
 	Location      *protocol.Location         `json:"location,omitempty"`
+	Time          *protocol.GameTime         `json:"time,omitempty"`
 	Flags         []string                   `json:"flags,omitempty"`
 	Yaw           float64                    `json:"yaw"`
 	Connection    uint64                     `json:"connection"`
@@ -109,6 +110,8 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		if s.Phase == protocol.PhaseInWorld {
 			pos := s.Pos
 			ps.Pos = &pos
+			clock := s.Time
+			ps.Time = &clock
 		}
 	}
 	ps.Goals = a.Goals.Summaries()

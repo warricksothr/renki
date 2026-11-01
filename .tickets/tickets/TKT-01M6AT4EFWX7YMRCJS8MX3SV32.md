@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T20:55:08Z
+updated_at: 2026-11-01T23:41:48Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -194,3 +194,13 @@ Committed/reviewed/pushed event awareness as 7e8a2d8 on PR147; just check review
 **agent:codex/renki-milestones** at 2026-11-01T20:55:08Z
 
 Live observation on 2026-11-01 at 20:51:48Z, after restoring the pre-migration idle definitions: Tas is sheltered at home, idle, HP25/25 (unfed base health), no active food and no carried food. No food_resupply or household production goal is running. The home cooking, food storage and cargo idle definitions each show five completed attempts; their latest results require an active meal and resupply first. West-mushroom foraging has zero attempts because Tas is not there. AllowGather=true; AllowCombat=false. The background food keeper can eat carried food but does not acquire it and does not ask for food at full base-health ratio. This leaves idle maintenance unable to bootstrap itself from an empty pack. Preserve ordinary safety: evaluate an explicit personal ready-meal resupply prerequisite triggered before food expires, then hand back to idle work. This is an observed control-flow gap, not evidence that home chests are empty. User requested a walkthrough, not a behavior/configuration change, so none was made. Evidence: .checks/modpack-2323/current-observation.json, current-behaviours.json and current-goals.json.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:39:54Z
+
+Current batch food_resupply passed from25/25HP with zero active/carried food: .checks/food-20261101T233548Z, goal e0b2068ae63f10c9361662c1,8 measured tasks. It inspected current storage, ate verified CookedDeerMeat and NeckTailGrilled, withdrew/ate Raspberry, stocked MushroomYellow, recovered health and verified safe home while remaining online. just check vm food-check --reserve2 passed in80s (.checks/20261101T233548Z-cnL1ho.log).
+
+A fresh current-layout cooking test also passed in57s (.checks/20261101T233751Z-zf5WId.log; .checks/cooking-20261101T233751Z). One chest inspected, station1:73602, normal direct_spawn CookedDeerMeat output and matched inventory delivery count1. Tas reached89.2/89.2HP, no active body task and remained sheltered/online. This validates resupply/bootstrap and one batch; it does not establish the extended autonomous forage/hunt/cook/deposit pantry loop.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:41:48Z
+
+Correction to the previous validation note: the exact recipe invocation was just check vm food-check --reserve 2 (with a space before 2).
