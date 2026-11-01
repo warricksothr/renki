@@ -1343,6 +1343,20 @@ agreement. Native projection diagnostics must still establish the captured
 raised-house candidate's actual measured height; the synthetic regression alone
 does not prove the field route or authorize movement.
 
+The 2026-11-01 deployment of `59a9ba2` accepted and followed a checked native
+prefix with a 0.769 m hint-height offset; later refusals identified physical
+hostile/water checks. Retained evidence is `.checks/audit-window-4VoNvn.jsonl`.
+The southern household trial `.checks/food-20261101T042930Z` reached an occupied
+shore corridor, refused further approach, returned to the actual sheltered home
+floor and remained online without injury. It earned no food collection or stock
+deposit. An explicit branch interaction succeeded, but its Wood remained a
+loose product; the subsequent exact pickup was blocked by a Greyling envelope.
+Do not credit interaction as acquisition, or deposit older cargo as its proof.
+Ordinary supervised return after that refusal passed in
+`.checks/food-20261101T043701Z`. Escape bearing alternatives, occupied-source
+handling and encounter-to-collection/storage proof remain open; the earlier
+120-second return timeout also remains a failure in the evidence.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing
