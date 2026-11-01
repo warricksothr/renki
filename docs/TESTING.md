@@ -1997,6 +1997,18 @@ ore and refused Coal without movement. `1:73622` accepted Coal45, with exact
 transfer and newer pack evidence. Three incidental Copper ingots collected on
 that walk generated real production-site origin records. Tas returned inside
 uninjured. The observed `home workshop storage` marker identifies that separate
-floor; the original home and home-storage marker were preserved. An automatic
-home/workshop cargo journey is a separate acceptance check from these direct
-native transfer receipts.
+floor; the original home and home-storage marker were preserved.
+
+The automatic home/workshop journey then passed ona1c80b2 (controller-only
+deployment; plugin7f39fc7). After the normal30-second idle dwell, the cargo
+instance dispatched exactly two native tasks: conditional deposit Coal1 into
+`1:73622`, then dry/hostile-avoiding return to `home storage`. Matched transfer
+receipt/newer pack observations confirmed the deposit; fresh grounded shelter at
+[-39.57,36.09,8.02] confirmed return. The native approach measured a second clear
+standing position after its first walk reached the bounded work limit. No
+observed injury; minimum70.3HP. Final pack: equipped rags/axe, CookedDeerMeat1,
+Mushroom1 and Wood10, with no Copper or Coal. Shared origins survived both
+controller and game restarts. Evidence `.checks/cargo-20261101T1900Z/summary.json`
+and `.checks/audit-window-ibzxah.jsonl`; full CI172s and committed review passed.
+The ordinary home-storage idle definition remains enabled with its default
+reserves. These receipts do not close broader M2/M3 route/pantry acceptance.
