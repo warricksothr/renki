@@ -1271,6 +1271,17 @@ short-step validation: a dry shore hint cannot authorize an intervening
 blocked corridor. A guarded live check must still establish changed-condition
 resumption and actual arrival; deterministic policy checks do not establish it.
 
+The 6a487d0 guarded return exercised three blocked/changed/walk cycles under
+one native startup-return objective, then resumed about 88 m of travel onto
+the actual 36.09 m home floor without injury (62.3/62.3 HP, injury sequence
+zero). It stopped at the uncovered edge of the outer arrival circle before
+reaching shelter. Evidence: `.checks/recovery-20261101T022241Z` and
+`.checks/audit-window-jkeFFS.jsonl`. This proves native continuation and
+physical progress; it does not prove a normal wire task ID or sheltered release.
+The corrected return guard lets an uncovered porch/last stair continue toward
+the actual 1.5 m endpoint. Correct-floor ground, shelter and threat clearance
+are still required for success, and an unsafe endpoint still fails.
+
 ## Household food pressure checks
 
 The staged encounter plan is in [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md).

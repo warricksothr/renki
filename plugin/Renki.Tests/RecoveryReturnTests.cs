@@ -141,6 +141,32 @@ namespace Renki.Tests
                 pos: new V3(0, 30, 0), sheltered: true, threat: 8));
         }
 
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(false, false)]
+        public void UncoveredPorchOrLastStairCanContinueToActualHomeShelter(bool grounded, bool sheltered)
+        {
+            var g = Guard();
+            Assert.Equal(RecoveryReturnAction.Move, Step(g, threat: 20));
+            Assert.Equal(RecoveryReturnAction.Move, Step(g, now: 1, pos: new V3(0, 28.5, 2.9),
+                grounded: grounded, sheltered: sheltered, threat: 20));
+            Assert.Equal(RecoveryReturnAction.Arrived, Step(g, now: 2, pos: new V3(0, 28.5, 1.4),
+                grounded: true, sheltered: true, threat: 20));
+        }
+
+        [Theory]
+        [InlineData(false, true, 20)]
+        [InlineData(true, false, 20)]
+        [InlineData(true, true, 8)]
+        public void ActualHomeEndpointStillRequiresGroundShelterAndThreatClearance(bool grounded, bool sheltered, double threat)
+        {
+            var g = Guard();
+            Assert.Equal(RecoveryReturnAction.Move, Step(g, threat: 20));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(g, now: 1, pos: new V3(0, 28.5, 1.4),
+                grounded: grounded, sheltered: sheltered, threat: threat));
+        }
+
         [Fact]
         public void InvalidArmingAndInitializationTimeoutFailClosed()
         {

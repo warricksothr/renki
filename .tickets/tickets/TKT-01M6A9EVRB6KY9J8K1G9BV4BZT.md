@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T02:21:51Z
+updated_at: 2026-11-01T02:30:14Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -105,3 +105,11 @@ Implemented changed-condition route observation in the native travel policy and 
 Corrected the dry shore fallback: every half-metre step now passes the same live dry support/water/body/hostile probe before steering. Failure holds controls and exposes the precise shore-step refusal to the bounded observation policy. Ordinary non-dry swimming behavior is unchanged.
 
 Focused TravelRecoveryTests, DryTravelTests and plugin build passed (.checks/20261101T021807Z-mQOZxA.log, .checks/20261101T021809Z-DMMl4a.log, .checks/20261101T021811Z-5xe6Pu.log). Full just check ci passed in141s (.checks/20261101T021914Z-F67P9o.log). Subsequent required committed review/publication/install and one supervised changed-build trial remain. Current code has no live changed-condition resume or home-arrival proof; all original acceptance criteria remain unticked.
+
+**agent:codex/renki-milestones** at 2026-11-01T02:30:14Z
+
+Published #142 (https://github.com/warricksothr/renki/pull/142) after clean committed review and installed6a487d0 with checksum verification. Trial .checks/recovery-20261101T022241Z / audit-window-jkeFFS.jsonl exercised three native blocked->changed->walk cycles, each with at least5s quiet and observed route changes. The same startup-return coordinator retained its objective and deadline; this is not a normal wire-task-ID proof. After initial failed searches and a checked shore-step water refusal, Tas resumed approximately88m sampled travel and reached the actual36.09m home floor. Final62.3/62.3HP, sampled injurySeq0. No sheltered release/production success claimed.
+
+The final native logout reason was home is not safe shelter. The existing return guard treated entering its outer3m circle on an uncovered porch as immediate failure, although the actual1.5m move endpoint and planned sheltered approach had not been reached. Corrected that guard: ground+shelter+correct floor and >=12m threat clearance still establish success; a nearby threat still refuses immediately, and an unsafe actual1.5m endpoint still refuses. An uncovered outer approach/final stair can continue normally. Added six cases covering approach and endpoint safeguards; focused RecoveryReturnTests passed (.checks/20261101T022724Z-GKlW0r.log).
+
+Full just check ci passed in the latest gate (.checks/20261101T022732Z-2bW6FT.log). Required committed review precedes updating #142 and installing the guard fix. Tas is offline on the home floor near[-37.27,36.09,9.56]. The shortest active food has164s left, so do not reuse work-trip admission requiring270s. A changed-build local return is within its original80m/120s/160m limits and existing two-food reserves; attempt that local guarded finish, then refresh personal food if safe shelter is verified. Original physical snapshot and home-release acceptance remain unearned until actual evidence; no unchanged failed-order replay.
