@@ -1778,3 +1778,30 @@ to the search target, rather than letting an unrelated final terrain probe
 hide an entrance obstruction. The existing compact route-evidence tool
 retains these fields, while bank sweeps keep their original chronological
 sixteen-candidate evidence. Movement policy and search budgets are unchanged.
+
+Instrumentedf243371 passed gate/review and its return
+`.checks/recovery-20261101T105655Z` (audit `.checks/audit-window-HtySsG.jsonl`)
+confirms the remaining obstruction is below the floor: both entrance searches
+expanded zero target-floor nodes. Their highest expanded support was about
+Y34.98; the nearest body casts hit `wood_floor` near the doors at Y34.4.
+Tas remained near[-37.07,34.1,7.58],44.4/44.4HP, without observed injury;
+the native return failed and controller-only panel was restored.
+
+A dry, hostile-avoiding search starting beneath a measured building and
+targeting a raised floor can now select an `under_floor_exit` staging leg.
+The endpoint must be outside measured overhead building geometry, at least
+3m from the start, at least0.25m higher, within12m checked path cost and no
+more than8m farther horizontally from the target than the start. It may move
+away from the entrance to escape its underside. Every edge is still checked;
+the endpoint's2m current-water clearance and overhead geometry are rechecked
+on selection. It waits at least2s and shares the existing two-leg-per-goal
+budget with shore staging; arrival, task/bank limits and physical admission
+remain unchanged. Raised-goal shore staging also avoids choosing an endpoint
+under a building. `just check plugin test-core UnderFloorExitTests` uses the
+captured start with explicitly synthetic rising ground/overhang, verifies
+checked outward travel, and rejects missing support, no observed exit,
+insufficient rise, excess retreat and renewed leg allowances.
+
+`just vm route-evidence` also projects entrance choices and native startup
+return/logout reasons, avoiding ad hoc scans of the full audit. Under-floor
+exit traversal and a complete home return still need native validation.

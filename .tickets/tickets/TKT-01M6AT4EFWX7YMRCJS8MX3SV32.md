@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T10:51:00Z
+updated_at: 2026-11-01T11:03:32Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -154,3 +154,11 @@ Exact diagnostics identify a concrete admission bug: rotated wood_floor hits hav
 Reviewed4c8b3bf passed full CI (.checks/20261101T104202Z-3n4DmO.log), committed review (.checks/20261101T104426Z-V615oX.log), push and checksum installation. Corrected-policy return .checks/recovery-20261101T104459Z / audit .checks/audit-window-bQImaU.jsonl confirms both door floors now become entrance hints at Y36.09. The exact-normal correction is demonstrated; complete routing remains unproved. Tas moved only0.3m and stayed below the base near[-37.04,34.11,7.57],45.2/45.2HP, without observed injury. Both entrance searches and the final home search ended Searching at16s. Native logout and supervisor cleanup restored controller-only panel.
 
 Current summaries conceal whether any upper-floor nodes were actually expanded, and their last-per-stage refusals come from unrelated distant terrain. Add bounded diagnostic-only highest/closest expanded support, target-floor expansion count and closest refusal per stage ordered by goal distance. Core regression distinguishes reachable upper-floor nodes from missing support and final short arrival connectors. The existing route-evidence projection retains these summaries. No physical policy, target, budget or autonomous goal is changed. One instrumented run after gate/review will distinguish an actual entrance obstruction from queue exhaustion; no production receipt is claimed.
+
+**agent:codex/renki-milestones** at 2026-11-01T11:03:32Z
+
+Reviewedf243371 passed just check ci (.checks/20261101T105408Z-4jqUWU.log), committed review (.checks/20261101T105631Z-dxQePV.log), push and checksum deployment. Instrumented return .checks/recovery-20261101T105655Z / audit .checks/audit-window-HtySsG.jsonl provides the missing distinction: both entrance searches expanded zero target-floor nodes, highest support about34.98m, with nearest body casts hitting wood_floor underneath the doors nearY34.4. No return earned; offline at[-37.07,34.1,7.58],44.4/44.4HP, no observed injury, panel restored.
+
+Implement checked under-floor escape staging: only when a raised dry/hostile-avoiding search starts beneath observed building geometry, select an expanded node outside overhead pieces with >=3m displacement, >=0.25m rise, <=12m checked cost and <=8m additional horizontal distance from the target. This permits deliberate outward repositioning instead of searching directly beneath an entrance. Fresh destination overhead/water checks, ordinary edge/body/portal/hostile admission, >=2s wait and the same aggregate two-leg allowance remain; no task/bank budget renewed or arrival invented. Shore staging for raised goals also avoids endpoints under a building. Captured-start/synthetic-overhang regression and native build pass; full gate/review and one changed-policy return remain pending.
+
+Route-evidence now includes bounded entrance selections and native startup return/logout reasons so future diagnosis does not require raw audit scans. This supersedes any inference that the normal correction alone completed the entrance route.

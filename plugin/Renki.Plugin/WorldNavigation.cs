@@ -17,6 +17,7 @@ namespace Renki.Plugin
         static readonly int TriggerMask = Mask | LayerMask.GetMask("character_trigger");
         static readonly NavigationObstacles obstacles = new NavigationObstacles(Mask);
         static readonly RaycastHit[] supportHits = new RaycastHit[64];
+        static readonly RaycastHit[] ceilingHits = new RaycastHit[64];
         static readonly RaycastHit[] castHits = new RaycastHit[64];
         static readonly Collider[] overlaps = new Collider[64];
         static readonly RaycastHit[] portalCasts = new RaycastHit[64];
@@ -39,11 +40,26 @@ namespace Renki.Plugin
             Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null; nextPortalRefusalTrace = 0;
             Doorman.Reset();
             Array.Clear(supportHits, 0, supportHits.Length);
+            Array.Clear(ceilingHits, 0, ceilingHits.Length);
             Array.Clear(castHits, 0, castHits.Length);
             Array.Clear(overlaps, 0, overlaps.Length);
             Array.Clear(portalCasts, 0, portalCasts.Length);
             Array.Clear(portalOverlaps, 0, portalOverlaps.Length);
             supportSlopePieces.Clear();
+        }
+
+        // A nearby raised floor can be a ceiling from the current storey.
+        // This only ranks checked approach legs; it never admits movement.
+        internal static bool BuildingAbove(V3 at, double targetY)
+        {
+            var length = Math.Min(6, targetY - at.Y + .6) - .35;
+            if (length <= 0) return false;
+            var count = Physics.RaycastNonAlloc(Convert.ToVector3(at) + Vector3.up * .35f,
+                Vector3.up, ceilingHits, (float)length, Mask, QueryTriggerInteraction.Ignore);
+            if (count == ceilingHits.Length) return true;
+            for (var i = 0; i < count; i++)
+                if (ceilingHits[i].collider?.GetComponentInParent<Piece>() != null) return true;
+            return false;
         }
 
         // The final input guard also covers ordinary navmesh following and

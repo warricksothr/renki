@@ -59,6 +59,7 @@ namespace Renki.Plugin
         bool hasGoal, checkedOnly;
         RouteSearch localRoute;
         bool preferGuidance;
+        bool localUnderFloorExit;
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
@@ -806,6 +807,8 @@ namespace Renki.Plugin
             localWaterBlocked = Blocked;
             Blocked = null;
             localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance, diagnosticGoal: Convert.ToV3(target));
+            localUnderFloorExit = dryGround && avoidHostiles && dryStaging.Available &&
+                target.y - from.y > Arrival.Level && WorldNavigation.BuildingAbove(Convert.ToV3(from), target.y);
             ThreatGuidance Guidance()
             {
                 if (!dryGround || !avoidHostiles || !preferGuidance && localProbe.HostileRejected == 0) return null;
@@ -824,8 +827,9 @@ namespace Renki.Plugin
                 progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel,
                 guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null,
                 stagingEligible: dryGround && avoidHostiles && dryStaging.Available
-                    ? (System.Func<V3, bool>)(at => DryTravel.Clear(at, WorldNavigation.WaterLevel(at), DryStaging.WaterMargin)) : null,
-                heightAware: dryGround), Guidance, preferGuidance);
+                    ? (System.Func<V3, bool>)(at => DryTravel.Clear(at, WorldNavigation.WaterLevel(at), DryStaging.WaterMargin) &&
+                        (target.y - from.y <= Arrival.Level || !WorldNavigation.BuildingAbove(at, target.y))) : null,
+                heightAware: dryGround, underFloorExit: localUnderFloorExit), Guidance, preferGuidance);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
@@ -890,7 +894,9 @@ namespace Renki.Plugin
             if (dryGround && avoidHostiles && dryStaging.Available && elapsed >= DryStaging.WaitSeconds &&
                 localRoute.Status == RouteStatus.Searching && localRoute.StagingPath is IReadOnlyList<V3> candidate &&
                 DryTravel.Clear(candidate[candidate.Count - 1], WorldNavigation.WaterLevel(candidate[candidate.Count - 1]), DryStaging.WaterMargin) &&
-                dryStaging.Take(elapsed, !DryTravel.Clear(Convert.ToV3(pos), WorldNavigation.WaterLevel(Convert.ToV3(pos)), DryStaging.WaterMargin), candidate))
+                (!localUnderFloorExit || !WorldNavigation.BuildingAbove(candidate[candidate.Count - 1], localRoute.Target.Y)) &&
+                dryStaging.Take(elapsed, localUnderFloorExit && WorldNavigation.BuildingAbove(Convert.ToV3(pos), localRoute.Target.Y) ||
+                    !DryTravel.Clear(Convert.ToV3(pos), WorldNavigation.WaterLevel(Convert.ToV3(pos)), DryStaging.WaterMargin), candidate))
                 stagingPath = candidate;
             if (stagingPath == null && localRoute.Status == RouteStatus.Searching && elapsed < 16 * localRoute.BudgetStages) return true;
             // Even an enclosed start may exhaust the local search before
@@ -936,6 +942,7 @@ namespace Renki.Plugin
                 ["waypoints"] = found ? selectedPath.Count : 0,
                 ["progressLeg"] = localRoute.ProgressLeg || stagingPath != null,
                 ["stagingLegs"] = dryStaging.Used,
+                ["stagingKind"] = stagingPath != null ? localUnderFloorExit ? "under_floor_exit" : "shore" : null,
                 ["end"] = found ? selectedPath[selectedPath.Count - 1].ToArray() : null,
                 ["start"] = found ? selectedPath.Take(4).Select(p => p.ToArray()).ToArray() : null,
             });

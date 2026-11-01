@@ -37,6 +37,7 @@ namespace Renki.Movement
         readonly Func<V3, V3, V3?> probe;
         readonly Func<V3, bool> stagingEligible;
         readonly bool heightAware;
+        readonly bool underFloorExit;
         Node staging;
         readonly int maxNodes;
         readonly double maxCost;
@@ -68,7 +69,8 @@ namespace Renki.Movement
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
             bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
             double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level,
-            Func<V3, double> guidance = null, Func<V3, bool> stagingEligible = null, bool heightAware = false)
+            Func<V3, double> guidance = null, Func<V3, bool> stagingEligible = null, bool heightAware = false,
+            bool underFloorExit = false)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
@@ -81,6 +83,7 @@ namespace Renki.Movement
             this.maxNodes = maxNodes; this.maxCost = maxCost;
             this.guidance = guidance;
             this.stagingEligible = stagingEligible;
+            this.underFloorExit = underFloorExit;
             initialEstimate = Remaining(start);
             // Keep taking checked approach legs until the destination is
             // within the local horizon. Starting a full floor/entrance search
@@ -105,7 +108,8 @@ namespace Renki.Movement
                 if (Math.Abs(node.Pos.Y - goal.Y) <= arrivalLevel) GoalFloorExpanded++;
                 if (stagingEligible != null && node.Cost <= DryStaging.MaximumCost &&
                     V3.FlatDistance(start, node.Pos) >= DryStaging.MinimumDistance &&
-                    V3.FlatDistance(start, goal) - V3.FlatDistance(node.Pos, goal) >= DryStaging.MinimumProgress &&
+                    (underFloorExit ? UnderFloorExit.Candidate(start, goal, node.Pos, node.Cost) :
+                        V3.FlatDistance(start, goal) - V3.FlatDistance(node.Pos, goal) >= DryStaging.MinimumProgress) &&
                     (staging == null || node.Remaining < staging.Remaining) && stagingEligible(node.Pos)) staging = node;
                 if (Arrival.Reached(node.Pos, goal, within, arrivalLevel))
                 {

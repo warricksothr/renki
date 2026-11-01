@@ -14,9 +14,9 @@ namespace Renki.Movement
         public const double WaterMargin = 2;
         public int Used { get; private set; }
         public bool Available => Used < Limit;
-        public bool Take(double waited, bool nearWater, IReadOnlyList<V3> path)
+        public bool Take(double waited, bool eligibleStart, IReadOnlyList<V3> path)
         {
-            if (!Available || !nearWater || !(waited >= WaitSeconds) || double.IsInfinity(waited) || path == null || path.Count < 2) return false;
+            if (!Available || !eligibleStart || !(waited >= WaitSeconds) || double.IsInfinity(waited) || path == null || path.Count < 2) return false;
             Used++;
             return true;
         }

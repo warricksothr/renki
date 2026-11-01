@@ -28,16 +28,18 @@ def project(audit, limit=12):
         except ValueError:
             continue
         frame = row.get('frame') or {}
-        if frame.get('type') != 'trace' or frame.get('source') not in ('walker', 'navigation'):
+        if frame.get('type') != 'trace' or frame.get('source') not in ('walker', 'navigation', 'recovery'):
             continue
         data = frame.get('data') or {}
-        if not any(k in data for k in ('supportQuery', 'planning', 'failures')):
+        if (not any(k in data for k in ('supportQuery', 'planning', 'failures')) and frame.get('msg') not in (
+                'routing raised goal through observed entrance', 'bounded startup return started', 'startup recovery logging out')):
             continue
         counts[frame.get('msg', '')] += 1
-        record = dict(at=row.get('at'), task=frame.get('task'), message=frame.get('msg'))
+        record = dict(at=row.get('at'), task=frame.get('task'), source=frame.get('source'), message=frame.get('msg'))
         record.update({k: data[k] for k in ('pos', 'from', 'reason', 'failure', 'checking', 'checkingFrom',
                        'searchStatus', 'expanded', 'probes', 'elapsedS', 'supportQuery', 'failures', 'planning',
-                       'stagingLegs', 'progressLeg', 'end', 'piece', 'frontier') if k in data})
+                       'stagingLegs', 'stagingKind', 'progressLeg', 'end', 'piece', 'frontier',
+                       'to', 'goal', 'entrance', 'profile', 'seconds', 'travelM', 'homeRadiusM') if k in data})
         if 'supportQuery' in record: record['supportQuery'] = query(record['supportQuery'])
         if 'failures' in record: record['failures'] = failures(record['failures'])
         if record.get('planning'):

@@ -227,6 +227,18 @@ class Routes(unittest.TestCase):
         self.assertEqual(record['frontier'], frontier)
         self.assertEqual(record['failures']['examples'][0]['collider'], 'wood_floor/collider')
 
+    def test_compact_evidence_includes_entrance_choice_and_native_logout_reason(self):
+        frames = [dict(type='trace', source='walker', msg='routing raised goal through observed entrance',
+                       data=dict(entrance=[-39.77, 36.09, 11.2])),
+                  dict(type='trace', source='recovery', msg='startup recovery logging out',
+                       data=dict(reason='no supported route')),
+                  dict(type='trace', source='recovery', msg='unrelated diagnostic', data=dict(reason='ignore'))]
+        report = evidence.project([json.dumps(dict(frame=f)) for f in frames])
+        self.assertEqual(len(report['recent']), 2)
+        self.assertEqual(report['recent'][0]['entrance'], [-39.77, 36.09, 11.2])
+        self.assertEqual(report['recent'][1]['reason'], 'no supported route')
+        self.assertNotIn('unrelated diagnostic', report['events'])
+
     def test_evidence_does_not_expand_a_large_bank_sweep_into_context(self):
         sample = dict(supportQuery=dict(reason='slope', contacts=[dict(normal=[0, .62, 0])]*6))
         data = dict(planning=dict(local=dict(failures=dict(counts=dict(endpoint_support=100), examples=[sample]*16))))
