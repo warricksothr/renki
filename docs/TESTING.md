@@ -7,6 +7,25 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Native pursuit and peeling
+
+`just check plugin test-core PursuitGroup` covers temporal isolation, whole-pack
+pursuit, hunt flags, ownership/visibility uncertainty, late arrivals, preparation
+and episode limits. Shared protocol fixtures and `just check controller
+test-packages ./internal/protocol ./internal/behaviour ./internal/goal
+./internal/retreat` check opt-in propagation, native ownership and no replay of
+uncertain intent. The panel `peel-status` scenario checks the control and shared
+status on desktop/mobile.
+
+When a prepared, safe starting position is available, `just vm goal-trial
+--peel` starts one persistent native peel goal with a verified home-return
+requirement. Existing supervisor health, water, extra-creature and logout
+checks remain in force. Begin with one naturally found ordinary Greyling,
+then two. Keep full audit/state/pursuit evidence and distinguish a refusal,
+observed kill, escape, loot and actual return. Current Greydwarf/mixed-group
+combat and native field passes remain unearned. Do not start this from the
+known nine-attacker base capture without new safe-start evidence.
+
 ## Building geometry and portal observations
 
 See [PORTALS.md](PORTALS.md) for cached building-face limits, portal link

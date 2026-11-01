@@ -281,7 +281,7 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	defer r.mu.Unlock()
 	for _, other := range seen.Characters {
 		if other.ID == c.Entity {
-			eligible := other.Prefab == "Greyling" || nativeEscort(st) && (other.Prefab == "Boar" || other.Prefab == "Neck")
+			eligible := other.Prefab == "Greyling" || (nativeEscort(st) || c.Peel != nil) && (other.Prefab == "Boar" || other.Prefab == "Neck")
 			found = other.Kind == protocol.CharacterCreature && other.Hostile && eligible && other.Stars == 0 && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) <= rangeLimit
 			continue
 		}
@@ -291,7 +291,10 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 		d := st.Pos.FlatDistance(other.Pos)
 		hit, hurt := r.hurt[other.ID]
 		hurt = hurt && hit.world == st.World && r.now().Before(hit.until)
-		if d <= 6 || d <= Near && (other.TargetingMe || hurt) {
+		peeling := c.Peel != nil && c.Peel.Members > 0 && c.Peel.Members <= 32 &&
+			slices.Contains([]string{"draw", "lead"}, c.Peel.Phase) &&
+			slices.Contains([]string{"draw", "kite"}, c.Mode)
+		if d <= 6 || !peeling && d <= Near && (other.TargetingMe || hurt) {
 			return false
 		}
 	}

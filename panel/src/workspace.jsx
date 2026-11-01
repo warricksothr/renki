@@ -169,6 +169,10 @@ export function Supplies() {
           Goals <span id="goal-count"></span>
         </summary>
         <p>Keep an objective through failed attempts and bounded recovery.</p>
+        <label class="check">
+          <input id="goal-peel" type="checkbox" />
+          Peel one enemy from a group
+        </label>
         <button id="goal-combat" type="button" disabled>
           Test a Greyling encounter and return home
         </button>

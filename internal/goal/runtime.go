@@ -35,6 +35,7 @@ func emptySearch(outcome Outcome) bool {
 }
 
 type Spec struct {
+	Peel       bool                 `json:"peel,omitempty"`
 	Stock      *FoodStock           `json:"stock,omitempty"`
 	Kind       string               `json:"kind"`
 	World      string               `json:"world"`
@@ -57,6 +58,7 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 	}
 	r := Record{ID: hex.EncodeToString(token[:]), Kind: spec.Kind, World: spec.World, Center: spec.Center, Radius: spec.Radius, Policy: combatPolicy, PolicyHash: hash(combatPolicy), State: json.RawMessage(`{}`), Status: "ready", Created: now, Deadline: now.Add(10 * time.Minute), MaxAttempts: 6, MaxTasks: 6}
 	r.ReturnHome = spec.ReturnHome
+	r.Peel = spec.Peel
 	if spec.Kind == "food_resupply" {
 		reserve := spec.Reserve
 		if reserve == 0 {
@@ -433,7 +435,10 @@ func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage,
 		}
 		direct := c.TargetingMe && distance(c.Pos, v.State.Pos) <= 4
 		p := map[string]any{"world": g.World, "entity": c.ID}
-		if direct {
+		if g.Peel {
+			p["peel"] = true
+		}
+		if direct && !g.Peel {
 			p["direct"] = true
 		}
 		raw, _ := json.Marshal(p)

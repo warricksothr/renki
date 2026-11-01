@@ -24,6 +24,53 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "peel-status": async ({ page, check, shot }) => {
+    await page.evaluate(() =>
+      renkiPreview.stream.emit("status", {
+        ...renkiPreview.status,
+        combat: {
+          id: "peel-1",
+          entity: "grey",
+          mode: "kite",
+          reason: "confirming continuous single pursuit",
+          peel: {
+            phase: "lead",
+            members: 3,
+            pursuers: ["grey"],
+            unknown: ["other"],
+            quietS: 0,
+            escape: [-50, 36, 10],
+          },
+        },
+      }),
+    );
+    await check(
+      "Peel status exposes pursuit uncertainty and quiet evidence",
+      async () => {
+        await expect(page.locator("#combat")).toContainText(
+          "1 pursuing / 3 tracked · 1 uncertain · isolation 0.0/3 s",
+        );
+        await expect(page.locator("#goal-peel")).not.toBeChecked();
+        await page.locator("#goal-peel").check();
+        await page.locator("#goal-combat").click();
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () =>
+                renkiPreview.requests.filter(
+                  (r) =>
+                    r.path === "/api/goals" &&
+                    r.body &&
+                    JSON.parse(r.body).spec?.peel === true,
+                ).length,
+            ),
+          )
+          .toBe(1);
+      },
+    );
+    await page.locator("#combat").scrollIntoViewIfNeeded();
+    await shot("peel-pursuit-status");
+  },
   "world-events": async ({ page, check, shot }) => {
     const initial = await snapshot(page);
     const events = {

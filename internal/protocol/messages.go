@@ -157,12 +157,22 @@ type EscortStatus struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+type PeelStatus struct {
+	Phase    string   `json:"phase"`
+	Members  int      `json:"members"`
+	Pursuers []string `json:"pursuers"`
+	Unknown  []string `json:"unknown"`
+	QuietS   float64  `json:"quietS"`
+	Escape   *Vec3    `json:"escape,omitempty"`
+}
+
 type CombatStatus struct {
-	ID        string `json:"id"`
-	Entity    string `json:"entity"`
-	Mode      string `json:"mode"`
-	Defensive bool   `json:"defensive,omitempty"`
-	Reason    string `json:"reason,omitempty"`
+	Peel      *PeelStatus `json:"peel,omitempty"`
+	ID        string      `json:"id"`
+	Entity    string      `json:"entity"`
+	Mode      string      `json:"mode"`
+	Defensive bool        `json:"defensive,omitempty"`
+	Reason    string      `json:"reason,omitempty"`
 }
 
 type JourneyStatus struct {

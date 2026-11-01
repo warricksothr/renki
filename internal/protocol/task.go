@@ -196,6 +196,7 @@ type AttackArgs struct {
 	Entity       string   `json:"entity,omitempty"`
 	Style        string   `json:"style,omitempty"`
 	Kite         bool     `json:"kite,omitempty"`
+	Peel         bool     `json:"peel,omitempty"`
 	Defensive    bool     `json:"defensive,omitempty"`
 	At           *Vec3    `json:"at,omitempty"`
 	SearchRadius *float64 `json:"searchRadius,omitempty"`
@@ -211,6 +212,7 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 		Entity       string          `json:"entity"`
 		Style        string          `json:"style"`
 		Kite         bool            `json:"kite"`
+		Peel         bool            `json:"peel"`
 		Defensive    bool            `json:"defensive"`
 		At           json.RawMessage `json:"at"`
 		SearchRadius *float64        `json:"searchRadius"`
@@ -223,7 +225,7 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 	if err := json.Unmarshal(raw, &wire); err != nil {
 		return err
 	}
-	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, Defensive: wire.Defensive, SearchRadius: wire.SearchRadius, SearchOffset: wire.SearchOffset}
+	*a = AttackArgs{Entity: wire.Entity, Style: wire.Style, Kite: wire.Kite, Peel: wire.Peel, Defensive: wire.Defensive, SearchRadius: wire.SearchRadius, SearchOffset: wire.SearchOffset}
 	if wire.SearchSector != nil {
 		var sector int
 		if bytes.Equal(bytes.TrimSpace(wire.SearchSector), []byte("null")) {
@@ -278,6 +280,9 @@ func (a *AttackArgs) UnmarshalJSON(raw []byte) error {
 }
 
 func (a *AttackArgs) validate() error {
+	if a.Peel && !a.Kite {
+		return errors.New("peel requires kite=true")
+	}
 	if a.Defensive && (a.Kite || strings.TrimSpace(a.Entity) == "") {
 		return errors.New("defensive attack requires an explicit entity without kite discovery")
 	}

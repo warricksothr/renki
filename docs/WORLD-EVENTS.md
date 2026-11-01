@@ -43,14 +43,47 @@ lingering-hostile checks. Separate personal resupply remains available. Event
 bounds are not yet general native route exclusions: a distant area covering
 neither home nor Tas does not block household work.
 
-## Native peeling design: next combat increment
+## Native peeling: first increment and remaining work
 
 Group size should drive preparation and escape decisions rather than imply
 combat is permanently impossible. Current native melee still supports only
 ordinary Greylings, Boars and Necks under single-target safety gates.
-**Greydwarf combat and group peeling are not implemented by this change.**
+Native peeling is now available explicitly through `attack` with `kite:true`
+and `peel:true`, the `combat` behavior's `peel` parameter, and a `combat_trial`
+goal's `peel` flag. The panel's Greyling test has an opt-in peeling checkbox.
+Direct and defensive attacks cannot enable it. Ordinary combat is unchanged.
+**Greydwarf-specific combat and larger mixed-group field proof remain open.**
 
-A persistent goal should request one bounded native peel episode. Movement,
+The first increment uses normal native scouting, selects an exposed supported
+target and then owns the whole episode in C#. Preparation requires food,
+at least 30 HP and 80% health, 40 stamina, armour2 and at least25% remaining
+weapon/equipped-armour durability. It surveys at most eight fighting-ground
+candidates20m away, with a physically checked6m escape, dry navmesh routes,
+body clearance, continuous grade checks and nearby-character separation.
+
+The group census samples at most32 stable IDs within60m every0.5s and retains
+previous members beyond that range. Missing members and remote target knowledge
+stay uncertain; an observed death can remove risk. Isolation needs exactly one
+confirmed pursuer for three continuous seconds. Other members must have fresh
+owner-authoritative non-target/non-hunt observations, no recent pursuit movement
+and at least24m clearance. New arrivals reset quiet evidence. These starting
+thresholds are conservative policy, not field-calibrated tactical guarantees.
+
+Work is bounded to60s and40m displacement from discovery, with a separate30s
+fallback escape. A following pack can exhaust the attempt; it does not earn
+melee by waiting. Group convergence, a changed/blocked escape, lost isolation,
+low readiness or uncertainty during melee clears inputs and retreats. Escape
+reassesses remaining nearby enemies when one threat disappears. One task
+produces at most one observed kill. Existing persistent-goal receipts, retry
+budgets and uncertain-intent protection apply; isolation never survives a new
+task/session. Native status and traces expose phase, group size, pursuer IDs,
+unknown IDs, quiet duration and the selected escape endpoint.
+
+Full automatic gear acquisition/repair, alternate repositions within one peel,
+Greydwarf support and successful natural field checks are still required before
+this can service the captured larger raid-like group.
+
+The persistent goal requests one bounded native peel episode. Movement,
 pursuit sampling and emergency disengagement belong in C#, not controller
 puppeteering. The episode follows these phases:
 
@@ -85,7 +118,7 @@ uncertain attack or retain isolation across task/session boundaries.
 Deterministic checks must cover one follower separating, the whole pack
 following, a delayed second pursuer, ownership loss, continuous spawning,
 timer pause, blocked escape, low stamina and verified kill followed by resupply.
-Field checks progress from one supported creature to two and then larger mixed
+Remaining field checks progress from one supported creature to two and then larger mixed
 groups after preparation and enemy-specific combat pass. Find natural enemies
 through bounded native search; manual staging/rescue does not earn a pass.
 

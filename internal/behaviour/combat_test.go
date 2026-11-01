@@ -46,6 +46,16 @@ func TestCombatValidatesGoalsAndRequiresCurrentWorldAndFood(t *testing.T) {
 	}
 }
 
+func TestPeelIsAnExplicitNativeKiteMode(t *testing.T) {
+	_, args, err := combatArgs(json.RawMessage(`{"world":"one","peel":true,"entity":"grey"}`))
+	if err != nil || !args.Kite || !args.Peel {
+		t.Fatal(args, err)
+	}
+	if err := (Combat{}).Validate(json.RawMessage(`{"world":"one","peel":true,"direct":true,"entity":"grey"}`)); err == nil {
+		t.Fatal("direct attack bypassed isolation")
+	}
+}
+
 func TestEditingCombatStopsOldGoalBeforeStartingReplacement(t *testing.T) {
 	f := setup(t, "attack")
 	f.p.Send(&protocol.State{World: "test", Phase: protocol.PhaseInWorld, HP: 80, HPMax: 80, Stamina: 60, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "CookedDeerMeat"}}}})

@@ -166,11 +166,22 @@ namespace Renki.Protocol
         [JsonProperty("canEat")] public bool CanEat;
     }
 
+    public sealed class PeelStatus
+    {
+        [JsonProperty("phase")] public string Phase;
+        [JsonProperty("members")] public int Members;
+        [JsonProperty("pursuers")] public List<string> Pursuers = new List<string>();
+        [JsonProperty("unknown")] public List<string> Unknown = new List<string>();
+        [JsonProperty("quietS")] public double QuietS;
+        [JsonProperty("escape", NullValueHandling = NullValueHandling.Ignore)] public double[] Escape;
+    }
+
     public sealed class CombatStatus
     {
         [JsonProperty("id")] public string Id;
         [JsonProperty("entity")] public string Entity;
         [JsonProperty("mode")] public string Mode;
+        [JsonProperty("peel", NullValueHandling = NullValueHandling.Ignore)] public PeelStatus Peel;
         [JsonProperty("defensive", DefaultValueHandling = DefaultValueHandling.Ignore)] public bool Defensive;
         [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;
     }
