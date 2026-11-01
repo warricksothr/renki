@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T23:52:44Z
-updated_at: 2026-11-01T00:41:14Z
+updated_at: 2026-11-01T00:42:29Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -52,7 +52,9 @@ Exercise the authorized outdoor household-food sequence with real collection and
 
 ## Implementation plan
 
-Run a bounded native household goal against current home storage with required outdoor collection and deposit receipts; retain exact failure evidence. Exercise distinct-source exhaustion and pressure decisions with regression scenarios, fixing the shared goal ordering or supervisor only when evidence requires it. Preserve current safety, ownership and explicit source/storage scope. Record live outcomes, run just check ci and committed review, then publish a stacked PR and deploy verified fixes before inspecting repair support.
+Continue outdoor household validation after the verified home return. The next trial stopped on a targeting Neck about96m from home without injury or receipts, outside the local startup-return radius. Add an explicitly selected `work_trip` one-shot return profile; leave the default local order unchanged. Cap work trips at200m home radius,400m travelled and240s, and require stronger admission: at least90% maximum health (and50HP), three active foods whose shortest duration exceeds the240s return allowance by30s, and35 stamina. Require at least two active foods throughout; preserve every existing injury, water, threat, authority, arrival-floor and shelter gate. Unknown profiles must fail closed.
+
+Expose selection through the existing arming/supervisor recipes, record the profile/limits in native traces, and give the supervisor an explicit420s overall deadline for the selected work-trip profile (including game join/cleanup allowance). Test local compatibility, profile validity, exact new bounds, stronger reserves, terminal outcomes and supervisor forwarding/cleanup. Run focused checks and the full gate, commit and review, install while offline, then attempt one work-trip return under the supervisor. Do not run the incompatible local order or repeat an unchanged failed return. Only after safe home recovery inspect normal food/repair readiness and decide whether another production trial is justified by changed source or supply observations.
 
 ## Notes
 

@@ -1,5 +1,6 @@
 # Arm a one-shot native home return, or clear an unused order. Game must be offline.
-param([ValidateSet('arm', 'clear')][string]$Action = 'arm', [string]$WorldBase64 = '')
+param([ValidateSet('arm', 'clear')][string]$Action = 'arm', [string]$WorldBase64 = '',
+      [ValidateSet('local', 'work_trip')][string]$ReturnProfile = 'local')
 . (Join-Path $PSScriptRoot 'common.ps1')
 $s = Read-BotSettings
 $path = Join-Path (Split-Path $s.ValheimExe) 'BepInEx\config\com.warricksothr.renki.cfg'
@@ -24,7 +25,8 @@ if ($Action -eq 'arm') {
         $number = [double]$coordinate
         if ([double]::IsNaN($number) -or [double]::IsInfinity($number)) { throw 'Invalid home coordinate' }
     }
-    $value = @{ World = $world; Pos = @($savedHome.pos); Expires = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + 300 } | ConvertTo-Json -Compress
+    $lifetime = if ($ReturnProfile -eq 'work_trip') { 600 } else { 300 }
+    $value = @{ World = $world; Pos = @($savedHome.pos); Profile = $ReturnProfile; Expires = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + $lifetime } | ConvertTo-Json -Compress
 }
 $pattern = '(?m)^RecoveryReturn\s*=.*$'
 if ([regex]::IsMatch($raw, $pattern)) {

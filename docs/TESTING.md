@@ -1210,6 +1210,20 @@ the final travelled route. Repeated stair-approach replans were still needed.
 Full evidence: `.checks/recovery-20261101T003515Z` and
 `.checks/audit-window-GWZnrB.jsonl`; details are on the hostile-return ticket.
 
+An interrupted outdoor trip beyond the local 80 m radius requires explicit
+`just vm recover-home DizzysHellheim --work-trip`. This selects a separate
+one-shot native profile capped at 200 m from home, 400 m travelled and 240 s,
+with a 420 s supervisor allowance including joining. Admission requires at
+least 50 HP and 90% maximum health, three active foods with at least 270 s
+remaining each, 35 stamina and grounded dry footing. At least two foods must remain active
+throughout. Existing injury, live hostile-clearance, water, authority,
+home-floor and shelter checks still apply. The default local profile retains
+its original limits and reserves; unknown profile names fail closed. Native
+traces record the selected profile and bounds. The order can only be armed
+offline against the pinned home in the exact known world and still expires.
+`just check plugin test-core RecoveryReturnTests` and
+`just check vm test-recover-home` cover both profiles and supervisor cleanup.
+
 ## Household food pressure checks
 
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`

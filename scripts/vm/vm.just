@@ -400,23 +400,24 @@ test-food-check:
 
 # Return an adequately supplied outdoor bot through guarded native movement.
 [positional-arguments]
-recover-home WORLD:
-    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home.py" "$1"
+recover-home WORLD *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home.py" "$@"
 
 test-recover-home:
     python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
 
 # Arm/clear a one-shot order using the controller's pinned home.
 [positional-arguments]
-recovery-return ACTION='arm' WORLD='': need-target
+recovery-return ACTION='arm' WORLD='' PROFILE='local': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
+    [[ "$3" = local || "$3" = work_trip ]] || { echo 'Use local or work_trip profile' >&2; exit 2; }
     encoded=$(printf '%s' "$2" | base64 -w0)
     worldarg=()
     [ -z "$encoded" ] || worldarg=(-WorldBase64 "$encoded")
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery-return.ps1" "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/"
-    {{ssh}} "{{ps}} -File {{dir}}/recovery-return.ps1 -Action '$1' ${worldarg[*]}"
+    {{ssh}} "{{ps}} -File {{dir}}/recovery-return.ps1 -Action '$1' -ReturnProfile '$3' ${worldarg[*]}"
 
 # One-shot native sheltered healing guard; observes threats every physics step.
 [positional-arguments]

@@ -17,10 +17,12 @@ spec.loader.exec_module(food)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('world', help='exact known world name; native login must match')
+    parser.add_argument('--work-trip', action='store_true', help='explicit outer-trip return with stronger admission reserves and capped 200m/400m/240s limits')
     args = parser.parse_args()
     folder = ROOT / '.checks' / ('recovery-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
     result = dict(outcome='failed', reason='not started', evidence=str(folder),
+                  profile='work_trip' if args.work_trip else 'local',
                   startedAt=datetime.datetime.now(datetime.timezone.utc).isoformat())
     launch, owns, previous = None, False, None
     log = (folder / 'commands.log').open('a')
@@ -36,10 +38,13 @@ def main():
         status = call('panel', 'GET', '/api/status')
         if status.get('connected'):
             raise RuntimeError('recovery requires offline bot; no body replaced')
-        result['order'] = call('recovery-return', 'arm', args.world)
+        arm = ['recovery-return', 'arm', args.world]
+        if args.work_trip:
+            arm.append('work_trip')
+        result['order'] = call(*arm)
         owns = True
         launch = subprocess.Popen(['just', 'vm', 'start', '2'], cwd=ROOT, stdout=log, stderr=log)
-        deadline, seen, scope = time.monotonic() + 240, False, None
+        deadline, seen, scope = time.monotonic() + (420 if args.work_trip else 240), False, None
         while time.monotonic() < deadline:
             status = call('panel', 'GET', '/api/status')
             with (folder / 'observations.jsonl').open('a') as out:
