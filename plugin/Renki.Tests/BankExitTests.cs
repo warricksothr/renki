@@ -23,6 +23,13 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void RetainedAscendingSupportHeightsPassTheCorePolicyOnAHalfMetreStep()
+        {
+            Assert.True(BankExit.Clear(new V3(0, 30.7088, 0), new V3(0, 30.6685, 0),
+                new V3(.25, 30.7098, 0), new V3(.5, 30.7463, 0), 30, 30, 30));
+        }
+
+        [Fact]
         public void GradualUphillGainUsesTheSameSettlingAllowanceAtBothEnds()
         {
             var body = new V3(0, .56, 0);

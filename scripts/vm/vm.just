@@ -268,6 +268,11 @@ secret NAME: need-target
     [ -n "$value" ] || { echo "empty; nothing changed" >&2; exit 1; }
     printf '%s' "$value" | {{ssh}} "{{ps}} -File {{dir}}/set-secret.ps1 -Name {{NAME}}"
 
+# Read-only native DLL locations and checksums, including duplicate installs.
+native-libraries: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/native-libraries.ps1" "{{target}}:/{{dir}}/native-libraries.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/native-libraries.ps1"
+
 # An interactive PowerShell on the VM.
 shell: need-target
     ssh {{target}}
@@ -397,6 +402,11 @@ test-marker-food-check:
 
 test-food-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/food-check-test.py"
+
+# Inspect at most sixteen captured bank candidates without querying the game.
+[positional-arguments]
+bank-evidence AUDIT:
+    python3 -B "{{justfile_directory()}}/scripts/vm/bank-evidence.py" "$@"
 
 # Return an adequately supplied outdoor bot through guarded native movement.
 [positional-arguments]

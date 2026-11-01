@@ -1467,3 +1467,20 @@ budgets, while retaining default local/work-trip behavior. `just check vm
 test-recover-home` verifies forwarding and cleanup without any body puppeting.
 Native proof is still required; the saved44/53.5HP state cannot use the default
 local profile's50HP gate.
+
+
+Use `just vm bank-evidence .checks/audit-window-NAME.jsonl` for a compact local
+bank sweep: at most sixteen candidates, numeric support/water heights, rises
+and settling clearances. It does not query or steer the game. `just vm
+native-libraries` lists every installed Renki native DLL and its checksum to
+rule out duplicate copies; `just plugin library-source TYPE ASSEMBLY` retains
+a decompiled built type locally when source/runtime behavior differs. No game
+assemblies or decompiled outputs are committed.
+
+The diagnostic replay `.checks/recovery-20261101T061357Z` again logged out at
+44HP without travel after all sixteen water-policy refusals. Audit
+`.checks/audit-window-CLD7GU.jsonl` includes several ascending candidates with
+at least0.56m settling-adjusted dry clearance; their retained heights pass the
+core half-metre policy. Deployed DLL hashes match and no duplicate native DLLs
+were found. Further live diagnostics retain the execution gate, core decision
+and exact step distance rather than changing the water margin on that evidence.

@@ -69,6 +69,8 @@ namespace Renki.Plugin
                 public V3 At;
                 public V3? ColliderCenter;
                 public double[] SupportHeights, WaterLevels;
+                public double? StepDistance;
+                public bool? BankClear;
             }
             readonly SupportMemo support;
             readonly SupportMemo footing;
@@ -90,6 +92,7 @@ namespace Renki.Plugin
             internal object Failures => new
             {
                 counts = failureCounts,
+                bank = bankExit ? new { executing = Executing, dry, core = typeof(BankExit).Assembly.Location, coreMvid = typeof(BankExit).Assembly.ManifestModule.ModuleVersionId.ToString() } : null,
                 examples = (bankExit ? (IEnumerable<Failure>)bankFailures : failureExamples.Values).Select(failure => new
                 {
                     stage = failure.Stage,
@@ -97,6 +100,9 @@ namespace Renki.Plugin
                     collider = failure.Collider,
                     supportHeights = failure.SupportHeights,
                     waterLevels = failure.WaterLevels
+                    ,
+                    stepDistance = failure.StepDistance,
+                    bankClear = failure.BankClear
                 }).ToArray()
             };
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
@@ -166,14 +172,20 @@ namespace Renki.Plugin
                 if (!bankExit && WaterSafe(to, water) && WaterSafe(middle, water)) return true;
                 var start = footing.Sample(from, from.Y, Time.unscaledTime, slice);
                 var levels = new[] { WaterLevel(from), WaterLevel(middle), WaterLevel(to) };
-                var clear = bankExit && Executing && dry && start.HasValue &&
+                var bankClear = bankExit && start.HasValue &&
                     BankExit.Clear(from, start.Value, middle, to, levels[0], levels[1], levels[2]);
+                var clear = Executing && dry && bankClear;
                 if (clear) return true;
                 Refuse("water", to);
                 if (LastFailure != null)
                 {
                     LastFailure.SupportHeights = start.HasValue ? new[] { from.Y, start.Value.Y, middle.Y, to.Y } : new[] { from.Y, middle.Y, to.Y };
                     LastFailure.WaterLevels = levels;
+                    if (bankExit)
+                    {
+                        LastFailure.StepDistance = V3.FlatDistance(from, to);
+                        LastFailure.BankClear = bankClear;
+                    }
                 }
                 return false;
             }

@@ -53,6 +53,17 @@ game-source TYPE:
     .tools/ilspycmd -t "$1" "$game/valheim_Data/Managed/assembly_valheim.dll" > "$out"
     echo "$out"
 
+# Inspect a built local assembly while diagnosing source/runtime differences.
+[positional-arguments]
+library-source TYPE ASSEMBLY:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [ -x .tools/ilspycmd ] || dotnet tool install ilspycmd --version 9.1.0.7988 --tool-path .tools >&2
+    out="../.checks/library-source/$1.cs"
+    mkdir -p "$(dirname "$out")"
+    .tools/ilspycmd -t "$1" "$2" > "$out"
+    realpath "$out"
+
 # Check formatting.
 lint:
     dotnet format whitespace Renki.Core/Renki.Core.csproj --verify-no-changes
