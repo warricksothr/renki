@@ -55,7 +55,7 @@ namespace Renki.Tests
         [InlineData("unknown_victim", false)]
         [InlineData("remote", false)]
         [InlineData("hurt", false)]
-        [InlineData("low_absolute_hp", false)]
+        [InlineData("low_absolute_hp", true)]
         [InlineData("stamina", false)]
         [InlineData("armour", false)]
         [InlineData("food", false)]

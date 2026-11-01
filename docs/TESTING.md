@@ -7,6 +7,24 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Client lifecycle during tests
+
+Live test tools retain the game after success, refusal, injury or failure by
+default. Keep telemetry and failure evidence available; a low HP threshold in a
+supervisor may end that test but does not authorize logging out. Use
+`--allow-logout` to explicitly permit cleanup logout/client shutdown for that
+invocation. `--keep-online` retains its narrower verified-home meaning when
+combined with opt-in shutdown; it is no longer needed to prevent default logout.
+
+`just vm combat-trial` and its harvest/gather/goal/resupply modes reuse the
+running client and preserve combat permissions. `--restart-client` explicitly
+opts into a setup restart to change trial permissions; cleanup does not restore
+combat to off. Native recovery failure separately requires
+`Safety.AutoLogout=true` (`just vm auto-logout true`, next launch). Its default
+is false even when `RecoveryGuard` is enabled. Explicit `just vm stop`, panel
+logout and required deployment restarts remain manual lifecycle actions.
+Historical evidence below describes the behavior of the build tested then.
+
 ## Native pursuit and peeling
 
 `just check plugin test-core PursuitGroup` covers temporal isolation, whole-pack
@@ -19,8 +37,8 @@ status on desktop/mobile.
 
 When a prepared, safe starting position is available, `just vm goal-trial
 --peel` starts one persistent native peel goal with a verified home-return
-requirement. Existing supervisor health, water, extra-creature and logout
-checks remain in force. Begin with one naturally found ordinary Greyling,
+requirement. Existing supervisor health, water and extra-creature
+checks remain in force; logout requires the explicit lifecycle option above. Begin with one naturally found ordinary Greyling,
 then two. Keep full audit/state/pursuit evidence and distinguish a refusal,
 observed kill, escape, loot and actual return. Current Greydwarf/mixed-group
 combat and native field passes remain unearned. Do not start this from the
@@ -735,7 +753,7 @@ positive benchmark needs at least two log harvests, a positive observed Wood
 inventory delta and no observed unfinished nearby new logs. Unsafe/unavailable
 logs, lost ownership, changed world/connection, health loss and stale inventory
 abort instead of requesting owner clearance. Existing native route/threat guards
-remain active. It always logs out/stops and restores combat off.
+remain active. The client and combat permissions are retained; shutdown is opt-in.
 
 Evidence under `.checks/harvest-trial-*` retains exact resource IDs, per-task
 histories, before/after item counts, observations and audit paths. The console
@@ -759,8 +777,9 @@ Success requires instance-attributed native steps, distinct tree/log identities,
 task-matched local-hit breaks, measured inventory gains, exact deposit receipts
 and a successful return task with a matching final pose. Original products must
 remain in the pack. Missing audit proof fails the run. Cleanup stops/deletes the
-temporary behavior, logs out/stops the game, restores combat off and restarts
-the offline panel, including after partial request failures. Evidence stays in
+temporary behavior, including after partial request failures. The client and
+combat permissions stay available; `--allow-logout` permits shutdown and an
+offline panel restart. Evidence stays in
 `.checks/gather-trial-*`; the console reports compact task/log/gain/deposit/return
 results. `just check vm test-gather-trial` checks proof reconciliation;
 `just check vm test-combat-trial` also checks supervisor dispatch and cleanup.
@@ -879,11 +898,12 @@ direct encounter, not pursuit or kiting. It cannot combine with preferred ground
 or harvest options.
 
 `just vm combat-trial` performs one automated live attempt with normal controls
-and no owner staging/clearance prerequisite. It restarts Tas, temporarily enables
-combat, delegates local ground/target selection and kiting to C#, requires active
+and no owner staging/clearance prerequisite. It reuses Tas with existing combat
+permissions, delegates local ground/target selection and kiting to C#, requires active
 food/80% health/40 stamina, and records evidence under `.checks/combat-trial-*`.
-It always logs out/stops/restores combat off, then restarts only the
-controller so the web panel stays available while Tas is offline. A return-home
+It retains the client and combat permissions. `--restart-client` explicitly
+restarts with trial permissions; `--allow-logout` permits cleanup shutdown and
+restarts only the controller so the offline web panel stays available. A return-home
 task already dispatched on rejoin may finish first, with its exact destination,
 task ID, scope and injury evidence checked for at most 120 seconds. Native
 success and arrival within 3 m of home are required before trial work; other
@@ -1056,7 +1076,7 @@ food types, and observe automatic eating. Every claimed transfer requires a
 task-matched chest receipt and newer scoped inventory; memory only selects
 candidates. Damage, unsafe water, loss of ownership, world/connection changes
 and time/travel limits abort. Evidence and cleanup use the shared trial harness,
-which always logs out/stops and leaves the panel available. It is an explicit
+which retains the client by default; shutdown requires `--allow-logout`. It is an explicit
 operator preparation check, not a background supply policy.
 Long return trips walk; a final approach within 40 m may run with at least
 30 stamina. Damage and survival preemption still abort preparation.
@@ -1135,8 +1155,9 @@ receipt consumes the existing budgets without triggering the repeated-failure
 stop. Incomplete attempts remain distinct from empty search evidence, and
 ordinary failures retain their three-repeat stop. A goal success requires an exact
 native “observed Greyling death” receipt; orchestration progress alone does not
-close melee/block/dodge checks. Cleanup cancels unfinished goals, logs out and
-stops the game, restores combat off and starts the controller/panel alone.
+close melee/block/dodge checks. Cleanup cancels unfinished goals while retaining
+the client and combat permissions. `--allow-logout` permits shutdown and a
+controller/panel-only restart.
 
 Native dry home travel can use a navmesh candidate only after incremental
 physical support, water and body-clearance validation of every half-meter leg.
@@ -1217,7 +1238,8 @@ For an injured-body recovery check, `just vm task-check attack` accepts an
 explicit `defensive:true` request. Require a native-confirmed recent ordinary
 Greyling attacker and the food, armour, health and stamina reserves documented
 in BRIDGE-PROTOCOL.md. A refusal is a refusal, never death proof. Retain the
-exact task death receipt and audit, then restore combat off and stop the game.
+exact task death receipt and audit; keep the client and combat permissions for
+further diagnosis unless shutdown is explicitly requested.
 
 When planning accepts a leg that live movement refuses, retain the refused
 approach while replanning that goal. Physical body-cast/overlap refusals and

@@ -146,6 +146,7 @@ def household_definition(spec, marker):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('--stock-target', action='append', default=[], help='household food prefab=count; repeat for several foods')
     parser.add_argument('--stock-minimum', action='append', default=[], help='refill below prefab=count; must cover each target')
     parser.add_argument('--allow-hunting', action='store_true')
@@ -368,26 +369,29 @@ def main():
             try: call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='disable', name=idle_name)))
             except Exception as error: summary.update(outcome='failed', reason='cannot disable household test definition: ' + str(error))
         retained = False
-        if owns_game and args.keep_online and completed_or_returned_shortage(summary, goal):
+        if owns_game and (args.keep_online or not args.allow_logout) and completed_or_returned_shortage(summary, goal):
             try:
                 final = observe()
                 mapped = call('panel', 'GET', '/api/map')
                 retained = safe_to_remain(final, mapped)
             except Exception: retained = False
-        summary['keptOnline'] = retained
+        summary['safeHomeVerified'] = retained
+        summary['keptOnline'] = owns_game and (retained or not args.allow_logout)
         if owns_game and not retained:
             if goal and goal.get('status') not in ('succeeded', 'cancelled'):
                 try: call('panel', 'POST', '/api/goals', json.dumps(dict(action='stop', id=goal['id'])))
                 except Exception as error: summary['reason'] += '; goal cleanup: ' + str(error)
-            try: call('panel', 'POST', '/api/act/logout', '{}')
-            except Exception as error: summary['reason'] += '; logout: ' + str(error)
+            if args.allow_logout:
+                try: call('panel', 'POST', '/api/act/logout', '{}')
+                except Exception as error: summary['reason'] += '; logout: ' + str(error)
             if launch and launch.poll() is None:
                 launch.terminate()
                 try: launch.wait(timeout=5)
                 except subprocess.TimeoutExpired: launch.kill(); launch.wait()
-            for arguments in [('stop',), ('panel-start',)]:
-                try: call(*arguments, decode=False)
-                except Exception as error: summary['reason'] += '; cleanup: ' + str(error)
+            if args.allow_logout:
+                for arguments in [('stop',), ('panel-start',)]:
+                    try: call(*arguments, decode=False)
+                    except Exception as error: summary['reason'] += '; cleanup: ' + str(error)
         (folder / 'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print(json.dumps(summary), flush=True); log.close()
     return 0 if summary['outcome'] == 'succeeded' else 1

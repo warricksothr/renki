@@ -88,7 +88,7 @@ class Routes(unittest.TestCase):
         native = Native()
         trial = native.trial()
         trial.run(['east'], 2, 30)
-        trial.finish(True)
+        trial.finish(True, allow_logout=True)
         self.assertEqual(trial.result['outcome'], 'passed')
         self.assertEqual(trial.result['completedTrips'], 2)
         self.assertEqual(len(trial.result['receipts']), 4)
@@ -123,14 +123,14 @@ class Routes(unittest.TestCase):
                 native.change = change
                 trial = native.trial()
                 with self.assertRaises(RuntimeError): trial.run(['east'], 1, 30)
-                trial.finish(False)
+                trial.finish(False, allow_logout=True)
                 self.assertTrue(trial.yielded)
                 self.assertFalse(any('/api/act/logout' in c for c in native.calls))
         native = Native()
         native.before_task = lambda n: n.receipt.update(status='cancelled')
         trial = native.trial()
         with self.assertRaises(RuntimeError): trial.run(['east'], 1, 30)
-        trial.finish(False)
+        trial.finish(False, allow_logout=True)
         self.assertTrue(trial.yielded)
 
     def test_start_requires_actual_floor_and_no_foreign_body_task(self):
@@ -141,7 +141,7 @@ class Routes(unittest.TestCase):
                 native.state.update(change)
                 trial = native.trial()
                 with self.assertRaises(RuntimeError): trial.run(['east'], 1, 30)
-                trial.finish(False)
+                trial.finish(False, allow_logout=True)
                 self.assertFalse(trial.owned)
                 self.assertEqual(native.tasks, 0)
 
@@ -155,7 +155,7 @@ class Routes(unittest.TestCase):
             self.assertFalse(trial.yielded)
             self.assertEqual(native.tasks, 1)
             self.assertEqual(trial.result['completedTrips'], 0)
-            trial.finish(False)
+            trial.finish(False, allow_logout=True)
             self.assertIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
 
     def test_invalid_batch_does_not_contact_vm(self):
@@ -227,7 +227,7 @@ class Routes(unittest.TestCase):
         self.assertEqual(trial.home_target, [0, 36.09, 0])
         self.assertEqual(trial.result['completedTrips'], 0)
         self.assertEqual(native.tasks, 2)
-        trial.finish(False)
+        trial.finish(False, allow_logout=True)
         self.assertIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
 
     def test_unobserved_distant_missing_or_unsafe_floor_reference_never_dispatches(self):
@@ -283,7 +283,7 @@ class Routes(unittest.TestCase):
                 native.before_task = replace
                 trial = native.trial()
                 with self.assertRaises(RuntimeError): trial.run(['east'], 1, 30)
-                trial.finish(False)
+                trial.finish(False, allow_logout=True)
                 self.assertTrue(trial.yielded)
                 self.assertEqual(native.tasks, 1)
                 self.assertNotIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
@@ -298,12 +298,24 @@ class Routes(unittest.TestCase):
         self.assertEqual(native.tasks, 0)
         self.assertFalse(trial.owned)
 
+    def test_failed_route_at_low_health_retains_client_by_default(self):
+        native = Native()
+        trial = native.trial()
+        trial.run(['east'], 1, 30)
+        trial.result.update(outcome='failed', reason='injured during return')
+        native.state['hp'] = 1
+        trial.finish()
+        self.assertEqual(trial.result['outcome'], 'failed')
+        self.assertTrue(trial.result['keptOnline'])
+        self.assertFalse(trial.result['safeHomeVerified'])
+        self.assertNotIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
+
     def test_keep_online_requires_near_full_health_after_bounded_recovery(self):
         native = Native()
         trial = native.trial()
         trial.run(['east'], 1, 30)
         native.state['hpMax'] = 70
-        trial.finish(True)
+        trial.finish(True, allow_logout=True)
         self.assertFalse(trial.result['keptOnline'])
         self.assertEqual(native.now, 90)
         self.assertIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
@@ -319,7 +331,7 @@ class Routes(unittest.TestCase):
                     native.now += 1
                     native.state.update(dict(task=dict(id='owner-order')) if command else dict(hp=67))
                 trial.pause = pause
-                trial.finish(True)
+                trial.finish(True, allow_logout=True)
                 self.assertEqual(trial.result['keptOnline'], not command)
                 self.assertEqual(trial.yielded, command)
                 self.assertNotIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)

@@ -226,7 +226,7 @@ class Benchmark:
                 self.save('summary.json', self.result)
         self.result.update(outcome='passed', reason='all round trips have native receipts and observed home-floor arrivals')
 
-    def finish(self, keep_online):
+    def finish(self, keep_online=False, allow_logout=False):
         remain = False
         if self.owned and not self.yielded:
             try:
@@ -240,19 +240,20 @@ class Benchmark:
                 remain = bool(keep_online and self.result['outcome'] == 'passed' and
                               state['hp'] >= state['hpMax'] * .95 and
                               self.at_home(state, self.call('panel', 'GET', '/api/map')))
-                if not remain:
+                if not remain and allow_logout:
                     self.call('panel', 'POST', '/api/act/logout', '{}')
             except Exception as error:
                 # An owner command or changed session revokes cleanup ownership.
                 if not self.yielded:
                     self.result['cleanupError'] = str(error)
-        self.result.update(keptOnline=remain, yieldedToCommand=self.yielded)
+        self.result.update(safeHomeVerified=remain, keptOnline=self.owned and not self.yielded and (remain or not allow_logout), yieldedToCommand=self.yielded)
         if 'cleanupError' in self.result:
             self.result['outcome'] = 'failed'
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('--marker', action='append', required=True)
     parser.add_argument('--cycles', type=int, choices=range(1, 11), default=1)
     parser.add_argument('--leg-timeout', type=int, choices=range(30, 181), default=120)
@@ -289,8 +290,8 @@ def main():
             except Exception:
                 pass
     finally:
-        trial.finish(args.keep_online)
-        if trial.owned and not trial.yielded and not trial.result['keptOnline']:
+        trial.finish(args.keep_online, args.allow_logout)
+        if args.allow_logout and trial.owned and not trial.yielded and not trial.result['keptOnline']:
             for action in ('stop', 'panel-start'):
                 try:
                     call(action)

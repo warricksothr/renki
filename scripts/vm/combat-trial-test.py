@@ -193,9 +193,9 @@ class CombatTrialTests(unittest.TestCase):
                     trial.main()
                 run.assert_not_called()
 
-    def test_runner_stops_and_restores_gate_after_success_or_additional_attacker(self):
-        for outcome in ('success', 'extra attacker', 'direct'):
-            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as directory:
+    def test_runner_retains_client_by_default_and_only_restarts_or_logs_out_explicitly(self):
+        for outcome, shutdown in [(o, a) for o in ('success', 'extra attacker', 'direct') for a in (False, True)]:
+            with self.subTest(outcome=outcome, shutdown=shutdown), tempfile.TemporaryDirectory() as directory:
                 commands = []
                 status = dict(self.status, food=dict(active=[dict(prefab='CookedDeerMeat')]))
                 observed = 0
@@ -221,18 +221,17 @@ class CombatTrialTests(unittest.TestCase):
                         value = '/saved/audit.jsonl'
                     return subprocess.CompletedProcess(command, 0, json.dumps(value) if isinstance(value, (dict, list)) else value, '')
 
-                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--wait-s', '0', *(['--direct', '--entity', 'greyling'] if outcome == 'direct' else [])]), contextlib.redirect_stdout(io.StringIO()):
+                with mock.patch.object(trial, 'ROOT', Path(directory)), mock.patch.object(trial.subprocess, 'run', side_effect=run), mock.patch.object(trial.sys, 'argv', ['combat-trial', '--wait-s', '0', *(['--direct', '--entity', 'greyling'] if outcome == 'direct' else []), *(['--allow-logout', '--restart-client'] if shutdown else [])]), contextlib.redirect_stdout(io.StringIO()):
                     code = trial.main()
                 self.assertEqual(code, 0 if outcome in ('success', 'direct') else 1)
-                self.assertEqual(commands.count(['stop']), 2)
-                sent = [c for c in commands if c[0] == 'task']
+                self.assertEqual(commands.count(['stop']), 2 if shutdown else 0)
+                sent = [c for c in commands if c[0] == 'task' and c[1] != 'stop']
                 self.assertEqual(len(sent), 1)
                 self.assertEqual(json.loads(sent[0][2]), {'kite': False, 'style': 'melee', 'entity': 'greyling'} if outcome == 'direct' else {'kite': True, 'style': 'melee'})
                 self.assertFalse(any(c[:2] == ['task', 'move_to'] for c in commands))
-                self.assertIn(['combat', 'true'], commands)
-                self.assertIn(['combat', 'false'], commands)
-                self.assertEqual(commands[-3:-1], [['combat', 'false'], ['panel-start']])
-                self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
+                self.assertEqual(['combat', 'true'] in commands, shutdown)
+                self.assertNotIn(['combat', 'false'], commands)
+                self.assertEqual(['panel', 'POST', '/api/act/logout', '{}'] in commands, shutdown)
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
                 self.assertEqual(summary['outcome'], 'succeeded' if outcome in ('success', 'direct') else 'aborted')
                 if outcome == 'extra attacker':
@@ -281,7 +280,7 @@ class CombatTrialTests(unittest.TestCase):
                 self.assertEqual(code, 0 if mode == 'finished' else 1)
                 self.assertEqual(prepare.call_count, 1 if mode == 'finished' else 0)
                 self.assertFalse(any(c[0] == 'task' for c in commands))
-                self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
+                self.assertNotIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
 
     def test_combat_waits_for_verified_existing_home_and_never_replaces_other_work(self):
         for mode in ('finished', 'unknown', 'owner', 'newhome', 'damage', 'failed', 'far', 'timeout', 'worldUid', 'homeChanged'):
@@ -385,17 +384,12 @@ class CombatTrialTests(unittest.TestCase):
                     code = trial.main()
                 self.assertEqual(code, 0 if mode in ('success', 'defend') else 1)
                 module.run.assert_called_once()
-                self.assertEqual(['combat', 'true'] in commands, mode == 'defend')
+                self.assertFalse(any(c[0] == 'combat' for c in commands))
                 self.assertFalse(any(c[0] == 'task' for c in commands))
                 actions = [json.loads(c[3]) for c in commands if c[:3] == ['panel', 'POST', '/api/behaviours']]
                 self.assertEqual(actions, [dict(action=a, name='unique-test') for a in ('stop', 'delete')])
-                if mode in ('hostile', 'enemy', 'pursuer'):
-                    self.assertNotIn(['camera'], commands)
-                    self.assertLess(commands.index(['panel', 'POST', '/api/act/logout', '{}']),
-                                    next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']))
-                else:
-                    self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
-                self.assertEqual(commands[-5:-1], [['panel', 'POST', '/api/act/logout', '{}'], ['stop'], ['combat', 'false'], ['panel-start']])
+                self.assertLess(next(i for i, c in enumerate(commands) if c[:3] == ['panel', 'POST', '/api/behaviours']), commands.index(['camera']))
+                self.assertFalse(any(c[0] in ('stop', 'combat', 'panel-start') or '/api/act/logout' in c for c in commands))
                 summary = json.loads(next(Path(directory).glob('.checks/*/summary.json')).read_text())
                 self.assertNotEqual(summary['outcome'], 'awaiting_proof')
                 if mode == 'missing_audit':

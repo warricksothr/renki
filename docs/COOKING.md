@@ -124,6 +124,7 @@ least two minutes remaining and recovery to 80% health. Only this bounded
 near-home preparation permits absent active food; injury, health, water and
 scope checks still apply. It does not relax native cooking admission. The proof
 retains full data in `.checks/cooking-*` and prints a compact result. Once
-admitted it always logs out/stops and leaves the panel available. It does not
+admitted it stays online by default, including after failure.
+`--allow-logout` explicitly permits cleanup shutdown with the panel retained. It does not
 change combat settings, replace an initial body order or resume escort.
 Use `just check vm test-cooking-check` for supervisor policy checks.

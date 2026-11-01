@@ -168,11 +168,7 @@ class HarvestTrialTests(unittest.TestCase):
                         mock.patch.object(harvest.time, 'sleep', side_effect=sleep), contextlib.redirect_stdout(io.StringIO()):
                     code = trial.main()
                 self.assertEqual(code, 0 if scenario in ('success', 'logs_only') else 1)
-                self.assertEqual(commands.count(['stop']), 2)
-                self.assertEqual(commands[-3], ['combat', 'false'])
-                self.assertEqual(commands[-2], ['panel-start'])
-                self.assertNotIn(['combat', 'true'], commands)
-                self.assertIn(['panel', 'POST', '/api/act/logout', '{}'], commands)
+                self.assertFalse(any(c[0] in ('stop', 'combat', 'panel-start') or '/api/act/logout' in c for c in commands))
                 self.assertTrue(all(g['collect'] and g['entity'] != 'old' for g in sent))
                 if scenario == 'success':
                     self.assertEqual([g['entity'] for g in sent], ['tree', 'log', 'half1', 'half2'])

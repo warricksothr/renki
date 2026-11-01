@@ -85,6 +85,7 @@ def home_search_ready(status):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('--join', action='store_true', help='start once with the opt-in native recovery guard already enabled')
     parser.add_argument('--search-home', action='store_true', help='inspect the finite set of unique visible home chests for one raw ingredient')
     parser.add_argument('--refresh-food', action='store_true', help='withdraw one ready meal near home and observe eating/recovery before cooking')
@@ -256,7 +257,7 @@ def main():
     except Exception as error:
         summary['reason'] = str(error)
     finally:
-        if owns_game:
+        if owns_game and args.allow_logout:
             try: call('panel', 'POST', '/api/act/logout', '{}')
             except Exception as error: summary['reason'] += '; logout: ' + str(error)
             if launch and launch.poll() is None:

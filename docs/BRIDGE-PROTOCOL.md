@@ -726,7 +726,7 @@ Notes:
   Choosing whether to start a fight remains the controller/owner's job.
   Explicit `defensive:true` requires an exact entity without kite discovery.
   Native damage callbacks must confirm that this ordinary Greyling hit the
-  current body in the last 15 s. Entry requires at least 30 HP and 65% health,
+  current body in the last 15 s. Entry requires positive HP and 65% health,
   35 stamina, active food and at least 2 armour. Defense stays within 6 m of
   its start and target for at most 12 s; below 25 HP or 60% health it escapes.
   The normal bystander, structure, dry-ground and stamina checks still apply.
@@ -777,7 +777,7 @@ Notes:
   no combat permission. Optional `defendThreats:true` additionally requires
   `recoverThreats` and attack permission at both safety layers. It can defend
   against one confirmed unstarred Greyling within16m with fed/equipped reserves,
-  at least2 armour,40 stamina,30HP/80% health and no second hostile within30m.
+  at least2 armour,40 stamina and80% health and no second hostile within30m.
   Existing melee checks apply. Defense is limited to12s within the same30s
   recovery attempt; interrupted/refused defense withdraws without resetting it.
   Exact observed death then five quiet seconds permit destination replanning.

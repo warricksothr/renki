@@ -33,6 +33,17 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void AbortingUnsafeRecoveryReleasesTheHoldWithoutRetryingOrLoggingOut()
+        {
+            var guard = new StartupRecovery(true);
+            Assert.Equal(RecoveryAction.Logout, guard.Decide(true, 2, 25, true, false, true, false, false, true));
+            Assert.Equal("hostile within startup recovery range", guard.Reason);
+            guard.Abort();
+            Assert.True(guard.Complete);
+            Assert.Equal(RecoveryAction.Continue, guard.Decide(true, 1, 25, true, false, true, false, false, true));
+        }
+
+        [Fact]
         public void DisabledGuardAndNaturalFoodMaximumDecayDoNotCauseLogout()
         {
             Assert.Equal(RecoveryAction.Continue, new StartupRecovery(false).Decide(true, 3, 32, true, false, false, false, true, true));

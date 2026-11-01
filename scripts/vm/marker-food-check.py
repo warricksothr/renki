@@ -50,6 +50,7 @@ def travel_ready(status):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('marker')
     parser.add_argument('--go', action='store_true', help='move to this marker before starting')
     parser.add_argument('--travel-only', action='store_true', help='verify the outward/home journey without food work; requires --go')
@@ -214,12 +215,13 @@ def main():
                     remain = safe_home(status, mapped)
             except Exception:
                 remain = False
-        if owns_body and not yielded and not remain:
+        if owns_body and not yielded and not remain and args.allow_logout:
             try:
                 call('panel', 'POST', '/api/act/logout', '{}')
             except Exception:
                 pass
-        summary['keptOnline'] = remain
+        summary['safeHomeVerified'] = remain
+        summary['keptOnline'] = owns_body and (remain or not args.allow_logout)
         summary['yieldedToCommand'] = yielded
         (folder / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(json.dumps(summary))

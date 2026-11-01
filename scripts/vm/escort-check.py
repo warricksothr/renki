@@ -18,8 +18,8 @@ def unsafe(status, world):
     if status.get('world') != world:
         return 'world changed'
     hp, maximum = status.get('hp', 0), status.get('hpMax', 0)
-    if not math.isfinite(hp) or not math.isfinite(maximum) or maximum <= 0 or hp < max(15, maximum * .4):
-        return 'health below escort supervision floor'
+    if not math.isfinite(hp) or not math.isfinite(maximum) or maximum <= 0 or hp <= 0:
+        return 'bot dead or health telemetry invalid'
     return None
 
 
@@ -39,6 +39,7 @@ def history_path(task_id, anchor):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('leader')
     parser.add_argument('--seconds', type=int, default=90)
     parser.add_argument('--leave-running', action='store_true')
@@ -64,8 +65,6 @@ def main():
         world = initial.get('world')
         if unsafe(initial, world):
             raise RuntimeError(unsafe(initial, world))
-        if initial.get('hp', 0) < 30 or initial['hp'] < initial.get('hpMax', 0) * .8 or not (initial.get('food') or {}).get('active'):
-            raise RuntimeError('recover to 30 HP/80% health with active food before supervised escort')
         names = protected(initial, args.leader)
         mapped = call('panel', 'GET', '/api/map')
         (folder / 'initial-map.json').write_text(json.dumps(mapped, indent=2) + '\n')
@@ -84,9 +83,10 @@ def main():
             escort, body = status.get('escort') or {}, status.get('task') or {}
             reason = unsafe(status, world)
             if reason:
-                # Survival floor is an actual condition, not a hypothetical risk.
-                call('panel', 'POST', '/api/act/logout', '{}')
-                outcome = 'safety_logout'
+                outcome = 'interrupted'
+                if args.allow_logout:
+                    call('panel', 'POST', '/api/act/logout', '{}')
+                    outcome = 'safety_logout'
                 break
             if body.get('id') != task_id or body.get('task') != 'escort' or escort.get('id') != task_id:
                 if not matched and time.monotonic() - started_at < 5:

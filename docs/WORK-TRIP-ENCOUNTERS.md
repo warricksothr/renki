@@ -75,7 +75,7 @@ defense is requested only when the session permits attack.
 The initial automatic capability is one unstarred hostile Greyling within16m,
 confirmed targeting Tas or recently observed attacking him. No second loaded
 hostile within30m may be present. Admission requires food, a usable melee weapon,
-at least2 armour,40 stamina,30HP and80% health, on grounded dry unencumbered footing.
+at least2 armour,40 stamina and80% health, on grounded dry unencumbered footing.
 This reuses ordinary melee's live approach, bystander, structure and strike checks;
 it does not establish automatic Neck, Boar, starred or group capability.
 

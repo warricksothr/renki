@@ -79,9 +79,9 @@ are empty. `--require-fuel` additionally requires an actual cold-fire fuel
 receipt, never just a successful hot-station batch. Native traces and complete
 checkpoints are saved in `.checks/food-*`.
 
-Trials log out after unsafe, uncertain or failed outcomes. `--keep-online`
-retains Tas after success only with a fresh safe idle shelter observation near
-home and no nearby observed threats. Native plugin changes still require a
+Trials stay online after unsafe, uncertain or failed outcomes by default.
+`--allow-logout` explicitly permits cleanup shutdown. With that option,
+`--keep-online` instead retains Tas when fresh safe home evidence is verified. Native plugin changes still require a
 client restart; controller-only changes can use `just vm deploy-controller`.
 
 New food goals can also acquire missing supplies after storage is exhausted.
@@ -134,12 +134,13 @@ one, keeping the independent panel available without launching Valheim.
 outside, without disabling `RecoveryGuard`. It reads that exact world's pinned
 home from controller memory while the game is offline and arms a five-minute,
 one-shot native order. The plugin consumes the order before moving. Invalid or
-wrong-world orders log out; an absent order retains passive sheltered healing.
+wrong-world orders abort recovery (logout requires `Safety.AutoLogout=true`); an absent order retains passive sheltered healing.
 
 The default local profile requires at least 50 HP and 70% maximum health, two active foods,
 25 stamina, dry grounded feet and six metres of hostile clearance. Normal
 native dry movement avoids hostiles. Injury, water, less than eight stamina,
-close threats, cancellation, bridge/session loss or permission loss log out.
+close threats, cancellation, bridge/session loss or permission loss abort the
+return and release its input hold. They log out only with `Safety.AutoLogout=true`.
 The return permits 120 seconds, 160 metres travelled and at most 80 metres
 from home. It cannot combat, collect supplies or accept ordinary body tasks.
 An operator stop aborts it, and reconnect cannot resume it.

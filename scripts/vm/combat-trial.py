@@ -212,6 +212,7 @@ def run_persistent_goal(summary, call, observe, saved, peel=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     harvest_mode = parser.add_mutually_exclusive_group()
     harvest_mode.add_argument('--gather-tree', action='store_true', help='test the controller gather -> storage -> return chain')
     harvest_mode.add_argument('--harvest-tree', action='store_true', help='run the bounded full-tree/log benchmark with combat off')
@@ -226,6 +227,7 @@ def main():
     parser.add_argument('--gather-trees', type=int, default=1, choices=range(1, 4), help='full trees required by the controller gather benchmark')
     parser.add_argument('--gather-site', type=float, nargs=3, help='known work-site hint; controller revalidates actual resources on arrival')
     parser.add_argument('--gather-defend', action='store_true', help='opt into bounded native defense of a confirmed Greyling pursuer during gathering')
+    parser.add_argument('--restart-client', action='store_true', help='explicitly restart the client to apply trial combat permissions before testing')
     args = parser.parse_args()
     if args.peel and not args.persistent:
         parser.error('--peel requires --persistent')
@@ -272,9 +274,10 @@ def main():
 
     try:
         print('Preparing one bounded ' + ('resupply' if args.resupply_food else 'harvest' if harvesting else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
-        call('stop', timeout=200)
-        call('combat', 'false' if (harvesting and not args.gather_defend) or args.resupply_food else 'true')
-        call('start', timeout=330)
+        if args.restart_client:
+            call('stop', timeout=200)
+            call('combat', 'false' if (harvesting and not args.gather_defend) or args.resupply_food else 'true')
+            call('start', timeout=330)
         deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
         startup_deadline = time.monotonic() + 120
         startup_id, startup_health, startup_scope = None, None, None
@@ -397,8 +400,8 @@ def main():
     except Exception as e:
         summary.update(outcome='aborted', reason=str(e))
     finally:
-        # Always save/logout, stop the game and restore combat off. Restart only
-        # the controller so monitoring remains available between trials.
+        # Cancel only this trial's automation. Keep the body and combat
+        # permissions available for diagnosing failures unless explicitly opted out.
         cleanup = []
         if summary.get('behaviourName'):
             for action in ('stop', 'delete'):
@@ -414,10 +417,24 @@ def main():
 
         urgent = any(reason in summary.get('reason', '').lower() for reason in
                      ('hostile', 'enemy', 'pursuer', 'health', 'damage', 'ownership', 'unsafe water', 'footing'))
-        if urgent:
+        if urgent and args.allow_logout:
             # Do not leave an aborted, stationary bot exposed while slow SSH
             # diagnostics or automation deletion consume its threat buffer.
             cleanup_call(('panel', 'POST', '/api/act/logout', '{}'))
+
+        # Stop an unfinished direct child only while its exact ID still owns
+        # the body. A later human order is never cleanup authority.
+        if summary.get('outcome') != 'succeeded':
+            owned_ids = {t['id'] for t in summary.get('tasks', []) if t.get('id')}
+            if isinstance(summary.get('task'), str):
+                owned_ids.add(summary['task'])
+            if owned_ids:
+                try:
+                    current = call('panel', 'GET', '/api/status', as_json=True)
+                    if (current.get('task') or {}).get('id') in owned_ids:
+                        cleanup_call(('task', 'stop', '{}', '0'))
+                except Exception as error:
+                    summary.setdefault('cleanupErrors', []).append(str(error))
 
         # Revoke this trial's automation before fetching diagnostic imagery;
         # a slow image transfer must not keep a rejected behavior moving.
@@ -425,13 +442,15 @@ def main():
             cleanup_call(arguments)
         # Retain the current view before logout for agent-assisted diagnosis. This
         # reads the latest frame; it never bypasses the native capture ceiling.
-        if not urgent:
+        if not urgent or not args.allow_logout:
             try:
                 summary['cameraEvidence'] = call('camera').strip()
             except Exception as error:
                 summary['cameraUnavailable'] = str(error)
-        for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
-            cleanup_call(arguments)
+        if args.allow_logout:
+            for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('panel-start',)]:
+                cleanup_call(arguments)
+        summary['automaticLogoutAllowed'] = args.allow_logout
         until = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
         try:
             audit = call('audit-window', since, until, timeout=60).strip()

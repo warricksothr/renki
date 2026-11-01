@@ -32,7 +32,7 @@ def project(audit, limit=12):
             continue
         data = frame.get('data') or {}
         if (not any(k in data for k in ('supportQuery', 'planning', 'failures')) and frame.get('msg') not in (
-                'routing raised goal through observed entrance', 'bounded startup return started', 'startup recovery logging out')):
+                'routing raised goal through observed entrance', 'bounded startup return started', 'startup recovery logging out', 'startup recovery aborted; staying online')):
             continue
         counts[frame.get('msg', '')] += 1
         record = dict(at=row.get('at'), task=frame.get('task'), source=frame.get('source'), message=frame.get('msg'))

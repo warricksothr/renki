@@ -17,8 +17,11 @@ has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
 
 `just vm panel-start` starts only the controller and web panel using a separate
 scheduled task, without launching Valheim. The panel remains available to view
-retained audit history while Tas is offline. Combat and harvest trial cleanup
-logs Tas out, stops the game, restores combat off, then runs this recipe.
+retained audit history while Tas is offline. Live trial cleanup retains Tas online by default, including on failures.
+`--allow-logout` explicitly permits shutdown and restarting only the panel.
+Combat permissions persist; `--restart-client` permits combat-trial setup
+restarts. Native recovery logout separately defaults off; inspect it with
+`just vm auto-logout`, and set `just vm auto-logout false` for the next launch.
 `just vm stop` still stops both the game and controller when explicitly used.
 
 ## Back up before changing server mods
