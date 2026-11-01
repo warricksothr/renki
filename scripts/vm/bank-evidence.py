@@ -25,6 +25,7 @@ def main():
     print('Evidence:', args.audit)
     print('Body:', latest.get('pos'), 'water:', latest.get('waterLevel'),
           'eligible:', latest.get('eligible'), 'samples:', latest.get('samples'))
+    print('Reason:', latest.get('reason', 'not recorded by this build'))
     print('Probe:', json.dumps(failures.get('bank'), separators=(',', ':')))
     print('Refusals:', json.dumps(failures.get('counts', {}), separators=(',', ':')))
     for i, sample in enumerate(failures.get('examples', [])[:16], 1):

@@ -7,8 +7,9 @@ namespace Renki.Movement
     public sealed class BankExit
     {
         public const double Seconds = 8, Distance = 3, ActualMargin = .3;
-        // Leave20cm of liquid variation beyond the existing10cm settling
-        // reserve before holding still for a sliced route search.
+        // Complete above the waiting threshold so small settling or liquid
+        // variation spends the reserve instead of immediately restarting.
+        public const double WaitingMargin = DryTravel.TravelMargin + .1;
         public const double PlanningMargin = DryTravel.TravelMargin + .3;
         public const int ProbeLimit = 128;
         static readonly int[] angles = { 0, 23, -23, 45, -45, 68, -68, 90, -90, 113, -113, 135, -135, 158, -158, 180 };
@@ -20,6 +21,7 @@ namespace Renki.Movement
         public int Samples { get; private set; }
         public int Stalls { get; private set; }
         public bool Refused { get; private set; }
+        public string RefusalReason { get; private set; }
 
         // Finish above the entry threshold, accounting for body settling.
         // Rounded support at exactly the planning margin must not alternate
@@ -31,16 +33,19 @@ namespace Renki.Movement
             DryTravel.Clear(footing, water, PlanningMargin);
 
         public static bool NeedsDeparture(V3 body, V3 footing, double water, bool waitingForRoute) =>
-            !DryTravel.Clear(body, water, waitingForRoute ? PlanningMargin : DryTravel.TravelMargin) ||
-            !DryTravel.Clear(footing, water, waitingForRoute ? PlanningMargin : DryTravel.TravelMargin);
+            !DryTravel.Clear(body, water, waitingForRoute ? WaitingMargin : DryTravel.TravelMargin) ||
+            !DryTravel.Clear(footing, water, waitingForRoute ? WaitingMargin : DryTravel.TravelMargin);
+
+        void Refuse(string reason) { Refused = true; RefusalReason = reason; }
 
         public V3? Next(V3 from, V3 toward, double now, Func<V3, V3, V3?> probe)
         {
             if (Refused) return null;
             if (double.IsNaN(started)) { started = now; previous = from; }
             travelled += V3.FlatDistance(previous, from); previous = from;
-            if (now - started >= Seconds || travelled >= Distance || Samples >= ProbeLimit)
-            { Refused = true; return null; }
+            if (now - started >= Seconds) { Refuse("time_limit"); return null; }
+            if (travelled >= Distance) { Refuse("distance_limit"); return null; }
+            if (Samples >= ProbeLimit) { Refuse("probe_limit"); return null; }
             if (target.HasValue && V3.FlatDistance(from, target.Value) <= .12)
             { target = null; direction = 0; }
             if (target.HasValue)
@@ -76,7 +81,8 @@ namespace Renki.Movement
                     return target;
                 }
             }
-            if (direction == angles.Length || Samples >= ProbeLimit) Refused = true;
+            if (Samples >= ProbeLimit) Refuse("probe_limit");
+            else if (direction == angles.Length) Refuse("bearings_exhausted");
             return null;
         }
 

@@ -633,9 +633,10 @@ namespace Renki.Plugin
                 });
             if (!eligible || bankExit.Refused)
             {
-                navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure has no checked uphill step");
+                var reason = !eligible ? "live_eligibility_lost" : bankExit.RefusalReason;
+                navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure refused: " + reason);
                 Tracer.Emit("walker", "dry bank departure refused", new Dictionary<string, object>
-                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures });
+                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["reason"] = reason, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures });
                 return true;
             }
             // Ordinary walking input; Run remains false. An attenuated input

@@ -1577,3 +1577,22 @@ Food hunt checks also retain a strictly bounded two-second settlement for a
 matching confirmed death while perception still contains that exact target.
 Other creatures, stale/foreign receipts and the original expiry cannot acquire
 that exception; no action is dispatched while loot settlement is pending.
+
+The changed-policy return `.checks/recovery-20261101T073423Z` regained the
+planning buffer but did not reach home. In audit
+`.checks/audit-window-qejxWc.jsonl`, recovery completed at body31.20m /
+footing31.11m with water30m; two navmesh candidates then failed live endpoint
+support. Footing settled to31.10m while waiting. Using the same1.1m threshold
+for completion and waiting re-entry consumed the entire reserve at the boundary
+and re-entered recovery after its original wall-clock limit. Tas logged out
+without observed injury, after0.7m travel.
+
+Bank recovery now finishes at1.1m but starts while planning below0.9m, retaining
+20cm hysteresis. Ordinary travel still starts recovery below its original0.8m
+buffer. The captured positions and a0.122m wave fit the waiting band; a0.21m
+wave requires recovery again. Original aggregate8s/3m/128-probe budgets are
+unchanged and are never reset by the handoff. Native refusal details and
+`just vm bank-evidence` now distinguish time, distance, probes, exhausted
+bearings and lost live eligibility. `BankExitTests` verifies both the captured
+handoff and expiry after a planning wait. This does not prove the rejected
+route is traversable; a further supervised native result is required.

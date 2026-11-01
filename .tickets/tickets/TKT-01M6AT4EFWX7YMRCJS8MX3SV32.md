@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T07:33:54Z
+updated_at: 2026-11-01T07:37:52Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -116,3 +116,7 @@ Reviewed/deployed e19ce26 native return .checks/recovery-20261101T071741Z remain
 **agent:codex/renki-milestones** at 2026-11-01T07:33:54Z
 
 Captured bank handoff now reserves20cm of liquid variation beyond the existing10cm settling allowance before holding for route planning. The same conservative planning margin applies when admitting a new wait near the shore; ordinary walking keeps its unchanged0.8m buffer. The regression uses initial[-51.81,31.08,10.45]/30.98m footing and later[-51.9,31.01,10.45]/30.92m footing at30.122m liquid height, rather than attributing all loss to the wave alone. All original8s/3m/128-probe bounds and fresh dry/body/hostile checks remain. Focused BankExit checks and full just check ci pass. Reviewed deployment and one changed-policy native return follow; no production or return result claimed yet.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:37:52Z
+
+Changed-policy return .checks/recovery-20261101T073423Z failed without injury after 0.7m travel; audit .checks/audit-window-qejxWc.jsonl. Recovery reached body 31.20m / footing 31.11m above water 30m. Two navmesh candidates failed endpoint support; footing settled to 31.10m while planning. Completion and waiting re-entry both used 1.1m, so tiny settling re-entered recovery after its original deadline. Correcting this with distinct 1.1m completion / 0.9m waiting thresholds (ordinary travel remains 0.8m), captured-position/wave regression, and explicit refusal reason diagnostics. No budget reset or physical guard waiver. Tas is offline and panel remains available. Pantry production and native portal-trigger avoidance remain unproved.

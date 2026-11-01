@@ -29,7 +29,7 @@ namespace Renki.Tests
             // Ordinary walking still uses its unchanged buffer. Waiting at
             // the captured handoff lost that buffer as the next wave rose.
             Assert.False(BankExit.NeedsDeparture(body, footing, 30, false));
-            Assert.True(BankExit.NeedsDeparture(body, footing, 30, true));
+            Assert.False(BankExit.NeedsDeparture(body, footing, 30, true));
             Assert.False(BankExit.Recovered(body, footing, 30, .83));
             var settledBody = new V3(-51.9, 31.01, 10.45);
             var settledFooting = new V3(-51.9, 30.92, 10.45);
@@ -38,6 +38,28 @@ namespace Renki.Tests
             var higherFooting = footing + new V3(0, .3, 0);
             Assert.True(BankExit.Recovered(higherBody, higherFooting, 30.122, .83));
             Assert.False(BankExit.NeedsDeparture(higherBody, higherFooting, 30.122, true));
+        }
+
+        [Fact]
+        public void CapturedPlanningWaitSpendsReserveBeforeReenteringRecovery()
+        {
+            // Native recovery completed here, then footing settled 1cm while
+            // route validation waited. The aggregate budget must not be
+            // renewed, but this is still a safe place to wait for planning.
+            var body = new V3(-51.65, 31.2, 10.18);
+            var footing = new V3(-51.65, 31.11, 10.18);
+            Assert.True(BankExit.Recovered(body, footing, 30, .83));
+            var settledBody = new V3(-51.66, 31.2, 10.17);
+            var settledFooting = new V3(-51.66, 31.1, 10.17);
+            Assert.False(BankExit.NeedsDeparture(settledBody, settledFooting, 30, true));
+            Assert.False(BankExit.NeedsDeparture(settledBody, settledFooting, 30.122, true));
+            Assert.True(BankExit.NeedsDeparture(settledBody, settledFooting, 30.21, true));
+            // Actual travel retains its ordinary buffer even in that band.
+            Assert.False(BankExit.NeedsDeparture(settledBody, settledFooting, 30.21, false));
+            var exit = new BankExit();
+            exit.Next(body, V3.Forward, 0, (a, b) => b);
+            Assert.Null(exit.Next(settledBody, V3.Forward, 16, (a, b) => throw new Exception("expired")));
+            Assert.Equal("time_limit", exit.RefusalReason);
         }
 
         [Theory]
@@ -122,6 +144,7 @@ namespace Renki.Tests
             Assert.Equal(4, calls);
             for (var t = 1; t < 4; t++) exit.Next(V3.Zero, V3.Forward, t, Refuse);
             Assert.True(exit.Refused); Assert.Equal(16, calls);
+            Assert.Equal("bearings_exhausted", exit.RefusalReason);
             exit.Next(V3.Zero, V3.Forward, 5, (a, b) => throw new Exception("terminal"));
         }
 
@@ -138,6 +161,7 @@ namespace Renki.Tests
             Assert.Equal(2, exit.Samples);
             Assert.Null(exit.Next(V3.Zero, V3.Forward, BankExit.Seconds, (a, b) => b));
             Assert.True(exit.Refused);
+            Assert.Equal("time_limit", exit.RefusalReason);
         }
 
         [Fact]
@@ -169,6 +193,7 @@ namespace Renki.Tests
             exit = new BankExit(); exit.Next(V3.Zero, V3.Forward, 0, Probe);
             Assert.Null(exit.Next(new V3(0, 0, BankExit.Distance), V3.Forward, 1, Probe));
             Assert.True(exit.Refused);
+            Assert.Equal("distance_limit", exit.RefusalReason);
         }
     }
 }
