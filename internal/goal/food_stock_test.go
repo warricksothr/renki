@@ -267,6 +267,33 @@ func TestHouseholdReceiptsPendingCollectionBeforeCapacityReturn(t *testing.T) {
 	}
 }
 
+func TestHouseholdReturnFailurePreservesNativeReasonWithoutClaimingArrival(t *testing.T) {
+	for _, status := range []string{protocol.StatusFailed, protocol.StatusSucceeded} {
+		t.Run(status, func(t *testing.T) {
+			host, r, v, id := stockFixture(t)
+			v.State.Pos = protocol.Vec3{20, 0, 0}
+			g, _ := host.Store.Get(id)
+			g.Home = v.Home
+			if _, err := r.stockReturn(g, v, map[string]int{"Mushroom": 0}, map[string]int{"Mushroom": 3}, "return"); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.Dispatched("return"); err != nil {
+				t.Fatal(err)
+			}
+			foodFresh(&v)
+			_, err := r.Next(v, &behaviour.Result{TaskID: "return", Status: status, Reason: protocol.ReasonUnreachable, Detail: "hostile corridor blocks local route"})
+			g, _ = host.Store.Get(id)
+			want := "food acquisition lacks confirmed home floor arrival"
+			if status == protocol.StatusFailed {
+				want = "food return failed (unreachable): hostile corridor blocks local route"
+			}
+			if err != nil || g.Status != "needs_plan" || g.Reason != want {
+				t.Fatal(g, err)
+			}
+		})
+	}
+}
+
 func TestHouseholdVisitsDistinctDepletedSourcesThenReturnsBeforeStopping(t *testing.T) {
 	host, r, v, id := stockFixture(t)
 	v.Inventory.Items[0].Stack = 2

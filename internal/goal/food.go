@@ -527,7 +527,10 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 			return errors.New("post-cooking wait point lacks confirmed precise home-floor arrival")
 		}
 	case "food_return":
-		if !success || !foodAtHome(v.State.Pos, g.Center) {
+		if !success {
+			return fmt.Errorf("food return failed (%s): %s", last.Reason, last.Detail)
+		}
+		if !foodAtHome(v.State.Pos, g.Center) {
 			return errors.New("food acquisition lacks confirmed home floor arrival")
 		}
 	case "forage", "pickup_food", "search_food", "hunt_food":

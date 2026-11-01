@@ -1210,3 +1210,9 @@ stock decision, attempted source cells, collection receipts and destination
 deposits. Source attempts include refused routes and do not prove arrival or
 depletion; collection and storage remain separate proof. Full checkpoints and
 observations stay in the evidence directory.
+
+`--keep-online` can also retain the client after an exhausted-source result
+with a successful native return and fresh idle shelter on the correct home
+floor. The trial still fails its production proof. Injury, ownership changes,
+uncertain results and failed returns do not qualify; failed return diagnostics
+retain the native reason so routing faults are visible on the goal itself.

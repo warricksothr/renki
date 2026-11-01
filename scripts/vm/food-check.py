@@ -28,10 +28,21 @@ def safe_to_remain(status, mapped):
     if (safe(status) or status.get('task') or 'in_shelter' not in status.get('flags', [])
             or home.get('world') != status.get('world') or not home.get('pos')
             or math.dist(status['pos'], home['pos']) > 8 or status['hp'] < status['hpMax'] * .8
+            or abs(status['pos'][1] - home['pos'][1]) > 1.75
             or (mapped.get('world'), mapped.get('connection')) != (status.get('world'), status.get('connection'))
             or not isinstance(perception, dict) or 'characters' not in perception): return False
     return not any(c.get('hpFrac', 0) > 0 and (c.get('hostile') or c.get('targetingMe'))
                    and math.dist(c['pos'], status['pos']) < 20 for c in perception['characters'])
+
+
+def completed_or_returned_shortage(summary, goal):
+    """A returned source shortage stays a failed proof, but need not restart a safe client."""
+    if summary.get('outcome') == 'succeeded': return True
+    reason = 'household source markers exhausted or unsafe; wait for regrowth or revise sources'
+    return (bool(goal) and summary.get('status') == goal.get('status') == 'needs_plan'
+            and summary.get('reason') == goal.get('reason') == reason and not goal.get('pending')
+            and any(row.get('template') == 'food_return' and row.get('status') == 'succeeded'
+                    for row in goal.get('history', [])))
 
 
 def goal_owned_task(status, goal):
@@ -79,7 +90,7 @@ def main():
     parser.add_argument('--require-cooking', action='store_true')
     parser.add_argument('--require-fuel', action='store_true')
     parser.add_argument('--require-acquisition', action='store_true', help='require verified collection outside storage')
-    parser.add_argument('--keep-online', action='store_true', help='keep Tas online only after success and verified safe idle shelter near home')
+    parser.add_argument('--keep-online', action='store_true', help='keep Tas online after success or a returned source shortage, with verified safe idle shelter on the home floor')
     parser.add_argument('--stow-ready', help='stage a shortage by normally depositing carried ready meals into this excluded chest')
     parser.add_argument('--escort', help='verify a bounded food-to-escort handoff for this commander, then stop escort at home')
     args = parser.parse_args()
@@ -277,7 +288,7 @@ def main():
             try: call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='disable', name=idle_name)))
             except Exception as error: summary.update(outcome='failed', reason='cannot disable household test definition: ' + str(error))
         retained = False
-        if owns_game and args.keep_online and summary['outcome'] == 'succeeded':
+        if owns_game and args.keep_online and completed_or_returned_shortage(summary, goal):
             try:
                 final = observe()
                 mapped = call('panel', 'GET', '/api/map')
