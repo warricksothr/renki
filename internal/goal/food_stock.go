@@ -425,7 +425,7 @@ func (r *runner) Check(v behaviour.View) error {
 		}
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeFoodRecovery(g, v) && !r.foodResultBoundary(g, v) && !(r.nativeFoodHunt(g, v) && c.ID == g.Pending.Entity) {
+		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeFoodRecovery(g, v) && !r.foodResultBoundary(g, v) && !(r.nativeFoodHunt(g, v) && c.ID == g.Pending.Entity) && !r.foodKillSettling(g, v, c.ID) {
 			return errors.New("nearby threat interrupts household work")
 		}
 	}

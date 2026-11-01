@@ -1484,3 +1484,19 @@ at least0.56m settling-adjusted dry clearance; their retained heights pass the
 core half-metre policy. Deployed DLL hashes match and no duplicate native DLLs
 were found. Further live diagnostics retain the execution gate, core decision
 and exact step distance rather than changing the water margin on that evidence.
+
+
+The execution-gate replay `.checks/recovery-20261101T062326Z` isolated the
+bank refusal. Audit `.checks/audit-window-dSWtzj.jsonl` reports executing/dry
+true and core refusals: every otherwise eligible uphill endpoint was about
+0.5011–0.5020m away, beyond the0.501m short-step guard. Requesting0.49m leaves
+space for those native support-hit offsets inside the unchanged physical limit.
+`just check plugin test-core BankExitTests` covers a2mm returned-hit offset,
+accepting the shorter request while still rejecting a0.502m physical step.
+This is a request-length correction, not a water or uphill-clearance waiver.
+Native return remains to be demonstrated after deployment.
+
+Food hunt checks also retain a strictly bounded two-second settlement for a
+matching confirmed death while perception still contains that exact target.
+Other creatures, stale/foreign receipts and the original expiry cannot acquire
+that exception; no action is dispatched while loot settlement is pending.

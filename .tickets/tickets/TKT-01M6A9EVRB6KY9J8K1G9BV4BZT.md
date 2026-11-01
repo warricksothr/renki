@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T06:11:31Z
+updated_at: 2026-11-01T06:26:06Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -235,3 +235,9 @@ Remaining: avoid choosing marginal shoreline approaches and repeated gate/slope 
 Deployed6222030 with verified package/native/controller checksums. The first nearby launch was rejected before game mutation because vm recovery-return still allowed only local/work_trip; fixed the recipe and added an actual just launcher integration test with fake SSH/SCP (no network). Commitb47828d also covers a complete simulated hunt/loot/return/two-cook/two-deposit refill using distinct protocol receipts; focused checks and full CI pass (.checks/20261101T060723Z-ANJKFF.log), committed review passed without findings.
 
 Native nearby return .checks/recovery-20261101T060723Z reached the bank departure but refused all16 candidates as water/support policy. Tas logged out at44/53.5HP without observed damage or travel. Audit .checks/audit-window-w0y1ua.jsonl: body[-53.51,30.72,11.48], supportY30.69, currentwater30.0–30.02; final reported candidate descended to30.66. No production or route success. Retaining the complete first16-probe bank sweep in bounded diagnostics to distinguish mathematical clearance failures on the uphill bearings; current single-per-stage sample concealed those. Do not resend the unchanged trial or mark route/pantry live acceptance complete.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:26:06Z
+
+Build5b882a8 replay .checks/recovery-20261101T062326Z (audit .checks/audit-window-dSWtzj.jsonl) isolates the first bank issue: executing/dry are true, installed and loaded core identity is reported, and all eligible uphill hits are0.5011–0.5020m from the body. That exceeds the0.501m physical short-step guard despite safe rising support/water clearance. Request49cm instead of50cm so the measured1–2mm hit offsets fit inside the unchanged bound; no water/uphill/body/hostile checks relaxed. Added synthetic returned-hit-offset regression and retained captured-height fixture. Native proof pending corrected deployment.
+
+Also fixed the confirmed-hunt/perception race: the exact kill receipt may settle for its already charged two-second loot wait while perception still contains that target. Check/Next allow no extra creature or action, stale/foreign receipt or renewed expiry. Focused goal checks pass; full CI/review next. Tas remains offline at44HP; no pantry live production claimed.

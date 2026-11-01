@@ -127,7 +127,6 @@ func TestPantryHuntOnlyMissingIngredientAndOwnedCombat(t *testing.T) {
 				v.Injury.Damage = 5
 				foodFresh(&v)
 				v.Perception.Seq += 10
-				v.Perception.Characters = nil
 				v.State.Task = nil
 				v.State.Combat = nil
 				last := &behaviour.Result{TaskID: "hunt", Entity: "prey", Status: protocol.StatusSucceeded, Detail: "observed " + species + " death"}
@@ -140,6 +139,23 @@ func TestPantryHuntOnlyMissingIngredientAndOwnedCombat(t *testing.T) {
 				if *g.Food.Injury != 1 || len(g.Food.Receipts) != 1 || g.Food.Receipts[0].Action != "hunt" {
 					t.Fatalf("reason=%s injury=%v receipts=%+v budget=%+v", g.Reason, *g.Food.Injury, g.Food.Receipts, g.Food.TravelBudget)
 				}
+				if err = r.Check(v); err != nil {
+					t.Fatal("stale perception cancelled confirmed death settlement", err)
+				}
+				extra := protocol.PerceivedCharacter{ID: "extra", HPFrac: 1, Hostile: true, Pos: protocol.Vec3{3, 0, 0}}
+				v.Perception.Characters = append(v.Perception.Characters, extra)
+				if err = r.Check(v); err == nil {
+					t.Fatal("death settlement exempted a new enemy")
+				}
+				v.Perception.Characters = v.Perception.Characters[:1]
+				later := v
+				later.Now = v.Now.Add(3 * time.Second)
+				later.StateAt = later.Now
+				later.PerceptionAt = later.Now
+				if err = r.Check(later); err == nil {
+					t.Fatal("death settlement exceeded its original two seconds")
+				}
+				v.Perception.Characters = nil
 				foodFresh(&v)
 				v.Perception.Seq += 10
 				p := forageResource("loot", preyIngredient(species), c.Pos)

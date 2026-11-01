@@ -37,8 +37,10 @@ namespace Renki.Movement
             for (var n = 0; n < 4 && direction < angles.Length && Samples < ProbeLimit; n++)
             {
                 var angle = angles[direction++] * Math.PI / 180;
+                // Native uphill ray hits can lie 1–2mm beyond the requested
+                // point. Leave room inside the unchanged physical step bound.
                 var step = new V3(heading.X * Math.Cos(angle) - heading.Z * Math.Sin(angle), 0,
-                    heading.X * Math.Sin(angle) + heading.Z * Math.Cos(angle)) * .5;
+                    heading.X * Math.Sin(angle) + heading.Z * Math.Cos(angle)) * .49;
                 Samples++;
                 target = probe(from, from + step);
                 if (target.HasValue) return target;

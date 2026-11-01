@@ -243,6 +243,9 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	}
 	for _, c := range v.Perception.Characters {
 		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, s.Pos) < 15 {
+			if r.foodKillSettling(g, v, c.ID) {
+				continue
+			}
 			// A nearby animal only admits its own eligible hunt. It cannot
 			// exempt chest work, cooking, recovery or another travel action.
 			if prey := r.foodPrey(g, v, foodHuntItems(g, v)); len(prey) > 0 && prey[0].ID == c.ID {

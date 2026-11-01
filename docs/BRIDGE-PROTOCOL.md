@@ -824,7 +824,7 @@ Notes:
   already inside that forecast buffer. It requires at least 0.3 m actual dry
   clearance, compensates measured body/footing offset plus 0.1 m settling,
   and accepts only uphill steps with nondecreasing water clearance. Every
-  half-metre candidate retains support, capsule, wall and hostile checks.
+  short candidate retains support, capsule, wall and hostile checks.
   It walks slowly without jumping or running, with eight seconds, three metres
   travelled and 128 candidate probes per walker goal; at most four candidates
   and one held-step recheck run per tick. Immersion, lost footing or exhausted

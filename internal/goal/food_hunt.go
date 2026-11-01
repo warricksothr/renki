@@ -130,6 +130,21 @@ func (r *runner) nativeFoodHunt(g Record, v behaviour.View) bool {
 		slices.Contains([]string{"approach", "closing", "strike", "wait", "block", "dodge", "retreat"}, c.Mode)
 }
 
+// The native death receipt can precede the next perception frame. Only the
+// exact confirmed target may settle during the already charged two-second
+// loot wait; it grants no further action or exemption for another creature.
+func (r *runner) foodKillSettling(g Record, v behaviour.View, entity string) bool {
+	last := g.Last
+	if last == nil || last.Template != "hunt_food" || last.Status != protocol.StatusSucceeded ||
+		last.Run != r.t.Store.runID || last.TaskID == "" || last.Entity != entity || entity == "" ||
+		last.At.IsZero() || v.Now.Before(last.At) || !v.Now.Before(last.At.Add(2*time.Second)) || !g.Wake.After(v.Now) {
+		return false
+	}
+	return slices.ContainsFunc(g.Food.Receipts, func(receipt FoodReceipt) bool {
+		return receipt.Action == "hunt" && receipt.Run == last.Run && receipt.TaskID == last.TaskID && receipt.Entity == entity
+	})
+}
+
 // Visit each area before sampling its interior. Six total visits bound the
 // episode; marker radius never becomes evidence that the whole area was seen.
 func (r *runner) foodSearchAreas(g Record, v behaviour.View, areas []home.Waypoint) (*session.Order, error) {

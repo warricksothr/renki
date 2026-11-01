@@ -23,6 +23,23 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void UphillPhysicalHitOffsetFitsInsideTheOriginalShortStepBound()
+        {
+            var body = new V3(0, .56, 0); var exit = new BankExit();
+            V3? Probe(V3 from, V3 desired)
+            {
+                // Captured uphill casts returned about .502m for .5m requests.
+                var to = desired + (desired - from).Flat.Normalized * .002 + new V3(0, .06, 0);
+                var middle = (from + to) * .5;
+                return BankExit.Clear(from, from, middle, to, 0, 0, 0) ? to : (V3?)null;
+            }
+            var step = exit.Next(body, V3.Forward, 0, Probe);
+            Assert.True(step.HasValue);
+            Assert.InRange(V3.FlatDistance(body, step.Value), .49, .5);
+            Assert.False(BankExit.Clear(body, body, new V3(.251, .59, 0), new V3(.502, .62, 0), 0, 0, 0));
+        }
+
+        [Fact]
         public void RetainedAscendingSupportHeightsPassTheCorePolicyOnAHalfMetreStep()
         {
             Assert.True(BankExit.Clear(new V3(0, 30.7088, 0), new V3(0, 30.6685, 0),
