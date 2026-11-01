@@ -7,6 +7,9 @@ namespace Renki.Movement
     public sealed class BankExit
     {
         public const double Seconds = 8, Distance = 3, ActualMargin = .3;
+        // Leave20cm of liquid variation beyond the existing10cm settling
+        // reserve before holding still for a sliced route search.
+        public const double PlanningMargin = DryTravel.TravelMargin + .3;
         public const int ProbeLimit = 128;
         static readonly int[] angles = { 0, 23, -23, 45, -45, 68, -68, 90, -90, 113, -113, 135, -135, 158, -158, 180 };
         double started = double.NaN, travelled;
@@ -24,8 +27,12 @@ namespace Renki.Movement
         public static bool Recovered(V3 body, V3 footing, double water, double groundNormalY = 1) =>
             DryTravel.WalkableNormal(groundNormalY) &&
             DryTravel.PreferFooting(body.Y, footing.Y, null) &&
-            DryTravel.Clear(body, water, DryTravel.TravelMargin + .1) &&
-            DryTravel.Clear(footing, water, DryTravel.TravelMargin + .1);
+            DryTravel.Clear(body, water, PlanningMargin) &&
+            DryTravel.Clear(footing, water, PlanningMargin);
+
+        public static bool NeedsDeparture(V3 body, V3 footing, double water, bool waitingForRoute) =>
+            !DryTravel.Clear(body, water, waitingForRoute ? PlanningMargin : DryTravel.TravelMargin) ||
+            !DryTravel.Clear(footing, water, waitingForRoute ? PlanningMargin : DryTravel.TravelMargin);
 
         public V3? Next(V3 from, V3 toward, double now, Func<V3, V3, V3?> probe)
         {

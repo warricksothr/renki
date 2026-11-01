@@ -590,7 +590,7 @@ namespace Renki.Plugin
             var support = bankProbe.Footing(from);
             var water = WorldNavigation.WaterLevel(from);
             if (support.HasValue && (bankMoving ? BankExit.Recovered(from, support.Value, water, p.GetLastGroundNormal().y) :
-                DryTravel.Clear(from, water, DryTravel.TravelMargin) && DryTravel.Clear(support.Value, water, DryTravel.TravelMargin)))
+                !BankExit.NeedsDeparture(from, support.Value, water, localRoute != null || replay != null)))
             {
                 if (!bankMoving) return false;
                 bankMoving = false;

@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T07:02:57Z
-updated_at: 2026-11-01T07:27:11Z
+updated_at: 2026-11-01T07:33:54Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -71,3 +71,7 @@ Build e19ce26 passed full just check ci and committed reviews, was pushed in PR1
 **agent:codex/renki-milestones** at 2026-11-01T07:27:11Z
 
 Offline verification exposed a separate presentation gap: the session-only landmark endpoint and saved atlas returned no remembered objects after controller restart. The saved-atlas API now returns the selected world and bounded viewport landmarks (at most512), plus known contents for mapped chests; the panel uses those records as remembered markers. Focused selected-world/viewport/bound/chest-content checks pass, as do full just check ci, final panel lint/verify and the focused offline-fog UI check. An initial broad app-package check timed out in the existing Marco presence test; its isolated rerun and the subsequent complete race-enabled CI passed. Native offline response verification follows the controller-only deployment, with Tas left offline.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:33:54Z
+
+Saved-atlas follow-up233430e passed committed review and was deployed with Tas offline. The selected DizzysHellheim viewport now returns both remembered portal records and11 mapped chest inventories after controller restart; successful native response is retained in .checks/portal-offline-20261101T0720.json. This supersedes the earlier pending offline-verification note. Native accidental-entry avoidance remains untested because the shore return still blocks reaching the base floor; its acceptance criterion stays open.

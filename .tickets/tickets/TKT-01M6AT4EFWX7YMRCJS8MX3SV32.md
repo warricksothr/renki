@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T07:21:42Z
+updated_at: 2026-11-01T07:33:54Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -112,3 +112,7 @@ Continuation: the dirty bank build passed nearby return in .checks/recovery-2026
 **agent:codex/renki-milestones** at 2026-11-01T07:21:42Z
 
 Reviewed/deployed e19ce26 native return .checks/recovery-20261101T071741Z remains incomplete:0.9m observed travel, no injury, final46.2/46.2HP, then native logout. Audit .checks/audit-window-E2ZUAi.jsonl shows walking-slope admission now rejects sliding navmesh samples. The bank reached walkable footing near[-51.81,31.08,10.45], but planning waited long enough for a wave-water change to30.122m to re-enter recovery after the original aggregate8s deadline. No budget was renewed, margin waived, body puppeted or home relocated. Pantry production remains unproved. Next change needs stable bank handoff across planning/wave variation under original bounds; no unchanged retry. Portal and building collision work is deployed and documented separately.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:33:54Z
+
+Captured bank handoff now reserves20cm of liquid variation beyond the existing10cm settling allowance before holding for route planning. The same conservative planning margin applies when admitting a new wait near the shore; ordinary walking keeps its unchanged0.8m buffer. The regression uses initial[-51.81,31.08,10.45]/30.98m footing and later[-51.9,31.01,10.45]/30.92m footing at30.122m liquid height, rather than attributing all loss to the wave alone. All original8s/3m/128-probe bounds and fresh dry/body/hostile checks remain. Focused BankExit checks and full just check ci pass. Reviewed deployment and one changed-policy native return follow; no production or return result claimed yet.

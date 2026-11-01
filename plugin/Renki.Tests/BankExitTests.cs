@@ -14,10 +14,30 @@ namespace Renki.Tests
             Assert.False(BankExit.Recovered(new V3(0, 30.86, 0), new V3(0, 30.8, 0), 30));
             Assert.False(BankExit.Recovered(new V3(0, 30.88, 0), new V3(0, 30.98, 0), 30));
             Assert.False(BankExit.Recovered(new V3(0, 31.0, 0), new V3(0, 30.88, 0), 30));
-            Assert.True(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30));
+            Assert.False(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30));
+            Assert.True(BankExit.Recovered(new V3(0, 31.16, 0), new V3(0, 31.15, 0), 30));
             Assert.False(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30.1));
             Assert.False(BankExit.Recovered(new V3(0, 31.26, 0), new V3(0, 31.2, 0), 30, .62));
             Assert.True(BankExit.Recovered(new V3(0, 31.26, 0), new V3(0, 31.2, 0), 30, .9));
+        }
+
+        [Fact]
+        public void CapturedBankHandoffKeepsLiquidVariationReserveWhileWaitingForPlanning()
+        {
+            var body = new V3(-51.81, 31.08, 10.45);
+            var footing = new V3(-51.81, 30.98, 10.45);
+            // Ordinary walking still uses its unchanged buffer. Waiting at
+            // the captured handoff lost that buffer as the next wave rose.
+            Assert.False(BankExit.NeedsDeparture(body, footing, 30, false));
+            Assert.True(BankExit.NeedsDeparture(body, footing, 30, true));
+            Assert.False(BankExit.Recovered(body, footing, 30, .83));
+            var settledBody = new V3(-51.9, 31.01, 10.45);
+            var settledFooting = new V3(-51.9, 30.92, 10.45);
+            Assert.True(BankExit.NeedsDeparture(settledBody, settledFooting, 30.122, false));
+            var higherBody = body + new V3(0, .3, 0);
+            var higherFooting = footing + new V3(0, .3, 0);
+            Assert.True(BankExit.Recovered(higherBody, higherFooting, 30.122, .83));
+            Assert.False(BankExit.NeedsDeparture(higherBody, higherFooting, 30.122, true));
         }
 
         [Theory]
