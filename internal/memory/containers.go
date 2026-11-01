@@ -12,12 +12,14 @@ import (
 )
 
 type Containers struct {
-	Session *session.Session
-	Store   *home.Store
-	Logger  *slog.Logger
-	conn    *protocol.Hello
-	world   string
-	saved   map[string]*protocol.Container
+	Session     *session.Session
+	Store       *home.Store
+	Logger      *slog.Logger
+	conn        *protocol.Hello
+	world       string
+	saved       map[string]*protocol.Container
+	pickupConn  *protocol.Hello
+	pickupSaved map[uint64]bool
 }
 
 func (c *Containers) Run(ctx context.Context) {
@@ -34,6 +36,7 @@ func (c *Containers) Run(ctx context.Context) {
 	}
 }
 func (c *Containers) Tick() {
+	c.rememberPickups()
 	conn, world, perception, observed := c.Session.ContainerObservations()
 	if conn == nil {
 		return

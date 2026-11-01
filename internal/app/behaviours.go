@@ -49,7 +49,7 @@ func (a *App) BehaviourHandler() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 		switch request.Action {
-		case "idle-food":
+		case "idle-food", "idle-cargo":
 			if request.Marker == nil || request.Enabled == nil {
 				err = fmt.Errorf("idle food needs a marker and enabled flag")
 				break
@@ -68,6 +68,10 @@ func (a *App) BehaviourHandler() http.Handler {
 			// The same world/name maps to one definition even when kind changes.
 			name := fmt.Sprintf("idle food %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
 			definition := behaviour.MarkerFoodDefinition(m)
+			if request.Action == "idle-cargo" {
+				name = fmt.Sprintf("idle cargo %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
+				definition = behaviour.MarkerCargoDefinition(m)
+			}
 			definition.Enabled = *request.Enabled
 			var raw json.RawMessage
 			raw, err = json.Marshal(definition)

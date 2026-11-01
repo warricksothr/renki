@@ -63,6 +63,7 @@ type memory struct {
 	Harms      map[string][]Harm                         `json:"harms,omitempty"`
 	Waypoints  map[string]waypointWorld                  `json:"waypoints,omitempty"`
 	Players    map[string][]PlayerEncounter              `json:"players,omitempty"`
+	Pickups    map[string][]Pickup                       `json:"pickups,omitempty"`
 }
 
 // Store is what the controller remembers between runs, in one JSON file

@@ -160,6 +160,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Landmarks:  homes.Landmarks,
 		Waypoints:  homes.Waypoints,
 		Danger:     homes.DangerZones,
+		Pickups:    homes.Pickups,
 		Notify: func(ctx context.Context, line string) {
 			_, err := s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}, TimeoutS: 5})
 			if err != nil {
@@ -245,6 +246,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	landmarksDone := make(chan struct{})
 	dangerDone := make(chan struct{})
 	playersDone := make(chan struct{})
+	memoryDone := make(chan struct{})
 	atlasDone := make(chan struct{})
 	defer func() {
 		cancel()
@@ -252,6 +254,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 		<-landmarksDone
 		<-dangerDone
 		<-playersDone
+		<-memoryDone
 		<-atlasDone
 	}()
 	go func() {
@@ -269,7 +272,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Presence.Run(ctx)
 	go func() { defer close(playersDone); a.Players.Run(ctx) }()
 	go a.Behaviours.Run(ctx)
-	go a.Memory.Run(ctx)
+	go func() { defer close(memoryDone); a.Memory.Run(ctx) }()
 	go func() { defer close(dangerDone); a.Danger.Run(ctx) }()
 	go func() {
 		defer close(landmarksDone)

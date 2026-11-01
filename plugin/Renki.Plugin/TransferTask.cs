@@ -33,7 +33,8 @@ namespace Renki.Plugin
             this.args = args;
             this.chest = chest;
             withdraw = request.Task == TaskNames.Withdraw;
-            walker.SetGoal(Player.m_localPlayer.transform.position, chest.transform.position);
+            walker.SetGoal(Player.m_localPlayer.transform.position, chest.transform.position,
+                dryGround: args.MatchExisting, avoidHostiles: args.MatchExisting);
             walker.ResetStuck(Player.m_localPlayer.transform.position);
         }
 
@@ -81,6 +82,9 @@ namespace Renki.Plugin
             var pack = p.GetInventory();
             var source = withdraw ? chest.GetInventory() : pack;
             var destination = withdraw ? pack : chest.GetInventory();
+            if (args.MatchExisting && !Transfer.MatchesDestination(args.Items,
+                destination.GetAllItems().Where(item => item.m_stack > 0).Select(Prefab)))
+                return Finish(Outcome.Failed(Wire.ReasonRefused, "chest does not currently contain every requested material; nothing moved"));
             var result = Transfer.Run(args.Items, source.GetAllItems().ToArray(), Prefab,
                 item => item.m_stack, item => item.m_equipped,
                 (item, count) => Move(p, source, destination, item, count, withdraw));

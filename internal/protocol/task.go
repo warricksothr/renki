@@ -130,6 +130,9 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 	if err := args.validate(); err != nil {
 		return nil, fmt.Errorf("%w for %s: %v", ErrBadArgs, r.Task, err)
 	}
+	if transfer, ok := args.(*TransferArgs); ok && transfer.MatchExisting && r.Task != TaskDeposit {
+		return nil, fmt.Errorf("%w: matchExisting is deposit-only", ErrBadArgs)
+	}
 	return args, nil
 }
 
@@ -168,8 +171,9 @@ type TransferItem struct {
 
 // TransferArgs names exactly what may move between the pack and one chest.
 type TransferArgs struct {
-	Container string         `json:"container"`
-	Items     []TransferItem `json:"items"`
+	Container     string         `json:"container"`
+	Items         []TransferItem `json:"items"`
+	MatchExisting bool           `json:"matchExisting,omitempty"`
 }
 
 func (a *TransferArgs) validate() error {

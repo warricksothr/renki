@@ -1902,3 +1902,61 @@ The first south-meadow round trip also passed, in
 no observed injury and sheltered home-floor return[-36.24,36.09,7.05]. These
 are individual route passes; ten-return reliability and repeated pantry
 production remain separate live criteria.
+
+East-meadow trial `.checks/routes-20261101T183424910659Z` stopped with zero
+completed trips: native t-8 refused a hostile corridor beside the boss stones.
+Final in-world position[8.39,33.28,-4.5],62.8/62.8HP, no observed injury.
+The final search expanded4096 nodes and reported332 hostile-corridor and417
+body-cast refusals, including `BossStone_Bonemass(Clone)/stone`. The supervisor
+logged out and restored the panel. This is not a tutorial-bird diagnosis or a
+successful east route. Storage and south-meadow passes remain earned; ten
+returns and pantry production remain open. Benchmark PR #150 passed the full
+gate and committed review with no findings.
+
+### Pickup origins and idle cargo storage
+
+The local plugin observes actual positive pack gains inside ground pickup calls,
+including automatic and partially fitting pickups. `item_picked_up` carries the
+source position, prefab/count and optional entity. Chest withdrawals and generic
+inventory increases never create these observations. Fresh ingress pins world
+UID, connection and arrival time; the shared memory recorder persists at most256
+records per world for14 days, deduplicates retries and preserves original scope.
+`GET /api/memory/containers` includes `pickups` beside chest contents. Origins are
+inspection hints, not proof that a chest is assigned to an item.
+
+`marker_cargo` uses a normal30-second storage-marker idle trigger. It considers
+materials and trophies, keeps all food/gear/unknown item types, and respects
+per-prefab `keep` counts (the preset keeps10 Wood for fuel). It checks every
+unique currently seen storage chest inside the marker's area/floor, trying each
+once per material: known matching contents first, then recent pickup proximity,
+then other candidates. Missing IDs, tombstones and other floors cannot become
+storage. Failed/full/busy/wrong-content candidates preserve cargo and ultimately
+publish a storage-needed result. State, health, food, threat, injury, marker,
+six-minute work and command-ownership guards remain active during native tasks.
+
+Enable the existing home-storage marker after deployment/readiness with:
+
+```sh
+just vm panel POST /api/behaviours '{"action":"idle-cargo","marker":{"world":"DizzysHellheim","name":"home storage","kind":"storage"},"enabled":true}'
+```
+
+The preset uses a five-minute cooldown and at most100 runs per controller
+session. A saved `marker_cargo` definition can configure `keep` through the normal
+behaviour editor/API. Automatic conditional deposits require the advertised
+`deposit_match_existing_v1` feature. The native transfer opens the chest through
+normal ownership/access checks and moves nothing if the prefab is absent; empty
+or unrelated chests never become inferred destinations. Successful transfers
+still require matched native container receipts and a newer pack observation.
+
+`just check controller test-packages ./internal/session ./internal/home ./internal/memory ./internal/behaviour ./internal/app`
+covers pickup scope/dedup/persistence/retry, matching preference, origin ranking,
+protected cargo, refused candidate exhaustion and receipt verification.
+`just check plugin test-core TransferTests` covers current destination matching
+and deposit-only argument parsing. A native copper/coal stow and a new live ground
+pickup/restart proof remain required beyond these deterministic checks.
+
+`[Gameplay] SuppressTutorials = true` suppresses local tutorial raven spawns via
+`Raven.Spawn`; non-tutorial raven text is retained. It does not mark tutorials
+seen or change other players/server settings. Set false to restore normal
+spawning. Deploy/restart before the next join so no earlier tutorial bird remains
+in that scene.

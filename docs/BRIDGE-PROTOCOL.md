@@ -109,6 +109,11 @@ The plugin reports one of these `phase` values: `menu`, `connecting`,
 `capabilities` lists the tasks this plugin build implements. The controller must
 not send anything outside it.
 
+Optional `features` advertises argument semantics separately from task names.
+`deposit_match_existing_v1` permits the conditional deposit described below.
+A controller must refuse that option when the plugin omits this feature;
+older plugins can ignore unknown arguments, so sending it would be unsafe.
+
 ### `welcome` (controller → plugin)
 
 ```json
@@ -346,6 +351,7 @@ otherwise the ground under the head. For a `ping` it is the pinged point.
 | `died` | `by`, optional `pos`, attacker `prefab` |
 | `respawned` | `pos` |
 | `item_added` | `prefab`, `count` |
+| `item_picked_up` | `prefab`, actual positive `count`, ground `pos`, `world`/`worldUid`, optional source entity `by` |
 | `skill_raised` | `skill`, `level` |
 | `player_joined`, `player_left` | `name`, `playerId` |
 | `entered_biome` | `biome` |
@@ -555,6 +561,11 @@ Notes:
   after cancellation are consumed without opening a UI or moving items.
   Partial transfers report exact `moved` / `remaining` counts in `container`,
   followed by failure explaining missing/equipped items, weight or space.
+  Deposit-only `matchExisting:true` opens and observes the current chest, then
+  moves nothing unless every requested prefab already has positive stock in
+  it. Missing matches return `refused` after the read-only contents snapshot.
+  This is an atomic destination check under normal ownership, not authority
+  from remembered contents. It also uses dry, hostile-avoiding travel.
 - `move_to` and `pickup` arrive within `stopDistance` across the ground and
   within 1.75 m up or down, so a bot under a raised floor has not reached a
   point on it. When the navmesh reaches only part of the way, the walker's

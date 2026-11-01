@@ -35,7 +35,7 @@ namespace Renki.Protocol
             ReasonStopped = "stopped", ReasonDied = "died", ReasonRefused = "refused";
 
         public const string EventDamaged = "damaged", EventDied = "died", EventRespawned = "respawned",
-            EventItemAdded = "item_added", EventSkillRaised = "skill_raised", EventPlayerJoined = "player_joined",
+            EventItemAdded = "item_added", EventItemPickedUp = "item_picked_up", EventSkillRaised = "skill_raised", EventPlayerJoined = "player_joined",
             EventPlayerLeft = "player_left", EventEnteredBiome = "entered_biome", EventLowHealth = "low_health";
 
         public const string PerceivedPlayer = "player", PerceivedCreature = "creature", PerceivedTamed = "tamed";
@@ -78,6 +78,7 @@ namespace Renki.Protocol
         [JsonProperty("character")] public string Character = "";
         [JsonProperty("world")] public string World = "";
         [JsonProperty("capabilities")] public List<string> Capabilities = new List<string>();
+        [JsonProperty("features", NullValueHandling = NullValueHandling.Ignore)] public List<string> Features;
     }
 
     public sealed class Rates
@@ -404,6 +405,8 @@ namespace Renki.Protocol
     public sealed class Event : Message
     {
         public override string MessageType => Wire.Event;
+        [JsonProperty("world", NullValueHandling = NullValueHandling.Ignore)] public string World;
+        [JsonProperty("worldUid", NullValueHandling = NullValueHandling.Ignore)] public string WorldUid;
         [JsonProperty("event")] public string Name = "";
         [JsonProperty("by", NullValueHandling = NullValueHandling.Ignore)] public string By;
         [JsonProperty("amount", NullValueHandling = NullValueHandling.Ignore)] public double? Amount;

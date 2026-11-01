@@ -13,6 +13,7 @@ type ContainerMemoryEntry struct {
 type ContainerMemoryStatus struct {
 	World      string                 `json:"world"`
 	Containers []ContainerMemoryEntry `json:"containers"`
+	Pickups    []home.Pickup          `json:"pickups"`
 }
 
 func (a *App) ContainerMemory() any {
@@ -22,6 +23,7 @@ func (a *App) ContainerMemory() any {
 		return out
 	}
 	out.World = state.World
+	out.Pickups = a.Memory.Store.Pickups(out.World)
 	now := time.Now()
 	for _, c := range a.Memory.Store.RememberedContainers(out.World) {
 		out.Containers = append(out.Containers, ContainerMemoryEntry{c, now.Sub(c.At).Seconds()})

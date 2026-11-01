@@ -204,6 +204,7 @@ namespace Renki.Protocol
     {
         public string Container;
         public TransferItem[] Items;
+        public bool MatchExisting;
     }
 
     public static class TaskArgs
@@ -239,7 +240,9 @@ namespace Renki.Protocol
                             else throw new BadArgsException("count must be a positive integer or all");
                             parsed.Add(new TransferItem { Prefab = prefab, Count = count });
                         }
-                        return new TransferArgs { Container = container, Items = parsed.ToArray() };
+                        var matchExisting = Bool(a, "matchExisting", false);
+                        if (matchExisting && req.Task != TaskNames.Deposit) throw new BadArgsException("matchExisting is deposit-only");
+                        return new TransferArgs { Container = container, Items = parsed.ToArray(), MatchExisting = matchExisting };
                     }
                 case TaskNames.MoveTo:
                     if (Bool(a, "defendThreats", false) && !Bool(a, "recoverThreats", false))

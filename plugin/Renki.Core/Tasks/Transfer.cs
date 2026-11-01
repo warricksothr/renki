@@ -15,6 +15,12 @@ namespace Renki.Tasks
     /// The adapter must return only what the game actually transferred.</summary>
     public static class Transfer
     {
+        public static bool MatchesDestination(IReadOnlyList<TransferItem> requests, IEnumerable<string> contents)
+        {
+            var present = new HashSet<string>(contents, StringComparer.Ordinal);
+            return requests.All(item => present.Contains(item.Prefab));
+        }
+
         public static TransferResult Run<T>(IReadOnlyList<TransferItem> requests, IReadOnlyList<T> source,
             Func<T, string> prefab, Func<T, int> count, Func<T, bool> protect, Func<T, int, int> move)
         {
