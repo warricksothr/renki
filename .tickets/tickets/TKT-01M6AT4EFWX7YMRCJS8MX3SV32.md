@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T09:56:10Z
+updated_at: 2026-11-01T10:17:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -126,3 +126,11 @@ Changed-policy return .checks/recovery-20261101T073423Z failed without injury af
 Reviewed d5e74f6 passed just check ci (.checks/20261101T073806Z-VxuFrP.log) and committed just check review 4337eb4..HEAD (.checks/20261101T074045Z-twhKvO.log), then was pushed and checksum-verified on BLIGHT. Supervised return .checks/recovery-20261101T074138Z failed without observed injury. Audit .checks/audit-window-OFT5N7.jsonl shows endpoint_support rejection during planning, then water rose from 30m to 30.89m and bank recovery reached distance_limit (the original 3m aggregate bound). This is distinct from the earlier handoff timeout. Native camera .checks/camera-20261101T074237541679Z.jpg shows steep terrain below the raised deck, not an interior doorway or portal.
 
 Tas is offline; the controller-only panel has restarted. No unchanged retry. Next investigate support-ray refusal normals/heights and preserve unfinished local-search diagnostics when bank recovery interrupts it; use those measurements to choose a checked approach/staging route, without extending limits or lowering clearances. Pantry and native portal-trigger criteria remain open. This result supersedes the pending native-test statement in the previous note.
+
+**agent:codex/renki-milestones** at 2026-11-01T10:17:35Z
+
+Diagnostics/benchmark 00d8161 passed full just check ci and committed review, was pushed and checksum-deployed. Instrumented return .checks/recovery-20261101T100938Z failed without observed injury; audit .checks/audit-window-hS4MYw.jsonl. Direct endpoint refusal is confirmed slope: terrain normal Y 0.76 near [-50.65,31.56,8.77], below unchanged 0.8 walking limit. Local search remained Searching at 3353 expansions / 26824 probes after 16.02 seconds and had explored supported ground beyond the bank. No repeated route benchmark has been earned.
+
+Implementing a bounded checked staging handoff: after 2s near the shore, only expanded local-search nodes with checked incoming edges, >=3m displacement, >=1m progress toward the original goal, <=12m path cost and >=2m current-water clearance can offer a staging leg. Fresh destination-water and ordinary live body/support/portal/hostile checks remain. At most two such legs per goal across replans; no bank/task deadline or probe allowance is reset. Synthetic captured-start/contour tests distinguish staging from real arrival and missing support from geometric eligibility. The 2m destination preference accounts for observed 0.89m wave variation plus ordinary walking buffer/headroom; it is not a general water-policy relaxation. Next native run follows completed CI/review, not an unchanged retry.
+
+Also fixing route-evidence relative paths at the just module boundary with an actual-recipe regression, and requiring 95% HP for benchmark keep-online after at most 90s safe-home healing. Tas is offline with controller-only panel running.

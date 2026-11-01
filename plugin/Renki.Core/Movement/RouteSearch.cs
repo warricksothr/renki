@@ -23,6 +23,7 @@ namespace Renki.Movement
         public RouteStatus Status => BuildingGuidance ? RouteStatus.Searching : route.Status;
         public IReadOnlyList<V3> Path => route.Path;
         public bool ProgressLeg => route.ProgressLeg;
+        public IReadOnlyList<V3> StagingPath => route.StagingPath;
 
         public RouteSearch(Func<ThreatGuidance, LocalRoute> create, Func<ThreatGuidance> guidance, bool preferGuidance = false)
         {

@@ -36,7 +36,8 @@ def project(audit, limit=12):
         counts[frame.get('msg', '')] += 1
         record = dict(at=row.get('at'), task=frame.get('task'), message=frame.get('msg'))
         record.update({k: data[k] for k in ('pos', 'from', 'reason', 'failure', 'checking', 'checkingFrom',
-                       'searchStatus', 'expanded', 'probes', 'elapsedS', 'supportQuery', 'failures', 'planning') if k in data})
+                       'searchStatus', 'expanded', 'probes', 'elapsedS', 'supportQuery', 'failures', 'planning',
+                       'stagingLegs', 'progressLeg', 'end') if k in data})
         if 'supportQuery' in record: record['supportQuery'] = query(record['supportQuery'])
         if 'failures' in record: record['failures'] = failures(record['failures'])
         if record.get('planning'):
@@ -51,6 +52,8 @@ def main():
     parser.add_argument('audit', type=Path)
     parser.add_argument('--limit', type=int, choices=range(1, 25), default=6)
     args = parser.parse_args()
+    if not args.audit.is_absolute():
+        args.audit = Path(__file__).resolve().parents[2] / args.audit
     with args.audit.open(encoding='utf-8-sig') as stream:
         result = project(stream, args.limit)
     print(json.dumps(result, indent=2))

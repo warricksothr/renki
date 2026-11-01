@@ -17,6 +17,7 @@ spec.loader.exec_module(food)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('world', help='exact known world name; native login must match')
+    parser.add_argument('--capture', action='store_true', help='retain one available camera checkpoint during native recovery; never change capture settings')
     profiles = parser.add_mutually_exclusive_group()
     profiles.add_argument('--nearby', action='store_true', help='explicit 30m home-radius/60m travel/90s return, at least40HP/80%, two food slots and8m threat clearance')
     profiles.add_argument('--work-trip', action='store_true', help='explicit outer-trip return with stronger admission reserves and capped 200m/400m/240s limits')
@@ -27,6 +28,7 @@ def main():
                   profile='work_trip' if args.work_trip else 'nearby' if args.nearby else 'local',
                   startedAt=datetime.datetime.now(datetime.timezone.utc).isoformat())
     launch, owns, previous = None, False, None
+    capture_attempted = False
     log = (folder / 'commands.log').open('a')
 
     def call(*args, decode=True):
@@ -69,6 +71,12 @@ def main():
                 raise RuntimeError('recovery scope or body ownership changed')
             previous = status
             result['last'] = status
+            if args.capture and not capture_attempted and 'recovering' in status.get('flags', []):
+                capture_attempted = True
+                try:
+                    result['cameraCheckpoint'] = call('camera', decode=False).strip()
+                except Exception as exc:
+                    result['cameraError'] = str(exc)
             if 'recovering' not in status.get('flags', []):
                 mapped = call('panel', 'GET', '/api/map')
                 (folder / 'map.json').write_text(json.dumps(mapped))

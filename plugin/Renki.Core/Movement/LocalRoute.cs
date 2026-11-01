@@ -35,6 +35,8 @@ namespace Renki.Movement
         readonly double initialEstimate;
         readonly Func<V3, double> guidance;
         readonly Func<V3, V3, V3?> probe;
+        readonly Func<V3, bool> stagingEligible;
+        Node staging;
         readonly int maxNodes;
         readonly double maxCost;
         readonly Dictionary<(int, int, int, int), double> costs = new Dictionary<(int, int, int, int), double>();
@@ -51,11 +53,14 @@ namespace Renki.Movement
         public bool NodeLimitReached => Status == RouteStatus.NoRoute && Expanded >= maxNodes;
         /// <summary>A found path is only a checked leg, not arrival at the destination.</summary>
         public bool ProgressLeg { get; }
+        // Only expanded nodes, reached by checked edges, can offer staging.
+        // This is not a path to the real goal and never changes Status.
+        public IReadOnlyList<V3> StagingPath => staging == null ? null : PathTo(staging, staging.Pos);
 
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
             bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
             double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level,
-            Func<V3, double> guidance = null)
+            Func<V3, double> guidance = null, Func<V3, bool> stagingEligible = null)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
@@ -67,6 +72,7 @@ namespace Renki.Movement
             this.arrivalLevel = arrivalLevel;
             this.maxNodes = maxNodes; this.maxCost = maxCost;
             this.guidance = guidance;
+            this.stagingEligible = stagingEligible;
             initialEstimate = Remaining(start);
             // Keep taking checked approach legs until the destination is
             // within the local horizon. Starting a full floor/entrance search
@@ -84,6 +90,10 @@ namespace Renki.Movement
                 open.Remove(node);
                 if (costs[Key(node)] < node.Cost) { i--; continue; }
                 Expanded++;
+                if (stagingEligible != null && node.Cost <= DryStaging.MaximumCost &&
+                    V3.FlatDistance(start, node.Pos) >= DryStaging.MinimumDistance &&
+                    V3.FlatDistance(start, goal) - V3.FlatDistance(node.Pos, goal) >= DryStaging.MinimumProgress &&
+                    (staging == null || node.Remaining < staging.Remaining) && stagingEligible(node.Pos)) staging = node;
                 if (Arrival.Reached(node.Pos, goal, within, arrivalLevel))
                 {
                     Complete(node, node.Pos);
@@ -147,11 +157,16 @@ namespace Renki.Movement
 
         void Complete(Node node, V3 at)
         {
+            Path = PathTo(node, at);
+            Status = RouteStatus.Found;
+        }
+
+        static IReadOnlyList<V3> PathTo(Node node, V3 at)
+        {
             var path = new List<V3> { at };
             for (var p = node; p != null; p = p.Parent) path.Add(p.Pos);
             path.Reverse();
-            Path = path;
-            Status = RouteStatus.Found;
+            return path;
         }
 
         void Add(Node node)

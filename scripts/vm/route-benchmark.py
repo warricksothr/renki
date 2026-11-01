@@ -139,7 +139,14 @@ class Benchmark:
         if self.owned and not self.yielded:
             try:
                 state = self.observe(check_safety=False)
+                recover_until = self.clock() + 90
+                while (keep_online and self.result['outcome'] == 'passed' and
+                       self.at_home(state, self.call('panel', 'GET', '/api/map')) and
+                       state['hp'] < state['hpMax'] * .95 and self.clock() < recover_until):
+                    self.pause(1)
+                    state = self.observe()
                 remain = bool(keep_online and self.result['outcome'] == 'passed' and
+                              state['hp'] >= state['hpMax'] * .95 and
                               self.at_home(state, self.call('panel', 'GET', '/api/map')))
                 if not remain:
                     self.call('panel', 'POST', '/api/act/logout', '{}')

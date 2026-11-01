@@ -36,6 +36,7 @@ namespace Renki.Plugin
         readonly WorldNavigation.PlanningProbe dryProbe;
         readonly WorldNavigation.PlanningProbe bankProbe;
         BankExit bankExit = new BankExit();
+        DryStaging dryStaging = new DryStaging();
         bool bankMoving;
         public Walker()
         {
@@ -151,6 +152,7 @@ namespace Renki.Plugin
         {
             checkedOnly = false;
             bankExit = new BankExit(); bankMoving = false;
+            dryStaging = new DryStaging();
             preferGuidance = false;
             approach.Reset();
             refusals.Clear();
@@ -525,6 +527,7 @@ namespace Renki.Plugin
                             ["lookahead"] = clearance,
                             ["failure"] = dryProbe.LastFailure?.Stage,
                             ["supportHeights"] = dryProbe.LastFailure?.SupportHeights,
+                            ["supportQuery"] = dryProbe.LastFailure?.SupportQuery,
                             ["collider"] = dryProbe.LastFailure?.Collider,
                         });
                     }
@@ -808,7 +811,9 @@ namespace Renki.Plugin
             localGuidanceMs = 0;
             localRoute = new RouteSearch(guidance => new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
                 progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel,
-                guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null), Guidance, preferGuidance);
+                guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null,
+                stagingEligible: dryGround && avoidHostiles && dryStaging.Available
+                    ? (System.Func<V3, bool>)(at => DryTravel.Clear(at, WorldNavigation.WaterLevel(at), DryStaging.WaterMargin)) : null), Guidance, preferGuidance);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
@@ -869,12 +874,19 @@ namespace Renki.Plugin
             // entrance search after only half its permitted nodes. Frame
             // work, node count and the enclosing task timeout remain bounded.
             if (localRoute.Guidance?.Active == true) preferGuidance = true;
-            if (localRoute.Status == RouteStatus.Searching && elapsed < 16 * localRoute.BudgetStages) return true;
+            IReadOnlyList<V3> stagingPath = null;
+            if (dryGround && avoidHostiles && dryStaging.Available && elapsed >= DryStaging.WaitSeconds &&
+                localRoute.Status == RouteStatus.Searching && localRoute.StagingPath is IReadOnlyList<V3> candidate &&
+                DryTravel.Clear(candidate[candidate.Count - 1], WorldNavigation.WaterLevel(candidate[candidate.Count - 1]), DryStaging.WaterMargin) &&
+                dryStaging.Take(elapsed, !DryTravel.Clear(Convert.ToV3(pos), WorldNavigation.WaterLevel(Convert.ToV3(pos)), DryStaging.WaterMargin), candidate))
+                stagingPath = candidate;
+            if (stagingPath == null && localRoute.Status == RouteStatus.Searching && elapsed < 16 * localRoute.BudgetStages) return true;
             // Even an enclosed start may exhaust the local search before
             // the navmesh's asynchronous tile request has had one retry.
             if (localRoute.Status == RouteStatus.NoRoute && elapsed < 1.25f) return true;
-            var found = localRoute.Status == RouteStatus.Found;
-            Tracer.Emit("walker", found ? "local route found" : "no safe local route", new Dictionary<string, object>
+            var found = localRoute.Status == RouteStatus.Found || stagingPath != null;
+            var selectedPath = stagingPath ?? localRoute.Path;
+            Tracer.Emit("walker", stagingPath != null ? "following checked dry staging leg" : found ? "local route found" : "no safe local route", new Dictionary<string, object>
             {
                 ["from"] = Convert.ToArray(pos),
                 ["to"] = Convert.ToArray(goal),
@@ -908,14 +920,15 @@ namespace Renki.Plugin
                 ["elapsedS"] = System.Math.Round(elapsed, 2),
                 ["ms"] = System.Math.Round(localMs, 2),
                 ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),
-                ["waypoints"] = found ? localRoute.Path.Count : 0,
-                ["progressLeg"] = localRoute.ProgressLeg,
-                ["end"] = found ? localRoute.Path[localRoute.Path.Count - 1].ToArray() : null,
-                ["start"] = found ? localRoute.Path.Take(4).Select(p => p.ToArray()).ToArray() : null,
+                ["waypoints"] = found ? selectedPath.Count : 0,
+                ["progressLeg"] = localRoute.ProgressLeg || stagingPath != null,
+                ["stagingLegs"] = dryStaging.Used,
+                ["end"] = found ? selectedPath[selectedPath.Count - 1].ToArray() : null,
+                ["start"] = found ? selectedPath.Take(4).Select(p => p.ToArray()).ToArray() : null,
             });
             if (found)
             {
-                path.Set(localRoute.Path);
+                path.Set(selectedPath);
                 path.Reach = .15;
                 path.Level = .6;
                 OffLevel = false;

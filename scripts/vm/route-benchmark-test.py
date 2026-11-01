@@ -6,6 +6,8 @@ import io
 import json
 from pathlib import Path
 import unittest
+import subprocess
+import tempfile
 
 
 def load(name, file):
@@ -26,7 +28,7 @@ class Native:
         self.state = dict(connected=True, phase='in_world', world='one', connection=2, character='Tas',
                           pos=HOME, hp=65, hpMax=65, injurySeq=0, flags=['grounded', 'in_shelter'],
                           location=dict(inWater=False), home=dict(world='one', pos=HOME),
-                          food=dict(active=[dict(remainingS=600)]))
+                          food=dict(active=[dict(prefab='Mushroom', remainingS=600)]))
         self.calls, self.saved = [], {}
         self.tasks, self.seq = 0, 10
         self.receipt, self.target = None, None
@@ -144,6 +146,43 @@ class Routes(unittest.TestCase):
             native = Native()
             with self.assertRaises(RuntimeError): native.trial().run(names, cycles, 30)
             self.assertEqual(native.calls, [])
+
+    def test_keep_online_requires_near_full_health_after_bounded_recovery(self):
+        native = Native()
+        trial = native.trial()
+        trial.run(['east'], 1, 30)
+        native.state['hpMax'] = 70
+        trial.finish(True)
+        self.assertFalse(trial.result['keptOnline'])
+        self.assertEqual(native.now, 90)
+        self.assertIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
+
+    def test_recovery_can_heal_but_a_new_command_revokes_cleanup(self):
+        for command in (False, True):
+            with self.subTest(command=command):
+                native = Native()
+                trial = native.trial()
+                trial.run(['east'], 1, 30)
+                native.state['hpMax'] = 70
+                def pause(_):
+                    native.now += 1
+                    native.state.update(dict(task=dict(id='owner-order')) if command else dict(hp=67))
+                trial.pause = pause
+                trial.finish(True)
+                self.assertEqual(trial.result['keptOnline'], not command)
+                self.assertEqual(trial.yielded, command)
+                self.assertNotIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
+
+    def test_route_evidence_recipe_resolves_paths_from_repository_root(self):
+        # Run the actual recipe: its module has a different working directory.
+        (benchmark.ROOT / '.checks').mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=benchmark.ROOT / '.checks') as name:
+            audit = Path(name) / 'sample.jsonl'
+            audit.write_text('{}\n')
+            result = subprocess.run(['just', 'vm', 'route-evidence', str(audit.relative_to(benchmark.ROOT))],
+                                    cwd=benchmark.ROOT, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)['recent'], [])
 
     def test_a_return_on_the_wrong_floor_does_not_count_a_trip(self):
         native = Native()

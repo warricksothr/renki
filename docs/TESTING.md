@@ -1678,3 +1678,40 @@ Ten native returns, multiple weather/approach conditions and repeated pantry
 production remain field criteria. Synthetic supervisor success does not earn
 them. First recover the existing shore position using the instrumented
 one-shot supervisor; do not launch this benchmark from underneath the deck.
+
+The instrumented `00d8161` return
+`.checks/recovery-20261101T100938Z` failed without injury. Its retained audit
+`.checks/audit-window-hS4MYw.jsonl` identifies the direct-leg rejection as
+`slope`: a single terrain contact near[-50.65,31.56,8.77] has normal Y0.76,
+below the unchanged0.8 walking requirement. Local search was still
+`Searching` after3353 expansions/26824 probes when its16-second stage ended;
+it had reached measured support beyond the initial bank. This establishes
+why the direct hint failed and why standing still for a complete raised-floor
+solution is unhelpful; it does not prove a complete home route.
+
+Dry hostile-avoiding local searches can now offer a short staging leg after
+two seconds near the shore. Only expanded nodes reached through checked edges
+qualify: at least3m displacement,1m horizontal progress toward the real goal,
+at most12m path cost and2m current-water clearance at the destination. The
+last requirement leaves headroom beyond the observed0.89m wave variation and
+ordinary0.8m walking buffer; it is not a forecast that all waves are bounded.
+Destination water is rechecked at selection, and ordinary live support/body/
+portal/hostile checks still authorize each step. Missing support and a
+geometric goal hint cannot manufacture a staging path.
+
+At most two staging legs are admitted per Walker goal across replans. They
+are explicitly approach legs, not home arrival, successful work or a new
+bank/task budget. The original goal remains; at the leg's end the walker
+replans toward it. `just check plugin test-core DryStagingTests` uses the
+captured start with an explicitly synthetic steep face and dry contour; it
+also checks missing support, opt-in behavior and non-renewing admission.
+Native traversal remains to be earned. A benchmark retained online after
+success additionally needs95% health, with at most90s of observed safe-home
+healing before logout; a player command during that wait revokes cleanup.
+
+`just check vm recover-home DizzysHellheim --nearby --capture` additionally
+requests one read-only camera checkpoint while native recovery owns the body.
+The image/metadata stay in `.checks/`; the summary retains their paths or a
+bounded capture error. Capture failure does not grant movement or alter the
+return result, and the supervisor never changes the configured capture rate.
+This avoids relying on a manual image request after a failed native logout.

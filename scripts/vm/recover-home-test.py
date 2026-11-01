@@ -21,7 +21,7 @@ OUTSIDE = HEALTHY | dict(hp=53, pos=[40, 30, 0], flags=['recovering'])
 
 
 class RecoverySupervisorTests(unittest.TestCase):
-    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False):
+    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False, capture=False):
         calls = []
         snapshots = iter(snapshots)
 
@@ -46,7 +46,7 @@ class RecoverySupervisorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp, patch.object(recovery, 'ROOT', Path(temp)), \
                 patch.object(recovery.subprocess, 'run', side_effect=request), \
                 patch.object(recovery.subprocess, 'Popen', return_value=launch), \
-                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else ['--nearby'] if nearby else [])), \
+                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else ['--nearby'] if nearby else []) + (['--capture'] if capture else [])), \
                 contextlib.redirect_stdout(io.StringIO()):
             code = recovery.main()
             summary = json.loads(next(Path(temp).glob('.checks/recovery-*/summary.json')).read_text())
@@ -66,6 +66,12 @@ class RecoverySupervisorTests(unittest.TestCase):
         self.assertIn(['recovery-return', 'arm', 'one', 'work_trip'], calls)
         self.assertIn(['recovery-return', 'clear'], calls)
         self.assertFalse(any(c[0] in ('task', 'task-check') for c in calls))
+
+    def test_optional_camera_checkpoint_is_read_once_without_config_or_body_changes(self):
+        code, result, calls = self.run_trial([dict(connected=False), OUTSIDE, OUTSIDE, HEALTHY], capture=True)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(calls.count(['camera']), 1)
+        self.assertFalse(any(c[0] in ('camera-rate', 'camera-config', 'task') for c in calls))
 
     def test_just_launcher_accepts_nearby_without_contacting_a_vm(self):
         with tempfile.TemporaryDirectory() as temp:
