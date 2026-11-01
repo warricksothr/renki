@@ -157,7 +157,16 @@ namespace Renki.Plugin
             // AI targets are local to the peer simulating the creature.
             // Remote attackers are also recognized from damage events by
             // the controller; absence of this flag does not mean safety.
-            if (ai != null && ai.GetTargetCreature() == me) pc.TargetingMe = true;
+            if (ai != null && c.m_nview != null && c.m_nview.IsValid())
+            {
+                pc.TargetingKnown = c.m_nview.IsOwner();
+                if (pc.TargetingKnown == true)
+                {
+                    if (ai.GetTargetCreature() == me) pc.TargetingMe = true;
+                    pc.HuntingPlayers = ai.HuntPlayer();
+                }
+                if (ai is MonsterAI monster) pc.EventCreature = monster.IsEventCreature();
+            }
             return pc;
         }
 

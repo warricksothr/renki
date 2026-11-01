@@ -259,7 +259,7 @@ func TestStopFactoryCreatedGoalStopsTheActualOwningBehaviour(t *testing.T) {
 	if _, err := a.Home.SetHome(protocol.Vec3{}, "test"); err != nil {
 		t.Fatal(err)
 	}
-	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 110}, World: "one", Phase: protocol.PhaseInWorld, HP: 80, HPMax: 80, WeightMax: 300, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Mushroom", RemainingS: 1000}}}})
+	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 110}, World: "one", Phase: protocol.PhaseInWorld, HP: 80, HPMax: 80, WeightMax: 300, WorldEvents: &protocol.WorldEventStatus{}, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Mushroom", RemainingS: 1000}}}})
 	p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Mushroom", Stack: 3}}})
 	p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 110}, Structures: []protocol.PerceivedStructure{{ID: "box", Kind: protocol.StructureContainer, Pos: protocol.Vec3{1, 0, 0}}}})
 	until := time.Now().Add(time.Second)

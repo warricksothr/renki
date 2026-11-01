@@ -178,34 +178,35 @@ type State struct {
 	CaptureProof  *CaptureProof `json:"captureProof,omitempty"`
 	SharePosition *bool         `json:"sharePosition,omitempty"`
 	Envelope
-	Phase      string            `json:"phase"`
-	Character  string            `json:"character"`
-	World      string            `json:"world"`
-	WorldUID   string            `json:"worldUid,omitempty"`
-	Pos        Vec3              `json:"pos"`
-	Yaw        float64           `json:"yaw"`
-	Vel        Vec3              `json:"vel"`
-	HP         float64           `json:"hp"`
-	HPMax      float64           `json:"hpMax"`
-	PVP        *bool             `json:"pvp,omitempty"`
-	Food       *FoodStatus       `json:"food,omitempty"`
-	Combat     *CombatStatus     `json:"combat,omitempty"`
-	Journey    *JourneyStatus    `json:"journey,omitempty"`
-	Escort     *EscortStatus     `json:"escort,omitempty"`
-	Stamina    float64           `json:"stamina"`
-	StaminaMax float64           `json:"staminaMax"`
-	Eitr       float64           `json:"eitr"`
-	EitrMax    float64           `json:"eitrMax"`
-	Flags      []string          `json:"flags"`
-	Biome      string            `json:"biome"`
-	Location   *Location         `json:"location,omitempty"`
-	Env        string            `json:"env"`
-	Time       GameTime          `json:"time"`
-	Equipped   map[string]string `json:"equipped"`
-	Effects    []string          `json:"effects"`
-	Weight     float64           `json:"weight"`
-	WeightMax  float64           `json:"weightMax"`
-	Task       *TaskRef          `json:"task,omitempty"`
+	Phase       string            `json:"phase"`
+	Character   string            `json:"character"`
+	World       string            `json:"world"`
+	WorldUID    string            `json:"worldUid,omitempty"`
+	Pos         Vec3              `json:"pos"`
+	Yaw         float64           `json:"yaw"`
+	Vel         Vec3              `json:"vel"`
+	HP          float64           `json:"hp"`
+	HPMax       float64           `json:"hpMax"`
+	PVP         *bool             `json:"pvp,omitempty"`
+	WorldEvents *WorldEventStatus `json:"worldEvents,omitempty"`
+	Food        *FoodStatus       `json:"food,omitempty"`
+	Combat      *CombatStatus     `json:"combat,omitempty"`
+	Journey     *JourneyStatus    `json:"journey,omitempty"`
+	Escort      *EscortStatus     `json:"escort,omitempty"`
+	Stamina     float64           `json:"stamina"`
+	StaminaMax  float64           `json:"staminaMax"`
+	Eitr        float64           `json:"eitr"`
+	EitrMax     float64           `json:"eitrMax"`
+	Flags       []string          `json:"flags"`
+	Biome       string            `json:"biome"`
+	Location    *Location         `json:"location,omitempty"`
+	Env         string            `json:"env"`
+	Time        GameTime          `json:"time"`
+	Equipped    map[string]string `json:"equipped"`
+	Effects     []string          `json:"effects"`
+	Weight      float64           `json:"weight"`
+	WeightMax   float64           `json:"weightMax"`
+	Task        *TaskRef          `json:"task,omitempty"`
 }
 
 func (*State) MessageType() string { return TypeState }
@@ -280,16 +281,19 @@ func (*Perception) MessageType() string { return TypePerception }
 
 // PerceivedCharacter is a player, creature or tamed creature in range.
 type PerceivedCharacter struct {
-	ID          string  `json:"id"`
-	Kind        string  `json:"kind"`
-	Name        string  `json:"name,omitempty"`
-	Prefab      string  `json:"prefab,omitempty"`
-	Pos         Vec3    `json:"pos"`
-	HPFrac      float64 `json:"hpFrac"`
-	PVP         *bool   `json:"pvp,omitempty"`
-	Stars       int     `json:"stars,omitempty"`
-	Hostile     bool    `json:"hostile,omitempty"`
-	TargetingMe bool    `json:"targetingMe,omitempty"`
+	ID             string  `json:"id"`
+	Kind           string  `json:"kind"`
+	Name           string  `json:"name,omitempty"`
+	Prefab         string  `json:"prefab,omitempty"`
+	Pos            Vec3    `json:"pos"`
+	HPFrac         float64 `json:"hpFrac"`
+	PVP            *bool   `json:"pvp,omitempty"`
+	Stars          int     `json:"stars,omitempty"`
+	Hostile        bool    `json:"hostile,omitempty"`
+	TargetingMe    bool    `json:"targetingMe,omitempty"`
+	TargetingKnown *bool   `json:"targetingKnown,omitempty"`
+	EventCreature  *bool   `json:"eventCreature,omitempty"`
+	HuntingPlayers *bool   `json:"huntingPlayers,omitempty"`
 }
 
 // Perceived kinds (6.2).

@@ -9,17 +9,18 @@ import (
 )
 
 type MapSnapshot struct {
-	WorldUID   string                     `json:"worldUid,omitempty"`
-	WorldKey   string                     `json:"worldKey,omitempty"`
-	Danger     []home.DangerZone          `json:"danger"`
-	World      string                     `json:"world"`
-	Connection uint64                     `json:"connection"`
-	Tiles      []protocol.TerrainTile     `json:"tiles"`
-	Containers []home.RememberedContainer `json:"containers"`
-	Landmarks  []home.Landmark            `json:"landmarks"`
-	Waypoints  []home.Waypoint            `json:"waypoints"`
-	Perception *protocol.Perception       `json:"perception,omitempty"`
-	Walls      []protocol.Wall            `json:"walls"`
+	WorldEvents *protocol.WorldEventStatus `json:"worldEvents,omitempty"`
+	WorldUID    string                     `json:"worldUid,omitempty"`
+	WorldKey    string                     `json:"worldKey,omitempty"`
+	Danger      []home.DangerZone          `json:"danger"`
+	World       string                     `json:"world"`
+	Connection  uint64                     `json:"connection"`
+	Tiles       []protocol.TerrainTile     `json:"tiles"`
+	Containers  []home.RememberedContainer `json:"containers"`
+	Landmarks   []home.Landmark            `json:"landmarks"`
+	Waypoints   []home.Waypoint            `json:"waypoints"`
+	Perception  *protocol.Perception       `json:"perception,omitempty"`
+	Walls       []protocol.Wall            `json:"walls"`
 }
 
 func (a *App) MapSnapshot() any {
@@ -32,6 +33,7 @@ func (a *App) MapSnapshot() any {
 		out.WorldKey = atlas.Key(*scope)
 	}
 	out.Perception, out.Walls = a.Session.MapObjects(world, conn)
+	out.WorldEvents = a.Session.WorldEvents(world, conn, time.Now())
 	if world != "" {
 		out.Danger = a.Memory.Store.DangerZones(world, time.Now())
 		out.Waypoints = a.Memory.Store.Waypoints(world)

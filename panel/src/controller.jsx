@@ -2,6 +2,7 @@ import { render as renderComponent } from "preact";
 import { TimelineRecord } from "./timeline.jsx";
 import { publishStatus } from "./status.js";
 import { subscribeEvents } from "./events.js";
+import { areaEvent, eventDetails } from "./world-events.js";
 
 // Compatibility adapter for the established panel controls and the single map
 // renderer. Only start after Preact has synchronously mounted the workspace.
@@ -32,6 +33,8 @@ export function startController() {
     tiles: new Map(),
     landmarks: [],
     danger: [],
+    worldEvents: null,
+    worldEventsAt: 0,
     waypoints: [],
     containers: new Map(),
   };
@@ -82,6 +85,8 @@ export function startController() {
       tiles: new Map(),
       landmarks: [],
       danger: [],
+      worldEvents: null,
+      worldEventsAt: 0,
       waypoints: [],
       containers: new Map(),
     });
@@ -258,6 +263,8 @@ export function startController() {
         world.tiles = RenkiTerrain.merge(data.tiles || [], saved);
         world.landmarks = data.landmarks || [];
         world.danger = data.danger || [];
+        world.worldEvents = data.worldEvents || null;
+        world.worldEventsAt = Date.now();
         world.waypoints = data.waypoints || [];
         syncPlaceList();
         world.containers = new Map(
@@ -742,6 +749,8 @@ export function startController() {
     if (active) {
       world.bot = s.pos || world.bot;
       world.yaw = s.yaw || 0;
+      world.worldEvents = s.worldEvents || null;
+      world.worldEventsAt = Date.now();
     }
     if (Date.now() - atlasListFetchedAt > 30000) loadAtlasWorlds();
     if (Date.now() - mapFetchedAt > 5000) loadMap();
@@ -863,6 +872,14 @@ export function startController() {
   const colour = (name) => css.getPropertyValue("--" + name).trim();
   let pending = false;
 
+  function currentWorldEvents() {
+    return !selectedAtlas &&
+      mapOnline &&
+      Date.now() - world.worldEventsAt <= 3000
+      ? world.worldEvents
+      : null;
+  }
+
   function draw() {
     if (pending) return;
     pending = true;
@@ -920,6 +937,25 @@ export function startController() {
         ctx.stroke();
         ctx.restore();
       }
+
+    const event = layers.danger ? areaEvent(currentWorldEvents()) : null;
+    if (event) {
+      ctx.save();
+      ctx.fillStyle = "#e6a64b18";
+      ctx.strokeStyle = "#e6a64bdd";
+      ctx.setLineDash([10, 5]);
+      ctx.beginPath();
+      ctx.arc(
+        sx(event.center[0]),
+        sy(event.center[2]),
+        event.radius * view.scale,
+        0,
+        2 * Math.PI,
+      );
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
 
     for (const p of world.waypoints) {
       if (!(p.radius > 0)) continue;
@@ -1699,7 +1735,12 @@ export function startController() {
         : s
           ? "Session terrain · measurement age unavailable"
           : "";
+      const event = layers.danger ? areaEvent(currentWorldEvents()) : null;
       const lines = [
+        ...(event &&
+        Math.hypot(wx - event.center[0], wz - event.center[2]) < event.radius
+          ? eventDetails(currentWorldEvents())
+          : []),
         ...logDetailsAt(wx, wz),
         text,
         ...(age ? [age] : []),
@@ -1807,6 +1848,13 @@ export function startController() {
       if (typeof i.hpFrac === "number")
         parts.push(`${Math.round(i.hpFrac * 100)}% health`);
       if (i.targetingMe) parts.push("after the bot");
+      else if (
+        ["creature", "tamed"].includes(i.kind) &&
+        i.targetingKnown !== true
+      )
+        parts.push("pursuit unknown (remote simulation)");
+      if (i.eventCreature === true) parts.push("event-spawned creature");
+      if (i.huntingPlayers === true) parts.push("persistent player hunt");
       const d = far(i.pos);
       if (d != null) parts.push(`${Math.round(d)} m`);
       if (i.kind !== "container") return [parts.join(" · ")];
@@ -2890,6 +2938,7 @@ export function startController() {
             walls: world.walls,
             containers: [...world.containers.values()],
             danger: world.danger,
+            worldEvents: currentWorldEvents(),
             waypoints: world.waypoints,
             path: world.path,
             trail: world.trail,

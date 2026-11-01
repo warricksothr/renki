@@ -249,11 +249,17 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 			}
 			// A nearby animal only admits its own eligible hunt. It cannot
 			// exempt chest work, cooking, recovery or another travel action.
-			if prey := r.foodPrey(g, v, foodHuntItems(g, v)); len(prey) > 0 && prey[0].ID == c.ID {
+			if prey := r.foodPrey(g, v, foodHuntItems(g, v)); len(prey) > 0 && prey[0].ID == c.ID && (f.Stock == nil || !foodEventHazard(g, v)) {
 				return r.foodHuntNext(g, v, foodHuntItems(g, v))
 			}
 			return r.need("nearby threat prevents food resupply")
 		}
+	}
+	if g.Wake.After(v.Now) {
+		return nil, &behaviour.Delay{Until: g.Wake}
+	}
+	if f.Stock != nil && foodEventHazard(g, v) {
+		return r.foodEventWait(g, v)
 	}
 	if f.Stock != nil && f.Stock.ReturnAfterCooking {
 		if !foodAtHome(s.Pos, g.Center) || s.Pos.FlatDistance(g.Center) > .75 {
@@ -265,9 +271,6 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		}
 		g, _ = r.t.Store.Get(g.ID)
 		f = g.Food
-	}
-	if g.Wake.After(v.Now) {
-		return nil, &behaviour.Delay{Until: g.Wake}
 	}
 	if a := f.Acquisition; a != nil {
 		if a.Product != nil {

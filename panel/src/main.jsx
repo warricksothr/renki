@@ -10,6 +10,17 @@ import {
 } from "./workspace.jsx";
 import { Camera } from "./camera.jsx";
 import { startController } from "./controller.jsx";
+import { eventSummary } from "./world-events.js";
+
+function WorldEvents() {
+  const s = useStatus();
+  const events = online(s) ? s.worldEvents : null;
+  return (
+    <span class="muted" data-testid="world-events">
+      {eventSummary(events)}
+    </span>
+  );
+}
 
 function Food() {
   const s = useStatus();
@@ -129,6 +140,7 @@ function App() {
             <span class="eyebrow">SAFETY &amp; RETURN</span>
             <strong id="home">Home unknown</strong>
             <span id="combat" />
+            <WorldEvents />
             <span id="load" class="chip" />
           </div>
         </div>

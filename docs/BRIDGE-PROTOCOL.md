@@ -186,6 +186,12 @@ game eligibility, including duplicate/full slots and consumption effects.
 Missing `food` means unknown; empty arrays mean observed empty. The panel
 status API exposes the same observation.
 
+Optional `worldEvents` reports authoritative observed random-event areas and
+locally active notices. Missing means unknown; `{}` means observed no event.
+See [WORLD-EVENTS.md](WORLD-EVENTS.md) for the wire fields, paused timers,
+map freshness and separate per-creature pursuit/provenance knowledge. Event
+end observations never establish that surviving hostiles have disappeared.
+
 Optional `pvp` is the local player's current PvP setting. Player entries in
 `perception.characters` also include `pvp` when their network state is valid.
 Explicit `false` means disabled; omission means unknown.

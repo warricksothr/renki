@@ -24,6 +24,61 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "world-events": async ({ page, check, shot }) => {
+    const initial = await snapshot(page);
+    const events = {
+      randomEvent: {
+        name: "army_greydwarf",
+        message: "The forest is moving",
+        center: initial.data.bot,
+        radius: 96,
+        inside: true,
+        elapsedS: 32,
+        durationS: 120,
+        timerMayPause: true,
+      },
+      localEvent: {
+        name: "army_greydwarf",
+        message: "The forest is moving",
+        kind: "random",
+      },
+    };
+    await page.evaluate(
+      (worldEvents) =>
+        renkiPreview.stream.emit("status", {
+          ...renkiPreview.status,
+          worldEvents,
+        }),
+      events,
+    );
+    await check(
+      "Live event notice and shared map carry the same area",
+      async () => {
+        await expect(page.getByTestId("world-events")).toContainText(
+          "The forest is moving · Tas inside · 96 m radius",
+        );
+        assert.deepEqual((await snapshot(page)).data.worldEvents, events);
+      },
+    );
+    await page.locator("#map-pane").scrollIntoViewIfNeeded();
+    await shot("world-event-area");
+    await page.evaluate(() =>
+      renkiPreview.stream.emit("status", {
+        ...renkiPreview.status,
+        connected: false,
+        phase: "menu",
+      }),
+    );
+    await check(
+      "Offline atlas clears live event and reports unknown",
+      async () => {
+        await expect(page.getByTestId("world-events")).toHaveText(
+          "World events unknown",
+        );
+        assert.equal((await snapshot(page)).data.worldEvents, null);
+      },
+    );
+  },
   "escort-status": async ({ page, check, shot }) => {
     await page.evaluate(() =>
       renkiPreview.stream.emit("status", {

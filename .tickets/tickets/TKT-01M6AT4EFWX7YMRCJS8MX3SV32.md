@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T11:15:59Z
+updated_at: 2026-11-01T14:04:26Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -53,9 +53,11 @@ Implement the user-approved keep-the-pantry-stocked routine: reliable checked ba
 
 ## Implementation plan
 
-Preserve the current walking, water, slope, task and bank limits. Extract the existing support-hit selection into a pure tested policy without changing which hit wins. Retain bounded per-query failure evidence (missing hits, slope rejection, footing band, selected height band, saturation), numeric normals/heights and collider identity through exact-query memo hits. Attach that evidence to navmesh/live/local refusals and snapshot unfinished local/replay search when bank recovery interrupts it.
+Continue toward repeatable pantry production without weakening native walking, combat, injury or task limits. The checked home return and stored-food resupply passed on630dd11; the next pantry episode stopped before dispatch in an actual group attack.
 
-Add a reusable just vm route-benchmark supervisor: validate existing marker routes, require same-world fresh safe-home observations and native outward/return receipts for each finite round trip, stop on failure/command/scope change, retain compact metrics and evidence. Recovery of the currently offline shore position is a prerequisite, never an automatically repeated failed trial. Tests cover support selection on stacked floors/slopes and cached failures, benchmark false success, unsafe home, player interruption and cleanup. Run focused recipes, full just check ci, commit/review, deploy together, then one instrumented supervised nearby return. Use measured evidence to decide the next route correction; no unchanged retry or manual rescue dependency. Keep pantry and ten-return field criteria open until earned.
+Current phase: read the installed native random-event system and AI pursuit semantics. Stream authoritative random-event identity, localized notice, centre/radius, observed timer, possible empty-area pause and Tas's affected status, with known-clear distinct from unavailable. Include local forced/boss notices without inventing their geographic bounds. Publish fresh, scoped event data to tools, panel and shared map; retain observed transitions in audit. Food planning should identify event hazards by area and preserve its work checkpoint through bounded observation, settling owned task receipts first.
+
+Expose per-creature event provenance and owner-authoritative pursuit knowledge so the tactical planner cannot equate distance with lost aggro. Document one-at-a-time peeling as preparation, checked disengagement, edge-target selection, measured single pursuit/isolation, one verified kill, reassessment and return/resupply. Automatic combat eligibility remains earned separately; do not send an unequipped Tas into nine attackers or manufacture an encounter. Regression checks cover event boundaries/scope/staleness, paused timers, lingering enemies after an event, group-pursuit and retained food checkpoints. Use focused just recipes, full just check ci, commit/review and deploy; live checks must not require manual enemy clearing or an unchanged hostile login retry. Repeated route/pantry field acceptance remains open.
 
 ## Notes
 
@@ -172,3 +174,15 @@ The strict benchmark has not been run or passed: pinned homeY37.66 versus observ
 Production food resupply .checks/food-20261101T111055Z PASSED with native stored deer-meat withdrawal/eating, reserve2, active food and sheltered health recovery; two tasks/receipts. Tas remained online. Then automatic pantry trial .checks/food-20261101T111255Z (one Mushroom, north mushrooms, acquisition+deposit required) stopped at admission with zero tasks: nearby threat prevents food resupply. Saved before-map.json shows six Greydwarfs and three Greylings, all targeting Tas, several at the doorway. No injury observed; game stopped and independent panel restored. Do not retry against the unchanged base attack or request manual enemy staging as the normal loop. No pantry deposit or milestone acceptance earned; field ACs remain open.
 
 Next development: retain these distinct return/resupply successes and threat refusal; resolve strict benchmark floor provenance without moving home or loosening acceptance, then repeat routes and restart autonomous pantry production when native threat admission permits. Current state: game offline, controller/panel online, installed build630dd11.
+
+**agent:codex/renki-milestones** at 2026-11-01T14:03:21Z
+
+Implemented authoritative random-event identity/notice/centre/radius/timer/membership and separate local notices without invented bounds. State, fresh panel status and shared map/export expose the same knowledge; stale/offline observations become unknown. Perception distinguishes event-spawn provenance, owner-authoritative target knowledge and effective player-hunt mode. Pantry receipts settle first; household work defers at observed home shelter without actual nearby/pursuing threats, shares the 240s wait budget, may eat carried food, and needs fresh clear rather than timer expiry before resuming. Separate personal resupply remains available. Distant event bounds are not yet general route exclusions.
+
+Focused native build/core geometry checks, controller protocol/session/app/goal checks and desktop/mobile world-events UI checks passed. Full just check ci is running. Native event observation and ownership-transfer checks remain unearned; Tas remains offline after the prior nine-attacker capture. No raid identity can be inferred from that older capture. No pantry repeated acquisition/cook/deposit or group-combat pass is claimed.
+
+The concrete native group-peeling design is in docs/WORLD-EVENTS.md. Filed TKT-01M6BPPVDE5S8Q5A61N218JXDM — Peel isolated enemies from groups with native pursuit checks — as draft under the attack ticket for subsequent implementation. Current melee eligibility remains ordinary Greyling/Boar/Neck; six Greydwarfs require additional combat preparation/support. No crowd-limit weakening or blind live login.
+
+**agent:codex/renki-milestones** at 2026-11-01T14:04:26Z
+
+Full just check ci passed (.checks/20261101T140128Z-kKghIN.log), including 50 desktop/mobile panel scenarios. Live event/ownership verification, group peeling, and repeated pantry acquisition/cook/deposit remain open.
