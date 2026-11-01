@@ -416,6 +416,19 @@ recover-home WORLD *ARGS:
 test-recover-home:
     python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
 
+# Finite existing-marker round trips, each proved by native receipts and arrival.
+[positional-arguments]
+route-benchmark *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/route-benchmark.py" "$@"
+
+# Read bounded support/search diagnostics from a retained audit; no VM requests.
+[positional-arguments]
+route-evidence *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/route-evidence.py" "$@"
+
+test-route-benchmark:
+    python3 -B "{{justfile_directory()}}/scripts/vm/route-benchmark-test.py"
+
 # Arm/clear a one-shot order using the controller's pinned home.
 [positional-arguments]
 recovery-return ACTION='arm' WORLD='' PROFILE='local': need-target

@@ -84,18 +84,39 @@ namespace Renki.Plugin
         }
 
         // Start at this floor's level; never snap onto a different storey.
-        static V3? Support(V3 at, double fromY, out bool saturated, bool footing = false, bool walking = false)
+        static V3? Support(V3 at, double fromY, out bool saturated, out object evidence,
+            bool footing = false, bool walking = false, bool diagnostics = false)
         {
             var top = new Vector3((float)at.X, (float)fromY + Step + .05f, (float)at.Z);
             var count = Physics.RaycastNonAlloc(top, Vector3.down, supportHits, Step * 2 + .1f, Mask, QueryTriggerInteraction.Ignore);
             saturated = count == supportHits.Length;
-            if (saturated) return null;
-            RaycastHit? support = null;
+            evidence = null;
+            var selection = new SupportSelection(fromY, Step, footing, walking);
             for (var i = 0; i < count; i++)
-                if ((walking ? DryTravel.WalkableNormal(supportHits[i].normal.y) : supportHits[i].normal.y >= .35f) && (footing
-                    ? DryTravel.PreferFooting(fromY, supportHits[i].point.y, support?.point.y)
-                    : !support.HasValue || supportHits[i].point.y > support.Value.point.y)) support = supportHits[i];
-            return support.HasValue && Math.Abs(support.Value.point.y - fromY) <= Step ? Convert.ToV3(support.Value.point) : (V3?)null;
+                selection.Consider(Convert.ToV3(supportHits[i].point), supportHits[i].normal.y);
+            if (diagnostics && (saturated || !selection.Point.HasValue))
+                evidence = new
+                {
+                    reason = saturated ? "saturated" : selection.Refusal,
+                    at = at.ToArray(),
+                    fromY,
+                    step = Step,
+                    footing,
+                    walking,
+                    rayTop = Convert.ToArray(top),
+                    rayLength = Step * 2 + .1f,
+                    hits = count,
+                    normalHits = selection.NormalHits,
+                    selected = selection.Selected?.ToArray(),
+                    // Keep the nearest six hits, not an unbounded scene dump.
+                    contacts = supportHits.Take(count).OrderBy(hit => Math.Abs(hit.point.y - fromY)).Take(6).Select(hit => new
+                    {
+                        pos = Convert.ToArray(hit.point),
+                        normal = Convert.ToArray(hit.normal),
+                        collider = hit.collider != null ? hit.collider.transform.root.name + "/" + hit.collider.name : null
+                    }).ToArray()
+                };
+            return saturated ? null : selection.Point;
         }
 
         internal sealed class PlanningProbe
@@ -109,6 +130,7 @@ namespace Renki.Plugin
                 public double[] SupportHeights, WaterLevels;
                 public double? StepDistance;
                 public bool? BankClear;
+                public object SupportQuery;
             }
             readonly SupportMemo support;
             readonly SupportMemo footing;
@@ -129,7 +151,7 @@ namespace Renki.Plugin
             readonly List<Failure> bankFailures = new List<Failure>();
             internal object Failures => new
             {
-                counts = failureCounts,
+                counts = new Dictionary<string, int>(failureCounts),
                 bank = bankExit ? new { executing = Executing, dry, core = typeof(BankExit).Assembly.Location, coreMvid = typeof(BankExit).Assembly.ManifestModule.ModuleVersionId.ToString() } : null,
                 examples = (bankExit ? (IEnumerable<Failure>)bankFailures : failureExamples.Values).Select(failure => new
                 {
@@ -137,8 +159,8 @@ namespace Renki.Plugin
                     at = failure.At.ToArray(),
                     collider = failure.Collider,
                     supportHeights = failure.SupportHeights,
-                    waterLevels = failure.WaterLevels
-                    ,
+                    waterLevels = failure.WaterLevels,
+                    supportQuery = failure.SupportQuery,
                     stepDistance = failure.StepDistance,
                     bankClear = failure.BankClear
                 }).ToArray()
@@ -156,15 +178,15 @@ namespace Renki.Plugin
                 Executing = executing;
                 support = new SupportMemo((at, y) =>
                 {
-                    var result = Support(at, y, out var full, walking: dry && !bankExit);
+                    var result = Support(at, y, out var full, out var evidence, walking: dry && !bankExit, diagnostics: diagnostics);
                     if (full) Saturated++;
-                    return result;
+                    return (result, evidence);
                 });
                 footing = new SupportMemo((at, y) =>
                 {
-                    var result = Support(at, y, out var full, footing: true);
+                    var result = Support(at, y, out var full, out var evidence, footing: true, diagnostics: diagnostics);
                     if (full) Saturated++;
-                    return result;
+                    return (result, evidence);
                 });
             }
             // Support (including missing support) can change independently
@@ -193,6 +215,12 @@ namespace Renki.Plugin
                 // Preserve the first bounded bank sweep, including its uphill
                 // bearings. The final example alone can conceal why those failed.
                 if (bankExit && bankFailures.Count < 16) bankFailures.Add(LastFailure);
+                return null;
+            }
+            internal V3? RefuseSupport(string stage, V3 at, bool actualFooting = false)
+            {
+                Refuse(stage, at);
+                if (LastFailure != null) LastFailure.SupportQuery = actualFooting ? footing.LastEvidence : support.LastEvidence;
                 return null;
             }
             internal bool HostileClear(V3 from, V3 to)
@@ -232,7 +260,8 @@ namespace Renki.Plugin
                 if (!dry) return true;
                 var start = footing.Sample(from, from.Y, Time.unscaledTime, slice);
                 if (start.HasValue && DryTravel.ContinuousSupport(from, start.Value, middle, to)) return true;
-                Refuse("support_step", to);
+                if (!start.HasValue) RefuseSupport("support_step", to, actualFooting: true);
+                else Refuse("support_step", to);
                 if (LastFailure != null && start.HasValue)
                     LastFailure.SupportHeights = new[] { from.Y, start.Value.Y, middle.Y, to.Y };
                 return false;
@@ -242,9 +271,9 @@ namespace Renki.Plugin
         static V3? Probe(V3 from, V3 desired, PlanningProbe plan)
         {
             var supported = plan.Sample(desired, from.Y);
+            if (!supported.HasValue) return plan.RefuseSupport("endpoint_support", desired);
             var middle = plan.Sample((from + desired) * .5, from.Y);
-            if (!supported.HasValue) return plan.Refuse("endpoint_support", desired);
-            if (!middle.HasValue) return plan.Refuse("midpoint_support", (from + desired) * .5);
+            if (!middle.HasValue) return plan.RefuseSupport("midpoint_support", (from + desired) * .5);
             var dest = supported.Value;
             if (!plan.SupportSafe(from, middle.Value, dest)) return null;
             if (!plan.HostileClear(from, dest)) return plan.Refuse("hostile_corridor", dest);

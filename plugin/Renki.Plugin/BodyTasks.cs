@@ -615,7 +615,8 @@ namespace Renki.Plugin
                     ["waterLevel"] = water,
                     ["support"] = support?.ToArray(),
                     ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal()),
-                    ["groundCollider"] = p.GetLastGroundCollider()?.name
+                    ["groundCollider"] = p.GetLastGroundCollider()?.name,
+                    ["planning"] = PlanningEvidence()
                 });
             }
             var eligible = support.HasValue && !p.InWater() && !p.IsSwimming() && p.IsOnGround() &&
@@ -636,7 +637,7 @@ namespace Renki.Plugin
                 var reason = !eligible ? "live_eligibility_lost" : bankExit.RefusalReason;
                 navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure refused: " + reason);
                 Tracer.Emit("walker", "dry bank departure refused", new Dictionary<string, object>
-                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["reason"] = reason, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures });
+                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["reason"] = reason, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures, ["planning"] = PlanningEvidence() });
                 return true;
             }
             // Ordinary walking input; Run remains false. An attenuated input
@@ -644,6 +645,26 @@ namespace Renki.Plugin
             if (step.HasValue) Driver.Move = (Convert.ToVector3(step.Value) - pos).normalized;
             return true;
         }
+
+        object PlanningEvidence() => new
+        {
+            local = localRoute == null ? null : new
+            {
+                status = localRoute.Status.ToString(),
+                expanded = localRoute.Expanded,
+                probes = localRoute.Probes,
+                elapsedS = System.Math.Round(Time.unscaledTime - localStarted, 2),
+                failures = localProbe?.Failures
+            },
+            replay = replay == null ? null : new
+            {
+                status = replay.Status.ToString(),
+                samples = replay.Samples,
+                checking = replay.Checking?.ToArray(),
+                checkingFrom = replay.CheckingFrom.ToArray(),
+                failures = replayProbe?.Failures
+            }
+        };
 
         void RejectReplay(Vector3 pos, string why)
         {
@@ -662,6 +683,7 @@ namespace Renki.Plugin
                 ["samples"] = replay?.Samples,
                 ["failure"] = replayProbe?.LastFailure?.Stage,
                 ["supportHeights"] = replayProbe?.LastFailure?.SupportHeights,
+                ["supportQuery"] = replayProbe?.LastFailure?.SupportQuery,
                 ["collider"] = replayProbe?.LastFailure?.Collider,
                 ["ms"] = System.Math.Round(replayMs, 2),
                 ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
@@ -867,6 +889,7 @@ namespace Renki.Plugin
                 ["saturated"] = localProbe.Saturated,
                 ["failure"] = !found ? localProbe.LastRefusal?.Stage : null,
                 ["supportHeights"] = !found ? localProbe.LastRefusal?.SupportHeights : null,
+                ["supportQuery"] = !found ? localProbe.LastRefusal?.SupportQuery : null,
                 ["failures"] = !found ? localProbe.Failures : null,
                 ["searchStatus"] = localRoute.Status.ToString(),
                 ["nodeLimitReached"] = localRoute.NodeLimitReached,

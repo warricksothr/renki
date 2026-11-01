@@ -1615,3 +1615,66 @@ current `endpoint_support` diagnostics do not distinguish them. Retain local
 search evidence if bank recovery interrupts it. Do not retry the unchanged
 return, extend recovery limits, lower walking clearances or claim the
 building model establishes a traversable route through that bank.
+
+### Support-ray diagnostics and finite route benchmark
+
+Walking support failures now retain the actual query, starting height, step
+band, total hit count, accepted-normal count, selected point and up to six
+nearest contacts with normals and collider names. Reasons distinguish
+`no_hits`, `slope`, `footing_band`, `height_band` and `saturated`. The existing
+highest-hit/closest-footing selection is unchanged; a lower floor is never
+silently substituted for a rejected upper hit. Successful probes do not
+allocate contact diagnostics. Exact-query memo hits retain the matching
+failure evidence, including across intervening queries, and refresh it at the
+next planning slice.
+
+Bank activation/refusal traces retain the unfinished local/replay search and
+its refusal examples. Navmesh and local-route failures include support-ray
+evidence. Inspect a saved audit with
+`just vm route-evidence .checks/audit-window-NAME.jsonl --limit 4`.
+The projection bounds recent records, examples and contacts; full evidence
+stays in the audit. `just vm bank-evidence` remains the numeric bank-sweep view.
+
+`just check plugin test-core SupportSelectionTests` covers steep and missing
+support, overlapping floors, the separate footing policy and exact cached
+failure evidence. `just check vm test-route-benchmark` exercises scoped
+receipts, missing/foreign receipts, stale perception, wrong-floor arrivals,
+injury, cancellation, session changes and refusal of an unsafe initial state.
+The root CI gate includes the benchmark checks.
+
+Once Tas is grounded and sheltered on the pinned home floor, run a single
+existing-marker round trip first:
+
+```sh
+just check vm route-benchmark --marker 'home storage' --keep-online
+```
+
+Then choose several existing markers in different directions, between4m and
+60m from home, and repeat up to ten total round trips. For example, after the
+routes individually pass and their current positions are checked:
+
+```sh
+just check vm route-benchmark --marker 'pantry south meadow' --marker 'pantry east meadow' --cycles 5 --keep-online
+```
+
+These are production `move_to` goals with dry/hostile checks and no generated
+body steps. Each leg needs a same-connection native success receipt, a newer
+perception frame and observed arrival within2m horizontally/vertically combined
+and75cm of the target height. Home also requires grounded shelter within3m of
+the pinned point. Marker positions and home are revalidated; the tool never
+creates or moves them. A receipt without arrival, or a safe shortage outcome,
+does not count a completed route.
+
+The benchmark requires a safe online home start and does not join or retry
+startup recovery. It stops on the first failed trip, damage or changed
+ownership. A command/cancellation/session change yields without logging out
+the new owner. Otherwise failure logs Tas out, stops the game and restores
+the independent panel. `--keep-online` applies only after success and another
+safe-home observation. The tool retains plan, per-leg receipts/maps, sampled
+travel/minimum health, audit and an available failure camera image under
+`.checks/routes-*`; `just vm trial-status` reads compact progress.
+
+Ten native returns, multiple weather/approach conditions and repeated pantry
+production remain field criteria. Synthetic supervisor success does not earn
+them. First recover the existing shore position using the instrumented
+one-shot supervisor; do not launch this benchmark from underneath the deck.

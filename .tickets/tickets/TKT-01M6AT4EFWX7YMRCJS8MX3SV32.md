@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T07:45:44Z
+updated_at: 2026-11-01T09:56:10Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -53,9 +53,9 @@ Implement the user-approved keep-the-pantry-stocked routine: reliable checked ba
 
 ## Implementation plan
 
-First fix retained route failures: preserve short-lived negative evidence for physically refused slope approaches and report numeric water/support clearance. Add a separate bounded bank-exit policy only for a grounded, non-swimming, out-of-water body below the normal forecast buffer: fresh measured footing, strictly improving dry clearance, no downhill/wading/jump/run, same body/hostile checks, finite probes/time/distance. Normal0.8m planning buffer remains unchanged; this is live measured recovery with a stricter-than-base actual dry margin, not a general planning waiver. Validate captured positions on explicitly synthetic banks and then the saved native shore return.
+Preserve the current walking, water, slope, task and bank limits. Extract the existing support-hit selection into a pure tested policy without changing which hit wins. Retain bounded per-query failure evidence (missing hits, slope rejection, footing band, selected height band, saturation), numeric normals/heights and collider identity through exact-query memo hits. Attach that evidence to navmesh/live/local refusals and snapshot unfinished local/replay search when bank recovery interrupts it.
 
-Then extend existing household_food with low/high stock thresholds, opt-in food-specific hunts, bounded multi-area wildlife scouting and persistent source cooldown feedback. Reuse native kill/pickup/cooking/transfer receipts, travel leases and current permissions. Ordinary combat requires an exact owned hunt budget, never a generic injury-baseline reset. Configure through panel/API and expose reasons. Validate focused checks, full just check ci, committed just review, publish/link a PR above146, deploy checksum-verified builds and supervise repeated idle-to-pantry episodes. Keep unsuccessful field criteria open; no manual staging/clearing or unchanged failed trial loops.
+Add a reusable just vm route-benchmark supervisor: validate existing marker routes, require same-world fresh safe-home observations and native outward/return receipts for each finite round trip, stop on failure/command/scope change, retain compact metrics and evidence. Recovery of the currently offline shore position is a prerequisite, never an automatically repeated failed trial. Tests cover support selection on stacked floors/slopes and cached failures, benchmark false success, unsafe home, player interruption and cleanup. Run focused recipes, full just check ci, commit/review, deploy together, then one instrumented supervised nearby return. Use measured evidence to decide the next route correction; no unchanged retry or manual rescue dependency. Keep pantry and ten-return field criteria open until earned.
 
 ## Notes
 

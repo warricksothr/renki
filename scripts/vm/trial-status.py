@@ -69,6 +69,11 @@ def report(folder, now=None):
             for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors', 'mode', 'treesHarvested', 'logsHarvested', 'defenses', 'woodGain', 'deposited', 'returned'):
                 if key in final:
                     result[key] = final[key]
+            if 'completedTrips' in final:
+                result['completedTrips'] = final['completedTrips']
+                result['nativeReceipts'] = len(final.get('receipts', []))
+                result['keptOnline'] = final.get('keptOnline', False)
+                result['yieldedToCommand'] = final.get('yieldedToCommand', False)
             tasks = final.get('tasks', [])
             if isinstance(tasks, int):
                 result['taskCount'] = tasks
@@ -115,7 +120,7 @@ def main():
         folder = Path(sys.argv[1])
     else:
         choices = [p for pattern in ('combat-trial-*', 'harvest-trial-*', 'resupply-trial-*', 'gather-trial-*',
-                                    'food-*', 'cooking-*', 'recovery-*', 'escort-*')
+                                    'food-*', 'cooking-*', 'recovery-*', 'escort-*', 'routes-*')
                    for p in (ROOT / '.checks').glob(pattern) if p.is_dir() and
                    re.fullmatch(r'\d{8}T\d{6,12}Z', p.name.rsplit('-', 1)[-1])]
         if not choices:

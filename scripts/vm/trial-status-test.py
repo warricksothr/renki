@@ -15,6 +15,16 @@ spec.loader.exec_module(progress)
 
 
 class Progress(unittest.TestCase):
+    def test_routes_report_only_completed_trips_and_native_receipts(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            (folder / 'summary.json').write_text(json.dumps(dict(outcome='failed', completedTrips=1,
+                receipts=[dict(taskId='out-1'), dict(taskId='home-1'), dict(taskId='out-2')], yieldedToCommand=True)))
+            result = progress.report(folder)
+            self.assertEqual(result['completedTrips'], 1)
+            self.assertEqual(result['nativeReceipts'], 3)
+            self.assertTrue(result['yieldedToCommand'])
+
     def test_food_summary_keeps_checkpoint_and_accepts_integer_task_count(self):
         with tempfile.TemporaryDirectory() as name:
             folder = Path(name)
