@@ -14,3 +14,4 @@ tickets, and the next fix pass overwrites it.
 | [TKT-01M62VXZA33E8JR5BR2RJD6AC1](draft/TKT-01M62VXZA33E8JR5BR2RJD6AC1.md) | Agent: tools, events and autonomy for the LLM | draft |
 | [TKT-01M66PFAYA1NTW2JHNRDKBK42E](draft/TKT-01M66PFAYA1NTW2JHNRDKBK42E.md) | Exploration goals after M2 and M3 | draft |
 | [TKT-01M66Q5SFWV99JCGJXVARVRJH7](tickets/TKT-01M66Q5SFWV99JCGJXVARVRJH7.md) | Durable versioned world atlas and portable mapping data | ready |
+| [TKT-01M6CEA0K3Q2V6QYWZBRN8T5ES](draft/TKT-01M6CEA0K3Q2V6QYWZBRN8T5ES.md) | Terrain shaping, paths and construction projects | draft |

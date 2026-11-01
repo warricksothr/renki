@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T14:07:13Z
+updated_at: 2026-11-01T20:55:08Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -190,3 +190,7 @@ Full just check ci passed (.checks/20261101T140128Z-kKghIN.log), including 50 de
 **agent:codex/renki-milestones** at 2026-11-01T14:07:13Z
 
 Committed/reviewed/pushed event awareness as 7e8a2d8 on PR147; just check review fcbda3b..HEAD passed with no findings. just check vm install passed package checksum verification (.checks/20261101T140531Z-yCCJIh.log). Independent panel restarted; native game remains stopped, controller API reports version7e8a2d8 connected=false, and status/map omit unavailable world-event knowledge. Native event field validation, group peeling and pantry field acceptance remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T20:55:08Z
+
+Live observation on 2026-11-01 at 20:51:48Z, after restoring the pre-migration idle definitions: Tas is sheltered at home, idle, HP25/25 (unfed base health), no active food and no carried food. No food_resupply or household production goal is running. The home cooking, food storage and cargo idle definitions each show five completed attempts; their latest results require an active meal and resupply first. West-mushroom foraging has zero attempts because Tas is not there. AllowGather=true; AllowCombat=false. The background food keeper can eat carried food but does not acquire it and does not ask for food at full base-health ratio. This leaves idle maintenance unable to bootstrap itself from an empty pack. Preserve ordinary safety: evaluate an explicit personal ready-meal resupply prerequisite triggered before food expires, then hand back to idle work. This is an observed control-flow gap, not evidence that home chests are empty. User requested a walkthrough, not a behavior/configuration change, so none was made. Evidence: .checks/modpack-2323/current-observation.json, current-behaviours.json and current-goals.json.
