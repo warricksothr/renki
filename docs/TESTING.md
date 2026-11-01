@@ -1367,6 +1367,21 @@ task/encounter limits; synthetic support is not captured-world route proof.
 Controller food-source tests use the captured bush/Greydwarf positions and the
 native horizontal exclusion radii, while retaining exact prey and player rules.
 
+The northern mushroom trial `.checks/food-20261101T050359Z` on `9263f4b`
+earned a fresh Mushroom collection receipt, then ate it as a third active food.
+The goal correctly committed a home return as the food maximum increased.
+Return failed after three bounded route recovery attempts near the shore;
+Tas remained grounded, out of water and uninjured. The supervisor logged out
+safely. No chest deposit or alternative escape-bearing proof was earned.
+Audit evidence is `.checks/audit-window-tDRhBD.jsonl`. The trace showed a thin
+current planning buffer diverting a checked dry route into shore recovery,
+which refused its own first step. Dry travel now reserves that mode for actual
+in-water/swimming state and leaves all forward water/support/body/hostile
+checks intact. `just check plugin test-core DryTravelTests` covers an uphill
+departure from the captured position on a synthetic bank, rejecting downhill,
+level, changed-water and physically refused steps. This does not establish the
+actual bank's traversability; the supervised native return remains required.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing

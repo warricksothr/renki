@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T04:59:05Z
+updated_at: 2026-11-01T05:09:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -207,3 +207,15 @@ Implemented on t3/checked-escape-bearings above #145 /7df0cb2. Hostile-avoiding 
 Controller source admission now matches native horizontal exclusion radii for visible hostiles: ordinary Neck16m, Boar24m, other/starred40m. Players, exact isolated prey exclusion and the existing nearby-creature/pursuit rules remain. This prevents the captured berry search from immediately selecting a bush only16m from a Greydwarf. It does not expose threats outside controller perception or establish a world route.
 
 Focused just check controller test-packages ./internal/goal passed (.checks/20261101T045647Z-1RqnZW.log); just check plugin build passed (.checks/20261101T045720Z-XFhw7x.log). FleeBearings regressions cover captured positions with explicitly synthetic shore support, multiple-threat monotonic separation, physical/exhausted goals, per-tick/lifetime bounds, actual support projection, cancellation, moving-threat/fixed-tangent semantics and unchanged enclosing encounter time. Latest focused check .checks/20261101T045836Z-D4Qdy4.log passed. Native field proof remains pending; Tas was last read sheltered and idle at home with injurySeq0. No original coastal AC or collection/storage proof is newly earned.
+
+**agent:codex/renki-milestones** at 2026-11-01T05:03:45Z
+
+Published/link draft PR #146, Try checked escape bearings and avoid occupied food sources: https://github.com/warricksothr/renki/pull/146, stacked above #145. Implementation9263f4b passed just check ci in153s, including804 C# tests plus controller/panel/tooling (.checks/20261101T045917Z-mhH65W.log), and required committed just check review 7df0cb2..HEAD without findings (.checks/20261101T050216Z-rvEpX3.log). Selected-bearing traces include physics-cast counts; exhausted preflights retain physical failure examples and a bounded loaded-hostile snapshot.
+
+Normal home resupply on the prior implementation passed (.checks/food-20261101T045918Z), leaving Tas online sheltered with Blueberries+MushroomYellow and personal reserve. Installed reviewed9263f4b using just check vm install (.checks/20261101T050254Z-0tWoiJ.log); controller/package/installed DLL checksums verified. Native restart is required for this plugin change. Restoring panel and preparing a distinct remembered northern mushroom site for a supervised production trial. No native alternative-bearing, resumed-collection or storage result is claimed yet; original coastal field criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T05:09:35Z
+
+Live trial .checks/food-20261101T050359Z on9263f4b collected1 fresh Mushroom (interact t-3, exact pickup t-4, observed_yield_fresh_inventory) and ate it as a third active food. Increased food maximum correctly committed a home return. No deposit was earned. Return t-6 failed unreachable after3 native blocked-observation attempts: no checked dry shore step: water. No injury, minimum39.9HP; final grounded/out-of-water[-52.29,30.75,10.95],53.5/55.7HP after keeper refresh. Supervisor safely logged out/stopped game, restored panel. Audit .checks/audit-window-tDRhBD.jsonl; outer .checks/20261101T050359Z-mO6sIm.log.
+
+Diagnosis: Swim promotes a dry grounded support below the conservative0.8m planning buffer into swimming recovery, before route planning/replay. It discards a physically checked uphill route for a distant geometric shore hint, then rejects the short shore step under the same0.8m rule. Current feet and actual inWater/swimming state must be distinguished from the safety buffer required for future movement. Next change removes that synthetic swim transition for an out-of-water body; actual in-water/swimming recovery and every existing0.8m midpoint/endpoint, support, body and hostile execution check remain. Add a captured-position/synthetic-bank regression proving only a fully checked uphill departure, changed-water refusal and unchanged physical/hostile refusals. Enable replay diagnostics and include water/body state in shore refusal evidence. Run focused maths, full gate, committed review, then deploy and test a normal supervised return from the saved position. No unchanged production retry or credit for collected food consumed personally.

@@ -809,12 +809,16 @@ Notes:
   original task deadline remains authoritative.
 - **Dry home travel:** home returns request `dry:true`. Native movement uses
   validated route hints or incremental local routing with supported endpoints
-  and midpoints at least 0.2m above water, including bridge/floor support. It
+  and midpoints with a 0.8m water buffer (0.2m dry margin plus 0.6m for body
+  settling), including bridge/floor support. It
   rechecks the immediate movement corridor and cannot switch back to an
   unchecked navmesh shortcut through water. Stuck strafes receive the same
   check; jumping/climbing recovery is disabled for this mode. If already wet,
   the existing bounded shore search first targets dry land and continues out
-  of shallow water before planning onward. Other movement keeps its default
+  of shallow water before planning onward. A grounded, out-of-water body with
+  a thin current buffer continues checked planning; that alone cannot replace
+  its uphill route with shore recovery. Every proposed step still requires the
+  full water buffer. Other movement keeps its default
   policy. Dry planning retains the existing node, time and per-frame limits.
 
 - **Successful route hints:** completed point `move_to` tasks can retain
