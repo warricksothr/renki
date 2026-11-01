@@ -9,6 +9,8 @@ is, what it is doing, and why, with buttons to stop it, send it home or
 log it out. TKT-01M628X106 (Web control panel to watch and steer the bot)
 tracks the remaining page controls for behaviour instances. The engine
 already exposes authenticated controls described in [BEHAVIOURS.md](BEHAVIOURS.md).
+The proposed unified phase/guard inspector, causal timeline and shared agent
+diagnostics are described in [Watching and explaining behavior](BEHAVIOUR-INSPECTION.md).
 
 ## Turning it on
 

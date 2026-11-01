@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T14:02:42Z
-updated_at: 2026-11-01T16:18:36Z
+updated_at: 2026-11-01T16:43:36Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -78,3 +78,15 @@ Full just check ci passed (.checks/20261101T161219Z-bR2Uve.log): 52 desktop/mobi
 **agent:codex/renki-milestones** at 2026-11-01T16:18:36Z
 
 First increment is committed as559a261 and available in draft PR148, stacked over PR147. Full CI and committed review passed; reviewed code reported no findings. Installed on BLIGHT with verified package checksums (.checks/20261101T161654Z-7qUckG.log), restarted independent panel and confirmed API version559a261 connected=false. AC1/2 have implementation and deterministic coverage; AC3/4/5 remain open for actual safe escape/kill/return, post-kill loot/readiness integration and progressive natural field trials. Tas remains offline after the prior nine-attacker base capture. No one-/two-enemy native pass, Greydwarf combat or pantry completion claimed.
+
+**agent:codex/renki-milestones** at 2026-11-01T16:39:23Z
+
+User requested live proof and an operator-readable long-term behavior plan. Current panel version559a261 is online; Tas was offline. Ran just check vm recovery (guard enabled), just check vm combat false, then the existing bounded just check vm recover-home DizzysHellheim --nearby --capture to establish fresh startup safety before any combat. Native recovery refused and logged out at[-37.01,36.34,9.12], hp66.9551/max66.9551, stamina86.77333, two foods and339s reserve: nearest hostile0.64487m. No peel or combat task started. Evidence .checks/recovery-20261101T163616Z/summary.json and .checks/audit-window-JcN6v0.jsonl, trace seq119/120 conn1. Supervisor missed the brief admission/refusal between polls and called it join failed. Improve its retained summary by extracting exact native refusal/evidence from the audit, without changing any admission or logout guard or claiming successful field combat. Add focused supervisor regression coverage before full CI/review.
+
+Added docs/BEHAVIOUR-INSPECTION.md describing shipped inspection, proposed shared compact diagnosis, phase/guard graph, causal timeline, map/camera correlation and versioned author/replay workflow. Corrected stale food-goal statements in procedure docs. Filed draft TKT-01M6BZMS4KYXPA9PDQ22VAQ3GH (Expose shared behavior explanations and a live guard inspector); no authoring/graph API is claimed shipped. One-/two-enemy escape/kill/return and post-kill integration criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T16:43:36Z
+
+Added native refusal extraction to the recovery supervisor so a login/logout between polls retains the authoritative native reason, threat/readiness values and connection/sequence evidence instead of only join failed. Added read-only just vm recovery-evidence for saved audits and focused regression coverage for missed startup refusal, cleanup, unrelated traces, malformed rows, relative audit paths and preserving observed success or stronger supervisor failures. The real capture now projects the0.645m threat refusal without contacting the VM. No game admission/combat thresholds changed and no live retry into the unchanged crowd was made.
+
+Focused just check vm test-recover-home passed (.checks/20261101T164047Z-AOpziA.log); the real just check vm recovery-evidence passed (.checks/20261101T164047Z-LV9Ql2.log). Full just check ci passed (.checks/20261101T164029Z-lJ1pWU.log). Final VM/API checks confirm Valheim stopped, independent panel online and connected=false at installed559a261. The inspection design is documented and the implementation ticket remains draft; no graph/authoring/replay UI has shipped. No additional field acceptance criterion is checked. Commit review and PR update follow.

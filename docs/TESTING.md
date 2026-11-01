@@ -1735,6 +1735,19 @@ bounded capture error. Capture failure does not grant movement or alter the
 return result, and the supervisor never changes the configured capture rate.
 This avoids relying on a manual image request after a failed native logout.
 
+A native safety logout can occur between supervisor polls, before an in-world
+state reaches the panel. Recovery summaries now retain `nativeRecovery`
+refusal/logout trace details from the exact audit window, including connection,
+sequence, observed health/food and threat distance. A generic join/departure
+failure then reports the native reason while preserving `supervisorReason`.
+This is refusal evidence, not a successful return or combat proof. Inspect a
+retained capture offline with
+`just check vm recovery-evidence .checks/audit-window-JcN6v0.jsonl`; this recipe
+does not contact the VM. The 2026-11-01 guarded check recorded a hostile0.645m
+away at home, followed by native logout, before any peel task started. Field
+isolation, escape, kill and return acceptance remains open. Focused supervision
+coverage is `just check vm test-recover-home`.
+
 Reviewed/deployed `9f993c2` demonstrated one native staging leg in
 `.checks/recovery-20261101T102531Z`, audit `.checks/audit-window-BU9uSQ.jsonl`.
 After374 expansions/2992 probes and2.02s it selected checked support at

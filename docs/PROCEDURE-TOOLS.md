@@ -18,8 +18,8 @@ compare and propose publication. None of these authoring operations needs body
 control. Starting a live canary does. Build this loop for human-driven coding
 agents first; automatic model calls are a later consumer of the same service.
 
-Today `GET /api/goals` and `POST /api/goals` expose bundled combat goals and
-start/resume/stop. `GET /api/task?id=...&at=...` scopes task IDs to a controller
+Today `GET /api/goals` and `POST /api/goals` expose bundled combat and food goals
+and start/resume/stop. `GET /api/task?id=...&at=...` scopes task IDs to a controller
 run, while `/api/timeline` pages a day's audit using time and an equal-time
 skip count. These remain existing APIs. Goal history is bounded to 16 outcomes;
 audit retention defaults to 14 days and can be disabled. Neither is a durable
