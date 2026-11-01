@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T14:04:26Z
+updated_at: 2026-11-01T14:07:13Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -186,3 +186,7 @@ The concrete native group-peeling design is in docs/WORLD-EVENTS.md. Filed TKT-0
 **agent:codex/renki-milestones** at 2026-11-01T14:04:26Z
 
 Full just check ci passed (.checks/20261101T140128Z-kKghIN.log), including 50 desktop/mobile panel scenarios. Live event/ownership verification, group peeling, and repeated pantry acquisition/cook/deposit remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T14:07:13Z
+
+Committed/reviewed/pushed event awareness as 7e8a2d8 on PR147; just check review fcbda3b..HEAD passed with no findings. just check vm install passed package checksum verification (.checks/20261101T140531Z-yCCJIh.log). Independent panel restarted; native game remains stopped, controller API reports version7e8a2d8 connected=false, and status/map omit unavailable world-event knowledge. Native event field validation, group peeling and pantry field acceptance remain open.
