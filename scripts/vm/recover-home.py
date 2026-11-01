@@ -29,6 +29,7 @@ def main():
                   startedAt=datetime.datetime.now(datetime.timezone.utc).isoformat())
     launch, owns, previous = None, False, None
     capture_attempted = False
+    first_world_at = None
     log = (folder / 'commands.log').open('a')
 
     def call(*args, decode=True):
@@ -61,6 +62,8 @@ def main():
                 time.sleep(1)
                 continue
             seen = True
+            if first_world_at is None:
+                first_world_at = time.monotonic()
             reason = food.safe(status, previous)
             if reason:
                 raise RuntimeError(reason)
@@ -71,7 +74,7 @@ def main():
                 raise RuntimeError('recovery scope or body ownership changed')
             previous = status
             result['last'] = status
-            if args.capture and not capture_attempted and 'recovering' in status.get('flags', []):
+            if args.capture and not capture_attempted and time.monotonic() - first_world_at >= 6 and 'recovering' in status.get('flags', []):
                 capture_attempted = True
                 try:
                     result['cameraCheckpoint'] = call('camera', decode=False).strip()

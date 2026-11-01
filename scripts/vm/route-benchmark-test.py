@@ -209,6 +209,14 @@ class Routes(unittest.TestCase):
         self.assertEqual(report['recent'][0]['supportQuery']['reason'], 'slope')
         self.assertEqual(report['recent'][1]['planning']['local']['expanded'], 100)
 
+    def test_piece_diagnostics_keep_exact_slope_evidence(self):
+        normal = [0, .79999995, .6]
+        frame = dict(type='trace', source='navigation', msg='building support slope refused',
+                     data=dict(piece='wood_stair', supportQuery=dict(reason='slope', contacts=[dict(normal=normal)])))
+        record = evidence.project([json.dumps(dict(frame=frame))])['recent'][0]
+        self.assertEqual(record['piece'], 'wood_stair')
+        self.assertEqual(record['supportQuery']['contacts'][0]['normal'], normal)
+
     def test_evidence_does_not_expand_a_large_bank_sweep_into_context(self):
         sample = dict(supportQuery=dict(reason='slope', contacts=[dict(normal=[0, .62, 0])]*6))
         data = dict(planning=dict(local=dict(failures=dict(counts=dict(endpoint_support=100), examples=[sample]*16))))

@@ -3,6 +3,7 @@
 import contextlib
 import importlib.util
 import io
+import itertools
 import json
 import os
 from pathlib import Path
@@ -43,9 +44,11 @@ class RecoverySupervisorTests(unittest.TestCase):
         launch = MagicMock()
         launch.poll.return_value = 0
         launch.returncode = 0
+        clock = itertools.count(0, 3)
         with tempfile.TemporaryDirectory() as temp, patch.object(recovery, 'ROOT', Path(temp)), \
                 patch.object(recovery.subprocess, 'run', side_effect=request), \
                 patch.object(recovery.subprocess, 'Popen', return_value=launch), \
+                patch.object(recovery.time, 'monotonic', side_effect=lambda: next(clock)), \
                 patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else ['--nearby'] if nearby else []) + (['--capture'] if capture else [])), \
                 contextlib.redirect_stdout(io.StringIO()):
             code = recovery.main()

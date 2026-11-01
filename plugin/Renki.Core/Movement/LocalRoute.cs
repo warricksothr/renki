@@ -36,6 +36,7 @@ namespace Renki.Movement
         readonly Func<V3, double> guidance;
         readonly Func<V3, V3, V3?> probe;
         readonly Func<V3, bool> stagingEligible;
+        readonly bool heightAware;
         Node staging;
         readonly int maxNodes;
         readonly double maxCost;
@@ -60,7 +61,7 @@ namespace Renki.Movement
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
             bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
             double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level,
-            Func<V3, double> guidance = null, Func<V3, bool> stagingEligible = null)
+            Func<V3, double> guidance = null, Func<V3, bool> stagingEligible = null, bool heightAware = false)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
@@ -78,6 +79,7 @@ namespace Renki.Movement
             // within the local horizon. Starting a full floor/entrance search
             // from 24 m away can spend its entire bound on the lower bank.
             ProgressLeg = initialEstimate > progressHorizon;
+            this.heightAware = heightAware && !ProgressLeg && guidance == null;
             Add(new Node { Pos = start, Ground = groundCorridor ? new GroundCorridor.Cursor() : null });
         }
 
@@ -180,6 +182,16 @@ namespace Renki.Movement
 
         double Remaining(V3 at)
         {
+            if (heightAware)
+            {
+                // Distance to the arrival cylinder is a lower bound on the
+                // checked 3D path cost. Prefer the required floor without
+                // inventing a connection to it. Distant frontier legs and
+                // explicit regional guidance keep their existing estimate.
+                var horizontal = Math.Max(0, V3.FlatDistance(at, goal) - within);
+                var vertical = Math.Max(0, Math.Abs(at.Y - goal.Y) - arrivalLevel);
+                return Math.Sqrt(horizontal * horizontal + vertical * vertical);
+            }
             var estimate = guidance != null ? guidance(at) : V3.FlatDistance(at, goal);
             if (double.IsNaN(estimate) || estimate < 0) throw new ArgumentException("invalid route guidance");
             return estimate;

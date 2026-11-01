@@ -20,7 +20,7 @@ namespace Renki.Tests
                 var at = new V3(desired.X, start.Y + .12 * x + .08 * z, desired.Z);
                 return DryTravel.Clear(at, 30, DryTravel.TravelMargin) && System.Math.Abs(at.Y - from.Y) <= .3 ? at : (V3?)null;
             }
-            var route = new LocalRoute(start, goal, Probe, stagingEligible: at => DryTravel.Clear(at, 30, DryStaging.WaterMargin));
+            var route = new LocalRoute(start, goal, Probe, stagingEligible: at => DryTravel.Clear(at, 30, DryStaging.WaterMargin), heightAware: true);
             route.Advance(300);
             Assert.Equal(RouteStatus.Searching, route.Status);
             Assert.Null(route.Path);

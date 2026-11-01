@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T10:17:35Z
+updated_at: 2026-11-01T10:34:00Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -134,3 +134,11 @@ Diagnostics/benchmark 00d8161 passed full just check ci and committed review, wa
 Implementing a bounded checked staging handoff: after 2s near the shore, only expanded local-search nodes with checked incoming edges, >=3m displacement, >=1m progress toward the original goal, <=12m path cost and >=2m current-water clearance can offer a staging leg. Fresh destination-water and ordinary live body/support/portal/hostile checks remain. At most two such legs per goal across replans; no bank/task deadline or probe allowance is reset. Synthetic captured-start/contour tests distinguish staging from real arrival and missing support from geometric eligibility. The 2m destination preference accounts for observed 0.89m wave variation plus ordinary walking buffer/headroom; it is not a general water-policy relaxation. Next native run follows completed CI/review, not an unchanged retry.
 
 Also fixing route-evidence relative paths at the just module boundary with an actual-recipe regression, and requiring 95% HP for benchmark keep-online after at most 90s safe-home healing. Tas is offline with controller-only panel running.
+
+**agent:codex/renki-milestones** at 2026-11-01T10:34:00Z
+
+Reviewed 9f993c2 passed full just check ci (.checks/20261101T102213Z-yEDJii.log), committed review and checksum installation. Changed-policy return .checks/recovery-20261101T102531Z / audit .checks/audit-window-BU9uSQ.jsonl demonstrated a native checked staging leg: 374 expansions, 2992 probes, 2.02s, supported endpoint [-45.73,32.37,5.26], about 7m physical travel without injury. Full return remained unsuccessful: the next local search was still Searching at 2861 expansions / 22888 probes after 16.02s. Tas logged out; controller-only panel remains online. Neither home arrival nor any repeated route/pantry receipt is earned.
+
+Addressing remaining full-floor search ordering with an opt-in 3D distance-to-arrival-cylinder estimate for nearby dry searches. Supported edge/arrival rules, 4096-node/16s-stage limits, ordinary travel clearance and bank budgets remain unchanged. Distant frontier legs and supplied regional guidance keep the original estimate. HeightRouteTests prove fewer expansions through a synthetic stair connection, no invented support and identical distant frontier routing. Add bounded piece-type slope diagnostics and unrounded normals to diagnose native building support rather than guessing at stair colliders.
+
+The automatic camera checkpoint did run but captured a loading screen. Delay the single optional attempt until >=6s after the first in-world state; no camera settings change. This is separate from movement success. Next native return is on the corrected search order after CI/review, not an unchanged retry.

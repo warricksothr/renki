@@ -1715,3 +1715,30 @@ The image/metadata stay in `.checks/`; the summary retains their paths or a
 bounded capture error. Capture failure does not grant movement or alter the
 return result, and the supervisor never changes the configured capture rate.
 This avoids relying on a manual image request after a failed native logout.
+
+Reviewed/deployed `9f993c2` demonstrated one native staging leg in
+`.checks/recovery-20261101T102531Z`, audit `.checks/audit-window-BU9uSQ.jsonl`.
+After374 expansions/2992 probes and2.02s it selected checked support at
+[-45.73,32.37,5.26]. Tas followed it about7m without injury. The subsequent
+full home search still ended `Searching` after2861 expansions/22888 probes
+and16.02s, so the overall return failed and Tas logged out. This earns checked
+staging progress, not home arrival or a repeated route. Its automatic camera
+checkpoint captured a loading overlay; checkpoint admission now waits at
+least6s after the first in-world observation, while retaining the optional,
+read-only, one-attempt policy.
+
+The remaining nearby dry search now estimates distance to the goal's arrival
+cylinder in3D. This prioritizes a supported upper-floor connection over ground
+directly below the goal; it changes queue order, not permitted edges or
+arrival rules. Distant frontier legs and explicit regional guidance retain
+their existing estimates. `just check plugin test-core HeightRouteTests`
+compares expanded nodes on synthetic stacked floors with a checked stair
+connection, rejects missing connections at the unchanged node bound, and
+verifies identical frontier travel despite an unknown distant goal height.
+
+Failed support contacts now retain unrounded positions/normals so a value
+just below0.8 is not printed as an apparently accepted0.8. Per-world building
+support-slope diagnostics retain at most eight distinct piece types, allowing
+native stair/roof collider refusals to be distinguished from terrain without
+logging every probe. Normal, support-height, body, portal and water admission
+remain unchanged. The height-aware change still requires native validation.

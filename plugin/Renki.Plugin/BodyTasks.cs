@@ -813,7 +813,8 @@ namespace Renki.Plugin
                 progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel,
                 guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null,
                 stagingEligible: dryGround && avoidHostiles && dryStaging.Available
-                    ? (System.Func<V3, bool>)(at => DryTravel.Clear(at, WorldNavigation.WaterLevel(at), DryStaging.WaterMargin)) : null), Guidance, preferGuidance);
+                    ? (System.Func<V3, bool>)(at => DryTravel.Clear(at, WorldNavigation.WaterLevel(at), DryStaging.WaterMargin)) : null,
+                heightAware: dryGround), Guidance, preferGuidance);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;

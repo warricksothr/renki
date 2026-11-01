@@ -21,6 +21,7 @@ namespace Renki.Plugin
         static readonly Collider[] overlaps = new Collider[64];
         static readonly RaycastHit[] portalCasts = new RaycastHit[64];
         static readonly Collider[] portalOverlaps = new Collider[64];
+        static readonly HashSet<string> supportSlopePieces = new HashSet<string>();
         static Vector3? focus;
         static float nextPortalRefusalTrace;
         static string world;
@@ -42,6 +43,7 @@ namespace Renki.Plugin
             Array.Clear(overlaps, 0, overlaps.Length);
             Array.Clear(portalCasts, 0, portalCasts.Length);
             Array.Clear(portalOverlaps, 0, portalOverlaps.Length);
+            supportSlopePieces.Clear();
         }
 
         // The final input guard also covers ordinary navmesh following and
@@ -98,24 +100,32 @@ namespace Renki.Plugin
                 evidence = new
                 {
                     reason = saturated ? "saturated" : selection.Refusal,
-                    at = at.ToArray(),
+                    at = new[] { at.X, at.Y, at.Z },
                     fromY,
                     step = Step,
                     footing,
                     walking,
-                    rayTop = Convert.ToArray(top),
+                    rayTop = new[] { (double)top.x, top.y, top.z },
                     rayLength = Step * 2 + .1f,
                     hits = count,
                     normalHits = selection.NormalHits,
-                    selected = selection.Selected?.ToArray(),
+                    selected = selection.Selected.HasValue ? new[] { selection.Selected.Value.X, selection.Selected.Value.Y, selection.Selected.Value.Z } : null,
                     // Keep the nearest six hits, not an unbounded scene dump.
                     contacts = supportHits.Take(count).OrderBy(hit => Math.Abs(hit.point.y - fromY)).Take(6).Select(hit => new
                     {
-                        pos = Convert.ToArray(hit.point),
-                        normal = Convert.ToArray(hit.normal),
+                        pos = new[] { (double)hit.point.x, hit.point.y, hit.point.z },
+                        normal = new[] { (double)hit.normal.x, hit.normal.y, hit.normal.z },
                         collider = hit.collider != null ? hit.collider.transform.root.name + "/" + hit.collider.name : null
                     }).ToArray()
                 };
+            if (diagnostics && walking && selection.Refusal == "slope" && supportSlopePieces.Count < 8)
+                for (var i = 0; i < count && supportSlopePieces.Count < 8; i++)
+                {
+                    var piece = supportHits[i].collider?.GetComponentInParent<Piece>();
+                    if (piece != null && supportSlopePieces.Add(piece.name))
+                        Tracer.Emit("navigation", "building support slope refused", new Dictionary<string, object>
+                        { ["piece"] = piece.name, ["supportQuery"] = evidence });
+                }
             return saturated ? null : selection.Point;
         }
 
