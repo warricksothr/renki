@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6CP0J0A6TVZCHAPVMVB0SGQ
 title: Execute natural get-in-bed requests as sleep commands
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/valheim-plus-migration
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 82757d66745c0635dc56d8a741d81fe45d1ae590
-  session: null
-  claimed_at: 2026-11-01T23:10:12Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-01T23:09:46Z
-updated_at: 2026-11-01T23:13:57Z
+updated_at: 2026-11-01T23:14:49Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -63,3 +56,11 @@ Route get-in-bed/get-into-bed and possessive variants through the existing expli
 Added get in bed/get into bed/go to your bed and possessive variants to the existing sleep command. Existing please/punctuation normalization now recognizes the exact reported phrase. Strengthened the dispatch test to require a new body task for every alias, rather than allowing an earlier interaction to satisfy later phrases, and exercised the new wording against guest authorization. Unknown/occupied bed exclusions and sleep=true remain covered.
 
 just check controller test-packages ./internal/chat passed (.checks/20261101T231013Z-ow6SJv.log). just check ci passed in173s (.checks/20261101T231022Z-bKfNXs.log), including controller race checks, native plugin/policy/interop checks, UI scenarios and live-tool simulations. Current audit shows an explicit controller logout command l-8 at23:07:01Z after the bed request; Tas is currently connected at menu. Preserve that state during controller-only deployment. Nighttime bed approach/actual in_bed and escort interruption remain unchecked on the parent ticket and in docs/TESTING.md.
+
+**agent:codex/renki-milestones** at 2026-11-01T23:14:49Z
+
+Implementation committed at880cbc3. just check review HEAD~1..HEAD passed with no findings (.checks/20261101T231357Z-lVTSRV.log). just check vm deploy-controller passed (.checks/20261101T231408Z-Fucupf.log). Fresh API status reports controller version880cbc3, connected=true, phase=menu and no body task: deployment preserved the explicit logged-out state without restarting or joining the game. Evidence .checks/protection-policy/bed-after-deploy.json. The command-parser bug is fixed; current-layout nighttime bed entry/escort interruption remains explicitly pending on parent TKT-01M62PRDSBCRCPH5S0TGGCMAEY.
+
+## Summary
+
+Fixed and deployed at 880cbc3; full CI/review passed. Nighttime bed-entry check remains on the parent batch ticket.
