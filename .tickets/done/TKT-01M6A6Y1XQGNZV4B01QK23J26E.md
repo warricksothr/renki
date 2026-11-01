@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6A6Y1XQGNZV4B01QK23J26E
 title: Recover a household return blocked by hostile clearance
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/hostile-return-detours
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: ebe8d6901037347eaea51deb0cd977ece6ba2e44
-  session: null
-  claimed_at: 2026-11-01T00:15:49Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-01T00:07:46Z
-updated_at: 2026-11-01T00:33:33Z
+updated_at: 2026-11-01T00:38:51Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -52,10 +45,10 @@ Determine whether a physically safe detour actually exists before changing plann
 
 ## Acceptance criteria
 
-- [ ] Retained geometry and hostile evidence establish whether a safe route exists with the current clearances.
+- [x] Retained geometry and hostile evidence establish whether a safe route exists with the current clearances.
 - [x] A feasible detour can make bounded progress even when its first leg moves away from home, without weakening physical or survival checks.
 - [x] Infeasible or unchanged blocked routes expose an actionable bounded outcome instead of blind retries or manufactured arrival.
-- [ ] Tas returns to the correct home floor without injury before repeating outdoor delivery and repair trials.
+- [x] Tas returns to the correct home floor without injury before repeating outdoor delivery and repair trials.
 
 ## Implementation plan
 
@@ -74,3 +67,15 @@ Implemented ordinary physical search followed by at most one threat-guided fallb
 `just check plugin test-core` passed all 679 non-interop checks; `just check plugin build` passed with the game assemblies available. ThreatGuidanceTests prove initially-away progress through checked legs to actual arrival, ordinary-search bridge preservation, bounded unchanged failure, changed live-threat refusal and wrong-floor/unavailable-support refusal. The captured terrain fixture proves only a geometric alternative, not a physically traversable live route. Corrected the synthetic test to retain the same sticky guidance preference as the native walker and use each search's actual progress metric.
 
 Full `just check ci` is running. Live guarded recovery remains unverified; Tas is offline with the panel online. A long geometric alternative may exceed the existing recovery limits; retain those limits and inspect the observed outcome rather than broadening the order silently.
+
+**agent:codex/renki-milestones** at 2026-11-01T00:38:32Z
+
+Live guarded recovery passed on deployed29db3b8: `.checks/recovery-20261101T003515Z`, full audit `.checks/audit-window-GWZnrB.jsonl`, 00:35:15Z–00:37:44Z. Tas returned from[-23.24,30.87,-30.42] to[-37.02,36.09,9.11], with grounded/in_shelter/near_fire observed and70.4/70.4 HP at release. About110.7m observed travel and100.5s in-world, inside the unchanged160m/120s/80m bounds. No injury was observed; HP/max declined together as food aged. The correct home floor and shelter were confirmed by the native guard and independent supervisor.
+
+The live fallback was exercised: at00:36:18Z, the ordinary search exhausted4096 nodes and the guided phase found an initially-away checked leg after103 more expansions (4199 total), ending near[-19.02,36.21,-48.36]. Guidance used16 ring points/602 terrain hints, estimated234.23m initially, and built in13.65ms. Total search work1151.57ms over11.02s; worst measured slice15.01ms, including the synchronous graph build. Subsequent fresh-threat guidance became inactive as observations changed, and ordinary physical searches completed the return. The captured static geometric estimate is not a prediction of actual travelled distance around moving creatures. Repeated entrance replans were still needed before the west stair approach succeeded.
+
+`just check ci` passed in `.checks/20261101T003211Z-ZOPLmM.log`; committed `just check review t3/outdoor-household-validation..HEAD` passed with no findings in `.checks/20261101T003442Z-b0oYp3.log`. `just check vm install` verified installed DLL/package checksums. PR #138 https://github.com/warricksothr/renki/pull/138 stacks on #137. Outdoor food delivery may now be retried; repair remains a separate live check. A one-time13.65ms graph-build spike is retained as a performance limitation, not presented as meeting the2ms slice target.
+
+## Summary
+
+Implemented in29db3b8 / PR #138; guarded live return exercised guided fallback and reached home floor/shelter without injury. Evidence and measured13.65ms synchronous graph-build limitation are in the latest note.

@@ -1199,6 +1199,17 @@ floor and unchanged health before retrying outdoor work. A geometric hint
 that exceeds those limits or fails physical probes remains a failed return;
 do not repeat unchanged failures or treat a planned leg as arrival.
 
+On 2026-11-01, guarded recovery on29db3b8 exercised the fallback after4096
+ordinary expansions and found an initially-away leg with103 guided expansions.
+Tas reached the actual36.09m home floor and shelter after about111m travel
+and100.5s in-world, without observed injury (70.4/70.4HP at release). The
+16-point/602-hint graph built synchronously in13.65ms; worst measured slice
+was15.01ms, exceeding the2ms target for that slice. Later live threat changes
+allowed ordinary routing; the initial234m geometric estimate did not describe
+the final travelled route. Repeated stair-approach replans were still needed.
+Full evidence: `.checks/recovery-20261101T003515Z` and
+`.checks/audit-window-GWZnrB.jsonl`; details are on the hostile-return ticket.
+
 ## Household food pressure checks
 
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
