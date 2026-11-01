@@ -17,12 +17,14 @@ spec.loader.exec_module(food)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('world', help='exact known world name; native login must match')
-    parser.add_argument('--work-trip', action='store_true', help='explicit outer-trip return with stronger admission reserves and capped 200m/400m/240s limits')
+    profiles = parser.add_mutually_exclusive_group()
+    profiles.add_argument('--nearby', action='store_true', help='explicit 30m home-radius/60m travel/90s return, at least40HP/80%, two food slots and8m threat clearance')
+    profiles.add_argument('--work-trip', action='store_true', help='explicit outer-trip return with stronger admission reserves and capped 200m/400m/240s limits')
     args = parser.parse_args()
     folder = ROOT / '.checks' / ('recovery-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
     result = dict(outcome='failed', reason='not started', evidence=str(folder),
-                  profile='work_trip' if args.work_trip else 'local',
+                  profile='work_trip' if args.work_trip else 'nearby' if args.nearby else 'local',
                   startedAt=datetime.datetime.now(datetime.timezone.utc).isoformat())
     launch, owns, previous = None, False, None
     log = (folder / 'commands.log').open('a')
@@ -39,8 +41,8 @@ def main():
         if status.get('connected'):
             raise RuntimeError('recovery requires offline bot; no body replaced')
         arm = ['recovery-return', 'arm', args.world]
-        if args.work_trip:
-            arm.append('work_trip')
+        if args.work_trip or args.nearby:
+            arm.append('work_trip' if args.work_trip else 'nearby')
         result['order'] = call(*arm)
         owns = True
         launch = subprocess.Popen(['just', 'vm', 'start', '2'], cwd=ROOT, stdout=log, stderr=log)

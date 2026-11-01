@@ -136,13 +136,24 @@ home from controller memory while the game is offline and arms a five-minute,
 one-shot native order. The plugin consumes the order before moving. Invalid or
 wrong-world orders log out; an absent order retains passive sheltered healing.
 
-Admission requires at least 50 HP and 70% maximum health, two active foods,
+The default local profile requires at least 50 HP and 70% maximum health, two active foods,
 25 stamina, dry grounded feet and six metres of hostile clearance. Normal
 native dry movement avoids hostiles. Injury, water, less than eight stamina,
 close threats, cancellation, bridge/session loss or permission loss log out.
 The return permits 120 seconds, 160 metres travelled and at most 80 metres
 from home. It cannot combat, collect supplies or accept ordinary body tasks.
 An operator stop aborts it, and reconnect cannot resume it.
+
+For an explicitly armed short return, `just vm recover-home WORLD --nearby`
+uses a separate profile: at least40HP and80% maximum health, two active food
+slots with at least120seconds remaining at admission,25stamina, eight metres
+of live hostile clearance, and dry grounded feet. It permits at most90seconds,
+60metres of measured travel and a30metre home radius. This profile cannot fight
+or recover through a threat encounter. Any injury, water, close threat or lost
+session logs out; it never releases ordinary body tasks until the same sheltered
+healing guard finishes. Default local and work-trip profiles retain their
+existing health and travel gates. This avoids treating a healthy-enough nearby
+return as impossible solely because maximum food health is below50HP.
 
 Arrival requires the original home floor, actual shelter and twelve metres of
 hostile clearance. It then resumes passive healing; ordinary tasks remain held

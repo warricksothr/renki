@@ -11,16 +11,17 @@ namespace Renki.Tasks
         public long Expires;
         public string Profile;
 
+        public bool Nearby => Profile == "nearby";
         public bool WorkTrip => Profile == "work_trip";
-        public double Seconds => WorkTrip ? 240 : 120;
-        public double Travel => WorkTrip ? 400 : 160;
-        public double Radius => WorkTrip ? 200 : 80;
+        public double Seconds => WorkTrip ? 240 : Nearby ? 90 : 120;
+        public double Travel => WorkTrip ? 400 : Nearby ? 60 : 160;
+        public double Radius => WorkTrip ? 200 : Nearby ? 30 : 80;
 
         public bool Valid(string world, long now) => !string.IsNullOrWhiteSpace(World) &&
             World == world && Pos != null && Pos.Length == 3 &&
             Finite(Pos[0]) && Finite(Pos[1]) && Finite(Pos[2]) &&
             Expires > now && Expires <= now + 600 &&
-            (string.IsNullOrEmpty(Profile) || Profile == "local" || WorkTrip);
+            (string.IsNullOrEmpty(Profile) || Profile == "local" || WorkTrip || Nearby);
 
         internal static bool Finite(double v) => !double.IsNaN(v) && !double.IsInfinity(v);
         public V3 Home => new V3(Pos[0], Pos[1], Pos[2]);
@@ -57,7 +58,7 @@ namespace Renki.Tasks
                 !RecoveryReturnOrder.Finite(max) || !RecoveryReturnOrder.Finite(stamina) ||
                 !RecoveryReturnOrder.Finite(pos.X) || !RecoveryReturnOrder.Finite(pos.Y) ||
                 !RecoveryReturnOrder.Finite(pos.Z) || double.IsNaN(threatDistance) ||
-                hp < 50 || hp < max * .7 || max <= 0 || water || foods < (order.WorkTrip ? 2 : 1) || threatDistance < 6)
+                hp < (order.Nearby ? 40 : 50) || hp < max * (order.Nearby ? .8 : .7) || max <= 0 || water || foods < (order.WorkTrip || order.Nearby ? 2 : 1) || threatDistance < (order.Nearby ? 8 : 6))
                 return Refuse("unsafe health, food, water or threat clearance");
             if (observed)
             {
@@ -76,7 +77,8 @@ namespace Renki.Tasks
             if (!admitted)
             {
                 if (!grounded || foods < (order.WorkTrip ? 3 : 2) || stamina < (order.WorkTrip ? 35 : 25) ||
-                    order.WorkTrip && (hp < max * .9 || !RecoveryReturnOrder.Finite(foodSeconds) || foodSeconds < order.Seconds + 30))
+                    (order.WorkTrip && hp < max * .9) ||
+                    (order.WorkTrip || order.Nearby) && (!RecoveryReturnOrder.Finite(foodSeconds) || foodSeconds < order.Seconds + 30))
                     return Refuse("startup return admission reserves");
                 admitted = true;
             }

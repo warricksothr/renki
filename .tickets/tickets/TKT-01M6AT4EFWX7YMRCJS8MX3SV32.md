@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T05:58:52Z
+updated_at: 2026-11-01T06:03:27Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -64,3 +64,9 @@ Then extend existing household_food with low/high stock thresholds, opt-in food-
 Pantry implementation now adds low/high refill hysteresis, explicit household Boar/Neck hunting by missing recipe, pinned hunting markers, center-first multi-area search with bounded interior samples and 15-minute persisted visit cooldowns. Exact current hunt task/target may spend the same lifetime ten-damage allowance as food travel; successful matching kill acknowledges injury but earns no ingredient credit. Added panel/tool policy controls and atomic rotation of old resolved goal records (never pending/active). Focused controller checks and bank core checks pass; CI/review and native proof pending.
 
 Native trial .checks/food-20261101T055009Z failed returning through a newly loaded group of Greydwarfs/Shaman. Final audit recorded44HP; no production. Corrected bank recovery to run before flee preflight and compare equal settling allowances on gradual inclines. Native return and repeated hunt/loot/cook/deposit remain unearned; all field criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:03:27Z
+
+Commit44e46a0 implements pantry policy, scoped hunting and controls. Full just check ci passed (.checks/20261101T055852Z-XtkC54.log); committed just check review9ef2f6f..HEAD passed without findings (.checks/20261101T060151Z-k1Pq9y.log). Live proof remains open.
+
+The final saved state is44/53.5HP, outside on dry terrain, with three active foods. Default startup healing cannot wait outdoors and default startup-return admission requires50HP. Added an explicit nearby startup profile instead of disabling RecoveryGuard or changing default profiles:40HP/80%, two foods with120s remaining,25stamina,8m hostile clearance;90s/60m measured travel/30m home radius, no combat, immediate injury/water/session logout. Focused RecoveryReturn and supervisor checks pass; full gate/review and field return pending.

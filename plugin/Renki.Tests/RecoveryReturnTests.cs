@@ -16,6 +16,42 @@ namespace Renki.Tests
                 foods, grounded, water, sheltered, threat, session, settled, foodSeconds);
 
         [Fact]
+        public void ExplicitNearbyReturnHasItsOwnTighterScopeAndReserves()
+        {
+            var start = new V3(20, 30, 0);
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard(), hp: 44, max: 53.5, pos: start));
+            var g = Guard("nearby");
+            Assert.Equal(RecoveryReturnAction.Move, Step(g, hp: 44, max: 53.5, pos: start, foodSeconds: 120));
+            Assert.Equal(RecoveryReturnAction.Arrived, Step(g, now: 20, hp: 44, max: 53.5, pos: new V3(0, 28.5, 0), sheltered: true, threat: 20));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 39.9, max: 45, pos: start));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 44, max: 56, pos: start));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 44, max: 53.5, pos: new V3(30.1, 30, 0)));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 44, max: 53.5, pos: start, threat: 7.9));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 44, max: 53.5, pos: start, foods: 1));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 44, max: 53.5, pos: start, foodSeconds: 119));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 44, max: 53.5, pos: start, foodSeconds: double.NaN));
+        }
+
+        [Theory]
+        [InlineData("injury")]
+        [InlineData("time")]
+        [InlineData("travel")]
+        [InlineData("threat")]
+        [InlineData("water")]
+        [InlineData("session")]
+        public void NearbyRecoveryNeverRenewsItsReturnBudget(string cause)
+        {
+            var g = Guard("nearby"); var start = new V3(20, 30, 0);
+            Assert.Equal(RecoveryReturnAction.Move, Step(g, hp: 44, max: 53.5, pos: start));
+            if (cause == "travel")
+                Assert.Equal(RecoveryReturnAction.Move, Step(g, now: 1, hp: 44, max: 53.5, pos: new V3(-20, 30, 0)));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(g, now: cause == "time" ? 90 : 2,
+                hp: cause == "injury" ? 43 : 44, max: 53.5, pos: start, threat: cause == "threat" ? 7 : 8,
+                water: cause == "water", session: cause != "session"));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(g, now: 3, hp: 44, max: 53.5, pos: start));
+        }
+
+        [Fact]
         public void ExplicitWorkTripCanReturnFromOutsideTheUnchangedLocalRadius()
         {
             var start = new V3(96, 30, 0);

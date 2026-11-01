@@ -20,7 +20,7 @@ OUTSIDE = HEALTHY | dict(hp=53, pos=[40, 30, 0], flags=['recovering'])
 
 
 class RecoverySupervisorTests(unittest.TestCase):
-    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False):
+    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False):
         calls = []
         snapshots = iter(snapshots)
 
@@ -45,7 +45,7 @@ class RecoverySupervisorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp, patch.object(recovery, 'ROOT', Path(temp)), \
                 patch.object(recovery.subprocess, 'run', side_effect=request), \
                 patch.object(recovery.subprocess, 'Popen', return_value=launch), \
-                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else [])), \
+                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else ['--nearby'] if nearby else [])), \
                 contextlib.redirect_stdout(io.StringIO()):
             code = recovery.main()
             summary = json.loads(next(Path(temp).glob('.checks/recovery-*/summary.json')).read_text())
@@ -64,6 +64,13 @@ class RecoverySupervisorTests(unittest.TestCase):
         self.assertEqual(result['profile'], 'work_trip')
         self.assertIn(['recovery-return', 'arm', 'one', 'work_trip'], calls)
         self.assertIn(['recovery-return', 'clear'], calls)
+        self.assertFalse(any(c[0] in ('task', 'task-check') for c in calls))
+
+    def test_explicit_nearby_profile_is_forwarded_without_body_orders(self):
+        code, result, calls = self.run_trial([dict(connected=False), OUTSIDE | dict(hp=44, hpMax=53.5, pos=[20,30,0]), HEALTHY], nearby=True)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result['profile'], 'nearby')
+        self.assertIn(['recovery-return', 'arm', 'one', 'nearby'], calls)
         self.assertFalse(any(c[0] in ('task', 'task-check') for c in calls))
 
     def test_work_trip_injury_still_stops_and_clears_the_order(self):

@@ -177,7 +177,7 @@ namespace Renki.Plugin
                             {
                                 ["home"] = recoveryReturnOrder.Pos,
                                 ["pos"] = Convert.ToArray(p.transform.position),
-                                ["profile"] = recoveryReturnOrder.WorkTrip ? "work_trip" : "local",
+                                ["profile"] = recoveryReturnOrder.WorkTrip ? "work_trip" : recoveryReturnOrder.Nearby ? "nearby" : "local",
                                 ["seconds"] = recoveryReturnOrder.Seconds,
                                 ["travelM"] = recoveryReturnOrder.Travel,
                                 ["homeRadiusM"] = recoveryReturnOrder.Radius,

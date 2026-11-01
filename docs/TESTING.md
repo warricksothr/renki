@@ -1458,3 +1458,12 @@ final audit recorded44HP before logout. This exposed the preflight ordering
 and gradual-slope settling comparison addressed here. Synthetic checks do not
 prove the saved native return or pantry completion; retain live outcomes and
 leave field acceptance criteria open until repeated receipts earn them.
+
+
+`just check plugin test-core RecoveryReturnTests` covers the explicitly armed
+nearby startup profile (40HP/80%, two foods/120s,8m threats,30m radius,
+60m measured travel,90s), immediate injury/water/session refusals and terminal
+budgets, while retaining default local/work-trip behavior. `just check vm
+test-recover-home` verifies forwarding and cleanup without any body puppeting.
+Native proof is still required; the saved44/53.5HP state cannot use the default
+local profile's50HP gate.

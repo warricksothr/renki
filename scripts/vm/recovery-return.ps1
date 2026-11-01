@@ -1,6 +1,6 @@
 # Arm a one-shot native home return, or clear an unused order. Game must be offline.
 param([ValidateSet('arm', 'clear')][string]$Action = 'arm', [string]$WorldBase64 = '',
-      [ValidateSet('local', 'work_trip')][string]$ReturnProfile = 'local')
+      [ValidateSet('local', 'work_trip', 'nearby')][string]$ReturnProfile = 'local')
 . (Join-Path $PSScriptRoot 'common.ps1')
 $s = Read-BotSettings
 $path = Join-Path (Split-Path $s.ValheimExe) 'BepInEx\config\com.warricksothr.renki.cfg'
