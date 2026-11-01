@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T11:03:32Z
+updated_at: 2026-11-01T11:15:59Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -162,3 +162,13 @@ Reviewedf243371 passed just check ci (.checks/20261101T105408Z-4jqUWU.log), comm
 Implement checked under-floor escape staging: only when a raised dry/hostile-avoiding search starts beneath observed building geometry, select an expanded node outside overhead pieces with >=3m displacement, >=0.25m rise, <=12m checked cost and <=8m additional horizontal distance from the target. This permits deliberate outward repositioning instead of searching directly beneath an entrance. Fresh destination overhead/water checks, ordinary edge/body/portal/hostile admission, >=2s wait and the same aggregate two-leg allowance remain; no task/bank budget renewed or arrival invented. Shore staging for raised goals also avoids endpoints under a building. Captured-start/synthetic-overhang regression and native build pass; full gate/review and one changed-policy return remain pending.
 
 Route-evidence now includes bounded entrance selections and native startup return/logout reasons so future diagnosis does not require raw audit scans. This supersedes any inference that the normal correction alone completed the entrance route.
+
+**agent:codex/renki-milestones** at 2026-11-01T11:15:59Z
+
+Build630dd11 passed just check ci (.checks/20261101T110342Z-1mBaqi.log), committed review (.checks/20261101T110631Z-OqSG2f.log), push and checksum deployment. Return .checks/recovery-20261101T110659Z PASSED:37.4m observed travel, sheltered floor[-37.01,36.09,9.12],43.7/43.7HP, no observed injury. Audit .checks/audit-window-Tj3Mql.jsonl records full checked entrance routes at676 expansions/4.18s and608 expansions/3.78s. No staging leg was used. This proves the full return on the build, not native under-floor escape selection or repeated route reliability; do not attribute the successful path specifically to an unused branch.
+
+The strict benchmark has not been run or passed: pinned homeY37.66 versus observed floorY36.09 exceeds its0.75m vertical criterion, and current raw-marker distance3.23m exceeds its3m start bound. Keep home and strict threshold unchanged; future benchmark support for legacy eye-height markers needs an explicit observed floor reference pinned to the same home/world/connection. Do not count a benchmark refusal or this recovery as repeated proof.
+
+Production food resupply .checks/food-20261101T111055Z PASSED with native stored deer-meat withdrawal/eating, reserve2, active food and sheltered health recovery; two tasks/receipts. Tas remained online. Then automatic pantry trial .checks/food-20261101T111255Z (one Mushroom, north mushrooms, acquisition+deposit required) stopped at admission with zero tasks: nearby threat prevents food resupply. Saved before-map.json shows six Greydwarfs and three Greylings, all targeting Tas, several at the doorway. No injury observed; game stopped and independent panel restored. Do not retry against the unchanged base attack or request manual enemy staging as the normal loop. No pantry deposit or milestone acceptance earned; field ACs remain open.
+
+Next development: retain these distinct return/resupply successes and threat refusal; resolve strict benchmark floor provenance without moving home or loosening acceptance, then repeat routes and restart autonomous pantry production when native threat admission permits. Current state: game offline, controller/panel online, installed build630dd11.

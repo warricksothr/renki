@@ -1804,4 +1804,32 @@ insufficient rise, excess retreat and renewed leg allowances.
 
 `just vm route-evidence` also projects entrance choices and native startup
 return/logout reasons, avoiding ad hoc scans of the full audit. Under-floor
-exit traversal and a complete home return still need native validation.
+exit traversal still needs native validation.
+
+Build630dd11 passed full `just check ci`
+(`.checks/20261101T110342Z-1mBaqi.log`), committed review
+(`.checks/20261101T110631Z-OqSG2f.log`) and checksum installation. Return
+`.checks/recovery-20261101T110659Z` passed without observed injury:37.4m
+travel, sheltered arrival[-37.01,36.09,9.12],43.7/43.7HP. Audit
+`.checks/audit-window-Tj3Mql.jsonl` records complete checked routes through
+observed entrances, including676 expansions/4.18s and608 expansions/3.78s.
+Staging allowance used was zero. This proves the full return on this build,
+not native selection of the new under-floor escape or repeated reliability.
+
+The strict benchmark remains open: its pinned marker Y37.66 differs from
+measured home floor Y36.09 by1.57m, exceeding its0.75m vertical admission.
+The successful return is not a benchmark pass. Do not silently move home or
+reduce that threshold; floor-reference handling needs an explicit, scoped,
+observed reference for the legacy marker's documented eye-height allowance.
+
+Production resupply `.checks/food-20261101T111055Z` passed through two native
+tasks/receipts: stored deer-meat withdrawal and eating, carried reserve2,
+active food and sheltered health recovery. Tas stayed online at home.
+The following automatic pantry episode
+`.checks/food-20261101T111255Z` required acquisition and deposit of one
+Mushroom from `north mushrooms`. It stopped with zero tasks/receipts:
+`nearby threat prevents food resupply`. Its retained `before-map.json`
+contains six Greydwarfs and three Greylings, all targeting Tas, several by
+the doorway. No injury was observed. The supervisor stopped the game and
+restored the independent panel. No unchanged retry, enemy spawning, manual
+rescue request, pantry deposit or milestone completion is claimed.
