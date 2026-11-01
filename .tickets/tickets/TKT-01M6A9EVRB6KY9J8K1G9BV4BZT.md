@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T05:09:35Z
+updated_at: 2026-11-01T05:21:21Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -219,3 +219,13 @@ Normal home resupply on the prior implementation passed (.checks/food-20261101T0
 Live trial .checks/food-20261101T050359Z on9263f4b collected1 fresh Mushroom (interact t-3, exact pickup t-4, observed_yield_fresh_inventory) and ate it as a third active food. Increased food maximum correctly committed a home return. No deposit was earned. Return t-6 failed unreachable after3 native blocked-observation attempts: no checked dry shore step: water. No injury, minimum39.9HP; final grounded/out-of-water[-52.29,30.75,10.95],53.5/55.7HP after keeper refresh. Supervisor safely logged out/stopped game, restored panel. Audit .checks/audit-window-tDRhBD.jsonl; outer .checks/20261101T050359Z-mO6sIm.log.
 
 Diagnosis: Swim promotes a dry grounded support below the conservative0.8m planning buffer into swimming recovery, before route planning/replay. It discards a physically checked uphill route for a distant geometric shore hint, then rejects the short shore step under the same0.8m rule. Current feet and actual inWater/swimming state must be distinguished from the safety buffer required for future movement. Next change removes that synthetic swim transition for an out-of-water body; actual in-water/swimming recovery and every existing0.8m midpoint/endpoint, support, body and hostile execution check remain. Add a captured-position/synthetic-bank regression proving only a fully checked uphill departure, changed-water refusal and unchanged physical/hostile refusals. Enable replay diagnostics and include water/body state in shore refusal evidence. Run focused maths, full gate, committed review, then deploy and test a normal supervised return from the saved position. No unchanged production retry or credit for collected food consumed personally.
+
+**agent:codex/renki-milestones** at 2026-11-01T05:21:21Z
+
+Grounded-route correction8b03f50 passed focused just check plugin test-core DryTravelTests (.checks/20261101T051009Z-BXmU2K.log), complete just check ci in143s with805 C# tests (.checks/20261101T051048Z-esGGwy.log), and committed just check review 7df0cb2..HEAD without findings (.checks/20261101T051325Z-rjlqXi.log). Pushed to PR #146; deployed with installed/controller/package checksum verification (.checks/20261101T051339Z-Vr5ZlW.log). Panel restored.
+
+Positive native check: ordinary just vm food-check --join --reserve2 --keep-online (.checks/food-20261101T051404Z) returned from saved shore[-52.29,30.75,10.95] onto actual sheltered home floor[-36.4,36.09,7.89]. Observed travel29.8m; final57/57HP, no injury, idle; supervisor kept online. Actual in-water/swimming recovery remains intact, and no forward water margin was lowered. This is a single checked return, not general routing proof.
+
+Follow-up household trial .checks/food-20261101T051602Z failed without injury. Search t-6 repeatedly encountered the west gate and descending support-step refusals; a later checked local route reached marginal shore[-52.47,30.71,10.94]. Native search and automatic return t-7 exhausted bounded recovery with all8 first-neighbor probes refused for water (1 expanded node, not a large-search-budget problem). This is distinct from the corrected synthetic-swim diversion. No fresh collection or stock deposit occurred. Supervisor logged out/stopped game safely and restored the panel. Combined audit .checks/audit-window-uSjpS9.jsonl; .checks/20261101T051925Z-pmpDRA.log. Inter-trial MushroomYellow storage was older personal cargo and is not outdoor-production proof.
+
+Remaining: avoid choosing marginal shoreline approaches and repeated gate/slope failures; retain failed live approach evidence across replans, and expose numeric support/water clearance to distinguish a real boundary from a wrong-floor sample. A bounded physically dry uphill egress may need separate design for a body already below the conservative planning buffer; do not lower global water/hostile margins or enlarge timeouts to force this test. Do not repeat the unchanged northern-source/shore return. Tas is safely offline at the captured shore, not currently at home. Original coastal AC1/AC2, native alternative-bearing/resumed-collection and exact outdoor-to-chest delivery remain open. PR #146 stays draft.

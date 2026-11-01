@@ -1380,7 +1380,21 @@ in-water/swimming state and leaves all forward water/support/body/hostile
 checks intact. `just check plugin test-core DryTravelTests` covers an uphill
 departure from the captured position on a synthetic bank, rejecting downhill,
 level, changed-water and physically refused steps. This does not establish the
-actual bank's traversability; the supervised native return remains required.
+actual bank's traversability; native results are recorded separately below.
+
+The corrected `8b03f50` passed a native return in
+`.checks/food-20261101T051404Z`: 29.8 m observed travel from the saved shore to
+the actual sheltered floor `[-36.4,36.09,7.89]`, no injury, final 57/57 HP,
+and verified idle conditions to remain online. The subsequent household trial
+`.checks/food-20261101T051602Z` still failed: gate and descending support
+refusals led to a marginal shore position, where the search and automatic
+return each exhausted bounded recovery. The final local searches expanded
+one node and refused all eight neighbors for water. This is a different
+boundary from the corrected synthetic-swim diversion. It earned no fresh
+collection or stock deposit; Tas was logged out safely at the shore without
+injury. Combined audit: `.checks/audit-window-uSjpS9.jsonl`. Avoid repeating
+that unchanged route; marginal-shore admission, remembered slope approaches
+and a safely checked departure from the existing thin buffer remain open.
 
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
