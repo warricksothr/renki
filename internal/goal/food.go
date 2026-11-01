@@ -7,6 +7,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/warricksothr/renki/internal/behaviour"
@@ -555,6 +556,9 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 			g.Food.TravelBudget = &FoodTravelBudget{Injury: *v.InjurySeq, Damage: v.Injury.Damage, HP: v.State.HP}
 		}
 		g.Pending = &Intent{Run: r.t.Store.runID, At: v.Now, Template: action, Params: raw, Entity: entity, Fingerprint: fmt.Sprintf("%s:%s:%s:%d", action, entity, item, v.Inventory.Seq)}
+		if action == "search_food" && strings.HasPrefix(entity, "marker:") && g.Food.Acquisition != nil {
+			g.Food.Acquisition.AreaVisits = append(g.Food.Acquisition.AreaVisits, FoodAreaVisit{Name: strings.TrimPrefix(entity, "marker:"), At: v.Now})
+		}
 		if slices.Contains([]string{"ready", "raw", "wood"}, action) {
 			g.Food.Tried = append(g.Food.Tried, g.Food.Phase+":"+entity+":"+item)
 		}

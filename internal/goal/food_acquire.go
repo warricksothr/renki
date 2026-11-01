@@ -18,13 +18,21 @@ import (
 // Acquisition is admitted only for new goals. Older checkpoints without this
 // adapter retain their original storage-only scope on explicit resume.
 type FoodAcquisition struct {
-	VisitCount int          `json:"visitCount,omitempty"`
-	Targets    int          `json:"targets"`
-	Hunts      int          `json:"hunts"`
-	Visits     []string     `json:"visits,omitempty"`
-	Tried      []string     `json:"tried,omitempty"`
-	Returning  bool         `json:"returning,omitempty"`
-	Product    *FoodProduct `json:"product,omitempty"`
+	VisitCount int             `json:"visitCount,omitempty"`
+	Targets    int             `json:"targets"`
+	Hunts      int             `json:"hunts"`
+	Visits     []string        `json:"visits,omitempty"`
+	AreaVisits []FoodAreaVisit `json:"areaVisits,omitempty"`
+	Tried      []string        `json:"tried,omitempty"`
+	Returning  bool            `json:"returning,omitempty"`
+	Product    *FoodProduct    `json:"product,omitempty"`
+}
+
+// Keep dispatch feedback independently of the rolling native-outcome history.
+// An uncertain or refused visit still spends its area cooldown.
+type FoodAreaVisit struct {
+	Name string    `json:"name"`
+	At   time.Time `json:"at"`
 }
 
 type FoodProduct struct {
@@ -65,8 +73,14 @@ func validateAcquisition(g Record) error {
 	if a == nil {
 		return nil
 	}
-	if a.Targets < 0 || a.Targets > 12 || a.Hunts < 0 || a.Hunts > 2 || len(a.Visits) > 6 || len(a.Tried) > 24 {
+	if a.Targets < 0 || a.Targets > 12 || a.Hunts < 0 || a.Hunts > 2 || len(a.Visits) > 6 || len(a.AreaVisits) > 6 || len(a.Tried) > 24 {
 		return errors.New("invalid food acquisition budgets")
+	}
+	for _, visit := range a.AreaVisits {
+		name, err := home.WaypointName(visit.Name)
+		if err != nil || name != visit.Name || visit.At.IsZero() || visit.At.Before(g.Created) || visit.At.After(g.Deadline) {
+			return errors.New("invalid food area visit")
+		}
 	}
 	if p := a.Product; p != nil {
 		if p.Entity == "" || !slices.Contains(append(append(slices.Clone(meals), ingredients...), "Wood"), p.Item) || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || p.Maximum < 1 || p.Maximum > 50 || p.BeforeCount < 0 || !finite(p.BeforeRemaining) || p.BeforeRemaining < 0 || p.Until.IsZero() || p.Until.After(g.Deadline) {

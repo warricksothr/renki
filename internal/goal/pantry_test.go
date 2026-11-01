@@ -197,6 +197,21 @@ func TestPantryAreaRotationAndCooldownSurviveRestart(t *testing.T) {
 	if err != nil || o == nil || o.Args.(*protocol.MoveToArgs).To.Pos[0] != -25 {
 		t.Fatal("did not visit another area", o, err)
 	}
+	// A long production episode can replace every early native outcome.
+	// Neither that nor an uncertain dispatch may erase area feedback.
+	if err := h.Store.update(id, func(g *Record) error {
+		if len(g.Food.Acquisition.AreaVisits) != 2 {
+			t.Fatal("area dispatches were not retained", g.Food.Acquisition.AreaVisits)
+		}
+		g.Pending = nil
+		g.History = make([]Outcome, 16)
+		for i := range g.History {
+			g.History[i] = Outcome{Template: "cook", Status: protocol.StatusSucceeded, At: v.Now}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	reopened, err := Open(h.Store.path)
 	if err != nil {
 		t.Fatal(err)

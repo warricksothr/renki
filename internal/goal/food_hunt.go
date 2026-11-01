@@ -32,6 +32,13 @@ func (r *runner) foodAreaCooling(g Record, name string, now time.Time) bool {
 		if old.ID == g.ID || old.World != g.World || old.Food == nil {
 			continue
 		}
+		if a := old.Food.Acquisition; a != nil {
+			for _, visit := range a.AreaVisits {
+				if visit.Name == name && !now.Before(visit.At) && now.Sub(visit.At) < 15*time.Minute {
+					return true
+				}
+			}
+		}
 		for _, result := range old.History {
 			if result.Template == "search_food" && result.Entity == "marker:"+name && !result.At.IsZero() && !now.Before(result.At) && now.Sub(result.At) < 15*time.Minute {
 				return true

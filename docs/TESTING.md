@@ -1496,6 +1496,17 @@ accepting the shorter request while still rejecting a0.502m physical step.
 This is a request-length correction, not a water or uphill-clearance waiver.
 Native return remains to be demonstrated after deployment.
 
+Build `9edf05b` passed the native nearby return in
+`.checks/recovery-20261101T062940Z`: Tas left the saved bank, travelled37.3m,
+reached the actual sheltered home floor at[-37.13,36.09,9.13], and recovered
+from44HP to52.7/52.7HP without observed injury. This earns that return check;
+it does not establish repeated outdoor pantry production.
+
+Named-area cooldowns retain at most six dispatch timestamps separately from
+the rolling sixteen native outcomes. The restart regression replaces the
+whole outcome history, then reopens the store and checks cooldown expiry.
+Refused and uncertain visits keep their cooldown; they do not prove arrival.
+
 Food hunt checks also retain a strictly bounded two-second settlement for a
 matching confirmed death while perception still contains that exact target.
 Other creatures, stale/foreign receipts and the original expiry cannot acquire
