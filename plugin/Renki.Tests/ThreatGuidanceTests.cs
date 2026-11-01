@@ -139,6 +139,27 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void InactiveGuidanceRetainsItsDiagnosticsWithoutAnotherSearch()
+        {
+            var calls = 0;
+            var start = new V3(-45, 0, -20); var goal = new V3(-45, 0, 20);
+            var route = new RouteSearch(_ => new LocalRoute(start, goal, (_, __) => null), () =>
+            {
+                calls++;
+                return new ThreatGuidance(start, goal, Threats, _ => false);
+            });
+            Assert.Equal(RouteStatus.NoRoute, Finish(route));
+            Assert.NotNull(route.Guidance);
+            Assert.False(route.Guidance.Active);
+            Assert.True(route.Guidance.RejectedHints > 0);
+            Assert.True(route.Guidance.HintSamples > 0);
+            Assert.Equal(0, route.Phase);
+            Assert.Equal(1, calls);
+            Assert.Equal(RouteStatus.NoRoute, route.Advance(8));
+            Assert.Equal(1, calls);
+        }
+
+        [Fact]
         public void HintGraphIsBoundedAndCannotReplayChangingThreatsAsPermission()
         {
             var sample = Enumerable.Range(0, 16).Select(i => new HostileClearance.Threat(new V3(i * 3, 0, 0))).ToArray();

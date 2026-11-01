@@ -1224,6 +1224,16 @@ offline against the pinned home in the exact known world and still expires.
 `just check plugin test-core RecoveryReturnTests` and
 `just check vm test-recover-home` cover both profiles and supervisor cleanup.
 
+The first work-trip trial on 9b422d6 admitted Tas about 96 m from home with
+the explicit profile, then refused physical travel after 3228 expansions
+amid seven loaded threats and water/body/support refusals. It logged out
+without movement or injury at 67.6/67.6 HP. Evidence:
+`.checks/recovery-20261101T004838Z` and `.checks/audit-window-BDzhju.jsonl`.
+This proves admission and safe refusal, not a home return or route
+infeasibility. Do not repeat the unchanged trial. Inactive hint graphs now
+retain their diagnostics without starting another search. Outer delivery,
+personal resupply and workbench repair remain pending safe home recovery.
+
 ## Household food pressure checks
 
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`

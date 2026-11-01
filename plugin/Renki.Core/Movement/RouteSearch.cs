@@ -34,11 +34,11 @@ namespace Renki.Movement
             route.Advance(budget);
             if (route.Status != RouteStatus.NoRoute || tried) return route.Status;
             tried = true;
-            var next = guidance?.Invoke();
-            if (next == null || !next.Active) return route.Status;
+            Guidance = guidance?.Invoke();
+            if (Guidance == null || !Guidance.Active) return route.Status;
             previousExpanded = route.Expanded; previousProbes = route.Probes;
-            Guidance = next; Phase++;
-            route = create(next);
+            Phase++;
+            route = create(Guidance);
             return route.Status;
         }
     }
