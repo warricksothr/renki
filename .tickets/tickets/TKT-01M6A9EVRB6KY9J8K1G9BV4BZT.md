@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T03:27:55Z
+updated_at: 2026-11-01T03:29:20Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -141,3 +141,11 @@ Fed food goals request the same bounded escape/optional Greyling defense for col
 Focused plugin build, RecoverableWorkTests, controller goal/protocol/retreat/session checks and supervisor checks passed. Full just check ci passed in157s: .checks/20261101T032500Z-0UOR1M.log. Coverage includes held-child lifecycle, exact source/pack changes, failed encounter/pending use, stop/death/reconnect/deadman/original timeout, protocol and child permissions, stale journey task metadata, collection damage baseline, failed-result injury rejection, uncertain result refusal and delayed receipt accounting. Required committed review and publication follow.
 
 Read-only just check vm status0 confirmed Valheim not running, controller/panel running, bot disconnected (.checks/20261101T032508Z-KCpk4r.log). Installed version still c9c084e; no field trial or deployment claimed yet. Preserve the retained mixed-threat location/readiness limits and earned AC3. Do not replay the unchanged trapped return or ask for manual clearing. AC1/AC2 and live same-task encounter-to-collection/storage proof remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T03:29:20Z
+
+Published draft PR #144, Retain forage and pickup work through bounded encounters: https://github.com/warricksothr/renki/pull/144, above #143. Implementation1502720 passed required committed review without findings (.checks/20261101T032757Z-i4ls3O.log); full gate passed with787 C# tests in157s (.checks/20261101T032500Z-0UOR1M.log).
+
+Installed1502720 on Blight while Valheim was offline with just check vm install; package manifest and installed Renki.Core/Renki.Plugin DLL checksums verified (.checks/20261101T032826Z-haRPEx.log). Restored controller/panel with just check vm panel-start (.checks/20261101T032846Z-uYUuwr.log). Read-only just check vm status0 confirmed game not running, controller running, bot disconnected (.checks/20261101T032900Z-dGnQU6.log). Authenticated just check vm panel GET /api/status confirmed version1502720 and connected:false (.checks/20261101T032900Z-qy0ILT.log). No join, combat or collection/storage field success is claimed.
+
+Verified linked stack #129 through #144 and all layers unwatched. Ticket remains in-progress: earned sheltered-home AC3 stays checked; original coastal route AC1/AC2 and live normal-task recovery-to-collection/storage proof remain open. Tas stays at the retained mixed-threat location without carried meals. Next field work needs a physically checked exit and food readiness, or validated mixed-threat capability; do not replay the unchanged return, relax physical margins or ask for routine manual clearing. Cooking, pending chest access and tree-swing encounter recovery still require separate transactional design.
