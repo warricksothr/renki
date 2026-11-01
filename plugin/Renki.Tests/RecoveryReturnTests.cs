@@ -5,6 +5,29 @@ namespace Renki.Tests
 {
     public sealed class RecoveryReturnTests
     {
+        [Fact]
+        public void NearbyDurationUsesTwoRequiredMealsEvenWithAnExpiringThird()
+        {
+            var order = new RecoveryReturnOrder { Profile = "nearby" };
+            // Captured native admission: blueberries109s, yellow mushroom406s,
+            // mushroom893s. Two lasting meals satisfy the120s return reserve.
+            Assert.Equal(406, order.FoodReserveSeconds(109, 406, 893));
+            Assert.Equal(406, order.FoodReserveSeconds(893, 109, 406));
+            Assert.Equal(120, order.FoodReserveSeconds(120, 600));
+            Assert.Equal(0, order.FoodReserveSeconds(600));
+            Assert.Equal(0, order.FoodReserveSeconds(600, double.NaN, 600));
+            Assert.Equal(0, order.FoodReserveSeconds(600, double.PositiveInfinity, 600));
+            Assert.Equal(0, order.FoodReserveSeconds(-1, 600, 600));
+            var start = new V3(20, 30, 0);
+            Assert.Equal(RecoveryReturnAction.Move, Step(Guard("nearby"), hp: 50.1, max: 53.7, pos: start,
+                foodSeconds: order.FoodReserveSeconds(109, 406, 893)));
+            Assert.Equal(RecoveryReturnAction.Logout, Step(Guard("nearby"), hp: 50.1, max: 53.7, pos: start,
+                foodSeconds: order.FoodReserveSeconds(109, 119, 893)));
+            order.Profile = "work_trip";
+            Assert.Equal(109, order.FoodReserveSeconds(109, 406, 893));
+            Assert.Equal(0, order.FoodReserveSeconds(406, 893));
+        }
+
         static RecoveryReturn Guard(string profile = null) => new RecoveryReturn(new RecoveryReturnOrder
         { World = "one", Pos = new[] { 0d, 30, 0 }, Expires = 1200, Profile = profile });
 

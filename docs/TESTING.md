@@ -1518,6 +1518,15 @@ plus10cm for settling; entry retains the ordinary margin. A captured boundary
 fixture checks that the state stays in recovery through that narrow band.
 No time/distance budget is renewed and no dry-step guard is relaxed.
 
+The nearby return `.checks/recovery-20261101T063927Z` refused admission
+before moving because the plugin supplied the shortest of three meal durations
+(109/406/893s). Nearby admission requires two meals lasting120s: the core
+reserve helper now selects the second longest, while work-trip admission
+still selects the shortest of three. `RecoveryReturnTests` covers this captured
+case, an insufficient second meal and invalid durations. Native admission
+refusals now emit one bounded trace with exact health, food duration, stamina,
+footing and threat clearance so diagnosis can use retained evidence directly.
+
 Food hunt checks also retain a strictly bounded two-second settlement for a
 matching confirmed death while perception still contains that exact target.
 Other creatures, stale/foreign receipts and the original expiry cannot acquire

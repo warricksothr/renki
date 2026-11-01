@@ -17,6 +17,19 @@ namespace Renki.Tasks
         public double Travel => WorkTrip ? 400 : Nearby ? 60 : 160;
         public double Radius => WorkTrip ? 200 : Nearby ? 30 : 80;
 
+        // Nearby admission requires two lasting meals. A third expiring meal
+        // cannot shorten the reserve supplied by the other two. Work trips
+        // still require all three meals to cover their longer return budget.
+        public double FoodReserveSeconds(params double[] remaining)
+        {
+            var required = WorkTrip ? 3 : 2;
+            if (remaining == null || remaining.Length < required || remaining.Length > 3) return 0;
+            var sorted = (double[])remaining.Clone();
+            foreach (var seconds in sorted) if (!Finite(seconds) || seconds < 0) return 0;
+            Array.Sort(sorted);
+            return sorted[sorted.Length - required];
+        }
+
         public bool Valid(string world, long now) => !string.IsNullOrWhiteSpace(World) &&
             World == world && Pos != null && Pos.Length == 3 &&
             Finite(Pos[0]) && Finite(Pos[1]) && Finite(Pos[2]) &&
