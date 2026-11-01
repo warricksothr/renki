@@ -250,3 +250,91 @@ func TestGoalRetentionPreservesUncertainRecentAndAtomicWrites(t *testing.T) {
 		})
 	}
 }
+
+// Exercise the composed host loop with protocol receipts, including repeated
+// cooking/deposit in one refill. A kill alone cannot satisfy household stock.
+func TestPantryHuntLootReturnCookAndDepositToHighTarget(t *testing.T) {
+	h, r, v, id := stockFixture(t)
+	pantryReady(t, h, id, v, "CookedMeat", 0)
+	h.Allowed = func(string) bool { return true }
+	v.State.Stamina = 60
+	v.Inventory.Items = []protocol.InventoryItem{{Prefab: "Mushroom", Stack: 2}}
+	if err := h.Store.update(id, func(g *Record) error {
+		g.Food.Stock.Targets["CookedMeat"] = 2
+		g.Food.Stock.Minimum["CookedMeat"] = 1
+		g.Food.Stock.AllowHunting = true
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	v.Perception.Characters = []protocol.PerceivedCharacter{{ID: "boar", Kind: protocol.CharacterCreature, Prefab: "Boar", HPFrac: 1, Hostile: true, Pos: protocol.Vec3{20, 0, 0}}}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil || o.Task != protocol.TaskAttack {
+		t.Fatal(o, err)
+	}
+	last := acquireResult(t, r, &v, "kill", protocol.StatusSucceeded, "")
+	last.Entity = "boar"
+	last.Detail = "observed Boar death"
+	v.Perception.Characters = nil
+	v.State.Pos = protocol.Vec3{20, 0, 0}
+	o, err = r.Next(v, last)
+	var delay *behaviour.Delay
+	if o != nil || !errors.As(err, &delay) {
+		t.Fatal(o, err)
+	}
+	foodFresh(&v)
+	p := forageResource("meat", "RawMeat", v.State.Pos)
+	p.Kind = protocol.ResourceDrop
+	p.Yield.Count = 2
+	v.Perception.Resources = []protocol.PerceivedResource{p}
+	o, err = r.Next(v, nil)
+	if err != nil || o == nil || o.Task != protocol.TaskPickup {
+		t.Fatal(o, err)
+	}
+	last = acquireResult(t, r, &v, "loot", protocol.StatusSucceeded, "")
+	v.Perception.Resources = nil
+	v.Inventory.Items = append(v.Inventory.Items, protocol.InventoryItem{Prefab: "RawMeat", Stack: 2})
+	o, err = r.Next(v, last)
+	if err != nil || o == nil || o.Task != protocol.TaskMoveTo {
+		t.Fatal(o, err)
+	}
+	last = acquireResult(t, r, &v, "home", protocol.StatusSucceeded, "")
+	v.State.Pos = protocol.Vec3{}
+	o, err = r.Next(v, last)
+	for batch := 1; batch <= 2; batch++ {
+		if err != nil || o == nil || o.Task != protocol.TaskInteract || o.Args.(*protocol.InteractArgs).Cook != "RawMeat" {
+			t.Fatal("cook", batch, o, err)
+		}
+		task := fmt.Sprintf("cook%d", batch)
+		last = acquireResult(t, r, &v, task, protocol.StatusSucceeded, "")
+		last.Cooking = deliveryRows(task, "CookedMeat", "station")
+		v.Inventory.Items = []protocol.InventoryItem{{Prefab: "Mushroom", Stack: 2}, {Prefab: "RawMeat", Stack: 2 - batch}, {Prefab: "CookedMeat", Stack: 1}}
+		v.State.Pos = protocol.Vec3{3, 0, 0}
+		o, err = r.Next(v, last)
+		if err != nil || o == nil || o.Task != protocol.TaskMoveTo {
+			t.Fatal("cooking return", o, err)
+		}
+		last = acquireResult(t, r, &v, fmt.Sprintf("wait%d", batch), protocol.StatusSucceeded, "")
+		v.State.Pos = protocol.Vec3{}
+		o, err = r.Next(v, last)
+		if err != nil || o == nil || o.Task != protocol.TaskDeposit || o.Args.(*protocol.TransferArgs).Items[0].Count != 1 {
+			t.Fatal("deposit", o, err)
+		}
+		task = fmt.Sprintf("deposit%d", batch)
+		last = acquireResult(t, r, &v, task, protocol.StatusSucceeded, "")
+		v.Inventory.Items = v.Inventory.Items[:2]
+		v.Containers = append(v.Containers, &protocol.Container{Task: task, Entity: "a", Direction: protocol.TaskDeposit, Moved: map[string]int{"CookedMeat": 1}, Items: []protocol.InventoryItem{{Prefab: "CookedMeat", Stack: batch}}})
+		o, err = r.Next(v, last)
+	}
+	g, _ := h.Store.Get(id)
+	if err != nil || o != nil || g.Status != "succeeded" || g.Food.Stock.Known["CookedMeat"] != 2 {
+		t.Fatal(o, g.Reason, err)
+	}
+	counts := map[string]int{}
+	for _, receipt := range g.Food.Receipts {
+		counts[receipt.Action] += receipt.Count
+	}
+	if counts["hunt"] != 1 || counts["collect"] != 2 || counts["cook"] != 2 || counts["stock_deposit"] != 2 {
+		t.Fatal(counts)
+	}
+}

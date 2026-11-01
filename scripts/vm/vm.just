@@ -412,7 +412,7 @@ recovery-return ACTION='arm' WORLD='' PROFILE='local': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
-    [[ "$3" = local || "$3" = work_trip ]] || { echo 'Use local or work_trip profile' >&2; exit 2; }
+    [[ "$3" = local || "$3" = work_trip || "$3" = nearby ]] || { echo 'Use local, work_trip or nearby profile' >&2; exit 2; }
     encoded=$(printf '%s' "$2" | base64 -w0)
     worldarg=()
     [ -z "$encoded" ] || worldarg=(-WorldBase64 "$encoded")

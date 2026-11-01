@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -65,6 +66,19 @@ class RecoverySupervisorTests(unittest.TestCase):
         self.assertIn(['recovery-return', 'arm', 'one', 'work_trip'], calls)
         self.assertIn(['recovery-return', 'clear'], calls)
         self.assertFalse(any(c[0] in ('task', 'task-check') for c in calls))
+
+    def test_just_launcher_accepts_nearby_without_contacting_a_vm(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bindir = Path(temp)
+            for name, body in [('ssh', 'printf "%s\\n" "$*"'), ('scp', 'exit 0')]:
+                target = bindir / name
+                target.write_text('#!/bin/sh\n' + body + '\n')
+                target.chmod(0o755)
+            env = os.environ | dict(RENKI_VM='unittest@invalid', PATH=str(bindir)+os.pathsep+os.environ['PATH'])
+            result = recovery.subprocess.run(['just', 'vm', 'recovery-return', 'arm', 'one', 'nearby'], cwd=recovery.ROOT,
+                                            env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("-ReturnProfile 'nearby'", result.stdout)
 
     def test_explicit_nearby_profile_is_forwarded_without_body_orders(self):
         code, result, calls = self.run_trial([dict(connected=False), OUTSIDE | dict(hp=44, hpMax=53.5, pos=[20,30,0]), HEALTHY], nearby=True)
