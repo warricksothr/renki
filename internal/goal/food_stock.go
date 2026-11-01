@@ -1,6 +1,7 @@
 package goal
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -355,9 +356,24 @@ func (r *runner) Check(v behaviour.View) error {
 		return errors.New("injury during household work")
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile && distance(c.Pos, s.Pos) < 15) {
+		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeTravelRecovery(g, v) {
 			return errors.New("nearby threat interrupts household work")
 		}
 	}
 	return stockScope(g, v)
+}
+
+// The engine validates its body lease before calling Check. Match the live
+// task as well so stale/pending metadata cannot exempt stationary work.
+func (r *runner) nativeTravelRecovery(g Record, v behaviour.View) bool {
+	p := g.Pending
+	if p == nil || p.Run != r.t.Store.runID || p.TaskID == "" || v.State.Task == nil ||
+		v.State.Task.ID != p.TaskID || v.State.Task.Task != protocol.TaskMoveTo || v.State.Task.Status != protocol.StatusRunning {
+		return false
+	}
+	if !slices.Contains([]string{"search_food", "food_return", "cook_return", "home"}, p.Template) {
+		return false
+	}
+	var args protocol.MoveToArgs
+	return json.Unmarshal(p.Params, &args) == nil && args.RecoverThreats && args.Dry && args.AvoidHostiles
 }

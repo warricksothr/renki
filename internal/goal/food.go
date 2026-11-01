@@ -180,7 +180,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		return r.need("injury during food resupply")
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && (distance(c.Pos, s.Pos) < 15 || c.TargetingMe) {
+		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, s.Pos) < 15 {
 			return r.need("nearby threat prevents food resupply")
 		}
 	}
@@ -469,6 +469,9 @@ func foodStation(v behaviour.View) (string, bool) {
 }
 
 func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity string, o *session.Order, prepare ...func(*Record)) (*session.Order, error) {
+	if args, ok := o.Args.(*protocol.MoveToArgs); ok && g.Food.Stock != nil {
+		args.RecoverThreats = args.Dry && args.AvoidHostiles && v.State != nil && v.State.Food != nil && len(v.State.Food.Active) > 0
+	}
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("food native-task budget exhausted")
 	}

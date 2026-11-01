@@ -58,6 +58,7 @@ namespace Renki.Protocol
     {
         public bool Dry;
         public bool AvoidHostiles;
+        public bool RecoverThreats;
         public Target To;
         public double StopDistance = 1.5;
         public bool Run;
@@ -235,6 +236,8 @@ namespace Renki.Protocol
                         return new TransferArgs { Container = container, Items = parsed.ToArray() };
                     }
                 case TaskNames.MoveTo:
+                    if (Bool(a, "recoverThreats", false) && (!Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false)))
+                        throw new BadArgsException("recoverThreats requires dry hostile-avoiding travel");
                     if (Bool(a, "avoidHostiles", false) && !Bool(a, "dry", false))
                         throw new BadArgsException("avoidHostiles requires dry travel");
                     return new MoveToArgs
@@ -244,6 +247,7 @@ namespace Renki.Protocol
                         Run = Bool(a, "run", false),
                         Dry = Bool(a, "dry", false),
                         AvoidHostiles = Bool(a, "avoidHostiles", false),
+                        RecoverThreats = Bool(a, "recoverThreats", false),
                     };
                 case TaskNames.Escort:
                     {

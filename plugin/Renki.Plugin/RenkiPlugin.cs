@@ -170,6 +170,7 @@ namespace Renki.Plugin
                                 To = new Target { Pos = recoveryReturnOrder.Home },
                                 Dry = true,
                                 AvoidHostiles = true,
+                                RecoverThreats = recoveryReturnOrder.WorkTrip,
                                 Run = false
                             }, Convert.ToVector3(recoveryReturnOrder.Home), null);
                             Tracer.Emit("recovery", "bounded startup return started", new Dictionary<string, object>
