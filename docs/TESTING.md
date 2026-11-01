@@ -1665,7 +1665,7 @@ Once Tas is grounded and sheltered on the pinned home floor, run a single
 existing-marker round trip first:
 
 ```sh
-just check vm route-benchmark --marker 'home storage' --keep-online
+just check vm route-benchmark --marker 'home storage' --home-floor-marker 'home storage' --keep-online
 ```
 
 Then choose several existing markers in different directions, between4m and
@@ -1673,7 +1673,7 @@ Then choose several existing markers in different directions, between4m and
 routes individually pass and their current positions are checked:
 
 ```sh
-just check vm route-benchmark --marker 'pantry south meadow' --marker 'pantry east meadow' --cycles 5 --keep-online
+just check vm route-benchmark --marker 'pantry south meadow' --marker 'pantry east meadow' --cycles 5 --home-floor-marker 'home storage' --keep-online
 ```
 
 These are production `move_to` goals with dry/hostile checks and no generated
@@ -1683,6 +1683,26 @@ and75cm of the target height. Home also requires grounded shelter within3m of
 the pinned point. Marker positions and home are revalidated; the tool never
 creates or moves them. A receipt without arrival, or a safe shortage outcome,
 does not count a completed route.
+
+For a legacy eye-height home marker, `--home-floor-marker` explicitly selects
+an existing nearby waypoint as the floor-height reference. The starting feet
+must be grounded, sheltered, within3m horizontally of the original home and
+within75cm of the reference height. The reference must be within8m and1.75m
+vertically of home, preserving the native home envelope. The native movement
+target remains the original home. The run pins the observed reference height;
+later arrivals cannot rebase it. Missing, malformed, changed or unobserved
+references fail. Without this flag the original strict marker-height check
+still applies.
+
+`just vm observe` reads status and the compact inspector through one SSH
+process inside an unchanged three-second freshness budget. The responses
+remain separate observations and must match scope. Admission requires newer scoped perception
+than the initial observation; arrivals require state and perception sequences
+newer than the terminal receipt. Run/world UID/connection and outstanding body
+orders are checked throughout. A new order revokes cleanup ownership.
+`home-floor-reference.json` preserves the initial observation and perception
+sequence with the original home, reference and execution scope. Sampled status
+retains only route-relevant fields rather than repeating saved goal histories.
 
 The benchmark requires a safe online home start and does not join or retry
 startup recovery. It stops on the first failed trip, damage or changed
@@ -1865,3 +1885,20 @@ contains six Greydwarfs and three Greylings, all targeting Tas, several by
 the doorway. No injury was observed. The supervisor stopped the game and
 restored the independent panel. No unchanged retry, enemy spawning, manual
 rescue request, pantry deposit or milestone completion is claimed.
+
+
+The explicit floor-reference supervisor passed its first native check in
+`.checks/routes-20261101T183156038798Z`: one storage-marker round trip,
+two success receipts,6.5m sampled travel and sheltered return at
+[-36.48,36.09,6.6], with no observed injury. The original home target remains
+[-35.9,37.66,6.53]. Initial negative checks dispatched no body task: sequential
+SSH startup exceeded the freshness window, and a later observation found Tas
+outside the3m starting envelope. Normal native movement restored that start;
+neither bound was relaxed. `just vm observe` now bundles status/inspection
+through one SSH process and retains the full freshness checks.
+
+The first south-meadow round trip also passed, in
+`.checks/routes-20261101T183240074821Z`:95.9m sampled travel, two receipts,
+no observed injury and sheltered home-floor return[-36.24,36.09,7.05]. These
+are individual route passes; ten-return reliability and repeated pantry
+production remain separate live criteria.
