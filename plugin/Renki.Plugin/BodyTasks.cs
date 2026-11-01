@@ -34,10 +34,14 @@ namespace Renki.Plugin
         double NavigationWithin => entrance.HasValue ? .25 : arrivalWithin;
         double NavigationLevel => entrance.HasValue ? .6 : Arrival.Level;
         readonly WorldNavigation.PlanningProbe dryProbe;
+        readonly WorldNavigation.PlanningProbe bankProbe;
+        BankExit bankExit = new BankExit();
+        bool bankMoving;
         public Walker()
         {
             hostileClearance = (from, to) => !avoidHostiles || hostiles.Clear(from, to);
             dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance);
+            bankProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance, bankExit: true);
         }
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
@@ -146,6 +150,7 @@ namespace Renki.Plugin
         public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false, bool avoidHostiles = false)
         {
             checkedOnly = false;
+            bankExit = new BankExit(); bankMoving = false;
             preferGuidance = false;
             approach.Reset();
             refusals.Clear();
@@ -387,6 +392,7 @@ namespace Renki.Plugin
             }
             if (!climbObstacles) { climb.Stop(); climbWaiting = false; }
             RecordGrounded(pos);
+            if (ExitBank(pos)) return true;
             if (Swim(pos, ref run)) return true;
             if (replay != null) return PlanReplay(pos);
             if (localRoute != null) return PlanLocal(pos);
@@ -414,6 +420,7 @@ namespace Renki.Plugin
                 if (!(supported is V3 at) || (at - replayNext).Length > .65)
                 {
                     if (Doorman.Waiting(pos)) { Driver.Stand(); stuck.Hold(Time.time); return true; }
+                    RememberSupportRefusal(Convert.ToV3(pos), replayNext, replayProbe.LastFailure?.Stage);
                     RejectReplay(pos, "next leg changed");
                     return true;
                 }
@@ -524,6 +531,7 @@ namespace Renki.Plugin
                     Driver.Stand();
                     if (Doorman.Waiting(pos)) { stuck.Hold(Time.time); return true; }
                     var failure = dryProbe.LastFailure;
+                    RememberSupportRefusal(from, from + Convert.ToV3(dir.normalized) * clearance, failure?.Stage);
                     var solid = failure?.Solid;
                     if (solid != null && solid.GetComponentInParent<Door>() == null &&
                         (failure.Stage == "body_cast" || failure.Stage == "body_overlap"))
@@ -554,6 +562,54 @@ namespace Renki.Plugin
             Driver.Run = player != null && sprint.Run(run && Time.time >= strafeUntil, player.GetStamina(), player.GetMaxStamina());
             if (dryGround && Driver.Move.sqrMagnitude > .0001f)
                 commandedLeg = path.Next(Convert.ToV3(pos)) ?? Convert.ToV3(NavigationGoal);
+            return true;
+        }
+
+        void RememberSupportRefusal(V3 from, V3 to, string stage)
+        {
+            if (stage != "support_step") return;
+            var revision = WorldNavigation.GeometryRevision;
+            refusals.Remember(from, to, Time.unscaledTime, () => WorldNavigation.GeometryRevision == revision);
+            Tracer.Emit("walker", "remembered refused slope approach", new Dictionary<string, object>
+            { ["from"] = from.ToArray(), ["to"] = to.ToArray(), ["count"] = refusals.Count });
+        }
+
+        bool ExitBank(Vector3 pos)
+        {
+            if (!dryGround) return false;
+            var p = Player.m_localPlayer;
+            if (p == null) return false;
+            var from = Convert.ToV3(pos);
+            bankProbe.BeginSlice();
+            var support = bankProbe.Footing(from);
+            var water = WorldNavigation.WaterLevel(from);
+            if (support.HasValue && DryTravel.Clear(support.Value, water, DryTravel.TravelMargin))
+            {
+                if (!bankMoving) return false;
+                bankMoving = false;
+                Tracer.Emit("walker", "dry bank departure regained planning buffer", new Dictionary<string, object>
+                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["support"] = support.Value.ToArray() });
+                Repath(pos); Driver.Stand(); return true;
+            }
+            if (!bankMoving && (!support.HasValue || p.InWater() || p.IsSwimming() || !p.IsOnGround())) return false;
+            Driver.Stand(); stuck.Hold(Time.time);
+            if (!bankMoving)
+            {
+                bankMoving = true;
+                Tracer.Emit("walker", "checking bounded dry bank departure", new Dictionary<string, object>
+                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["support"] = support?.ToArray() });
+            }
+            var eligible = support.HasValue && !p.InWater() && !p.IsSwimming() && p.IsOnGround() &&
+                DryTravel.Clear(from, water, BankExit.ActualMargin) && DryTravel.Clear(support.Value, water, BankExit.ActualMargin);
+            var step = eligible ? bankExit.Next(from, Convert.ToV3(goal), Time.unscaledTime, bankProbe.Probe) : null;
+            if (!eligible || bankExit.Refused)
+            {
+                navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure has no checked uphill step");
+                Tracer.Emit("walker", "dry bank departure refused", new Dictionary<string, object>
+                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures });
+                return true;
+            }
+            if (step.HasValue) Driver.Move = (Convert.ToVector3(step.Value) - pos).normalized * .35f;
             return true;
         }
 

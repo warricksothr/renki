@@ -1396,6 +1396,15 @@ injury. Combined audit: `.checks/audit-window-uSjpS9.jsonl`. Avoid repeating
 that unchanged route; marginal-shore admission, remembered slope approaches
 and a safely checked departure from the existing thin buffer remain open.
 
+`just check plugin test-core BankExitTests` covers a captured shore position
+on explicitly synthetic uphill support, descending and flooded refusals,
+measured body settling, changed live clearance, sliced candidate checks and
+terminal time/distance bounds. The live bank-departure policy is distinct from
+normal route planning: it cannot supply a relaxed probe to a local search or
+navmesh validator. Numeric support/water levels accompany water refusals;
+live slope refusals also enter short-lived negative approach memory.
+Native departure and household delivery still require field receipts.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing

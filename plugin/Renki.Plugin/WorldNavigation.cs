@@ -68,7 +68,7 @@ namespace Renki.Plugin
                 public Collider Solid;
                 public V3 At;
                 public V3? ColliderCenter;
-                public double[] SupportHeights;
+                public double[] SupportHeights, WaterLevels;
             }
             readonly SupportMemo support;
             readonly SupportMemo footing;
@@ -77,6 +77,7 @@ namespace Renki.Plugin
             readonly Func<V3, V3, bool> corridor;
             readonly bool diagnostics;
             readonly bool dry;
+            readonly bool bankExit;
             internal readonly bool Executing;
             long slice;
             internal Failure LastFailure { get; private set; }
@@ -93,18 +94,20 @@ namespace Renki.Plugin
                     stage = pair.Key,
                     at = pair.Value.At.ToArray(),
                     collider = pair.Value.Collider,
-                    supportHeights = pair.Value.SupportHeights
+                    supportHeights = pair.Value.SupportHeights,
+                    waterLevels = pair.Value.WaterLevels
                 }).ToArray()
             };
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
             public int SupportHits => support.Hits + footing.Hits;
             public int SupportQueries => support.Misses + footing.Misses;
-            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null)
+            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null, bool bankExit = false)
             {
                 physical = (from, desired) => WorldNavigation.Probe(from, desired, this);
                 this.refusals = refusals; this.corridor = corridor;
                 this.diagnostics = diagnostics;
                 this.dry = dry;
+                this.bankExit = bankExit;
                 Executing = executing;
                 support = new SupportMemo((at, y) =>
                 {
@@ -151,8 +154,25 @@ namespace Renki.Plugin
             }
             internal bool RecentlyBlocked(V3 from, V3 to) => refusals != null && refusals.Blocks(from, to, Time.unscaledTime);
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
+            internal V3? Footing(V3 at) => footing.Sample(at, at.Y, Time.unscaledTime, slice);
             internal bool WaterSafe(V3 at, double water) => dry
                 ? DryTravel.Clear(at, WaterLevel(at), DryTravel.TravelMargin) : at.Y >= water - .5;
+            internal bool WaterSafe(V3 from, V3 middle, V3 to, double water)
+            {
+                if (!bankExit && WaterSafe(to, water) && WaterSafe(middle, water)) return true;
+                var start = footing.Sample(from, from.Y, Time.unscaledTime, slice);
+                var levels = new[] { WaterLevel(from), WaterLevel(middle), WaterLevel(to) };
+                var clear = bankExit && Executing && dry && start.HasValue &&
+                    BankExit.Clear(from, start.Value, middle, to, levels[0], levels[1], levels[2]);
+                if (clear) return true;
+                Refuse("water", to);
+                if (LastFailure != null)
+                {
+                    LastFailure.SupportHeights = start.HasValue ? new[] { from.Y, start.Value.Y, middle.Y, to.Y } : new[] { from.Y, middle.Y, to.Y };
+                    LastFailure.WaterLevels = levels;
+                }
+                return false;
+            }
             internal bool SupportSafe(V3 from, V3 middle, V3 to)
             {
                 if (!dry) return true;
@@ -177,7 +197,7 @@ namespace Renki.Plugin
             if (plan.RecentlyBlocked(from, dest)) return plan.Refuse("recent_live_refusal", dest);
             var at = Convert.ToVector3(dest);
             var water = ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000;
-            if (!plan.WaterSafe(dest, water) || !plan.WaterSafe(middle.Value, water)) return plan.Refuse("water", dest);
+            if (!plan.WaterSafe(from, middle.Value, dest, water)) return null;
             if (!WallRoute.Clear(from, dest, Walls)) return plan.Refuse("wall_memory", dest);
             if (obstacles.Blocked(from, dest)) { plan.BoundsRejected++; return plan.Refuse("obstacle_bounds", dest); }
             if (obstacles.Logs.Blocked(from, dest)) { plan.BoundsRejected++; return plan.Refuse("log_footprint", dest); }
