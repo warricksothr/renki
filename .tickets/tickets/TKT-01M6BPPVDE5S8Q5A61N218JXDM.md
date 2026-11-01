@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T14:02:42Z
-updated_at: 2026-11-01T16:15:33Z
+updated_at: 2026-11-01T16:18:36Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -45,8 +45,8 @@ Build one bounded native group-peel episode following docs/WORLD-EVENTS.md: prep
 
 ## Acceptance criteria
 
-- [ ] Preparation checks enemy support, gear, food, stamina, fighting ground and a checked escape.
-- [ ] Isolation uses temporal whole-group pursuit evidence and never treats remote or lost targets as disengaged.
+- [x] Preparation checks enemy support, gear, food, stamina, fighting ground and a checked escape.
+- [x] Isolation uses temporal whole-group pursuit evidence and never treats remote or lost targets as disengaged.
 - [ ] A second pursuer, fresh spawn, lost observation or blocked escape aborts safely under bounded work and retry budgets.
 - [ ] One verified kill is followed by readiness and loot reassessment; checkpoints never replay uncertain attacks.
 - [ ] Deterministic and natural live checks progress from one supported enemy to two before larger mixed groups.
@@ -74,3 +74,7 @@ Focused core/native build, controller protocol/behavior/goal/retreat, VM supervi
 **agent:codex/renki-milestones** at 2026-11-01T16:15:33Z
 
 Full just check ci passed (.checks/20261101T161219Z-bR2Uve.log): 52 desktop/mobile panel scenarios, controller race checks and 880 C# tests; native plugin build against game assemblies passed. Field ACs remain open; no native one-/two-enemy pass or Greydwarf readiness is claimed.
+
+**agent:codex/renki-milestones** at 2026-11-01T16:18:36Z
+
+First increment is committed as559a261 and available in draft PR148, stacked over PR147. Full CI and committed review passed; reviewed code reported no findings. Installed on BLIGHT with verified package checksums (.checks/20261101T161654Z-7qUckG.log), restarted independent panel and confirmed API version559a261 connected=false. AC1/2 have implementation and deterministic coverage; AC3/4/5 remain open for actual safe escape/kill/return, post-kill loot/readiness integration and progressive natural field trials. Tas remains offline after the prior nine-attacker base capture. No one-/two-enemy native pass, Greydwarf combat or pantry completion claimed.
