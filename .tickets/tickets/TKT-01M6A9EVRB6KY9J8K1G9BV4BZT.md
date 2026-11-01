@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T01:25:05Z
+updated_at: 2026-11-01T01:26:53Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -71,3 +71,11 @@ Implemented stage 1 of docs/WORK-TRIP-ENCOUNTERS.md on t3/work-trip-encounters. 
 Validation: just check ci passed (163s), retained in .checks/20261101T012158Z-lITWhC.log, including718 C# tests, controller checks and desktop/mobile panel checks. Earlier focused plugin build/lint, TravelRecoveryTests and controller goal/protocol checks also passed. Deterministic coverage includes lifetime budgets across successful resumptions, renewed pursuit, timeout, unsafe body/cancel/clock failures, protocol dependencies, current-run/task matching, stationary/stale/injury rejection and unfed bootstrap.
 
 No live escape/resume, physical coastal feasibility, home return or outdoor food delivery is claimed. All original acceptance criteria remain unticked. Tas remains offline at the retained coastal bottleneck; do not retry the unchanged failed route solely to exercise this slice. Next validation requires physically checked route progress and then a same-task encounter followed by actual resumed progress. Stages2–4 retain stationary receipts, explicit damage/reserve budgets, graded danger planning and validated defense as follow-ups. Publication review and offline installation follow this note.
+
+**agent:codex/renki-milestones** at 2026-11-01T01:26:53Z
+
+Published draft PR #140, Retain travel goals through bounded native threat recovery: https://github.com/warricksothr/renki/pull/140, stacked above #139. Required committed review passed with no findings (.checks/20261101T012505Z-AwCzZ4.log). Full just check ci evidence is .checks/20261101T012158Z-lITWhC.log. All stack layers #129–#140 are linked to this thread and unwatched.
+
+Installed implementation commit350a295 on Blight using just check vm install; manifest and installed plugin DLL checksums verified (.checks/20261101T012538Z-BuJHqF.log). The package transfer needed its built-in second attempt to release an executable lock and then completed. just check vm panel-start passed (.checks/20261101T012610Z-PFttsa.log). Subsequent just check vm status confirmed Valheim not running, controller running, bot disconnected (.checks/20261101T012631Z-BkNvAg.log). Authenticated just check vm panel GET /api/status returned version350a295 and connected:false (.checks/20261101T012632Z-mV9S2N.log).
+
+No live join or unchanged coastal recovery was attempted. First travel-recovery slice is installed but not live-proven. This ticket remains in-progress with all physical-route/home-return criteria open; outdoor food-delivery and repair trials still wait on a verified return. Next work should establish physical coastal progress and then retain same-task escape/quiet/resume evidence, followed by stationary checkpoint and reserve-budget integration from the staged design.
