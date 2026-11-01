@@ -27,9 +27,10 @@ Human commands, reconnects and world changes revoke that continuation.
    structure protection, combat permissions, stamina reserves and death proof.
    A new fight cannot compete with an active escape or another body owner.
 
-The initial implementation is stage 1 only. It does not enable fighting,
-change hostile clearance radii, permit injury, or establish that the retained
-seven-threat coastal bottleneck has a physically viable route.
+Travel now includes a narrow defensive slice and a measured damage allowance
+for food goals. Stationary gathering, storage and cooking still need encounter
+continuation. Hostile route clearance is unchanged, and the retained seven-threat
+coastal bottleneck still has no complete physical route proof.
 
 ## First native slice
 
@@ -61,9 +62,50 @@ support, water, body and hostile checks before steering toward a shore hint.
 Unsafe reserves/footing, a failed escape or an exhausted budget return a
 precise failure. Cancellation clears child inputs. Mode transitions report
 the reason, threat identity and attempt count in traces. A matching native
-travel task may handle close threats without the household guard cancelling
-the entire goal. Stationary work and actual injury retain their existing
-guards until stage 2; missing ownership/freshness never grants an exemption.
+travel task may handle close threats without the food guard cancelling
+the entire goal. Missing ownership/freshness never grants an exemption.
+
+## Travel defense and food progress
+
+`defendThreats:true` additionally requires `recoverThreats` and attack permission
+from both plugin safety and the controller session. Escape alone grants no combat
+authority. Personal resupply and household food travel both opt into fed recovery;
+defense is requested only when the session permits attack.
+
+The initial automatic capability is one unstarred hostile Greyling within16m,
+confirmed targeting Tas or recently observed attacking him. No second loaded
+hostile within30m may be present. Admission requires food, a usable melee weapon,
+at least2 armour,40 stamina,30HP and80% health, on grounded dry unencumbered footing.
+This reuses ordinary melee's live approach, bystander, structure and strike checks;
+it does not establish automatic Neck, Boar, starred or group capability.
+
+Defense lasts at most12s, preserving the remainder of the same30s attempt for
+withdrawal/observation. A new threat, changed victim evidence, failed stance,
+lost target, insufficient reserves or melee retreat cancels that child and uses
+checked escape. Neither transition resets the original task deadline or lifetime
+three-attempt budget. Only exact observed Greyling death permits quiet observation
+before replanning the original destination. Disappearance is not death proof.
+`state.journey` reports the owning task ID, mode, attempt count and reason. The
+controller's emergency retreat loop yields to that matching native owner while
+reserves remain safe; stale, refused or unrelated metadata does not suppress it.
+
+Food goals retain a single cumulative observed damage allowance of10HP from
+their first admitted fed travel, requiring at least30HP,65% current maximum
+health and no more than10HP below initial travel health. Session injury metadata
+reports cumulative accepted damage independently of healing. The injury sequence
+is a wire event marker, not a hit count. Unknown damage amounts or death invalidate
+the allowance; reconnect clears it and revokes the old body lease. The original
+goal baseline persists across travel tasks. Permission to absorb damage is limited
+to the exact running native travel intent and reported journey identity.
+
+At a completed body boundary, reconcile the exact native action and inventory,
+container or cooking receipt before applying threat/injury guards to further work.
+This preserves verified progress without replaying an uncertain transfer or
+inventing a collection. Only verified owned travel can acknowledge bounded injury
+for the next step. Stationary injury still ends the run after receipt accounting.
+The food supervisor checks the same budget/identity and accepts a completed travel
+between polls only with its prior intent, same-run successful history and the
+controller's acknowledged injury marker.
 
 ## Validation and remaining work
 
@@ -74,7 +116,11 @@ the same native task identity across recovery and actual subsequent progress.
 An escape receipt alone is not home arrival or production proof.
 
 The field benchmark is a real encounter followed by resumed collection and
-verified storage. Before that can run from Tas's current offline location,
-the recorded coastal return still needs a physically checked route. Tests
+verified storage. A sheltered local return passed on c9c084e; the subsequent
+personal food trip stopped on a Neck, and a later mixed-threat return had no
+checked initial heading. Tas remains offline there without carried meals.
+Before another live work trip, readiness and a physically checked exit or a
+validated mixed-threat capability still need resolution. Tests
 must retain failures and distinguish recoverable encounters from emergencies;
-later stages will update the current supervisor's blanket injury/logout rules.
+the current slice does not prove live combat/resumed production or interrupted
+stationary-work resumption.

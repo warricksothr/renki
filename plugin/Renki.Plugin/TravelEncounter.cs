@@ -8,19 +8,50 @@ using UnityEngine;
 
 namespace Renki.Plugin
 {
-    /// <summary>Native escape/observe/resume child of a single move_to task.</summary>
+    /// <summary>Native defend/escape/observe/resume children of one move_to.</summary>
     sealed class TravelEncounter
     {
+        internal static TravelEncounter Active;
         readonly TravelRecovery policy = new TravelRecovery();
         readonly List<Character> characters = new List<Character>();
+        readonly string id;
+        readonly bool defend;
         Character threat;
+        Character opponent;
+        string opponentEntity;
+        MeleeTask defense;
         FleeTask escape;
+        int threatCount;
         float nextScan;
         bool saturated;
         public bool Resumed { get; private set; }
         string escapeDetail;
+        string defenseDetail;
         string blockedVersion, observedVersion;
         Outcome blockedFailure;
+        internal JourneyStatus Status => new JourneyStatus
+        {
+            Id = id,
+            Mode = policy.Mode.ToString().ToLowerInvariant(),
+            Attempts = policy.Attempts,
+            Reason = policy.Reason
+        };
+
+        public TravelEncounter(string id, bool defend)
+        {
+            this.id = id; this.defend = defend && !string.IsNullOrEmpty(id);
+            if (!string.IsNullOrEmpty(id)) Active = this;
+        }
+
+        static bool Confirmed(Player p, Character c) => c != null &&
+            (c.GetBaseAI()?.GetTargetCreature() == p || c == MeleeTask.RecentAttacker);
+
+        bool CanDefend(Player p) => defend && policy.Mode != TravelMode.Defend && policy.Mode != TravelMode.Escape &&
+            threat != null && threat.m_nview != null && threat.m_nview.IsValid() &&
+            TravelRecovery.DefenseReady(defend, threat.m_nview.GetPrefabName(), threat.GetLevel(), threatCount,
+                Confirmed(p, threat), Vector3.Distance(p.transform.position, threat.transform.position),
+                p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(), p.GetFoods().Count > 0,
+                MeleeTask.Best(p) != null, p.IsOnGround());
 
         public bool Tick(Player p, double dt, out Outcome failure)
         {
@@ -35,8 +66,40 @@ namespace Renki.Plugin
             var previous = policy.Mode;
             policy.Decide(now, threat != null, saturated || !TravelRecovery.Safe(p.GetHealth(), p.GetMaxHealth(),
                 p.GetStamina(), p.GetFoods().Count, p.InWater() || p.IsSwimming(), p.IsEncumbered()),
-                routeChanged: observedVersion != blockedVersion);
+                routeChanged: observedVersion != blockedVersion, canDefend: CanDefend(p));
             if (policy.Mode != previous) Emit();
+            if (policy.Mode != TravelMode.Defend && defense != null)
+            { defense.Cancel(); defense = null; opponent = null; opponentEntity = null; }
+            if (policy.Mode == TravelMode.Defend)
+            {
+                if (defense == null)
+                {
+                    opponent = threat;
+                    opponentEntity = Perceiver.Id(opponent.m_nview);
+                    try
+                    {
+                        defense = new MeleeTask(id, new AttackArgs { Entity = opponentEntity }, opponent.gameObject);
+                    }
+                    catch (TaskRefused no)
+                    { defenseDetail = no.Message; policy.Defended(false); Emit(); }
+                }
+                if (defense != null)
+                {
+                    Outcome ended = null;
+                    if (!defense.ObservedDeath && (threatCount > 1 || threat != opponent || !Confirmed(p, opponent)))
+                        ended = Outcome.Failed(Wire.ReasonRefused, "travel defense target evidence or threat count changed");
+                    else ended = defense.Tick(dt);
+                    // The outer task owns escape and its shared time budget.
+                    if (ended != null || defense.Status.Mode == "retreat")
+                    {
+                        var won = ended != null && ended.Status == Wire.StatusSucceeded && ended.Detail == "observed Greyling death" &&
+                            ended.Entity == opponentEntity;
+                        defenseDetail = ended?.Detail ?? defense.Status.Reason;
+                        defense.Cancel(); defense = null; opponent = null; opponentEntity = null; nextScan = 0;
+                        policy.Defended(won); Emit();
+                    }
+                }
+            }
             if (policy.Mode == TravelMode.Escape)
             {
                 if (escape == null)
@@ -65,6 +128,7 @@ namespace Renki.Plugin
             {
                 escape?.Cancel(); escape = null; Driver.Stand();
                 failure = Outcome.Failed(Wire.ReasonRefused, policy.Reason +
+                    (defenseDetail == null ? "" : ": defense: " + defenseDetail) +
                     (escapeDetail == null ? "" : ": " + escapeDetail) +
                     (blockedFailure == null ? "" : ": " + blockedFailure.Detail));
                 return true;
@@ -107,7 +171,7 @@ namespace Renki.Plugin
 
         void Scan(Player p)
         {
-            characters.Clear(); threat = null;
+            characters.Clear(); threat = null; threatCount = 0;
             Character.GetCharactersInRange(p.transform.position, 64, characters);
             saturated = characters.Count > 128;
             if (saturated) return;
@@ -117,6 +181,7 @@ namespace Renki.Plugin
                 if (!Relevant(c, p)) continue;
                 var ai = (MonsterAI)c.GetBaseAI();
                 var gap = Vector3.Distance(p.transform.position, c.transform.position);
+                if (gap <= TravelRecovery.TargetRange) threatCount++;
                 if (gap >= nearest || !TravelRecovery.Engaged(gap, ai.GetTargetCreature() == p, ai.HaveTarget())) continue;
                 nearest = gap; threat = c;
             }
@@ -124,15 +189,23 @@ namespace Renki.Plugin
 
         void Emit() => Tracer.Emit("journey", "travel encounter transition", new Dictionary<string, object>
         {
+            ["id"] = id,
             ["mode"] = policy.Mode.ToString().ToLowerInvariant(),
             ["reason"] = policy.Reason,
             ["attempts"] = policy.Attempts,
             ["threat"] = threat?.m_nview != null && threat.m_nview.IsValid() ? Perceiver.Id(threat.m_nview) : null,
+            ["threatCount"] = threatCount,
             ["escapeDetail"] = escapeDetail,
+            ["defenseDetail"] = defenseDetail,
             ["routeFailure"] = blockedFailure?.Detail,
             ["routeChanged"] = observedVersion != blockedVersion,
         });
 
-        public void Cancel() { policy.Cancel(); escape?.Cancel(); escape = null; Driver.Stand(); }
+        public void Cancel()
+        {
+            policy.Cancel(); defense?.Cancel(); defense = null; opponent = null; opponentEntity = null;
+            escape?.Cancel(); escape = null; Driver.Stand(); Driver.ClearCombat();
+            if (ReferenceEquals(Active, this)) Active = null;
+        }
     }
 }

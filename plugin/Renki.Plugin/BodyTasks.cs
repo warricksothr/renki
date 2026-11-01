@@ -1023,18 +1023,25 @@ namespace Renki.Plugin
         readonly TravelEncounter encounter;
         Vector3 goal;
 
-        public MoveToTask(MoveToArgs args, Vector3 goal, GameObject entity)
+        public MoveToTask(MoveToArgs args, Vector3 goal, GameObject entity, string id = null)
         {
             this.args = args;
             this.goal = goal;
             this.entity = entity;
-            if (args.RecoverThreats) encounter = new TravelEncounter();
+            if (args.RecoverThreats) encounter = new TravelEncounter(id, args.DefendThreats);
             var p = Player.m_localPlayer;
             walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
             walker.ResetStuck(p.transform.position);
         }
 
         public Outcome Tick(double dt)
+        {
+            var ended = Step(dt);
+            if (ended != null) encounter?.Cancel();
+            return ended;
+        }
+
+        Outcome Step(double dt)
         {
             var p = Player.m_localPlayer;
             if (p == null) return Outcome.Failed(Wire.ReasonStopped, "no player");

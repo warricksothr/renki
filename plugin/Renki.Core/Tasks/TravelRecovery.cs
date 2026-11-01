@@ -2,14 +2,14 @@ using System;
 
 namespace Renki.Tasks
 {
-    public enum TravelMode { Walk, Escape, Observe, Blocked, Refused }
+    public enum TravelMode { Walk, Defend, Escape, Observe, Blocked, Refused }
 
     /// <summary>One travel task keeps its target through bounded native escapes.
     /// No decision here grants physical movement or combat permission.</summary>
     public sealed class TravelRecovery
     {
         public const int AttemptLimit = 3;
-        public const double AttemptSeconds = 30, QuietSeconds = 5, TargetRange = 30, EscapeDistance = 35;
+        public const double AttemptSeconds = 30, DefenseSeconds = 12, QuietSeconds = 5, TargetRange = 30, EscapeDistance = 35;
         public TravelMode Mode { get; private set; }
         public int Attempts { get; private set; }
         public string Reason { get; private set; }
@@ -22,7 +22,14 @@ namespace Renki.Tasks
         public static bool Engaged(double gap, bool targeting, bool hasTarget) =>
             Finite(gap) && gap >= 0 && (gap < 15 || targeting && gap <= TargetRange || hasTarget && gap <= 20);
 
-        public TravelMode Decide(double now, bool danger, bool unsafeBody, bool routeChanged = false)
+        // Initial work-trip capability is deliberately narrower than explicit melee.
+        public static bool DefenseReady(bool permitted, string prefab, int level, int threats, bool confirmed,
+            double gap, double hp, double max, double stamina, double armour, bool fed, bool weapon, bool grounded) =>
+            permitted && prefab == "Greyling" && level == 1 && threats == 1 && confirmed &&
+            Finite(gap) && gap >= 0 && gap <= 16 && Finite(hp) && Finite(max) && Finite(stamina) && Finite(armour) &&
+            hp >= 30 && max > 0 && hp >= max * .8 && stamina >= 40 && armour >= 2 && fed && weapon && grounded;
+
+        public TravelMode Decide(double now, bool danger, bool unsafeBody, bool routeChanged = false, bool canDefend = false)
         {
             if (Mode == TravelMode.Refused) return Mode;
             if (double.IsNaN(now) || double.IsInfinity(now) || now < 0 || now < last)
@@ -31,12 +38,14 @@ namespace Renki.Tasks
             if (unsafeBody) return Refuse("unsafe travel encounter reserves or footing");
             if (Mode != TravelMode.Walk && now - began >= AttemptSeconds)
                 return Refuse("travel encounter recovery time exhausted");
-            if (danger && Mode != TravelMode.Escape)
+            if (Mode == TravelMode.Defend && now - began >= DefenseSeconds)
+            { Mode = TravelMode.Escape; Reason = "defense time exhausted; withdrawing"; }
+            if (danger && Mode != TravelMode.Escape && Mode != TravelMode.Defend)
             {
                 if (Attempts >= AttemptLimit) return Refuse("travel encounter recovery attempts exhausted");
                 Attempts++; began = now; quiet = -1;
-                Reason = "nearby engaged threat; withdrawing";
-                Mode = TravelMode.Escape;
+                Reason = canDefend ? "single confirmed capable encounter; defending" : "nearby engaged threat; withdrawing";
+                Mode = canDefend ? TravelMode.Defend : TravelMode.Escape;
             }
             if (Mode == TravelMode.Observe)
             {
@@ -65,6 +74,16 @@ namespace Renki.Tasks
             if (!succeeded) { Refuse("checked travel escape failed"); return; }
             Mode = TravelMode.Observe; quiet = -1;
             Reason = "escape completed; observing before resuming";
+        }
+
+        public void Defended(bool observedDeath)
+        {
+            if (Mode != TravelMode.Defend) return;
+            // A refused fight uses the remainder of this attempt to withdraw;
+            // it never grants a second fight or resets the enclosing deadline.
+            Mode = observedDeath ? TravelMode.Observe : TravelMode.Escape;
+            quiet = -1;
+            Reason = observedDeath ? "observed attacker death; observing before resuming" : "defense interrupted; withdrawing";
         }
 
         public void Cancel() => Refuse("travel cancelled");

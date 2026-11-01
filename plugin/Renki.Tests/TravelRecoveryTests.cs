@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using Renki.Protocol;
 using Renki.Tasks;
@@ -8,6 +10,97 @@ namespace Renki.Tests
 {
     public sealed class TravelRecoveryTests
     {
+        [Fact]
+        public void ObservedDefenseAndQuietResumeShareTheOriginalAttemptBudget()
+        {
+            var p = new TravelRecovery();
+            Assert.Equal(TravelMode.Defend, p.Decide(0, true, false, canDefend: true));
+            Assert.Equal(TravelMode.Defend, p.Decide(1, true, false, canDefend: false));
+            p.Defended(true);
+            Assert.Equal(TravelMode.Observe, p.Decide(2, false, false));
+            Assert.Equal(TravelMode.Walk, p.Decide(7, false, false));
+            Assert.Equal(1, p.Attempts);
+            Assert.Equal(TravelMode.Defend, p.Decide(8, true, false, canDefend: true));
+            p.Defended(false);
+            Assert.Equal(TravelMode.Escape, p.Decide(9, true, false, canDefend: true));
+            Assert.Equal(2, p.Attempts); // Cannot promote an escape into another fight.
+            p.Escaped(true); p.Decide(10, false, false);
+            Assert.Equal(TravelMode.Walk, p.Decide(15, false, false));
+            p.RouteBlocked();
+            Assert.Equal(TravelMode.Refused, p.Decide(16, true, false, canDefend: true));
+            Assert.Equal(3, p.Attempts);
+        }
+
+        [Fact]
+        public void FailedDefenseDoesNotResetTheThirtySecondRecoveryDeadline()
+        {
+            var p = new TravelRecovery();
+            p.Decide(0, true, false, canDefend: true);
+            Assert.Equal(TravelMode.Defend, p.Decide(11.99, true, false));
+            Assert.Equal(TravelMode.Escape, p.Decide(12, true, false));
+            p.Defended(true); // A late fight result cannot cancel the withdrawal.
+            Assert.Equal(TravelMode.Escape, p.Decide(29, true, false));
+            Assert.Equal(TravelMode.Refused, p.Decide(30, false, false));
+            p.Defended(true); p.Escaped(true);
+            Assert.Equal(TravelMode.Refused, p.Decide(31, false, false));
+        }
+
+        [Theory]
+        [InlineData("healthy", true)]
+        [InlineData("permission", false)]
+        [InlineData("neck", false)]
+        [InlineData("boar", false)]
+        [InlineData("stars", false)]
+        [InlineData("group", false)]
+        [InlineData("unknown_victim", false)]
+        [InlineData("remote", false)]
+        [InlineData("hurt", false)]
+        [InlineData("low_absolute_hp", false)]
+        [InlineData("stamina", false)]
+        [InlineData("armour", false)]
+        [InlineData("food", false)]
+        [InlineData("weapon", false)]
+        [InlineData("airborne", false)]
+        public void AutomaticTravelDefenseUsesOnlyEstablishedSingleGreylingCapability(string missing, bool expected)
+        {
+            Assert.Equal(expected, TravelRecovery.DefenseReady(missing != "permission",
+                missing == "neck" ? "Neck" : missing == "boar" ? "Boar" : "Greyling",
+                missing == "stars" ? 2 : 1, missing == "group" ? 2 : 1, missing != "unknown_victim",
+                missing == "remote" ? 17 : 16, missing == "hurt" ? 39 : missing == "low_absolute_hp" ? 25 : 50,
+                missing == "low_absolute_hp" ? 25 : 50, missing == "stamina" ? 39 : 40,
+                missing == "armour" ? 1 : 2, missing != "food", missing != "weapon", missing != "airborne"));
+        }
+
+        [Theory]
+        [InlineData("config", true)]
+        [InlineData("session", true)]
+        [InlineData("both", true)]
+        [InlineData("config", false)]
+        [InlineData("session", false)]
+        [InlineData("both", false)]
+        [InlineData("flee", false)]
+        [InlineData("flee", true)]
+        public void TravelDefenseCannotBypassEitherAttackPermission(string withheld, bool defend)
+        {
+            var host = new FakeHost(); var reports = new List<TaskStatus>();
+            var runner = new TaskRunner(new SafetyConfig { AllowCombat = withheld != "config" }, TaskNames.Supported, host, reports.Add, () => 0);
+            runner.Welcome(TaskNames.Supported.Where(t => (withheld != "session" || t != TaskNames.Attack) &&
+                (withheld != "flee" || t != TaskNames.Flee)));
+            runner.Handle(new TaskRequest
+            {
+                Id = "trip",
+                Task = "move_to",
+                Args = JObject.Parse(
+                "{\"to\":[1,2,3],\"dry\":true,\"avoidHostiles\":true,\"recoverThreats\":true,\"defendThreats\":" + (defend ? "true" : "false") + "}")
+            });
+            if (withheld == "flee" || defend && withheld != "both")
+            {
+                Assert.Empty(host.Bodies);
+                Assert.Equal(Wire.ReasonNotAllowed, Assert.Single(reports).Reason);
+            }
+            else Assert.Single(host.Bodies);
+        }
+
         [Fact]
         public void EscapeReceiptAndContinuousQuietAreRequiredBeforeResuming()
         {
@@ -148,6 +241,9 @@ namespace Renki.Tests
             Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Request(",\"recoverThreats\":true")));
             Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Request(",\"dry\":true,\"recoverThreats\":true")));
             Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Request(",\"dry\":true,\"avoidHostiles\":true,\"recoverThreats\":\"yes\"")));
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Request(",\"defendThreats\":true")));
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Request(",\"dry\":true,\"avoidHostiles\":true,\"recoverThreats\":true,\"defendThreats\":\"yes\"")));
+            Assert.True(((MoveToArgs)TaskArgs.Parse(Request(",\"dry\":true,\"avoidHostiles\":true,\"recoverThreats\":true,\"defendThreats\":true"))).DefendThreats);
         }
     }
 }

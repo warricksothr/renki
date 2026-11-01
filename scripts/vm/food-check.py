@@ -13,13 +13,56 @@ from harvest_trial import health_loss
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def safe(status, previous=None):
+def food_travel_damage(status, goal, previous=None, previous_goal=None):
+    """Mirror the controller's finite allowance, with exact travel ownership."""
+    if not goal or goal.get('kind') != 'food_resupply' or goal.get('status') not in ('running', 'succeeded') or goal.get('world') != status.get('world'):
+        return False
+    food = goal.get('food') or {}
+    budget = food.get('travelBudget') or {}
+    injury = status.get('injury') or {}
+    seq, baseline = status.get('injurySeq'), budget.get('injury')
+    damage, initial_damage = injury.get('damage', -1), budget.get('damage', -1)
+    hp, maximum, initial = status.get('hp', 0), status.get('hpMax', 0), budget.get('hp', 0)
+    if (type(seq) is not int or type(baseline) is not int or seq < baseline or
+            injury.get('complete') is not True or injury.get('seq') != seq or
+            not math.isfinite(damage) or not math.isfinite(initial_damage) or not 0 <= initial_damage <= damage <= initial_damage + 10 or
+            not all(math.isfinite(v) for v in (hp, maximum, initial)) or maximum <= 0 or initial < 30 or
+            hp < max(30, maximum * .65, initial - 10)):
+        return False
+    task, pending = status.get('task') or {}, goal.get('pending') or {}
+
+    def travel(intent):
+        args = intent.get('params') or {}
+        return (bool(intent.get('run')) and bool(intent.get('taskId')) and
+                intent.get('template') in ('search_food', 'food_return', 'cook_return', 'home') and
+                args.get('recoverThreats') is True and args.get('dry') is True and args.get('avoidHostiles') is True)
+
+    journey = status.get('journey') or {}
+    if (task.get('id') == pending.get('taskId') and task.get('task') == 'move_to' and task.get('status') == 'running' and
+            journey.get('id') == task.get('id') and journey.get('mode') in ('walk', 'defend', 'escape', 'observe', 'blocked') and
+            type(journey.get('attempts')) is int and 0 <= journey['attempts'] <= 3 and travel(pending)):
+        return True
+    # A slow poll may see the next task. Require the previous exact travel
+    # intent, its successful same-run outcome, and acknowledged injury count.
+    old = (previous_goal or {}).get('pending') or {}
+    prior_task = (previous or {}).get('task') or {}
+    return (bool(previous_goal) and previous_goal.get('id') == goal.get('id') and travel(old) and
+            prior_task.get('id') == old.get('taskId') and prior_task.get('task') == 'move_to' and
+            food.get('injury') == seq and (not task or task.get('id') == pending.get('taskId')) and
+            any(r.get('run') == old['run'] and r.get('taskId') == old['taskId'] and
+                r.get('template') == old['template'] and r.get('status') == 'succeeded'
+                for r in goal.get('history', [])))
+
+
+def safe(status, previous=None, goal=None, previous_goal=None):
     hp, maximum = status.get('hp', 0), status.get('hpMax', 0)
     if not status.get('connected') or status.get('phase') != 'in_world': return 'not in world'
     if not math.isfinite(hp) or not math.isfinite(maximum) or maximum <= 0 or hp < max(20, maximum * .4): return 'unsafe health'
     if (status.get('location') or {}).get('inWater') or 'swimming' in status.get('flags', []): return 'unsafe water'
-    if previous and ((status.get('world'), status.get('connection')) != (previous.get('world'), previous.get('connection')) or health_loss(previous, status)):
-        return 'scope changed or actual injury'
+    if previous and (status.get('world'), status.get('connection')) != (previous.get('world'), previous.get('connection')):
+        return 'scope changed'
+    if previous and health_loss(previous, status) and not food_travel_damage(status, goal, previous, previous_goal):
+        return 'injury outside owned food travel budget'
     return None
 
 
@@ -117,11 +160,14 @@ def main():
         return json.loads(result.stdout) if decode else result.stdout
 
     def observe():
-        nonlocal previous
+        nonlocal previous, goal
         status = call('panel', 'GET', '/api/status')
         with (folder / 'observations.jsonl').open('a') as out:
             out.write(json.dumps(dict(at=datetime.datetime.now(datetime.timezone.utc).isoformat(), status=status)) + '\n')
-        reason = safe(status, previous)
+        previous_goal = goal
+        if previous and health_loss(previous, status) and goal:
+            goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=goal['id'])))
+        reason = safe(status, previous, goal, previous_goal)
         if reason: raise RuntimeError(reason)
         if time.monotonic() > deadline: raise RuntimeError('food proof deadline')
         previous = status

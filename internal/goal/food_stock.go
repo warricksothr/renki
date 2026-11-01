@@ -336,13 +336,13 @@ func (r *runner) pinStockSources(g Record, v behaviour.View) error {
 	return r.t.Store.update(g.ID, func(g *Record) error { g.Food.Stock.Pinned = pinned; return nil })
 }
 
-// Check runs during native household tasks as well as between decisions.
+// Check runs during native food tasks as well as between decisions.
 func (r *runner) Check(v behaviour.View) error {
 	g, ok := r.t.Store.Get(r.id)
 	if !ok {
 		return errors.New("goal disappeared")
 	}
-	if g.Food == nil || g.Food.Stock == nil {
+	if g.Food == nil {
 		return nil
 	}
 	if !v.Now.Before(g.Deadline) || !foodView(v, g) {
@@ -353,10 +353,12 @@ func (r *runner) Check(v behaviour.View) error {
 		return errors.New("unsafe household health, footing, home or capacity")
 	}
 	if g.Food.Injury != nil && (v.InjurySeq == nil || *g.Food.Injury != *v.InjurySeq) {
-		return errors.New("injury during household work")
+		if !r.foodResultBoundary(g, v) && !(r.nativeTravelRecovery(g, v) && foodTravelDamage(g, v)) {
+			return errors.New("injury outside owned food travel damage budget")
+		}
 	}
 	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeTravelRecovery(g, v) {
+		if c.HPFrac > 0 && (c.TargetingMe || c.Hostile) && distance(c.Pos, s.Pos) < 15 && !r.nativeTravelRecovery(g, v) && !r.foodResultBoundary(g, v) {
 			return errors.New("nearby threat interrupts household work")
 		}
 	}
@@ -367,8 +369,18 @@ func (r *runner) Check(v behaviour.View) error {
 // task as well so stale/pending metadata cannot exempt stationary work.
 func (r *runner) nativeTravelRecovery(g Record, v behaviour.View) bool {
 	p := g.Pending
-	if p == nil || p.Run != r.t.Store.runID || p.TaskID == "" || v.State.Task == nil ||
+	if !r.travelIntent(g) || v.State.Task == nil ||
 		v.State.Task.ID != p.TaskID || v.State.Task.Task != protocol.TaskMoveTo || v.State.Task.Status != protocol.StatusRunning {
+		return false
+	}
+	j := v.State.Journey
+	return j != nil && j.ID == p.TaskID && j.Attempts >= 0 && j.Attempts <= 3 &&
+		slices.Contains([]string{"walk", "defend", "escape", "observe", "blocked"}, j.Mode)
+}
+
+func (r *runner) travelIntent(g Record) bool {
+	p := g.Pending
+	if p == nil || p.Run != r.t.Store.runID || p.TaskID == "" {
 		return false
 	}
 	if !slices.Contains([]string{"search_food", "food_return", "cook_return", "home"}, p.Template) {
@@ -376,4 +388,22 @@ func (r *runner) nativeTravelRecovery(g Record, v behaviour.View) bool {
 	}
 	var args protocol.MoveToArgs
 	return json.Unmarshal(p.Params, &args) == nil && args.RecoverThreats && args.Dry && args.AvoidHostiles
+}
+
+// Yield a completed body's receipt to Next before evaluating an encounter.
+// This grants no action permission: Next requires the exact scoped result.
+func (r *runner) foodResultBoundary(g Record, v behaviour.View) bool {
+	p := g.Pending
+	return p != nil && p.Run == r.t.Store.runID && p.TaskID != "" &&
+		(v.State.Task == nil || v.State.Task.ID == p.TaskID &&
+			slices.Contains([]string{protocol.StatusSucceeded, protocol.StatusFailed, protocol.StatusRejected, protocol.StatusCancelled}, v.State.Task.Status))
+}
+
+func foodTravelDamage(g Record, v behaviour.View) bool {
+	b := g.Food.TravelBudget
+	return b != nil && v.InjurySeq != nil && v.Injury != nil && v.Injury.Complete &&
+		v.Injury.Sequence == *v.InjurySeq && *v.InjurySeq >= b.Injury &&
+		finite(v.Injury.Damage) && v.Injury.Damage >= b.Damage && v.Injury.Damage-b.Damage <= 10 &&
+		finite(v.State.HP) && finite(v.State.HPMax) && v.State.HPMax > 0 &&
+		v.State.HP >= math.Max(30, math.Max(v.State.HPMax*.65, b.HP-10))
 }

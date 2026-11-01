@@ -132,6 +132,9 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if nativeEscort(st) && st.Escort.Mode == "escape" {
 		return
 	}
+	if nativeTravel(st) {
+		return
+	}
 	if r.controlledAttack(st, seen) {
 		return
 	}
@@ -229,6 +232,18 @@ func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol
 func nativeEscort(st *protocol.State) bool {
 	return st.Task != nil && st.Task.Task == protocol.TaskEscort && st.Task.Status == protocol.StatusRunning &&
 		st.Escort != nil && st.Escort.ID != "" && st.Escort.ID == st.Task.ID
+}
+
+// The matching native travel owner handles defense/withdrawal every physics
+// step. Do not replace it with a second controller-owned body after a small hit.
+func nativeTravel(st *protocol.State) bool {
+	j := st.Journey
+	return st.Task != nil && st.Task.Task == protocol.TaskMoveTo && st.Task.Status == protocol.StatusRunning &&
+		j != nil && j.ID != "" && j.ID == st.Task.ID && j.Attempts >= 0 && j.Attempts <= 3 &&
+		slices.Contains([]string{"walk", "defend", "escape", "observe", "blocked"}, j.Mode) &&
+		st.HP >= math.Max(20, st.HPMax*.4) && st.Stamina >= 8 && st.Food != nil && len(st.Food.Active) > 0 &&
+		!st.Encumbered() && !st.Stranded() && !slices.Contains(st.Flags, protocol.FlagSwimming) &&
+		(st.Location == nil || !st.Location.InWater)
 }
 
 // The plugin owns a bounded explicit melee encounter and its fallback flee.

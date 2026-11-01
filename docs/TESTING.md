@@ -1282,14 +1282,30 @@ The corrected return guard lets an uncovered porch/last stair continue toward
 the actual 1.5 m endpoint. Correct-floor ground, shelter and threat clearance
 are still required for success, and an unsafe endpoint still fails.
 
+The c9c084e local finish then reached the actual floor, grounded and sheltered,
+without injury and released recovery normally at62.2/62.2HP. Evidence:
+`.checks/recovery-20261101T023045Z` / `.checks/audit-window-kx0qK3.jsonl`.
+The following personal food trip stopped on a targeting Neck14.3m away before
+verified production (`.checks/food-20261101T023203Z`), and a subsequent local
+return failed all eight initial hostile-corridor headings without movement or
+injury (`.checks/recovery-20261101T023454Z`). Neither failure is a combat pass.
+
 ## Household food pressure checks
 
 The staged encounter plan is in [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md).
 `just check plugin test-core TravelRecoveryTests` covers native escape,
-continuous quiet observation, renewed pursuit, lifetime retry limits,
-timeouts, unsafe reserves and cancellation. Controller goal/protocol checks
+continuous quiet observation, narrow single-Greyling defense capability,
+attack permissions, defense-to-escape without resetting the deadline,
+renewed pursuit, lifetime retry limits, timeouts, unsafe reserves and cancellation.
+Controller goal/protocol checks
 cover explicit opt-in, matching current-run travel identity, stationary and
-stale-task rejection, injury guards, unfed bootstrap and distant targeting.
+stale-task rejection, finite actual-damage allowance, receipt accounting before
+threat/injury, unfed bootstrap and distant targeting.
+`just check controller test-packages ./internal/session ./internal/retreat`
+covers cumulative damage despite healed HP/arbitrary wire sequence gaps,
+unknown/death/reconnect invalidation and preventing a competing emergency body
+while an exact native journey owns recovery. `just check vm test-food-check`
+checks supervisor budget/identity and exact completed travel between polls.
 Field coverage still requires the same task ID across encounter recovery and
 actual subsequent travel/collection; policy tests do not establish Unity
 escape clearance or a route through the retained coastal bottleneck.

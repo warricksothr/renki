@@ -10,6 +10,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
 )
 
 func foodFixture(t *testing.T) (*Template, *runner, behaviour.View, string) {
@@ -38,6 +39,7 @@ func foodFixture(t *testing.T) (*Template, *runner, behaviour.View, string) {
 	home := protocol.Vec3{}
 	injury := uint64(0)
 	v := behaviour.View{Now: now, StateAt: now, PerceptionAt: now, Home: &home, InjurySeq: &injury, Owners: []string{"Nimah"}, State: &protocol.State{Envelope: protocol.Envelope{Seq: 10, T: 100}, World: "one", Phase: protocol.PhaseInWorld, HP: 50, HPMax: 50, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Raspberry", RemainingS: 1000}}}}, Inventory: &protocol.Inventory{Envelope: protocol.Envelope{Seq: 9, T: 100}, Size: [2]int{8, 4}}, Perception: &protocol.Perception{Envelope: protocol.Envelope{Seq: 8, T: 100}, Structures: []protocol.PerceivedStructure{{ID: "a", Kind: protocol.StructureContainer, Pos: protocol.Vec3{1, 0, 0}}, {ID: "b", Kind: protocol.StructureContainer, Pos: protocol.Vec3{2, 0, 0}}, {ID: "station", Kind: protocol.StructureStation, Pos: protocol.Vec3{3, 0, 0}, Cooking: &protocol.CookingStatus{Supported: true, Heated: true, Slots: []protocol.CookingSlotStatus{{State: "empty"}}}}}}}
+	v.Injury = &session.InjuryStatus{Complete: true}
 	return host, run.(*runner), v, g.ID
 }
 func foodFresh(v *behaviour.View) { fresh(v, 3); v.State.Seq += 10; v.Inventory.Seq += 10 }

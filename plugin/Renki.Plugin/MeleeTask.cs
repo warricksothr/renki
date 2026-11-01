@@ -41,6 +41,7 @@ namespace Renki.Plugin
         MeleeFrame lastFrame;
 
         internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason, Defensive = defensive };
+        internal bool ObservedDeath => death.Observed || enemy != null && enemy.IsDead();
 
         public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null, Func<Player, bool> safeAlly = null)
         {

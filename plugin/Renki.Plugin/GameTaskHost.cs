@@ -47,7 +47,7 @@ namespace Renki.Plugin
                 case MoveToArgs m:
                     {
                         var (pos, obj) = Resolve(m.To);
-                        return new MoveToTask(m, pos, obj);
+                        return new MoveToTask(m, pos, obj, req.Id);
                     }
                 case PickupArgs pk:
                     {
