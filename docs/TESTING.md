@@ -1596,3 +1596,22 @@ unchanged and are never reset by the handoff. Native refusal details and
 bearings and lost live eligibility. `BankExitTests` verifies both the captured
 handoff and expiry after a planning wait. This does not prove the rejected
 route is traversable; a further supervised native result is required.
+
+Reviewed build `d5e74f6` was installed with checksum verification. The next
+supervised return `.checks/recovery-20261101T074138Z` failed without observed
+injury. Audit `.checks/audit-window-OFT5N7.jsonl` shows repeated live
+`endpoint_support` rejection of navmesh candidates while local planning was
+pending. Water later rose from30m to30.89m; bank recovery then exhausted its
+original3m aggregate distance bound (`reason: distance_limit`), rather than
+the earlier time-limit handoff. This does not earn home return or pantry
+production. Tas was logged out and the controller-only panel restarted.
+
+A read-only native image was retained at
+`.checks/camera-20261101T074237541679Z.jpg`, with capture/task metadata beside
+it. It shows Tas on the steep terrain below the raised deck, not at a portal
+or an interior doorway. The next investigation must separate missing support,
+rejected slope normals and height-band mismatches at the failed endpoint;
+current `endpoint_support` diagnostics do not distinguish them. Retain local
+search evidence if bank recovery interrupts it. Do not retry the unchanged
+return, extend recovery limits, lower walking clearances or claim the
+building model establishes a traversable route through that bank.

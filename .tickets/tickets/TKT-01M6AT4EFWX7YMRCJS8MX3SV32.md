@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T07:37:52Z
+updated_at: 2026-11-01T07:45:44Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -120,3 +120,9 @@ Captured bank handoff now reserves20cm of liquid variation beyond the existing10
 **agent:codex/renki-milestones** at 2026-11-01T07:37:52Z
 
 Changed-policy return .checks/recovery-20261101T073423Z failed without injury after 0.7m travel; audit .checks/audit-window-qejxWc.jsonl. Recovery reached body 31.20m / footing 31.11m above water 30m. Two navmesh candidates failed endpoint support; footing settled to 31.10m while planning. Completion and waiting re-entry both used 1.1m, so tiny settling re-entered recovery after its original deadline. Correcting this with distinct 1.1m completion / 0.9m waiting thresholds (ordinary travel remains 0.8m), captured-position/wave regression, and explicit refusal reason diagnostics. No budget reset or physical guard waiver. Tas is offline and panel remains available. Pantry production and native portal-trigger avoidance remain unproved.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:45:44Z
+
+Reviewed d5e74f6 passed just check ci (.checks/20261101T073806Z-VxuFrP.log) and committed just check review 4337eb4..HEAD (.checks/20261101T074045Z-twhKvO.log), then was pushed and checksum-verified on BLIGHT. Supervised return .checks/recovery-20261101T074138Z failed without observed injury. Audit .checks/audit-window-OFT5N7.jsonl shows endpoint_support rejection during planning, then water rose from 30m to 30.89m and bank recovery reached distance_limit (the original 3m aggregate bound). This is distinct from the earlier handoff timeout. Native camera .checks/camera-20261101T074237541679Z.jpg shows steep terrain below the raised deck, not an interior doorway or portal.
+
+Tas is offline; the controller-only panel has restarted. No unchanged retry. Next investigate support-ray refusal normals/heights and preserve unfinished local-search diagnostics when bank recovery interrupts it; use those measurements to choose a checked approach/staging route, without extending limits or lowering clearances. Pantry and native portal-trigger criteria remain open. This result supersedes the pending native-test statement in the previous note.
