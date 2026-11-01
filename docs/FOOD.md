@@ -91,6 +91,12 @@ remembered site offers a position to check; it never proves a harvest or an
 empty area. Cold cooking fires can obtain wood from observed branches or
 loose wood when storage has none. The native movement task checks dry ground,
 known obstacles and hostile avoidance for each visit.
+Source admission also rejects currently perceived hostile exclusion areas in
+the horizontal plane: 16 m for an ordinary Neck, 24 m for an ordinary Boar,
+and 40 m for other or starred hostiles. These match native route clearance;
+fresh perception can rule out an occupied source but cannot establish safety
+from threats loaded only by the plugin. Other nearby creatures retain the
+existing conservative exclusion, and a pursuing creature blocks further work.
 
 If those sources cannot supply food, current attack permission can admit an
 explicitly selected isolated unstarred wild Boar or Neck within 30 m of Tas.

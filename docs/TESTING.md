@@ -1357,6 +1357,16 @@ Ordinary supervised return after that refusal passed in
 handling and encounter-to-collection/storage proof remain open; the earlier
 120-second return timeout also remains a failure in the evidence.
 
+`just check plugin test-core FleeBearings` covers bounded alternative escape
+guidance, the captured shore/threat positions against a clearly synthetic dry
+shelf, physical refusal, rejected remaining goals, fixed tangent targets,
+moving-threat re-aiming, cancellation and unchanged encounter deadlines. Prefix
+acceptance does not prove clearance beyond 3 m or authorize movement. A native
+trial must show a selected alternative, checked actual progress and the same
+task/encounter limits; synthetic support is not captured-world route proof.
+Controller food-source tests use the captured bush/Greydwarf positions and the
+native horizontal exclusion radii, while retaining exact prey and player rules.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing

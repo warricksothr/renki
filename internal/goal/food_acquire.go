@@ -99,7 +99,22 @@ func foodSiteSafe(v behaviour.View, pos protocol.Vec3, except string) bool {
 		if c.ID == except || c.HPFrac <= 0 || c.Kind == protocol.CharacterPlayer {
 			continue
 		}
-		if c.TargetingMe || distance(c.Pos, pos) < 15 {
+		clearance := 15.0
+		if c.Hostile || c.TargetingMe {
+			// Match the native loaded-hostile exclusion in the horizontal
+			// plane. Perception can reject a known occupied source; it cannot
+			// establish clearance from threats loaded only by the plugin.
+			clearance = 40
+			if c.Stars == 0 {
+				switch c.Prefab {
+				case "Neck":
+					clearance = 16
+				case "Boar":
+					clearance = 24
+				}
+			}
+		}
+		if c.TargetingMe || !validFoodPos(c.Pos) || c.Pos.FlatDistance(pos) < clearance {
 			return false
 		}
 	}

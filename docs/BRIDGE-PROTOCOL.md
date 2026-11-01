@@ -740,7 +740,16 @@ Notes:
   task retains its original destination across up to three checked escapes,
   each bounded to 30 s including a five-second quiet observation period.
   Escape targets 35 m from its selected threat and checks all loaded hostile
-  corridors as well as physical support and obstacles. Resumption replans
+  corridors as well as physical support and obstacles. Hostile-avoiding escape
+  children can try seven bearings: straight away, then ±30°, ±60° and ±90°.
+  Each bearing first checks a 3 m prefix in half-metre steps, at most eight
+  probes per physics tick and 42 over the child's lifetime. The prefix only
+  selects guidance; the normal walker still validates the remaining route and
+  live execution. A refused goal consumes its bearing. Progress or re-aiming
+  cannot replenish that budget, and no alternative extends the task or 30 s
+  encounter deadline. A tangent target stays anchored as the bot moves;
+  moving threats can request a fresh goal after 3 m. Traces report selected
+  bearing, cumulative samples and refused goals. Resumption replans
   from the actual position; the enclosing deadline is unchanged. This grants
   no combat permission. Optional `defendThreats:true` additionally requires
   `recoverThreats` and attack permission at both safety layers. It can defend
