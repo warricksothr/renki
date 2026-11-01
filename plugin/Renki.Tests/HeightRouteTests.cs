@@ -33,6 +33,11 @@ namespace Renki.Tests
             Assert.Equal(RouteStatus.Found, Finish(height));
             Assert.True(height.Expanded < flat.Expanded, $"height={height.Expanded}, flat={flat.Expanded}");
             Assert.Equal(3, height.Path.Last().Y);
+            Assert.Equal(3, height.HighestExpanded.Value.Y);
+            // The final short checked connector need not become an expanded
+            // node. Frontier evidence stays separate from the arrival path.
+            Assert.InRange(height.ClosestGap, 0, LocalRoute.Cell * 1.5);
+            Assert.True(height.GoalFloorExpanded > 0);
             Assert.Contains(height.Path, at => Math.Abs(at.Z - 4) < .01 && at.Y > 0 && at.Y < 3);
             for (var i = 1; i < height.Path.Count; i++) Assert.Equal(height.Path[i], Probe(height.Path[i - 1], height.Path[i]));
         }
@@ -45,6 +50,10 @@ namespace Renki.Tests
             Assert.Equal(RouteStatus.NoRoute, Finish(route));
             Assert.Null(route.Path);
             Assert.Equal(128, route.Expanded);
+            Assert.Equal(0, route.HighestExpanded.Value.Y);
+            Assert.Equal(0, route.ClosestExpanded.Value.Y);
+            Assert.True(route.ClosestGap > 1);
+            Assert.Equal(0, route.GoalFloorExpanded);
         }
 
         [Fact]

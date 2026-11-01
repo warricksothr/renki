@@ -217,6 +217,16 @@ class Routes(unittest.TestCase):
         self.assertEqual(record['piece'], 'wood_stair')
         self.assertEqual(record['supportQuery']['contacts'][0]['normal'], normal)
 
+    def test_compact_evidence_keeps_reached_floor_and_near_goal_refusal(self):
+        frontier = dict(target=[-39.77, 36.09, 11.2], highest=[-40, 35, 10],
+                        closest=[-39, 35, 11], gap=.6, goalFloorExpanded=0)
+        frame = dict(type='trace', source='walker', msg='no safe local route', data=dict(
+            frontier=frontier, failures=dict(counts=dict(body_cast=50), examples=[dict(
+                stage='body_cast', at=[-39, 35, 11], collider='wood_floor/collider')])) )
+        record = evidence.project([json.dumps(dict(frame=frame))])['recent'][0]
+        self.assertEqual(record['frontier'], frontier)
+        self.assertEqual(record['failures']['examples'][0]['collider'], 'wood_floor/collider')
+
     def test_evidence_does_not_expand_a_large_bank_sweep_into_context(self):
         sample = dict(supportQuery=dict(reason='slope', contacts=[dict(normal=[0, .62, 0])]*6))
         data = dict(planning=dict(local=dict(failures=dict(counts=dict(endpoint_support=100), examples=[sample]*16))))

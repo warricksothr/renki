@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T10:41:55Z
+updated_at: 2026-11-01T10:51:00Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -148,3 +148,9 @@ The automatic camera checkpoint did run but captured a loading screen. Delay the
 Reviewed43ee7d8 passed just check ci (.checks/20261101T103450Z-RzYVjq.log), committed review (.checks/20261101T103816Z-JfJM9a.log), push and checksum installation. Changed-policy return .checks/recovery-20261101T103852Z / audit .checks/audit-window-Cb7pe0.jsonl travelled10.6m without observed injury to[-36.92,34.11,7.52], still below home. Its final search remained Searching at2918 expansions/23344 probes after16.02s. Native logout and supervisor cleanup restored controller-only panel. No home/benchmark/pantry success earned. Optional delayed camera now captures actual world imagery.
 
 Exact diagnostics identify a concrete admission bug: rotated wood_floor hits have normal Y1.0000001192092896, and WalkableNormal's exact upper bound1 rejects them as slope. This also prevents observed entrance floors from becoming hints. Correcting only the upper numerical bound to1+1e-6; the lower0.8 slope threshold, support heights, body/portal/water checks and all route/bank deadlines remain unchanged. Captured support and synthetic hint integration regression accept the measured flat floor while rejecting the captured0.446 stair face; boundary cases retain nonfinite/large-overshoot/sub0.8 rejection. CI/review and one corrected-policy native return follow; no unchanged retry.
+
+**agent:codex/renki-milestones** at 2026-11-01T10:51:00Z
+
+Reviewed4c8b3bf passed full CI (.checks/20261101T104202Z-3n4DmO.log), committed review (.checks/20261101T104426Z-V615oX.log), push and checksum installation. Corrected-policy return .checks/recovery-20261101T104459Z / audit .checks/audit-window-bQImaU.jsonl confirms both door floors now become entrance hints at Y36.09. The exact-normal correction is demonstrated; complete routing remains unproved. Tas moved only0.3m and stayed below the base near[-37.04,34.11,7.57],45.2/45.2HP, without observed injury. Both entrance searches and the final home search ended Searching at16s. Native logout and supervisor cleanup restored controller-only panel.
+
+Current summaries conceal whether any upper-floor nodes were actually expanded, and their last-per-stage refusals come from unrelated distant terrain. Add bounded diagnostic-only highest/closest expanded support, target-floor expansion count and closest refusal per stage ordered by goal distance. Core regression distinguishes reachable upper-floor nodes from missing support and final short arrival connectors. The existing route-evidence projection retains these summaries. No physical policy, target, budget or autonomous goal is changed. One instrumented run after gate/review will distinguish an actual entrance obstruction from queue exhaustion; no production receipt is claimed.

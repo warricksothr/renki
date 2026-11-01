@@ -1762,3 +1762,19 @@ regressions accept that floor while retaining refusal of the captured
 `wood_stair` face with normal Y0.44619783759117126, nonfinite values,
 larger overshoot, and values just below0.8. This is a numerical correction,
 not proof of a complete entrance route; native return validation remains open.
+
+The corrected4c8b3bf return `.checks/recovery-20261101T104459Z` (audit
+`.checks/audit-window-bQImaU.jsonl`) confirms both door floors are now sampled
+and selected at Y36.09. Tas remained below the base at[-37.04,34.11,7.57]
+with no observed injury; each of two entrance searches and the final home
+search reached its16-second stage limit. No full route was earned.
+
+Local route diagnostics now report the active search's highest and closest
+expanded support, distance to the arrival cylinder, and count of expanded
+nodes at the target floor. These describe only physically reached search
+nodes, never a new movement leg or arrival receipt. Goal-scoped probes retain
+the closest refusal per stage and sort their bounded examples by distance
+to the search target, rather than letting an unrelated final terrain probe
+hide an entrance obstruction. The existing compact route-evidence tool
+retains these fields, while bank sweeps keep their original chronological
+sixteen-candidate evidence. Movement policy and search budgets are unchanged.

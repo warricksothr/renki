@@ -657,6 +657,7 @@ namespace Renki.Plugin
                 expanded = localRoute.Expanded,
                 probes = localRoute.Probes,
                 elapsedS = System.Math.Round(Time.unscaledTime - localStarted, 2),
+                frontier = FrontierEvidence(),
                 failures = localProbe?.Failures
             },
             replay = replay == null ? null : new
@@ -667,6 +668,16 @@ namespace Renki.Plugin
                 checkingFrom = replay.CheckingFrom.ToArray(),
                 failures = replayProbe?.Failures
             }
+        };
+
+        object FrontierEvidence() => localRoute == null ? null : new
+        {
+            target = localRoute.Target.ToArray(),
+            phase = localRoute.Phase,
+            highest = localRoute.HighestExpanded?.ToArray(),
+            closest = localRoute.ClosestExpanded?.ToArray(),
+            gap = localRoute.ClosestExpanded.HasValue ? (double?)localRoute.ClosestGap : null,
+            goalFloorExpanded = localRoute.GoalFloorExpanded
         };
 
         void RejectReplay(Vector3 pos, string why)
@@ -794,7 +805,7 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance);
+            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance, diagnosticGoal: Convert.ToV3(target));
             ThreatGuidance Guidance()
             {
                 if (!dryGround || !avoidHostiles || !preferGuidance && localProbe.HostileRejected == 0) return null;
@@ -905,6 +916,7 @@ namespace Renki.Plugin
                 ["supportQuery"] = !found ? localProbe.LastRefusal?.SupportQuery : null,
                 ["failures"] = !found ? localProbe.Failures : null,
                 ["searchStatus"] = localRoute.Status.ToString(),
+                ["frontier"] = FrontierEvidence(),
                 ["nodeLimitReached"] = localRoute.NodeLimitReached,
                 ["guidance"] = localRoute.Guidance == null ? null : new
                 {

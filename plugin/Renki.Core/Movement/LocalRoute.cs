@@ -51,6 +51,13 @@ namespace Renki.Movement
         public IReadOnlyList<V3> Path { get; private set; }
         public int Expanded { get; private set; }
         public int Probes { get; private set; }
+        public V3 Target => goal;
+        // Diagnostic evidence from expanded, physically reached nodes only.
+        // These points never authorize an approach leg or indicate arrival.
+        public V3? HighestExpanded { get; private set; }
+        public V3? ClosestExpanded { get; private set; }
+        public double ClosestGap { get; private set; } = double.PositiveInfinity;
+        public int GoalFloorExpanded { get; private set; }
         public bool NodeLimitReached => Status == RouteStatus.NoRoute && Expanded >= maxNodes;
         /// <summary>A found path is only a checked leg, not arrival at the destination.</summary>
         public bool ProgressLeg { get; }
@@ -92,6 +99,10 @@ namespace Renki.Movement
                 open.Remove(node);
                 if (costs[Key(node)] < node.Cost) { i--; continue; }
                 Expanded++;
+                if (!HighestExpanded.HasValue || node.Pos.Y > HighestExpanded.Value.Y) HighestExpanded = node.Pos;
+                var gap = ArrivalGap(node.Pos);
+                if (gap < ClosestGap) { ClosestGap = gap; ClosestExpanded = node.Pos; }
+                if (Math.Abs(node.Pos.Y - goal.Y) <= arrivalLevel) GoalFloorExpanded++;
                 if (stagingEligible != null && node.Cost <= DryStaging.MaximumCost &&
                     V3.FlatDistance(start, node.Pos) >= DryStaging.MinimumDistance &&
                     V3.FlatDistance(start, goal) - V3.FlatDistance(node.Pos, goal) >= DryStaging.MinimumProgress &&
@@ -188,13 +199,18 @@ namespace Renki.Movement
                 // checked 3D path cost. Prefer the required floor without
                 // inventing a connection to it. Distant frontier legs and
                 // explicit regional guidance keep their existing estimate.
-                var horizontal = Math.Max(0, V3.FlatDistance(at, goal) - within);
-                var vertical = Math.Max(0, Math.Abs(at.Y - goal.Y) - arrivalLevel);
-                return Math.Sqrt(horizontal * horizontal + vertical * vertical);
+                return ArrivalGap(at);
             }
             var estimate = guidance != null ? guidance(at) : V3.FlatDistance(at, goal);
             if (double.IsNaN(estimate) || estimate < 0) throw new ArgumentException("invalid route guidance");
             return estimate;
+        }
+
+        double ArrivalGap(V3 at)
+        {
+            var horizontal = Math.Max(0, V3.FlatDistance(at, goal) - within);
+            var vertical = Math.Max(0, Math.Abs(at.Y - goal.Y) - arrivalLevel);
+            return Math.Sqrt(horizontal * horizontal + vertical * vertical);
         }
     }
 }

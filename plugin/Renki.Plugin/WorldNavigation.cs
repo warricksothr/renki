@@ -150,6 +150,7 @@ namespace Renki.Plugin
             readonly bool diagnostics;
             readonly bool dry;
             readonly bool bankExit;
+            readonly V3? diagnosticGoal;
             internal readonly bool Executing;
             long slice;
             internal Failure LastFailure { get; private set; }
@@ -163,28 +164,30 @@ namespace Renki.Plugin
             {
                 counts = new Dictionary<string, int>(failureCounts),
                 bank = bankExit ? new { executing = Executing, dry, core = typeof(BankExit).Assembly.Location, coreMvid = typeof(BankExit).Assembly.ManifestModule.ModuleVersionId.ToString() } : null,
-                examples = (bankExit ? (IEnumerable<Failure>)bankFailures : failureExamples.Values).Select(failure => new
-                {
-                    stage = failure.Stage,
-                    at = failure.At.ToArray(),
-                    collider = failure.Collider,
-                    supportHeights = failure.SupportHeights,
-                    waterLevels = failure.WaterLevels,
-                    supportQuery = failure.SupportQuery,
-                    stepDistance = failure.StepDistance,
-                    bankClear = failure.BankClear
-                }).ToArray()
+                examples = (bankExit ? (IEnumerable<Failure>)bankFailures : diagnosticGoal.HasValue
+                    ? failureExamples.Values.OrderBy(f => (f.At - diagnosticGoal.Value).Length) : failureExamples.Values).Select(failure => new
+                    {
+                        stage = failure.Stage,
+                        at = failure.At.ToArray(),
+                        collider = failure.Collider,
+                        supportHeights = failure.SupportHeights,
+                        waterLevels = failure.WaterLevels,
+                        supportQuery = failure.SupportQuery,
+                        stepDistance = failure.StepDistance,
+                        bankClear = failure.BankClear
+                    }).ToArray()
             };
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
             public int SupportHits => support.Hits + footing.Hits;
             public int SupportQueries => support.Misses + footing.Misses;
-            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null, bool bankExit = false)
+            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null, bool bankExit = false, V3? diagnosticGoal = null)
             {
                 physical = (from, desired) => WorldNavigation.Probe(from, desired, this);
                 this.refusals = refusals; this.corridor = corridor;
                 this.diagnostics = diagnostics;
                 this.dry = dry;
                 this.bankExit = bankExit;
+                this.diagnosticGoal = diagnosticGoal;
                 Executing = executing;
                 support = new SupportMemo((at, y) =>
                 {
@@ -221,7 +224,12 @@ namespace Renki.Plugin
                 };
                 LastRefusal = LastFailure;
                 failureCounts[stage] = failureCounts.TryGetValue(stage, out var count) ? count + 1 : 1;
-                failureExamples[stage] = LastFailure;
+                // An unrelated final probe can hide the obstruction beside
+                // a raised entrance. Retain the nearest example per stage
+                // for goal-scoped searches; bank sweeps remain chronological.
+                if (!diagnosticGoal.HasValue || !failureExamples.TryGetValue(stage, out var prior) ||
+                    (at - diagnosticGoal.Value).Length < (prior.At - diagnosticGoal.Value).Length)
+                    failureExamples[stage] = LastFailure;
                 // Preserve the first bounded bank sweep, including its uphill
                 // bearings. The final example alone can conceal why those failed.
                 if (bankExit && bankFailures.Count < 16) bankFailures.Add(LastFailure);

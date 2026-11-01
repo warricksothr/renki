@@ -37,7 +37,7 @@ def project(audit, limit=12):
         record = dict(at=row.get('at'), task=frame.get('task'), message=frame.get('msg'))
         record.update({k: data[k] for k in ('pos', 'from', 'reason', 'failure', 'checking', 'checkingFrom',
                        'searchStatus', 'expanded', 'probes', 'elapsedS', 'supportQuery', 'failures', 'planning',
-                       'stagingLegs', 'progressLeg', 'end', 'piece') if k in data})
+                       'stagingLegs', 'progressLeg', 'end', 'piece', 'frontier') if k in data})
         if 'supportQuery' in record: record['supportQuery'] = query(record['supportQuery'])
         if 'failures' in record: record['failures'] = failures(record['failures'])
         if record.get('planning'):
