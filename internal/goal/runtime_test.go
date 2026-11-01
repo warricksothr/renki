@@ -61,7 +61,7 @@ func TestRecoveryWaitsForChangedObservationThenCompletesWithExactReceipt(t *test
 	host, r, v, id := fixture(t)
 	attack(t, r, v, "task-1")
 	g, _ := host.Store.Get(id)
-	if g.Pending.TaskID != "task-1" || g.Attempts != 1 {
+	if g.Pending.TaskID != "task-1" || g.Attempts != 1 || g.Pending.Run != host.Store.RunID() || !g.Pending.At.Equal(v.Now) {
 		t.Fatal(g)
 	}
 	o, err := r.Next(v, &behaviour.Result{Status: "failed", Reason: "unreachable", Detail: "travel limit", TaskID: "task-1"})
@@ -70,7 +70,7 @@ func TestRecoveryWaitsForChangedObservationThenCompletesWithExactReceipt(t *test
 		t.Fatalf("%+v %v", o, err)
 	}
 	g, _ = host.Store.Get(id)
-	if g.Pending != nil || g.Last.TaskID != "task-1" || g.Attempts != 1 || len(g.History) != 1 {
+	if g.Pending != nil || g.Last.TaskID != "task-1" || g.Last.Run != host.Store.RunID() || g.Attempts != 1 || len(g.History) != 1 {
 		t.Fatal(g)
 	}
 	fresh(&v, 5)

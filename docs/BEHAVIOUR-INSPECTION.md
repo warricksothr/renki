@@ -1,9 +1,9 @@
 # Watching and explaining behavior
 
-Design direction, 2026-11-01. This document distinguishes existing inspection
+Design and first implementation, 2026-11-01. This document distinguishes existing inspection
 from proposed tooling. It complements [Goals](GOALS.md),
 [Procedures](PROCEDURES.md) and the proposed [procedure tool contract](PROCEDURE-TOOLS.md).
-It does not introduce another planner, interpreter or available API.
+It does not introduce another planner or interpreter.
 
 ## Current surface
 
@@ -18,6 +18,55 @@ video shows motion; diagnostic camera and map snapshots retain selected views.
 These are separate observations. There is no unified causal decision graph,
 recorded decision replay UI, or procedure authoring/publishing API yet. Recent
 goal summaries trim history; the audit is not a permanent scenario archive.
+
+## Available first inspection slice
+
+The panel's **Decisions** link opens a read-only decision inspector. It and
+`just vm inspect [GOAL]` consume authenticated `GET /api/inspection`, optionally
+`?goal=ID`. Omitting the ID selects the current lease-backed task's goal when
+known, otherwise the newest saved goal. Choosing a goal or phase only changes
+the view; it never resumes a goal, issues an order or acquires the body.
+
+The `inspection-v1` response includes controller run, connection and world scope;
+state arrival age/sequence; actual retained dispatch provenance; a compact saved
+goal with budgets; typed guard observations/sources; phase descriptions and
+selected possible transitions; and at most 12 retained intent/outcome/inventory
+receipt rows. Goal choices use a lightweight index, and only one full checkpoint
+is read. The response excludes policy source, full checkpoints and raw task
+origins (which may contain private chat).
+
+Ownership requires the current exact automation lease, matching behavior episode,
+current-run pending intent and task identity. A newly dispatched owner order
+supersedes the older streamed task immediately in the API, with `awaiting_state`
+until its native observation arrives. Native recovery takes precedence. A saved
+running goal by itself never establishes body ownership. Offline or more than
+3-second-old world observations withhold native phases. Pursuit predicates expire
+at 1 second. The panel also expires observations locally and invalidates live
+presentation on scope changes or failed refreshes; it polls once per second while
+visible. Food checkpoints remain explicitly saved evidence offline.
+
+For peeling, necessary pursuit predicates can pass without granting permission
+to fight. Full native preparation, independent native action permission,
+competitor clearance and current escape-route validity stay **unknown** where
+telemetry does not export them. A planned escape endpoint is not a checked
+corridor receipt. Food search progress is a ledger of candidates, search entries
+and verified receipts; one negative chest result cannot prove all storage empty.
+
+This increment has a bounded evidence list, **not a causal timeline or replay**.
+Only outcomes with recorded run/task/time receive scoped task-audit links. Old
+records without a run or time stay unscoped; inventory receipt timestamps are
+not invented. Combat and return intents now record run/time like food intents.
+The graph describes possible transitions, never completed historical visits;
+accepted legacy food phases are identified separately from current execution.
+Map/video links open live views. Retained synchronized map/camera evidence and
+material guard/decision archives remain subsequent work.
+
+Verification uses `just check controller test-packages ./internal/inspection
+./internal/session ./internal/app ./internal/goal`, `just check panel test`, and
+`just check panel ui-test --scenario inspection-peel,inspection-interruption,inspection-pantry-offline
+--viewport all --port 0`. UI scenarios use a clearly synthetic response to test
+presentation; Go tests establish projection/provenance behavior. Neither proves
+a live peel, kill, return or pantry deposit.
 
 ## One inspectable execution contract
 

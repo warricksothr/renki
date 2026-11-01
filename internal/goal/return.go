@@ -137,7 +137,7 @@ func (r *runner) afterCombat(g Record, v behaviour.View) (*session.Order, error)
 		g.PostCombat.Phase = "return"
 		g.Reason = "kill verified; returning to pinned home"
 		g.Wake = time.Time{}
-		g.Pending = &Intent{Template: "return_home", Params: raw}
+		g.Pending = &Intent{Run: r.t.Store.runID, At: v.Now, Template: "return_home", Params: raw}
 		return nil
 	}); err != nil {
 		return nil, err

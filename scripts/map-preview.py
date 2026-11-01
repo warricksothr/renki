@@ -74,7 +74,9 @@ if not args.status:
 status.setdefault('owners',['Nimah'])
 if args.offline:
  status=dict(connected=False,connection=status.get('connection',1),owners=status['owners'],phase='menu')
-fixtures=dict(status=status,mapped=mapped,frames=frames,atlas=saved_map,worlds=[saved_world],jpeg=camera_jpeg,cameraState=args.camera_state,settings=[dict(key=key,value=value,config=value) for key,value in [('voice',False),('owners',['Nimah']),('screenshot.enabled',bool(camera_jpeg)),('screenshot.intervalS',5),('screenshot.width',960),('screenshot.quality',70),('presence.sharePosition',False),('players.profiles',{}),('home.afterDeath','home')]],errors=[],requests=[],records=[
+inspection=json.loads((root/'panel/ui/fixtures/inspection.json').read_text())
+inspection.update(connection=status.get('connection',0),world=status.get('world',''),worldUid=status.get('worldUid',''))
+fixtures=dict(inspection=inspection,status=status,mapped=mapped,frames=frames,atlas=saved_map,worlds=[saved_world],jpeg=camera_jpeg,cameraState=args.camera_state,settings=[dict(key=key,value=value,config=value) for key,value in [('voice',False),('owners',['Nimah']),('screenshot.enabled',bool(camera_jpeg)),('screenshot.intervalS',5),('screenshot.width',960),('screenshot.quality',70),('presence.sharePosition',False),('players.profiles',{}),('home.afterDeath','home')]],errors=[],requests=[],records=[
  dict(kind='frame',cat='task',task='t-preview',at='2026-10-30T18:50:00Z',frame=dict(type='task',re='t-preview',task='move_to',status='failed',reason='path_blocked'),line='18:50:00 task t-preview move_to failed reason=path_blocked trace={"navmesh":false}'),
  dict(kind='log',cat='chat',at='2026-10-30T18:50:02Z',msg='Tas: The path is blocked. I stopped safely.',line='18:50:02 said to the panel text="The path is blocked. I stopped safely."'),
  dict(kind='frame',cat='trace',task='t-preview',at='2026-10-30T18:50:01Z',frame=dict(type='trace',msg='stuck recovery',source='walker',data=dict(attempt=2)),line='18:50:01 trace task=t-preview source=walker msg="stuck recovery" data={"attempt":2}')])
@@ -125,6 +127,7 @@ window.fetch=async(path,options={})=>{
  switch(url.pathname){
  case '/api/video': return respond({enabled:preview.videoState!=='disabled',content:['gameplay','stalled','no-source'].includes(preview.videoState)?'gameplay':'standby',reason:preview.videoState==='disabled'?'Video is not configured':'Waiting for verified game capture',scope:preview.status.connection+':'+preview.status.world+':'+(preview.status.worldUid||'')});
  case '/api/status': return respond(preview.status);
+ case '/api/inspection': return respond(preview.inspection);
  case '/api/behaviours': return respond([]);
  case '/api/map': return respond(preview.mapped);
  case '/api/atlas/worlds': return respond(preview.worlds);
@@ -165,7 +168,7 @@ if args.suite:
  checks='' # Automation owns interactions; no delayed self-check can toggle its controls.
 html=html.replace('</body>','<script>window.renkiPreviewReady.then(()=>{'+(root/'panel/preview-checks.js').read_text()+'\n'+(root/'internal/panel/static/app.js').read_text()+'\n}).catch(error=>{document.getElementById("app").textContent="Preview could not load: "+error.message;console.error(error)});</script>'+checks+'</body>')
 if args.map_only:
- html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,#feed-pane,#camera,.command-bar,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
+ html=html.replace('</head>','<style>.topbar,.overview,.workspace-title,.operations,.inspection,#feed-pane,#camera,.command-bar,footer,.preview-notice{display:none!important}main{display:block;padding:12px}.visual-workspace{display:block}#map-pane{width:100%}#map{height:500px;min-height:500px}</style></head>')
 if args.suite:
  font=root/'panel/node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2'
  if not font.exists():

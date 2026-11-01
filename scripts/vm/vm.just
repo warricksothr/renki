@@ -190,6 +190,16 @@ panel METHOD PATH BODY='': need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/panel-request.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/panel-request.ps1 -Method '$method' -ApiPath '$endpoint' ${bodyarg[*]}"
 
+# Compact read-only explanation shared with the panel; optional saved goal ID.
+[positional-arguments]
+inspect GOAL='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" =~ ^[a-zA-Z0-9_-]{1,96}$ ]] || { echo 'Invalid goal ID' >&2; exit 2; }
+    endpoint=/api/inspection
+    [ -z "$1" ] || endpoint+="?goal=$1"
+    just --justfile "{{justfile()}}" vm panel GET "$endpoint"
+
 # Send an exact task for a reproducible live check; normal safety still applies.
 [positional-arguments]
 task TASK ARGS='{}' TIMEOUT='60':

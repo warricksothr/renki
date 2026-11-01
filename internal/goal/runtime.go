@@ -222,7 +222,7 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 		if last.TaskID == "" || last.TaskID != g.Pending.TaskID {
 			return r.need("native receipt does not match pending action")
 		}
-		outcome := Outcome{Template: g.Pending.Template, Status: last.Status, Reason: last.Reason, Detail: truncate(last.Detail, 512), TaskID: last.TaskID, Entity: g.Pending.Entity, At: v.Now}
+		outcome := Outcome{Run: g.Pending.Run, Template: g.Pending.Template, Status: last.Status, Reason: last.Reason, Detail: truncate(last.Detail, 512), TaskID: last.TaskID, Entity: g.Pending.Entity, At: v.Now}
 		if last.Entity != "" {
 			outcome.Entity = last.Entity
 		}
@@ -405,7 +405,7 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 			g.Wake = time.Time{}
 			g.Reason = directive.Reason
 			g.LastFingerprint = fingerprint
-			g.Pending = &Intent{Template: "combat", Params: directive.Params, Entity: args.Entity, Fingerprint: fingerprint, Search: search}
+			g.Pending = &Intent{Run: r.t.Store.runID, At: v.Now, Template: "combat", Params: directive.Params, Entity: args.Entity, Fingerprint: fingerprint, Search: search}
 			return nil
 		}); err != nil {
 			return nil, err

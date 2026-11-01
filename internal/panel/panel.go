@@ -72,6 +72,7 @@ type Options struct {
 	Video           http.Handler
 	Camera          http.Handler
 	Goals           http.Handler
+	Inspection      http.Handler
 	Behaviours      http.Handler
 	ContainerMemory func() any
 	LandmarkMemory  func() any
@@ -181,6 +182,9 @@ func Handler(o Options) http.Handler {
 	if o.Goals != nil {
 		authed.Handle("GET /api/goals", o.Goals)
 		authed.Handle("POST /api/goals", o.Goals)
+	}
+	if o.Inspection != nil {
+		authed.Handle("GET /api/inspection", o.Inspection)
 	}
 	if o.Behaviours != nil {
 		authed.Handle("GET /api/behaviours", o.Behaviours)

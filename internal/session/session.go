@@ -55,6 +55,13 @@ type Task struct {
 	Name   string
 	Origin any
 	Args   json.RawMessage
+	// Immutable dispatch provenance for read-only inspection. Never expose Origin
+	// directly: a caller may have attached private chat text.
+	sentAt          time.Time
+	serial          uint64
+	connection      uint64
+	world, worldUID string
+	automation      *Automation
 
 	mu      sync.Mutex
 	status  string
@@ -568,6 +575,10 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.orders++
 	}
 	s.tasks[id] = t
+	t.sentAt, t.serial, t.connection, t.automation = time.Now().UTC(), s.nextTask, conn.ID(), automation
+	if s.state != nil {
+		t.world, t.worldUID = s.state.World, s.state.WorldUID
+	}
 	s.mu.Unlock()
 
 	if err := conn.Send(ctx, req); err != nil {

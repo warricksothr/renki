@@ -200,6 +200,20 @@ require explicit Resume with fresh observations in the original world. Uncertain
 actions cannot be replayed. See [GOALS.md](GOALS.md) for budgets, policy limits
 and the authenticated `/api/goals` contract.
 
+## Decision inspector
+
+**Decisions** shows actual body ownership beside saved goal intent, phase,
+reason and remaining budgets. Expand **Phases & guards** for read-only possible
+transitions and pass/fail/unknown/stale observations with their sources.
+**Retained evidence & coverage** links scoped task outcomes and identifies missing
+history. Selecting a phase never commands Tas. Saved food checkpoints remain
+visible offline; live ownership and native phases require fresh observations.
+
+Agent operators use the same compact response through `just vm inspect [GOAL]`
+or authenticated `GET /api/inspection[?goal=ID]`. Missing native guards remain
+unknown. This first slice has no causal replay or synchronized historical map
+and camera evidence. See [behavior inspection](BEHAVIOUR-INSPECTION.md).
+
 ## Players and presence
 
 **Players & presence** controls Tas's shared map marker and Marco/Polo routine,
