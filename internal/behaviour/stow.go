@@ -262,7 +262,9 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 		return nil, &StorageNeed{World: r.p.World, Items: maps.Clone(r.remaining), Chests: slices.Clone(r.p.To), Reason: why, Quiet: r.p.Overflow == "leave"}
 	}
 	id := r.p.To[r.index]
-	if pos, ok := chestPosition(v, id); ok && !r.approached && distance(v.State.Pos, pos) > 4 {
+	// Conditional transfers own dry hostile-avoiding travel and measured standing
+	// positions. A controller move_to at the solid chest center can fail first.
+	if pos, ok := chestPosition(v, id); ok && !r.p.MatchExisting && !r.approached && distance(v.State.Pos, pos) > 4 {
 		r.walking = true
 		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: r.dry, AvoidHostiles: r.p.MatchExisting}, TimeoutS: 90}, nil
 	}

@@ -70,13 +70,19 @@ type markerFoodRun struct {
 }
 
 func (r *markerFoodRun) Check(v View) error {
+	return r.check(v, true)
+}
+
+// Cargo journeys share physical guards, while validating their own bounded
+// travel between explicitly named storage sites. Food work stays at its marker.
+func (r *markerFoodRun) check(v View, requireMarkerPosition bool) error {
 	// State and perception stream independently. A new scan can be a few
 	// milliseconds ahead of the latest state without being future-dated.
 	if !idleFresh(v) || v.Perception == nil || math.Abs(v.State.T-v.Perception.T) > 3 || v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 3*time.Second || v.Inventory == nil {
 		return errors.New("food work requires fresh state, inventory and surroundings")
 	}
 	w, ok := r.p.Marker.resolve(v)
-	if !ok || !withinMarker(v.State.Pos, w) || r.marker != nil && w != *r.marker {
+	if !ok || requireMarkerPosition && !withinMarker(v.State.Pos, w) || r.marker != nil && w != *r.marker {
 		return errors.New("food marker changed or left")
 	}
 	s := v.State

@@ -133,3 +133,123 @@ func TestCargoSafetyAndOldPluginRefuseBeforeDispatch(t *testing.T) {
 		})
 	}
 }
+
+func cargoJourney(t *testing.T) (*markerCargoRun, View) {
+	t.Helper()
+	r, v := cargoFixture(t)
+	v.Inventory.Items = v.Inventory.Items[:1]
+	w := home.Waypoint{Name: "workshop", Kind: "storage", Pos: protocol.Vec3{12, -2, 0}, Radius: 5, At: v.Now}
+	v.Waypoints = append(v.Waypoints, w)
+	v.Perception.Structures = []protocol.PerceivedStructure{{ID: "coal", Kind: protocol.StructureContainer, Pos: w.Pos}}
+	v.Containers = []*protocol.Container{{Entity: "coal", Pos: w.Pos, Items: []protocol.InventoryItem{{Prefab: "Coal", Stack: 10}}}}
+	return r, v
+}
+func TestCargoJourneyRequiresNamedNearbyStorageAndPinsBothMarkers(t *testing.T) {
+	for _, mode := range []string{"valid", "missing", "far_chest", "far_marker"} {
+		t.Run(mode, func(t *testing.T) {
+			r, v := cargoJourney(t)
+			if mode == "missing" {
+				v.Waypoints = v.Waypoints[:1]
+			}
+			if mode == "far_chest" {
+				v.Waypoints[1].Pos[0] = 41
+				v.Perception.Structures[0].Pos[0] = 41
+			}
+			if mode == "far_marker" {
+				v.Waypoints[1].Pos[0] = 41
+				v.Waypoints[1].Radius = 40
+			}
+			order, err := r.Next(v, nil)
+			if mode != "valid" {
+				var need *StorageNeed
+				if order != nil || !errors.As(err, &need) || r.TravelFromIdleMarker() {
+					t.Fatal(order, err, r.journey)
+				}
+				return
+			}
+			if err != nil || order == nil || order.Task != protocol.TaskDeposit || !r.TravelFromIdleMarker() {
+				t.Fatal(order, err)
+			}
+			v.State.Pos = v.Waypoints[1].Pos
+			if err = r.Check(v); err != nil {
+				t.Fatal("explicit storage floor refused", err)
+			}
+			v.Waypoints[1].At = v.Now.Add(time.Second)
+			if r.Check(v) == nil {
+				t.Fatal("edited destination retained journey permission")
+			}
+		})
+	}
+}
+func TestCargoJourneyVerifiesDepositAndReturnsToAdmissionFloor(t *testing.T) {
+	r, v := cargoJourney(t)
+	order, err := r.Next(v, nil)
+	if err != nil || order == nil || order.Task != protocol.TaskDeposit {
+		t.Fatal(order, err)
+	}
+	v.State.Pos = v.Waypoints[1].Pos
+	v.Inventory.Seq++
+	v.Inventory.Items[0].Stack = 2
+	v.Containers = []*protocol.Container{{Entity: "coal", Task: "deposit", Direction: protocol.TaskDeposit, Moved: map[string]int{"Coal": 5}}}
+	order, err = r.Next(v, &Result{Status: protocol.StatusSucceeded, TaskID: "deposit"})
+	if err != nil || order == nil || order.Task != protocol.TaskMoveTo {
+		t.Fatal(order, err)
+	}
+	a := order.Args.(*protocol.MoveToArgs)
+	if *a.To.Pos != v.Waypoints[0].Pos || !a.Dry || !a.AvoidHostiles {
+		t.Fatal(a)
+	}
+	result := &Result{Status: protocol.StatusSucceeded, TaskID: "return"}
+	if _, err = r.Next(v, result); err != ErrWait {
+		t.Fatal("return text proved home arrival", err)
+	}
+	v.State.Pos = v.Waypoints[0].Pos
+	if order, err = r.Next(v, result); err != nil || order != nil {
+		t.Fatal(order, err)
+	}
+	if v.Inventory.Count("Coal") != 2 {
+		t.Fatal("reserve lost")
+	}
+}
+func TestCargoTravelRetainsThreatInjuryAndLocalBounds(t *testing.T) {
+	for _, mode := range []string{"threat", "injury", "bounds", "origin_edit"} {
+		t.Run(mode, func(t *testing.T) {
+			r, v := cargoJourney(t)
+			if _, err := r.Next(v, nil); err != nil {
+				t.Fatal(err)
+			}
+			v.State.Pos = v.Waypoints[1].Pos
+			switch mode {
+			case "threat":
+				v.Perception.Characters = []protocol.PerceivedCharacter{{HPFrac: 1, Hostile: true, Pos: v.State.Pos}}
+			case "injury":
+				v.State.HP--
+			case "bounds":
+				v.State.Pos[0] = 40.1
+			case "origin_edit":
+				v.Waypoints[0].At = v.Now.Add(time.Second)
+			}
+			if r.Check(v) == nil {
+				t.Fatal("travel bypassed", mode)
+			}
+		})
+	}
+}
+
+func TestCargoJourneyReturnsBeforeReportingUnmatchedCargo(t *testing.T) {
+	r, v := cargoJourney(t)
+	if _, err := r.Next(v, nil); err != nil {
+		t.Fatal(err)
+	}
+	v.State.Pos = v.Waypoints[1].Pos
+	order, err := r.Next(v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonRefused, TaskID: "deposit"})
+	if err != nil || order == nil || order.Task != protocol.TaskMoveTo {
+		t.Fatal(order, err)
+	}
+	v.State.Pos = v.Waypoints[0].Pos
+	order, err = r.Next(v, &Result{Status: protocol.StatusSucceeded, TaskID: "return"})
+	var need *StorageNeed
+	if order != nil || !errors.As(err, &need) || need.Items["Coal"] != 5 || v.Inventory.Count("Coal") != 7 {
+		t.Fatal(order, err)
+	}
+}

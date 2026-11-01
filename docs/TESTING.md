@@ -1927,12 +1927,18 @@ inspection hints, not proof that a chest is assigned to an item.
 `marker_cargo` uses a normal30-second storage-marker idle trigger. It considers
 materials and trophies, keeps all food/gear/unknown item types, and respects
 per-prefab `keep` counts (the preset keeps10 Wood for fuel). It checks every
-unique currently seen storage chest inside the marker's area/floor, trying each
+unique currently seen storage chest inside its marker or another explicit
+storage marker within40m, with each chest on that marker's floor. It tries each
 once per material: known matching contents first, then recent pickup proximity,
 then other candidates. Missing IDs, tombstones and other floors cannot become
 storage. Failed/full/busy/wrong-content candidates preserve cargo and ultimately
 publish a storage-needed result. State, health, food, threat, injury, marker,
 six-minute work and command-ownership guards remain active during native tasks.
+Admission still requires grounded feet on the original storage floor. A journey
+pins both storage markers, retains the40m bound and returns to its original floor
+before reporting completion or shortages. Marker edits and newer orders cancel
+the journey. Conditional transfers own their physical approach, including clear
+standing positions, rather than a controller `move_to` at a solid chest center.
 
 Enable the existing home-storage marker after deployment/readiness with:
 
@@ -1984,5 +1990,13 @@ after a nearby unreachable/stuck result: supported dry footing, body clearance,
 actual eye reach and sight, at most144 seeds/four checked walks/60s. Cooking keeps
 its fuel, heat and fire checks. Water, permission and stopped-task refusals cannot
 start this recovery. `just check plugin test-core 'FullyQualifiedName~TransferTests|FullyQualifiedName~InteractionApproachesTests'`
-covers its admission and shared candidate bounds; exterior native retry remains
-required before claiming the access problem resolved.
+covers its admission and shared candidate bounds.
+
+Native retry on7f39fc7 reached both exterior chests. `1:73618` contained copper/tin
+ore and refused Coal without movement. `1:73622` accepted Coal45, with exact
+transfer and newer pack evidence. Three incidental Copper ingots collected on
+that walk generated real production-site origin records. Tas returned inside
+uninjured. The observed `home workshop storage` marker identifies that separate
+floor; the original home and home-storage marker were preserved. An automatic
+home/workshop cargo journey is a separate acceptance check from these direct
+native transfer receipts.

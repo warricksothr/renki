@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T18:39:04Z
-updated_at: 2026-11-01T19:11:49Z
+updated_at: 2026-11-01T19:27:10Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -63,6 +63,8 @@ Suppress tutorial Raven.Spawn only for tutorial text on the local plugin through
 Live home unload stored Copper11, BeechSeeds9, Feathers2, Resin7 and Wood25, retaining Wood10 and Coal45. Exact matched receipts and newer pack frames earned the deposits; unknown/mismatched/full candidates moved nothing. A Coal1 drop/pickup produced durable scoped origin evidence that survived a controller-only restart. Local saved plugin configuration confirms SuppressTutorials=true. Two currently perceived exterior chests near the production drops (1:73618/1:73622) could not be reached: validated porch prefix then endpoint_support, no hostile rejection. Tas returned inside uninjured.
 
 Before concluding exterior storage is inaccessible, share cooking's bounded physical interaction approach with conditional chest transfers. After nearby unreachable/stuck only, measure supported, dry, body-clear standing points with actual eye reach and line of sight; use ordinary dry/hostile-avoiding move_to, at most144 seeds/four walks/60s. Never retry water/permission/stopped refusals or alter chest access and exact transfer verification. Preserve cooking heat/fuel checks through a wrapper. Cover fallback eligibility and shared candidate geometry, compile, full gate, committed review, publish/deploy and retry the two exterior conditional destinations under normal guards. Record safe refusal honestly if they still cannot be used.
+
+Native interaction recovery succeeded on7f39fc7: first exterior chest opened and refused Coal because it contains CopperOre/TinOre; second chest accepted all45 Coal with a matched native receipt. Tas auto-picked three new Copper ingots at the production drops; native pickup events retained their real source locations, and he returned safely inside. Add a separate observed home workshop storage marker without moving home. Extend marker_cargo to visit only explicit storage markers/chests within40m of admission, pin source/destination identity, preserve strict initial floor admission and common health/food/threat/injury/time guards, and verify a return to the source floor before reporting completion or shortages. Conditional native transfers own their complete safe approach; bypass the controller move_to at solid chest centers. Deterministic checks cover unnamed/remote floors, edited markers, threats/injury, exact deposit receipts and state-backed home arrival. Then deploy controller-only and prove an automatic home-to-workshop Coal1 deposit and return; keep all material conservation and player-order guards.
 
 ## Notes
 

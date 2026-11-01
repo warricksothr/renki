@@ -49,15 +49,20 @@ func MarkerCargoDefinition(marker Marker) Definition {
 }
 
 type markerCargoRun struct {
-	p        MarkerCargoParams
-	guard    markerFoodRun
-	child    *stowRun
-	items    []string
-	tried    map[string]bool
-	shortage map[string]int
-	chests   []string
-	failures []string
+	p           MarkerCargoParams
+	guard       markerFoodRun
+	child       *stowRun
+	items       []string
+	tried       map[string]bool
+	shortage    map[string]int
+	chests      []string
+	failures    []string
+	journey     bool
+	returning   bool
+	destination *home.Waypoint
 }
+
+func (r *markerCargoRun) TravelFromIdleMarker() bool { return r.journey }
 
 func (r *markerCargoRun) Check(v View) error {
 	if v.State != nil && slices.Contains(v.State.Flags, "recovering") {
@@ -66,12 +71,21 @@ func (r *markerCargoRun) Check(v View) error {
 	if !slices.Contains(v.Features, protocol.FeatureMatchingDeposit) {
 		return errors.New("cargo sorting requires native conditional deposit support")
 	}
-	if err := r.guard.Check(v); err != nil {
+	if err := r.guard.check(v, !r.journey); err != nil {
 		return fmt.Errorf("cargo sorting: %s", strings.ReplaceAll(err.Error(), "food", "cargo"))
 	}
 	w, _ := r.p.Marker.resolve(v)
-	if !slices.Contains(v.State.Flags, protocol.FlagGrounded) || absHeight(v.State.Pos, w.Pos) > .75 {
+	if !r.journey && (!slices.Contains(v.State.Flags, protocol.FlagGrounded) || absHeight(v.State.Pos, w.Pos) > .75) {
 		return errors.New("cargo sorting requires grounded feet on the storage floor")
+	}
+	if distance(v.State.Pos, w.Pos) > 40 {
+		return errors.New("cargo storage journey exceeded the 40m local bound")
+	}
+	if r.destination != nil {
+		current, found := (Marker{World: r.p.Marker.World, Name: r.destination.Name, Kind: "storage"}).resolve(v)
+		if !found || current != *r.destination {
+			return errors.New("cargo destination marker changed")
+		}
 	}
 	return nil
 }
@@ -95,6 +109,28 @@ type cargoChest struct {
 	matching                 bool
 	rank                     int
 	originDistance, distance float64
+	marker                   home.Waypoint
+}
+
+// Other floors need an explicit storage marker, never a remembered chest alone.
+func (r *markerCargoRun) chestMarker(v View, pos protocol.Vec3) (home.Waypoint, bool) {
+	origin := *r.guard.marker
+	if withinMarker(pos, origin) && absHeight(pos, origin.Pos) <= .75 {
+		return origin, true
+	}
+	if distance(pos, origin.Pos) > 40 {
+		return home.Waypoint{}, false
+	}
+	for _, w := range v.Waypoints {
+		if w.Kind == "storage" && distance(w.Pos, origin.Pos) <= 40 && withinMarker(pos, w) && absHeight(pos, w.Pos) <= .75 {
+			return w, true
+		}
+	}
+	return home.Waypoint{}, false
+}
+
+func (r *markerCargoRun) atOrigin(v View) bool {
+	return withinMarker(v.State.Pos, *r.guard.marker) && absHeight(v.State.Pos, r.guard.marker.Pos) <= .75 && slices.Contains(v.State.Flags, protocol.FlagGrounded)
 }
 
 func (r *markerCargoRun) candidates(v View, item string) []cargoChest {
@@ -111,7 +147,8 @@ func (r *markerCargoRun) candidates(v View, item string) []cargoChest {
 			return
 		} // Tombstones and old/missing IDs never become storage.
 		pos = current
-		if id == "" || !withinMarker(pos, *r.guard.marker) || absHeight(pos, r.guard.marker.Pos) > .75 {
+		marker, admitted := r.chestMarker(v, pos)
+		if id == "" || !admitted {
 			return
 		}
 		for _, n := range pos {
@@ -120,7 +157,7 @@ func (r *markerCargoRun) candidates(v View, item string) []cargoChest {
 			}
 		}
 		old := byID[id]
-		old.id, old.pos = id, pos
+		old.id, old.pos, old.marker = id, pos, marker
 		old.matching = old.matching || matching
 		byID[id] = old
 	}
@@ -187,6 +224,15 @@ func (r *markerCargoRun) Next(v View, result *Result) (*session.Order, error) {
 		r.guard.health = sampleHealth(v)
 		r.items = sortedKeys(r.surplus(v))
 	}
+	if r.returning {
+		if result == nil || result.Status != protocol.StatusSucceeded {
+			return nil, errors.New("cargo return did not succeed")
+		}
+		if !r.atOrigin(v) {
+			return nil, ErrWait
+		}
+		r.returning = false
+	}
 	for {
 		if r.child != nil {
 			order, err := r.child.Next(v, result)
@@ -206,6 +252,12 @@ func (r *markerCargoRun) Next(v View, result *Result) (*session.Order, error) {
 			r.child = nil
 		}
 		if len(r.items) == 0 {
+			if r.journey && !r.atOrigin(v) {
+				r.returning = true
+				pos := r.guard.marker.Pos
+				within := 1.5
+				return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &within, Dry: true, AvoidHostiles: true}, TimeoutS: 90}, nil
+			}
 			if len(r.shortage) > 0 {
 				why := "no reachable matching chest with space; materials kept"
 				if len(r.failures) > 0 {
@@ -228,6 +280,11 @@ func (r *markerCargoRun) Next(v View, result *Result) (*session.Order, error) {
 			continue
 		}
 		id := candidates[0].id
+		marker := candidates[0].marker
+		r.destination = &marker
+		if marker != *r.guard.marker {
+			r.journey = true
+		}
 		r.tried[item+"\x00"+id] = true
 		if !slices.Contains(r.chests, id) {
 			r.chests = append(r.chests, id)
