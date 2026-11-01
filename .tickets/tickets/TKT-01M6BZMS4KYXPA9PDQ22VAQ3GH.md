@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T16:38:51Z
-updated_at: 2026-11-01T17:20:10Z
+updated_at: 2026-11-01T17:23:27Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -80,3 +80,11 @@ Projection/authentication/session/goal checks pass through just check controller
 AC 3 remains open: this increment provides read-only possible-transition descriptions and a bounded checkpoint evidence list, not a durable causal decision timeline. AC 4 remains open: map/video links are live views, not synchronized retained evidence. Those limitations are explicit in the UI/API/docs. Keep this ticket in progress for those next increments.
 
 Tas remains offline at the previously observed unsafe position. No new live peel, kill, escape, return or pantry deposit is claimed from these fixtures. A native field trial still requires new evidence of a safe prepared start; do not replay the rejected login into the close hostile. Deployment for this increment is controller-only and must preserve the offline game state.
+
+**agent:codex/renki-milestones** at 2026-11-01T17:23:27Z
+
+### Deployment and transport verification
+
+First increment committed as 8fcb2e6 and opened as PR 149 above PR 148. Full just check ci passed (.checks/20261101T171659Z-Yw6oTR.log), including all 58 desktop/mobile scenarios. Committed just check review f189ad3..HEAD passed without findings (.checks/20261101T172028Z-15SwcE.log). Reviewed the new desktop phase/ownership and mobile offline pantry screenshots; specific decisions are retained in .checks/panel-ui/visual-review.json.
+
+Controller-only deployment completed with game not started. The authenticated browser and compact API report inspection-v1, offline, unavailable body ownership, 52 saved choices and no live native phase. Saved goals display without horizontal page overflow. The first SSH capture exposed existing Windows PowerShell Latin-1 response decoding and console-codepage output. Fixed panel-request.ps1 to read JSON explicitly as UTF-8 and emit UTF-8 stdout. The follow-up just vm inspect output decodes strictly as UTF-8 and round-trips the 0–3 s guard label (.checks/inspection-utf8-8fcb2e6.txt). No game login, task dispatch or live combat result is claimed. Causal-history and synchronized map/camera ACs remain open.
