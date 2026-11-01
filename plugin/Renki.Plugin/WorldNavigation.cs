@@ -14,6 +14,7 @@ namespace Renki.Plugin
         internal static IReadOnlyList<Wall> Walls = Array.Empty<Wall>();
         internal static readonly RouteMemory Routes = new RouteMemory();
         static readonly int Mask = LayerMask.GetMask("Default", "Default_small", "static_solid", "piece", "terrain");
+        static readonly int TriggerMask = Mask | LayerMask.GetMask("character_trigger");
         static readonly NavigationObstacles obstacles = new NavigationObstacles(Mask);
         static readonly RaycastHit[] supportHits = new RaycastHit[64];
         static readonly RaycastHit[] castHits = new RaycastHit[64];
@@ -25,7 +26,7 @@ namespace Renki.Plugin
 
         internal static void Focus(Vector3 target) => focus = target;
         internal static List<LogObstacle> LogObstacles() => obstacles.Snapshot();
-        internal static long GeometryRevision => obstacles.Index.Revision;
+        internal static long GeometryRevision => obstacles.Revision;
         internal static double WaterLevel(V3 at) => Math.Max(
             ZoneSystem.instance != null ? ZoneSystem.instance.m_waterLevel : -10000,
             Floating.GetLiquidLevel(Convert.ToVector3(at)));
@@ -46,7 +47,7 @@ namespace Renki.Plugin
         }
 
         // Start at this floor's level; never snap onto a different storey.
-        static V3? Support(V3 at, double fromY, out bool saturated, bool footing = false)
+        static V3? Support(V3 at, double fromY, out bool saturated, bool footing = false, bool walking = false)
         {
             var top = new Vector3((float)at.X, (float)fromY + Step + .05f, (float)at.Z);
             var count = Physics.RaycastNonAlloc(top, Vector3.down, supportHits, Step * 2 + .1f, Mask, QueryTriggerInteraction.Ignore);
@@ -54,7 +55,7 @@ namespace Renki.Plugin
             if (saturated) return null;
             RaycastHit? support = null;
             for (var i = 0; i < count; i++)
-                if (supportHits[i].normal.y >= .35f && (footing
+                if ((walking ? DryTravel.WalkableNormal(supportHits[i].normal.y) : supportHits[i].normal.y >= .35f) && (footing
                     ? DryTravel.PreferFooting(fromY, supportHits[i].point.y, support?.point.y)
                     : !support.HasValue || supportHits[i].point.y > support.Value.point.y)) support = supportHits[i];
             return support.HasValue && Math.Abs(support.Value.point.y - fromY) <= Step ? Convert.ToV3(support.Value.point) : (V3?)null;
@@ -118,7 +119,7 @@ namespace Renki.Plugin
                 Executing = executing;
                 support = new SupportMemo((at, y) =>
                 {
-                    var result = Support(at, y, out var full);
+                    var result = Support(at, y, out var full, walking: dry && !bankExit);
                     if (full) Saturated++;
                     return result;
                 });
@@ -233,21 +234,26 @@ namespace Renki.Plugin
             // Ordinary steps retain the existing upper-body clearance rule.
             plan.PhysicsCasts++;
             var lowCasts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * .45f, origin + Vector3.up * 1.4f,
-                Radius, delta.normalized, castHits, delta.magnitude, Mask, QueryTriggerInteraction.Ignore);
+                Radius, delta.normalized, castHits, delta.magnitude, TriggerMask, QueryTriggerInteraction.Collide);
             if (lowCasts == castHits.Length) { plan.Saturated++; return plan.Refuse("log_cast_saturated", dest); }
             for (var i = 0; i < lowCasts; i++)
             {
                 var c = castHits[i].collider;
-                if (c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_cast", dest, c);
+                // Portal triggers transport the player without an interact
+                // action. Ordinary walking must avoid them even before the
+                // geometry cache has discovered or rebuilt the trigger.
+                if (NavigationObstacles.IsPortal(c)) return plan.Refuse("portal_trigger_cast", dest, c);
+                if (!c.isTrigger && c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_cast", dest, c);
             }
             plan.PhysicsCasts++;
             var lowHits = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * .45f, at + Vector3.up * 1.4f,
-                Radius, overlaps, Mask, QueryTriggerInteraction.Ignore);
+                Radius, overlaps, TriggerMask, QueryTriggerInteraction.Collide);
             if (lowHits == overlaps.Length) { plan.Saturated++; return plan.Refuse("log_overlap_saturated", dest); }
             for (var i = 0; i < lowHits; i++)
             {
                 var c = overlaps[i];
-                if (c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_overlap", dest, c);
+                if (NavigationObstacles.IsPortal(c)) return plan.Refuse("portal_trigger_overlap", dest, c);
+                if (!c.isTrigger && c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_overlap", dest, c);
             }
             plan.PhysicsCasts++;
             var casts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * 1.05f, origin + Vector3.up * 1.4f,

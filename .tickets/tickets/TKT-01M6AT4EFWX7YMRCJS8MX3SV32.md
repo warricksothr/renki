@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T06:48:33Z
+updated_at: 2026-11-01T07:07:03Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -104,3 +104,7 @@ Build148dd78 nearby return .checks/recovery-20261101T063927Z stopped at admissio
 Build86b47f5 nearby return .checks/recovery-20261101T064503Z passed the corrected meal admission but stalled on its first physically valid bank candidate: audit .checks/audit-window-AGi7Y3.jsonl shows0.4m initial travel to[-51.92,31.01,10.58], then only centimetre bobbing until the original8s budget expired. No water/threat/probe refusal or damage; exactly one sampled candidate. The retained target lacked execution feedback.
 
 BankExit now abandons a held candidate after1s without3cm closer approach, continues the existing bearing sweep and retains original8s/3m/128-probe limits. True short-step progress resets only the per-candidate stall timer; bobbing does not. Added exact no-progress/real-progress and total-budget regressions and one bounded native stall trace. Next native return and pantry proof remain pending; offline, about50.1HP.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:07:03Z
+
+Continuation: the dirty bank build passed nearby return in .checks/recovery-20261101T065742Z (actual sheltered home-floor arrival, no injury). The following idle pantry trial .checks/food-20261101T065917Z attempted six distinct sources and travelled over350m but earned no food collection, cooking or deposit. Its home return failed on the shore and the supervisor logged out; final46.4HP with no observed injury. Audit .checks/audit-window-9BYSr2.jsonl shows repeated planning-buffer recovery followed by native sliding on support normals around0.62. Installed Character.ApplySlide uses a38-degree player threshold; ordinary dry support planning previously accepted normals down to0.35. Ordinary dry endpoint/midpoint samples now require a walkable normal of at least0.8; actual footing and bounded bank recovery remain separately measured. This is a new route-admission correction; do not repeat the old failed route unchanged. Pantry field criteria remain open.

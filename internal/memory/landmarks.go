@@ -103,7 +103,7 @@ func landmarks(frame *protocol.Perception, at time.Time) []home.Landmark {
 		if s.ID == "" || s.Kind == protocol.StructureTombstone || s.Kind == protocol.StructureOther || s.Kind == "" {
 			continue
 		}
-		out = append(out, home.Landmark{Entity: s.ID, Kind: s.Kind, Prefab: s.Prefab, Pos: s.Pos, Tag: s.Tag, At: at})
+		out = append(out, home.Landmark{Entity: s.ID, Kind: s.Kind, Prefab: s.Prefab, Pos: s.Pos, Tag: s.Tag, At: at, Portal: s.Portal.Clone()})
 	}
 	for _, r := range frame.Resources {
 		if r.ID == "" || !notableResource(r) {

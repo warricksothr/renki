@@ -39,6 +39,17 @@ func TestLandmarkSelectionKeepsPlacesWithoutTransientStateOrScenery(t *testing.T
 	}
 }
 
+func TestLandmarkRecorderCopiesObservedPortalLink(t *testing.T) {
+	pos := protocol.Vec3{500, 40, -100}
+	p := &protocol.PortalStatus{Connected: true, TargetID: "remote", TargetPos: &pos, AllowsAllItems: true}
+	frame := &protocol.Perception{Structures: []protocol.PerceivedStructure{{ID: "portal", Kind: protocol.StructurePortal, Portal: p}}}
+	got := landmarks(frame, time.Now())
+	p.TargetID, pos[0] = "changed", 999
+	if len(got) != 1 || got[0].Portal.TargetID != "remote" || got[0].Portal.TargetPos[0] != 500 || !got[0].Portal.AllowsAllItems {
+		t.Fatal("portal observation was lost or aliased", got)
+	}
+}
+
 func TestLandmarkRecorderBatchesAndPreservesWorldAndTimeAcrossFailures(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	s := session.New(listener{}, log)

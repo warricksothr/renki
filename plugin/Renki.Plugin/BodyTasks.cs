@@ -589,13 +589,18 @@ namespace Renki.Plugin
             bankProbe.BeginSlice();
             var support = bankProbe.Footing(from);
             var water = WorldNavigation.WaterLevel(from);
-            if (support.HasValue && (bankMoving ? BankExit.Recovered(from, support.Value, water) :
+            if (support.HasValue && (bankMoving ? BankExit.Recovered(from, support.Value, water, p.GetLastGroundNormal().y) :
                 DryTravel.Clear(from, water, DryTravel.TravelMargin) && DryTravel.Clear(support.Value, water, DryTravel.TravelMargin)))
             {
                 if (!bankMoving) return false;
                 bankMoving = false;
                 Tracer.Emit("walker", "dry bank departure regained planning buffer", new Dictionary<string, object>
-                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["support"] = support.Value.ToArray() });
+                {
+                    ["pos"] = from.ToArray(),
+                    ["waterLevel"] = water,
+                    ["support"] = support.Value.ToArray(),
+                    ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal())
+                });
                 if (hasGoal) Repath(pos);
                 Driver.Stand(); return true;
             }
@@ -605,7 +610,13 @@ namespace Renki.Plugin
             {
                 bankMoving = true;
                 Tracer.Emit("walker", "checking bounded dry bank departure", new Dictionary<string, object>
-                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["support"] = support?.ToArray() });
+                {
+                    ["pos"] = from.ToArray(),
+                    ["waterLevel"] = water,
+                    ["support"] = support?.ToArray(),
+                    ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal()),
+                    ["groundCollider"] = p.GetLastGroundCollider()?.name
+                });
             }
             var eligible = support.HasValue && !p.InWater() && !p.IsSwimming() && p.IsOnGround() &&
                 DryTravel.Clear(from, water, BankExit.ActualMargin) && DryTravel.Clear(support.Value, water, BankExit.ActualMargin);
@@ -613,7 +624,13 @@ namespace Renki.Plugin
             var step = eligible ? bankExit.Next(from, Convert.ToV3(toward), Time.unscaledTime, bankProbe.Probe) : null;
             if (bankExit.Stalls > stalls)
                 Tracer.Emit("walker", "dry bank step stalled; checking another bearing", new Dictionary<string, object>
-                { ["pos"] = from.ToArray(), ["stalls"] = bankExit.Stalls, ["samples"] = bankExit.Samples });
+                {
+                    ["pos"] = from.ToArray(),
+                    ["stalls"] = bankExit.Stalls,
+                    ["samples"] = bankExit.Samples,
+                    ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal()),
+                    ["groundCollider"] = p.GetLastGroundCollider()?.name
+                });
             if (!eligible || bankExit.Refused)
             {
                 navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure has no checked uphill step");
@@ -621,7 +638,9 @@ namespace Renki.Plugin
                 { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures });
                 return true;
             }
-            if (step.HasValue) Driver.Move = (Convert.ToVector3(step.Value) - pos).normalized * .35f;
+            // Ordinary walking input; Run remains false. An attenuated input
+            // cannot reliably overcome native uphill friction on a checked step.
+            if (step.HasValue) Driver.Move = (Convert.ToVector3(step.Value) - pos).normalized;
             return true;
         }
 

@@ -16,6 +16,21 @@ namespace Renki.Tests
             Assert.False(BankExit.Recovered(new V3(0, 31.0, 0), new V3(0, 30.88, 0), 30));
             Assert.True(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30));
             Assert.False(BankExit.Recovered(new V3(0, 30.96, 0), new V3(0, 30.95, 0), 30.1));
+            Assert.False(BankExit.Recovered(new V3(0, 31.26, 0), new V3(0, 31.2, 0), 30, .62));
+            Assert.True(BankExit.Recovered(new V3(0, 31.26, 0), new V3(0, 31.2, 0), 30, .9));
+        }
+
+        [Theory]
+        [InlineData(.62, false)]
+        [InlineData(.79, false)]
+        [InlineData(.8, true)]
+        [InlineData(.9, true)]
+        [InlineData(1, true)]
+        [InlineData(1.1, false)]
+        [InlineData(double.NaN, false)]
+        public void WalkingSupportRejectsSlidingSlopesWithoutRejectingFlatStairTreads(double normalY, bool walkable)
+        {
+            Assert.Equal(walkable, DryTravel.WalkableNormal(normalY));
         }
 
         [Fact]
@@ -40,14 +55,14 @@ namespace Renki.Tests
             var body = new V3(0, .56, 0); var exit = new BankExit();
             V3? Probe(V3 from, V3 desired)
             {
-                // Captured uphill casts returned about .502m for .5m requests.
-                var to = desired + (desired - from).Flat.Normalized * .002 + new V3(0, .06, 0);
+                // Captured uphill casts shifted support hits by up to2cm.
+                var to = desired + (desired - from).Flat.Normalized * .02 + new V3(0, .06, 0);
                 var middle = (from + to) * .5;
                 return BankExit.Clear(from, from, middle, to, 0, 0, 0) ? to : (V3?)null;
             }
             var step = exit.Next(body, V3.Forward, 0, Probe);
             Assert.True(step.HasValue);
-            Assert.InRange(V3.FlatDistance(body, step.Value), .49, .5);
+            Assert.InRange(V3.FlatDistance(body, step.Value), .45, .5);
             Assert.False(BankExit.Clear(body, body, new V3(.251, .59, 0), new V3(.502, .62, 0), 0, 0, 0));
         }
 
@@ -63,7 +78,10 @@ namespace Renki.Tests
         {
             var body = new V3(0, .56, 0);
             Assert.True(BankExit.Clear(body, body, new V3(.25, .59, 0), new V3(.5, .62, 0), 0, 0, 0));
-            Assert.False(BankExit.Clear(body, body, new V3(.25, .56, 0), new V3(.5, .56, 0), 0, 0, 0));
+            // Level contour travel can reach a gentler bank, without losing
+            // dry clearance; no downhill or water margin waiver is admitted.
+            Assert.True(BankExit.Clear(body, body, new V3(.25, .56, 0), new V3(.5, .56, 0), 0, 0, 0));
+            Assert.False(BankExit.Clear(body, body, new V3(.25, .55, 0), new V3(.5, .55, 0), 0, 0, 0));
         }
 
         [Fact]

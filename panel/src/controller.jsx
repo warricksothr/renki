@@ -1784,6 +1784,20 @@ export function startController() {
         parts.push(`last seen ${new Date(i.at).toLocaleString()}`);
       if (i.mine) parts.push("the bot's");
       if (i.tag) parts.push(`"${i.tag}"`);
+      if (i.kind === "portal" && i.portal) {
+        const p = i.portal;
+        parts.push(p.connected ? "linked" : "unlinked");
+        if (p.targetId) parts.push(`destination ${p.targetId}`);
+        if (p.targetPos)
+          parts.push(
+            `destination x ${p.targetPos[0].toFixed(1)}, y ${p.targetPos[1].toFixed(1)}, z ${p.targetPos[2].toFixed(1)}`,
+          );
+        else if (p.connected) parts.push("destination location unknown");
+        parts.push(
+          p.allowsAllItems ? "allows all items" : "normal item restrictions",
+        );
+        parts.push("arrival safety unverified");
+      }
       if (i.minTool != null) parts.push(`needs tool tier ${i.minTool}`);
       if (i.stars) parts.push("★".repeat(i.stars));
       if (typeof i.hpFrac === "number")

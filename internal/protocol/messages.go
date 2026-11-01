@@ -352,6 +352,28 @@ type PerceivedStructure struct {
 	Open    *bool          `json:"open,omitempty"`
 	Fire    *FireStatus    `json:"fire,omitempty"`
 	Cooking *CookingStatus `json:"cooking,omitempty"`
+	Portal  *PortalStatus  `json:"portal,omitempty"`
+}
+
+// PortalStatus is observed link metadata, not permission or proof of a safe
+// arrival. TargetPos is absent when the destination's network record is unknown.
+type PortalStatus struct {
+	Connected      bool   `json:"connected"`
+	TargetID       string `json:"targetId,omitempty"`
+	TargetPos      *Vec3  `json:"targetPos,omitempty"`
+	AllowsAllItems bool   `json:"allowsAllItems"`
+}
+
+func (p *PortalStatus) Clone() *PortalStatus {
+	if p == nil {
+		return nil
+	}
+	copy := *p
+	if p.TargetPos != nil {
+		pos := *p.TargetPos
+		copy.TargetPos = &pos
+	}
+	return &copy
 }
 
 type FireStatus struct {

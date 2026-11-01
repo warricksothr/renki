@@ -21,7 +21,8 @@ namespace Renki.Movement
         // Finish above the entry threshold, accounting for body settling.
         // Rounded support at exactly the planning margin must not alternate
         // recovery/route planning every frame and spend the escape budget idle.
-        public static bool Recovered(V3 body, V3 footing, double water) =>
+        public static bool Recovered(V3 body, V3 footing, double water, double groundNormalY = 1) =>
+            DryTravel.WalkableNormal(groundNormalY) &&
             DryTravel.PreferFooting(body.Y, footing.Y, null) &&
             DryTravel.Clear(body, water, DryTravel.TravelMargin + .1) &&
             DryTravel.Clear(footing, water, DryTravel.TravelMargin + .1);
@@ -56,10 +57,10 @@ namespace Renki.Movement
             for (var n = 0; n < 4 && direction < angles.Length && Samples < ProbeLimit; n++)
             {
                 var angle = angles[direction++] * Math.PI / 180;
-                // Native uphill ray hits can lie 1–2mm beyond the requested
+                // Native uphill ray hits can lie centimetres beyond the requested
                 // point. Leave room inside the unchanged physical step bound.
                 var step = new V3(heading.X * Math.Cos(angle) - heading.Z * Math.Sin(angle), 0,
-                    heading.X * Math.Sin(angle) + heading.Z * Math.Cos(angle)) * .49;
+                    heading.X * Math.Sin(angle) + heading.Z * Math.Cos(angle)) * .45;
                 Samples++;
                 target = probe(from, from + step);
                 if (target.HasValue)
@@ -88,7 +89,7 @@ namespace Renki.Movement
                 DryTravel.Clear(middle, waterMiddle, ActualMargin + offset) &&
                 DryTravel.Clear(to, waterTo, ActualMargin + offset) &&
                 middle.Y >= footing.Y && to.Y >= middle.Y &&
-                halfway >= before && after > before + .001;
+                halfway >= before && after >= before;
         }
     }
 }

@@ -275,6 +275,15 @@ namespace Renki.Protocol
         [JsonProperty("open", NullValueHandling = NullValueHandling.Ignore)] public bool? Open;
         [JsonProperty("fire", NullValueHandling = NullValueHandling.Ignore)] public FireStatus Fire;
         [JsonProperty("cooking", NullValueHandling = NullValueHandling.Ignore)] public CookingStatus Cooking;
+        [JsonProperty("portal", NullValueHandling = NullValueHandling.Ignore)] public PortalStatus Portal;
+    }
+
+    public sealed class PortalStatus
+    {
+        [JsonProperty("connected")] public bool Connected;
+        [JsonProperty("targetId", NullValueHandling = NullValueHandling.Ignore)] public string TargetId;
+        [JsonProperty("targetPos", NullValueHandling = NullValueHandling.Ignore)] public double[] TargetPos;
+        [JsonProperty("allowsAllItems")] public bool AllowsAllItems;
     }
 
     public sealed class FireStatus

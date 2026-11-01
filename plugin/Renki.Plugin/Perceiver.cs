@@ -249,6 +249,22 @@ namespace Renki.Plugin
                 case TeleportWorld portal:
                     var tag = portal.GetText();
                     if (!string.IsNullOrEmpty(tag)) s.Tag = tag;
+                    var view = portal.GetComponent<ZNetView>();
+                    if (view != null && view.IsValid())
+                    {
+                        var target = view.GetZDO().GetConnectionZDOID(ZDOExtraData.ConnectionType.Portal);
+                        var linked = target != ZDOID.None;
+                        // Read only metadata already delivered by the game.
+                        // Never request arbitrary remote areas or infer links from tags.
+                        var destination = linked && ZDOMan.instance != null ? ZDOMan.instance.GetZDO(target) : null;
+                        s.Portal = new PortalStatus
+                        {
+                            Connected = linked,
+                            TargetId = linked ? target.ToString() : null,
+                            TargetPos = destination != null ? Convert.ToArray(destination.GetPosition()) : null,
+                            AllowsAllItems = portal.m_allowAllItems,
+                        };
+                    }
                     break;
             }
             return s;

@@ -7,6 +7,28 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Building geometry and portal observations
+
+See [PORTALS.md](PORTALS.md) for cached building-face limits, portal link
+memory and the separate future portal travel transition. `just check plugin
+test-core BuildingMeshTests` covers doorway detours, rotated faces, floor
+separation, ramps and changed broad-phase entries. Shared protocol fixtures
+exercise known, unknown and unlinked destinations on both sides. `just check
+controller test-packages ./internal/home ./internal/memory ./internal/protocol`
+covers restart, retag/unlink, copy isolation and failed-save rollback.
+These checks do not prove a native portal crossing or safe remote arrival.
+
+The native nearby return `.checks/recovery-20261101T065742Z` reached sheltered
+home without injury. The subsequent idle pantry trial
+`.checks/food-20261101T065917Z` searched six sources but earned no collection,
+cooking or deposit; its return failed and logged out without injury. Audit
+`.checks/audit-window-9BYSr2.jsonl` showed accepted support on sliding slopes.
+Ordinary dry route samples now require a support normal of at least0.8,
+consistent with Valheim's38-degree player sliding threshold. Actual footing
+and bounded bank recovery retain separate measurement; level contour recovery
+may preserve dry clearance while seeking a gentler bank. Native results after
+this correction must be recorded separately from the earlier successful return.
+
 ## Marker idle food work
 
 For one bounded marker food batch, use `just vm marker-food-check "marker name"`.
