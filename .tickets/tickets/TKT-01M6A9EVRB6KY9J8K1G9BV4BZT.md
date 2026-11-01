@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T05:21:21Z
+updated_at: 2026-11-01T06:11:31Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -229,3 +229,9 @@ Positive native check: ordinary just vm food-check --join --reserve2 --keep-onli
 Follow-up household trial .checks/food-20261101T051602Z failed without injury. Search t-6 repeatedly encountered the west gate and descending support-step refusals; a later checked local route reached marginal shore[-52.47,30.71,10.94]. Native search and automatic return t-7 exhausted bounded recovery with all8 first-neighbor probes refused for water (1 expanded node, not a large-search-budget problem). This is distinct from the corrected synthetic-swim diversion. No fresh collection or stock deposit occurred. Supervisor logged out/stopped game safely and restored the panel. Combined audit .checks/audit-window-uSjpS9.jsonl; .checks/20261101T051925Z-pmpDRA.log. Inter-trial MushroomYellow storage was older personal cargo and is not outdoor-production proof.
 
 Remaining: avoid choosing marginal shoreline approaches and repeated gate/slope failures; retain failed live approach evidence across replans, and expose numeric support/water clearance to distinguish a real boundary from a wrong-floor sample. A bounded physically dry uphill egress may need separate design for a body already below the conservative planning buffer; do not lower global water/hostile margins or enlarge timeouts to force this test. Do not repeat the unchanged northern-source/shore return. Tas is safely offline at the captured shore, not currently at home. Original coastal AC1/AC2, native alternative-bearing/resumed-collection and exact outdoor-to-chest delivery remain open. PR #146 stays draft.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:11:31Z
+
+Deployed6222030 with verified package/native/controller checksums. The first nearby launch was rejected before game mutation because vm recovery-return still allowed only local/work_trip; fixed the recipe and added an actual just launcher integration test with fake SSH/SCP (no network). Commitb47828d also covers a complete simulated hunt/loot/return/two-cook/two-deposit refill using distinct protocol receipts; focused checks and full CI pass (.checks/20261101T060723Z-ANJKFF.log), committed review passed without findings.
+
+Native nearby return .checks/recovery-20261101T060723Z reached the bank departure but refused all16 candidates as water/support policy. Tas logged out at44/53.5HP without observed damage or travel. Audit .checks/audit-window-w0y1ua.jsonl: body[-53.51,30.72,11.48], supportY30.69, currentwater30.0–30.02; final reported candidate descended to30.66. No production or route success. Retaining the complete first16-probe bank sweep in bounded diagnostics to distinguish mathematical clearance failures on the uphill bearings; current single-per-stage sample concealed those. Do not resend the unchanged trial or mark route/pantry live acceptance complete.

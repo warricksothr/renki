@@ -86,16 +86,17 @@ namespace Renki.Plugin
             internal Failure LastRefusal { get; private set; }
             readonly Dictionary<string, int> failureCounts = new Dictionary<string, int>();
             readonly Dictionary<string, Failure> failureExamples = new Dictionary<string, Failure>();
+            readonly List<Failure> bankFailures = new List<Failure>();
             internal object Failures => new
             {
                 counts = failureCounts,
-                examples = failureExamples.Select(pair => new
+                examples = (bankExit ? (IEnumerable<Failure>)bankFailures : failureExamples.Values).Select(failure => new
                 {
-                    stage = pair.Key,
-                    at = pair.Value.At.ToArray(),
-                    collider = pair.Value.Collider,
-                    supportHeights = pair.Value.SupportHeights,
-                    waterLevels = pair.Value.WaterLevels
+                    stage = failure.Stage,
+                    at = failure.At.ToArray(),
+                    collider = failure.Collider,
+                    supportHeights = failure.SupportHeights,
+                    waterLevels = failure.WaterLevels
                 }).ToArray()
             };
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
@@ -145,6 +146,9 @@ namespace Renki.Plugin
                 LastRefusal = LastFailure;
                 failureCounts[stage] = failureCounts.TryGetValue(stage, out var count) ? count + 1 : 1;
                 failureExamples[stage] = LastFailure;
+                // Preserve the first bounded bank sweep, including its uphill
+                // bearings. The final example alone can conceal why those failed.
+                if (bankExit && bankFailures.Count < 16) bankFailures.Add(LastFailure);
                 return null;
             }
             internal bool HostileClear(V3 from, V3 to)
