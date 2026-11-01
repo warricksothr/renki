@@ -14,6 +14,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
@@ -69,6 +70,51 @@ func TestSavedAtlasOfflineQueriesAreBoundedAndAuthenticated(t *testing.T) {
 	w = get(url, true)
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"saved":true`) || !strings.Contains(w.Body.String(), `"connection":0`) || !strings.Contains(w.Body.String(), `"observedAt"`) {
 		t.Fatal(w.Code, w.Body.String())
+	}
+	// No connected game is required to show the selected world's known places.
+	now := time.Now()
+	pos := protocol.Vec3{500, 40, 200}
+	portal := home.Landmark{Entity: "portal", Kind: protocol.StructurePortal, Tag: "mine", At: now,
+		Pos: protocol.Vec3{-8, 35, 8}, Portal: &protocol.PortalStatus{Connected: true, TargetID: "remote", TargetPos: &pos}}
+	outside := portal
+	outside.Entity, outside.Pos = "outside", protocol.Vec3{1000, 35, 1000}
+	chest := home.Landmark{Entity: "chest", Kind: protocol.StructureContainer, Pos: protocol.Vec3{-4, 35, 8}, At: now}
+	if err := a.Landmarks.Store.RememberLandmarks("saved", []home.Landmark{portal, outside, chest}, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Memory.Store.RememberContainers("saved", []home.RememberedContainer{{Entity: "chest", Size: [2]int{2, 2}, At: now, Items: []protocol.InventoryItem{{Prefab: "Wood", Stack: 10}}}}, now); err != nil {
+		t.Fatal(err)
+	}
+	portal.Entity = "foreign"
+	if err := a.Landmarks.Store.RememberLandmarks("other", []home.Landmark{portal}, now); err != nil {
+		t.Fatal(err)
+	}
+	w = get(url, true)
+	var saved struct {
+		Landmarks  []home.Landmark            `json:"landmarks"`
+		Containers []home.RememberedContainer `json:"containers"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &saved); err != nil {
+		t.Fatal(err)
+	}
+	if len(saved.Landmarks) != 2 || saved.Landmarks[1].Entity != "portal" || saved.Landmarks[1].Portal.TargetPos[0] != 500 {
+		t.Fatal("saved viewport lost portal knowledge or mixed worlds", w.Body.String())
+	}
+	if len(saved.Containers) != 1 || saved.Containers[0].Entity != "chest" || saved.Containers[0].Inventory().Count("Wood") != 10 {
+		t.Fatal("saved chest lost its shared contents", w.Body.String())
+	}
+	batch := make([]home.Landmark, 520)
+	for i := range batch {
+		batch[i] = outside
+		batch[i].Entity = strings.Repeat("x", i+1)
+		batch[i].Pos = protocol.Vec3{-8, 35, 8}
+	}
+	if err := a.Landmarks.Store.RememberLandmarks("saved", batch, now); err != nil {
+		t.Fatal(err)
+	}
+	w = get(url, true)
+	if err := json.Unmarshal(w.Body.Bytes(), &saved); err != nil || len(saved.Landmarks) != 512 {
+		t.Fatal("unbounded saved landmarks", err, len(saved.Landmarks))
 	}
 	for _, query := range []string{"&minX=0&maxX=10000&minZ=0&maxZ=1", "&minX=NaN&maxX=1&minZ=0&maxZ=1", "&minX=0&maxX=1&minZ=0"} {
 		if w := get("/api/atlas/map?world="+key+query, true); w.Code != 400 {

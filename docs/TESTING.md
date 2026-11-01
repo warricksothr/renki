@@ -23,11 +23,27 @@ home without injury. The subsequent idle pantry trial
 `.checks/food-20261101T065917Z` searched six sources but earned no collection,
 cooking or deposit; its return failed and logged out without injury. Audit
 `.checks/audit-window-9BYSr2.jsonl` showed accepted support on sliding slopes.
-Ordinary dry route samples now require a support normal of at least0.8,
-consistent with Valheim's38-degree player sliding threshold. Actual footing
+Ordinary dry route samples now require a support normal of at least 0.8,
+consistent with Valheim's 38-degree player sliding threshold. Actual footing
 and bounded bank recovery retain separate measurement; level contour recovery
 may preserve dry clearance while seeking a gentler bank. Native results after
 this correction must be recorded separately from the earlier successful return.
+
+Build `e19ce26` passed full `just check ci` and committed reviews. Native return
+`.checks/recovery-20261101T071741Z` moved 0.9 m but failed and logged out without
+injury at 46.2/46.2 HP. Audit `.checks/audit-window-E2ZUAi.jsonl` shows departure
+reached a walkable planning buffer, then waited on rejected navmesh candidates
+and local planning. A water-level change to 30.122 m re-entered bank recovery
+after its original eight-second aggregate limit had expired. This does not
+prove successful home routing or pantry delivery; do not retry it unchanged.
+
+That same build observed `darkforest` linked to a remote network entity with
+unknown destination coordinates, and `sportal` unlinked. The native response is
+retained as `.checks/portal-native-20261101T0718.json`. The saved-atlas follow-up
+loads shared remembered landmarks and chest contents after controller restart;
+its read-only response is retained as `.checks/portal-offline-20261101T0720.json`.
+No traversal, remote arrival or intentional trigger-avoidance trial was
+performed from the shore position.
 
 ## Marker idle food work
 

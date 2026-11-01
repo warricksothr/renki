@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T07:02:57Z
-updated_at: 2026-11-01T07:12:19Z
+updated_at: 2026-11-01T07:27:11Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -48,7 +48,7 @@ Complete the requested cached building-part collision model and portal observati
 - [x] Cached actual collision faces preserve openings and floor separation with bounded storage and change invalidation
 - [x] Observed portal links survive memory restart and update without inferring destinations from matching tags
 - [ ] Ordinary native navigation refuses portal triggers even before cache discovery
-- [ ] Focused checks and full CI pass; native discovery and navigation results are recorded
+- [x] Focused checks and full CI pass; native discovery and navigation results are recorded
 
 ## Implementation plan
 
@@ -63,3 +63,11 @@ Implemented bounded actual building collision faces, broad-phase spatial indexin
 **agent:codex/renki-milestones** at 2026-11-01T07:12:19Z
 
 Committed651d04f passed full just check ci and just check review f303e66..HEAD, then installed with verified package/DLL checksums while keeping Tas offline. A subsequent final code audit found ordinary navmesh/direct body movement can bypass dry planning probes; added an independent native input-layer portal cast/overlap guard with bounded refusal traces. Rerunning the gate and review before native startup; no portal traversal or safe-arrival result claimed.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:21:42Z
+
+Build e19ce26 passed full just check ci and committed reviews, was pushed in PR147, and installed with controller/plugin checksum verification. Native .checks/recovery-20261101T071741Z observed two base portals: darkforest is linked to -192312150:9683 but has unknown target coordinates; sportal is unlinked. Current and offline memory evidence: .checks/portal-native-20261101T0718.json and .checks/portal-offline-20261101T0720.json. Return failed after0.9m without injury, final46.2/46.2HP; Tas was logged out and controller/panel retained. Audit .checks/audit-window-E2ZUAi.jsonl shows checked bank departure completed, navmesh rejected sliding-support candidates, and wave water30.122m later re-entered bank recovery after its original aggregate8s deadline expired during planning. Native doorway completion and deliberate trigger-avoidance checks remain unearned; no traversal or safe arrival claimed. Follow-up TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M — Traverse known portals with verified arrivals — is filed in draft with an explicit dependency on this observation work.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:27:11Z
+
+Offline verification exposed a separate presentation gap: the session-only landmark endpoint and saved atlas returned no remembered objects after controller restart. The saved-atlas API now returns the selected world and bounded viewport landmarks (at most512), plus known contents for mapped chests; the panel uses those records as remembered markers. Focused selected-world/viewport/bound/chest-content checks pass, as do full just check ci, final panel lint/verify and the focused offline-fog UI check. An initial broad app-package check timed out in the existing Marco presence test; its isolated rerun and the subsequent complete race-enabled CI passed. Native offline response verification follows the controller-only deployment, with Tas left offline.

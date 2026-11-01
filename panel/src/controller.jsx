@@ -235,6 +235,10 @@ export function startController() {
         world.tiles = new Map(
           (atlas.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]),
         );
+        world.landmarks = atlas.landmarks || [];
+        world.containers = new Map(
+          (atlas.containers || []).map((c) => [c.entity, c]),
+        );
       } else {
         if (
           !data ||

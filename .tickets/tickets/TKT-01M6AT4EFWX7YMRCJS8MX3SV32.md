@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T07:07:03Z
+updated_at: 2026-11-01T07:21:42Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -108,3 +108,7 @@ BankExit now abandons a held candidate after1s without3cm closer approach, conti
 **agent:codex/renki-milestones** at 2026-11-01T07:07:03Z
 
 Continuation: the dirty bank build passed nearby return in .checks/recovery-20261101T065742Z (actual sheltered home-floor arrival, no injury). The following idle pantry trial .checks/food-20261101T065917Z attempted six distinct sources and travelled over350m but earned no food collection, cooking or deposit. Its home return failed on the shore and the supervisor logged out; final46.4HP with no observed injury. Audit .checks/audit-window-9BYSr2.jsonl shows repeated planning-buffer recovery followed by native sliding on support normals around0.62. Installed Character.ApplySlide uses a38-degree player threshold; ordinary dry support planning previously accepted normals down to0.35. Ordinary dry endpoint/midpoint samples now require a walkable normal of at least0.8; actual footing and bounded bank recovery remain separately measured. This is a new route-admission correction; do not repeat the old failed route unchanged. Pantry field criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-11-01T07:21:42Z
+
+Reviewed/deployed e19ce26 native return .checks/recovery-20261101T071741Z remains incomplete:0.9m observed travel, no injury, final46.2/46.2HP, then native logout. Audit .checks/audit-window-E2ZUAi.jsonl shows walking-slope admission now rejects sliding navmesh samples. The bank reached walkable footing near[-51.81,31.08,10.45], but planning waited long enough for a wave-water change to30.122m to re-enter recovery after the original aggregate8s deadline. No budget was renewed, margin waived, body puppeted or home relocated. Pantry production remains unproved. Next change needs stable bank handoff across planning/wave variation under original bounds; no unchanged retry. Portal and building collision work is deployed and documented separately.

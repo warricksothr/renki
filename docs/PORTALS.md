@@ -26,7 +26,10 @@ from matching tags. A connected portal may have an unknown destination.
 Link observations share the existing per-world landmark memory and last-seen
 timestamp. Newer retags, changed links and unlinks replace older observations.
 They remain visible while the client is offline, with the same 30-day landmark
-retention. Map tooltips expose the observed destination and item restriction.
+retention. The saved-atlas viewport loads remembered landmarks from the same
+store, including after a controller restart; remembered chest markers also
+retain their known contents. Map tooltips expose the observed destination
+and item restriction.
 Destination coordinates identify the remote portal, not a verified landing
 point, safe terrain or an available return route.
 
