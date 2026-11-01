@@ -88,6 +88,34 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void PhysicallyStalledStepTriesAnotherBearingWithoutRenewingTheBudget()
+        {
+            var exit = new BankExit();
+            var first = exit.Next(V3.Zero, V3.Forward, 0, (a, b) => b);
+            Assert.Equal(first, exit.Next(V3.Zero, V3.Forward, .9, (a, b) => b));
+            // Centimetre bobbing is not forward progress.
+            var next = exit.Next(new V3(0, 0, .01), V3.Forward, 1, (a, b) => b);
+            Assert.NotEqual(first, next);
+            Assert.Equal(1, exit.Stalls);
+            Assert.Equal(2, exit.Samples);
+            Assert.Null(exit.Next(V3.Zero, V3.Forward, BankExit.Seconds, (a, b) => b));
+            Assert.True(exit.Refused);
+        }
+
+        [Fact]
+        public void RealProgressCanFinishOneStepBeforeStartingTheNext()
+        {
+            var exit = new BankExit();
+            var first = exit.Next(V3.Zero, V3.Forward, 0, (a, b) => b);
+            Assert.Equal(first, exit.Next(new V3(0, 0, .1), V3.Forward, .9, (a, b) => b));
+            Assert.Equal(first, exit.Next(new V3(0, 0, .2), V3.Forward, 1.8, (a, b) => b));
+            var next = exit.Next(new V3(0, 0, .4), V3.Forward, 2.7, (a, b) => b);
+            Assert.NotEqual(first, next);
+            Assert.Equal(0, exit.Stalls);
+            Assert.Equal(2, exit.Samples);
+        }
+
+        [Fact]
         public void SelectedShortStepRequiresLiveClearanceAndOriginalTimeAndDistanceBudgets()
         {
             var exit = new BankExit(); var permitted = true;

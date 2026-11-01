@@ -1527,6 +1527,14 @@ case, an insufficient second meal and invalid durations. Native admission
 refusals now emit one bounded trace with exact health, food duration, stamina,
 footing and threat clearance so diagnosis can use retained evidence directly.
 
+Return `.checks/recovery-20261101T064503Z` passed meal admission but retained
+one checked bank target despite only0.4m initial travel and then centimetre
+bobbing until the original8s limit. Audit `.checks/audit-window-AGi7Y3.jsonl`
+had no probe refusals. BankExit now continues its bearing sweep after1s
+without3cm closer approach, retaining all original aggregate bounds. Synthetic
+regressions distinguish genuine short-step progress, bobbing and expiry;
+native stall traces record the attempted sweep without dumping full frames.
+
 Food hunt checks also retain a strictly bounded two-second settlement for a
 matching confirmed death while perception still contains that exact target.
 Other creatures, stale/foreign receipts and the original expiry cannot acquire

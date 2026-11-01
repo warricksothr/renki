@@ -12,8 +12,10 @@ namespace Renki.Movement
         double started = double.NaN, travelled;
         V3 previous;
         V3? target;
+        double closest, progressAt;
         int direction;
         public int Samples { get; private set; }
+        public int Stalls { get; private set; }
         public bool Refused { get; private set; }
 
         // Finish above the entry threshold, accounting for body settling.
@@ -35,6 +37,15 @@ namespace Renki.Movement
             { target = null; direction = 0; }
             if (target.HasValue)
             {
+                var remaining = V3.FlatDistance(from, target.Value);
+                if (remaining <= closest - .03) { closest = remaining; progressAt = now; }
+                // A clear probe does not prove the body can execute the step.
+                // Continue the bearing sweep after one second without3cm of
+                // forward progress; bobbing cannot renew the original bounds.
+                if (now - progressAt >= 1) { target = null; Stalls++; }
+            }
+            if (target.HasValue)
+            {
                 // Live execution is checked even while holding one short goal.
                 var checkedTarget = probe(from, target.Value);
                 if (checkedTarget.HasValue) return checkedTarget;
@@ -51,7 +62,11 @@ namespace Renki.Movement
                     heading.X * Math.Sin(angle) + heading.Z * Math.Cos(angle)) * .49;
                 Samples++;
                 target = probe(from, from + step);
-                if (target.HasValue) return target;
+                if (target.HasValue)
+                {
+                    closest = V3.FlatDistance(from, target.Value); progressAt = now;
+                    return target;
+                }
             }
             if (direction == angles.Length || Samples >= ProbeLimit) Refused = true;
             return null;

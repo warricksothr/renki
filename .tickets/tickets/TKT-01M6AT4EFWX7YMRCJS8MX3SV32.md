@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T06:41:55Z
+updated_at: 2026-11-01T06:48:33Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -98,3 +98,9 @@ Correcting the boundary oscillation: once bank recovery starts, require both bod
 **agent:codex/renki-milestones** at 2026-11-01T06:41:55Z
 
 Build148dd78 nearby return .checks/recovery-20261101T063927Z stopped at admission before movement; .checks/audit-window-zRuhkE.jsonl retained50.1/53.7HP, dry ground, no nearby perceived creatures and food durations109/406/893s. Caller incorrectly used the minimum across every active meal, requiring the optional third meal to satisfy the two-meal120s nearby reserve. Core helper now measures the second longest duration for nearby/local admission, while work_trip retains all three. Nonfinite/negative/missing durations fail closed. Captured regression checks admission/shortage and unchanged work-trip requirements. One bounded refusal trace now reports exact native reserves to reduce future diagnosis context. Tas remains offline; no further field proof earned.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:48:33Z
+
+Build86b47f5 nearby return .checks/recovery-20261101T064503Z passed the corrected meal admission but stalled on its first physically valid bank candidate: audit .checks/audit-window-AGi7Y3.jsonl shows0.4m initial travel to[-51.92,31.01,10.58], then only centimetre bobbing until the original8s budget expired. No water/threat/probe refusal or damage; exactly one sampled candidate. The retained target lacked execution feedback.
+
+BankExit now abandons a held candidate after1s without3cm closer approach, continues the existing bearing sweep and retains original8s/3m/128-probe limits. True short-step progress resets only the per-candidate stall timer; bobbing does not. Added exact no-progress/real-progress and total-budget regressions and one bounded native stall trace. Next native return and pantry proof remain pending; offline, about50.1HP.

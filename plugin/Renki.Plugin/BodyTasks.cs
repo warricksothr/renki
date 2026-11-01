@@ -609,7 +609,11 @@ namespace Renki.Plugin
             }
             var eligible = support.HasValue && !p.InWater() && !p.IsSwimming() && p.IsOnGround() &&
                 DryTravel.Clear(from, water, BankExit.ActualMargin) && DryTravel.Clear(support.Value, water, BankExit.ActualMargin);
+            var stalls = bankExit.Stalls;
             var step = eligible ? bankExit.Next(from, Convert.ToV3(toward), Time.unscaledTime, bankProbe.Probe) : null;
+            if (bankExit.Stalls > stalls)
+                Tracer.Emit("walker", "dry bank step stalled; checking another bearing", new Dictionary<string, object>
+                { ["pos"] = from.ToArray(), ["stalls"] = bankExit.Stalls, ["samples"] = bankExit.Samples });
             if (!eligible || bankExit.Refused)
             {
                 navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure has no checked uphill step");
