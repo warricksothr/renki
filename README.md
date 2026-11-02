@@ -47,7 +47,8 @@ Every task is a `just` recipe; `just` lists them. `just ci` is the gate,
 conventions and the ticket workflow.
 
 `just ci` needs what CI (.github/workflows/ci.yml) installs: Go at the
-version in `go.mod`, the .NET 8 SDK, Node.js 20+, Python 3, `just`,
+version in `go.mod`, the .NET 8 SDK (plugin/global.json requires it, so the
+formatter matches CI's), Node.js 20+, Python 3, `just`,
 [`git-ticket`](https://github.com/terva-sh/git-ticket) for the ticket check,
 and Playwright's Chromium for the panel UI suite (`just panel ui-install`, plus
 `just panel ui-install-system` for its OS libraries). The Renki.Plugin DLL
