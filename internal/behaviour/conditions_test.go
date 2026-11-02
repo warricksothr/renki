@@ -1,6 +1,7 @@
 package behaviour
 
 import (
+	"bytes"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"testing"
@@ -90,6 +91,96 @@ func TestWhileAndUntilRespectTheirConditionAndMaximumRuns(t *testing.T) {
 				t.Fatal(list)
 			}
 		})
+	}
+}
+
+// The repeat condition decides whether to run again. Reaching the goal
+// mid-run (the 20th flint picked up before the stow) must not stop the run.
+func TestUntilConditionReachedMidRunLetsTheRunFinish(t *testing.T) {
+	f := setup(t)
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 5}}})
+	wait(t, func() bool { return f.s.Inventory() != nil })
+	d := def()
+	d.Template = "two_steps"
+	d.Repeat = Repeat{Mode: "until", Condition: &Conditions{Items: map[string]int{"Flint": 20}}}
+	f.put(t, "collect", d)
+	f.act(t, "collect", "start")
+	f.tick()
+	first := f.p.NextTask()
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 20}}})
+	wait(t, func() bool { return f.s.Inventory().Items[0].Stack == 20 })
+	f.tick()
+	f.done(t, first, protocol.StatusSucceeded, "")
+	f.tick()
+	second := f.p.NextTask()
+	if second.Task == protocol.TaskStop {
+		t.Fatal("until condition stopped the run in progress")
+	}
+	f.done(t, second, protocol.StatusSucceeded, "")
+	f.tick()
+	f.now = f.now.Add(time.Hour)
+	f.tick()
+	f.p.Quiet(20 * time.Millisecond)
+	if list := f.e.List(); list[0].Runs != 1 || list[0].Running || list[0].Pending || list[0].Last != "completed" {
+		t.Fatal(list)
+	}
+}
+
+// A run preempted after its until goal is reached is still a run in
+// progress: it restarts (and so stows) rather than waiting forever as
+// pending, even when the owner presses Start again while it waits.
+func TestPreemptedRunRestartsAfterItsUntilGoalIsReached(t *testing.T) {
+	for _, pressStart := range []bool{false, true} {
+		t.Run(map[bool]string{false: "on its own", true: "after Start"}[pressStart], func(t *testing.T) {
+			preemptAfterUntilGoal(t, pressStart)
+		})
+	}
+}
+func preemptAfterUntilGoal(t *testing.T, pressStart bool) {
+	t.Helper()
+	f := setup(t)
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 20}}})
+	wait(t, func() bool { return f.s.Inventory() != nil })
+	low := def()
+	low.Template = "two_steps"
+	low.Repeat = Repeat{Mode: "until", Condition: &Conditions{Items: map[string]int{"Flint": 30}}}
+	f.put(t, "collect", low)
+	high := def()
+	high.Priority = 10
+	f.put(t, "high", high)
+	f.act(t, "collect", "start")
+	f.tick()
+	first := f.p.NextTask()
+	// The goal is reached while the run is in progress.
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 30}}})
+	wait(t, func() bool { return f.s.Inventory().Items[0].Stack == 30 })
+	f.act(t, "high", "start")
+	f.tick()
+	stop := f.p.NextTask()
+	if stop.Task != protocol.TaskStop {
+		t.Fatal(stop)
+	}
+	f.p.Report(first.ID, protocol.StatusCancelled, protocol.ReasonStopped)
+	f.p.Report(stop.ID, protocol.StatusSucceeded, "")
+	wait(t, func() bool {
+		lease, err := f.s.TryAutomation()
+		if err != nil {
+			return false
+		}
+		lease.Release()
+		return true
+	})
+	f.tick()
+	next := f.p.NextTask()
+	if pressStart {
+		f.act(t, "collect", "start")
+	}
+	f.done(t, next, protocol.StatusSucceeded, "")
+	f.tick()
+	f.tick()
+	restarted := f.p.NextTask()
+	if restarted.Task != protocol.TaskMoveTo || !bytes.Contains(restarted.Args, []byte(`[1,0,0]`)) {
+		t.Fatal("preempted run did not restart", restarted)
 	}
 }
 func TestManualStartBeforeFirstSchedulerTickIsNotLost(t *testing.T) {

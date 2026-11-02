@@ -51,11 +51,12 @@ func (e *Engine) idleTrigger(name string, i *instance, v View, now time.Time) {
 		return
 	}
 	w, ok := i.definition.Trigger.Marker.resolve(v)
-	if !i.definition.Enabled || !idleFresh(v) || resting(v.State) || !v.Idle || e.active != "" || !ok || !withinMarker(v.State.Pos, w) || !i.allowed(v) {
+	if !i.definition.Enabled || !idleFresh(v) || resting(v.State) || !v.Idle || e.active != "" || !ok || !withinMarker(v.State.Pos, w) || !i.canStart(v) {
 		if i.pending {
 			e.ended(i, "idle marker unavailable")
 		}
 		i.pending = false
+		i.interrupted = false
 		i.idleSince = time.Time{}
 		i.idleMarker = nil
 		return
@@ -65,6 +66,7 @@ func (e *Engine) idleTrigger(name string, i *instance, v View, now time.Time) {
 			e.ended(i, "idle marker changed")
 		}
 		i.pending = false
+		i.interrupted = false
 		i.idleSince = now
 		i.idleMarker = &w
 	}
@@ -73,5 +75,6 @@ func (e *Engine) idleTrigger(name string, i *instance, v View, now time.Time) {
 	}
 	if !now.Before(i.next) && now.Sub(i.idleSince) >= duration(i.definition.Trigger.DwellS) {
 		i.pending = true
+		i.interrupted = false
 	}
 }

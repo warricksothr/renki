@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSCKJE592MCK0R2DDYQG
 title: "Behaviours: long gather waits, repeat conditions and tick clock"
 type: bug
-status: ready
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T16:15:35Z
+updated_at: 2026-11-02T19:07:00Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:claude-code/renki-m4-repeat
   name: ""
 extensions: {}
 ---
@@ -62,9 +62,13 @@ The engine judges a Delay by `v.Now`, the clock the runner decided on. Tick stil
 ## Acceptance criteria
 
 - [x] Gather's 15 s pursuer and 20 s wildlife waits survive the engine for their documented length, proven by an engine-level test
-- [ ] A while/until repeat condition no longer cancels the run in progress
+- [x] A while/until repeat condition no longer cancels the run in progress
 - [x] The engine uses one timestamp per tick
-- [ ] docs/BEHAVIOURS.md still matches: repeat decides only whether to run again
+- [x] docs/BEHAVIOURS.md still matches: repeat decides only whether to run again
+
+## Implementation plan
+
+docs/BEHAVIOURS.md already settles it: while/until repeat after successful runs, so the repeat condition only decides whether to start (or queue) another run. Split allowed() into canStart() (enabled, when, once/maxRuns, repeat condition), used by candidate() and finish(), and stillAllowed() (enabled, when) for the active-run check in Tick. Add an engine test where an until condition (items) becomes true mid-run: the run is not stopped, finishes as a success, and is not queued again. Tighten the BEHAVIOURS.md sentence so it says the condition never interrupts a run in progress.
 
 ## Notes
 
@@ -75,3 +79,19 @@ Done in the review-fixes PR: (1) gather's pursuer 15 s and wildlife 20 s waits n
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
 
 Applied on 2026-11-02 by the planning pass: milestone set to M4, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-m4-repeat** at 2026-11-02T18:55:00Z
+
+allowed() is split: canStart() (enabled, when, once/maxRuns, repeat condition) gates candidate(), finish() and the idle trigger; stillAllowed() (enabled, when) is the only check on the active run. TestUntilConditionReachedMidRunLetsTheRunFinish (conditions_test.go) uses two_steps rather than collect, with until items Flint:20 reached after step one: the run is not stopped, finishes as completed, Runs=1 and is not queued again. It fails against the old check. BEHAVIOURS.md repeat paragraph now says the repeat condition never interrupts a run. No VM check made; none needed for engine timing.
+
+**agent:claude-code/renki-m4-repeat** at 2026-11-02T18:58:08Z
+
+Follow-up from just review: a run preempted after its until goal was reached was requeued and then judged as a new start, so it stayed pending forever and never stowed. instance.interrupted now marks a requeued, preempted run; candidate() judges it with stillAllowed() (via mayRun) instead of canStart(). Every other place that sets or clears pending resets the flag. Pinned by TestPreemptedRunResumesAfterItsUntilGoalIsReached.
+
+**agent:claude-code/renki-m4-repeat** at 2026-11-02T19:07:00Z
+
+Supersedes the test name in the previous note: the preemption case is TestPreemptedRunRestartsAfterItsUntilGoalIsReached, with subtests for a restart on its own and after the owner presses Start. Preempted runs restart from their first step, as they did before; for collect that means another trip before the stow. Idle-triggered runs are still dropped when preempted (unchanged), and BEHAVIOURS.md now says so.
+
+## Summary
+
+Repeat while/until conditions now decide only whether another run starts; an active run is stopped only by enabled/when. Engine test and BEHAVIOURS.md updated. All three items closed.

@@ -36,13 +36,12 @@ plugin 6e23e2d on the VM. Deploy only under the rules for live work below.
 
 ## The queue
 
-`git ticket ready` holds four tickets, all offline, so all four can run at
-once. #156 already fixed part of three of them; its notes on each say what it
+`git ticket ready` holds three tickets, all offline, so all three can run at
+once. #156 already fixed part of two of them; its notes on each say what it
 did. What is left:
 
 | Ticket | Milestone | What is left |
 |---|---|---|
-| TKT-01M6DCFSCK (Behaviours: long gather waits, repeat conditions and tick clock) | M4 | A while/until repeat condition must not cancel the run in progress. Settle the intended meaning against docs/BEHAVIOURS.md before changing `allowed()`. |
 | TKT-01M6DCFSRN (OBS adapter: leaked connection per poll, unchecked source restore) | M4 | The source-loss trial restores the window with its own context and fails if the restore fails; `configure` repairs an existing capture source. |
 | TKT-01M6DCFSEG (Behaviours: stow walks avoid hostiles; marker health baseline) | M3 | Marker food and cargo detect an injury after healing past their start health, with heal-then-hit tests. |
 | TKT-01M638V1XC (Follow: stuck outside a wall, the leader inside, path straight through) | M3 | All of it. Read its 14 notes first, because the movement work it waited on landed in PR 117. |
