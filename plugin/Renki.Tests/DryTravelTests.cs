@@ -137,6 +137,50 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void ThinCurrentBufferCanHaveAFullyCheckedUphillDeparture()
+        {
+            // Captured grounded/out-of-water position, synthetic bank and
+            // water surface. This is policy evidence, not captured terrain.
+            var start = new V3(-52.29, 30.75, 10.95);
+            var goal = start + new V3(4, 1.6, 0);
+            var water = 30.0;
+            var blocked = false;
+            V3 Surface(V3 at) => new V3(at.X, start.Y + (at.X - start.X) * .4, at.Z);
+            V3? Physical(V3 from, V3 desired)
+            {
+                var middle = Surface((from + desired) * .5);
+                var to = Surface(desired);
+                return !blocked && DryTravel.ContinuousSupport(from, Surface(from), middle, to) &&
+                    DryTravel.Clear(middle, water, DryTravel.TravelMargin) &&
+                    DryTravel.Clear(to, water, DryTravel.TravelMargin) ? to : (V3?)null;
+            }
+            V3? Probe(V3 from, V3 desired) => DryTravel.Probe(from, desired, Physical);
+            Assert.True(DryTravel.Clear(start, water));
+            Assert.False(DryTravel.Clear(start, water, DryTravel.TravelMargin));
+            var uphill = start + new V3(.5, .2, 0);
+            Assert.Equal(uphill, Probe(start, uphill));
+            Assert.Null(Probe(start, start + new V3(-.5, -.2, 0)));
+            Assert.Null(Probe(start, start + new V3(0, 0, .5)));
+            var route = new LocalRoute(start, goal, Probe, arrivalLevel: .1);
+            while (route.Status == RouteStatus.Searching) route.Advance();
+            Assert.Equal(RouteStatus.Found, route.Status);
+            var previous = start;
+            foreach (var point in route.Path)
+            {
+                if ((point - previous).Length < .01) continue;
+                Assert.NotNull(Probe(previous, point));
+                previous = point;
+            }
+            // The escape from a thin current buffer cannot weaken the next
+            // step's normal water rule or bypass another physical refusal.
+            water = 30.2;
+            Assert.Null(Probe(start, uphill));
+            water = 30;
+            blocked = true;
+            Assert.Null(Probe(start, uphill));
+        }
+
+        [Fact]
         public void MotionGuardStopsAtTheCheckedCornerWhileStrafingKeepsFullClearance()
         {
             var from = new V3(0, 31, 0);

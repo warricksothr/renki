@@ -740,7 +740,16 @@ Notes:
   task retains its original destination across up to three checked escapes,
   each bounded to 30 s including a five-second quiet observation period.
   Escape targets 35 m from its selected threat and checks all loaded hostile
-  corridors as well as physical support and obstacles. Resumption replans
+  corridors as well as physical support and obstacles. Hostile-avoiding escape
+  children can try seven bearings: straight away, then ±30°, ±60° and ±90°.
+  Each bearing first checks a 3 m prefix in half-metre steps, at most eight
+  probes per physics tick and 42 over the child's lifetime. The prefix only
+  selects guidance; the normal walker still validates the remaining route and
+  live execution. A refused goal consumes its bearing. Progress or re-aiming
+  cannot replenish that budget, and no alternative extends the task or 30 s
+  encounter deadline. A tangent target stays anchored as the bot moves;
+  moving threats can request a fresh goal after 3 m. Traces report selected
+  bearing, cumulative samples and refused goals. Resumption replans
   from the actual position; the enclosing deadline is unchanged. This grants
   no combat permission. Optional `defendThreats:true` additionally requires
   `recoverThreats` and attack permission at both safety layers. It can defend
@@ -800,12 +809,16 @@ Notes:
   original task deadline remains authoritative.
 - **Dry home travel:** home returns request `dry:true`. Native movement uses
   validated route hints or incremental local routing with supported endpoints
-  and midpoints at least 0.2m above water, including bridge/floor support. It
+  and midpoints with a 0.8m water buffer (0.2m dry margin plus 0.6m for body
+  settling), including bridge/floor support. It
   rechecks the immediate movement corridor and cannot switch back to an
   unchecked navmesh shortcut through water. Stuck strafes receive the same
   check; jumping/climbing recovery is disabled for this mode. If already wet,
   the existing bounded shore search first targets dry land and continues out
-  of shallow water before planning onward. Other movement keeps its default
+  of shallow water before planning onward. A grounded, out-of-water body with
+  a thin current buffer continues checked planning; that alone cannot replace
+  its uphill route with shore recovery. Every proposed step still requires the
+  full water buffer. Other movement keeps its default
   policy. Dry planning retains the existing node, time and per-frame limits.
 
 - **Successful route hints:** completed point `move_to` tasks can retain

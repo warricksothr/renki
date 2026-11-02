@@ -251,7 +251,7 @@ namespace Renki.Plugin
             if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&
                 WorldNavigation.Routes.Find(Convert.ToV3(from), Convert.ToV3(target)) is RouteHint hint)
             {
-                replayProbe = new WorldNavigation.PlanningProbe(dry: dryGround, refusals: refusals, corridor: hostileClearance);
+                replayProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance);
                 replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, NavigationWithin, NavigationLevel);
                 replayID = hint.ID;
                 replayMs = replayWorstMs = 0;
@@ -848,14 +848,12 @@ namespace Renki.Plugin
         {
             var p = Player.m_localPlayer;
             var wet = p != null && p.IsSwimming();
-            if (dryGround && p != null)
-            {
-                dryProbe.BeginSlice();
-                var at = Convert.ToV3(pos);
-                var support = dryProbe.Sample(at, at.Y);
-                wet |= p.InWater() || support.HasValue && !DryTravel.Clear(support.Value,
-                    WorldNavigation.WaterLevel(support.Value), DryTravel.TravelMargin);
-            }
+            // A thin planning buffer is not actual immersion. While still
+            // dry, let the normal planner find an uphill departure: every
+            // midpoint, endpoint and live step retains TravelMargin. Seeking
+            // a geometric shore instead can discard that checked route and
+            // deadlock on its own first step under the same water rule.
+            if (dryGround && p != null) wet |= p.InWater();
             if (p == null || !wet)
             {
                 shore = null;
@@ -933,6 +931,10 @@ namespace Renki.Plugin
                             ["from"] = Convert.ToArray(pos),
                             ["shore"] = shore.Value.ToArray(),
                             ["failure"] = dryProbe.LastFailure?.Stage,
+                            ["inWater"] = p.InWater(),
+                            ["swimming"] = p.IsSwimming(),
+                            ["grounded"] = p.IsOnGround(),
+                            ["waterLevel"] = WorldNavigation.WaterLevel(Convert.ToV3(pos)),
                         });
                     }
                     navigationFailure = Outcome.Failed(Wire.ReasonUnreachable,
