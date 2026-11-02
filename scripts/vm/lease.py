@@ -323,12 +323,21 @@ def branch():
         return ''
 
 
+def say(message):
+    """Best effort: after a hangup stderr is a dead terminal, and an OSError
+    from a diagnostic must not abandon a running trial."""
+    try:
+        print(message, file=sys.stderr)
+    except OSError:
+        pass
+
+
 def run(lease, command, minutes, renew_seconds):
     """Hold the lease for COMMAND. The command does its own cleanup (combat off,
     stop or logout) before it exits; the lease is released only after that."""
     held, took = lease.take(minutes=minutes, renew='extend')
     if took:
-        print(f"took the VM lease for {held['actor']} until {held['expires']}", file=sys.stderr)
+        say(f"took the VM lease for {held['actor']} until {held['expires']}")
     # The child runs in its own process group, so a Ctrl-C, a closed
     # terminal or a `timeout` reaches only this process, which passes the
     # first of them on as SIGINT: the supervisors clean up in `finally` on
@@ -342,10 +351,13 @@ def run(lease, command, minutes, renew_seconds):
             if started:
                 started[0].send_signal(signal.SIGINT)
         else:
-            print('the command is cleaning up; further signals are not passed on (kill it to abort, '
-                  'and the VM lease is kept)', file=sys.stderr)
+            say('the command is cleaning up; further signals are not passed on (kill it to abort, '
+                'and the VM lease is kept)')
 
-    handlers = ((signal.SIGINT, forward), (signal.SIGTERM, forward), (signal.SIGHUP, forward))
+    # Ctrl-\ (SIGQUIT) counts as an interrupt too; Ctrl-Z would stop only this process
+    # and its renewals while the trial ran on, so it is ignored.
+    handlers = ((signal.SIGINT, forward), (signal.SIGTERM, forward), (signal.SIGHUP, forward),
+                (signal.SIGQUIT, forward), (signal.SIGTSTP, signal.SIG_IGN))
     previous = {signum: signal.signal(signum, handler) for signum, handler in handlers}
     code = 127
     try:
@@ -354,7 +366,7 @@ def run(lease, command, minutes, renew_seconds):
             # terminal would stop the child (SIGTTIN); no supervisor reads it.
             child = subprocess.Popen(command, process_group=0, stdin=subprocess.DEVNULL)
         except OSError as error:
-            print(f'cannot start {command[0]}: {error}', file=sys.stderr)
+            say(f'cannot start {command[0]}: {error}')
         else:
             # Blocked here, so a signal arriving now is passed on exactly once.
             mask = signal.pthread_sigmask(signal.SIG_BLOCK, [signum for signum, _ in handlers])
@@ -368,16 +380,15 @@ def run(lease, command, minutes, renew_seconds):
         # `finally` blocks, so that cleanup ran. Any other signal may have
         # cut it short: the lease is kept and expires on its own.
         if took and code < 0 and code != -signal.SIGINT:
-            print(f'the command ended by signal {-code} before it could clean up; the VM lease is kept '
-                  'until it expires, so check the VM before releasing it', file=sys.stderr)
+            say(f'the command ended by signal {-code} before it could clean up; the VM lease is kept '
+                'until it expires, so check the VM before releasing it')
         elif took:
             try:
                 released = lease.release_if_self()
             except (SystemExit, Exception) as error:
-                print(f'could not release the VM lease, which expires on its own: {error}', file=sys.stderr)
+                say(f'could not release the VM lease, which expires on its own: {error}')
             else:
-                print('released the VM lease' if released else 'the VM lease was no longer ours to release',
-                      file=sys.stderr)
+                say('released the VM lease' if released else 'the VM lease was no longer ours to release')
     finally:
         # Only now, so a second signal cannot cut the release short.
         for signum, handler in previous.items():
@@ -398,7 +409,7 @@ def wait(lease, child, minutes, renew_seconds):
             try:
                 took = lease.take(minutes=minutes, renew='extend')[1] or took
             except (SystemExit, Exception) as error:
-                print(f'could not renew the VM lease: {error}', file=sys.stderr)
+                say(f'could not renew the VM lease: {error}')
 
 
 def main(argv=None):

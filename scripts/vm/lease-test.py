@@ -168,7 +168,7 @@ SUPERVISOR = (
 def run_forwards_termination(case):
     """SIGTERM or SIGHUP to run reaches a supervisor as Ctrl-C; its cleanup runs
     under the lease, and the lease is released afterwards."""
-    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
         proc, probe, _ = run_child(case, SUPERVISOR)
         # The whole group, as a terminal or `timeout` signals it, twice: only
         # the first reaches the supervisor, so its cleanup is not cut short.
