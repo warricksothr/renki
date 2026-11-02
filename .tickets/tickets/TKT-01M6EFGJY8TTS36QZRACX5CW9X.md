@@ -27,7 +27,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T15:54:40Z
-updated_at: 2026-11-02T19:18:49Z
+updated_at: 2026-11-02T19:51:40Z
 created_by:
   id: agent:claude-code/renki-plan-m4
   name: ""
@@ -72,4 +72,24 @@ The Renki.Plugin build stays skipped in CI until TKT-01M6DCFST1's required-plugi
 
 ## Implementation plan
 
-Add .github/workflows/ci.yml on ubuntu-24.04, triggered by pull_request and push to main. Toolchains from the repo: setup-go with go-version-file go.mod (module cache on), setup-dotnet 8.0.x (NuGet cache keyed on plugin csproj files), setup-node from panel/.nvmrc-free engines (>=20, use 22) with npm cache on panel/package-lock.json, Python 3 from the image (scripts use stdlib only), just via extractions/setup-just, git-ticket via go install github.com/terva-sh/git-ticket/cmd/git-ticket@v0.24.0, Playwright Chromium via just panel ui-install plus playwright install-deps through just panel ui-install-system (sudo). The single gate step runs just ci; the plugin DLL skip line from plugin/justfile stays in the log and is called out in the step summary. Fix the justfile header comment and README prerequisites. Then plant a Go compile error on a scratch branch to show a red run.
+.github/workflows/ci.yml runs on ubuntu-24.04 for every pull_request and for pushes to main. It sets up the toolchains, then runs `just ci` as its only gate step.
+
+- Go: setup-go with go-version-file go.mod, with module and build caches.
+- .NET: setup-dotnet with global-json-file plugin/global.json, which is new and pins SDK 8.0 (rollForward latestFeature). The runner image also has SDK 10, whose `dotnet format` disagrees with SDK 8's. NuGet is cached through actions/cache on ~/.nuget/packages, keyed on the plugin csproj files and nuget.config.
+- Node 22 through setup-node, with the npm cache keyed on panel/package-lock.json. node_modules itself is not cached because `npm ci` deletes it.
+- Python 3.12 through setup-python. The scripts use only the standard library.
+- just through extractions/setup-just. git-ticket through `go install github.com/terva-sh/git-ticket/cmd/git-ticket@v0.24.0`.
+- Playwright Chromium through `just panel ui-install`, with ~/.cache/ms-playwright cached, and its OS libraries through `just panel ui-install-system`. Playwright elevates with sudo itself.
+- On failure, the run uploads .checks/panel-ui as an artifact.
+
+The Renki.Plugin DLL skip stays visible: on GitHub Actions, plugin/justfile prints it as a `::warning title=Renki.Plugin not built::` annotation. scripts/check-test.sh uses grep, not rg, because the runner has no ripgrep. The root justfile header and README prerequisites now describe CI.
+
+## Notes
+
+**agent:claude-code/renki-m4-ci** at 2026-11-02T19:51:40Z
+
+The first CI runs on PR #164 found three things that a workstation run of `just ci` hides:
+
+1. Run 41509791593 failed the plugin's `dotnet format` lint, because the runner picked SDK 10 when no global.json was present. Fixed by plugin/global.json.
+2. Run 41511564549, attempt 1, failed internal/memory TestPerceptionMemoryExcludesPreStateMenuAndReplacedConnections under -race. Filed as draft TKT-01M6EWJ9EE (Flaky gate: memory test races a replaced connection under -race) and not fixed here. TKT-01M6ESNXKF's app flake did not appear.
+3. Attempt 2 failed check-test with `rg: command not found`. Fixed by switching scripts/check-test.sh to grep.
