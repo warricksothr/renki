@@ -1,0 +1,59 @@
+---
+schema: 4
+id: TKT-01M6DCFS77KSH6FW38KGSA686M
+title: "Plugin: stop per-step allocations in reach and sight checks"
+type: chore
+status: draft
+status_reason: null
+priority: low
+due_on: null
+labels:
+  - plugin
+assignees: []
+milestone: null
+parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
+origin: null
+dependencies: []
+blocks_on: none
+references: []
+moved_to: null
+claim: null
+archive: null
+created_at: 2026-11-02T05:42:33Z
+updated_at: 2026-11-02T05:42:33Z
+created_by:
+  id: agent:claude-code/renki-review
+  name: ""
+updated_by:
+  id: agent:claude-code/renki-review
+  name: ""
+extensions: {}
+---
+
+## Description
+
+Several reach and line-of-sight checks allocate on every 50 Hz physics step. Each one calls `GetComponentsInChildren<Collider>()`, then `Physics.RaycastAll` and LINQ over the colliders.
+
+### Where
+
+- `plugin/Renki.Plugin/UseReach.cs:191-197`
+- `InteractTask.cs:217` and `:241`
+- `TransferTask.cs:48` (runs for the whole walk to a chest)
+- `CookingTask.cs:174`
+
+### Why it matters
+
+Valheim's Mono collector stops the world, so steady garbage becomes periodic hitches on the bot's client. That client is also the one on the stream.
+
+### Fix
+
+- Cache the target's colliders when the task starts.
+- Use `Physics.RaycastNonAlloc` into a reused buffer.
+- Run the check only within reach distance, or at about 4 Hz.
+
+Measure before and after with the Unity profiler or GC counts in a trace.
+
+## Acceptance criteria
+
+- [ ] Reach and sight checks reuse buffers and cached colliders
+- [ ] Measured GC allocation per physics step during a chest walk is recorded before and after
