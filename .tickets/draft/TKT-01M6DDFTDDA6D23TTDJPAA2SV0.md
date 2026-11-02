@@ -43,6 +43,7 @@ A `just vm haul-report` recipe, with an offline `test-haul-report` in `just ci` 
 - **Dropped:** items that appeared within 30 m of an owner (perception drops and owner-attributed events), by prefab. Drops that the loot template's deliberate-drop rule ignores (TKT-01M6EFHE2N, a pure function: within 2 m of an owner with no tree, log or stump breaking within 10 m in the last 10 s) are counted separately as **Deliberate** and left out of the ratio. Reuse that function, or a port tested against the same cases, so the two cannot drift.
 - **Picked up:** of those drops, what the bot picked up, from pickup receipts.
 - **Pickup ratio:** per prefab and in total.
+- **Coverage:** the share of the window in which each owner was inside the bot's perception radius, from `state` and `perception` records. Goal 2.2 counts a session only when this is at least 90 %, because drops the bot never perceived cannot enter the ratio.
 - **Trips:** home trips, with each deposit's matched receipt counts, the trigger (fill fraction or the pile being gone, with the idle seconds) and the time back at the site.
 - **Incidents:** deaths, drowning-risk refusals and failed deliveries, with reasons.
 
@@ -62,11 +63,11 @@ Without a number, "the bot keeps hauling" stays a judgement call. Goal 2.2 needs
 
 ### Verification
 
-- `just check vm test-haul-report` against a fixture audit with known drops, pickups, one deliberate owner drop (excluded from the ratio) and two trips, then `just check ci`.
+- `just check vm test-haul-report` against a fixture audit with known drops, pickups, one deliberate owner drop (excluded from the ratio), an owner out of range for more than 10 % of the window (coverage below 90 %) and two trips, then `just check ci`.
 - On any retained audit window: `just vm haul-report SINCE UNTIL` writes summary.json with the fields above.
 
 ## Acceptance criteria
 
 - [ ] just vm haul-report summarises drops near owners, pickups, trips, deposits and incidents for an audit window
 - [ ] An offline test-haul-report runs in just ci against a fixture audit
-- [ ] The summary.json fields (dropped, picked up, ratio, trips with trigger, incidents) are documented in docs/TESTING.md
+- [ ] The summary.json fields (dropped, deliberate, picked up, ratio, owner coverage, trips with trigger, incidents) are documented in docs/TESTING.md

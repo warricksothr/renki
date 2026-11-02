@@ -77,7 +77,7 @@ up. Owners only.
 - [ ] loot leaves an owner's deliberate drops alone
 - [ ] Full, deliver-when-full stows the load in the chests at home and goes back
 - [ ] It says when it cannot go on (no chest, chests full), and stop ends the run at once
-- [ ] Two owner sessions of 30+ min each have a haul report linked here showing at least 3 trips and a pickup ratio of at least 0.8 (goal 2.2)
+- [ ] Two owner sessions of 30+ min each have a haul report linked here showing owner coverage of at least 90 %, at least 3 trips, a pickup ratio of at least 0.8 excluding deliberate owner drops, and every trip triggered at 80 % full or 60 s after the pile was gone, then a return to the site (goal 2.2)
 
 ## Implementation plan
 
