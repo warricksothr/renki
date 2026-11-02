@@ -58,7 +58,7 @@ A run where no safe frontier remains is an honest partial and breaks the streak;
 
 ## Acceptance criteria
 
-- [ ] Three consecutive `just vm expedition-trial` runs pass by the rule above; their summary.json paths are in a note
+- [ ] Three consecutive `just vm expedition-trial` runs report `goal73` true (TKT-01M6EFQP85's flag for goal 7.3's fixed limits, which implies `pass`); their summary.json paths are in a note
 - [ ] One run with `--stop-after 60` reaches idle within 2 s of the stop, cancels the goal and sends no further task; its summary.json path is in a note
 - [ ] Every run, passing or not, ends with combat off and the goal cancelled or terminal
 - [ ] A map snapshot from one of the passing runs, drawn with the expedition layers from TKT-01M6EFQPDB, is saved under .checks/ with just vm map-snapshot and linked in a note (goal 7.6)
