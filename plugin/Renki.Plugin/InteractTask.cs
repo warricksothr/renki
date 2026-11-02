@@ -76,6 +76,7 @@ namespace Renki.Plugin
                 case ItemDrop _: return InteractRule.Drop;
                 case Container _: return InteractRule.Container;
                 case CraftingStation _: return InteractRule.Station;
+                case CookingStation _: return InteractRule.Cooking;
                 case Sign _:
                 case TeleportWorld _: return InteractRule.Text;
                 case PrivateArea _: return InteractRule.Ward;

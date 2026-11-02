@@ -340,7 +340,28 @@ type PerceivedStructure struct {
 	// Owned is present for beds; nil means ownership is unknown.
 	Owned *bool `json:"owned,omitempty"`
 	// Open is set for doors only.
-	Open *bool `json:"open,omitempty"`
+	Open    *bool          `json:"open,omitempty"`
+	Fire    *FireStatus    `json:"fire,omitempty"`
+	Cooking *CookingStatus `json:"cooking,omitempty"`
+}
+
+type FireStatus struct {
+	Fuel    float64 `json:"fuel"`
+	FuelMax float64 `json:"fuelMax"`
+	Lit     bool    `json:"lit"`
+}
+
+type CookingStatus struct {
+	Heated    bool                `json:"heated"`
+	Supported bool                `json:"supported"`
+	Slots     []CookingSlotStatus `json:"slots"`
+}
+
+type CookingSlotStatus struct {
+	Index    int     `json:"index"`
+	Item     string  `json:"item"`
+	State    string  `json:"state"`
+	ElapsedS float64 `json:"elapsedS"`
 }
 
 // Inventory is sent on change and once after Welcome (6.3). It is streamed

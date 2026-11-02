@@ -8,8 +8,11 @@ namespace Renki.Plugin
     static class UseReach
     {
         internal static bool Near(Player player, GameObject target, float reach)
+            => From(player, target, reach, player.transform.position);
+
+        internal static bool From(Player player, GameObject target, float reach, Vector3 feet)
         {
-            var eye = player.m_eye != null ? player.m_eye.position : player.transform.position + Vector3.up * 1.6f;
+            var eye = feet + (player.m_eye != null ? player.m_eye.position - player.transform.position : Vector3.up * 1.6f);
             bool Sees(Vector3 at)
             {
                 var delta = at - eye;
@@ -28,7 +31,7 @@ namespace Renki.Plugin
                 if (!(collider is MeshCollider mesh && !mesh.convex) && Sees(collider.ClosestPoint(eye))) return true;
                 if (Sees(collider.bounds.center)) return true;
             }
-            return !any && Arrival.Reached(Convert.ToV3(player.transform.position), Convert.ToV3(target.transform.position), reach);
+            return !any && Arrival.Reached(Convert.ToV3(feet), Convert.ToV3(target.transform.position), reach);
         }
     }
 }

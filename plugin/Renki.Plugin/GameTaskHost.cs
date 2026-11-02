@@ -88,11 +88,12 @@ namespace Renki.Plugin
                             throw new TaskRefused(Wire.ReasonInvalidTarget, "sleep requires a bed");
                         if (ia.Repair && !(it is CraftingStation))
                             throw new TaskRefused(Wire.ReasonInvalidTarget, "repair requires a crafting station");
-                        if (InteractRule.Check(InteractTask.Kind(it), safety, ia.Repair) is Outcome no)
+                        if (InteractRule.Check(InteractTask.Kind(it), safety, ia.Repair, ia.Cook != null) is Outcome no)
                             throw new TaskRefused(no.Reason, no.Detail);
                         // Section 8: nothing behind a ward the bot has no access to.
                         if (!PrivateArea.CheckAccess(obj.transform.position, 0f, false, false))
                             throw new TaskRefused(Wire.ReasonNotAllowed, $"the {InteractTask.Name(it)} is behind a ward");
+                        if (ia.Cook != null) return new CookingTask(req.Id, ia, (CookingStation)it);
                         return ia.Repair ? (IBodyTask)new RepairTask((CraftingStation)it) : new InteractTask(ia, it);
                     }
                 case FleeArgs fl:
@@ -149,6 +150,8 @@ namespace Renki.Plugin
                 case DropArgs d:
                     return Drop(player, d);
                 case UseItemArgs food:
+                    if (CookingTask.Active != null && CookingTask.Active.Output == food.Item)
+                        return Outcome.Failed(Wire.ReasonNotAllowed, "wait for the cooking output receipt before eating it");
                     return Eat(player, food);
                 case EquipArgs eq:
                     return Equip(player, eq);

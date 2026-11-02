@@ -225,6 +225,18 @@ namespace Renki.Plugin
             var s = new PerceivedStructure { Kind = k.Kind, Prefab = k.Prefab, Pos = Convert.ToArray(p.transform.position), Id = Id(p.m_nview) };
             switch (k.Part)
             {
+                case CookingStation cooking:
+                    s.Cooking = CookingTask.Observe(cooking);
+                    break;
+                case Fireplace fire:
+                    if (fire.m_nview != null && fire.m_nview.IsValid())
+                        s.Fire = new FireStatus
+                        {
+                            Fuel = System.Math.Round(fire.m_nview.GetZDO().GetFloat(ZDOVars.s_fuel), 1),
+                            FuelMax = fire.m_maxFuel,
+                            Lit = fire.IsBurning()
+                        };
+                    break;
                 case Door door:
                     var zdo = door.m_nview != null ? door.m_nview.GetZDO() : null;
                     s.Open = zdo != null && zdo.GetInt(ZDOVars.s_state, 0) != 0;

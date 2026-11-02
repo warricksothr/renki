@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json.Linq;
+using Renki.Tasks;
 
 namespace Renki.Protocol
 {
@@ -142,6 +143,9 @@ namespace Renki.Protocol
 
         /// <summary>Stations only: repair eligible carried gear through the game UI.</summary>
         public bool Repair;
+
+        /// <summary>Cook one carried ordinary raw-food prefab and collect its output.</summary>
+        public string Cook;
     }
 
     public sealed class FleeArgs
@@ -367,9 +371,12 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false) };
+                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook") };
+                        if (args.Cook == "") args.Cook = null;
                         if (args.Sleep && (args.Alt || args.Hold)) throw new BadArgsException("`sleep` cannot be combined with `alt` or `hold`");
                         if (args.Repair && (args.Sleep || args.Alt || args.Hold)) throw new BadArgsException("`repair` cannot combine with sleep, alt or hold");
+                        if (args.Cook != null && (!CookingBatch.Supported(args.Cook) || args.Repair || args.Sleep || args.Alt || args.Hold))
+                            throw new BadArgsException("`cook` requires RawMeat, DeerMeat or NeckTail and cannot combine with other interaction modes");
                         return args;
                     }
                 case TaskNames.Flee:

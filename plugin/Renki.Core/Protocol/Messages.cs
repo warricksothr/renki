@@ -263,6 +263,30 @@ namespace Renki.Protocol
         [JsonProperty("owned", NullValueHandling = NullValueHandling.Ignore)] public bool? Owned;
         /// <summary>Doors only.</summary>
         [JsonProperty("open", NullValueHandling = NullValueHandling.Ignore)] public bool? Open;
+        [JsonProperty("fire", NullValueHandling = NullValueHandling.Ignore)] public FireStatus Fire;
+        [JsonProperty("cooking", NullValueHandling = NullValueHandling.Ignore)] public CookingStatus Cooking;
+    }
+
+    public sealed class FireStatus
+    {
+        [JsonProperty("fuel")] public double Fuel;
+        [JsonProperty("fuelMax")] public double FuelMax;
+        [JsonProperty("lit")] public bool Lit;
+    }
+
+    public sealed class CookingStatus
+    {
+        [JsonProperty("heated")] public bool Heated;
+        [JsonProperty("supported")] public bool Supported;
+        [JsonProperty("slots")] public List<CookingSlotStatus> Slots = new List<CookingSlotStatus>();
+    }
+
+    public sealed class CookingSlotStatus
+    {
+        [JsonProperty("index")] public int Index;
+        [JsonProperty("item")] public string Item = "";
+        [JsonProperty("state")] public string State = "empty";
+        [JsonProperty("elapsedS")] public double ElapsedS;
     }
 
     /// <summary>Section 6.2; streamed from M2.</summary>

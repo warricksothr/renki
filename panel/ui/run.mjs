@@ -370,26 +370,43 @@ try {
       2,
     ) + "\n",
   );
-  const sheet = `<!doctype html><html lang="en"><meta charset="utf-8"><title>Renki fixture examples</title><style>body{background:#172019;color:#eee;font:16px sans-serif;margin:24px}main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}figure{margin:0}img{width:100%}a{color:#bfe0b2}small{display:block}</style><h1>FIXTURE · NOT LIVE</h1><p>Recorded PR102 map/JPEG + simulated events/timing. Visual review required. ${result.metadata.browser} / Playwright ${result.metadata.playwright}.</p><main>${shots.map((s) => `<figure><a href="${s.path}"><img src="${s.path}" alt="${s.viewport} ${s.scenario}"></a><figcaption>${s.viewport} / ${s.scenario}<small>${s.path} · ${s.status}</small></figcaption></figure>`).join("")}</main></html>`;
+  const sheet = `<!doctype html><html lang="en"><meta charset="utf-8"><title>Renki fixture examples</title><style>body{background:#172019;color:#eee;font:16px sans-serif;margin:24px}main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}figure{margin:0}img{width:100%}a{color:#bfe0b2}small{display:block}</style><h1>FIXTURE · NOT LIVE</h1><p>Recorded PR102 map/JPEG + simulated events/timing. Visual review required. ${result.metadata.browser} / Playwright ${result.metadata.playwright}.</p><main>${shots.map((s) => `<figure><a href="${s.path}"><img data-src="${s.path}" data-width="${Math.min(480, viewports[s.viewport].width)}" alt="${s.viewport} ${s.scenario}"></a><figcaption>${s.viewport} / ${s.scenario}<small>${s.path} · ${s.status}</small></figcaption></figure>`).join("")}</main></html>`;
   await writeFile(join(out, "contact-sheet.html"), sheet);
   const sheetPage = await browser.newPage({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
   });
   await sheetPage.goto(origin + "/artifacts/contact-sheet.html");
-  // Decode in order: a large contact sheet can exceed Chromium's concurrent
-  // image decode budget even though each retained PNG is valid.
+  // Decode one source at a time into bounded thumbnails. Keeping all full-size
+  // PNGs active can exceed Chromium's decode budget even when each is valid.
+  // Full originals remain linked; embed thumbnails for a portable contact sheet.
   await sheetPage.evaluate(async () => {
     for (const image of document.images) {
+      const source = image.dataset.src;
       try {
+        const response = await fetch(source);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const bitmap = await createImageBitmap(await response.blob(), {
+          resizeWidth: Number(image.dataset.width),
+          resizeQuality: "high",
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext("2d").drawImage(bitmap, 0, 0);
+        bitmap.close();
+        image.src = canvas.toDataURL("image/png");
+        canvas.width = canvas.height = 0;
         await image.decode();
+        delete image.dataset.src;
       } catch (error) {
         throw new Error(
-          `Contact sheet image ${image.getAttribute("src")} (complete=${image.complete}, width=${image.naturalWidth}): ${error.message}`,
+          `Contact sheet image ${source} (complete=${image.complete}, width=${image.naturalWidth}): ${error.message}`,
         );
       }
     }
   });
+  await writeFile(join(out, "contact-sheet.html"), await sheetPage.content());
   await sheetPage.screenshot({
     path: join(out, "contact-sheet.png"),
     fullPage: true,

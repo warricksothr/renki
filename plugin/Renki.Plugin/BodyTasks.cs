@@ -1028,17 +1028,20 @@ namespace Renki.Plugin
         ItemDrop drop;
         readonly string prefab;
         readonly bool safeTravel;
+        readonly bool allowMerge;
         readonly int before;
         int taken;
         readonly Walker walker = new Walker();
         Vector3 goal;
         float arrivedAt = -1;
+        float ownershipAt = -1;
         int tries;
 
-        public PickupTask(ItemDrop drop, bool safeTravel = false)
+        public PickupTask(ItemDrop drop, bool safeTravel = false, bool allowMerge = true)
         {
             this.drop = drop;
             this.safeTravel = safeTravel;
+            this.allowMerge = allowMerge;
             prefab = drop.m_itemData.m_dropPrefab.name;
             var p = Player.m_localPlayer;
             before = Carried(p, prefab);
@@ -1054,7 +1057,7 @@ namespace Renki.Plugin
             // The most it has gained: using some on the way does not hide it.
             taken = System.Math.Max(taken, Carried(p, prefab) - before);
             var took = taken;
-            if (drop == null && took == 0 && Merged() is ItemDrop merged)
+            if (allowMerge && drop == null && took == 0 && Merged() is ItemDrop merged)
             {
                 // The game merges nearby drops of an item into one stack.
                 drop = merged;
@@ -1097,6 +1100,27 @@ namespace Renki.Plugin
                     if (took > 0)
                         return Outcome.Succeeded($"took {took} {prefab}; the other {drop.m_itemData.m_stack} is too heavy to carry");
                     return Outcome.Failed(Wire.ReasonTooHeavy, $"{prefab} would take it past its carry weight");
+                }
+                if (!drop.CanPickup(false))
+                {
+                    if (ownershipAt < 0)
+                    {
+                        ownershipAt = Time.time;
+                        Tracer.Emit("pickup", "requesting normal drop ownership", new Dictionary<string, object>
+                        { ["entity"] = Perceiver.Id(drop.m_nview), ["prefab"] = prefab });
+                    }
+                    if (Time.time - ownershipAt > 5)
+                        return Outcome.Failed(Wire.ReasonTimeout, "the drop owner did not hand over the item");
+                    // Use the owner's normal RPC grant. Unlike ItemDrop.Pickup,
+                    // this installs no deferred pickup callback after cancellation.
+                    drop.RequestOwn();
+                    return null;
+                }
+                if (ownershipAt >= 0)
+                {
+                    ownershipAt = -1;
+                    Tracer.Emit("pickup", "normal drop ownership granted", new Dictionary<string, object>
+                    { ["entity"] = Perceiver.Id(drop.m_nview), ["prefab"] = prefab });
                 }
                 if (tries++ >= Tries)
                     return took > 0

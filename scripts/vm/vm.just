@@ -373,6 +373,15 @@ escort-check +ARGS:
 test-escort-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/escort-check-test.py"
 
+# One real cooking batch, optionally finding one ingredient in known home chests.
+# Always logs out/stops a bot admitted to the proof; leaves the panel available.
+[positional-arguments]
+cooking-check *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check.py" "$@"
+
+test-cooking-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check-test.py"
+
 # One-shot native sheltered healing guard; observes threats every physics step.
 [positional-arguments]
 recovery VALUE='': need-target

@@ -9,7 +9,7 @@ from harvest_trial import health_loss
 FOODS = ('CookedDeerMeat', 'NeckTailGrilled', 'CookedMeat', 'Honey', 'Raspberry', 'Blueberries', 'Mushroom')
 
 
-def candidates(status, mapped, supplied, opened=None):
+def candidates(status, mapped, supplied, opened=None, foods=FOODS):
     home = status.get('home') or {}
     if home.get('world') != status.get('world') or not home.get('pos'):
         raise RuntimeError('no known home in the current world')
@@ -33,15 +33,15 @@ def candidates(status, mapped, supplied, opened=None):
                 continue
         for item in opened.get(entity, chest).get('items') or []:
             prefab = item.get('prefab')
-            if prefab in FOODS and prefab not in supplied and item.get('stack', 0) > 0:
-                choices.append((FOODS.index(prefab), math.dist(status['pos'], chest['pos']), entity, prefab, min(4, item['stack'])))
+            if prefab in foods and prefab not in supplied and item.get('stack', 0) > 0:
+                choices.append((foods.index(prefab), math.dist(status['pos'], chest['pos']), entity, prefab, min(4, item['stack'])))
     # A failed food hint is a reason to check another box. A one-item ordinary
     # food request opens through the normal access path and reports actual
     # contents even if that food is missing. Exact receipts remain required.
-    probe_food = next((p for p in FOODS if p not in supplied), None)
+    probe_food = next((p for p in foods if p not in supplied), None)
     for chest in visible:
         if probe_food and math.dist(chest['pos'], home['pos']) <= 32 and chest['id'] not in opened:
-            choices.append((len(FOODS), math.dist(status['pos'], chest['pos']), chest['id'], probe_food, 1))
+            choices.append((len(foods), math.dist(status['pos'], chest['pos']), chest['id'], probe_food, 1))
     return sorted(set(choices))
 
 

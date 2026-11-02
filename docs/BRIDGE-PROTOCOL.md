@@ -255,6 +255,14 @@ or landmarks. Map snapshots and exports carry them through `perception`.
   only. Beds also report nullable `owned`: false means explicitly unclaimed,
   true means claimed, and absence means unknown. `mine` distinguishes the
   bot's own bed from another player's. Unknown ownership is never free.
+  Fires optionally report `fire: {fuel, fuelMax, lit}`. Cooking stations
+  optionally report `cooking: {heated, supported, slots}`; each slot has
+  `index`, exact `item` prefab (empty string for empty), `state` (`empty`,
+  `cooking`, `done`, `burnt`, `unknown`) and synchronized `elapsedS`.
+  `supported` identifies the basic direct-use fire-backed station shape,
+  not guaranteed current access, ownership or safe routing. Omitted state
+  is unknown. These dynamic values are sampled anew, independently of
+  geometry caches. See [COOKING.md](COOKING.md).
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
   Optional `yield` describes a drop/simple pickable's primary output:
   `{prefab, count, stackMax, weight}`. Count is a capacity upper bound
@@ -499,7 +507,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
-| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only) | M2 |
+| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only); `cook` (one carried raw-food prefab; see [COOKING.md](COOKING.md)) | M2 |
 | `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (carried food prefab; eat one) | M2 |
@@ -595,6 +603,25 @@ Notes:
     are allowed. Completion/cancellation closes the station UI. Success means
     no more damaged gear repairable at that station; other station types may
     still be needed. `repair` cannot combine with `sleep`, `alt` or `hold`.
+  - `cook:"RawMeat"` (also `DeerMeat` or `NeckTail`) cooks one carried input
+    through normal station item use, then removes and collects its verified
+    output. It requires movement/gather and session pickup permission, an empty
+    fire-backed cooking station, active food, safe health,
+    dry footing, no nearby hostile and room for the full possible yield.
+    A cold station may first use one carried Wood on its uniquely matched empty
+    supporting fire; wood, fuel and actual heat receipts are required before
+    input insertion. No repeated fuel use follows uncertain or blocked heat.
+    Input/producer-slot/output-instance/pickup/inventory receipts are required.
+    Local output uses a direct spawn witness; remote output is explicitly
+    correlated by the normal request's yield/peer and new IDs, birth time,
+    spawn location and crafter when recorded. Ambiguity or missing yield fails.
+    The trace reports `direct_spawn` or `remote_correlation`; vanilla remote
+    drops contain no station ID, so correlation is not exact remote causality.
+    Stop or
+    interruption leaves any partial batch on the station or in the world;
+    it never resumes automatically. The food keeper waits to consume this
+    output until its receipt completes. No other interaction mode may combine
+    with `cook`. See [COOKING.md](COOKING.md) for limits and diagnostics.
   - Drops (`pickup`), chests (`deposit`, `withdraw`), ordinary crafting-station use,
     portals and signs are `invalid_target`, since they have their own tasks
     or open a window the bot cannot use. So is a thing with several parts to

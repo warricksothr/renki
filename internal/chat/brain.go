@@ -568,18 +568,20 @@ const (
 	cmdCloseDoor
 	cmdFetch
 	cmdEscort
+	cmdCook
 )
 
 func (c command) String() string {
 	return [...]string{"", "follow", "stop", "status", "come here", "wait here", "set home", "go home", "pick up",
-		"go to bed", "claim the bed", "get the door", "open the door", "close the door", "get your things", "escort"}[c]
+		"go to bed", "claim the bed", "get the door", "open the door", "close the door", "get your things", "escort", "cook food"}[c]
 }
 
 var grammar = map[string]command{
 	"follow": cmdFollow, "follow me": cmdFollow,
 	"escort": cmdEscort, "escort me": cmdEscort, "guard me": cmdEscort,
 	"stay out of it": cmdStop,
-	"stop":           cmdStop, "halt": cmdStop,
+	"cook":           cmdCook, "cook food": cmdCook, "cook meat": cmdCook,
+	"stop": cmdStop, "halt": cmdStop,
 	"status": cmdStatus, "report": cmdStatus,
 	"come": cmdCome, "come here": cmdCome, "come to me": cmdCome,
 	"wait": cmdWait, "wait here": cmdWait, "stay": cmdWait, "stay here": cmdWait,
@@ -621,6 +623,11 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 	case cmdPickup:
 		var ok bool
 		if order, ack, ok = b.pickup(c, from); !ok {
+			return
+		}
+	case cmdCook:
+		var ok bool
+		if order, ack, ok = b.cook(from); !ok {
 			return
 		}
 	case cmdFetch:
