@@ -2437,12 +2437,23 @@ export function startController() {
       const article = document.createElement("article");
       article.className = "goal-record";
       const title = document.createElement("strong");
-      title.textContent = `${g.returnHome ? "Greyling encounter and return" : "Greyling encounter"} · ${g.status.replaceAll("_", " ")}`;
+      const objective =
+        g.kind === "food_resupply"
+          ? "Food resupply"
+          : g.returnHome
+            ? "Greyling encounter and return"
+            : "Greyling encounter";
+      title.textContent = `${objective} · ${g.status.replaceAll("_", " ")}`;
       const progress = document.createElement("p");
       progress.textContent = `${g.world} · Attempts ${g.attempts}/${g.maxAttempts} · Tasks ${g.taskCount}/${g.maxTasks} · Policy ${g.policyHash.slice(0, 8)}`;
       const reason = document.createElement("p");
       reason.textContent = g.reason || "Objective saved";
       article.append(title, progress, reason);
+      if (g.food) {
+        const supply = document.createElement("p");
+        supply.textContent = `Food: ${g.food.phase} · Reserve ${g.food.reserve} · Chests ${g.food.candidateCount || 0} · Cooking batches ${g.food.batches}`;
+        article.append(supply);
+      }
       if (g.proof) {
         const proof = document.createElement("p");
         proof.textContent = `Verified: ${g.proof.detail} (${g.proof.taskId})`;

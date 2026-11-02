@@ -601,6 +601,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		case <-i.task.Done():
 			status, reason, detail := i.task.Status()
 			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID, Entity: i.task.Entity()}
+			i.result.Cooking = i.task.CookingTraces()
 			i.task = nil
 			i.waitingSince = time.Time{}
 			if status != protocol.StatusSucceeded {
@@ -652,6 +653,27 @@ func (e *Engine) Tick(ctx context.Context) {
 	}
 	i.waitingSince = time.Time{}
 	if order == nil {
+		if next, ok := i.runner.(Handoff); ok {
+			continuation, err := next.Continuation(v)
+			if err != nil {
+				e.fail(ctx, fmt.Errorf("continuation checkpoint: %w", err), v)
+				return
+			}
+			if continuation != nil {
+				sent, err := e.lease.Dispatch(ctx, *continuation)
+				if err != nil {
+					e.fail(ctx, fmt.Errorf("continuation: %w", err), v)
+					return
+				}
+				if started, ok := i.runner.(HandoffStarted); ok {
+					if err := started.Continued(sent.ID); err != nil {
+						i.task = sent
+						_ = e.cancel(ctx, "continuation checkpoint failed", false)
+						return
+					}
+				}
+			}
+		}
 		e.finish(true, "completed", v)
 		return
 	}

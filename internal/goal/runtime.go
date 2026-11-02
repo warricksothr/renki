@@ -23,6 +23,9 @@ import (
 //go:embed combat.star
 var combatPolicy string
 
+//go:embed food.star
+var foodPolicy string
+
 const emptySectorDetail = "no eligible single Greyling after bounded sector scouting and return"
 const emptyAreaDetail = "no eligible single Greyling after bounded area scouting and return"
 
@@ -31,11 +34,14 @@ func emptySearch(outcome Outcome) bool {
 }
 
 type Spec struct {
-	Kind       string        `json:"kind"`
-	World      string        `json:"world"`
-	Center     protocol.Vec3 `json:"center"`
-	Radius     float64       `json:"radius"`
-	ReturnHome bool          `json:"returnHome,omitempty"`
+	Kind       string               `json:"kind"`
+	World      string               `json:"world"`
+	Center     protocol.Vec3        `json:"center"`
+	Radius     float64              `json:"radius"`
+	ReturnHome bool                 `json:"returnHome,omitempty"`
+	Reserve    int                  `json:"reserve,omitempty"`
+	Storage    []string             `json:"storage,omitempty"`
+	Escort     *protocol.EscortArgs `json:"escort,omitempty"`
 }
 
 func NewRecord(spec Spec, now time.Time) (Record, error) {
@@ -45,6 +51,15 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 	}
 	r := Record{ID: hex.EncodeToString(token[:]), Kind: spec.Kind, World: spec.World, Center: spec.Center, Radius: spec.Radius, Policy: combatPolicy, PolicyHash: hash(combatPolicy), State: json.RawMessage(`{}`), Status: "ready", Created: now, Deadline: now.Add(10 * time.Minute), MaxAttempts: 6, MaxTasks: 6}
 	r.ReturnHome = spec.ReturnHome
+	if spec.Kind == "food_resupply" {
+		reserve := spec.Reserve
+		if reserve == 0 {
+			reserve = 2
+		}
+		r.Policy, r.PolicyHash = foodPolicy, hash(foodPolicy)
+		r.MaxTasks, r.MaxAttempts = 256, 256
+		r.Food = &FoodProgress{Phase: "home", Reserve: reserve, Storage: spec.Storage, Escort: spec.Escort}
+	}
 	if r.ReturnHome {
 		r.MaxTasks++
 	} // One dedicated return, never another encounter.
@@ -125,7 +140,11 @@ func (t *Template) Queue(id string) error {
 		}
 		encountersExhausted := r.Proof == nil && r.Attempts >= r.MaxAttempts
 		tasksExhausted := r.TaskCount >= r.MaxTasks && (r.PostCombat == nil || r.PostCombat.Receipt == nil)
-		if time.Now().After(r.Deadline) || encountersExhausted || tasksExhausted || r.WaitS >= 120 {
+		waitLimit := 120.0
+		if r.Kind == "food_resupply" {
+			waitLimit = 240
+		}
+		if time.Now().After(r.Deadline) || encountersExhausted || tasksExhausted || r.WaitS >= waitLimit {
 			return errors.New("goal budget exhausted; cannot reset by resuming")
 		}
 		r.Status = "queued"
@@ -174,6 +193,9 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 	g, ok := r.t.Store.Get(r.id)
 	if !ok {
 		return nil, errors.New("goal disappeared")
+	}
+	if g.Kind == "food_resupply" {
+		return r.foodNext(g, v, last)
 	}
 	if terminal(g.Status) {
 		return nil, nil

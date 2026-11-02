@@ -2,6 +2,7 @@
 package goal
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -22,6 +23,7 @@ const MaxJSON = 16 << 10
 const MaxSource = 16 << 10
 
 type Outcome struct {
+	Run      string    `json:"run,omitempty"`
 	Template string    `json:"template,omitempty"`
 	Status   string    `json:"status"`
 	Reason   string    `json:"reason,omitempty"`
@@ -31,6 +33,8 @@ type Outcome struct {
 	At       time.Time `json:"at"`
 }
 type Intent struct {
+	Run         string          `json:"run,omitempty"`
+	At          time.Time       `json:"at,omitempty"`
 	Template    string          `json:"template"`
 	Params      json.RawMessage `json:"params"`
 	Entity      string          `json:"entity"`
@@ -72,6 +76,7 @@ type PostCombat struct {
 	Receipt  *Outcome  `json:"receipt,omitempty"`
 }
 type Record struct {
+	Food            *FoodProgress   `json:"food,omitempty"`
 	Observation     *Observation    `json:"observation,omitempty"`
 	ID              string          `json:"id"`
 	Kind            string          `json:"kind"`
@@ -103,6 +108,7 @@ type Record struct {
 	Searches        []SearchAttempt `json:"searches,omitempty"`
 }
 type Store struct {
+	runID   string
 	mu      sync.Mutex
 	path    string
 	records map[string]Record
@@ -112,6 +118,11 @@ type Store struct {
 
 func Open(path string) (*Store, error) {
 	s := &Store{path: path, records: map[string]Record{}}
+	var run [16]byte
+	if _, err := rand.Read(run[:]); err != nil {
+		return nil, err
+	}
+	s.runID = hex.EncodeToString(run[:])
 	s.write = s.saveFile
 	if path == "" {
 		return s, nil
@@ -180,6 +191,17 @@ func (s *Store) List() []Record {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Created.After(out[j].Created) })
 	return out
+}
+
+func (s *Store) FoodRunning() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, g := range s.records {
+		if g.Kind == "food_resupply" && (g.Status == "running" || g.Status == "queued") {
+			return true
+		}
+	}
+	return false
 }
 func (s *Store) update(id string, f func(*Record) error) error {
 	s.mu.Lock()
@@ -273,7 +295,7 @@ func terminal(status string) bool {
 	return status == "succeeded" || status == "cancelled" || status == "needs_plan"
 }
 func validateRecord(r Record) error {
-	if r.ID == "" || len(r.ID) > 64 || r.Kind != "combat_trial" || r.World == "" || len(r.World) > 200 || r.Radius < 60 || r.Radius > 250 || !finite(r.Radius) {
+	if r.ID == "" || len(r.ID) > 64 || (r.Kind != "combat_trial" && r.Kind != "food_resupply") || r.World == "" || len(r.World) > 200 || r.Radius < 60 || r.Radius > 250 || !finite(r.Radius) {
 		return errors.New("invalid goal identity/world/area")
 	}
 	for _, n := range r.Center {
@@ -281,7 +303,11 @@ func validateRecord(r Record) error {
 			return errors.New("invalid goal center")
 		}
 	}
-	if r.MaxAttempts < 1 || r.MaxAttempts > 8 || r.MaxTasks < 1 || r.MaxTasks > 8 || r.Attempts < 0 || r.Attempts > r.MaxAttempts || r.TaskCount < 0 || r.TaskCount > r.MaxTasks || r.WaitS < 0 || r.WaitS > 120 || !finite(r.WaitS) {
+	limit, waitLimit := 8, 120.0
+	if r.Kind == "food_resupply" {
+		limit, waitLimit = 256, 240
+	}
+	if r.MaxAttempts < 1 || r.MaxAttempts > limit || r.MaxTasks < 1 || r.MaxTasks > limit || r.Attempts < 0 || r.Attempts > r.MaxAttempts || r.TaskCount < 0 || r.TaskCount > r.MaxTasks || r.WaitS < 0 || r.WaitS > waitLimit || !finite(r.WaitS) {
 		return errors.New("invalid goal budgets")
 	}
 	if r.Created.IsZero() || !r.Deadline.After(r.Created) || r.Deadline.Sub(r.Created) > 20*time.Minute {
@@ -301,9 +327,12 @@ func validateRecord(r Record) error {
 				return errors.New("invalid pinned home")
 			}
 		}
-		if !r.ReturnHome || distance(*r.Home, r.Center) > r.Radius {
+		if (!r.ReturnHome && r.Kind != "food_resupply") || distance(*r.Home, r.Center) > r.Radius {
 			return errors.New("home outside goal scope")
 		}
+	}
+	if r.Kind == "food_resupply" {
+		return validateFood(r)
 	}
 	if p := r.PostCombat; p != nil {
 		if !r.ReturnHome || r.Home == nil || r.Proof == nil || p.Began.IsZero() || !p.Deadline.After(p.Began) || p.Deadline.After(r.Deadline) || p.Deadline.Sub(p.Began) > 3*time.Minute {
@@ -367,6 +396,16 @@ func (s *Store) Summaries() []Record {
 	for i := range out {
 		out[i].Policy = ""
 		out[i].State = nil
+		if f := out[i].Food; f != nil {
+			f.CandidateCount = len(f.Chests)
+			f.AttemptCount = len(f.Tried)
+			f.ReceiptCount = len(f.Receipts)
+			f.Chests = nil
+			f.Tried = nil
+			if len(f.Receipts) > 3 {
+				f.Receipts = f.Receipts[len(f.Receipts)-3:]
+			}
+		}
 		if len(out[i].History) > 3 {
 			out[i].History = out[i].History[len(out[i].History)-3:]
 		}

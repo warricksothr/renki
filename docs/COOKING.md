@@ -5,8 +5,8 @@ in the panel). Tas selects carried raw boar meat, deer meat or a neck tail,
 and a freshly observed, empty cooking station within 12 m in three
 dimensions. The order cooks **one input**, watches it and collects its actual
 output, including the game's possible cooking bonus. It replaces the current
-body order, as other explicit commands do. It does not yet form an automatic
-resupply or escort maintenance loop.
+body order, as other explicit commands do. The separate [food goal](FOOD.md)
+composes this primitive with storage resupply and escort maintenance.
 
 The low-level equivalent is `interact` with
 `{"entity":"<current station id>","cook":"RawMeat"}`; `DeerMeat` and `NeckTail`
@@ -41,7 +41,8 @@ inactive box/sphere areas), verifies sight/reach/access and uses that wood
 normally. It requires the inventory decrease, synchronized fuel increase and
 actual station heat before continuing. It never adds a second wood on an
 uncertain receipt or to an already fueled but blocked fire. Automatic ingredient
-withdrawal, continued fire tending and bulk cooking remain follow-up composition.
+withdrawal is composed by the food goal. Continued fire tending and bulk cooking
+remain follow-up work.
 
 The station's normal `UseItem` action consumes one carried ingredient. Success
 requires the matching inventory decrease and a single matching cooking slot

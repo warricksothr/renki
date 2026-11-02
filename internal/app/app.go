@@ -31,6 +31,8 @@ import (
 
 // App is a configured controller.
 type App struct {
+	supplyLog      *slog.Logger
+	escortSupply   chan escortSupplyRequest
 	Atlas          *atlas.Store
 	atlasRecorder  *atlas.Recorder
 	Presence       *presence.Manager
@@ -94,12 +96,14 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
 	}, Logger: log.With("part", "presence")})
 	var gatherWood func(context.Context, string) (string, error)
+	var resupplyFood func(context.Context, string) (string, error)
 	brain := chat.New(chat.Options{
-		GatherWood:  func(ctx context.Context, by string) (string, error) { return gatherWood(ctx, by) },
-		PlayerQuery: playerPresence.PanelQuery,
-		Home:        keeper,
-		Places:      homes,
-		AgentName:   cfg.AgentName,
+		GatherWood:   func(ctx context.Context, by string) (string, error) { return gatherWood(ctx, by) },
+		ResupplyFood: func(ctx context.Context, by string) (string, error) { return resupplyFood(ctx, by) },
+		PlayerQuery:  playerPresence.PanelQuery,
+		Home:         keeper,
+		Places:       homes,
+		AgentName:    cfg.AgentName,
 		Live: func() chat.Live {
 			v := set.Values()
 			return chat.Live{Owners: v.Players.Commanders(v.Owners), Nicknames: v.Nicknames, Voice: v.Voice}
@@ -147,8 +151,10 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		a.Goals = goals[0]
 	}
 	a.goalTemplate = &goal.Template{Store: a.Goals}
+	a.supplyLog = log.With("part", "resupply")
+	a.Food.SetReserved(a.Goals.FoodRunning)
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate},
-		Owners:     func() []string { return set.Values().Owners },
+		Owners:     func() []string { v := set.Values(); return v.Players.Commanders(v.Owners) },
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
 		Landmarks:  homes.Landmarks,
@@ -161,10 +167,12 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		},
 		Logger: log.With("part", "behaviour")})
 	gatherWood = a.Behaviours.StartWood
+	a.escortSupply = make(chan escortSupplyRequest, 8)
+	resupplyFood = func(ctx context.Context, by string) (string, error) { return a.startFood(ctx, by, nil) }
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Danger = &memory.Danger{Store: homes, Logger: log.With("part", "memory")}
-	s.SetListener(&listeners{players: players, presence: a.Presence, brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger})
+	s.SetListener(&listeners{players: players, presence: a.Presence, brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger, supply: a.queueEscortSupply})
 	a.Bridge = bridge.NewServer(bridge.Options{
 		Token:    cfg.Token,
 		Welcome:  func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, set.Values()) },
@@ -177,6 +185,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 
 // listeners fan out session events without doing blocking work on the bridge.
 type listeners struct {
+	supply     func(*session.Task) bool
 	players    *memory.Players
 	presence   *presence.Manager
 	brain      *chat.Brain
@@ -197,7 +206,12 @@ func (l *listeners) Chat(c *protocol.Chat) {
 	}
 	l.brain.Chat(c)
 }
-func (l *listeners) TaskDone(t *session.Task) { l.brain.TaskDone(t) }
+func (l *listeners) TaskDone(t *session.Task) {
+	if l.supply != nil && l.supply(t) {
+		return
+	}
+	l.brain.TaskDone(t)
+}
 func (l *listeners) Injury(e *protocol.Event, observation session.InjuryObservation) {
 	l.danger.Observe(e, observation)
 }
@@ -249,6 +263,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.Burden.Run(ctx)
 	go a.Retreat.Run(ctx)
 	go a.Food.Run(ctx)
+	go a.runEscortSupply(ctx)
 	go a.discoverWaypoints(ctx)
 	go a.Presence.Run(ctx)
 	go func() { defer close(playersDone); a.Players.Run(ctx) }()

@@ -65,7 +65,17 @@ type Stock struct {
 }
 
 // Result is the last completed step, or nil at the start of a run.
-type Result struct{ Status, Reason, Detail, TaskID, Entity string }
+type Result struct {
+	Status, Reason, Detail, TaskID, Entity string
+	Cooking                                []*protocol.Trace
+}
+
+// Handoff supplies a continuing native order only after verified completion.
+// It uses the same still-valid lease, so a newer owner order always wins.
+type Handoff interface {
+	Continuation(View) (*session.Order, error)
+}
+type HandoffStarted interface{ Continued(string) error }
 
 // ErrWait keeps a runner alive for a fresh observation, for at most five
 // seconds. It does not send a task or release body ownership.

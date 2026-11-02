@@ -129,7 +129,8 @@ type Options struct {
 	// questions use the presence worker's scoped, throttled reply queue.
 	PlayerQuery func(speaker, text string) (string, bool)
 	// GatherWood starts the controller's bounded owner-requested wood cycle.
-	GatherWood func(context.Context, string) (string, error)
+	GatherWood   func(context.Context, string) (string, error)
+	ResupplyFood func(context.Context, string) (string, error)
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -321,6 +322,9 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	text := b.strip(c.Text)
 	cmd, ok := parse(text)
 	if !ok {
+		if b.foodCommand(text, c, from, owner) {
+			return
+		}
 		if b.gatherCommand(text, c, from, owner) {
 			return
 		}
@@ -641,7 +645,7 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 			return
 		}
 	case cmdEscort:
-		order = session.Order{Task: protocol.TaskEscort, Args: &protocol.EscortArgs{Player: c.From.Name, Protect: slices.Clone(b.live().Owners)}}
+		order = session.Order{Task: protocol.TaskEscort, Args: &protocol.EscortArgs{Player: c.From.Name, Protect: slices.Clone(b.live().Owners), Resupply: true}}
 		ack = "I’ll follow, collect nearby materials, and defend you and the configured owners and operators when it’s safe."
 	case cmdFollow:
 		order = session.Order{Task: protocol.TaskFollow, Args: &protocol.FollowArgs{Player: c.From.Name, Run: protocol.RunAuto}}

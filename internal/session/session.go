@@ -7,6 +7,7 @@ package session
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -53,13 +54,15 @@ type Task struct {
 	ID     string
 	Name   string
 	Origin any
+	Args   json.RawMessage
 
-	mu     sync.Mutex
-	status string
-	reason string
-	detail string
-	entity string
-	done   chan struct{}
+	mu      sync.Mutex
+	status  string
+	reason  string
+	detail  string
+	entity  string
+	cooking []*protocol.Trace
+	done    chan struct{}
 }
 
 // Status returns the newest status, reason and detail.
@@ -326,8 +329,19 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 		}
 		s.mu.Unlock()
 	case *protocol.Trace:
-		// For the audit log and the panel, which have them from the
-		// bridge already.
+		// Retain only bounded receipt evidence on the actual dispatched task.
+		// It disappears with that task; arbitrary trace text is not a result.
+		s.mu.Lock()
+		t := s.tasks[m.Task]
+		current := s.conn == c
+		s.mu.Unlock()
+		if current && t != nil && m.Source == "cooking" && m.Data["id"] == t.ID {
+			t.mu.Lock()
+			if len(t.cooking) < 64 {
+				t.cooking = append(t.cooking, m)
+			}
+			t.mu.Unlock()
+		}
 	case *protocol.Error:
 		s.log.Warn("plugin reported an error", "re", m.Re, "code", m.Code, "detail", m.Detail)
 	default:
@@ -512,7 +526,7 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		}
 		resolved = true
 	}
-	t := &Task{ID: id, Name: o.Task, Origin: o.Origin, done: make(chan struct{})}
+	t := &Task{ID: id, Name: o.Task, Origin: o.Origin, Args: append(json.RawMessage(nil), req.Args...), done: make(chan struct{})}
 
 	s.mu.Lock()
 	if s.conn != conn {

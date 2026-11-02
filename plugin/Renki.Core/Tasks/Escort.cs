@@ -9,6 +9,11 @@ namespace Renki.Tasks
     {
         public const double Leash = 10, DetourSeconds = 12, FightLeash = 16;
 
+        public static bool Resupply(bool enabled, string mode, int threats, bool grounded, bool wet,
+            double hp, double max, int reserve, double remaining) =>
+            enabled && threats == 0 && (mode == "follow" || mode == "wait") && grounded && !wet &&
+            hp >= Math.Max(20, max * .8) && (reserve == 0 || remaining < 180);
+
         public static EscortAction Decide(bool leaderVisible, double gap, bool leaderStill,
             int threats, bool eligible, bool ready, bool defend, bool collect, bool hasSpace,
             bool detour, double detourAge)

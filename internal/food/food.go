@@ -23,6 +23,7 @@ type Session interface {
 	Dispatch(context.Context, session.Order) (*session.Task, error)
 }
 type Keeper struct {
+	reserved                 func() bool
 	s                        Session
 	owners                   func() []string
 	log                      *slog.Logger
@@ -34,6 +35,10 @@ type Keeper struct {
 	pending                  *session.Task
 	sentSeq                  uint64
 }
+
+// SetReserved is configured before Run. A food goal then owns its own eating
+// steps and receipts rather than racing this background keeper.
+func (k *Keeper) SetReserved(check func() bool) { k.reserved = check }
 
 func New(s Session, owners func() []string, log *slog.Logger, now func() time.Time) *Keeper {
 	if now == nil {
@@ -57,6 +62,9 @@ func (k *Keeper) Run(ctx context.Context) {
 	}
 }
 func (k *Keeper) Tick(ctx context.Context) {
+	if k.reserved != nil && k.reserved() {
+		return
+	}
 	hello, _, connected := k.s.Handshake()
 	st := k.s.State()
 	now := k.now()
