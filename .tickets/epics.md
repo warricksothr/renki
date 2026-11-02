@@ -15,3 +15,4 @@ tickets, and the next fix pass overwrites it.
 | [TKT-01M66PFAYA1NTW2JHNRDKBK42E](draft/TKT-01M66PFAYA1NTW2JHNRDKBK42E.md) | Exploration goals after M2 and M3 | draft |
 | [TKT-01M66Q5SFWV99JCGJXVARVRJH7](tickets/TKT-01M66Q5SFWV99JCGJXVARVRJH7.md) | Durable versioned world atlas and portable mapping data | ready |
 | [TKT-01M6CEA0K3Q2V6QYWZBRN8T5ES](draft/TKT-01M6CEA0K3Q2V6QYWZBRN8T5ES.md) | Terrain shaping, paths and construction projects | draft |
+| [TKT-01M6DCF2ABDDNG3QF369NDPBT5](draft/TKT-01M6DCF2ABDDNG3QF369NDPBT5.md) | Code review 2026-11-01: robustness, trust and gate gaps | draft |
