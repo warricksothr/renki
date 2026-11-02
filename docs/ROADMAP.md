@@ -184,7 +184,7 @@ These can all start as soon as they are promoted. Each is in its own files excep
 
 | Milestone | Tickets |
 |---|---|
-| M2 | TKT-01M6EF5DTG (VM lease, first of all), TKT-01M6DDFTDD (haul report), TKT-01M6EFHE67 (drop piles), TKT-01M6EFHE2N (loot template) |
+| M2 | TKT-01M6EF5DTG (VM lease, first of all), TKT-01M6EFHE67 (drop piles), TKT-01M6EFHE2N (loot template; the haul report TKT-01M6DDFTDD follows it, because it reuses its deliberate-drop rule) |
 | M3 | TKT-01M638V1XC, TKT-01M6DCFSEG (both already ready), TKT-01M638V1VY, TKT-01M6EFHEBC, TKT-01M6EFHED7, TKT-01M6EFHEEN, TKT-01M6EFHEHM, TKT-01M6EFHEK3, TKT-01M6EFHS9D, TKT-01M6EFHSCK, TKT-01M6EFHSFV |
 | M4 | TKT-01M6EFGJY8 (CI workflow, early), TKT-01M6EFGJZK (after decision 4), TKT-01M6EFGK0R, TKT-01M6EFGK2M, TKT-01M6DCFSHH, TKT-01M6DCFSNT, TKT-01M6DCFS8Y, TKT-01M6DDBX5T, TKT-01M6DCFSME, TKT-01M6EFGYX3 (after decision 5), TKT-01M6EFGYYY, TKT-01M6DCFSK1, TKT-01M6DCFSAR, TKT-01M6DCFSQ6, TKT-01M6DCFSRN, TKT-01M6DCFSVE, TKT-01M6DDBX7K, TKT-01M6DCFS5D, TKT-01M6DCFSCK |
 | M5 | TKT-01M62VXYV3 (chat behaviours), TKT-01M6EFK453 (upkeep report), TKT-01M6EFK472 (panel behaviours) |
@@ -195,7 +195,7 @@ Priority inside the wave: the VM lease, the CI workflow, and the M2/M3 tickets t
 
 ### Critical paths
 
-- **M2.** Goal 2.1: the lease, then repeated `gather-trial` runs on TKT-01M62N12JW. Goal 2.2 is longer: the lease, then drop piles and the loot template, then deliver-when-full (TKT-01M6EFHE4E), then integration on TKT-01M62N12HJ, then two owner sessions. It runs past 11-08 unless the owner can play by about 11-06.
+- **M2.** Goal 2.1: the lease, then repeated `gather-trial` runs on TKT-01M62N12JW. Goal 2.2 is longer: the lease, then drop piles and the loot template, then deliver-when-full (TKT-01M6EFHE4E) and the haul report (TKT-01M6DDFTDD), then integration on TKT-01M62N12HJ, then two owner sessions. It runs past 11-08 unless the owner can play by about 11-06.
 - **M3.** Goal 3.1: the lease, then the flee fix TKT-01M6EFHED7, a deploy, and then waiting for three natural low-HP episodes, which nobody can schedule. Second chain: TKT-01M6EFHEBC, then TKT-01M6EFHEG5 and TKT-01M6EFHEHM, plus the escort trigger TKT-01M6EHP58N (live, plugin), then combat trials and two owner escort sessions.
 - **M4.** The lease and the soak supervisor TKT-01M6DDFTF6, then the 24 h run TKT-01M6EFGYV6. That run also waits on TKT-01M6DCFSHH, TKT-01M6DCFSNT, TKT-01M6DCFS8Y and TKT-01M6DDBX5T, which run in parallel. The soak window has to start by 2026-11-20.
 - **M5.** Machine add_to (TKT-01M62VXZ4D), then the fuel template (TKT-01M62VXZ5P), then the two home soaks (TKT-01M6EFM4G7). A second chain is about as long: stow and chat behaviours, then chest assignments (TKT-01M62VXZ84), then idle sorting (TKT-01M6EFKDSV). Realistically the soak window is the week of 11-30.

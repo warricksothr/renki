@@ -14,19 +14,20 @@ assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFHE2NGKM21P7S45KBK8JQ
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T06:00:03Z
-updated_at: 2026-11-02T15:57:27Z
+updated_at: 2026-11-02T17:05:32Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
