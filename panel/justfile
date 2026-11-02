@@ -57,12 +57,7 @@ examples *ARGS: build
 ui-report *ARGS:
     node ui/report.mjs "$@"
 
-# Chromium's OS packages; uses sudo unless already root (CI runs this too).
+# Chromium's OS packages. Playwright runs apt through sudo itself when not
+# root, so this may prompt for a password; CI runs it too.
 ui-install-system: install
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ "$(id -u)" = 0 ]; then
-        npx --no-install playwright install-deps chromium
-    else
-        sudo env "PATH=$PATH" npx --no-install playwright install-deps chromium
-    fi
+    npx --no-install playwright install-deps chromium
