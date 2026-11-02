@@ -525,15 +525,16 @@ func TestOnlyACarriedOutOrderEndsTheHomeShun(t *testing.T) {
 		name, text string
 		setup      func(*fakeSession, *fakeHome)
 		want       int
+		anchor     string // the loot anchor afterwards: body orders only
 	}{
-		{"status", "status", nil, 0},
-		{"refused task", "follow me", func(f *fakeSession, _ *fakeHome) { f.allowed = []string{"say"} }, 0},
-		{"missing home", "go home", nil, 0},
-		{"missing grave", "get your things", nil, 0},
-		{"stop", "stop", nil, 1},
-		{"follow", "follow me", nil, 1},
-		{"set home", "set home", nil, 1},
-		{"go home", "go home", func(_ *fakeSession, h *fakeHome) { h.home = &protocol.Vec3{} }, 1},
+		{"status", "status", nil, 0, ""},
+		{"refused task", "follow me", func(f *fakeSession, _ *fakeHome) { f.allowed = []string{"say"} }, 0, ""},
+		{"missing home", "go home", nil, 0, ""},
+		{"missing grave", "get your things", nil, 0, ""},
+		{"stop", "stop", nil, 1, "Sothr"},
+		{"follow", "follow me", nil, 1, "Sothr"},
+		{"set home", "set home", nil, 1, ""},
+		{"go home", "go home", func(_ *fakeSession, h *fakeHome) { h.home = &protocol.Vec3{} }, 1, "Sothr"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			b, f, h := homeBrain()
@@ -543,6 +544,9 @@ func TestOnlyACarriedOutOrderEndsTheHomeShun(t *testing.T) {
 			b.Chat(line("Sothr", "bjorn "+tc.text))
 			if h.told != tc.want {
 				t.Errorf("ended shun %d times, want %d", h.told, tc.want)
+			}
+			if b.Anchor() != tc.anchor {
+				t.Errorf("anchor %q, want %q", b.Anchor(), tc.anchor)
 			}
 		})
 	}
@@ -1071,5 +1075,75 @@ func TestPanelEscortMayWaitForAnUnseenConfiguredLeader(t *testing.T) {
 	orders := f.sent()
 	if len(orders) != 1 || orders[0].Task != protocol.TaskEscort || orders[0].Args.(*protocol.EscortArgs).Player != "Sothr" {
 		t.Fatal(orders)
+	}
+}
+
+func TestAnchorIsThePlayerTheLastOrderServed(t *testing.T) {
+	f := &fakeSession{allowed: []string{"stop", "move_to", "follow", "say"}}
+	c := &clock{t: time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC)}
+	b := New(Options{AgentName: "Bjorn", Owners: []string{"Sothr", "Nimah"},
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: c.now}, f)
+	if b.Anchor() != "" {
+		t.Fatal("no order yet, no anchor")
+	}
+	b.Chat(line("Sothr", "bjorn follow me"))
+	if b.Anchor() != "Sothr" {
+		t.Fatalf("anchor %q after Sothr's follow", b.Anchor())
+	}
+	b.Chat(line("Mira", "bjorn stop"))
+	if b.Anchor() != "Sothr" {
+		t.Fatalf("a non-owner moved the anchor to %q", b.Anchor())
+	}
+	b.Chat(line("Nimah", "bjorn come here"))
+	if b.Anchor() != "Nimah" {
+		t.Fatalf("anchor %q after Nimah's order", b.Anchor())
+	}
+}
+
+func TestAVoiceEscortAnchorsOnTheEscortedPlayer(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "I'll watch over her.",
+		Task: &Proposal{Task: "escort", Args: json.RawMessage(`{"player":"Nimah"}`)}}}
+	f := &fakeSession{allowed: []string{"stop", "follow", "escort", "say"}}
+	c := &clock{t: time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC)}
+	b := New(Options{AgentName: "Bjorn", Owners: []string{"Sothr", "Nimah"}, Voice: v,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: c.now}, f)
+	b.Chat(line("Sothr", "bjorn, please keep Nimah safe"))
+	<-v.got
+	// The anchor moves once the escort is sent, after the voice replies.
+	deadline := time.Now().Add(2 * time.Second)
+	for b.Anchor() != "Nimah" {
+		if time.Now().After(deadline) {
+			t.Fatalf("anchor %q, tasks %v; want the escorted player", b.Anchor(), f.tasks())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func TestGoalCommandsAndUnseenSpeakersLeaveTheAnchor(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, World: "one"}
+	b.opts.Places = home.Memory()
+	b.opts.GatherWood = func(context.Context, string) (string, error) { return "Off to chop.", nil }
+	b.opts.ResupplyFood = func(context.Context, string) (string, error) { return "Getting food.", nil }
+	for _, text := range []string{"chop wood", "resupply food", "mark this as the mine", "go to the mine"} {
+		b.Chat(line("Sothr", "bjorn "+text))
+		if b.Anchor() != "" {
+			t.Fatalf("%q set the anchor to %q", text, b.Anchor())
+		}
+	}
+	if len(f.tasks()) == 0 {
+		t.Fatal("the waypoint walk was not sent, so the case proves nothing")
+	}
+	// Panel chat from an owner Tas cannot see: the stop is obeyed, the
+	// anchor is not moved to someone out of the world.
+	stop := line("Sothr", "bjorn stop")
+	stop.Channel, stop.Dist = channelPanel, -1
+	b.Chat(stop)
+	if b.Anchor() != "" {
+		t.Fatalf("an unseen panel speaker became the anchor %q", b.Anchor())
+	}
+	b.Chat(line("Sothr", "bjorn stop"))
+	if b.Anchor() != "Sothr" {
+		t.Fatalf("a seen speaker's stop left the anchor at %q", b.Anchor())
 	}
 }

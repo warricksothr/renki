@@ -155,6 +155,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	a.Food.SetReserved(func() bool { return a.Goals.FoodRunning() || a.Behaviours != nil && a.Behaviours.PreparingFood() })
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate, "household_food": &goal.FoodWork{Goal: a.goalTemplate}, "personal_food": &goal.FoodWork{Goal: a.goalTemplate, Personal: true}},
 		Owners:     func() []string { v := set.Values(); return v.Players.Commanders(v.Owners) },
+		Anchor:     brain.Anchor,
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
 		Landmarks:  homes.Landmarks,
@@ -271,6 +272,8 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.discoverWaypoints(ctx)
 	go a.Presence.Run(ctx)
 	go func() { defer close(playersDone); a.Players.Run(ctx) }()
+	// The built-in loot instance is created on first start; it logs a failure.
+	_ = a.Behaviours.InstallLoot("builtin")
 	go a.Behaviours.Run(ctx)
 	go func() { defer close(memoryDone); a.Memory.Run(ctx) }()
 	go func() { defer close(dangerDone); a.Danger.Run(ctx) }()

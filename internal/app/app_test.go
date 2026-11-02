@@ -381,6 +381,18 @@ func TestPanelButtons(t *testing.T) {
 	if homes.Shunned("Midgard") {
 		t.Fatal("successful direct task did not clear home shun")
 	}
+	if a.Brain.Anchor() != "" {
+		t.Fatalf("a panel move_to named %q as the anchor", a.Brain.Anchor())
+	}
+	if _, err := a.PanelTask(ctx, panel.TaskCommand{Task: protocol.TaskFollow, Args: json.RawMessage(`{"player":"Nimah"}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if task := p.NextTask(); task.Task != protocol.TaskFollow {
+		t.Fatalf("the plugin got %+v", task)
+	}
+	if a.Brain.Anchor() != "Nimah" {
+		t.Fatalf("a panel follow left the anchor at %q", a.Brain.Anchor())
+	}
 	if text, err := a.PanelAct(ctx, "logout"); err != nil || text != "Logging out." {
 		t.Errorf("logout: %q %v", text, err)
 	}

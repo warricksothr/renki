@@ -2,6 +2,7 @@ package behaviour
 
 import (
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/piles"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 	"math"
@@ -23,12 +24,18 @@ type View struct {
 	Walls        []protocol.Wall
 	Containers   []*protocol.Container
 	Owners       []string
-	Home         *protocol.Vec3
-	Danger       []home.DangerZone
-	Waypoints    []home.Waypoint
-	Pickups      []home.Pickup
-	Features     []string
-	Idle         bool
+	// Anchor is the player Tas is with: the one it follows, or else the
+	// last player who gave it an order. Empty until someone does.
+	Anchor    string
+	Home      *protocol.Vec3
+	Danger    []home.DangerZone
+	Waypoints []home.Waypoint
+	Pickups   []home.Pickup
+	// Piles sums the drops in sight per 4 m cell and prefab over the last
+	// five minutes. Ask Piles.Near before treating ground as clear.
+	Piles    piles.Snapshot
+	Features []string
+	Idle     bool
 }
 
 func (c Conditions) Match(v View) bool {

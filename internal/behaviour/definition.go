@@ -127,6 +127,20 @@ type Runner interface {
 	Next(View, *Result) (*session.Order, error)
 }
 
+// Summary replaces "completed" as a successful run's last detail, which the
+// panel shows on the behaviour's card.
+type Summary interface{ Summary() string }
+
+// Observer sees the engine's view every tick, running or not, so a
+// template can keep history that outlives a run. It must never dispatch.
+type Observer interface{ Observe(View) }
+
+// Readiness gates timer and event triggers: an instance whose template is
+// not ready for its parameters is not queued. Manual starts are not gated.
+type Readiness interface {
+	Ready(json.RawMessage, View) bool
+}
+
 // Guard is checked during native tasks too, so safety is not deferred until
 // a long-running interaction completes. It must never dispatch actions.
 type Guard interface{ Check(View) error }

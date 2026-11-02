@@ -27,6 +27,7 @@ type Options struct {
 	Store      *settings.Store
 	Templates  map[string]Template
 	Owners     func() []string
+	Anchor     func() string
 	Home       func() (protocol.Vec3, bool)
 	Containers func(world string) []home.RememberedContainer
 	Landmarks  func(world string) []home.Landmark
@@ -50,6 +51,7 @@ type Engine struct {
 	orders              uint64
 	full, night, atHome bool
 	drops               map[string]bool
+	piles               pileWatch
 }
 type instance struct {
 	episodeID             string
@@ -97,7 +99,10 @@ func New(o Options) *Engine {
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}}
+	if o.Anchor == nil {
+		o.Anchor = func() string { return "" }
+	}
+	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -378,10 +383,11 @@ func (e *Engine) view() View {
 		perception = nil
 		perceptionAt = time.Time{}
 	}
-	v := View{Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	v := View{Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners(), Anchor: e.o.Anchor()}
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
+	e.observePiles(&v, currentHello)
 	v.Injury = e.o.Session.InjuryStatus()
 	if v.Injury != nil {
 		n := v.Injury.Sequence
@@ -464,12 +470,27 @@ func (e *Engine) triggers(v View, now time.Time) {
 			triggered = true
 			i.timer = now.Add(duration(d.Trigger.EveryS))
 		}
-		if triggered && !i.pending && e.active != name {
+		if triggered && !i.pending && e.active != name && e.ready(i, v) {
 			i.pending = true
 			i.interrupted = false
 			e.o.Logger.Info("behaviour triggered", "instance", name, "trigger", d.Trigger.Kind, "event", d.Trigger.Event)
 		}
 	}
+}
+
+// observe lets templates that keep history see every tick's view.
+func (e *Engine) observe(v View) {
+	for _, name := range slices.Sorted(maps.Keys(e.o.Templates)) {
+		if o, ok := e.o.Templates[name].(Observer); ok {
+			o.Observe(v)
+		}
+	}
+}
+
+// ready keeps an automatic trigger from queuing a run with nothing to do.
+func (e *Engine) ready(i *instance, v View) bool {
+	r, ok := e.o.Templates[i.definition.Template].(Readiness)
+	return !ok || r.Ready(i.definition.Params, v)
 }
 
 // stillAllowed is the check on a run in progress: only the enabled flag and
@@ -656,6 +677,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		e.clearPending("new order")
 		return
 	}
+	e.observe(v)
 	e.triggers(v, now)
 	if revision := e.o.Session.ControlRevision(); revision != e.orders {
 		e.orders = revision
@@ -799,7 +821,11 @@ func (e *Engine) Tick(ctx context.Context) {
 				}
 			}
 		}
-		e.finish(true, "completed", v)
+		detail := "completed"
+		if s, ok := i.runner.(Summary); ok {
+			detail = s.Summary()
+		}
+		e.finish(true, detail, v)
 		return
 	}
 	if order.Task == protocol.TaskStop || order.TimeoutS <= 0 || order.TimeoutS > 300 {

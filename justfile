@@ -7,8 +7,8 @@
 # `just plugin build`. Tooling that spans the repository (review, tickets)
 # lives here. AGENTS.md, "Tasks", has the rules.
 #
-# There is no CI yet. When there is, it runs `just ci`, so a green `just ci`
-# here means a green run there.
+# CI (.github/workflows/ci.yml) runs `just ci` on every pull request and push
+# to main, so a green `just ci` here means a green run there.
 
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
@@ -89,7 +89,7 @@ package:
     echo "packaged $out ($(git describe --tags --always --dirty 2>/dev/null || echo devel)):"
     (cd "$out" && find . -type f | sort | sed 's/^/  /')
 
-# Validate the ticket store, as CI will.
+# Validate the ticket store, as CI does.
 tickets-check:
     git ticket check --strict
 
