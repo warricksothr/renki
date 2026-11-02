@@ -62,7 +62,7 @@ def report(folder, now=None):
             final = None
         if final:
             goal = final.get('goal') or goal
-            for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors', 'mode', 'logsHarvested', 'woodGain', 'deposited', 'returned'):
+            for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors', 'mode', 'treesHarvested', 'logsHarvested', 'defenses', 'woodGain', 'deposited', 'returned'):
                 if key in final:
                     result[key] = final[key]
             result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: (t.get('result') or {}).get(k)

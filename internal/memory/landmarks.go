@@ -120,6 +120,11 @@ func landmarks(frame *protocol.Perception, at time.Time) []home.Landmark {
 }
 
 func notableResource(r protocol.PerceivedResource) bool {
+	// Remember work-site hints, never permission to cut a remembered tree.
+	// Gather rechecks the actual resource and its surroundings on arrival.
+	if r.Kind == protocol.ResourceTree && r.Prefab == "Beech1" {
+		return true
+	}
 	if r.Kind == protocol.ResourcePickable {
 		return true
 	}

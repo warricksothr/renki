@@ -34,7 +34,7 @@ func TestLandmarkSelectionKeepsPlacesWithoutTransientStateOrScenery(t *testing.T
 		},
 	}
 	got := landmarks(frame, time.Now())
-	if len(got) != 5 || got[1].Tag != "mine" {
+	if len(got) != 6 || got[1].Tag != "mine" || got[5].Entity != "tree" {
 		t.Fatal(got)
 	}
 }

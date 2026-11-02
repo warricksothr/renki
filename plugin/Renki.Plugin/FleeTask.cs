@@ -121,7 +121,7 @@ namespace Renki.Plugin
             goal = nextGoal;
             straight = nextStraight;
             aimed = true;
-            walker.SetGoal(pos, goal);
+            walker.SetGoal(pos, goal, dryGround: true);
         }
 
         public void Cancel() => Driver.Stand();

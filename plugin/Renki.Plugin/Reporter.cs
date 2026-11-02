@@ -38,6 +38,7 @@ namespace Renki.Plugin
                     watched.m_onDeath -= OnDeath;
                 }
                 watched = p;
+                MeleeTask.ClearAggressor();
                 lastAttacker = null;
                 lastAttackerPrefab = null;
                 if (p != null)
@@ -99,6 +100,7 @@ namespace Renki.Plugin
         void OnDamaged(float amount, Character attacker)
         {
             HarvestTask.Active?.Damaged(amount);
+            MeleeTask.Damaged(amount, attacker);
             lastAttacker = attacker != null ? attacker.GetZDOID().ToString() : null;
             lastAttackerPrefab = attacker != null ? Utils.GetPrefabName(attacker.gameObject) : null;
             plugin.Send(new Protocol.Event

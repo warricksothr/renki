@@ -150,6 +150,7 @@ type stowRun struct {
 	pending      bool
 	beforeSeq    uint64
 	failures     []string
+	dry          bool
 }
 
 func (*stowRun) Recover(r Result) bool {
@@ -202,7 +203,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 				if pos, ok := chestPosition(v, r.p.To[r.index]); ok && distance(pos, *v.Home) <= 10 {
 					r.walking, r.homeApproach = true, true
 					home := *v.Home
-					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}}, TimeoutS: 90}, nil
+					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}, Dry: r.dry}, TimeoutS: 90}, nil
 				}
 			}
 			r.failures = append(r.failures, r.p.To[r.index]+": "+result.Reason)
@@ -262,7 +263,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 	id := r.p.To[r.index]
 	if pos, ok := chestPosition(v, id); ok && !r.approached && distance(v.State.Pos, pos) > 4 {
 		r.walking = true
-		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}}, TimeoutS: 90}, nil
+		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: r.dry}, TimeoutS: 90}, nil
 	}
 	items := []protocol.TransferItem{}
 	for _, name := range sortedKeys(r.remaining) {

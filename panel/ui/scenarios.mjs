@@ -24,6 +24,119 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "log-boundaries": async ({ page, check, shot }) => {
+    const initial = await snapshot(page);
+    const [x, y, z] = initial.data.bot;
+    const log = {
+      entity: "fixture:log",
+      collider: 501,
+      outline: [
+        [x + 12, y, z + 12],
+        [x + 18, y, z + 15],
+        [x + 17.6, y, z + 15.8],
+        [x + 11.6, y, z + 12.8],
+      ],
+      minY: y,
+      maxY: y + 0.8,
+      padding: 0.4,
+    };
+    const emit = async (logs) =>
+      page.evaluate(
+        (logObstacles) =>
+          renkiPreview.stream.emit("record", {
+            kind: "frame",
+            cat: "perception",
+            frame: {
+              type: "perception",
+              characters: [],
+              resources: [],
+              structures: [],
+              logObstacles,
+            },
+          }),
+        logs,
+      );
+    await emit([log]);
+    await check(
+      "Native log envelope and padding reach the shared map export",
+      async () => {
+        await expect
+          .poll(async () => (await snapshot(page)).data.logObstacles.length)
+          .toBe(1);
+        assert.deepEqual((await snapshot(page)).data.logObstacles[0], log);
+        await expect(page.locator('[data-layer="obstacles"]')).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+      },
+    );
+    await page.locator("#map-pane").scrollIntoViewIfNeeded();
+    await check("Hover identifies the same navigation boundary", async () => {
+      const position = await page.locator("#map").evaluate((canvas, log) => {
+        const s = renkiSnapshots.map({ maxWidth: canvas.width });
+        const rect = canvas.getBoundingClientRect();
+        const px = log.outline.reduce((n, p) => n + p[0], 0) / 4;
+        const pz = log.outline.reduce((n, p) => n + p[2], 0) / 4;
+        const scale = rect.width / s.metadata.width / s.metadata.metresPerPixel;
+        return {
+          x: rect.width / 2 + (px - s.metadata.centre[0]) * scale,
+          y: rect.height / 2 - (pz - s.metadata.centre[1]) * scale,
+        };
+      }, log);
+      await page.locator("#map").hover({ position });
+      await expect(page.locator("#map-tip")).toContainText(
+        "Log boundary · fixture:log",
+      );
+    });
+    await shot("live-log");
+    await check(
+      "Boundary layer toggles without discarding the observation",
+      async () => {
+        await page.locator('[data-layer="obstacles"]').click();
+        assert.equal((await snapshot(page)).metadata.layers.obstacles, false);
+        assert.equal((await snapshot(page)).data.logObstacles.length, 1);
+        await page.locator('[data-layer="obstacles"]').click();
+      },
+    );
+    await check(
+      "Split replaces the parent; omitted field clears destroyed logs",
+      async () => {
+        await emit([{ ...log, entity: "fixture:half", collider: 502 }]);
+        await expect
+          .poll(async () => (await snapshot(page)).data.logObstacles[0]?.entity)
+          .toBe("fixture:half");
+        await page.evaluate(() =>
+          renkiPreview.stream.emit("record", {
+            frame: {
+              type: "perception",
+              characters: [],
+              resources: [],
+              structures: [],
+            },
+          }),
+        );
+        await expect
+          .poll(async () => (await snapshot(page)).data.logObstacles.length)
+          .toBe(0);
+      },
+    );
+    await emit([log]);
+    await check(
+      "Logout clears dynamic boundaries with the live map",
+      async () => {
+        await page.evaluate(() =>
+          renkiPreview.stream.emit("status", {
+            ...renkiPreview.status,
+            connected: false,
+            phase: "menu",
+          }),
+        );
+        await expect
+          .poll(async () => (await snapshot(page)).data.logObstacles.length)
+          .toBe(0);
+      },
+    );
+  },
   "video-standby": async ({ page, check }) => {
     await check(
       "No normal JPEG polling; original slate shown without configured video",

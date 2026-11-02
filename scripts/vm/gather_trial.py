@@ -50,7 +50,28 @@ def destinations(status, mapped):
     return result[:16]
 
 
-def run(summary, call, observe, saved):
+def defense_target(current, task_records, name):
+    """Only an attributed active attack may relax the trial's proximity guard."""
+    task, combat = current.get('task') or {}, current.get('combat') or {}
+    if not task.get('id') or task.get('task') != 'attack' or combat.get('id') != task['id']:
+        return None
+    rows = records(task_records)
+    if not any(r.get('msg') == 'behaviour step' and r.get('attrs', {}).get('instance') == name
+               and r.get('attrs', {}).get('id') == task['id'] for r in rows):
+        return None
+    request = next((r['frame'] for r in rows if r.get('frame', {}).get('id') == task['id']
+                    and r.get('frame', {}).get('task') == 'attack'), {})
+    args = request.get('args') or {}
+    return args.get('entity') if args.get('kite') is True and args.get('entity') == combat.get('entity') else None
+
+
+def nearby_threat(current, perception, allowed=None):
+    return any(c.get('id') != allowed and c.get('hostile') and c.get('hpFrac', 0) > 0
+               and not (c.get('kind') == 'creature' and c.get('prefab') == 'Deer' and not c.get('targetingMe'))
+               and math.dist(c['pos'], current['pos']) < 10 for c in perception.get('characters', []))
+
+
+def run(summary, call, observe, saved, trees=1, site=None, defend=False):
     status, mapped = observe()
     scope = (status.get('world'), status.get('worldUid'), status.get('connection'))
     if not all(scope) or status.get('task') or status.get('phase') != 'in_world':
@@ -59,26 +80,32 @@ def run(summary, call, observe, saved):
     if (pack.get('world'), pack.get('connection')) != (scope[0], scope[2]) or not pack_ready(pack):
         raise RuntimeError('controller gather needs a scoped usable axe and spare capacity')
     target, summary['selection'] = select_site(status, mapped.get('perception') or {})
-    if target is None:
+    if target is None and site is None:
         raise RuntimeError('no nearby isolated full beech for the controller gather benchmark')
+    if site is not None and (not status.get('home') or math.dist(site, status['home']['pos']) > 150):
+        raise RuntimeError('gather work-site hint must remain within 150 m of home')
+    worksite = site if site is not None else target['pos']
+    if site is not None:
+        target = None  # The controller binds an observed tree after native travel.
     chests = destinations(status, mapped)
     initial_behaviours = records(call('panel', 'GET', '/api/behaviours', as_json=True))
     if any(b.get('pending') or b.get('running') for b in initial_behaviours):
         raise RuntimeError('another behavior is pending/running; gather will not replace it')
     name = 'M2 gather ' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     summary.update(mode='controller_gather', origin=status['pos'], world=scope[0], worldUid=scope[1],
-                   connection=scope[2], site=target['pos'], tree=target, before=counts(pack),
+                   connection=scope[2], site=worksite, tree=target, before=counts(pack), maxTrees=trees,
+                   home=status.get('home', {}).get('pos'), returnHome=trees > 1, defend=defend,
                    beforeInventorySeq=pack['inventory']['seq'], to=chests,
                    initialResourceIDs=[r['id'] for r in (mapped.get('perception') or {}).get('resources', [])])
-    definition = dict(template='gather', params=dict(site=dict(world=scope[0], pos=target['pos'], radius=20),
-                      to=chests, **{'return': True}), trigger=dict(kind='manual'), repeat=dict(mode='once'),
+    definition = dict(template='gather', params=dict(site=dict(world=scope[0], pos=worksite, radius=30 if trees > 1 else 20),
+                      to=chests, maxTrees=trees, returnHome=trees > 1, defend=defend, **{'return': trees == 1}), trigger=dict(kind='manual'), repeat=dict(mode='once'),
                       priority=10, enabled=False)
     # Mark for cleanup before the write: a lost response may still have saved it.
     summary['behaviourName'] = name
     call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=name, definition=definition)), as_json=True)
     call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='start', name=name)), as_json=True)
     previous_health = status
-    deadline = time.monotonic() + 490
+    deadline = time.monotonic() + trees * 480 + 10
     while time.monotonic() < deadline:
         current, mp = observe()
         if (current.get('world'), current.get('worldUid'), current.get('connection')) != scope or current.get('phase') != 'in_world':
@@ -90,8 +117,13 @@ def run(summary, call, observe, saved):
         previous_health = current
         if current.get('location', {}).get('inWater') or 'swimming' in current.get('flags', []) or math.dist(current['pos'], summary['origin']) > 180:
             raise RuntimeError('controller gather footing/travel guard')
-        if any(c.get('hostile') and c.get('hpFrac', 0) > 0 and math.dist(c['pos'], current['pos']) < 10
-               for c in (mp.get('perception') or {}).get('characters', [])):
+        allowed = None
+        if defend and (current.get('task') or {}).get('task') == 'attack':
+            task_id = current['task']['id']
+            at = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
+            task_records = call('panel', 'GET', '/api/task?id=' + task_id + '&at=' + at, as_json=True)
+            allowed = defense_target(current, task_records, name)
+        if nearby_threat(current, mp.get('perception') or {}, allowed):
             raise RuntimeError('hostile approached the controller gather trial')
         entries = records(call('panel', 'GET', '/api/behaviours', as_json=True))
         own = next((b for b in entries if b['name'] == name), None)
@@ -130,8 +162,41 @@ def verify(audit, summary):
         return proof
     if any(f.get('worldUid') and f['worldUid'] != summary['worldUid'] for f in frames if f.get('type') in ('state', 'inventory', 'perception', 'container')):
         return _fail('gather audit world changed')
-    harvests = [s for s in steps if s['task'] == 'harvest']
-    if not 3 <= len(harvests) <= 5:
+    attacks = [s for s in steps if s['task'] == 'attack']
+    if attacks and (not summary.get('defend') or len(attacks) > 2):
+        return _fail('unexpected or excessive work-site defense')
+    for step in attacks:
+        key = step['id']
+        args = requests.get(key, {}).get('args', {})
+        result = results.get(key, {})
+        if (not args.get('entity') or args.get('kite') is not True or args.get('style') != 'melee'
+                or result.get('status') != 'succeeded' or result.get('detail') != 'observed Greyling death'
+                or not any(f.get('type') == 'trace' and f.get('task') == key and f.get('source') == 'combat'
+                           and f.get('msg') == 'death_observed' and f.get('data', {}).get('entity') == args['entity'] for f in frames)):
+            return _fail('missing exact attributed work-site defense proof')
+    interrupted = None
+    defended = False
+    for step in steps:
+        key = step['id']
+        if step['task'] == 'attack':
+            defended = True
+        elif step['task'] == 'harvest':
+            entity = requests.get(key, {}).get('args', {}).get('entity')
+            if interrupted is not None and (not defended or interrupted != entity):
+                return _fail('interrupted harvest substituted or retried without defense')
+            result = results.get(key, {})
+            interrupted = None
+            if result.get('status') != 'succeeded':
+                if not summary.get('defend') or result.get('status') != 'failed' or result.get('reason') != 'refused' or not entity:
+                    return _fail('unrecoverable harvest failure')
+                interrupted, defended = entity, False
+        elif interrupted is not None:
+            return _fail('interrupted harvest abandoned')
+    if interrupted is not None:
+        return _fail('interrupted harvest not resumed')
+    harvests = [s for s in steps if s['task'] == 'harvest' and results.get(s['id'], {}).get('status') == 'succeeded']
+    required_trees = summary.get('maxTrees', 1)
+    if not required_trees * 3 <= len(harvests) <= required_trees * 9:
         return _fail('full tree and two log harvests not verified')
     known = {}
     for f in frames:
@@ -139,20 +204,31 @@ def verify(audit, summary):
             for r in f.get('resources', []):
                 known[r['id']] = r
     harvested = set()
+    trees = logs = chain_logs = 0
     for index, step in enumerate(harvests):
         key = step['id']
         resource = known.get(requests.get(key, {}).get('args', {}).get('entity'), {})
         full_tree = resource.get('prefab') == 'Beech1' and resource.get('kind') == 'tree'
         new_log = (resource.get('kind') == 'log' and resource.get('prefab', '').lower().startswith('beech')
                    and resource.get('id') not in summary['initialResourceIDs'])
-        if not (full_tree if index == 0 else new_log):
+        if not (full_tree or new_log) or index == 0 and not full_tree:
             return _fail('harvest resource identity/kind missing from observations')
-        if resource['id'] in harvested or (index == 0 and resource['id'] != summary['tree']['id']):
+        if resource['id'] in harvested or (index == 0 and summary.get('tree') and resource['id'] != summary['tree']['id']):
             return _fail('harvest substituted or repeated a resource')
+        if full_tree:
+            if trees and chain_logs < 2:
+                return _fail('another tree started before splitting its predecessor')
+            trees += 1
+            chain_logs = 0
+        else:
+            logs += 1
+            chain_logs += 1
         harvested.add(resource['id'])
         if results.get(key, {}).get('status') != 'succeeded' or not any(f.get('type') == 'trace' and f.get('task') == key and f.get('source') == 'harvest'
                and f.get('msg') == 'resource broke after local hit' and f.get('data', {}).get('entity') == resource['id'] and f.get('data', {}).get('hits', 0) > 0 for f in frames):
             return _fail('missing task-matched harvest break proof')
+    if trees != required_trees or chain_logs < 2:
+        return _fail('required distinct complete trees not verified')
     deposits = [f for f in frames if f.get('type') == 'container' and f.get('task') in ids and f.get('direction') == 'deposit']
     moved = Counter()
     seen = set()
@@ -178,11 +254,12 @@ def verify(audit, summary):
             return _fail('gain-only delivery or preservation of original products not verified')
     last = steps[-1]['id']
     final = requests.get(last, {})
-    if final.get('task') != 'move_to' or final.get('args', {}).get('to') != summary['site'] or results.get(last, {}).get('status') != 'succeeded' or math.dist(summary['finalPos'], summary['site']) > 3:
-        return _fail('missing successful return to the work site')
+    destination = summary['home'] if summary.get('returnHome') else summary['site']
+    if final.get('task') != 'move_to' or final.get('args', {}).get('to') != destination or results.get(last, {}).get('status') != 'succeeded' or math.dist(summary['finalPos'], destination) > 3:
+        return _fail('missing successful return to the requested destination')
     if summary['afterInventorySeq'] <= max(r.get('seq', 0) for r in deposits):
         return _fail('final inventory predates deposit receipts')
-    return dict(proof, outcome='succeeded', logsHarvested=len(harvests)-1, woodGain=moved['Wood'], deposited=dict(moved), returned=True)
+    return dict(proof, outcome='succeeded', treesHarvested=trees, logsHarvested=logs, defenses=len(attacks), woodGain=moved['Wood'], deposited=dict(moved), returned=True)
 
 
 def _fail(reason):

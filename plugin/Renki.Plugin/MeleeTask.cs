@@ -11,13 +11,22 @@ namespace Renki.Plugin
     sealed class MeleeTask : IBodyTask
     {
         internal static MeleeTask Active;
+        static Character aggressor;
+        static float hurtAt;
+        internal static void Damaged(float amount, Character attacker)
+        {
+            if (amount > 0 && attacker != null) { aggressor = attacker; hurtAt = Time.unscaledTime; }
+        }
+        internal static void ClearAggressor() { aggressor = null; }
+        readonly bool defensive;
         readonly Character enemy;
-        readonly string entity, id;
+        readonly string entity, id, prefab;
         Vector3 start;
         readonly MeleeEncounter encounter;
         readonly CharacterDeathObservation death;
         readonly Walker walker = new Walker();
-        readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe();
+        readonly ScoutFooting approachFooting = new ScoutFooting();
+        readonly WorldNavigation.PlanningProbe dodgeProbe = new WorldNavigation.PlanningProbe(dry: true);
         readonly List<Character> characters = new List<Character>();
         readonly Collider[] nearby = new Collider[256];
         ItemDrop.ItemData weapon;
@@ -27,8 +36,9 @@ namespace Renki.Plugin
         float nextAim, nextDodge, escapingAt;
         bool walking, cancelled, enemyWasAttacking;
         string mode = "approach", reason;
+        MeleeFrame lastFrame;
 
-        internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
+        internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason, Defensive = defensive };
 
         public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null)
         {
@@ -36,16 +46,22 @@ namespace Renki.Plugin
             enemy = obj != null ? obj.GetComponent<Character>() : null;
             var p = Player.m_localPlayer;
             if (enemy == null || !Eligible(p, enemy) || enemy.IsDead())
-                throw new TaskRefused(Wire.ReasonInvalidTarget, "melee currently supports one living unstarred hostile Greyling, never players or tamed creatures");
+                throw new TaskRefused(Wire.ReasonInvalidTarget, "melee supports one living unstarred hostile Greyling, wild Boar or Neck, never players or tamed creatures");
+            prefab = enemy.m_nview.GetPrefabName();
             start = p.transform.position;
             var distance = Vector3.Distance(start, enemy.transform.position);
             if (distance > MeleeEncounter.ClosingRange)
                 throw new TaskRefused(Wire.ReasonRefused, "target is outside the 30 m closing range");
-            if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
+            defensive = args.Defensive;
+            if (defensive && (prefab != "Greyling" || distance > 6 ||
+                !MeleeEncounter.DefensiveReady(p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(),
+                    p.GetFoods().Count > 0, aggressor == enemy && Time.unscaledTime - hurtAt <= 15)))
+                throw new TaskRefused(Wire.ReasonRefused, "defense requires a recent nearby Greyling attacker, food, armour, 30 HP/65% health and 35 stamina");
+            if (!defensive && !HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
                 throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before combat");
             weapon = Best(p);
             if (weapon == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable ordinary melee weapon");
-            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance);
+            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance, defensive);
             if (!encounter.Engaged) mode = "closing";
             walker.ResetStuck(start);
             death = observation ?? new CharacterDeathObservation(enemy, entity);
@@ -89,11 +105,11 @@ namespace Renki.Plugin
                 return ended == null ? null : Finish(Outcome.Failed(ended.Status == Wire.StatusSucceeded ? Wire.ReasonRefused : ended.Reason,
                     reason + "; retreat: " + (ended.Detail ?? ended.Reason)));
             }
-            if (death.Observed) return Finish(Outcome.Succeeded("observed Greyling death"));
+            if (death.Observed) return Finish(Outcome.Succeeded($"observed {prefab} death"));
             var valid = enemy != null && enemy.m_nview != null && enemy.m_nview.IsValid() && enemy.gameObject.activeInHierarchy;
             if (!valid) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!Eligible(p, enemy)) return Retreat(p, "target is no longer an eligible hostile");
-            if (enemy.IsDead()) return Finish(Outcome.Succeeded("observed Greyling death"));
+            if (enemy.IsDead()) return Finish(Outcome.Succeeded($"observed {prefab} death"));
 
             if (!p.GetInventory().ContainsItem(weapon) || !Usable(weapon)) weapon = Best(p);
             if (weapon == null) return Retreat(p, "no usable melee weapon");
@@ -110,7 +126,7 @@ namespace Renki.Plugin
             var pos = p.transform.position;
             var targetPos = enemy.transform.position;
             var targetDistance = Vector3.Distance(pos, targetPos);
-            if (!encounter.Engaged && targetDistance <= MeleeEncounter.Leash) start = pos;
+            if (!defensive && !encounter.Engaged && targetDistance <= MeleeEncounter.EngagementRange) start = pos;
             var eye = pos + Vector3.up * weapon.m_shared.m_attack.m_attackHeight;
             var collider = enemy.GetCollider();
             if (collider == null || !collider.enabled) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target collider is unavailable"));
@@ -118,6 +134,22 @@ namespace Renki.Plugin
             var reach = weapon.m_shared.m_attack.m_attackRange * .8f;
             var attackWindow = enemy.InAttack();
             var incoming = attackWindow && Vector3.Distance(pos, targetPos) <= 3;
+            if (p.IsOnGround()) approachFooting.Decide(Time.unscaledTime, true, false, false, 0);
+            else if (!encounter.Engaged && targetDistance > 6 && !p.InWater() && !p.IsSwimming() && !p.IsEncumbered() &&
+                HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) && p.GetStamina() >= MeleeEncounter.EscapeReserve)
+            {
+                // Running over a terrain seam may briefly lose ground contact.
+                // Hold every input over measured shallow dry support; never
+                // steer or swing airborne, or settle inside the fighting area.
+                dodgeProbe.BeginSlice();
+                var supported = dodgeProbe.Probe(Convert.ToV3(pos), Convert.ToV3(pos));
+                var gap = supported.HasValue ? pos.y - supported.Value.Y : double.NaN;
+                if (approachFooting.Decide(Time.unscaledTime, false, true, supported.HasValue, gap) == ScoutFootingAction.Wait)
+                {
+                    SetMode("closing", "settling over measured dry support");
+                    return null;
+                }
+            }
             var unsafeArea = Unsafe(p, weapon.m_shared.m_attack.m_attackRange + 1.5f);
             var dodgeDirection = (pos - targetPos); dodgeDirection.y = 0; dodgeDirection.Normalize();
             var canDodge = incoming && !enemyWasAttacking && Time.unscaledTime >= nextDodge && SupportedDodge(pos, dodgeDirection);
@@ -139,9 +171,10 @@ namespace Renki.Plugin
                 CanBlock = p.GetCurrentBlocker()?.GetBlockPower(p.GetSkillFactor(Skills.SkillType.Blocking)) > 0,
                 InRange = Vector3.Distance(eye, contact) <= reach,
                 TargetHp = enemy.GetHealth(),
-                DistanceFromStart = Math.Max(Vector3.Distance(start, pos), Vector3.Distance(start, targetPos)),
+                DistanceFromStart = Vector3.Distance(start, pos),
                 TargetDistance = targetDistance,
             };
+            lastFrame = frame;
             var action = encounter.Decide(frame, Time.unscaledTime);
             enemyWasAttacking = attackWindow;
             SetMode(!encounter.Engaged && action != MeleeAction.Retreat ? "closing" : action.ToString().ToLowerInvariant(), encounter.Reason);
@@ -160,10 +193,10 @@ namespace Renki.Plugin
                 {
                     if (!HarvestApproach.GroundGoal(enemy.gameObject, targetPos, contact, pos, Mathf.Min(1, reach * .65f), out var goal))
                         return Retreat(p, "no supported strike stance");
-                    walker.SetGoal(pos, goal, .2); walker.ResetStuck(pos); walkGoal = targetPos; walking = true; nextAim = Time.unscaledTime + .5f;
+                    walker.SetGoal(pos, goal, .2, dryGround: true); walker.ResetStuck(pos); walkGoal = targetPos; walking = true; nextAim = Time.unscaledTime + .5f;
                 }
                 if (walker.Refused() is Outcome refusal) return Retreat(p, refusal.Detail ?? refusal.Reason);
-                if (!walker.Steer(pos, false, climbObstacles: false)) return Retreat(p, "cannot approach target");
+                if (!walker.Steer(pos, !defensive && MeleeEncounter.RunApproach(frame, reach), climbObstacles: false)) return Retreat(p, "cannot approach target");
             }
             else
             {
@@ -180,7 +213,7 @@ namespace Renki.Plugin
 
         bool Unsafe(Player p, float radius)
         {
-            if (!p.IsOnGround() || p.IsSwimming() || p.IsEncumbered() || p.InPlaceMode()) return true;
+            if (!p.IsOnGround() || p.InWater() || p.IsSwimming() || p.IsEncumbered() || p.InPlaceMode()) return true;
             characters.Clear(); Character.GetCharactersInRange(p.transform.position, Math.Max(8, radius), characters);
             foreach (var c in characters)
             {
@@ -223,7 +256,16 @@ namespace Renki.Plugin
         {
             if (mode == next && reason == why) return;
             mode = next; reason = why;
-            Tracer.Emit("combat", next, new Dictionary<string, object> { ["entity"] = entity, ["reason"] = why });
+            Tracer.Emit("combat", next, new Dictionary<string, object>
+            {
+                ["entity"] = entity,
+                ["reason"] = why,
+                ["travelFromStart"] = lastFrame?.DistanceFromStart,
+                ["targetDistance"] = lastFrame?.TargetDistance,
+                ["targetHealth"] = lastFrame?.TargetHp,
+                ["health"] = lastFrame?.Hp,
+                ["stamina"] = lastFrame?.Stamina,
+            });
         }
 
         Outcome Finish(Outcome result) { result.Entity = entity; Cancel(); return result; }

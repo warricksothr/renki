@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Renki.Movement;
+using Renki.Protocol;
 using UnityEngine;
 
 namespace Renki.Plugin
 {
-    /// <summary>Bounded mark/refresh/sweep of static solid primitives. Meshes,
-    /// doors and rigidbodies keep using the live physics path.</summary>
+    /// <summary>Bounded mark/refresh/sweep of static solids and transient log
+    /// travel exclusions. Other dynamic/complex objects use live physics.</summary>
     sealed class NavigationObstacles
     {
         const int MaxEntries = 4096;
@@ -19,6 +20,10 @@ namespace Renki.Plugin
         readonly Stopwatch watch = new Stopwatch();
         readonly Func<int, bool> current;
         public readonly ObstacleIndex Index = new ObstacleIndex();
+        public readonly LogFootprintIndex Logs;
+        readonly V3[] corners = new V3[8];
+        const int MaxLogs = 256;
+        int logCount;
         float nextNear, nextAhead, nextFar, nextTrace;
         int pending, cursor;
         long serial;
@@ -29,6 +34,9 @@ namespace Renki.Plugin
         {
             public int Id;
             public Collider Collider;
+            public TreeLog Log;
+            public bool IsLog;
+            public LogFootprint? Footprint;
             public (Matrix4x4, Vector3, Vector3, float, float, int) Stamp;
             public float Seen;
             public (double, long, int)? Queued;
@@ -37,10 +45,10 @@ namespace Renki.Plugin
             public bool Current;
         }
 
-        public NavigationObstacles(int mask) { this.mask = mask; current = Current; }
+        public NavigationObstacles(int mask) { this.mask = mask; current = Current; Logs = new LogFootprintIndex(current); }
         public void Clear()
         {
-            entries.Clear(); dirty.Clear(); sweep.Clear(); Index.Clear();
+            entries.Clear(); dirty.Clear(); sweep.Clear(); Index.Clear(); Logs.Clear(); logCount = 0;
             nextNear = nextAhead = nextFar = 0;
             // NonAlloc buffers otherwise retain references to unloaded scenes.
             Array.Clear(found, 0, found.Length); pending = cursor = 0;
@@ -78,11 +86,17 @@ namespace Renki.Plugin
                 var key = dirty.Min; dirty.Remove(key);
                 if (!entries.TryGetValue(key.Id, out var entry)) continue;
                 entry.Queued = null;
-                if (!Usable(entry.Collider)) { Remove(entry); continue; }
+                if (!Usable(entry.Collider) || entry.IsLog && entry.Log == null) { Remove(entry); continue; }
                 // Discovery and rebuild may be on different frames. Stamp
                 // the geometry actually measured, never the queued version.
                 entry.Stamp = Stamp(entry.Collider); entry.CheckedFrame = -1;
-                if (Shape(entry.Collider) is ObstacleShape shape) Index.Put(entry.Id, shape);
+                if (entry.IsLog)
+                {
+                    entry.Footprint = MeasureLog(entry.Collider);
+                    if (entry.Footprint is LogFootprint footprint) Logs.Put(entry.Id, footprint);
+                    else Logs.Remove(entry.Id);
+                }
+                else if (Shape(entry.Collider) is ObstacleShape shape) Index.Put(entry.Id, shape);
                 else Index.Remove(entry.Id);
                 rebuilt++;
             }
@@ -102,6 +116,7 @@ namespace Renki.Plugin
                 {
                     ["tracked"] = entries.Count,
                     ["indexed"] = Index.Count,
+                    ["logs"] = Logs.Count,
                     ["dirty"] = dirty.Count,
                     ["rebuilt"] = rebuilt,
                     ["removed"] = removed,
@@ -123,15 +138,19 @@ namespace Renki.Plugin
         }
 
         bool Usable(Collider c) => c != null && c.enabled && c.gameObject.activeInHierarchy &&
-            !c.isTrigger && c.attachedRigidbody == null && (mask & (1 << c.gameObject.layer)) != 0 &&
-            (c is BoxCollider || c is CapsuleCollider);
+            !c.isTrigger && (mask & (1 << c.gameObject.layer)) != 0 &&
+            (IsLog(c) || c.attachedRigidbody == null && (c is BoxCollider || c is CapsuleCollider));
+
+        static TreeLog Owner(Collider c) => c != null ? c.GetComponentInParent<TreeLog>() : null;
+        static bool IsLog(Collider c) => Owner(c) != null;
 
         static (Matrix4x4, Vector3, Vector3, float, float, int) Stamp(Collider c)
         {
-            var box = c as BoxCollider; var capsule = c as CapsuleCollider;
-            return (c.transform.localToWorldMatrix, box != null ? box.center : capsule.center,
-                box != null ? box.size : Vector3.zero, capsule != null ? capsule.radius : 0,
-                capsule != null ? capsule.height : 0, capsule != null ? capsule.direction : 0);
+            var capsule = c as CapsuleCollider;
+            var bounds = LocalBounds(c, out _);
+            return (c.transform.localToWorldMatrix, bounds.center, bounds.size, capsule != null ? capsule.radius : 0,
+                capsule != null ? capsule.height : 0, capsule != null ? capsule.direction :
+                c is MeshCollider mesh && mesh.sharedMesh != null ? mesh.sharedMesh.GetInstanceID() : 0);
         }
 
         void Mark(Collider c, Vector3 bot, Vector3 toward, float now)
@@ -142,15 +161,18 @@ namespace Renki.Plugin
             if (entries.TryGetValue(id, out var e) && e.Collider != c) { Remove(e); e = null; }
             if (e == null)
             {
-                if (entries.Count >= MaxEntries) return;
-                e = new Entry { Id = id, Collider = c }; entries[id] = e; e.Sweep = sweep.AddLast(e);
+                var log = Owner(c);
+                if (entries.Count >= MaxEntries || log != null && logCount >= MaxLogs) return;
+                e = new Entry { Id = id, Collider = c, Log = log, IsLog = log != null };
+                if (e.IsLog) logCount++;
+                entries[id] = e; e.Sweep = sweep.AddLast(e);
             }
             e.Seen = now;
             if (!e.Stamp.Equals(stamp))
             {
                 // Drop stale bounds immediately, then rebuild in priority
                 // order. Unmeasured space is still checked by live physics.
-                Index.Remove(id); e.Stamp = stamp; e.CheckedFrame = -1;
+                Index.Remove(id); Logs.Remove(id); e.Footprint = null; e.Stamp = stamp; e.CheckedFrame = -1;
             }
             else if (!e.Queued.HasValue) return;
             // Pending work follows the current bot and heading, even when
@@ -174,6 +196,7 @@ namespace Renki.Plugin
             {
                 e.CheckedFrame = Time.frameCount;
                 e.Current = Usable(e.Collider) && e.Stamp.Equals(Stamp(e.Collider)) &&
+                    (!e.IsLog || e.Log != null) &&
                     e.Collider.GetComponentInParent<Door>() == null;
             }
             return e.Current;
@@ -181,9 +204,96 @@ namespace Renki.Plugin
 
         void Remove(Entry e)
         {
-            Index.Remove(e.Id); entries.Remove(e.Id); sweep.Remove(e.Sweep);
+            Index.Remove(e.Id); Logs.Remove(e.Id); entries.Remove(e.Id); sweep.Remove(e.Sweep);
+            if (e.IsLog) logCount--;
             if (e.Queued.HasValue) dirty.Remove(e.Queued.Value);
             removed++;
+        }
+
+        // Primitive/mesh local bounds preserve the log's orientation. Unknown
+        // collider types fall back to their world envelope, explicitly kept
+        // separate from solid primitives and always backed by live queries.
+        static Bounds LocalBounds(Collider c, out bool worldBounds)
+        {
+            worldBounds = false;
+            if (c is BoxCollider box) return new Bounds(box.center, box.size);
+            if (c is MeshCollider mesh && mesh.sharedMesh != null) return mesh.sharedMesh.bounds;
+            if (c is SphereCollider sphere) return new Bounds(sphere.center, Vector3.one * sphere.radius * 2);
+            if (c is CapsuleCollider capsule)
+            {
+                var size = Vector3.one * capsule.radius * 2;
+                size[capsule.direction] = Math.Max(capsule.height, capsule.radius * 2);
+                return new Bounds(capsule.center, size);
+            }
+            worldBounds = true; return c.bounds;
+        }
+
+        LogFootprint? MeasureLog(Collider c)
+        {
+            var b = LocalBounds(c, out var worldBounds);
+            var matrix = worldBounds ? Matrix4x4.identity : c.transform.localToWorldMatrix;
+            // Unity scales a sphere by its largest axis and a capsule's
+            // radius by the larger perpendicular axis. Transforming their
+            // raw local bounds would understate nonuniformly scaled shapes.
+            if (c is SphereCollider sphere)
+            {
+                var s = c.transform.lossyScale;
+                var r = sphere.radius * Mathf.Max(Mathf.Abs(s.x), Mathf.Abs(s.y), Mathf.Abs(s.z));
+                b = new Bounds(c.transform.TransformPoint(sphere.center), Vector3.one * r * 2);
+                matrix = Matrix4x4.identity;
+            }
+            if (c is CapsuleCollider capsule)
+            {
+                var s = c.transform.lossyScale; var axis = capsule.direction;
+                var r = capsule.radius * Mathf.Max(Mathf.Abs(s[(axis + 1) % 3]), Mathf.Abs(s[(axis + 2) % 3]));
+                var size = Vector3.one * r * 2;
+                size[axis] = Mathf.Max(capsule.height * Mathf.Abs(s[axis]), r * 2);
+                b = new Bounds(Vector3.zero, size);
+                matrix = Matrix4x4.TRS(c.transform.TransformPoint(capsule.center), c.transform.rotation, Vector3.one);
+            }
+            var heading = Vector3.right; var longest = 0f;
+            for (var axis = 0; axis < 3; axis++)
+            {
+                var local = Vector3.zero; local[axis] = b.size[axis];
+                var d = matrix.MultiplyVector(local); d.y = 0;
+                if (d.sqrMagnitude > longest) { longest = d.sqrMagnitude; heading = d; }
+            }
+            for (var i = 0; i < 8; i++)
+            {
+                var p = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                corners[i] = Convert.ToV3(matrix.MultiplyPoint3x4(p));
+            }
+            return LogFootprint.Measure(corners, Convert.ToV3(heading));
+        }
+
+        public bool LeavingLog(Collider c, V3 from, V3 to)
+        {
+            if (!IsLog(c)) return false;
+            var footprint = entries.TryGetValue(c.GetInstanceID(), out var e) && e.IsLog && e.Footprint.HasValue && Current(e.Id)
+                ? e.Footprint : MeasureLog(c);
+            return footprint.HasValue && footprint.Value.Leaving(from, to);
+        }
+
+        public List<LogObstacle> Snapshot()
+        {
+            var result = new List<LogObstacle>();
+            foreach (var e in entries.Values)
+            {
+                if (!e.IsLog || !e.Footprint.HasValue || !Current(e.Id)) continue;
+                var view = e.Log.GetComponent<ZNetView>();
+                if (view == null || !view.IsValid()) continue;
+                var f = e.Footprint.Value;
+                result.Add(new LogObstacle
+                {
+                    Entity = view.GetZDO().m_uid.ToString(),
+                    Collider = e.Id,
+                    Outline = new[] { f.Corner(0).ToArray(), f.Corner(1).ToArray(), f.Corner(2).ToArray(), f.Corner(3).ToArray() },
+                    MinY = f.MinY,
+                    MaxY = f.MaxY,
+                    Padding = LogFootprint.Padding
+                });
+            }
+            return result;
         }
 
         static ObstacleShape? Shape(Collider c)

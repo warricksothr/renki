@@ -23,6 +23,7 @@ export function startController() {
     characters: [], // from perception
     structures: [],
     resources: [],
+    logObstacles: [],
     walls: [], // from layout: {a, b, h}
     home: null,
     left: [], // what the bot left on the ground: {pos, items}
@@ -41,6 +42,7 @@ export function startController() {
     memory: true,
     danger: true,
     resources: false,
+    obstacles: true,
   };
   for (const b of document.querySelectorAll("[data-layer]"))
     b.addEventListener("click", () => {
@@ -71,6 +73,7 @@ export function startController() {
       characters: [],
       structures: [],
       resources: [],
+      logObstacles: [],
       walls: [],
       home: null,
       left: [],
@@ -259,6 +262,7 @@ export function startController() {
         if (data.perception) {
           world.structures = data.perception.structures || [];
           world.resources = data.perception.resources || [];
+          world.logObstacles = data.perception.logObstacles || [];
           world.characters = data.perception.characters || [];
         }
         world.walls = data.walls || [];
@@ -559,6 +563,7 @@ export function startController() {
         world.characters = f.characters || [];
         world.structures = f.structures || [];
         world.resources = f.resources || [];
+        world.logObstacles = f.logObstacles || [];
         break;
       case "trace":
         if (f.source !== "walker" || !f.data) break;
@@ -966,6 +971,33 @@ export function startController() {
       ctx.globalAlpha = 1;
       ctx.lineCap = "butt";
     }
+
+    // The same conservative envelopes used by native routing. The broad
+    // translucent stroke adds body clearance with rounded corners.
+    if (layers.obstacles)
+      for (const log of world.logObstacles) {
+        if (!validLogOutline(log)) continue;
+        const floor = world.bot?.[1];
+        const onLevel =
+          floor == null || (log.maxY > floor + 0.05 && log.minY < floor + 1.8);
+        ctx.save();
+        ctx.globalAlpha = onLevel ? 1 : 0.25;
+        ctx.beginPath();
+        log.outline.forEach((p, i) =>
+          i ? ctx.lineTo(sx(p[0]), sy(p[2])) : ctx.moveTo(sx(p[0]), sy(p[2])),
+        );
+        ctx.closePath();
+        ctx.fillStyle = "#df9d3530";
+        ctx.fill();
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#df9d3540";
+        ctx.lineWidth = 2 * log.padding * view.scale;
+        ctx.stroke();
+        ctx.strokeStyle = "#df9d35";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+      }
 
     if (world.path) {
       ctx.strokeStyle = colour("path");
@@ -1660,6 +1692,7 @@ export function startController() {
           ? "Session terrain · measurement age unavailable"
           : "";
       const lines = [
+        ...logDetailsAt(wx, wz),
         text,
         ...(age ? [age] : []),
         ...danger
@@ -1687,6 +1720,40 @@ export function startController() {
     const top = Math.min(y + 14, rect.height - tip.offsetHeight - 4);
     tip.style.left = canvas.offsetLeft + Math.max(4, left) + "px";
     tip.style.top = canvas.offsetTop + Math.max(4, top) + "px";
+  }
+
+  function validLogOutline(log) {
+    return (
+      log.outline?.length === 4 &&
+      log.outline.every((p) => p?.length === 3 && p.every(Number.isFinite)) &&
+      Number.isFinite(log.minY) &&
+      Number.isFinite(log.maxY) &&
+      Number.isFinite(log.padding) &&
+      log.padding >= 0
+    );
+  }
+
+  function logDetailsAt(x, z) {
+    if (!layers.obstacles) return [];
+    return world.logObstacles
+      .filter((log) => {
+        if (!validLogOutline(log)) return false;
+        let positive = false,
+          negative = false;
+        for (let i = 0; i < 4; i++) {
+          const a = log.outline[i],
+            b = log.outline[(i + 1) % 4];
+          const cross = (b[0] - a[0]) * (z - a[2]) - (b[2] - a[2]) * (x - a[0]);
+          positive ||= cross > 0;
+          negative ||= cross < 0;
+        }
+        return !(positive && negative);
+      })
+      .slice(0, 3)
+      .map(
+        (log) =>
+          `Log boundary · ${log.entity} · clearance ${log.padding.toFixed(1)} m · height ${log.minY.toFixed(1)}–${log.maxY.toFixed(1)} m · conservative live outline`,
+      );
   }
 
   // describe lists a marker's items: what each is and how far from the bot,
@@ -2598,6 +2665,7 @@ export function startController() {
             characters: world.characters,
             structures: world.structures,
             resources: world.resources,
+            logObstacles: world.logObstacles,
             walls: world.walls,
             containers: [...world.containers.values()],
             danger: world.danger,

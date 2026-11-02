@@ -27,8 +27,18 @@ func TestWoodPlanSelectsSafeTreeAndHomeChestHintsPreservingReturn(t *testing.T) 
 	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("unsafe", protocol.ResourceTree, 10), gatherResource("safe", protocol.ResourceTree, 50)}
 	v.Perception.Structures = []protocol.PerceivedStructure{{ID: "building", Pos: protocol.Vec3{0, 0, 0}}}
 	p, remembered, err := planWood(v, nil, []home.RememberedContainer{{Entity: "far", Pos: protocol.Vec3{100, 0, 100}}})
-	if err != nil || remembered || p.Site.Pos[0] != 50 || !p.Return || len(p.To) != 1 || p.To[0] != "home" {
+	if err != nil || remembered || p.Site.Pos[0] != 50 || !p.ReturnHome || p.Return || p.MaxTrees != 2 || len(p.To) != 1 || p.To[0] != "home" {
 		t.Fatal(p, remembered, err)
+	}
+}
+
+func TestWoodPlanAvoidsKnownSolidWallsWithoutAnInteractable(t *testing.T) {
+	v := woodView(t)
+	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("near wall", protocol.ResourceTree, 10), gatherResource("clear", protocol.ResourceTree, 50)}
+	v.Walls = []protocol.Wall{{A: protocol.Vec3{0, 0, -50}, B: protocol.Vec3{0, 0, 50}, H: 2}}
+	p, _, err := planWood(v, nil, nil)
+	if err != nil || p.Site.Pos[0] != 50 {
+		t.Fatal(p, err)
 	}
 }
 
@@ -88,6 +98,35 @@ func TestWoodPlanRefusesMissingPrerequisitesBeforeStartingWork(t *testing.T) {
 	}
 }
 
+func TestWoodPlanCanVisitARecentDistantTreeHintWithoutTreatingItAsCutPermission(t *testing.T) {
+	v := woodView(t)
+	v.Perception.Resources = nil
+	tier := 0
+	hint := home.Landmark{Entity: "beech", Kind: protocol.ResourceTree, Prefab: "Beech1", MinTool: &tier, Pos: protocol.Vec3{80, 0, 0}, At: v.Now}
+	p, _, err := planWood(v, nil, nil, hint)
+	if err != nil || p.Site.Pos != hint.Pos || p.MaxTrees != 2 || !p.ReturnHome {
+		t.Fatal(p, err)
+	}
+	for _, mode := range []string{"old", "foreign range", "near absent", "future", "blocked"} {
+		vv, hh := v, hint
+		switch mode {
+		case "old":
+			hh.At = v.Now.Add(-8 * 24 * time.Hour)
+		case "foreign range":
+			hh.Pos[0] = 200
+		case "near absent":
+			hh.Pos[0] = 10
+		case "future":
+			hh.At = v.Now.Add(time.Second)
+		case "blocked":
+			vv.Perception = &protocol.Perception{Envelope: v.Perception.Envelope, Structures: []protocol.PerceivedStructure{{Pos: hint.Pos}}}
+		}
+		if _, _, err := planWood(vv, nil, nil, hh); err == nil {
+			t.Fatal("accepted", mode)
+		}
+	}
+}
+
 func woodEngine(t *testing.T) *fixture {
 	t.Helper()
 	f := setup(t, protocol.TaskHarvest)
@@ -105,7 +144,7 @@ func woodEngine(t *testing.T) *fixture {
 func TestWoodCommandQueuesOnceAndNewOwnerStopCancelsBeforeAnyWork(t *testing.T) {
 	f := woodEngine(t)
 	reply, err := f.e.StartWood(context.Background(), "Nimah")
-	if err != nil || !strings.Contains(reply, "one beech") {
+	if err != nil || !strings.Contains(reply, "two beeches") {
 		t.Fatal(reply, err)
 	}
 	statuses := f.e.List()

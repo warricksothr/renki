@@ -44,6 +44,7 @@ namespace Renki.Plugin
         MoveToTask preparation;
         Vector3 preparationGoal, preparationLast;
         float preparationBegan, preparationLegAt, preparationTravel;
+        string enemyPrefab;
         int preparationAttempts;
         bool preparing;
         int survey;
@@ -116,7 +117,7 @@ namespace Renki.Plugin
                 var ended = escape.Tick(dt);
                 return ended == null ? null : Finish(Outcome.Failed(Wire.ReasonRefused, reason + "; retreat: " + (ended.Detail ?? ended.Reason)));
             }
-            if (death?.Observed == true) return Finish(Outcome.Succeeded("observed Greyling death"));
+            if (death?.Observed == true) return Finish(Outcome.Succeeded($"observed {enemyPrefab} death"));
             if (entity != "" && (enemy == null || enemy.m_nview == null || !enemy.m_nview.IsValid() || !enemy.gameObject.activeInHierarchy))
                 return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
             if (!HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()) || p.GetStamina() < 10 || MeleeTask.Best(p) == null)
@@ -246,7 +247,7 @@ namespace Renki.Plugin
             }
             if (enemy == null || enemy.m_nview == null || !enemy.m_nview.IsValid() || !enemy.gameObject.activeInHierarchy)
                 return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
-            if (enemy.IsDead()) return Finish(Outcome.Succeeded("observed Greyling death"));
+            if (enemy.IsDead()) return Finish(Outcome.Succeeded($"observed {enemyPrefab} death"));
             var pos = p.transform.position; var target = enemy.transform.position;
             if (Time.unscaledTime >= nextSample)
             {
@@ -262,7 +263,7 @@ namespace Renki.Plugin
                 Hp = p.GetHealth(),
                 HpMax = p.GetMaxHealth(),
                 Stamina = p.GetStamina(),
-                Eligible = MeleeTask.Eligible(p, enemy),
+                Eligible = Eligible(p, enemy),
                 Safe = ClearCharacters(p, enemy, pos) && ClearCharacters(p, enemy, target) && ClearScenery(pos),
                 Following = Time.unscaledTime < followingUntil,
                 Targeting = enemy.GetBaseAI() != null && enemy.GetBaseAI().GetTargetCreature() == p,
@@ -302,13 +303,17 @@ namespace Renki.Plugin
             return null;
         }
 
+        bool Eligible(Player p, Character c) => MeleeTask.Eligible(p, c) &&
+            MeleeEncounter.SearchEligible(c.m_nview.GetPrefabName(), c.GetLevel(), c is Player, c.IsTamed(), BaseAI.IsEnemy(p, c),
+                !string.IsNullOrWhiteSpace(args.Entity) && c.m_nview.GetZDO()?.m_uid.ToString() == args.Entity);
+
         void Acquire(Player p)
         {
             characters.Clear(); Character.GetCharactersInRange(p.transform.position, (float)Kiting.SearchRange, characters);
             Character selected = null; var best = float.PositiveInfinity;
             foreach (var c in characters)
             {
-                if (!MeleeTask.Eligible(p, c) || c.IsDead() || c.m_nview.GetZDO() == null) continue;
+                if (!Eligible(p, c) || c.IsDead() || c.m_nview.GetZDO() == null) continue;
                 if (!string.IsNullOrWhiteSpace(args.Entity) && c.m_nview.GetZDO().m_uid.ToString() != args.Entity) continue;
                 if (Vector3.Distance(origin, c.transform.position) > searchReach + Kiting.SearchRange) continue;
                 if (!ClearCharacters(p, c, c.transform.position) || !ClearCharacters(p, c, p.transform.position)) continue;
@@ -321,6 +326,7 @@ namespace Renki.Plugin
         void ObserveEnemy(Player p)
         {
             entity = enemy.m_nview.GetZDO().m_uid.ToString();
+            enemyPrefab = enemy.m_nview.GetPrefabName();
             death = new CharacterDeathObservation(enemy, entity);
             encounterOrigin = p.transform.position;
         }
@@ -732,7 +738,7 @@ namespace Renki.Plugin
                 if (nearby[i].GetComponentInParent<Piece>() != null) return false;
                 var c = nearby[i].GetComponentInParent<Character>();
                 rejected = "bystander_or_other_creature";
-                if (c != null && c != p && c != enemy && !c.IsDead() && !MeleeTask.Eligible(p, c)) return false;
+                if (c != null && c != p && c != enemy && !c.IsDead() && !Eligible(p, c)) return false;
             }
             // Validate a usable approach before drawing, not just an empty destination.
             if (Vector3.Distance(p.transform.position, grounded) > 2)

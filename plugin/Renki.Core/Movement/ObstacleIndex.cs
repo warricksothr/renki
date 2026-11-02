@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace Renki.Movement
 {
-    /// <summary>A solid upright box or the cylindrical middle of a capsule.
-    /// Mesh bounds are not solids and must never be put here.</summary>
+    /// <summary>Upright box/circle geometry. Blocks requires a proven solid
+    /// primitive; conservative mesh envelopes may only use the broad phase.</summary>
     public readonly struct ObstacleShape
     {
         public readonly V3 Center;
@@ -118,6 +118,18 @@ namespace Renki.Movement
             return false;
         }
         public void Clear() { shapes.Clear(); cells.Clear(); checkedIds.Clear(); Revision++; }
+
+        /// <summary>Broad phase only. Envelopes stored here need not be solid;
+        /// the visitor decides whether a nearby record forbids this leg.</summary>
+        public bool Any(V3 from, V3 to, Func<int, V3, V3, bool> visit)
+        {
+            checkedIds.Clear();
+            for (var x = At(Math.Min(from.X, to.X) - .4); x <= At(Math.Max(from.X, to.X) + .4); x++)
+                for (var z = At(Math.Min(from.Z, to.Z) - .4); z <= At(Math.Max(from.Z, to.Z) + .4); z++)
+                    if (cells.TryGetValue((x, z), out var bucket)) foreach (var id in bucket)
+                            if (checkedIds.Add(id) && visit(id, from, to)) return true;
+            return false;
+        }
 
         public static double Priority(V3 bot, V3 toward, V3 obstacle)
         {

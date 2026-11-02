@@ -99,7 +99,15 @@ install: need-target
     # Controller-only panel sessions also lock controller.exe on Windows.
     just --justfile "{{justfile()}}" vm panel-stop
     {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}' | Out-Null"
-    scp -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/{{dir}}/"
+    for transfer_attempt in 1 2 3; do
+        if scp -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/{{dir}}/"; then
+            break
+        fi
+        [ "$transfer_attempt" -lt 3 ] || exit 1
+        echo "Package copy failed; releasing controller locks before retry $((transfer_attempt + 1))/3"
+        just --justfile "{{justfile()}}" vm panel-stop
+        sleep 2
+    done
     {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
 
 # Install the package, then start and wait for Tas to join.

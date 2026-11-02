@@ -59,9 +59,10 @@ type Retreat struct {
 	log    *slog.Logger
 	now    func() time.Time
 
-	last time.Time
-	mu   sync.Mutex
-	hurt map[string]injury
+	defended map[string]time.Time
+	last     time.Time
+	mu       sync.Mutex
+	hurt     map[string]injury
 }
 
 type injury struct {
@@ -77,6 +78,7 @@ func (r *Retreat) Event(e *protocol.Event) {
 	defer r.mu.Unlock()
 	if e.Event == protocol.EventDied || e.Event == protocol.EventRespawned {
 		r.hurt = nil
+		r.defended = nil
 		return
 	}
 	if e.Event != protocol.EventDamaged || e.By == "" || e.Amount <= 0 {
@@ -137,6 +139,9 @@ func (r *Retreat) Tick(ctx context.Context) {
 	r.mu.Lock()
 	hit, hurt := r.hurt[threat.ID]
 	r.mu.Unlock()
+	if hurt && hit.world == st.World && r.now().Before(hit.until) && r.defend(ctx, st, seen, threat) {
+		return
+	}
 	if r.now().Sub(r.last) < Again && (!hurt || !hit.at.After(r.last)) {
 		return
 	}
@@ -175,6 +180,48 @@ func (r *Retreat) Tick(ctx context.Context) {
 	}
 }
 
+// Try one native-confirmed defensive encounter before another open-ended chase.
+// Native AllowCombat, armour and local safety checks remain authoritative. A
+// refusal falls through to ordinary flee on the next tick, without retry loops.
+func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol.Perception, threat *protocol.PerceivedCharacter) bool {
+	if threat.Prefab != "Greyling" || threat.Stars != 0 || st.Pos.FlatDistance(threat.Pos) > 6 ||
+		st.HP < 30 || st.HP < st.HPMax*.65 || st.Stamina < 35 || st.Food == nil || len(st.Food.Active) == 0 {
+		return false
+	}
+	for _, other := range seen.Characters {
+		if other.ID != threat.ID && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) < 8 {
+			return false
+		}
+	}
+	for _, structure := range seen.Structures {
+		if st.Pos.FlatDistance(structure.Pos) < 8 {
+			return false
+		}
+	}
+	r.mu.Lock()
+	for id, until := range r.defended {
+		if !r.now().Before(until) {
+			delete(r.defended, id)
+		}
+	}
+	if until, ok := r.defended[threat.ID]; ok && r.now().Before(until) {
+		r.mu.Unlock()
+		return false
+	}
+	if r.defended == nil {
+		r.defended = make(map[string]time.Time)
+	}
+	r.defended[threat.ID] = r.now().Add(time.Minute)
+	r.mu.Unlock()
+	_, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskAttack, Args: &protocol.AttackArgs{Entity: threat.ID, Style: "melee", Defensive: true}, TimeoutS: 85})
+	if err != nil {
+		r.log.Warn("could not start defensive encounter", "err", err)
+		return false
+	}
+	r.log.Info("defending against confirmed attacker", "entity", threat.ID, "hp", st.HP)
+	return true
+}
+
 // The plugin owns a bounded explicit melee encounter and its fallback flee.
 // Match the task ID so stale combat metadata cannot suppress ordinary retreat.
 func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception) bool {
@@ -185,7 +232,11 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	if c.Mode == "retreat" {
 		return true
 	}
-	if st.HP < st.HPMax*.8 || st.Stamina < 10 {
+	healthReady := st.HP >= st.HPMax*.8
+	if c.Defensive {
+		healthReady = st.HP >= 25 && st.HP >= st.HPMax*.6
+	}
+	if !healthReady || st.Stamina < 10 {
 		return false
 	}
 	rangeLimit := 12.0
@@ -197,6 +248,9 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	case "approach", "strike", "block", "dodge", "wait":
 	default:
 		return false
+	}
+	if c.Defensive {
+		rangeLimit = 6
 	}
 	found := false
 	r.mu.Lock()

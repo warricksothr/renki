@@ -220,8 +220,15 @@ def main():
     parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
     parser.add_argument('--at', type=float, nargs=3, help='optional preferred nearby fighting-ground center')
+    parser.add_argument('--gather-trees', type=int, default=1, choices=range(1, 4), help='full trees required by the controller gather benchmark')
+    parser.add_argument('--gather-site', type=float, nargs=3, help='known work-site hint; controller revalidates actual resources on arrival')
+    parser.add_argument('--gather-defend', action='store_true', help='opt into bounded native defense of a confirmed Greyling pursuer during gathering')
     args = parser.parse_args()
     harvesting = args.harvest_tree or args.harvest_logs is not None or args.gather_tree
+    if (args.gather_trees != 1 or args.gather_site is not None or args.gather_defend) and not args.gather_tree:
+        parser.error('gather count/site/defense require --gather-tree')
+    if args.gather_site and not all(math.isfinite(v) for v in args.gather_site):
+        parser.error('--gather-site must contain finite coordinates')
     if args.persistent and (harvesting or args.resupply_food or args.direct or args.entity or args.at):
         parser.error('--persistent chooses its own target and area; cannot combine with other trial modes')
     if args.direct and (not args.entity or args.at or harvesting or args.resupply_food):
@@ -261,7 +268,7 @@ def main():
     try:
         print('Preparing one bounded ' + ('resupply' if args.resupply_food else 'harvest' if harvesting else 'combat') + ' trial; evidence: ' + str(saved), flush=True)
         call('stop', timeout=200)
-        call('combat', 'false' if harvesting or args.resupply_food else 'true')
+        call('combat', 'false' if (harvesting and not args.gather_defend) or args.resupply_food else 'true')
         call('start', timeout=330)
         deadline = time.monotonic() + (max(args.wait_s, 120) if args.resupply_food else args.wait_s)
         startup_deadline = time.monotonic() + 120
@@ -339,7 +346,10 @@ def main():
         elif args.gather_tree:
             from gather_trial import run
             print('Testing controller gather, gains-only delivery and return', flush=True)
-            run(summary, call, observe, saved)
+            if args.gather_trees != 1 or args.gather_site is not None or args.gather_defend:
+                run(summary, call, observe, saved, trees=args.gather_trees, site=args.gather_site, defend=args.gather_defend)
+            else:
+                run(summary, call, observe, saved)
         elif harvesting:
             from harvest_trial import run
             print('Testing native ' + ('existing logs' if args.harvest_logs else 'full-tree/log harvesting'), flush=True)
@@ -397,16 +407,24 @@ def main():
             except Exception as error:
                 summary.setdefault('cleanupErrors', []).append(str(error))
 
+        urgent = any(reason in summary.get('reason', '').lower() for reason in
+                     ('hostile', 'enemy', 'pursuer', 'health', 'damage', 'ownership', 'unsafe water', 'footing'))
+        if urgent:
+            # Do not leave an aborted, stationary bot exposed while slow SSH
+            # diagnostics or automation deletion consume its threat buffer.
+            cleanup_call(('panel', 'POST', '/api/act/logout', '{}'))
+
         # Revoke this trial's automation before fetching diagnostic imagery;
         # a slow image transfer must not keep a rejected behavior moving.
         for arguments in cleanup:
             cleanup_call(arguments)
         # Retain the current view before logout for agent-assisted diagnosis. This
         # reads the latest frame; it never bypasses the native capture ceiling.
-        try:
-            summary['cameraEvidence'] = call('camera').strip()
-        except Exception as error:
-            summary['cameraUnavailable'] = str(error)
+        if not urgent:
+            try:
+                summary['cameraEvidence'] = call('camera').strip()
+            except Exception as error:
+                summary['cameraUnavailable'] = str(error)
         for arguments in [('panel', 'POST', '/api/act/logout', '{}'), ('stop',), ('combat', 'false'), ('panel-start',)]:
             cleanup_call(arguments)
         until = datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -459,7 +477,7 @@ def main():
             detours={k:e['ground']['scouting']['detours'][k] for k in ('states','maxExpanded','worstFrameMs')})
             for e in summary.get('encounters', [])]
     if harvesting:
-        report.update({k: summary[k] for k in ('mode', 'logsHarvested', 'woodGain', 'deposited', 'returned', 'selection') if k in summary})
+        report.update({k: summary[k] for k in ('mode', 'treesHarvested', 'logsHarvested', 'woodGain', 'deposited', 'returned', 'selection') if k in summary})
         report['tasks'] = len(summary.get('tasks', []))
         if summary.get('harvest'):
             report['harvest'] = summary['harvest']

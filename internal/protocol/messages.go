@@ -150,10 +150,11 @@ type CarriedFood struct {
 }
 
 type CombatStatus struct {
-	ID     string `json:"id"`
-	Entity string `json:"entity"`
-	Mode   string `json:"mode"`
-	Reason string `json:"reason,omitempty"`
+	ID        string `json:"id"`
+	Entity    string `json:"entity"`
+	Mode      string `json:"mode"`
+	Defensive bool   `json:"defensive,omitempty"`
+	Reason    string `json:"reason,omitempty"`
 }
 
 // State is the bot's own body, streamed at stateHz (6.1).
@@ -240,9 +241,21 @@ type TaskRef struct {
 // It is streamed from M2.
 type Perception struct {
 	Envelope
-	Characters []PerceivedCharacter `json:"characters"`
-	Resources  []PerceivedResource  `json:"resources"`
-	Structures []PerceivedStructure `json:"structures"`
+	Characters   []PerceivedCharacter `json:"characters"`
+	Resources    []PerceivedResource  `json:"resources"`
+	Structures   []PerceivedStructure `json:"structures"`
+	LogObstacles []LogObstacle        `json:"logObstacles,omitempty"`
+}
+
+// LogObstacle is a transient navigation envelope around one loaded log
+// collider. It is replaced by the next perception, never stored as a landmark.
+type LogObstacle struct {
+	Entity   string  `json:"entity"`
+	Collider int     `json:"collider"`
+	Outline  []Vec3  `json:"outline"`
+	MinY     float64 `json:"minY"`
+	MaxY     float64 `json:"maxY"`
+	Padding  float64 `json:"padding"`
 }
 
 func (*Perception) MessageType() string { return TypePerception }

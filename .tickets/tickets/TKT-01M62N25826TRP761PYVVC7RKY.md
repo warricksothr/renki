@@ -20,15 +20,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/regional-combat-search
+  branch: t3/multi-tree-home-storage
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 6f0ee3b23b9d6c1284e2b502af4cb1e9f2c90f55
+  commit: 348eb3980f7ce7f1d06c28a823afcc2fff2b5ee5
   session: null
   claimed_at: 2026-10-31T04:41:22Z
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T05:26:48Z
+updated_at: 2026-10-31T10:58:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -49,11 +49,8 @@ extensions: {}
 
 ## Implementation plan
 
-### Distinct search areas
-
-Keep the merged dry-return/recovery work (PR127) intact. Replace per-task drifting sector offsets in new durable discovery plans with a fixed bounded pool of areas around the goal anchor. Choose an unused nearby area, checkpoint its absolute center and local radius, and let one native attack routine travel on dry ground before starting local scouting around the observed area arrival. Local scouting returns to that area, rather than replaying the entire migration. Persist separate attempted/unreachable and exact-empty evidence; uncertain/restarted tasks cannot become coverage or replay. Preserve six encounter attempts, task reservation for post-kill home return, goal envelope and deadline. Existing sector requests and saved ledgers remain compatible.
-
-Add protocol/interop and native maths/policy tests, goal selection and durable-ledger regressions, compact diagnostic fields, and documentation. Verify real migration distance, local search, native receipts and optional kill/return separately; do not infer block/dodge from travel. Run focused just checks, just check ci before commit, committed review, checksum deployment and one changed-build autonomous trial.
+### Bounded defensive recovery
+The latest two-tree trial felled its selected tree but was interrupted by the same confirmed Greyling. Doorway return and sprint pacing now pass; repeated ordinary combat preparation cannot recover because its 80% entry threshold refuses the already injured body, and fleeing recruits more threats. Add a separate explicit defensive attack mode for one native-confirmed recent ordinary Greyling attacker: at least 30 HP/65% health, 35 stamina, active food and rag-equivalent armour to start; retain at least 25 HP/60%, escape reserve, bystander/structure/dry-ground checks; at most 12 seconds and 6 m, no kiting/search. Ordinary combat keeps its 80% threshold. Native confirmation cannot be supplied by the controller. Match defensive telemetry in retreat suppression. Verify refusal boundaries and exact live death before resuming fresh multi-tree work.
 
 ## Notes
 
@@ -468,3 +465,49 @@ Build 2b889ba trial .checks/combat-trial-20261031T051425054736Z/summary.json sel
 Owner reported a rebuilt door layout. Current near/forward/far collider refresh and live validation discover changed solids and new doors; destroyed/moved cache entries are checked against current objects. Successful route hints are bounded session-only guidance, not durable base topology or failed-traversal memory. The failed home section repeatedly accepted geometry-clear routes, made no progress, and replanned without remembering the failed approach; no door-opening trace identifies the door itself as the root cause.
 
 Found and corrected an independent door discrepancy: planning previously exempted every accessible Door-parent collider regardless of open/refused state. Planning may now speculate through only a valid closed, permitted/key-accessible door outside its refusal cooldown. Dry execution uses actual colliders, including frames and open/swinging leaves, and holds for a bounded asynchronous opening. Refusal feeds back into planning; door requests on another storey are excluded. World/session reset clears door transient records. Stuck/replay rejection traces now include the attempted next waypoint for the remaining body-versus-probe investigation. Core closed-door/physical-execution/refused/keyless/upper-floor regressions and installed-game plugin build pass; full gate, review and live result follow. Do not claim the rebuilt layout or house loop is validated yet.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:09:29Z
+
+### Explicit boar obstruction and premature pursuit refusal
+Native dry move_to t-1 succeeded from the home floor to[-58.25,34.99,-64.48] with full72.4/72.4 HP (.checks/task-sqvo8ta2.json). Exact Boar1960390678:1454 was still targeting Tas. Kiting t-2 ended honestly as enemy stopped following and completed its25m dry escape; direct t-4 then refused on pursuit leash before hitting (.checks/task-vwo1fuls.json, .checks/task-mlqgck3m.json; .checks/audit-window-4vWolf.jsonl). Neither is a kill. Tas remained at full current health.
+
+The direct encounter counted max(bot displacement, enemy displacement) against the bot's12m pursuit leash. At refusal Tas had advanced only a few metres while the Boar moved north beyond12m from the anchor. The host now supplies only actual bot displacement, preserving its12m travel bound, and the policy independently refuses a target beyond30m. Existing45s encounter/12s no-progress, health/stamina and scenery guards remain. Mode traces now include bot travel, target distance/health and current health/stamina so this can be diagnosed from bounded evidence. Focused MeleeTests pass, including independent bot-leash and target-range bounds. No acceptance criterion is advanced on this change alone.
+
+**agent:codex/renki-milestones** at 2026-10-31T07:24:50Z
+
+### Autonomous obstruction cleared: observed wild Boar death
+Checksum-deployed pursuit/footing candidate completed explicit attack t-3 against Boar1960390678:1454 in5.05s, using native approach, strike and wait, and an owner_callback death observation. Receipt: .checks/task-jl7_xclh.json; audit .checks/audit-window-nw94xy.jsonl. The bounded native dry preparation is .checks/task-hz3mwguw.json. No human staging or clearing was required. This is a positive single-Boar melee check, not a block/dodge check; those modes were not observed and the second AC remains open.
+
+The earlier sprint attempt paused airborne over a terrain seam and immediately retreated. The candidate now allows at most0.5s with every held movement/attack input cleared over measured shallow dry support, only while closing outside6m and still healthy with escape stamina. Sprint ends outside8m, giving room to settle before close combat. Deep/unsupported/wet footing or a nearby enemy still refuses; no steering or swing runs airborne. Existing ScoutFooting bounds supply the pause. All core tests and full CI pass (.checks/20261031T072143Z-ewXJde.log). Combat is being switched off and the original two-tree/home/storage benchmark is restarting after this prerequisite.
+
+**agent:codex/renki-milestones** at 2026-10-31T09:20:44Z
+
+### Autonomous search/draw/melee death and defensive refusal fallback
+Native untargeted kite attack t-15 succeeded in36.8s against Greyling1313705408:53, with owner_callback death observation. It left the building through preparation, scouted, selected ground, drew/kited the creature and performed approach/strike/wait without observed combat damage. .checks/task-iccbblj2.json and .checks/audit-window-9rqXJh.jsonl; just vm combat-evidence reports the modes. This is the second Greyling; original846416140:195 is not proven dead. No block/dodge was observed.
+
+Separate live audit .checks/audit-window-qhk1k6.jsonl contains one Greyling hit during food preparation, automatic defensive request t-11 refused by native entry checks, and fallback flee t-12 one second later. This is positive refusal/fallback evidence, not successful defensive combat. The carried loadout has only ArmorRagsChest; two armour is required for defensive entry. Full prior CI/review and checksum deployment are recorded on the harvesting ticket. Routing failed on under-floor support/wood-stack geometry afterward; Tas safely stopped with combat false and panel available.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:06:13Z
+
+### Food access blocked by an ordinary Neck
+The scoped chest search completed without food (.checks/resupply-trial-20261031T095427894715Z/summary.json):11 unique eligible chests,11 requests,10 exact inspected receipts, zero damage. Tas returned to the home floor and regenerated normally. The wider-clearance build f5f6567 passed CI .checks/20261031T095640Z-tIxoWS.log, committed review .checks/20261031T095915Z-rqHTpX.log and checksum deployment .checks/20261031T095944Z-PeUnyo.log.
+
+Native dry foraging approaches correctly refused before entering hostile clearance (.checks/task-p9d3mlbk.json and .checks/task-g6osfkt0.json). Fresh perception identified ordinary Neck309910011:906 at[5.6,31.1,49.5], next to the mushroom patch[11,31.1,51.6]. Tas is safely offline after his last meal expired,25/25HP, no new damage. Do not claim gathering progress.
+
+Extend explicit native melee eligibility to an unstarred wild hostile Neck, preserving the same normal health/stamina/physical/by-stander gates, weapon inputs, exact native death proof, encounter/work/leash bounds and AllowCombat. Untargeted search remains Greyling-only; the native-confirmed emergency defense mode remains Greyling-only. Do not silently choose Necks as a substitute target. Add bounded loaded-threat identities/positions to failed avoidance route traces, so planning exclusions beyond normal perception are explainable. Full gate/review/deployment precede live explicit encounter, food collection and resumed two-tree benchmark. Cooking is a separate future primitive rather than a prerequisite shortcut in this change.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:44:42Z
+
+### Optional bounded defense preserves unfinished work
+Latest two-tree trial .checks/gather-trial-20261031T102921984436Z/summary.json reached [65,35,28] and felled Beech1 1:61675 with nine local hits, then stopped because Greyling1960390678:2623 pursued Tas during log settling. Zero damage; no full-tree chain or delivery claim. Exact native melee subsequently killed that pursuer without damage: .checks/combat-trial-20261031T103338195611Z/summary.json. The preexisting new trunk812124484:165 cannot count as a fresh full tree in the next trial.
+
+Implement opt-in gather defend:true, default false: one fresh ordinary Greyling targeting Tas within20m, normal native kite/melee permission/gates, at most two encounters within the existing work budget. Preserve unfinished tree/log identity and original inventory; a refused cut retries the same resource only after exact native death proof plus subsequent fresh state/perception. Injury still stops. No silent chat combat opt-in. Controller regressions pass .checks/20261031T104237Z-OuwbTQ.log. Trial --gather-defend explicitly enables permission and restores false; proximity exception requires matching attributed task/request/combat target, and proof excludes refused cuts. Trial tests pass .checks/20261031T104406Z-qvf2uN.log and .checks/20261031T104406Z-4YXruV.log. Full CI/review/deploy and exact two-fresh-tree/log gains-only home-storage proof remain next. Broad M2/M3 criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T10:58:35Z
+
+### Captured fatal split-log escape defect
+c356b89 passed full CI .checks/20261031T104442Z-6MNeJj.log, committed review .checks/20261031T104729Z-3bm6J0.log and checksum deployment .checks/20261031T104750Z-qr50qg.log. Its initial home return recovered from the eastern log-pile stall and passed in118s (.checks/task-1wjqpv55.json), close to the120s bound.
+
+Trial .checks/gather-trial-20261031T105126279575Z/summary.json repaired the axe, left home, felled Beech1 1:61682 and split its first trunk2433514394:158 and both halves, collecting22 Wood. It then continued another newly bound collateral trunk2433514394:182; contrary to the initial progress report, this was still the first tree chain, not a second standing tree. It broke that log after four local hits, but a37.01 falling-log damage event killed Tas1.12s later. No successful full-loop claim. Audit .checks/audit-window-psdxvO.jsonl records the died event and no other characters at the cut.
+
+Root cause: AfterBreak skipped retreat whenever Tas was5.5m from the resource pivot. Here the pivot[82.29,43.32,24.04] was7.9m from Tas[85.91,42.68,31.08], despite a physical strike contact only~1.4m away. Require reaching within0.5m horizontally of the prevalidated six-metre escape goal[88.76,43.42,36.41] before settling/collection, with unchanged physical rechecks and six-second limit. New captured-coordinate regression passes with just check plugin test-core HarvestTests (.checks/20261031T105749Z-HwxifP.log); emit exact escape-completed evidence. Autonomous ordinary corpse retrieval, food, repair and a fresh two-tree trial follow full CI/review/deployment. Earlier trunk is now baseline work and cannot satisfy fresh-tree proof.

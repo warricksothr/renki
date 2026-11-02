@@ -25,6 +25,8 @@ func (f *fake) Perception() *protocol.Perception { return f.seen }
 
 func (f *fake) Dispatch(_ context.Context, o session.Order) (*session.Task, error) {
 	switch a := o.Args.(type) {
+	case *protocol.AttackArgs:
+		f.sent = append(f.sent, fmt.Sprintf("attack %s defensive=%t", a.Entity, a.Defensive))
 	case *protocol.FleeArgs:
 		toward := "nowhere"
 		if a.Toward != nil {
@@ -418,5 +420,65 @@ func TestDeadFormerAttackerCannotRestartRetreat(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestMatchingDefensiveAttackUsesItsOwnBoundedHealthAndRange(t *testing.T) {
+	for _, cause := range []string{"valid", "health", "fraction", "range", "stamina", "stale", "additional"} {
+		t.Run(cause, func(t *testing.T) {
+			f := fighting()
+			f.st.HP, f.st.HPMax = 30, 45
+			f.st.Combat.Defensive = true
+			if cause == "health" {
+				f.st.HP = 24
+			}
+			if cause == "fraction" {
+				f.st.HPMax = 51
+			}
+			if cause == "range" {
+				f.seen.Characters[0].Pos = protocol.Vec3{7, 30, 0}
+			}
+			if cause == "stamina" {
+				f.st.Stamina = 9
+			}
+			if cause == "stale" {
+				f.st.Combat.ID = "old"
+			}
+			if cause == "additional" {
+				c := f.seen.Characters[0]
+				c.ID = "other"
+				f.seen.Characters = append(f.seen.Characters, c)
+			}
+			r := New(f, func() []string { return nil }, nil, quiet, nil)
+			r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+			if got := r.controlledAttack(f.st, f.seen); got != (cause == "valid") {
+				t.Fatalf("suppressed retreat: %v", got)
+			}
+		})
+	}
+}
+
+func TestConfirmedAttackerDefenseIsBoundedAndRefusalFallsBackToFlee(t *testing.T) {
+	f := fighting()
+	f.st.Task = nil
+	f.st.Combat = nil
+	f.st.HP, f.st.HPMax = 34, 45
+	f.st.Food = &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Raspberry"}}}
+	c := &clock{t: time.Now()}
+	r := New(f, func() []string { return nil }, nil, quiet, c.now)
+	r.Tick(context.Background())
+	if len(f.sent) != 0 {
+		t.Fatal("unconfirmed defense", f.sent)
+	}
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+	r.Tick(context.Background())
+	if len(f.sent) != 1 || f.sent[0] != "attack 0:7 defensive=true" {
+		t.Fatal(f.sent)
+	}
+	// A rejected native request leaves no active attack; do not repeatedly try it.
+	c.t = c.t.Add(time.Second)
+	r.Tick(context.Background())
+	if len(f.sent) != 3 || !strings.HasPrefix(f.sent[1], "flee 0:7") {
+		t.Fatal(f.sent)
 	}
 }

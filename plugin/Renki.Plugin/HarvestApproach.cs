@@ -17,8 +17,10 @@ namespace Renki.Plugin
         static readonly RaycastHit[] strikeHits = new RaycastHit[64];
 
         internal static bool ClearStrike(Player player, GameObject target, Vector3 contact, float height, float reach)
+            => ClearStrikeAt(player, target, player.transform.position, contact, height, reach);
+
+        static bool ClearStrikeAt(Player player, GameObject target, Vector3 feet, Vector3 contact, float height, float reach)
         {
-            var feet = player.transform.position;
             if (!HarvestReach.InRange(Convert.ToV3(feet), Convert.ToV3(contact), height, reach)) return false;
             var origin = feet + Vector3.up * height;
             var count = Physics.RaycastNonAlloc(origin, (contact - origin).normalized, strikeHits, reach + .05f,
@@ -27,6 +29,31 @@ namespace Renki.Plugin
             return HarvestReach.CanStrike(Convert.ToV3(feet), Convert.ToV3(contact), height, reach,
                 strikeHits.Take(count).Select(hit => new SightHit(hit.distance,
                     hit.collider.transform.IsChildOf(player.transform), hit.collider.transform.IsChildOf(target.transform))));
+        }
+
+        // One bounded candidate per physics step. Bounds only place the
+        // measurement seed; they never establish a contact or standing floor.
+        internal static bool Alternative(Player player, GameObject target, Collider[] colliders, Vector3 resource,
+            float height, float reach, int attempt, bool upright, out Vector3 goal)
+        {
+            goal = default;
+            var active = colliders.Where(c => c != null && c.enabled && !c.isTrigger && c.gameObject.activeInHierarchy).ToArray();
+            if (active.Length == 0) return false;
+            var bounds = active[0].bounds;
+            foreach (var c in active.Skip(1)) bounds.Encapsulate(c.bounds);
+            var seed = Convert.ToVector3(upright
+                ? HarvestContactSearch.TreeSeed(Convert.ToV3(resource), Convert.ToV3(player.transform.position), attempt)
+                : HarvestContactSearch.Seed(Convert.ToV3(bounds.min), Convert.ToV3(bounds.max), attempt));
+            // Use the seed's ground before measuring axe contact. An endpoint
+            // below a hanging log must not borrow the log's height as its floor.
+            if (ZoneSystem.instance == null || !ZoneSystem.instance.GetGroundHeight(seed, out var ground)) return false;
+            seed.y = ground;
+            if (!Contact(active, resource, seed.y, seed, height, !upright, out var contact, out _) ||
+                !GroundGoal(target, resource, contact, seed, (float)HarvestReach.StandOff(reach, false), out goal)) return false;
+            if (!Contact(active, resource, goal.y, goal, height, !upright, out contact, out _) ||
+                !GroundGoal(target, resource, contact, goal, (float)HarvestReach.StandOff(reach, false), out goal)) return false;
+            return Vector3.Distance(player.transform.position, goal) <= 18 &&
+                ClearStrikeAt(player, target, goal, contact, height, reach);
         }
 
         internal static bool Contact(Collider[] colliders, Vector3 resource, float baseHeight, Vector3 from, float height, bool nearest, out Vector3 contact, out string method)

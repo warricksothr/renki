@@ -236,6 +236,27 @@ physics queries use fixed buffers and reject a leg on saturation.
 
 Run `just check plugin test-core NavigationCacheTests` for deterministic
 geometry, invalidation, support lifetime, priority and detour regressions.
+Run `just check plugin test-core LogFootprintTests` for low-log detours,
+rotated/tilted envelopes, height clearance, outward overlap escape and
+move/removal/split lifecycle. Logs use a separate conservative travel envelope
+in the same bounded discovery/dirty/sweep process (at most 256 log colliders).
+The log pose must still match before an envelope rejects a leg. Ordinary
+stairs retain their upper-body clearance rule; logs also receive live lower-body
+casts and endpoint checks, including before discovery and while moving. Only
+movement out of an initial footprint overlap may bypass that log's exclusion;
+inward/crossing movement and travel along its interior stay rejected.
+The panel's **Log boundaries** layer shows these same live envelopes in amber,
+with a translucent 0.4 m clearance stroke; overhead/underfoot envelopes are
+faint. Hover an outline for entity, clearance and vertical extent. Map exports
+include the measured geometry. `just check panel ui-test --scenario log-boundaries
+--port 0` checks shared exports, toggling, split/removal and logout with synthetic
+events and saves repeatable screenshots. This is fixture evidence, not a game
+collision check. During a live route/harvest check, confirm that an existing
+downed log produces `log_footprint` or `log_body_cast`/`log_body_overlap` refusals,
+that Tas walks around it, and that split/rolling logs leave no old outlines.
+Inspect `logs`, occupancy, discovery saturation and maintenance CPU in the
+obstacle-cache trace and `physicsCasts`/worst-frame time in route results. The
+extra exact checks have a cost; do not infer a CPU improvement from a cache hit.
 These establish fewer simulated live checks on an identical route; actual
 Unity CPU savings still need the repeated house exit/return check. Compare
 `supportHits`, `supportQueries`, `boundsRejected`, `physicsCasts`,
@@ -673,6 +694,17 @@ results. `just check vm test-gather-trial` checks proof reconciliation;
 Both are included in `just check ci`. This single cycle does not establish chat
 site inference, repeated hauling or the complete M2 milestone.
 
+For two complete fresh trees and final home-floor return, use
+`just check vm gather-trial --gather-trees 2 --gather-site X Y Z`. Optional
+`--gather-defend` enables bounded work-site Greyling defense and temporarily
+permits native combat. The proximity guard exempts only the exact active
+native attack target, with matching combat ID, request and behavior attribution.
+Other nearby threats and all injury/footing/scope guards still abort. Audit
+proof requires each attributed defense's exact requested target/death trace,
+and retries of a refused cut must follow defense and keep the same resource.
+Only successful local-hit breaks count toward distinct completed tree chains;
+refusals, combat drops and disappearance cannot replace the harvest proof.
+
 Health checks retain the last accepted injury-event sequence from the current
 connection (`injurySeq` in panel status). Any new injury, including one followed
 by regeneration between polls, stops gathering. A meal refresh can clamp HP to
@@ -694,6 +726,10 @@ X Y Z --wait-s 60` with the known log area's center. This explicitly considers
 existing nearby tier-zero beech logs, uses the same safety/cleanup bounds, and
 reports `mode: logs_only`. A pass requires a log break, collected Wood and no
 observed unfinished nearby logs; it does not claim a full-tree benchmark.
+An explicit log-area hint within 150 m can request a native dry approach to
+within 10 m before fresh resource selection. Its exact successful receipt and
+observed arrival are both required. Health, scope, body ownership and the
+eight-minute trial limit still apply; travel is bounded to 180 m from departure.
 
 Physical reach uses actual collider contact and strike sight from axe height;
 a bounds center is never contact evidence. Logs probe at Tas's strike height
@@ -701,6 +737,33 @@ with a 3D collider-ray fallback. Support projection uses the lower of the pivot
 and measured contact. High or unsupported contacts still refuse.
 For supported box/sphere/capsule/convex-mesh log colliders, exact nearest-surface
 queries precede the ray fallback; nonconvex meshes retain physical rays.
+An unreachable or occluded nearest log contact starts a bounded search of
+20 seeds along both sides and ends of its collider bounds, one per physics
+step. Bounds only place seeds: each candidate needs measured surface contact,
+ground projection, weapon reach and strike sight. Native dry routing checks
+the journey; an unavailable candidate tries the next within the existing
+180-second task limit. The selected side stays pinned while approaching.
+Once a log contact is reached, eight seconds without another actual resource
+hit selects another approach. Briefly slipping out of range cannot renew that
+clock; movement, aim and an escape plan alone do not establish cutting progress.
+Inspect the compact alternative-contact traces alongside local-hit proof;
+selection alone is not a successful cut.
+An upright tree with an unreachable or occluded initial contact uses the same
+20-attempt bound. Its seeds circle the trunk on 2–4 m rings, using the current
+side first and then both directions. Ground and physical trunk contact are
+measured twice so an upslope standing point can aim at a higher trunk surface.
+Canopy bounds never choose the standing height. Every candidate still needs
+weapon reach, clear strike sight and a native route; falling-tree protection
+remains in force before a swing. Inspect `alternative tree contact selected`
+and task-matched break evidence separately.
+If every outward escape at one strike position is blocked, the next bounded
+contact candidate must find both a strike and a safe escape. Each new position
+gets its own escape fan; the overall 20-contact/180-second limits still apply.
+Full-tree approaches use the same dry support continuity as fallen logs, so an
+old log lip cannot masquerade as a walkable step. Twenty seconds without at
+least 0.25 m improvement toward a contact selects another candidate; replanning
+or rocking at the same obstruction cannot renew that window. Once in range,
+the eight-second local-hit requirement applies to full trees as well as logs.
 Complete protection/settling queries reuse a buffer that grows from 256 to 2048, then
 refuse rather than consume truncated results. Before swings, up to seven
 outward six-metre escape corridors are checked, one per physics tick, with
@@ -1004,6 +1067,12 @@ stops the game, restores combat off and starts the controller/panel alone.
 
 Native dry home travel can use a navmesh candidate only after incremental
 physical support, water and body-clearance validation of every half-meter leg.
+Dry probes use the higher of the base sea level and the game's current liquid
+surface, with 0.8 m support clearance for the body's step/slope offset. Every
+immediate movement probe samples the current surface again. A rain/wave rise
+must invalidate a marginal shore route while raised bridges/floors remain
+eligible. A dry task also treats actual shallow-water contact as requiring
+shore recovery, rather than waiting for the swimming state.
 An inlet-crossing candidate must fail without becoming movement authority;
 local dry planning then routes around it. Asynchronous candidates do not reset
 the goal or invent a missing final segment: a partial candidate must advance at
@@ -1011,7 +1080,12 @@ least six meters toward the goal, validate to its own endpoint, and leave local
 search to finish the approach. Asynchronous candidate rejections do not reset
 the ongoing local search or its elapsed bound. The same stationary
 candidate is not retried, and at most eight distinct candidates are validated
-until two meters of actual movement or a new goal resets that allowance. Check a
+until two meters of actual movement or a new goal resets that allowance.
+Partial endpoints and checked prefixes must improve on the closest actual
+position of the whole trip, including local travel. Moving away to reach a gate
+cannot make a previously reached interior corner count as progress again. This
+baseline resets on a new goal; complete validated routes can still detour.
+Check a
 raised-floor entrance, a removed ramp, an invalid wet shortcut and changed tiles;
 keep recorded-trail reuse distinct from validated navmesh guidance in evidence.
 A failed candidate can retain its already checked prefix when that prefix alone
@@ -1065,3 +1139,27 @@ The browser suite is required by `just check ci`; missing prerequisites fail.
 Screenshots and structured diagnostics live in `.checks/`, with a separate
 visual-review checklist that never treats a passing assertion as design approval.
 
+
+For an injured-body recovery check, `just vm task-check attack` accepts an
+explicit `defensive:true` request. Require a native-confirmed recent ordinary
+Greyling attacker and the food, armour, health and stamina reserves documented
+in BRIDGE-PROTOCOL.md. A refusal is a refusal, never death proof. Retain the
+exact task death receipt and audit, then restore combat off and stop the game.
+
+When planning accepts a leg that live movement refuses, retain the refused
+approach while replanning that goal. Only physical body-cast/overlap refusals
+are retained; backing away and other storeys remain eligible. Evidence expires
+after 45 s or immediately when its measured collider changes, and a new goal
+clears it. Check an under-house wood stack and the doorway return without
+allowing the planner to retry the identical failed approach indefinitely.
+
+Dry route probes must also check the exact flat half-metre lookahead used by
+movement when the planned edge is longer. Check a diagonal across uneven
+wood-stack support: valid full-edge endpoints must not conceal an unsupported
+or obstructed first movement prefix.
+
+Gather travel requests dry movement with native hostile clearance. Check the
+inland food-patch Boar/Neck: the route should detour around their loaded
+positions, retain physical dry validation and report hostileRejected in local
+planning diagnostics. Starting inside a clearance may back out; it must not
+route through another creature. Passive deer must not block ordinary travel.

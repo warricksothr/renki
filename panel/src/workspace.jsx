@@ -31,6 +31,9 @@ export function MapWorkspace() {
         <button data-layer="resources" aria-pressed="false">
           Resources
         </button>
+        <button data-layer="obstacles" aria-pressed="true">
+          Log boundaries
+        </button>
         <label>
           Map{" "}
           <select id="atlas-world" aria-label="Map world">
@@ -73,6 +76,7 @@ export function MapWorkspace() {
         <span class="water">Water</span>
         <span class="unknown">Unknown terrain</span>
         <span class="memory">Faint = last seen</span>
+        <span>Amber = log boundary and body clearance</span>
       </div>
       <details class="map-key">
         <summary>Map key</summary>

@@ -15,6 +15,39 @@ func terrainTile(x, z int) protocol.TerrainTile {
 	return t
 }
 
+func TestLogBoundariesAreReplacedAndNeverCrossMapScope(t *testing.T) {
+	s, _, p := setup(t, nil, nil)
+	p.Send(&protocol.State{World: "one", Phase: protocol.PhaseInWorld})
+	waitFor(t, func() bool { return s.State() != nil })
+	c := currentConn(t, s)
+	s.Message(c, &protocol.Perception{Envelope: protocol.Envelope{Seq: 100}, LogObstacles: []protocol.LogObstacle{{Entity: "parent", Collider: 1}}})
+	got, _ := s.MapObjects("one", c.ID())
+	if got == nil || len(got.LogObstacles) != 1 {
+		t.Fatal("live log envelope missing")
+	}
+	s.Message(c, &protocol.Perception{Envelope: protocol.Envelope{Seq: 101}, LogObstacles: []protocol.LogObstacle{{Entity: "half", Collider: 2}}})
+	got, _ = s.MapObjects("one", c.ID())
+	if len(got.LogObstacles) != 1 || got.LogObstacles[0].Entity != "half" {
+		t.Fatal("parent survived replacement")
+	}
+	s.Message(c, &protocol.Perception{Envelope: protocol.Envelope{Seq: 102}})
+	got, _ = s.MapObjects("one", c.ID())
+	if len(got.LogObstacles) != 0 {
+		t.Fatal("destroyed log survived absent field")
+	}
+	s.Message(c, &protocol.Perception{Envelope: protocol.Envelope{Seq: 103}, LogObstacles: []protocol.LogObstacle{{Entity: "half"}}})
+	if got, _ = s.MapObjects("two", c.ID()); got != nil {
+		t.Fatal("log crossed world")
+	}
+	if got, _ = s.MapObjects("one", c.ID()+1); got != nil {
+		t.Fatal("log crossed connection")
+	}
+	s.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 200}, World: "one", Phase: protocol.PhaseMenu})
+	if got, _ = s.MapObjects("one", c.ID()); got != nil {
+		t.Fatal("offline log presented as live")
+	}
+}
+
 func TestTerrainPatchesAreOrderedValidatedAndScopedToWorldAndConnection(t *testing.T) {
 	s, _, p := setup(t, nil, nil)
 	p.Send(&protocol.State{World: "one", Phase: protocol.PhaseInWorld})

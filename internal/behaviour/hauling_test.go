@@ -362,6 +362,50 @@ func TestCollectDoesNotChaseProductAlreadyAutoPicked(t *testing.T) {
 	}
 }
 
+func TestCollectAccountsForFreshAutomaticFoodConsumptionWithoutInventingGains(t *testing.T) {
+	for _, mode := range []string{"new food", "refresh", "stale state", "existing meal", "old stock eaten", "different food"} {
+		t.Run(mode, func(t *testing.T) {
+			p := collectParams()
+			p.Items, p.MaxTargets, p.Return = []string{"Raspberry"}, 1, false
+			r := &collectRun{p: p, seen: map[string]bool{}}
+			v := haulView()
+			v.State.Seq = 9
+			v.Inventory = pack(10)
+			if mode == "old stock eaten" {
+				v.Inventory = pack(10, material("Raspberry", 1))
+			}
+			v.State.Food = &protocol.FoodStatus{}
+			if mode == "refresh" || mode == "existing meal" {
+				v.State.Food.Active = []protocol.ActiveFood{{Prefab: "Raspberry", RemainingS: 100}}
+			}
+			v.Perception.Resources = []protocol.PerceivedResource{target("berry", protocol.ResourcePickable, "Raspberry", 1)}
+			nextTask(t, r, v, nil, protocol.TaskInteract)
+			v.Inventory = pack(13)
+			v.State.Seq++
+			v.Perception.Seq++
+			v.Perception.Resources = nil
+			v.State.Food.Active = []protocol.ActiveFood{{Prefab: "Raspberry", RemainingS: 599}}
+			if mode == "stale state" {
+				v.State.Seq--
+			}
+			if mode == "existing meal" {
+				v.State.Food.Active[0].RemainingS = 99
+			}
+			if mode == "different food" {
+				v.State.Food.Active[0].Prefab = "Mushroom"
+			}
+			order, err := r.Next(v, success("pick"))
+			if mode == "new food" || mode == "refresh" {
+				if err != nil || order != nil || !r.finished {
+					t.Fatal(order, err, r.finished)
+				}
+			} else if !errors.Is(err, ErrWait) || r.finished {
+				t.Fatal("accepted collection without a net product gain", order, err)
+			}
+		})
+	}
+}
+
 func TestCollectRecoversDisappearingSpawnedDropOnlyWithInventoryEvidence(t *testing.T) {
 	p := collectParams()
 	p.MaxTargets = 1

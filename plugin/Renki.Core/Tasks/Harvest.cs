@@ -41,6 +41,79 @@ namespace Renki.Tasks
             InRange(feet, contact, height, reach) && InteractionSight.Visible(hits);
     }
 
+    /// <summary>Seeds along a fallen trunk, outside its measured bounds.
+    /// Every seed still needs physical contact, ground, sight and routing.</summary>
+    public static class HarvestContactSearch
+    {
+        public const int Limit = 20;
+
+        // Upright trees need trunk-height candidates, not canopy bounds.
+        // Bias the first candidate toward the bot, then cover both sides
+        // on three small rings. Physics still owns contact and ground.
+        public static V3 TreeSeed(V3 resource, V3 from, int attempt)
+        {
+            if (attempt < 0 || attempt >= Limit) throw new ArgumentOutOfRangeException(nameof(attempt));
+            var away = (from - resource).Flat.Normalized;
+            if (away.Length < .01) away = V3.Forward;
+            var side = new V3(-away.Z, 0, away.X);
+            var index = attempt % 8;
+            var angle = ((index + 1) / 2) * (index % 2 == 1 ? 1 : -1) * Math.PI / 4;
+            return resource + (away * Math.Cos(angle) + side * Math.Sin(angle)) * (2 + attempt / 8);
+        }
+
+        public static V3 Seed(V3 min, V3 max, int attempt)
+        {
+            if (attempt < 0 || attempt >= Limit) throw new ArgumentOutOfRangeException(nameof(attempt));
+            var center = (min + max) * .5;
+            var extent = (max - min) * .5;
+            var station = attempt / 4;
+            var fraction = station == 0 ? 0 : (station <= 2 ? .5 : .9) * (station % 2 == 1 ? 1 : -1);
+            var alongX = extent.X >= extent.Z;
+            var along = alongX ? new V3(extent.X * fraction, 0, 0) : new V3(0, 0, extent.Z * fraction);
+            // The two long sides give different chopping heights on slopes;
+            // the other sides also sample the physical ends of the trunk.
+            var side = attempt % 4;
+            if (side >= 2) along = alongX ? new V3(0, 0, extent.Z * fraction) : new V3(extent.X * fraction, 0, 0);
+            var offset = alongX
+                ? side < 2 ? new V3(0, 0, (extent.Z + 2) * (side == 0 ? 1 : -1)) : new V3((extent.X + 2) * (side == 2 ? 1 : -1), 0, 0)
+                : side < 2 ? new V3((extent.X + 2) * (side == 0 ? 1 : -1), 0, 0) : new V3(0, 0, (extent.Z + 2) * (side == 2 ? 1 : -1));
+            return center + along + offset;
+        }
+    }
+
+    public sealed class HarvestApproachProgress
+    {
+        double best = double.PositiveInfinity, progressed;
+        public void Reset() => best = double.PositiveInfinity;
+        // Replanning or changing a nearby goal cannot renew a stalled
+        // contact. Allow a complete sliced local search, but require real
+        // distance improvement rather than rocking against a log edge.
+        public bool Stalled(double now, double remaining)
+        {
+            if (double.IsNaN(remaining) || double.IsInfinity(remaining) || remaining < 0) return true;
+            if (remaining < best - .25) { best = remaining; progressed = now; }
+            return now - progressed > 20;
+        }
+    }
+
+    public sealed class HarvestContactProgress
+    {
+        double since = double.NaN;
+        int hits;
+        public void Reset() => since = double.NaN;
+        public void Contact(double now, int localHits)
+        {
+            if (!double.IsNaN(since)) return;
+            since = now; hits = localHits;
+        }
+        public bool Stalled(double now, int localHits)
+        {
+            if (double.IsNaN(since)) return false;
+            if (hits != localHits) { since = now; hits = localHits; }
+            return now - since > 8;
+        }
+    }
+
     public static class HarvestHealth
     {
         public static bool Ready(double hp, double maximum) => maximum > 0 && hp >= maximum * .8;
@@ -52,6 +125,10 @@ namespace Renki.Tasks
     public static class HarvestEscape
     {
         public const int CandidateLimit = 7;
+
+        // A long trunk's pivot can be far from the actual strike contact.
+        // Complete the checked escape leg even when already far from it.
+        public static bool NeedsRetreat(V3 feet, V3 escape) => V3.FlatDistance(feet, escape) > .5;
 
         // Outward then alternating sides, through 90 degrees. Every segment
         // increases distance from the resource; none crosses toward the trunk.

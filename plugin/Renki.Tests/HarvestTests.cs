@@ -10,6 +10,69 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void RockingAndReplanningAtALogLipCannotRenewTreeApproachProgress()
+        {
+            var progress = new HarvestApproachProgress();
+            Assert.False(progress.Stalled(100, 2));
+            Assert.False(progress.Stalled(110, 1));
+            Assert.False(progress.Stalled(120, .85));
+            Assert.True(progress.Stalled(131, .9));
+            // A new candidate gets a fresh approach window; actual progress
+            // can continue through a longer checked route.
+            progress.Reset();
+            Assert.False(progress.Stalled(140, 5));
+            Assert.False(progress.Stalled(159, 4.5));
+            Assert.False(progress.Stalled(178, 4));
+            Assert.True(progress.Stalled(199, 4));
+            Assert.True(progress.Stalled(200, double.NaN));
+        }
+
+        [Fact]
+        public void UprightTreeSearchCoversTrunkSidesWithoutBorrowingCanopyHeight()
+        {
+            var tree = new V3(91.37, 40.62, 47.89);
+            var from = new V3(95.04, 42.2, 43.86);
+            var seeds = new List<V3>();
+            for (var i = 0; i < HarvestContactSearch.Limit; i++)
+            {
+                var seed = HarvestContactSearch.TreeSeed(tree, from, i);
+                seeds.Add(seed);
+                Assert.Equal(tree.Y, seed.Y);
+                Assert.InRange(V3.FlatDistance(seed, tree), 1.999, 4.001);
+            }
+            Assert.Contains(seeds, p => p.X < tree.X && p.Z < tree.Z);
+            Assert.Contains(seeds, p => p.X > tree.X && p.Z > tree.Z);
+            Assert.Equal(tree.Z + 2, HarvestContactSearch.TreeSeed(tree, tree, 0).Z);
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.TreeSeed(tree, from, -1));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.TreeSeed(tree, from, HarvestContactSearch.Limit));
+
+            // Captured upslope support cannot reach the original low contact.
+            // A higher measured trunk contact can work only with clear sight.
+            var feet = new V3(92.55, 41.97, 46.6);
+            var low = new V3(91.91, 41.42, 47.3);
+            Assert.False(HarvestReach.InRange(feet, low, .8, 1.4));
+            var measured = new V3(91.91, feet.Y + .8, 47.3);
+            Assert.True(HarvestReach.CanStrike(feet, measured, .8, 1.4, new[] { new SightHit(.95, false, true) }));
+            Assert.False(HarvestReach.CanStrike(feet, measured, .8, 1.4,
+                new[] { new SightHit(.5, false, false), new SightHit(.95, false, true) }));
+        }
+
+        [Fact]
+        public void SlippingOutOfRangeCannotRenewAnUnproductiveLogContactForever()
+        {
+            var progress = new HarvestContactProgress();
+            Assert.False(progress.Stalled(30, 0)); // Travel before contact is allowed.
+            progress.Contact(30, 0);
+            progress.Contact(35, 0); // Another in-range frame after repositioning.
+            Assert.True(progress.Stalled(39, 0));
+            progress.Reset();
+            progress.Contact(40, 0);
+            Assert.False(progress.Stalled(47, 1)); // A real hit renews the budget.
+            Assert.False(progress.Stalled(54, 1));
+            Assert.True(progress.Stalled(56, 1));
+        }
+
+        [Fact]
         public void FoodRefreshDoesNotInventDamageOrClearTheDamageLatch()
         {
             Assert.False(HarvestHealth.Interrupted(false, 60.7, 60.7, 60, 66.1, true));
@@ -58,6 +121,43 @@ namespace Renki.Tests
             Assert.Equal(lowContactY + 2, top);
             // An actual high contact remains out of axe range from this floor.
             Assert.False(HarvestReach.InRange(feet, new V3(feet.X, pivot.Y, feet.Z), .8, 1.4));
+        }
+
+        [Fact]
+        public void AlternateContactSeedsExploreBothSidesAndDifferentPartsOfALongLog()
+        {
+            var min = new V3(-40, 38, -67);
+            var max = new V3(-24, 40, -65);
+            var seeds = new List<V3>();
+            for (var i = 0; i < HarvestContactSearch.Limit; i++)
+            {
+                var seed = HarvestContactSearch.Seed(min, max, i);
+                seeds.Add(seed);
+                Assert.True(seed.X < min.X || seed.X > max.X || seed.Z < min.Z || seed.Z > max.Z);
+                Assert.Equal(39, seed.Y);
+            }
+            Assert.Contains(seeds, s => s.Z < min.Z && s.X < -37);
+            Assert.Contains(seeds, s => s.Z > max.Z && s.X > -27);
+            Assert.Contains(seeds, s => s.X < min.X);
+            Assert.Contains(seeds, s => s.X > max.X);
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.Seed(min, max, HarvestContactSearch.Limit));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => HarvestContactSearch.Seed(min, max, -1));
+        }
+
+        [Fact]
+        public void RotatingALogExchangesTheSearchAxesWithoutChangingItsCoverage()
+        {
+            var min = new V3(-8, 0, -1); var max = new V3(8, 2, 1);
+            for (var i = 0; i < HarvestContactSearch.Limit; i++)
+            {
+                var seed = HarvestContactSearch.Seed(min, max, i);
+                var rotated = HarvestContactSearch.Seed(new V3(min.Z, min.Y, min.X), new V3(max.Z, max.Y, max.X), i);
+                Assert.Equal(seed.X, rotated.Z);
+                Assert.Equal(seed.Z, rotated.X);
+            }
+            // The captured near endpoint is above reachable ground; a search
+            // seed alone must not relax the physical strike-range decision.
+            Assert.False(HarvestReach.InRange(new V3(-38.21, 36.01, -60.71), new V3(-37.52, 38.56, -60.05), .8, 1.4));
         }
 
         [Fact]
@@ -165,6 +265,19 @@ namespace Renki.Tests
             Assert.True(quiet.Observe(new V3(.03, 0, 0), up, forward, false, 4.3));
             Assert.False(quiet.Observe(new V3(.03, 0, 0), up, new V3(.02, 0, .9998), false, 4.4));
             Assert.False(quiet.Observe(new V3(.03, 0, 0), up, new V3(.02, 0, .9998), true, 7));
+        }
+
+        [Fact]
+        public void StrikingALongTrunkTipStillRequiresTheCompleteCheckedEscape()
+        {
+            var pivot = new V3(82.29, 43.32, 24.04);
+            var feet = new V3(85.91, 42.68, 31.08);
+            var escape = new V3(88.76, 43.42, 36.41);
+            Assert.True(V3.FlatDistance(feet, pivot) > 5.5); // Former premature completion.
+            Assert.True(HarvestEscape.NeedsRetreat(feet, escape));
+            Assert.True(HarvestEscape.NeedsRetreat(feet + (escape - feet) * .8, escape));
+            Assert.False(HarvestEscape.NeedsRetreat(escape - new V3(.2, 0, .2), escape));
+            Assert.False(HarvestEscape.NeedsRetreat(escape, escape));
         }
 
         [Fact]

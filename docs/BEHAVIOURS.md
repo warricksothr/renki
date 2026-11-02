@@ -186,13 +186,13 @@ for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
 
 ## Bounded beech gathering
 
-`gather` visits an explicit world/site, fells one nearby isolated tier-zero
-full beech, harvests newly observed nearby beech logs, and stows only the
+`gather` visits an explicit world/site, fells a bounded number of isolated tier-zero
+full beeches, harvests each tree's newly observed nearby beech logs, and stows only the
 products gained during that run. For example, use these template parameters:
 
 ```json
 {"site":{"world":"DizzysHellheim","pos":[175,84,-260],"radius":30},
- "to":["<destination-chest-id>"],"return":true}
+ "to":["<destination-chest-id>"],"maxTrees":2,"returnHome":true}
 ```
 
 An authorized player can say `Tas, go chop wood` (also `chop wood` or `gather
@@ -201,7 +201,11 @@ wood`) in game or through the panel. This creates/starts the manual once-only
 safe trees confirm it, or travels to a distant saved site and revalidates there.
 Otherwise it chooses an isolated tier-zero beech in current perception within
 60 m, preferring lower remembered danger, and orders known chests within 10 m
-of home. Home and the selected site must remain within the 150 m home range.
+of home. Recent remembered beech locations can supply a distant work-site hint;
+the controller rechecks actual trees and surroundings after arrival. Ordinary
+beech observations now enter the bounded landmark memory. Home and the selected
+site must remain within the 150 m home range. The command requests up to two
+complete trees, returns home and deposits only this run's product gains.
 Missing tools, food, capacity, fresh observations, safe trees or storage produce
 an explanation. Existing active or queued work must be stopped first. `Tas,
 stop` cancels through ordinary owner controls. A saved command definition does
@@ -218,22 +222,109 @@ a usable carried axe, four free slots and 60 spare carry weight; initial stamina
 must be at least 40. Native C# owns every approach, strike, falling-log escape and
 collection. Protection distances remain 32 m for standing trees, 8 m for logs,
 and 15 m around Tas, with authoritative native checks before swings.
+After a tree or rolling log breaks, Tas completes its checked escape leg before
+waiting for the descendants to settle. Distance from the old network pivot
+cannot skip retreat when striking near the end of a long trunk.
 
-At most five harvest tasks and eight minutes are allowed. Existing resource IDs
-are excluded from the log chain; nearby new IDs are candidates, not proof of
+When only passive deer block otherwise safe full trees, gathering may make one
+short running approach toward a freshly observed deer within 20 m, stopping 8 m
+from its recorded position. Native dry routing and hostile avoidance still apply.
+It waits at most 20 seconds for newer observations to show all original falling
+and bystander exclusions clear. It never attacks or follows a moving deer.
+Approaches have a 30-second bound; their destinations must be within 40 m of the
+work site and 150 m of home. At most one per requested tree is allowed in a run.
+Players, other creatures, structures and walls keep their original protections.
+Wildlife outside the approach bounds receives one 20-second observation window
+to leave or come within range, rather than an immediate failure or a longer chase.
+With optional work-site defense enabled, a single confirmed ordinary Greyling
+pursuer within 40 m gets up to 15 seconds to enter the existing 20 m native defense
+range. The unfinished tree/log chain stays pinned while Tas waits. This never
+authorizes a chase, a substitute attacker, or combat outside that admission range.
+Starting inside the work zone can defend a freshly confirmed pursuer before
+repair or travel preparation. A refused harvest receipt without a resource ID
+uses the engine's matching task correlation and the original explicit target;
+it never marks the interrupted resource complete or changes the retry target.
+
+Before leaving home, `returnHome` gathering repairs a carried axe below 90%
+durability at a currently observed home workbench. When started away from home
+without a nearby home workbench, it
+first makes a dry, hostile-aware return, verifies the home floor and a newer
+local scan, then repairs and resumes the outbound trip with the original cargo
+baseline. A missing home workbench stops preparation without looping.
+It uses `interact` with
+`repair:true`, then requires a newer actual inventory reporting an axe at least
+90% repaired. Failed, stale or ineffective repair cannot start the journey.
+The station routine also repairs other eligible carried gear through the same
+normal game button. This does not craft replacements, upgrade equipment or
+infer that a workbench can repair gear needing a forge.
+Players near home do not prevent repair or the outbound trip. Nearby hostiles
+or confirmed pursuers still prevent preparation; all bystander and falling-tree
+exclusions apply again before harvesting.
+
+`maxTrees` defaults to one for older definitions and accepts at most three.
+At most nine harvest tasks and eight minutes per requested tree are allowed.
+New logs observed within 32 m of the felled tree or 24 m of a completed cut
+join its unfinished chain. Their identities remain tracked if they roll beyond
+the site; dry approaches are bounded to 60 m from that tree. Missing tracked
+logs stop the chain rather than silently authorizing another tree. The extra
+cut budget covers collateral trunks felled by the first tree.
+Each full tree/log chain must finish with measured Wood gain before selecting
+another tree. Existing resource IDs at that tree's start
+are excluded from its log chain; nearby new IDs are candidates, not proof of
 spawn lineage. A successful native task must be followed by fresh inventory and
 perception, with its target gone. Missing/unsafe logs stop the run. It requires
 at least two log harvests and measured Wood gain before delivery. Baseline Wood,
 BeechSeeds, Resin and Feathers are retained; only gains in those products enter
 the existing ordered-chest stow routine. Optional return revisits the site's
-center. Storage failures keep items in the pack and use stow's shortfall status.
+center. `returnHome` instead pins known home, uses native dry travel to confirm
+the home floor before storage, and finishes at home after the deposit. It cannot
+combine with `return`. A matching native home receipt and a strictly later pose
+are required; standing below a floor does not confirm arrival. Each home move
+retains its 120-second bound. Storage failures keep items in the pack and use
+stow's shortfall status.
+Checked movement waypoints use a 0.6 m support-height tolerance, separate from
+the home marker's 1.75 m eye-height allowance. A body within 0.4 m of a tight
+corner may consume it only after a fresh physical probe validates the direct
+connection to the following point; the final point and another floor cannot
+be skipped this way.
+Dry probes also require the rise to be shared across their midpoint: each
+half-edge allows at most 0.3 m. This preserves ordinary stair treads while
+rejecting a vertical floor lip that endpoint-only step checks can misread.
+All three heights use measured support. Starting footing uses the nearest
+surface within the existing 0.6 m downward sampling range or one 0.3 m tread
+above the feet while stepping; a higher floor cannot become footing.
+
+Between complete trees, capacity or axe-durability pressure chooses delivery
+rather than another cut. Low stamina gets one bounded 20-second rest; insufficient
+recovery chooses delivery. Less than four minutes left also chooses delivery.
+Missing/unsafe descendants still stop the run; they cannot authorize cutting a
+different tree. These checks are the first bounded work-cycle controls, not the
+planned broader cargo-value, repair and resupply policy.
 
 Owner orders, stop, permissions and session/world changes revoke the run through
 the engine. The command remembers its requested site in the saved behavior;
-it does not infer work sites from watching owners, mine rocks, craft tools or
-loop across multiple trees.
+it does not infer work sites from watching owners, mine rocks or craft tools.
 Focused checks: `just check controller test-packages ./internal/behaviour`.
-Controller-level full gathering/delivery remains a separate live check.
+Explicit definitions may opt into `defend:true` (default false). At the work
+site, one freshly observed unstarred Greyling actively targeting Tas within
+20 m may trigger the existing native kite/melee task. This requires normal
+combat permission, food, 80% health, 40 stamina, a usable axe, safe footing and
+no nearby bystander or additional threat. At most two encounters and the same
+overall work budget are allowed, with four minutes remaining before dispatch.
+An interrupted refused cut retries that exact resource; it does not count as
+a break or authorize another tree. Resumption requires the exact native
+Greyling death receipt and subsequent fresh state/perception with no living
+target. The chain and original product baseline survive defense. Injury,
+failed combat or an unavailable interrupted resource stops the run. Owner chat
+does not silently opt into combat.
+
+Controller-level full gathering/delivery remains a separate live check. Run
+`just check vm gather-trial --gather-trees 2` to require two distinct complete
+trees, task-matched break proof, combined gains-only storage and final home.
+`--gather-site X Y Z` supplies a known location hint without binding a stale
+resource ID; the controller acquires fresh eligible trees there.
+`--gather-defend` explicitly enables the optional defense for that trial and
+temporarily enables combat permission, restoring it off during cleanup.
 
 ## Combat
 
@@ -258,4 +349,5 @@ escape; phase reports never produce extra movement orders from this template.
 The controller and plugin must separately allow combat. Editing an active
 instance cancels it through the normal lease/stop handshake; a new manual
 start validates the new goal. No instance is installed or enabled by default.
-See SELF_DEFENSE.md for the current single-Greyling limits and live-test status.
+See SELF_DEFENSE.md for single-enemy limits and live-test status. Autonomous
+combat discovery still selects Greylings; wild Boars require an explicit target.

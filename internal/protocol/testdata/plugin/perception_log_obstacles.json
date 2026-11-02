@@ -1,0 +1,9 @@
+{
+  "v": 1, "type": "perception", "seq": 210, "t": 18234.6,
+  "characters": [], "resources": [], "structures": [],
+  "logObstacles": [{
+    "entity": "1:61667", "collider": -173,
+    "outline": [[90,40,45],[96,40,48],[95.6,40,48.8],[89.6,40,45.8]],
+    "minY": 40, "maxY": 41.2, "padding": 0.4
+  }]
+}
