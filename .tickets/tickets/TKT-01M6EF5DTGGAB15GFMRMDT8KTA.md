@@ -29,12 +29,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T15:48:34Z
-updated_at: 2026-11-02T21:17:55Z
+updated_at: 2026-11-02T21:34:17Z
 created_by:
   id: agent:claude-code/renki-plan
   name: ""
 updated_by:
-  id: agent:claude-code/renki-m2-lease
+  id: agent:claude-code/renki-lead
   name: ""
 extensions: {}
 ---
@@ -79,7 +79,7 @@ The lease lives on the VM as `C:/renki/lease.json` (id, actor, workstation host,
 
 `scripts/vm/lease.py` holds every decision, so it is testable offline: `status` (read-only), `take ACTOR [minutes]` (take or renew, default 60), `release [force]`, `guard` (pass when held by this worktree's lease id, take it when free or expired, otherwise refuse naming holder and expiry) and `run -- CMD` (take if needed, renew while the child runs, release only after the child, which does its own cleanup, has exited, and only if `run` took it). The holder is identified by a random lease id stored in the worktree's gitignored `.vm-lease`.
 
-`vm.just`: `lease`, `release`, `lease-status` recipes; a private `guard` dependency on every mutating recipe (start/stop/restart/reconnect/install/deploy/deploy-controller/panel-start/panel-stop/panel-setup/secret/migration-backup/vplus-install, the setters with a VALUE, `panel POST`); supervisors (combat-trial family, task-check, marker-check, camera-check, escort/sleep/cooking/food/marker-food checks, recover-home, route-benchmark) run through `lease.py run`. Read-only recipes are untouched.
+`vm.just`: `lease`, `release`, `lease-status` recipes; a private `guard` dependency on every mutating recipe (start/restart/reconnect/install/deploy/deploy-controller/panel-start/panel-stop/panel-setup/secret/migration-backup/vplus-install, the setters with a VALUE, `panel POST` except `/api/act/stop`); the emergency stops, `stop` and `panel POST /api/act/stop`, are left unguarded by the owner's decision; supervisors (combat-trial family, task-check, marker-check, camera-check, escort/sleep/cooking/food/marker-food checks, recover-home, route-benchmark) run through `lease.py run`. Read-only recipes are untouched.
 
 Offline tests in `scripts/vm/lease-test.py` (other holder, expired, self, malformed, renew/release, run releases after child cleanup) use a local-file transport and are wired into `just ci` as `vm::test-lease`. Docs in VM.md, TESTING.md, one AGENTS.md line. The live refusal check is left to the owner with exact commands in a note.
 
@@ -112,3 +112,7 @@ Unverified on Windows until then: the Write action's exclusive lock (`[IO.File]:
 - `.vm-lease` is locked, replaced atomically and carries a generation counter.
 
 lease.ps1 Read hashes the bytes it returns, opens the file with delete sharing, treats a file deleted mid-read as absent, and formats the VM clock in the invariant culture. Write fails loudly if the delete fails. All of this is covered offline by `just vm test-lease` (18 cases), except the Windows-only parts: the lock, File.Replace and delete-pending access. The owner's live check in the previous note covers those. Criterion 1 stays unticked until it has been run.
+
+**agent:claude-code/renki-lead** at 2026-11-02T21:34:17Z
+
+Supersedes step 2 of the live check in the 19:29 note. The owner chose to exempt the emergency stops, so `just vm stop` and `just vm panel POST /api/act/stop` now run under anyone's lease and do not take it, and `restart` guards before it stops. In step 2, use `just vm panel POST /api/act/home` as the refused POST. Do not run /api/act/stop from B, because it would now stop A's session. The plan has been updated to match.
