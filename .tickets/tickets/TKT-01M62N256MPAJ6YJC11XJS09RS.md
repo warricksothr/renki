@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-02T17:47:06Z
+updated_at: 2026-11-02T17:49:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -158,3 +158,7 @@ Supersedes the goal wording in the "Remaining for M3 goal 3.1" note: goal 3.1 in
 **agent:claude-code/renki-plan** at 2026-11-02T17:47:06Z
 
 Supersedes the window in the previous goal 3.1 note: goal 3.1 no longer uses a calendar window (11-03 to 11-15). It counts natural low-HP episodes across all live trials run after the flee fix TKT-01M6EFHED7 is deployed. Milestone dates are now guideline targets, not deadlines (docs/ROADMAP.md).
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:49:45Z
+
+Also supersedes "every live trial this week" in the earlier "Remaining for M3 goal 3.1" note: run the retreat-evidence report over every live trial since the flee fix TKT-01M6EFHED7 was deployed, with no calendar window.
