@@ -28,17 +28,19 @@ namespace Renki.Plugin
         readonly GameObject toward;
         readonly Vector3? towardPos;
         readonly Walker walker = new Walker();
+        readonly bool avoidHostiles;
         Vector3 goal;
         float nextAim;
         bool aimed, straight, atPlace;
 
-        public FleeTask(FleeArgs args, Vector3 threatPos, GameObject threat, Vector3? towardPos, GameObject toward)
+        public FleeTask(FleeArgs args, Vector3 threatPos, GameObject threat, Vector3? towardPos, GameObject toward, bool avoidHostiles = false)
         {
             this.args = args;
             this.threat = threat;
             this.threatPos = threatPos;
             this.towardPos = towardPos;
             this.toward = toward;
+            this.avoidHostiles = avoidHostiles;
             walker.ResetStuck(Player.m_localPlayer.transform.position);
         }
 
@@ -121,7 +123,7 @@ namespace Renki.Plugin
             goal = nextGoal;
             straight = nextStraight;
             aimed = true;
-            walker.SetGoal(pos, goal, dryGround: true);
+            walker.SetGoal(pos, goal, dryGround: true, avoidHostiles: avoidHostiles);
         }
 
         public void Cancel() => Driver.Stand();

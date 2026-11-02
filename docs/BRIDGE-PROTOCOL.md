@@ -735,6 +735,20 @@ Notes:
 
 ### 7.3 Movement inside the plugin
 
+- **Recoverable travel encounters:** `move_to` may explicitly set
+  `recoverThreats:true` with `dry:true` and `avoidHostiles:true`. One native
+  task retains its original destination across up to three checked escapes,
+  each bounded to 30 s including a five-second quiet observation period.
+  Escape targets 35 m from its selected threat and checks all loaded hostile
+  corridors as well as physical support and obstacles. Resumption replans
+  from the actual position; the enclosing deadline is unchanged. This grants
+  no combat permission. Household travel opts in when Tas has active food;
+  bootstrap without food retains ordinary travel. Close threats during
+  stationary work and actual injury retain their existing controller guards.
+  `journey` traces report mode, reason, attempt count and threat identity.
+  See [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md) for staged planning,
+  known limits and the remaining field benchmark.
+
 - **Work-trip hostile clearance:** `move_to` can opt into `avoidHostiles:true`
   with `dry:true`. Native navmesh validation, local planning and immediate
   movement keep a horizontal clearance from loaded hostile MonsterAI

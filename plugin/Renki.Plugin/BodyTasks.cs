@@ -989,6 +989,7 @@ namespace Renki.Plugin
         readonly MoveToArgs args;
         readonly GameObject entity;
         readonly Walker walker = new Walker();
+        readonly TravelEncounter encounter;
         Vector3 goal;
 
         public MoveToTask(MoveToArgs args, Vector3 goal, GameObject entity)
@@ -996,6 +997,7 @@ namespace Renki.Plugin
             this.args = args;
             this.goal = goal;
             this.entity = entity;
+            if (args.RecoverThreats) encounter = new TravelEncounter();
             var p = Player.m_localPlayer;
             walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
             walker.ResetStuck(p.transform.position);
@@ -1015,6 +1017,15 @@ namespace Renki.Plugin
                 }
             }
             var pos = p.transform.position;
+            if (encounter != null)
+            {
+                if (encounter.Tick(p, dt, out var recoveryFailure)) return recoveryFailure;
+                if (encounter.Resumed)
+                {
+                    walker.SetGoal(pos, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
+                    walker.ResetStuck(pos);
+                }
+            }
             if (Arrival.Reached(Convert.ToV3(pos), Convert.ToV3(goal), args.StopDistance))
             {
                 Driver.Stand();
@@ -1045,7 +1056,7 @@ namespace Renki.Plugin
             return null;
         }
 
-        public void Cancel() => Driver.Stand();
+        public void Cancel() { encounter?.Cancel(); Driver.Stand(); }
     }
 
     /// <summary>

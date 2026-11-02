@@ -359,14 +359,18 @@ func (a *HarvestArgs) validate() error {
 // MoveToArgs are the arguments to `move_to`. A nil pointer means the
 // plugin's default: 1.5 m, and walking.
 type MoveToArgs struct {
-	Dry           bool     `json:"dry,omitempty"`
-	AvoidHostiles bool     `json:"avoidHostiles,omitempty"`
-	To            Target   `json:"to"`
-	StopDistance  *float64 `json:"stopDistance,omitempty"`
-	Run           *bool    `json:"run,omitempty"`
+	Dry            bool     `json:"dry,omitempty"`
+	AvoidHostiles  bool     `json:"avoidHostiles,omitempty"`
+	RecoverThreats bool     `json:"recoverThreats,omitempty"`
+	To             Target   `json:"to"`
+	StopDistance   *float64 `json:"stopDistance,omitempty"`
+	Run            *bool    `json:"run,omitempty"`
 }
 
 func (a *MoveToArgs) validate() error {
+	if a.RecoverThreats && (!a.Dry || !a.AvoidHostiles) {
+		return errors.New("recoverThreats requires dry hostile-avoiding travel")
+	}
 	if a.AvoidHostiles && !a.Dry {
 		return errors.New("avoidHostiles requires dry travel")
 	}

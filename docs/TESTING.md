@@ -1236,6 +1236,16 @@ personal resupply and workbench repair remain pending safe home recovery.
 
 ## Household food pressure checks
 
+The staged encounter plan is in [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md).
+`just check plugin test-core TravelRecoveryTests` covers native escape,
+continuous quiet observation, renewed pursuit, lifetime retry limits,
+timeouts, unsafe reserves and cancellation. Controller goal/protocol checks
+cover explicit opt-in, matching current-run travel identity, stationary and
+stale-task rejection, injury guards, unfed bootstrap and distant targeting.
+Field coverage still requires the same task ID across encounter recovery and
+actual subsequent travel/collection; policy tests do not establish Unity
+escape clearance or a route through the retained coastal bottleneck.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing
