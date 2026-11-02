@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/home"
-	"github.com/warricksothr/renki/internal/piles"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
@@ -51,7 +50,7 @@ type Engine struct {
 	orders              uint64
 	full, night, atHome bool
 	drops               map[string]bool
-	piles               piles.Tracker
+	piles               pileWatch
 }
 type instance struct {
 	episodeID             string

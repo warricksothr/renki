@@ -69,8 +69,25 @@ func TestViewAsksWhetherAPileIsNearAnOwner(t *testing.T) {
 	see(32)
 	wait(t, func() bool { return near().State == piles.Unseen })
 
+	// A respawn 200 m off within the pairing second: the frame scanned
+	// before it says nothing about the ground around the new position.
+	far := protocol.Vec3{240, 0, 5}
+	state("test", 0, 40)
+	see(40)
+	wait(t, func() bool { return near().State == piles.Absent })
+	state("test", 240, 40.5)
+	wait(t, func() bool { return e.view().State.T == 40.5 })
+	see(40.2)
+	wait(t, func() bool { return e.view().Perception != nil && e.view().Perception.T == 40.2 })
+	e.mu.Lock()
+	v := e.view()
+	e.mu.Unlock()
+	if n := v.Piles.Near(v.Now, far, 8, nil); n.State != piles.Unseen {
+		t.Fatalf("a scan from before the jump answered %+v", n)
+	}
+
 	// Another world starts with nothing known.
-	state("another", 0, 33)
+	state("another", 0, 41)
 	wait(t, func() bool { return e.view().State.World == "another" })
 	if got := e.view().Piles.Piles(time.Now()); len(got) != 0 {
 		t.Fatalf("piles crossed worlds: %+v", got)
