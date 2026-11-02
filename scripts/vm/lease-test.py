@@ -197,6 +197,21 @@ def concurrent_guards(case):
     check(case.lease('guard', worktree='b').returncode == 1, 'and another worktree is refused')
 
 
+def release_racing_guards(case):
+    """A release racing guards in one worktree never leaves a lease nobody recognises."""
+    for _ in range(3):
+        procs = [subprocess.Popen([sys.executable, '-B', str(LEASE), action], env=case.env(),
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                 for action in ('guard', 'release', 'guard', 'release', 'guard')]
+        for p in procs:
+            p.wait(timeout=60)
+        held = case.held()
+        if held:
+            local = json.loads((case.root / 'a.vm-lease').read_text())
+            check(local['id'] == held['id'], f'a held lease is recorded here: {held} {local}')
+        check(case.lease('guard').returncode == 0, 'this worktree can always go on')
+
+
 def module():
     sys.path.insert(0, str(LEASE.parent))
     import importlib
@@ -248,7 +263,7 @@ def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
              run_releases_after_cleanup, run_releases_when_the_command_cannot_start,
              run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
-             concurrent_guards, lost_race, lost_reply]
+             concurrent_guards, release_racing_guards, lost_race, lost_reply]
     for case in cases:
         with tempfile.TemporaryDirectory() as root:
             case(Case(root))

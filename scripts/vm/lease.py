@@ -192,9 +192,12 @@ class Lease:
         tmp.write_text(text)
         os.replace(tmp, self.local_path)
 
-    def forget(self):
+    def forget(self, seen):
+        """Clear .vm-lease only if it still holds the id this call saw, so a
+        release never erases an id a concurrent taker has just recorded."""
         with self.local_lock():
-            self.record(None)
+            if seen and self.local().get('id') == seen:
+                self.record(None)
 
     def local(self):
         try:
@@ -214,7 +217,7 @@ class Lease:
         with self.local_lock():
             mine = self.local().get('id')
         state, lease = classify(data, now, mine)
-        return now, sha, state, lease
+        return now, sha, state, lease, mine
 
     def refusal(self, state, lease, now):
         if state == 'malformed':
@@ -229,7 +232,7 @@ class Lease:
         less than GUARD_MARGIN_MINUTES are left). Returns (lease, took).
         Raises Refused."""
         for _ in range(5):
-            now, sha, state, lease = self.read()
+            now, sha, state, lease, _ = self.read()
             if state in ('other', 'malformed'):
                 raise Refused(self.refusal(state, lease, now))
             expires = now + datetime.timedelta(minutes=minutes)
@@ -259,14 +262,18 @@ class Lease:
     def release(self, force=False):
         """Returns a message. Raises Refused."""
         for _ in range(5):
-            now, sha, state, lease = self.read()
+            now, sha, state, lease, mine = self.read()
             if state in ('other', 'malformed') and not force:
                 raise Refused(self.refusal(state, lease, now) + '; it is not yours to release')
             if state == 'free':
-                self.forget()
+                # No swap confirms what was read, so a concurrent taker may
+                # just have recorded a lease here: leave .vm-lease alone. A
+                # stale id matches nothing and the next take replaces it.
                 return 'the VM lease is free'
+            # A successful swap proves no taker here changed the lease since
+            # mine was read under the lock, so mine is safe to forget.
             if self.transport.write(sha, None):
-                self.forget()
+                self.forget(mine)
                 if state == 'malformed':
                     return 'removed an unreadable VM lease'
                 if state == 'expired':
@@ -278,11 +285,11 @@ class Lease:
 
     def release_if_self(self):
         for _ in range(5):
-            now, sha, state, lease = self.read()
+            _, sha, state, lease, _ = self.read()
             if state != 'self':
                 return False
             if self.transport.write(sha, None):
-                self.forget()
+                self.forget(lease['id'])
                 return True
         return False
 
@@ -360,7 +367,7 @@ def main(argv=None):
 
     try:
         if args.action == 'status':
-            now, _, state, held = lease.read()
+            now, _, state, held, _ = lease.read()
             if state == 'free':
                 print('the VM lease is free')
             elif state == 'malformed':
