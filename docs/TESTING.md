@@ -1253,6 +1253,35 @@ also cover deferred preferred/fallback builds, inactive graphs, no movement
 during construction, and unchanged single-retry/node limits. Per-unit timing
 and live estimate costs still require profiling in Unity.
 
+The subsequent a5b1dc3 work-trip return made checked progress from the coastal
+start to roughly 51 m from home, then logged out on a two-node frontier with
+Boar-clearance and water refusals. Final 66.6/66.6 HP and injury sequence zero;
+no arrival or production proof. Evidence: `.checks/recovery-20261101T021015Z`
+and `.checks/audit-window-wmGgj6.jsonl`. The final incremental graph used 177
+units and 2.87 ms cumulative build work; its planning slice peaked at 0.55 ms.
+An earlier ordinary search slice still reached 26.63 ms. The original seven
+threats had changed, so this is not live proof of that captured detour.
+
+`TravelRecoveryTests` also cover blocked-route observation: no retry without
+changed observations and five quiet seconds, a shared escape/replan lifetime
+budget, timeout, unsafe body, cancellation and clock failures. Loaded hostile
+positions, local water, body position and indexed geometry are sampled at
+4 Hz while waiting. `DryTravelTests` cover the captured shore fallback's
+short-step validation: a dry shore hint cannot authorize an intervening
+blocked corridor. A guarded live check must still establish changed-condition
+resumption and actual arrival; deterministic policy checks do not establish it.
+
+The 6a487d0 guarded return exercised three blocked/changed/walk cycles under
+one native startup-return objective, then resumed about 88 m of travel onto
+the actual 36.09 m home floor without injury (62.3/62.3 HP, injury sequence
+zero). It stopped at the uncovered edge of the outer arrival circle before
+reaching shelter. Evidence: `.checks/recovery-20261101T022241Z` and
+`.checks/audit-window-jkeFFS.jsonl`. This proves native continuation and
+physical progress; it does not prove a normal wire task ID or sheltered release.
+The corrected return guard lets an uncovered porch/last stair continue toward
+the actual 1.5 m endpoint. Correct-floor ground, shelter and threat clearance
+are still required for success, and an unsafe endpoint still fails.
+
 ## Household food pressure checks
 
 The staged encounter plan is in [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md).

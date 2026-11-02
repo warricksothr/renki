@@ -84,9 +84,16 @@ namespace Renki.Tasks
             // A floor below home never establishes arrival or recovery shelter.
             if (V3.FlatDistance(pos, order.Home) <= 3 && Math.Abs(pos.Y - order.Home.Y) <= 1.75)
             {
-                if (!grounded || !sheltered || threatDistance < 12) return Refuse("home is not safe shelter");
-                ended = true; Reason = "home floor and shelter observed";
-                return RecoveryReturnAction.Arrived;
+                if (threatDistance < 12) return Refuse("home is not safe shelter");
+                if (grounded && sheltered)
+                {
+                    ended = true; Reason = "home floor and shelter observed";
+                    return RecoveryReturnAction.Arrived;
+                }
+                // The outer arrival circle may cross an uncovered porch or
+                // the last stair. Keep approaching the actual move_to point;
+                // only its 1.5m stop radius can establish an unsafe endpoint.
+                if (V3.FlatDistance(pos, order.Home) <= 1.5) return Refuse("home is not safe shelter");
             }
             return RecoveryReturnAction.Move;
         }

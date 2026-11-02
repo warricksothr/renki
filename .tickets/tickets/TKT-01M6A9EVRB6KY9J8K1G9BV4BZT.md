@@ -22,15 +22,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/coastal-route-guidance
+  branch: t3/blocked-travel-observation
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: aacdd5abbefc6168dcfcd5c59b481f859bfbcee6
+  commit: a5b1dc30c996e767f7a9906f3825a63774790073
   session: null
   claimed_at: 2026-11-01T01:17:02Z
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T02:09:35Z
+updated_at: 2026-11-01T02:30:14Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -56,11 +56,13 @@ Use the retained terrain and collider evidence to determine whether a safe route
 
 ## Implementation plan
 
-Continue the staged encounter design in docs/WORK-TRIP-ENCOUNTERS.md. Stage1 (native same-task escape/quiet/replan) is implemented in parent PR #140 and installed with Tas offline; stationary receipts/reserve budgets, graded exposure and validated defense remain subsequent slices.
+Continue docs/WORK-TRIP-ENCOUNTERS.md. Parent PR #140 implements same-task escape/quiet/replan, and #141 adds eight-envelope incremental geometric guidance. The a5b1dc3 field return progressed from the previous coastal position but stopped51m from home at a new water/Boar pinch point, without injury. Evidence and limitations are retained in notes. Stationary receipts/reserve budgets, graded exposure and validated defense remain later stages.
 
-This branch targets the physical return prerequisite. Extract a compact regression fixture from retained audit-window-BDzhju.jsonl: the exact seven threat envelopes, start/home and measured terrain, with provenance. Reproduce why four-envelope geometric guidance is inactive. Check whether bounded representation of the surrounding threats can expose an initially-away dry detour; treat missing samples and terrain interpolation as hints, never as movement authority. Keep all physical support, water, body, floor and hostile-clearance checks unchanged. Preserve a bounded search and frame work; do not simply expand an expensive synchronous graph.
+Current slice: let opted-in move_to observe a refused route for changed conditions before giving up. Share the same three lifetime attempts,30s attempt timeout and original enclosing deadline with escape. Require at least5 quiet seconds and changed quantized local water/hostile/body/indexed-geometry observations before requesting another full physical search. No unchanged blind retries, fabricated arrival, injury exemption or new body owner. Unsafe state, cancellation, deadline and budget exhaustion remain terminal. Preserve the original route refusal and mode transitions in traces.
 
-Implement the smallest demonstrated routing correction with regressions for the captured bottleneck, changing threats, unsupported terrain/bridges, node/time budgets and multi-leg progress. Record explicitly what offline terrain can and cannot establish. Run focused plugin checks, full just check ci, commit/review and publish above #140. Install only after verification. A supervised live work-trip recovery is warranted only after a new tested planner addresses the retained failure; capture exact checked movement and actual floor/shelter arrival or a precise new refusal. Never repeat an unchanged failed order, enable combat/cheats, relax collision/hostile clearances or require manual creature clearing. Outdoor delivery and repair follow only verified home recovery. Keep acceptance criteria unticked until earned.
+Correct the dry shore fallback discovered in the latest trace: a distant shore target remains only a geometric hint, and every half-metre step must pass the same live support, water, body and hostile probe as ordinary dry travel. On refusal hold controls and expose a precise route failure to the bounded observation policy. Preserve the existing non-dry swimming behavior.
+
+Add focused pure transition and captured checked-shore regressions; run plugin build/focused checks, just check ci and committed review. Publish above #141 and install safely. Attempt one guarded changed-build recovery if admission permits, keeping physical/hard margins and no-injury guards. Keep exact native/audit evidence, do not repeat an unchanged failed order and do not require manual creature clearing. Original route feasibility, live home return, outdoor delivery and repair remain unearned until demonstrated.
 
 ## Notes
 
@@ -87,3 +89,27 @@ Reproduced the seven-threat coastal failure offline using fixture coastal-return
 Implemented up to eight represented envelopes while all sampled threats constrain every edge. Native graph generation is deferred and sliced into waypoint/edge units; incomplete graphs cannot score a route. At most64 ring points,2209 build units,65 terrain callbacks per unit and4096 distinct hint cells. RouteSearch waits without physical probes during building, preserves one fallback and original physical node bounds, and has one additional finite local time stage without resetting the enclosing task deadline. Build completion and unit counts join cumulative build-time diagnostics. Physical support/water/body/wall/hostile checks remain unchanged.
 
 Focused ThreatGuidanceTests and plugin build passed (.checks/20261101T020632Z-1BpPAJ.log, .checks/20261101T020636Z-UQUhme.log). just check ci passed in144s (.checks/20261101T020656Z-VJACiU.log). Regressions cover captured initially-away terrain leg, full eight-envelope build bounds, deferred preferred/fallback and inactive builds, no physical movement authorization while building, bridges, changed threats and bounded retry. VM remains game-offline before installation (.checks/20261101T020841Z-NBlROy.log). Next: required committed review, stacked PR above #140, install and one supervised work-trip return with retained evidence. All physical/live acceptance criteria remain unticked.
+
+**agent:codex/renki-milestones** at 2026-11-01T02:16:34Z
+
+PR #141 (https://github.com/warricksothr/renki/pull/141) passed committed review without findings and was installed as a5b1dc3 with checksums verified. Live work-trip return .checks/recovery-20261101T021015Z / audit-window-wmGgj6.jsonl made real checked progress from[-61.71,33.36,-85.64] to[-38.97,31.22,-44.23], about51m from home, before native no-route logout. Final66.6/66.6HP, injurySeq0. No home arrival, delivery or repair claimed. The original seven threats had changed; early physical progress used ordinary routing, so this does not live-prove the captured eight-envelope detour.
+
+The final active incremental graph built177 units in2.87ms total; final worst measured planning slice0.55ms. An early ordinary planning slice still reached26.63ms, outside the2ms target and unrelated to deferred graph generation. The final physical frontier had only2 expansions/16 probes:8 hostile-corridor and7 water refusals, amid a Boar behind the bot and low coastal support. Earlier live movement had rejected an approach due to hostile clearance, then the dry-margin shore fallback steered toward[-37.66,31.43,-44.91]. That fallback currently commands a straight shore direction without the ordinary short-step body/hostile checks. Correct this bypass before another trial.
+
+Continue on t3/blocked-travel-observation: preserve opted-in move_to through a bounded blocked-route observation. Replan only after observed local water/threat/indexed geometry changes and a minimum quiet wait, sharing the lifetime recovery-attempt limit and original deadline. Unchanged/unsafe/exhausted conditions remain terminal; close threats still use existing escape. Shore direction remains a hint: each dry shore half-step must pass live support, water, body and hostile checks before movement. Record exact original refusal and observed transitions. Add pure policy and checked-shore regressions, full gate and committed review, publish above #141, then one changed-build supervised recovery if readiness permits. Do not replay the unchanged failed order or relax physical/hostile margins.
+
+**agent:codex/renki-milestones** at 2026-11-01T02:21:51Z
+
+Implemented changed-condition route observation in the native travel policy and adapter. A refused opted-in move_to holds controls, retains original destination/body owner/deadline, and waits at least5 quiet seconds plus a changed coarse water/hostile/body/indexed-geometry observation before rebuilding the route. Observation is sampled at4Hz over64m of loaded characters. It shares three lifetime attempts and30s per attempt with escape; unchanged, unsafe or exhausted conditions remain terminal. Native transitions retain the original route refusal. No receipt/arrival/injury exemption or combat authority is invented.
+
+Corrected the dry shore fallback: every half-metre step now passes the same live dry support/water/body/hostile probe before steering. Failure holds controls and exposes the precise shore-step refusal to the bounded observation policy. Ordinary non-dry swimming behavior is unchanged.
+
+Focused TravelRecoveryTests, DryTravelTests and plugin build passed (.checks/20261101T021807Z-mQOZxA.log, .checks/20261101T021809Z-DMMl4a.log, .checks/20261101T021811Z-5xe6Pu.log). Full just check ci passed in141s (.checks/20261101T021914Z-F67P9o.log). Subsequent required committed review/publication/install and one supervised changed-build trial remain. Current code has no live changed-condition resume or home-arrival proof; all original acceptance criteria remain unticked.
+
+**agent:codex/renki-milestones** at 2026-11-01T02:30:14Z
+
+Published #142 (https://github.com/warricksothr/renki/pull/142) after clean committed review and installed6a487d0 with checksum verification. Trial .checks/recovery-20261101T022241Z / audit-window-jkeFFS.jsonl exercised three native blocked->changed->walk cycles, each with at least5s quiet and observed route changes. The same startup-return coordinator retained its objective and deadline; this is not a normal wire-task-ID proof. After initial failed searches and a checked shore-step water refusal, Tas resumed approximately88m sampled travel and reached the actual36.09m home floor. Final62.3/62.3HP, sampled injurySeq0. No sheltered release/production success claimed.
+
+The final native logout reason was home is not safe shelter. The existing return guard treated entering its outer3m circle on an uncovered porch as immediate failure, although the actual1.5m move endpoint and planned sheltered approach had not been reached. Corrected that guard: ground+shelter+correct floor and >=12m threat clearance still establish success; a nearby threat still refuses immediately, and an unsafe actual1.5m endpoint still refuses. An uncovered outer approach/final stair can continue normally. Added six cases covering approach and endpoint safeguards; focused RecoveryReturnTests passed (.checks/20261101T022724Z-GKlW0r.log).
+
+Full just check ci passed in the latest gate (.checks/20261101T022732Z-2bW6FT.log). Required committed review precedes updating #142 and installing the guard fix. Tas is offline on the home floor near[-37.27,36.09,9.56]. The shortest active food has164s left, so do not reuse work-trip admission requiring270s. A changed-build local return is within its original80m/120s/160m limits and existing two-food reserves; attempt that local guarded finish, then refresh personal food if safe shelter is verified. Original physical snapshot and home-release acceptance remain unearned until actual evidence; no unchanged failed-order replay.

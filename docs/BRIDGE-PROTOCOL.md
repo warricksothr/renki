@@ -742,7 +742,12 @@ Notes:
   Escape targets 35 m from its selected threat and checks all loaded hostile
   corridors as well as physical support and obstacles. Resumption replans
   from the actual position; the enclosing deadline is unchanged. This grants
-  no combat permission. Household travel opts in when Tas has active food;
+  no combat permission. A refused route may observe changed local water,
+  threat or indexed-geometry conditions for up to 30 s before retrying, with
+  at least five quiet seconds and the same lifetime attempt budget. Unchanged
+  conditions do not trigger another search. Dry shore hints require checked
+  half-metre steps; a geometric shore target cannot bypass live clearance.
+  Household travel opts in when Tas has active food;
   bootstrap without food retains ordinary travel. Close threats during
   stationary work and actual injury retain their existing controller guards.
   `journey` traces report mode, reason, attempt count and threat identity.

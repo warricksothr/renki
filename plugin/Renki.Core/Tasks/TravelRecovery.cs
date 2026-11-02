@@ -2,7 +2,7 @@ using System;
 
 namespace Renki.Tasks
 {
-    public enum TravelMode { Walk, Escape, Observe, Refused }
+    public enum TravelMode { Walk, Escape, Observe, Blocked, Refused }
 
     /// <summary>One travel task keeps its target through bounded native escapes.
     /// No decision here grants physical movement or combat permission.</summary>
@@ -22,7 +22,7 @@ namespace Renki.Tasks
         public static bool Engaged(double gap, bool targeting, bool hasTarget) =>
             Finite(gap) && gap >= 0 && (gap < 15 || targeting && gap <= TargetRange || hasTarget && gap <= 20);
 
-        public TravelMode Decide(double now, bool danger, bool unsafeBody)
+        public TravelMode Decide(double now, bool danger, bool unsafeBody, bool routeChanged = false)
         {
             if (Mode == TravelMode.Refused) return Mode;
             if (double.IsNaN(now) || double.IsInfinity(now) || now < 0 || now < last)
@@ -44,7 +44,19 @@ namespace Renki.Tasks
                 if (now - quiet >= QuietSeconds)
                 { Mode = TravelMode.Walk; Reason = "quiet period observed; replan original destination"; }
             }
+            if (Mode == TravelMode.Blocked && routeChanged && now - began >= QuietSeconds)
+            { Mode = TravelMode.Walk; Reason = "route conditions changed; replan original destination"; }
             return Mode;
+        }
+
+        public TravelMode RouteBlocked()
+        {
+            if (Mode != TravelMode.Walk) return Mode;
+            if (last < 0) return Refuse("route blocked before observation");
+            if (Attempts >= AttemptLimit) return Refuse("travel encounter recovery attempts exhausted");
+            Attempts++; began = last; quiet = -1;
+            Reason = "route blocked; waiting for changed conditions";
+            return Mode = TravelMode.Blocked;
         }
 
         public void Escaped(bool succeeded)
