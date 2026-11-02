@@ -626,13 +626,19 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 	i := e.instances[e.active]
 	// Sending the follow back replaces the running step. If it could not be
 	// sent, the handle is still valid and the step is stopped as usual.
+	lent := e.loan != nil
 	e.giveBack(ctx, why)
 	if e.lease.Valid() && i.task != nil {
 		select {
 		case <-i.task.Done():
 		default:
 			if _, err := e.lease.Dispatch(ctx, session.Order{Task: protocol.TaskStop, TimeoutS: 5}); err != nil && !errors.Is(err, session.ErrBodyBusy) && !errors.Is(err, session.ErrNotConnected) {
-				return err
+				if !lent {
+					return err
+				}
+				// The loan is spent, so a retry could not give the follow
+				// back or keep the run near its player: end the run anyway.
+				e.o.Logger.Warn("could not stop the passive run's step", "instance", e.active, "err", err)
 			}
 		}
 	}
