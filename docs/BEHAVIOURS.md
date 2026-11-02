@@ -192,7 +192,8 @@ for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
 
 ## Loot near owners
 
-The `loot` template picks up drops near a live owner while Tas is idle:
+The `loot` template picks up drops near the player Tas is with, its
+*anchor*, while Tas is idle:
 
 ```json
 {"items":["Wood","Resin","BeechSeeds","Feathers"],"radius":30,
@@ -200,15 +201,40 @@ The `loot` template picks up drops near a live owner while Tas is idle:
 ```
 
 Every field is optional; these are the defaults. `items` are exact prefabs
-(no `wood` or `*` groups). `radius`, at most 40 m, is measured from any owner
-who is alive and in fresh perception. Each run takes the nearest eligible
+(no `wood` or `*` groups). `radius`, at most 40 m, is measured from the
+anchor, who must be alive and in fresh perception. Each run takes the nearest eligible
 drop, sends `pickup`, and waits for a newer inventory frame that holds more of
 that item before choosing the next. A success without that gain fails the
 run. A drop someone else took (`invalid_target` or `target_lost`) is skipped.
 It shares `collect`'s capacity check: whole free slots and the larger of live
 and pack weight, against `maxWeightFraction` (0.1–0.9) of carry capacity.
 A run ends after `maxTargets` (1–64) pickups or when nothing is eligible. It
-carries what it picked up; delivering it is separate work.
+carries what it picked up; delivering it is separate work. A successful run
+records `picked up N near <anchor>` as its last result, which the panel shows
+on the instance's card, N counting only pickups the pack confirmed.
+
+### The anchor
+
+The anchor is the player Tas's last order served: the player it was told to
+follow or escort, or else the player who gave the order. The chat brain
+records it when it sends a body order (`Brain.Anchor`): the chat commands
+(follow, escort, stop, wait, come here, go home, pick up, use, cook, fetch),
+whether typed in game or in the panel's chat box, and a task the voice
+proposes. A speaker counts only while Tas can see them in the world, so an
+owner typing in the panel from outside it does not become the anchor. A
+refused order does not move it, and neither do the food, gather
+and waypoint commands, which start goals and walks rather than work beside
+someone. The panel's task buttons have no speaker, so only their `follow` and
+`escort` set the anchor, to the player followed; the others leave it. The
+anchor must still command Tas, as an owner or an `operator` profile;
+companions and guests never anchor loot, and an anchor who loses that grant
+stops anchoring it. Drops near other owners, outside the anchor's radius, are
+left alone, and with the anchor out of sight or dead loot does not run.
+
+Until anyone has given an order since the controller started, a single
+commander in sight stands in as the anchor. With several in sight and none
+chosen, loot waits rather than guess. The deliberate-drop rule below still
+looks at every live owner, since any of them can put something down.
 
 ### The deliberate-drop rule
 

@@ -176,6 +176,39 @@ type Brain struct {
 	spokeTo   map[string]time.Time
 	lastVoice map[string]time.Time
 	recent    []Line
+	// anchor is the player Tas is with: the one its last order followed,
+	// or else the player who gave it.
+	anchor string
+}
+
+// Anchor names the player Tas is with, for work done near them (loot).
+// It is empty until someone has given an order since the controller started.
+func (b *Brain) Anchor() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.anchor
+}
+
+func (b *Brain) ordered(o origin) {
+	switch {
+	case o.follow != "":
+		b.Follows(o.follow)
+	case o.seen:
+		// An owner typing in the panel from outside the world is not
+		// someone Tas can work beside; the anchor stays where it was.
+		b.Follows(o.player)
+	}
+}
+
+// Follows makes player the anchor, for orders sent without a speaker, such
+// as the panel's follow and escort buttons.
+func (b *Brain) Follows(player string) {
+	if player == "" {
+		return
+	}
+	b.mu.Lock()
+	b.anchor = player
+	b.mu.Unlock()
 }
 
 // historyLen is how many lines of chat the Voice sees.
@@ -251,6 +284,9 @@ type origin struct {
 	// follow is the player a follow command was for, so a death can
 	// resume it.
 	follow string
+	// seen says the speaker is in the world where Tas can see them, which
+	// panel chat from an owner who is not playing is not.
+	seen bool
 	// grave is set on a corpse run: the walk to the grave, then the
 	// emptying of it. emptied are the graves already emptied on this run:
 	// a bot killed over and over in one place has several there.
@@ -310,7 +346,7 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		b.opts.Logger.Debug("not addressed", "from", c.From.Name, "name", b.agentName())
 		return
 	}
-	from := origin{player: c.From.Name, channel: replyChannel(c.Channel)}
+	from := origin{player: c.From.Name, channel: replyChannel(c.Channel), seen: located(c)}
 	if c.Channel == channelPanel && b.opts.PlayerQuery != nil {
 		if reply, handled := b.opts.PlayerQuery(c.From.Name, c.Text); handled {
 			b.say(from, reply)
@@ -675,6 +711,7 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		}
 		return
 	}
+	b.ordered(from)
 	if b.opts.Home != nil {
 		b.opts.Home.Told()
 	}
@@ -891,6 +928,7 @@ func (b *Brain) goHome(from origin) {
 		}
 		return
 	}
+	b.ordered(from)
 	b.opts.Home.Told()
 	b.say(from, "Heading home.")
 }
@@ -974,16 +1012,29 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool, offered []string) 
 	if len(p.Args) > 0 {
 		args = p.Args
 	}
-	if p.Task == protocol.TaskFollow {
+	escorted := ""
+	switch p.Task {
+	case protocol.TaskFollow:
 		// Who to find again if a death cuts the follow short.
 		var fa protocol.FollowArgs
 		if json.Unmarshal(p.Args, &fa) == nil {
 			from.follow = fa.Player
 		}
+	case protocol.TaskEscort:
+		var ea protocol.EscortArgs
+		if json.Unmarshal(p.Args, &ea) == nil {
+			escorted = ea.Player
+		}
 	}
 	if _, err := b.d.Dispatch(context.Background(), session.Order{Task: p.Task, Args: args, Origin: from}); err != nil {
 		b.opts.Logger.Warn("voice proposal refused", "task", p.Task, "args", string(p.Args), "err", err)
 		return
+	}
+	if escorted != "" {
+		// Tas is with the player it escorts, not the one who asked.
+		b.Follows(escorted)
+	} else {
+		b.ordered(from)
 	}
 	if b.opts.Home != nil {
 		// An order in the owner's own words is an order like any other.

@@ -57,8 +57,9 @@ func DeliberateDrop(pos protocol.Vec3, at time.Time, owners []protocol.Vec3, bre
 // LootItems are the felling products gather_trial.py checks.
 var LootItems = []string{"Wood", "Resin", "BeechSeeds", "Feathers"}
 
-// Loot picks up drops near a live owner. One value is shared by every loot
-// instance of an engine, because the drops' history outlives a run.
+// Loot picks up drops near the player Tas is with (lootAnchor). One value
+// is shared by every loot instance of an engine, because the drops' history
+// outlives a run.
 type Loot struct {
 	mu      sync.Mutex
 	world   string
@@ -240,9 +241,18 @@ func liveOwners(v View) []protocol.Vec3 {
 }
 
 type lootRun struct {
-	l *Loot
-	p LootParams
-	c *collectRun // collect's capacity, take and receipt bookkeeping
+	l      *Loot
+	p      LootParams
+	c      *collectRun // collect's capacity, take and receipt bookkeeping
+	anchor string      // the player the last pick worked around
+	picked int         // pickups the pack confirmed
+}
+
+func (r *lootRun) Summary() string {
+	if r.anchor == "" {
+		return "completed"
+	}
+	return fmt.Sprintf("picked up %d near %s", r.picked, r.anchor)
 }
 
 // Recover lets a vanished drop go: the game or another player took it.
@@ -253,24 +263,48 @@ func (r *lootRun) Recover(result Result) bool {
 	return r.c.Recover(result)
 }
 
+// lootAnchor finds the player loot works around: the one View.Anchor names,
+// while they still command Tas and are alive in sight. Until anyone has
+// given an order, a single commander in sight stands in; with several in
+// sight and none chosen, loot waits rather than guess.
+func lootAnchor(v View) (string, protocol.Vec3, bool) {
+	if !freshPerception(v) {
+		return "", protocol.Vec3{}, false
+	}
+	var name string
+	var pos protocol.Vec3
+	found := 0
+	for _, p := range v.Perception.Characters {
+		if p.Kind != protocol.CharacterPlayer || p.HPFrac <= 0 || !slices.Contains(v.Owners, p.Name) {
+			continue
+		}
+		if v.Anchor != "" {
+			if p.Name == v.Anchor {
+				return p.Name, p.Pos, true
+			}
+			continue
+		}
+		name, pos = p.Name, p.Pos
+		found++
+	}
+	return name, pos, v.Anchor == "" && found == 1
+}
+
 func (r *lootRun) pick(v View) *protocol.PerceivedResource {
 	if v.Inventory == nil || !freshPerception(v) {
 		return nil
 	}
-	owners := liveOwners(v)
+	anchor, at, ok := lootAnchor(v)
+	if !ok {
+		return nil
+	}
+	r.anchor = anchor
 	var best *protocol.PerceivedResource
 	for _, d := range v.Perception.Resources {
 		if d.Kind != protocol.ResourceDrop || d.ID == "" || r.c.seen[d.ID] || !r.c.fits(v, d.Yield) || !r.l.eligible(d.ID, v.Now) {
 			continue
 		}
-		near := false
-		for _, o := range owners {
-			if distance(d.Pos, o) <= r.p.Radius {
-				near = true
-				break
-			}
-		}
-		if !near {
+		if distance(d.Pos, at) > r.p.Radius {
 			continue
 		}
 		if best == nil || targetCost(v, d.Pos) < targetCost(v, best.Pos) || targetCost(v, d.Pos) == targetCost(v, best.Pos) && d.ID < best.ID {
@@ -300,6 +334,7 @@ func (r *lootRun) Next(v View, result *Result) (*session.Order, error) {
 			if r.c.productGain(v) <= 0 {
 				return nil, fmt.Errorf("pickup of %s succeeded but the pack did not gain any", r.c.yield.Prefab)
 			}
+			r.picked++
 		}
 		r.c.task = ""
 	}
@@ -321,7 +356,8 @@ const LootInstance = "Loot"
 
 // LootDefinition is the built-in loot instance: on, below owner orders and
 // gathering, above idle chores. It runs only while Tas is idle within 40 m
-// of a live owner, and queues only when an eligible drop is in reach.
+// of a live owner, and queues only when an eligible drop is in reach of
+// its anchor player.
 func LootDefinition() Definition {
 	params, _ := json.Marshal(LootParams{Items: LootItems, Radius: 30, MaxWeightFraction: .8, MaxTargets: 16})
 	return Definition{Template: "loot", Params: params, Trigger: Trigger{Kind: "timer", EveryS: 2},

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net"
@@ -152,6 +153,13 @@ func (a *App) PanelTask(ctx context.Context, command panel.TaskCommand) (string,
 	task, err := a.Session.Dispatch(ctx, session.Order{Task: command.Task, Args: command.Args, TimeoutS: command.TimeoutS, Origin: "panel"})
 	if err != nil {
 		return "", err
+	}
+	if command.Task == protocol.TaskFollow || command.Task == protocol.TaskEscort {
+		// The panel has no speaker, so only a follow names who Tas is with.
+		var with struct{ Player string }
+		if json.Unmarshal(command.Args, &with) == nil {
+			a.Brain.Follows(with.Player)
+		}
 	}
 	a.Home.Told()
 	return task.ID, nil
