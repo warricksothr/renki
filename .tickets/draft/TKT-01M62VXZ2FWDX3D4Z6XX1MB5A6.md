@@ -67,7 +67,7 @@ docs/ROADMAP.md, M5: goal 5.1 (fires stay lit), 5.2 (no food burns) and 5.3 (ass
 2. TKT-01M62VXZ6Z (Controller: tend template, in progress) for goal 5.2.
 3. TKT-01M62VXZ84 (Controller: assign every item to chests), then TKT-01M6EFKDSV (sort misplaced items) and TKT-01M6EFKDQQ (panel editor) for goal 5.3.
 4. TKT-01M62VXZ39 (Perception: machine state) is needed only for smelters, kilns, fermenters and beehives.
-5. TKT-01M62VXZ97 (suggest assignments) is a stretch.
+5. TKT-01M62VXZ97 (suggest assignments) is unscheduled, a stretch beyond M5.
 
 ## Acceptance criteria
 

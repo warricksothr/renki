@@ -223,11 +223,11 @@ Every report recipe above is a ticket of its own, so a goal never waits on tooli
 
 ## Decisions for the owner
 
-These block work or set a goal's numbers. They are listed in the order they block.
+These block work or set a goal's numbers. They are listed in the order they block. Milestone moves and dependency changes the 2026-11-02 planning pass already applied are noted on each ticket; revert any you disagree with.
 
 1. **Promote the wave.** Start with the VM lease TKT-01M6EF5DTG, then the wave 1 tickets above. Agents cannot claim drafts.
 2. **Release the stale claims** from the 10-29 to 10-31 sessions on in-progress M2, M3 and panel tickets, so new agents can take them. Close TKT-01M628X134 and TKT-01M628X14M, which are done.
-3. **The Behaviours epic** (TKT-01M62VXYQB): drop M2's dependency on it and move it to M5, where goals 5.4 and 5.5 now carry its owner-editing outcome. Its M2 part is the same work as TKT-01M62N12HJ.
+3. **Confirm the Behaviours epic move** (TKT-01M62VXYQB). Already applied: it is in M5, where goals 5.4 and 5.5 carry its owner-editing outcome, and M2 no longer depends on it, because its M2 part is the same work as TKT-01M62N12HJ.
 4. **CI:** GitHub Actions or not, where CI installs `git-ticket`, and how CI builds Renki.Plugin (stub assemblies, a self-hosted runner, or required only at package and deploy time). This sets goal 4.1's final wording.
 5. **Owner binding** for 4.4: learn the player ID on first sight and confirm it in the panel, or require IDs in config.
 6. **Owner time:** two haul sessions of 30 min or more by about 11-06 (2.2), two escort sessions before 11-15 (3.3), a 30 min cooking session (5.2), and 2 h of play for M6 (6.7).

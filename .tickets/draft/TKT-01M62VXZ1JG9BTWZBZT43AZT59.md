@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:15:35Z
+updated_at: 2026-11-02T16:23:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -72,3 +72,7 @@ What exists: `gather` with `returnHome` and `marker_cargo` deliver home or to a 
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
 
 Applied on 2026-11-02 by the planning pass: milestone set to M7, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:23:39Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal needs it. No exit goal names it. It is in M7 because it depends on TKT-01M62VXZ0J (Know which parts of the map the bot has explored), which is in M7. The owner can unschedule it.

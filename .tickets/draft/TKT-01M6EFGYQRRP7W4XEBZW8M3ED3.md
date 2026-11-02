@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:54:52Z
-updated_at: 2026-11-02T16:15:35Z
+updated_at: 2026-11-02T16:23:39Z
 created_by:
   id: agent:claude-code/renki-plan-m4
   name: ""
@@ -69,3 +69,7 @@ Add `version` to memory.json, store the world with the interrupted flag, and key
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
 
 Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:23:39Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal needs it. No exit goal needs world identity: goal 4.3 does not. It is in M5 because it edits the same per-world maps in internal/home as TKT-01M62EP0PD and should land after it. The owner can unschedule it.

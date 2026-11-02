@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-11-02T16:15:34Z
+updated_at: 2026-11-02T16:23:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -156,3 +156,7 @@ Proposal: move this ticket to M3. Goal 3.4 (avoid where it was hurt) already nam
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
 
 Applied on 2026-11-02 by the planning pass: milestone set to M3, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:23:39Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an M3 exit goal names it. Goal 3.4 is owned by TKT-01M6EFHEK3 and TKT-01M6EFHS5E. This ticket's open criteria, marking things gone missing and remembering deaths, are survival memory on no exit goal. It is in M3 because it extends the danger memory those tickets read. The owner can unschedule it.
