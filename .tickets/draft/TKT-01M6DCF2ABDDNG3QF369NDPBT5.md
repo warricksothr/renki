@@ -6,13 +6,13 @@ type: epic
 status: draft
 status_reason: null
 priority: high
-due_on: null
+due_on: "2026-11-22"
 labels:
   - tooling
   - controller
   - plugin
 assignees: []
-milestone: null
+milestone: M4
 parent: null
 origin: null
 dependencies: []
@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:10Z
-updated_at: 2026-11-02T05:42:10Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -58,3 +58,11 @@ The child tickets each hold one agent-sized piece, with file:line pointers, a fa
 
 - [ ] Every child ticket is done, or closed with a note saying why it stands
 - [ ] just ci runs automatically on pull requests and fails when Renki.Plugin does not compile
+
+## Definition of done
+
+- [ ] 4.1 just ci runs on every PR, fails when Renki.Plugin does not compile, and lints Go, panel, plugin and scripts
+- [ ] 4.2 A 24 h just vm soak passes (TKT-01M6DDFTF6)
+- [ ] 4.3 Three forced controller kills during saves leave every store readable
+- [ ] 4.4 Owners bind to player IDs, and a replayed chat-injection test cannot steer an owner's turn
+- [ ] 4.5 After a 20 s controller pause the plugin reconnects and accepts tasks within 10 s

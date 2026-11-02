@@ -21,13 +21,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-11-02T06:11:09Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-review
+  name: ""
 extensions: {}
 ---
 
@@ -61,3 +61,9 @@ Grouping items into chests on its own comes later (the base upkeep epic).
 - [ ] Loot pickup and deliver-when-full run as instances of templates, not as hand-written routines
 - [ ] An owner can clone an instance, change a parameter and start it from chat or the panel
 - [ ] When items do not fit, the owners are told what and how much, and the panel shows it
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T06:11:09Z
+
+Roadmap (docs/ROADMAP.md, 2026-11-01): only criterion 1 (loot and deliver as template instances) gates M2, and it is largely met by the gather, collect and stow templates. Criteria 2 (clone and edit from chat or the panel) and 3 (storage notices in the panel) are scheduled with M5. Proposal for the owner: drop M2's dependency on this epic, or split criterion 1 into its own ticket, so M2 can close on its own criteria.

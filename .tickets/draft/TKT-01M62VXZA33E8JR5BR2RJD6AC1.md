@@ -6,13 +6,13 @@ type: epic
 status: draft
 status_reason: null
 priority: normal
-due_on: null
+due_on: "2026-12-20"
 labels:
   - llm
   - terva
   - controller
 assignees: []
-milestone: null
+milestone: M6
 parent: null
 origin: null
 dependencies: []
@@ -22,13 +22,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-review
+  name: ""
 extensions: {}
 ---
 

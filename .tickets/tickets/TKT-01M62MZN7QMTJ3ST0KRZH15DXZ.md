@@ -6,7 +6,7 @@ type: epic
 status: in-progress
 status_reason: null
 priority: high
-due_on: null
+due_on: "2026-11-08"
 labels:
   - plugin
   - controller
@@ -29,12 +29,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-10-30T13:45:00Z
+updated_at: 2026-11-02T06:10:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-review
   name: ""
 extensions: {}
 ---
@@ -59,6 +59,14 @@ No-chop zones (places the owner wants left alone) come later, as do combat (M3) 
 - [ ] While the owner chops at a spot, the bot picks up the drops near them, carries them home when full and stores them in a chest, then comes back
 - [ ] Told "go chop wood", the bot goes to where it saw the owner working, or else to the nearest trees it knows, and fells, splits and collects
 - [ ] The bot keeps hauling across trips without drowning or getting lost, and says when it cannot (no chest, chest full, no axe)
+
+## Definition of done
+
+- [ ] 2.1 just vm gather-trial passes 3 runs in a row (fell, split, collect, deposit, return), each under 15 min, no death or drowning
+- [ ] 2.2 Two owner sessions of 30+ min, 3+ trips each, pick up >=80% of drops within 30 m of the owner (haul report, TKT-01M6DDFTDD)
+- [ ] 2.3 Three of three 'go chop wood' requests go to the last owner work site within 300 m, else the nearest known trees, and finish the loop
+- [ ] 2.4 No chest, chest full and no axe each produce a chat reason within 10 s, with one offline test and one live run each
+- [ ] 2.5 Every M2 child is done or moved to a later milestone with a note saying what is left
 
 ## Implementation plan
 

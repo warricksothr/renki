@@ -11,7 +11,7 @@ labels:
   - docs
   - tooling
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T06:11:19Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -54,3 +54,9 @@ Rewrite Status to point at docs/ROADMAP.md, which the planning PR adds, rather t
 - [ ] README status, diagram and prerequisites match the project
 - [ ] package and plugin test go through recipes and clean up on failure
 - [ ] windows.ps1 checks every obs-adapter exit code
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T06:11:19Z
+
+The roadmap PR rewrote the README Status section to point at docs/ROADMAP.md. Still open: the diagram (panel, video, OBS), the prerequisites (npm, Playwright via just panel ui-install, Python 3) and the recipe items.

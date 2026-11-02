@@ -6,13 +6,13 @@ type: epic
 status: draft
 status_reason: null
 priority: normal
-due_on: null
+due_on: "2027-01-17"
 labels:
   - controller
   - movement
   - docs
 assignees: []
-milestone: null
+milestone: M7
 parent: null
 origin: null
 dependencies:
@@ -24,12 +24,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:22:24Z
-updated_at: 2026-10-30T15:22:24Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:codex/renki-exploration
   name: ""
 updated_by:
-  id: agent:codex/renki-exploration
+  id: agent:claude-code/renki-review
   name: ""
 extensions: {}
 ---

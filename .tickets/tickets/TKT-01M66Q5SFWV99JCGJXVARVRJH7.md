@@ -6,14 +6,14 @@ type: epic
 status: ready
 status_reason: null
 priority: normal
-due_on: null
+due_on: "2027-01-17"
 labels:
   - controller
   - plugin
   - protocol
   - docs
 assignees: []
-milestone: null
+milestone: M7
 parent: null
 origin: null
 dependencies: []
@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:34:39Z
-updated_at: 2026-10-30T16:29:09Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
 updated_by:
-  id: agent:codex/renki-atlas
+  id: agent:claude-code/renki-review
   name: ""
 extensions: {}
 ---

@@ -10,7 +10,7 @@ due_on: null
 labels:
   - plugin
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:33Z
-updated_at: 2026-11-02T06:07:37Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""

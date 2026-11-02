@@ -6,7 +6,7 @@ type: epic
 status: in-progress
 status_reason: null
 priority: normal
-due_on: null
+due_on: "2026-11-15"
 labels:
   - plugin
   - controller
@@ -28,12 +28,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T13:45:00Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-review
   name: ""
 extensions: {}
 ---
@@ -49,6 +49,14 @@ The plugin's safety switch for this (Safety.AllowCombat) is off by default and s
 - [ ] Hurt and outmatched, the bot retreats toward its owner or home instead of standing still
 - [ ] With combat allowed, it fights what attacks it or its owner, and stops when told
 - [ ] It remembers where it was hurt and avoids those places when it can
+
+## Definition of done
+
+- [ ] 3.1 Three of three low-HP runs with a threat within 15 m dispatch flee within 1 s and reach the owner or home alive; one run starts on the raised base
+- [ ] 3.2 With AllowCombat on, 3/3 combat-trial runs end in an observed Greyling death, and chat stop ends combat within 2 s; with it off, no attack is sent
+- [ ] 3.3 Two of two escort or guard runs engage a creature targeting the owner within 10 m and stop on 'stay out of it'
+- [ ] 3.4 A replay test shows routes preferring to avoid danger zones, and one live trip detours around a zone recorded that day
+- [ ] 3.5 Review tickets TKT-01M6DCFSEG and TKT-01M6DCFSG0 are done
 
 ## Implementation plan
 

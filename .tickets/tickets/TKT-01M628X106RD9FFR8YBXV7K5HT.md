@@ -6,12 +6,12 @@ type: epic
 status: in-progress
 status_reason: null
 priority: high
-due_on: null
+due_on: "2026-11-22"
 labels:
   - controller
   - tooling
 assignees: []
-milestone: null
+milestone: M4
 parent: null
 origin: null
 dependencies: []
@@ -28,12 +28,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-30T13:38:50Z
+updated_at: 2026-11-02T06:10:52Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-review
   name: ""
 extensions: {}
 ---
