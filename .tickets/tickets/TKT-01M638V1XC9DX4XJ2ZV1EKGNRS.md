@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M638V1XC9DX4XJ2ZV1EKGNRS
 title: "Follow: stuck outside a wall, the leader inside, path straight through"
 type: bug
-status: in-progress
+status: review
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-m3-follow
-  branch: t3/follow-near-wait
-  worktree: /home/sothr/.t3/worktrees/renki/t3-c13b3e90
-  commit: 26dd1f039e9942423eadf30ab229fec1aee78bfb
-  session: null
-  claimed_at: 2026-11-02T18:49:56Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-11-02T18:53:44Z
+updated_at: 2026-11-02T19:04:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -72,7 +65,7 @@ When the leader is within the follow distance plus 1.5 m and the walker has used
 
 - [x] The cause of the straight path through the wall is known and written down
 - [x] A follower that is near the leader but cannot get closer waits, not recovers
-- [ ] A Core test with the captured house positions shows the follower waits instead of failing stuck, and resumes when the leader moves 2 m; just check ci passes
+- [x] A Core test with the captured house positions shows the follower waits instead of failing stuck, and resumes when the leader moves 2 m; just check ci passes
 
 ## Implementation plan
 
@@ -179,3 +172,11 @@ Escort shared the failure path: EscortTask runs FollowTask(safeTravel) as its fo
 FollowNearWaitTests (4 cases) uses the captured house positions: bot (-28.1,36.09,11.55), Nimah (-31.54,36.09,12.45), distance 3.5. just check plugin test-core FollowNearWait passed (.checks/20261102T185049Z-uNjoGQ.log); just check ci passed (.checks/20261102T185052Z-0eetLz.log).
 
 AC3 is unticked only because its wording bundles the Core test and ci (both done) with the ticket's live intent: live confirmation on the VM waits for the VM lease. Not deployed. The live check is in docs/TESTING.md: bot outside the east wall, leader inside, see `follow wait` and no `stuck`, walk 2 m, see `resume`.
+
+**agent:claude-code/renki-m3-follow** at 2026-11-02T19:04:25Z
+
+Supersedes the AC3 paragraph of my previous note: AC3 as written (Core test with the captured house positions shows wait, not stuck, and resume after 2 m; just check ci passes) is met, so it is now ticked. The live check is a separate step and is still to do.
+
+Two review rounds tightened the decision. The wait now needs the leader on the bot's level (1.75 m); a leader a floor above still fails `stuck`, so escort's 2 s retry can find the stairs. The wait also ends if the bot itself is pushed more than 2 m from where it began waiting, measured from its own spot so a few centimetres of drift at the edge of the near ring do not restart the recoveries. FollowNearWaitTests has 7 cases. Final just check ci .checks/20261102T190039Z-fZ67jI.log; just check review .checks/20261102T190313Z-Un8jIp.log: no findings.
+
+Live confirmation waits for the VM lease (TKT-01M6EF5DTG). Not deployed. On the VM: Nimah inside the house, Tas outside the east wall, follow t-N at distance 3.5. Expect a `follow` `wait` trace and no `stuck`, then walk 2 m and expect `resume`. Repeat once under escort.
