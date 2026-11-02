@@ -22,15 +22,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/work-trip-encounters
+  branch: t3/coastal-route-guidance
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 91c8899ca0a6f064e21e1931c2751e6ef119ca98
+  commit: aacdd5abbefc6168dcfcd5c59b481f859bfbcee6
   session: null
   claimed_at: 2026-11-01T01:17:02Z
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T01:26:53Z
+updated_at: 2026-11-01T02:09:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -56,11 +56,11 @@ Use the retained terrain and collider evidence to determine whether a safe route
 
 ## Implementation plan
 
-The user's request to plan and start seamless threat handling authorizes this follow-up. Implement in stages: (1) one native travel task retains its goal across bounded escape/quiet/replan cycles; (2) stationary work can checkpoint and yield to the same encounter policy, with pressure-based recovery and tolerable injury budgets; (3) route risk becomes graded according to capability, exposure and escape options while physics remains hard; (4) extend validated defensive combat to ordinary Necks/Boars, then integrate it under the same body owner. Preserve human stop, world/connection ownership and receipt-based production proof throughout.
+Continue the staged encounter design in docs/WORK-TRIP-ENCOUNTERS.md. Stage1 (native same-task escape/quiet/replan) is implemented in parent PR #140 and installed with Tas offline; stationary receipts/reserve budgets, graded exposure and validated defense remain subsequent slices.
 
-First implementation: explicit recoverThreats on dry hostile-avoiding move_to. Reuse native FleeTask with live hostile-clearance checks, no combat permission, three escape attempts,30s per attempt and5s quiet observation before reconstructing the original route. No deadline reset; exhausted/unsafe recovery returns a precise failure. The controller's household guard permits this handling only for a current-run matching travel task; distant targeting alone no longer terminates household goals. Close threats during stationary work, actual injury and existing critical footing/health checks remain terminal in this first stage. No engine stop/reacquire or replay of pickup/deposit/cooking. Retain phases, reasons, threat identity and attempt counts in traces.
+This branch targets the physical return prerequisite. Extract a compact regression fixture from retained audit-window-BDzhju.jsonl: the exact seven threat envelopes, start/home and measured terrain, with provenance. Reproduce why four-envelope geometric guidance is inactive. Check whether bounded representation of the surrounding threats can expose an initially-away dry detour; treat missing samples and terrain interpolation as hints, never as movement authority. Keep all physical support, water, body, floor and hostile-clearance checks unchanged. Preserve a bounded search and frame work; do not simply expand an expensive synchronous graph.
 
-Add deterministic Core transition tests, protocol validation on both sides, goal ownership regressions and native build checks. Document the complete staged design and first-slice limits. Run focused checks, full just check ci and committed review, publish above PR #139 and install safely with Tas offline. The multi-threat coast's physical feasibility and actual home return remain unearned acceptance criteria; do not retry the unchanged trapped position merely to claim live encounter coverage. Continue route-feasibility work using retained evidence separately from changing hard collision or hostile clearances.
+Implement the smallest demonstrated routing correction with regressions for the captured bottleneck, changing threats, unsupported terrain/bridges, node/time budgets and multi-leg progress. Record explicitly what offline terrain can and cannot establish. Run focused plugin checks, full just check ci, commit/review and publish above #140. Install only after verification. A supervised live work-trip recovery is warranted only after a new tested planner addresses the retained failure; capture exact checked movement and actual floor/shelter arrival or a precise new refusal. Never repeat an unchanged failed order, enable combat/cheats, relax collision/hostile clearances or require manual creature clearing. Outdoor delivery and repair follow only verified home recovery. Keep acceptance criteria unticked until earned.
 
 ## Notes
 
@@ -79,3 +79,11 @@ Published draft PR #140, Retain travel goals through bounded native threat recov
 Installed implementation commit350a295 on Blight using just check vm install; manifest and installed plugin DLL checksums verified (.checks/20261101T012538Z-BuJHqF.log). The package transfer needed its built-in second attempt to release an executable lock and then completed. just check vm panel-start passed (.checks/20261101T012610Z-PFttsa.log). Subsequent just check vm status confirmed Valheim not running, controller running, bot disconnected (.checks/20261101T012631Z-BkNvAg.log). Authenticated just check vm panel GET /api/status returned version350a295 and connected:false (.checks/20261101T012632Z-mV9S2N.log).
 
 No live join or unchanged coastal recovery was attempted. First travel-recovery slice is installed but not live-proven. This ticket remains in-progress with all physical-route/home-return criteria open; outdoor food-delivery and repair trials still wait on a verified return. Next work should establish physical coastal progress and then retain same-task escape/quiet/resume evidence, followed by stationary checkpoint and reserve-budget integration from the staged design.
+
+**agent:codex/renki-milestones** at 2026-11-01T02:09:35Z
+
+Reproduced the seven-threat coastal failure offline using fixture coastal-return.json, extracted from audit-window-BDzhju.jsonl (exact start/home, seven envelopes and841 measured terrain samples). Baseline four-envelope guidance is inactive (17 ring points,15 rejected hints); representing eight permits an active graph and an initially-away first leg over measured terrain. This establishes a geometric/search deficiency, not live body clearance or full route feasibility.
+
+Implemented up to eight represented envelopes while all sampled threats constrain every edge. Native graph generation is deferred and sliced into waypoint/edge units; incomplete graphs cannot score a route. At most64 ring points,2209 build units,65 terrain callbacks per unit and4096 distinct hint cells. RouteSearch waits without physical probes during building, preserves one fallback and original physical node bounds, and has one additional finite local time stage without resetting the enclosing task deadline. Build completion and unit counts join cumulative build-time diagnostics. Physical support/water/body/wall/hostile checks remain unchanged.
+
+Focused ThreatGuidanceTests and plugin build passed (.checks/20261101T020632Z-1BpPAJ.log, .checks/20261101T020636Z-UQUhme.log). just check ci passed in144s (.checks/20261101T020656Z-VJACiU.log). Regressions cover captured initially-away terrain leg, full eight-envelope build bounds, deferred preferred/fallback and inactive builds, no physical movement authorization while building, bridges, changed threats and bounded retry. VM remains game-offline before installation (.checks/20261101T020841Z-NBlROy.log). Next: required committed review, stacked PR above #140, install and one supervised work-trip return with retained evidence. All physical/live acceptance criteria remain unticked.

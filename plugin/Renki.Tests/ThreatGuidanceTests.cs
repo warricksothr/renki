@@ -46,7 +46,7 @@ namespace Renki.Tests
             while (!Arrival.Reached(here, goal, .5) && legs < 24)
             {
                 var route = new RouteSearch(hints => new LocalRoute(here, goal, Probe, within: .5,
-                    guidance: hints != null ? hints.Estimate : (Func<V3, double>)null), () => new ThreatGuidance(here, goal, Threats, Dry), prefer);
+                    guidance: hints != null ? hints.Estimate : (Func<V3, double>)null), () => new ThreatGuidance(here, goal, Threats, Dry, deferred: true), prefer);
                 Assert.Equal(RouteStatus.Found, Finish(route));
                 var hints = route.Guidance;
                 prefer |= hints?.Active == true;
@@ -181,12 +181,109 @@ namespace Renki.Tests
             Assert.Throws<ArgumentException>(() => new LocalRoute(V3.Zero, V3.Forward, (_, at) => at, guidance: _ => double.NaN));
         }
 
+        [Fact]
+        public void DeferredGraphDoesNotSampleTerrainUntilAdvancedAndBoundsEachUnit()
+        {
+            var calls = 0;
+            var sample = Enumerable.Range(0, ThreatGuidance.ThreatLimit)
+                .Select(i => new HostileClearance.Threat(new V3(i * 100, 0, 0))).ToArray();
+            var hints = new ThreatGuidance(new V3(-45, 0, -20), new V3(-45, 0, 20), sample,
+                at => { calls++; return Dry(at); }, deferred: true);
+            Assert.Equal(0, calls);
+            Assert.False(hints.Complete);
+            Assert.Throws<InvalidOperationException>(() => hints.Estimate(V3.Zero));
+            var steps = 0;
+            while (!hints.Complete && steps < 5000)
+            {
+                var before = calls;
+                hints.Advance(1);
+                Assert.InRange(calls - before, 0, ThreatGuidance.HintStepLimit + 1);
+                steps++;
+            }
+            Assert.True(hints.Complete);
+            Assert.True(hints.Active);
+            Assert.InRange(hints.BuildSteps, 1, ThreatGuidance.BuildStepLimit);
+            Assert.InRange(calls, 1, ThreatGuidance.HintLimit);
+            var synchronous = new ThreatGuidance(new V3(-45, 0, -20), new V3(-45, 0, 20), sample, Dry);
+            Assert.Equal(synchronous.InitialEstimate, hints.InitialEstimate);
+            var done = calls;
+            Assert.True(hints.Advance(8));
+            Assert.Equal(done, calls);
+            Assert.Throws<ArgumentOutOfRangeException>(() => hints.Advance(0));
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void IncrementalGuidanceWaitsWithoutGrantingMovementOrRepeatingTheBuild(bool prefer, bool available)
+        {
+            var probes = 0; var builds = 0;
+            var route = new RouteSearch(hints => new LocalRoute(new V3(-45, 0, -20), new V3(-45, 0, 20),
+                (_, __) => { probes++; return null; },
+                guidance: hints != null ? hints.Estimate : (Func<V3, double>)null), () =>
+                { builds++; return new ThreatGuidance(new V3(-45, 0, -20), new V3(-45, 0, 20), Threats, at => available && Dry(at), deferred: true); }, prefer);
+            var ticks = 0;
+            while (route.Status == RouteStatus.Searching && ticks++ < 10000)
+            {
+                var waiting = route.BuildingGuidance;
+                var before = probes;
+                route.Advance(1);
+                if (waiting) Assert.Equal(before, probes);
+                Assert.Null(route.Path);
+            }
+            Assert.Equal(RouteStatus.NoRoute, route.Status);
+            Assert.True(route.Guidance.Complete);
+            Assert.Equal(available, route.Guidance.Active);
+            Assert.Equal(1, builds);
+            Assert.InRange(route.BudgetStages, 2, 3);
+            Assert.Equal(RouteStatus.NoRoute, route.Advance(8));
+            Assert.Equal(1, builds);
+        }
+
         sealed class Captured
         {
             public double[] Start { get; set; }
             public double[] Home { get; set; }
             public double[][] Threats { get; set; }
             public double[][] Terrain { get; set; }
+        }
+
+        [Fact]
+        public void CapturedSevenThreatCoastHasGeometricGuidance()
+        {
+            var data = JsonConvert.DeserializeObject<Captured>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "coastal-return.json")));
+            V3 Pos(double[] p) => new V3(p[0], p[1], p[2]);
+            var start = Pos(data.Start); var home = Pos(data.Home);
+            var threats = data.Threats.Select(t => new HostileClearance.Threat(Pos(t), t[3] == 16 ? "Neck" : t[3] == 24 ? "Boar" : "Greyling")).ToArray();
+            var terrain = data.Terrain.ToDictionary(p => (p[0], p[1]), p => p[2]);
+            bool Hint(V3 at)
+            {
+                var x = Math.Floor(at.X / 4) * 4; var z = Math.Floor(at.Z / 4) * 4;
+                if (!terrain.TryGetValue((x, z), out var a) || !terrain.TryGetValue((x + 4, z), out var b) ||
+                    !terrain.TryGetValue((x, z + 4), out var c) || !terrain.TryGetValue((x + 4, z + 4), out var d)) return true;
+                var dx = (at.X - x) / 4; var dz = (at.Z - z) / 4;
+                return (a * (1 - dx) + b * dx) * (1 - dz) + (c * (1 - dx) + d * dx) * dz >= 30 + DryTravel.Margin;
+            }
+            var hints = new ThreatGuidance(start, home, threats, Hint);
+            Assert.True(hints.Active, $"estimate={hints.InitialEstimate} rejected={hints.RejectedHints} waypoints={hints.Waypoints} samples={hints.HintSamples}");
+            // Retained terrain can demonstrate a candidate first leg, never
+            // body clearance or a full route beyond these loaded samples.
+            V3? ProbeTerrain(V3 from, V3 at)
+            {
+                var x = Math.Floor(at.X / 4) * 4; var z = Math.Floor(at.Z / 4) * 4;
+                if (!terrain.TryGetValue((x, z), out var a) || !terrain.TryGetValue((x + 4, z), out var b) ||
+                    !terrain.TryGetValue((x, z + 4), out var c) || !terrain.TryGetValue((x + 4, z + 4), out var d)) return null;
+                var dx = (at.X - x) / 4; var dz = (at.Z - z) / 4;
+                var pos = new V3(at.X, (a * (1 - dx) + b * dx) * (1 - dz) + (c * (1 - dx) + d * dx) * dz, at.Z);
+                return Math.Abs(pos.Y - from.Y) <= .3 && DryTravel.Clear(pos, 30, DryTravel.TravelMargin) &&
+                    HostileClearance.Clear(from, pos, threats) ? pos : (V3?)null;
+            }
+            var route = new LocalRoute(start, home, ProbeTerrain, guidance: hints.Estimate);
+            Assert.Equal(RouteStatus.Found, Finish(route));
+            Assert.True(route.ProgressLeg);
+            Assert.True(V3.FlatDistance(route.Path.Last(), home) > V3.FlatDistance(start, home));
         }
 
         [Fact]

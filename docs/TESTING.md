@@ -1234,6 +1234,25 @@ infeasibility. Do not repeat the unchanged trial. Inactive hint graphs now
 retain their diagnostics without starting another search. Outer delivery,
 personal resupply and workbench repair remain pending safe home recovery.
 
+The retained seven-threat `coastal-return.json` fixture reproduces inactive
+guidance with only four represented envelopes. Guidance now represents up to
+eight envelopes (64 ring points), while every sampled threat still constrains
+all edges. The fixture demonstrates an initially-away first leg over measured
+terrain; interpolated terrain does not establish live support or body clearance.
+Missing fixture samples cannot authorize that test leg. A full physical coast
+route and return-home result remain field checks.
+
+The native caller defers graph construction and advances one waypoint/edge
+unit at a time within the existing eight-work-unit/2 ms target slice. A unit
+queries at most 65 terrain hints, with at most 4096 distinct hint cells and
+2209 graph units overall. Incomplete graphs cannot score or grant a route.
+Construction gets a separate finite local wall-time stage, without extending
+the enclosing task deadline or physical expansion limit. `complete`,
+`buildSteps` and cumulative `buildMs` remain in guidance diagnostics. Tests
+also cover deferred preferred/fallback builds, inactive graphs, no movement
+during construction, and unchanged single-retry/node limits. Per-unit timing
+and live estimate costs still require profiling in Unity.
+
 ## Household food pressure checks
 
 The staged encounter plan is in [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md).

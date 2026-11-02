@@ -8,21 +8,26 @@ namespace Renki.Movement
     /// can authorize support, clearance or arrival.</summary>
     public sealed class ThreatGuidance
     {
-        public const int ThreatLimit = 4, Spokes = 8, SampleLimit = 128, HintLimit = 4096, HintStepLimit = 64;
+        public const int ThreatLimit = 8, Spokes = 8, SampleLimit = 128, HintLimit = 4096, HintStepLimit = 64;
+        public const int MaxWaypoints = ThreatLimit * Spokes;
+        public const int BuildStepLimit = 1 + 2 * MaxWaypoints + (MaxWaypoints + 1) * MaxWaypoints / 2;
         readonly V3 goal;
         readonly HostileClearance.Threat[] threats;
         readonly List<V3> points = new List<V3>();
-        readonly double[] costs;
+        double[] costs;
+        IEnumerator<int> build;
         readonly Func<V3, bool> hint;
         readonly Dictionary<(int, int), bool> hints = new Dictionary<(int, int), bool>();
-        public bool Active { get; }
+        public bool Complete { get; private set; }
+        public bool Active { get; private set; }
+        public int BuildSteps { get; private set; }
         public int Waypoints => points.Count - 1;
         public int RejectedHints { get; private set; }
         public int HintSamples => hints.Count;
-        public double InitialEstimate { get; }
+        public double InitialEstimate { get; private set; }
 
         public ThreatGuidance(V3 start, V3 goal, IReadOnlyList<HostileClearance.Threat> threats,
-            Func<V3, bool> hint = null)
+            Func<V3, bool> hint = null, bool deferred = false)
         {
             if (!Finite(start) || !Finite(goal) || threats == null || threats.Count > SampleLimit)
                 throw new ArgumentException("invalid threat guidance scope");
@@ -40,7 +45,28 @@ namespace Renki.Movement
             }
             points.Add(goal);
             InitialEstimate = V3.FlatDistance(start, goal);
-            if (Clear(start, goal)) return;
+            build = Build(start, selected);
+            if (!deferred) while (!Advance(64)) { }
+        }
+
+        /// <summary>One unit generates a waypoint or checks one graph edge,
+        /// with at most HintStepLimit+1 terrain samples. No physical probes.</summary>
+        public bool Advance(int budget = 8)
+        {
+            if (budget < 1) throw new ArgumentOutOfRangeException(nameof(budget));
+            for (var i = 0; i < budget && !Complete; i++)
+            {
+                if (build.MoveNext()) BuildSteps++;
+                else { Complete = true; build.Dispose(); build = null; }
+            }
+            return Complete;
+        }
+
+        IEnumerator<int> Build(V3 start, List<HostileClearance.Threat> selected)
+        {
+            var direct = Clear(start, goal);
+            yield return 0;
+            if (direct) yield break;
             selected.Sort((a, b) => Relevance(start, goal, a).CompareTo(Relevance(start, goal, b)));
             for (var i = 0; i < Math.Min(ThreatLimit, selected.Count); i++)
             {
@@ -52,14 +78,15 @@ namespace Renki.Movement
                     var angle = spoke * Math.PI * 2 / Spokes;
                     var at = new V3(threat.Pos.X + Math.Cos(angle) * radius, start.Y,
                         threat.Pos.Z + Math.Sin(angle) * radius);
-                    if (!Outside(at) || !Hint(at)) { RejectedHints++; continue; }
-                    if (!points.Exists(p => V3.FlatDistance(p, at) < .1)) points.Add(at);
+                    if (!Outside(at) || !Hint(at)) RejectedHints++;
+                    else if (!points.Exists(p => V3.FlatDistance(p, at) < .1)) points.Add(at);
+                    yield return 0;
                 }
             }
             costs = new double[points.Count];
             var closed = new bool[points.Count];
             for (var i = 1; i < costs.Length; i++) costs[i] = double.PositiveInfinity;
-            // Dijkstra over at most33 vertices. These edges are geometric
+            // Dijkstra over at most65 vertices. These edges are geometric
             // hints only; no terrain or body physics is inferred from them.
             for (var iteration = 0; iteration < points.Count; iteration++)
             {
@@ -69,10 +96,20 @@ namespace Renki.Movement
                 if (next < 0 || double.IsPositiveInfinity(costs[next])) break;
                 closed[next] = true;
                 for (var i = 0; i < points.Count; i++)
-                    if (!closed[i] && Clear(points[i], points[next]))
-                        costs[i] = Math.Min(costs[i], costs[next] + V3.FlatDistance(points[i], points[next]));
+                    if (!closed[i])
+                    {
+                        if (Clear(points[i], points[next]))
+                            costs[i] = Math.Min(costs[i], costs[next] + V3.FlatDistance(points[i], points[next]));
+                        yield return 0;
+                    }
             }
-            var estimated = ViaGraph(start);
+            var estimated = double.PositiveInfinity;
+            for (var i = 1; i < points.Count; i++)
+            {
+                if (!double.IsPositiveInfinity(costs[i]) && Clear(start, points[i]))
+                    estimated = Math.Min(estimated, V3.FlatDistance(start, points[i]) + costs[i]);
+                yield return 0;
+            }
             if (!double.IsPositiveInfinity(estimated))
             {
                 InitialEstimate = estimated;
@@ -82,6 +119,7 @@ namespace Renki.Movement
 
         public double Estimate(V3 at)
         {
+            if (!Complete) throw new InvalidOperationException("threat guidance is still building");
             if (!Finite(at)) throw new ArgumentException("invalid guidance position");
             if (!Active) return V3.FlatDistance(at, goal);
             var estimate = ViaGraph(at);

@@ -760,6 +760,13 @@ Notes:
   all support, water and solid-collision checks still apply. A saturated
   creature sample refuses routing. Gather enables this on all of its travel
   legs, including return home; explicit combat retains its own approach policy.
+- **Hostile detour guidance:** after ordinary physical routing fails, one
+  bounded geometric fallback can represent up to eight threat envelopes.
+  All sampled threats constrain its edges. Graph construction advances across
+  physics ticks within the local planning slice; an incomplete graph cannot
+  authorize movement. Terrain hints only order the subsequent physical search.
+  Each leg still requires current support, water and body clearance, and the
+  original task deadline remains authoritative.
 - **Dry home travel:** home returns request `dry:true`. Native movement uses
   validated route hints or incremental local routing with supported endpoints
   and midpoints at least 0.2m above water, including bridge/floor support. It

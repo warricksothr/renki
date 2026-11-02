@@ -686,7 +686,7 @@ namespace Renki.Plugin
                 {
                     var height = Ground(at.X, at.Z);
                     return double.IsNaN(height) || height >= WorldNavigation.WaterLevel(at) + DryTravel.Margin;
-                }) : null;
+                }, deferred: true) : null;
                 watch.Stop(); localGuidanceMs = watch.Elapsed.TotalMilliseconds;
                 return result;
             }
@@ -738,7 +738,12 @@ namespace Renki.Plugin
             localProbe.BeginSlice();
             // At most eight expansions and roughly 2 ms per physics step.
             for (var i = 0; i < 8 && watch.Elapsed.TotalMilliseconds < 2 && localRoute.Status == RouteStatus.Searching; i++)
+            {
+                var building = localRoute.BuildingGuidance;
+                var before = watch.Elapsed.TotalMilliseconds;
                 localRoute.Advance(1);
+                if (building) localGuidanceMs += watch.Elapsed.TotalMilliseconds - before;
+            }
             watch.Stop();
             localMs += watch.Elapsed.TotalMilliseconds;
             localWorstMs = System.Math.Max(localWorstMs, watch.Elapsed.TotalMilliseconds);
@@ -749,7 +754,7 @@ namespace Renki.Plugin
             // entrance search after only half its permitted nodes. Frame
             // work, node count and the enclosing task timeout remain bounded.
             if (localRoute.Guidance?.Active == true) preferGuidance = true;
-            if (localRoute.Status == RouteStatus.Searching && elapsed < 16 * (localRoute.Phase + 1)) return true;
+            if (localRoute.Status == RouteStatus.Searching && elapsed < 16 * localRoute.BudgetStages) return true;
             // Even an enclosed start may exhaust the local search before
             // the navmesh's asynchronous tile request has had one retry.
             if (localRoute.Status == RouteStatus.NoRoute && elapsed < 1.25f) return true;
@@ -781,6 +786,8 @@ namespace Renki.Plugin
                     buildMs = System.Math.Round(localGuidanceMs, 2),
                     initialEstimate = localRoute.Guidance.InitialEstimate,
                     phase = localRoute.Phase,
+                    complete = localRoute.Guidance.Complete,
+                    buildSteps = localRoute.Guidance.BuildSteps,
                 },
                 ["elapsedS"] = System.Math.Round(elapsed, 2),
                 ["ms"] = System.Math.Round(localMs, 2),
