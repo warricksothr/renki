@@ -255,7 +255,8 @@ commander in sight with a *settle area* (`Settle`, in
 - **Widening.** After `settleDelayS` (5 s) in the area, a step into the
   `settleSlack` (2 m) band past its edge widens the circle to that distance,
   up to `settleMaxRadius` (10 m, or `settleRadius` if that is larger). Before then the area does not widen, so a
-  jog or run through leaves it within the delay.
+  jog or run through leaves it within the delay, and a walk through gains
+  less than a metre of reach before it leaves.
 - **Leaving.** A step beyond the edge plus the slack, or 30 s unseen
   (`SettleGap`), opens a fresh area where they stand, and the reach falls back
   to its base.

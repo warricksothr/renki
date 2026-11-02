@@ -103,6 +103,23 @@ func TestSettleGivesAWalkerNoReach(t *testing.T) {
 	}
 }
 
+func TestSettleGivesAPlayerWalkingThroughUnderAMetre(t *testing.T) {
+	p := lootDefaults(LootParams{})
+	var s Settle
+	t0 := time.Unix(1000, 0)
+	// A walk at 1.6 m/s outlasts the delay in each area, so it widens and
+	// gains a little reach before the walker leaves it, never a metre.
+	most := 0.0
+	for i := range 600 {
+		at := t0.Add(time.Duration(i) * 500 * time.Millisecond)
+		s.Observe(protocol.Vec3{float64(i) * .8, 0, 0}, at, testArea)
+		most = max(most, LootReach(s.Settled(at), p))
+	}
+	if most <= p.BaseRadius || most >= p.BaseRadius+1 {
+		t.Fatal("most reach while walking", most)
+	}
+}
+
 func TestSettleForgetsAPlayerUnseenForItsGap(t *testing.T) {
 	var s Settle
 	t0 := time.Unix(1000, 0)
