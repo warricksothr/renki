@@ -1,14 +1,19 @@
 # Roadmap
 
 Where renki is going, in milestones, and how we know each one is finished.
-The tickets carry the work. This page carries the order, the dates, the exit
-goals and the rules for running the work in parallel, so it changes only when
-a plan does.
+The tickets carry the work. This page carries the order, the exit goals and
+the rules for running the work in parallel, so it changes only when a plan
+does.
+
+Each milestone has a target date, the time-bound part of its SMART goals. The
+targets are guidelines, not estimates. A milestone closes when its goals are
+met, which may be well before its target. When one closes, reset the targets
+of the ones after it.
 
 Written 2026-11-01 and hardened on 2026-11-02, when every milestone was groomed
 so that one agent can pick up one ticket and finish it alone. The goals are also
-on each epic, as its definition of done. Re-read and re-dated every Sunday (see
-[Cadence](#cadence)).
+on each epic, as its definition of done. See [Cadence](#cadence) for when it
+is revisited.
 
 ## Where we are
 
@@ -21,13 +26,13 @@ Work started on 2026-10-28. In five days 153 pull requests merged.
 - **The live trial is the bottleneck.** `just vm gather-trial`, the M2 benchmark, has never passed. On 10-31 one run felled and split a tree, then a falling log killed the bot, and another stopped at a startup injury. A flee from the raised base on 10-31 left the bot standing still.
 - **The 2026-11-01 code review** (TKT-01M6DCF2AB, Code review 2026-11-01: robustness, trust and gate gaps) found no broken design. It did find gaps in containment, durability, trust and the CI gate that matter before the bot runs unattended.
 
-The pace that matters for dates is not PRs a day. It is *passing live trials a day*. That rate has been roughly zero to two for the benchmark trials, so the dates below give each milestone one week of trials.
+The pace that matters is not PRs merged. It is *passing live trials*, because every milestone closes on live evidence and the VM runs one trial at a time.
 
 ## Milestones
 
-| | Milestone | Outcome | Epics | Due |
+| | Milestone | Outcome | Epics | Target |
 |---|---|---|---|---|
-| M1 | Join and chat | Done 2026-10-28 | TKT-01M61T36B8 | done |
+| M1 | Join and chat | Done | TKT-01M61T36B8 | done |
 | M2 | Hauls and gathers wood | The wood benchmark in Nimah's words | TKT-01M62MZN7Q | 2026-11-08 |
 | M3 | Survives and stands with its owner | Retreats, fights when allowed, defends its owner, avoids where it was hurt | TKT-01M62N2557 | 2026-11-15 |
 | M4 | Safe to leave running | 24 h unattended without a crash, a leak or a lost store, gated by CI | TKT-01M6DCF2AB, close-out of TKT-01M628X106 | 2026-11-22 |
@@ -57,11 +62,11 @@ M5 to M7 are ordered for focus, not because every ticket requires it:
 
 ## SMART exit goals
 
-Each goal is specific, has a number and a named evidence source, builds on something that already works, ties to the milestone's outcome, and has the milestone's date unless it says otherwise. A goal is met when the evidence is linked in a note on the ticket named in the goal and that ticket's criterion is ticked. "Run" means a supervised `just vm …` trial that writes `.checks/<trial>-<ts>/summary.json`. The bounded trials need no owner staging (docs/TESTING.md).
+Each goal is specific, has a number and a named evidence source, builds on something that already works, ties to the milestone's outcome, and shares its milestone's target. A goal is met when the evidence is linked in a note on the ticket named in the goal and that ticket's criterion is ticked. "Run" means a supervised `just vm …` trial that writes `.checks/<trial>-<ts>/summary.json`. The bounded trials need no owner staging (docs/TESTING.md).
 
 Goals marked **(proposed)** have thresholds the owner has not confirmed yet. See [Decisions for the owner](#decisions-for-the-owner).
 
-### M2: hauls and gathers wood (due 2026-11-08)
+### M2: hauls and gathers wood (target 2026-11-08)
 
 | # | Goal | Measure | Evidence | Ticket |
 |---|---|---|---|---|
@@ -73,19 +78,19 @@ Goals marked **(proposed)** have thresholds the owner has not confirmed yet. See
 
 2.3 changed from 300 m because the site planner refuses trees more than 150 m from home, and a trial cannot type in-game chat. 2.4 changed because staging "no chest" or "chest full" live would mean emptying or filling the owner's real chests.
 
-### M3: survives and stands with its owner (due 2026-11-15)
+### M3: survives and stands with its owner (target 2026-11-15)
 
 | # | Goal | Measure | Evidence | Ticket |
 |---|---|---|---|---|
-| 3.1 | Retreat instead of standing still **(proposed)** | Across every live trial from 11-03 to 11-15, at least 3 consecutive low-HP episodes with a threat within 15 m in which `flee` is dispatched within 1.5 s and the bot reaches its owner or home alive, and none that fails. One starts on the raised base that failed on 10-31 | `just vm retreat-evidence` (TKT-01M6EFHEEN) | TKT-01M62N256M, TKT-01M6EFHED7 |
+| 3.1 | Retreat instead of standing still **(proposed)** | Across every live trial run after the flee fix (TKT-01M6EFHED7) is deployed, at least 3 consecutive low-HP episodes with a threat within 15 m in which `flee` is dispatched within 1.5 s and the bot reaches its owner or home alive, and none that fails. One starts on the raised base that failed on 10-31 | `just vm retreat-evidence` (TKT-01M6EFHEEN) | TKT-01M62N256M, TKT-01M6EFHED7 |
 | 3.2 | Fight when allowed, stop when told | With `AllowCombat` on, 3 of 3 `just vm combat-trial` runs that find a Greyling end in its observed death. An owner stop, by chat or the panel, ends combat within 2 s in at least one. Runs that find no Greyling do not count and do not break the streak. With combat off, no attack is ever sent | summaries with stop timing (TKT-01M6EFHEG5), and `MeleeTests` for the off case | TKT-01M62N2582, TKT-01M6EFHEBC |
 | 3.3 | Defend the owner | 2 of 2 escort or guard runs engage a confirmed attacker of a protected player within 10 m, and stop on "stay out of it" with no further attack | `just vm escort-check` with defence triggers and timing (TKT-01M6EFHEHM, TKT-01M6EHP58N) | TKT-01M62N25AD |
 | 3.4 | Avoid where it was hurt | A replay test shows routes home detouring around remembered danger zones. One live trip detours around a zone still scoring at least 1 | test name plus an audit window | TKT-01M6EFHEK3, TKT-01M6EFHS5E |
 | 3.5 | Containment for the fights | TKT-01M6DCFSEG (stow and marker safety) and TKT-01M6DCFSG0 (goal lifecycle, three children) are done | ticket status | TKT-01M6DCF2AB |
 
-3.1 counts natural episodes because the trials refuse to injure the bot on purpose. If fewer than 3 occur by 11-12, the owner decides between funding the isolated world (TKT-01M656NE4C) and accepting a slip. 3.3 says "confirmed attacker" because a remotely owned creature may not reveal whom it targets (docs/ESCORT.md). A confirmed attacker is one whose observed AI target is a protected player other than the bot. The plugin must first report that trigger (TKT-01M6EHP58N).
+3.1 counts natural episodes because the trials refuse to injure the bot on purpose. If too few occur by the time M3's other goals are met, the owner decides between funding the isolated world (TKT-01M656NE4C) and accepting a slip. 3.3 says "confirmed attacker" because a remotely owned creature may not reveal whom it targets (docs/ESCORT.md). A confirmed attacker is one whose observed AI target is a protected player other than the bot. The plugin must first report that trigger (TKT-01M6EHP58N).
 
-### M4: safe to leave running (due 2026-11-22)
+### M4: safe to leave running (target 2026-11-22)
 
 | # | Goal | Measure | Evidence | Ticket |
 |---|---|---|---|---|
@@ -96,7 +101,7 @@ Goals marked **(proposed)** have thresholds the owner has not confirmed yet. See
 | 4.5 | The link heals itself | After a 20 s controller pause the plugin reconnects and accepts tasks within 10 s of resume | bridge test plus one live pause | TKT-01M6DCFS8Y, TKT-01M6EFGYNM |
 | 4.6 | Review closed | Every child of TKT-01M6DCF2AB is done, or has a note saying why it stands, which includes a move to a later milestone. The panel epic's criteria are ticked or moved | ticket status | TKT-01M6DCF2AB, TKT-01M628X106 |
 
-### M5: runs the base (due 2026-12-06)
+### M5: runs the base (target 2026-12-06)
 
 The evidence for 5.1 to 5.3 and 5.6 comes from two 2 h home soaks (TKT-01M6EFM4G7) scored by `just vm upkeep-report` (TKT-01M6EFK453). The soaks run on top of M4's soak supervisor.
 
@@ -114,7 +119,7 @@ The evidence for 5.1 to 5.3 and 5.6 comes from two 2 h home soaks (TKT-01M6EFM4G
 
 Smelters, kilns, fermenters and beehives are out of these goals until the owner says whether the base has them.
 
-### M6: agent with tools (due 2026-12-20)
+### M6: agent with tools (target 2026-12-20)
 
 Measured by `just vm agent-report` (TKT-01M6EFC7R8), which reads new `agent wake`, `agent tool` and `agent proposal` audit records. The live evidence is gathered in one ticket (TKT-01M6EFK122), so the implementation tickets stay offline.
 
@@ -131,7 +136,7 @@ Measured by `just vm agent-report` (TKT-01M6EFC7R8), which reads new `agent wake
 | 6.8 | Worked example end to end | A stock-low event leads to a query, an ask, a yes, gathering until the target, and a report of the ending. It passes once at ask and once at tell | audit windows, agent report | TKT-01M62VXZE3, TKT-01M6EFK122 |
 | 6.9 | M6 tickets tell the truth | Every child is done, or has a note saying what is left and is moved | `git ticket list --milestone M6` | TKT-01M62VXZA3 |
 
-### M7: explores and maps (due 2027-01-17)
+### M7: explores and maps (target 2027-01-17)
 
 Coverage is measured in atlas samples: one sample is a 4 m cell, 16 m². "New" means first received during the expedition, from this bot, inside the authorized circle. That needs a first-seen time in the atlas (TKT-01M6EFQN74), because today it keeps only the latest observation.
 
@@ -158,7 +163,7 @@ A ticket can go to an agent when:
 2. `### Files` names the files or packages to start in.
 3. `### Verification` names the `just` recipes that prove it offline, and, where live evidence is needed, the `just vm …` recipe and what in its summary counts.
 4. Each acceptance criterion can be checked by someone else.
-5. It fits one pull request, about a day of work. Larger work is an umbrella that depends on its children.
+5. It fits one pull request. Larger work is an umbrella that depends on its children.
 6. Dependencies are recorded with `git ticket link`, so `git ticket ready` tells the truth.
 7. It carries the `live` label if any criterion needs the game client on the VM.
 8. Its status is `ready`. Only a person promotes a draft (AGENTS.md).
@@ -195,10 +200,10 @@ Priority inside the wave: the VM lease, the CI workflow, and the M2/M3 tickets t
 
 ### Critical paths
 
-- **M2.** Goal 2.1: the lease, then repeated `gather-trial` runs on TKT-01M62N12JW. Goal 2.2 is longer: the lease, then drop piles and the loot template, then deliver-when-full (TKT-01M6EFHE4E) and the haul report (TKT-01M6DDFTDD), then integration on TKT-01M62N12HJ, then two owner sessions. It runs past 11-08 unless the owner can play by about 11-06.
+- **M2.** Goal 2.1: the lease, then repeated `gather-trial` runs on TKT-01M62N12JW. Goal 2.2 is longer: the lease, then drop piles and the loot template, then deliver-when-full (TKT-01M6EFHE4E) and the haul report (TKT-01M6DDFTDD), then integration on TKT-01M62N12HJ, then two owner sessions.
 - **M3.** Goal 3.1: the lease, then the flee fix TKT-01M6EFHED7, a deploy, and then waiting for three natural low-HP episodes, which nobody can schedule. Second chain: TKT-01M6EFHEBC, then TKT-01M6EFHEG5 and TKT-01M6EFHEHM, plus the escort trigger TKT-01M6EHP58N (live, plugin), then combat trials and two owner escort sessions.
-- **M4.** The lease and the soak supervisor TKT-01M6DDFTF6, then the 24 h run TKT-01M6EFGYV6. That run also waits on TKT-01M6DCFSHH, TKT-01M6DCFSNT, TKT-01M6DCFS8Y and TKT-01M6DDBX5T, which run in parallel. The soak window has to start by 2026-11-20.
-- **M5.** Machine add_to (TKT-01M62VXZ4D), then the fuel template (TKT-01M62VXZ5P), then the two home soaks (TKT-01M6EFM4G7). A second chain is about as long: stow and chat behaviours, then chest assignments (TKT-01M62VXZ84), then idle sorting (TKT-01M6EFKDSV). Realistically the soak window is the week of 11-30.
+- **M4.** The lease and the soak supervisor TKT-01M6DDFTF6, then the 24 h run TKT-01M6EFGYV6. That run also waits on TKT-01M6DCFSHH, TKT-01M6DCFSNT, TKT-01M6DCFS8Y and TKT-01M6DDBX5T, which run in parallel.
+- **M5.** Machine add_to (TKT-01M62VXZ4D), then the fuel template (TKT-01M62VXZ5P), then the two home soaks (TKT-01M6EFM4G7). A second chain: stow and chat behaviours, then chest assignments (TKT-01M62VXZ84), then idle sorting (TKT-01M6EFKDSV).
 - **M6.** The trust fix TKT-01M6DCFSME and the model spike TKT-01M630V80T, then the tool registry (TKT-01M62VXZAV), wake bus (TKT-01M62VXZBN), autonomy (TKT-01M62VXZCV), behaviour tools (TKT-01M62VXZE3) and live evidence (TKT-01M6EFK122). Goal 6.8 also needs the stock-low event (TKT-01M62VXZF8, in M6), which waits on chest memory (TKT-01M62VXYWJ).
 - **M7.** M2 and M3 close. Then walked-ground reporting (TKT-01M6EFQN91) and the live survey leg (TKT-01M6EFQNWT), alongside readiness (TKT-01M6EFQNT4), the goal spec (TKT-01M6EFQP11), frontier ranking and the return (TKT-01M6EFQNYK, which needs only the walked trail). All of them feed the goal runner (TKT-01M6EFQP43), then replays (TKT-01M6EFQP5X) and three expedition passes (TKT-01M6EFQPB8); the trial supervisor runs alongside. The survey leg is the only live step before the runner, so book its VM slot early.
 
@@ -211,7 +216,7 @@ Work that touches these together should go one after another, or be coordinated 
 - **Plugin task files** (`TaskArgs.cs`, `BodyTasks.cs`, `KiteTask.cs`): M2/M3 movement, M5 machine tasks and M7's survey task.
 - **Atlas schema:** TKT-01M6EFQN74, TKT-01M6EFQN91 and TKT-01M6EFQNBJ each add a migration, so they land in order.
 - **Lint rollout:** TKT-01M6EFGK0R touches most Go and panel files. Land it in a quiet window, or with suppressions that later tickets remove.
-- **The VM:** the M4 24 h soak, M5's 2 h soaks, M6's 4 h wake soak and M7's expedition trials all need it. Book them in the weekly review.
+- **The VM:** the M4 24 h soak, M5's 2 h soaks, M6's 4 h wake soak and M7's expedition trials all need it. Book them at each review.
 
 ## How the goals are measured
 
@@ -230,23 +235,23 @@ These block work or set a goal's numbers. They are listed in the order they bloc
 3. **Confirm the Behaviours epic move** (TKT-01M62VXYQB). Already applied: it is in M5, where goals 5.4 and 5.5 carry its owner-editing outcome, and M2 no longer depends on it, because its M2 part is the same work as TKT-01M62N12HJ.
 4. **CI:** GitHub Actions or not, where CI installs `git-ticket`, and how CI builds Renki.Plugin (stub assemblies, a self-hosted runner, or required only at package and deploy time). This sets goal 4.1's final wording.
 5. **Owner binding** for 4.4: learn the player ID on first sight and confirm it in the panel, or require IDs in config.
-6. **Owner time:** two haul sessions of 30 min or more by about 11-06 (2.2), two escort sessions before 11-15 (3.3), a 30 min cooking session (5.2), and 2 h of play for M6 (6.7).
-7. **VM windows:** 24 h from about 11-20 (4.2), about 6 h in the week of 11-30 (M5), 4 h for the M6 wake soak.
+6. **Owner time:** two haul sessions of 30 min or more (2.2), two escort sessions (3.3), a 30 min cooking session (5.2), and 2 h of play for M6 (6.7).
+7. **VM windows:** 24 h for the M4 soak (4.2), two 2 h home soaks (M5), and 4 h for the M6 wake soak.
 8. **Thresholds marked (proposed):** 2.3, 2.4, 3.1, 5.1, 6.4, 6.7 and 7.3.
 9. **Scope calls:** which machines the base has (M5), whether the bot may spend shared materials to craft tools, whether waking stays off by default until M6's goals are met, whether 4 m loaded-terrain samples count as "observed" for M7, and whether M7's offline tickets may start before M2 and M3 close.
 10. **For the live checks:** name a chest the bot may fill for the chest-full check, and say whether you will stage the lake walk for the drowning bug.
 
 ## Cadence
 
-- **Every Sunday:** compare each open milestone against its goals and record the result as a note on its epic. If a date will be missed, re-date it here with one line saying why. Do not let it slip silently. Book the VM windows for the week, and promote the next wave.
-- **When a milestone closes:** tick its epic, close or move its children, and revisit the next milestone's proposed thresholds with the evidence now available.
-- **New work** lands in `draft`. It joins a milestone when a person promotes it, and is otherwise left out of the dates above.
+- **When a wave drains:** compare each open milestone against its goals and record the result as a note on its epic, book the VM for the live work that is next, and promote the next wave.
+- **When a milestone closes:** tick its epic, close or move its children, reset the later milestones' targets and the epics' due dates, and revisit the next milestone's proposed thresholds with the evidence now available.
+- **New work** lands in `draft`. It joins a milestone when a person promotes it.
 
 ## Risks
 
 - **Live trials depend on the production world.** A death or a lost item costs real progress. Every trial already refuses to run without its safety preconditions, and M4's durability work protects the stores.
-- **The VM is the real bottleneck.** About 50 offline tickets can run at once. The live work cannot, and the M4 to M7 soaks alone need about 36 h of VM time. The lease makes that visible, and the weekly review books it.
-- **M2's owner-haul goal is at risk for 11-08.** It needs four pull requests, a deploy and two owner sessions. If it slips, re-date M2 rather than closing on 2.1 alone.
+- **The VM is the real bottleneck.** About 50 offline tickets can run at once. The live work cannot, and the soaks in M4 to M7 each hold the VM for hours. The lease makes that visible, and each review books it.
+- **M2's owner-haul goal needs the owner.** It waits on two owner sessions after its code lands. Do not close M2 on 2.1 alone.
 - **Natural episodes for 3.1 may not happen.** See the fallback under the M3 goals.
 - **Merge pressure.** Wave 1 is wide. Review capacity, not agent capacity, sets the pace, so keep the near milestones first.
-- **Work in flight drifts from the criteria.** At the weekly review, ask whether the active tickets serve the open milestone's goals.
+- **Work in flight drifts from the criteria.** At each review, ask whether the active tickets serve the open milestone's goals.

@@ -6,7 +6,7 @@ type: epic
 status: draft
 status_reason: null
 priority: high
-due_on: null
+due_on: "2026-12-06"
 labels:
   - controller
   - chat
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:20:55Z
+updated_at: 2026-11-02T17:45:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code

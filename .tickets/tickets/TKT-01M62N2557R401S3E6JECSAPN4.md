@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-02T16:02:27Z
+updated_at: 2026-11-02T17:45:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -52,7 +52,7 @@ The plugin's safety switch for this (Safety.AllowCombat) is off by default and s
 
 ## Definition of done
 
-- [ ] 3.1 Across all live trials from 11-03 to 11-15, just vm retreat-evidence shows >=3 consecutive low-HP episodes with a threat within 15 m where flee is dispatched within 1.5 s and the bot reaches its owner or home alive, and none that fails; one starts on the raised base (TKT-01M6EFHEEN, TKT-01M6EFHED7)
+- [ ] 3.1 Across all live trials run after the flee fix (TKT-01M6EFHED7) is deployed, just vm retreat-evidence shows >=3 consecutive low-HP episodes with a threat within 15 m where flee is dispatched within 1.5 s and the bot reaches its owner or home alive, and none that fails; one starts on the raised base (TKT-01M6EFHEEN, TKT-01M6EFHED7)
 - [ ] 3.2 With AllowCombat on, 3/3 combat-trial runs that find a Greyling end in its observed death, and an owner stop (chat or panel) ends combat within 2 s in at least one (TKT-01M6EFHEG5); with it off, no attack is sent (MeleeTests)
 - [ ] 3.3 Two of two escort or guard runs engage a confirmed attacker of a protected player within 10 m, and stop on 'stay out of it' with no further attack (escort-check, TKT-01M6EFHEHM)
 - [ ] 3.4 A replay test shows routes home detouring around remembered danger zones (TKT-01M6EFHEK3), and one live trip detours around a zone still scoring >=1 (TKT-01M6EFHS5E)

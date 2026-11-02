@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T15:59:48Z
+updated_at: 2026-11-02T17:45:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m5
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---

@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:34:39Z
-updated_at: 2026-11-02T15:59:52Z
+updated_at: 2026-11-02T17:45:02Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
