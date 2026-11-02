@@ -14,7 +14,7 @@ labels:
   - live
 assignees: []
 milestone: M4
-parent: TKT-01M6864352N8E28YCGHA19AN90
+parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies:
   - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-01T00:39:28Z
-updated_at: 2026-11-02T16:30:42Z
+updated_at: 2026-11-02T16:46:38Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -58,3 +58,7 @@ Files: `plugin/Renki.Core/Movement/ThreatGuidance.cs`, `plugin/Renki.Plugin/Body
 **agent:claude-code/renki-plan** at 2026-11-02T16:30:42Z
 
 Applied on 2026-11-02 by the planning pass: milestone set to M4. No M3 goal needs it, as the earlier note says. It is a frame-budget fix, which suits M4 (safe to leave running). First check whether commit a5b1dc3 already sliced hint sampling as well as graph building; if it did, close this ticket with that evidence. The owner can unschedule it.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:46:38Z
+
+Applied on 2026-11-02 by the planning pass: parent set to TKT-01M6DCF2AB (Code review 2026-11-01: robustness, trust and gate gaps), so goal 4.6 covers this M4 ticket. It was under the M5 pressure-work epic, which no M4 goal tracks.
