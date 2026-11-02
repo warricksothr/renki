@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M6A62GWANGQWSB1GYCZ66G37
 title: Validate outdoor household food delivery and fallback
 type: task
-status: in-progress
-status_reason: null
+status: blocked
+status_reason: Outer-trip recovery admitted healthy Tas but physical routing found no safe progress leg amid seven loaded hostile envelopes and the coast. Requires the linked route-feasibility follow-up before resupply, repair or another outdoor delivery trial.
 priority: high
 due_on: null
 labels:
@@ -16,20 +16,14 @@ parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
 dependencies:
   - TKT-01M6A6Y1XQGNZV4B01QK23J26E
+  - TKT-01M6A9EVRB6KY9J8K1G9BV4BZT
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/hostile-return-detours
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: 29db3b84b1cb994a35df3a6a9505a0273f8cef21
-  session: null
-  claimed_at: 2026-11-01T00:38:51Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-31T23:52:44Z
-updated_at: 2026-11-01T00:41:14Z
+updated_at: 2026-11-01T00:54:57Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -52,7 +46,9 @@ Exercise the authorized outdoor household-food sequence with real collection and
 
 ## Implementation plan
 
-Run a bounded native household goal against current home storage with required outdoor collection and deposit receipts; retain exact failure evidence. Exercise distinct-source exhaustion and pressure decisions with regression scenarios, fixing the shared goal ordering or supervisor only when evidence requires it. Preserve current safety, ownership and explicit source/storage scope. Record live outcomes, run just check ci and committed review, then publish a stacked PR and deploy verified fixes before inspecting repair support.
+Continue outdoor household validation after the verified home return. The next trial stopped on a targeting Neck about96m from home without injury or receipts, outside the local startup-return radius. Add an explicitly selected `work_trip` one-shot return profile; leave the default local order unchanged. Cap work trips at200m home radius,400m travelled and240s, and require stronger admission: at least90% maximum health (and50HP), three active foods whose shortest duration exceeds the240s return allowance by30s, and35 stamina. Require at least two active foods throughout; preserve every existing injury, water, threat, authority, arrival-floor and shelter gate. Unknown profiles must fail closed.
+
+Expose selection through the existing arming/supervisor recipes, record the profile/limits in native traces, and give the supervisor an explicit420s overall deadline for the selected work-trip profile (including game join/cleanup allowance). Test local compatibility, profile validity, exact new bounds, stronger reserves, terminal outcomes and supervisor forwarding/cleanup. Run focused checks and the full gate, commit and review, install while offline, then attempt one work-trip return under the supervisor. Do not run the incompatible local order or repeat an unchanged failed return. Only after safe home recovery inspect normal food/repair readiness and decide whether another production trial is justified by changed source or supply observations.
 
 ## Notes
 
@@ -93,3 +89,21 @@ The navigation dependency is now done: PR #138 /29db3b8 passed a guarded111m ret
 Retried the positive outdoor test with `just check vm food-check --storage 1:70031 --stock-target Mushroom=1 --sources 'west mushrooms' --require-acquisition --require-deposit --keep-online`. Evidence `.checks/food-20261101T003807Z`; exact audit `.checks/audit-window-R7JtyI.jsonl`. Goal432d0ad89e3af334119b78a4 reached roughly[-61.65,33.37,-85.6] (about96m from home,157m observed travel) but entered needs_plan: nearby threat interrupts household work. A live Neck was targeting Tas about22m away; the unchanged household guard interrupted the source trip. No damage, collection or deposit was observed; final67.9/67.9HP, grounded and dry. The supervisor logged out and stopped the game; the panel remains online. Do not count this as outdoor production proof.
 
 The body is now beyond the existing80m local startup-return radius. Do not retry that order or silently enlarge it. The next implementation should add an explicitly selected, capped work-trip recovery profile with stronger admission reserves, the same injury/water/threat/authority checks, explicit diagnostics, and tests for its independent distance/time/travel bounds. Local default recovery must remain unchanged. This allows a healthy interrupted outer trip to return autonomously without changing the pinned home, using cheats, or asking a person to clear creatures. Positive outdoor delivery and repair remain unverified.
+
+**agent:codex/renki-milestones** at 2026-11-01T00:52:28Z
+
+The explicit work-trip profile is implemented in9b422d6 / PR #139 https://github.com/warricksothr/renki/pull/139. Focused37-case RecoveryReturnTests, supervisor tests, plugin build, full `just check ci` (`.checks/20261101T004543Z-SLizhL.log`) and committed `just check review t3/hostile-return-detours..HEAD` passed. The first gate caught dictionary whitespace; the corrected gate passed. Installation verified package/DLL checksums.
+
+One live `just check vm recover-home DizzysHellheim --work-trip` attempt is retained at `.checks/recovery-20261101T004838Z`, audit `.checks/audit-window-BDzhju.jsonl`. Native trace proves explicit work_trip admission with240s/400m/200m bounds at[-61.67,33.37,-85.61]. The body stayed grounded and dry at67.6/67.6HP, without movement or injury. Native routing found no safe progress leg after3228 expansions/25626 probes against seven loaded hostile envelopes and water/body/support refusals, then logged out. The supervisor stopped the game, restored the panel and cleared the one-shot order. This verifies profile admission and safe failure, not a home return. No unchanged retry was made.
+
+Retain inactive graph diagnostics in RouteSearch instead of dropping them when no estimate becomes active. This does not start an additional search or change physical permission; its regression checks one factory call and a terminal unchanged failure. Further live navigation, personal resupply from remembered mushroom chest1:70040, workbench repair at1:70046, and a changed source trial remain pending. Current gear is worn (axe76, rag chest121 durability) but still usable; memory is a hint and must be refreshed through normal game interactions.
+
+Filed TKT-01M6A9EVRB6KY9J8K1G9BV4BZT — Resolve a multi-threat coastal return bottleneck in draft, with exact threats/positions and required route-feasibility work. The local80m recovery defaults and all hostile/physical/survival checks are unchanged. AC1/4 remain unticked: there is still no outdoor stock deposit and repair has not been tested.
+
+**agent:codex/renki-milestones** at 2026-11-01T00:52:28Z
+
+in-progress to blocked: Outer-trip recovery admitted healthy Tas but physical routing found no safe progress leg amid seven loaded hostile envelopes and the coast. Requires the linked route-feasibility follow-up before resupply, repair or another outdoor delivery trial.
+
+**agent:codex/renki-milestones** at 2026-11-01T00:54:57Z
+
+Final diagnostic follow-up gate passed: just check ci, .checks/20261101T005228Z-EP3pwl.log; focused guidance and plugin lint also passed. Native admission/safe refusal are verified, while outdoor deposit and repair remain explicitly unearned.

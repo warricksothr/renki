@@ -156,7 +156,8 @@ namespace Renki.Plugin
                     p.GetStamina(), p.GetFoods().Count, p.IsOnGround(), p.InWater() || p.IsSwimming(), p.InShelter(), gap,
                     runner.InSession && client.Connected && client.SecondsSinceController <= DeadManSeconds &&
                         safety.Enabled && safety.AllowMovement && runner.Allowed.Contains(TaskNames.MoveTo),
-                    Time.unscaledTime - recoverySince >= 2);
+                    Time.unscaledTime - recoverySince >= 2,
+                    p.GetFoods().Count == 0 ? 0 : p.GetFoods().Min(food => food.m_time));
                 if (actionReturn == RecoveryReturnAction.Move)
                 {
                     // The guard is sampled from Update too, but only physics may steer.
@@ -172,7 +173,14 @@ namespace Renki.Plugin
                                 Run = false
                             }, Convert.ToVector3(recoveryReturnOrder.Home), null);
                             Tracer.Emit("recovery", "bounded startup return started", new Dictionary<string, object>
-                            { ["home"] = recoveryReturnOrder.Pos, ["pos"] = Convert.ToArray(p.transform.position) });
+                            {
+                                ["home"] = recoveryReturnOrder.Pos,
+                                ["pos"] = Convert.ToArray(p.transform.position),
+                                ["profile"] = recoveryReturnOrder.WorkTrip ? "work_trip" : "local",
+                                ["seconds"] = recoveryReturnOrder.Seconds,
+                                ["travelM"] = recoveryReturnOrder.Travel,
+                                ["homeRadiusM"] = recoveryReturnOrder.Radius,
+                            });
                         }
                         var result = recoveryWalk.Tick(dt);
                         if (result != null)
