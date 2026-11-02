@@ -23,7 +23,8 @@ need-target:
 
 # Every recipe that changes the VM, the game or the bot depends on `guard` or
 # runs through `lease.py run`: it refuses while another worktree holds the VM
-# lease, and takes the lease when it is free. Reading needs no lease. See
+# lease, and takes the lease when it is free. Reading needs no lease, and
+# neither do the emergency stops, `stop` and `panel POST /api/act/stop`. See
 # docs/VM.md, "The VM lease", and scripts/vm/lease.py.
 
 # Who holds the VM lease and until when, without changing it.
