@@ -206,6 +206,10 @@ namespace Renki.Tasks
                 {
                     o = Outcome.Failed(e.Reason, e.Message);
                 }
+                catch (Exception e)
+                {
+                    o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
+                }
                 Reply(req, o.Status, o.Reason, o.Detail);
                 return;
             }
@@ -218,6 +222,11 @@ namespace Renki.Tasks
             catch (TaskRefused e)
             {
                 Reply(req, Wire.StatusRejected, e.Reason, e.Message);
+                return;
+            }
+            catch (Exception e)
+            {
+                Reply(req, Wire.StatusRejected, Wire.ReasonInternal, Fault(e));
                 return;
             }
             CancelBody(Wire.ReasonSuperseded, $"replaced by {req.Id}", reportIt: true);
@@ -241,7 +250,17 @@ namespace Renki.Tasks
             }
             else
             {
-                o = body.Tick(dt);
+                try
+                {
+                    o = body.Tick(dt);
+                }
+                catch (Exception e)
+                {
+                    // A throw escaping here would skip SetControls on every
+                    // later step and leave the game holding the last inputs.
+                    o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
+                    try { body.Cancel(); } catch (Exception) { }
+                }
                 if (o == null) return;
             }
             var finished = current;
@@ -276,6 +295,13 @@ namespace Renki.Tasks
             body = null;
             host.Idle();
             if (reportIt) Reply(cancelled, Wire.StatusCancelled, reason, detail);
+        }
+
+        /// <summary>A bounded description of an unexpected exception.</summary>
+        static string Fault(Exception e)
+        {
+            var text = e.GetType().Name + ": " + e.Message;
+            return text.Length <= 200 ? text : text.Substring(0, 200);
         }
 
         void Reply(TaskRequest req, string status, string reason = null, string detail = null, string entity = null) =>

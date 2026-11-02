@@ -413,3 +413,53 @@ func TestControllerDeadlineStopsTheStepAndCountsTheFailedAttempt(t *testing.T) {
 		t.Fatal(list, f.log.String())
 	}
 }
+
+// pause waits for a fixed span after starting, as a Delay or as ErrWait.
+type pause struct{ delay bool }
+
+func (pause) Validate(json.RawMessage) error { return nil }
+func (p pause) Start(json.RawMessage) (Runner, error) {
+	return &pauseRun{delay: p.delay}, nil
+}
+
+type pauseRun struct {
+	delay bool
+	until time.Time
+}
+
+func (r *pauseRun) Next(v View, _ *Result) (*session.Order, error) {
+	if r.until.IsZero() {
+		r.until = v.Now.Add(15 * time.Second)
+	}
+	if !v.Now.Before(r.until) {
+		return nil, nil
+	}
+	if r.delay {
+		return nil, &Delay{Until: r.until}
+	}
+	return nil, ErrWait
+}
+
+// Gather's 15 s pursuer and 20 s wildlife windows rely on this contract: a
+// Delay lasts as long as it says (up to 30 s), while ErrWait ends at 5 s.
+func TestEngineHonoursDelaysPastTheObservationWaitLimit(t *testing.T) {
+	for _, delay := range []bool{true, false} {
+		f := setup(t)
+		f.e.o.Templates["pause"] = pause{delay: delay}
+		d := def()
+		d.Template = "pause"
+		d.Params = json.RawMessage(`{}`)
+		f.put(t, "pause", d)
+		f.act(t, "pause", "start")
+		f.tick()
+		for i := 0; i < 10; i++ {
+			f.now = f.now.Add(time.Second)
+			f.p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25, HPMax: 25, WeightMax: 300})
+			f.tick()
+		}
+		running := f.e.List()[0].Running
+		if running != delay {
+			t.Fatalf("delay=%v: running after 10 s = %v", delay, running)
+		}
+	}
+}

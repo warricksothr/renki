@@ -263,7 +263,9 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Logger:    log,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
-		BaseContext:       func(net.Listener) context.Context { return ctx },
+		// Close idle keep-alive connections; an event stream is not idle.
+		IdleTimeout: 2 * time.Minute,
+		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
 	go func() {
 		<-ctx.Done()

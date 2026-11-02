@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T05:48:47Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -57,3 +57,9 @@ Panel exposure is bounded only by its token. That is fine on loopback or Tailsca
 - [ ] The cookie carries a session ID rather than the token
 - [ ] model.baseURL must be https unless loopback
 - [ ] The panel http.Server sets header, read and idle timeouts
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T05:48:47Z
+
+The review-fixes PR set IdleTimeout (2 min) on the panel http.Server, alongside the existing ReadHeaderTimeout. ReadTimeout and WriteTimeout were left unset on purpose, because the panel serves long-lived event streams. Use per-handler deadlines (http.ResponseController) instead. The AC stays open until that is decided.

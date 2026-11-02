@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSCKJE592MCK0R2DDYQG
 title: "Behaviours: long gather waits, repeat conditions and tick clock"
 type: bug
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T05:48:47Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -57,6 +57,12 @@ The engine reads `v.Now` in `e.view()` and then `now := e.o.Now()` separately. A
 
 ## Acceptance criteria
 
-- [ ] Gather's 15 s pursuer and 20 s wildlife waits survive the engine for their documented length, proven by an engine-level test
+- [x] Gather's 15 s pursuer and 20 s wildlife waits survive the engine for their documented length, proven by an engine-level test
 - [ ] A while/until repeat condition no longer cancels the run in progress
-- [ ] The engine uses one timestamp per tick
+- [x] The engine uses one timestamp per tick
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T05:48:46Z
+
+Done in the review-fixes PR: (1) gather's pursuer 15 s and wildlife 20 s waits now return Delay, with TestEngineHonoursDelaysPastTheObservationWaitLimit pinning the engine contract and the pursuer test pinning Until=+15 s. (3) The engine judges a Delay by v.Now, the clock the runner decided on. Partly: Tick still reads now separately for waitingSince, which is harmless. Still open: (2) the while/until repeat condition cancelling the run in progress. It needs a decision on intended semantics, so check docs/BEHAVIOURS.md before changing allowed().

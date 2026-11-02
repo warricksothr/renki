@@ -61,7 +61,8 @@ func (r *gatherRun) defend(v View) (*session.Order, error) {
 			r.pursuerUntil = v.Now.Add(15 * time.Second)
 		}
 		if v.Now.Before(r.pursuerUntil) {
-			return nil, ErrWait
+			// A Delay: the engine would end a 15 s ErrWait at 5 s.
+			return nil, &Delay{Until: r.pursuerUntil}
 		}
 		return nil, errors.New("confirmed work-site pursuer did not enter native defense range")
 	}

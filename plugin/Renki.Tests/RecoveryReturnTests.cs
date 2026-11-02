@@ -28,6 +28,13 @@ namespace Renki.Tests
             Assert.Equal(0, order.FoodReserveSeconds(406, 893));
         }
 
+        [Fact]
+        public void MissingOrderLogsOutInsteadOfMoving()
+        {
+            // A malformed Safety.RecoveryReturn deserializes to null.
+            Assert.Equal(RecoveryReturnAction.Logout, Step(new RecoveryReturn(null)));
+        }
+
         static RecoveryReturn Guard(string profile = null) => new RecoveryReturn(new RecoveryReturnOrder
         { World = "one", Pos = new[] { 0d, 30, 0 }, Expires = 1200, Profile = profile });
 

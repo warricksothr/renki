@@ -728,7 +728,8 @@ func (e *Engine) Tick(ctx context.Context) {
 		if i.waitingSince.IsZero() {
 			i.waitingSince = now
 		}
-		if delay.Until.After(now.Add(30*time.Second)) || !delay.Until.After(now) {
+		// Judge the wait by the clock the runner decided on, not a later read.
+		if delay.Until.After(v.Now.Add(30*time.Second)) || !delay.Until.After(v.Now) {
 			e.finish(false, "invalid or expired bounded wait", v)
 		}
 		return

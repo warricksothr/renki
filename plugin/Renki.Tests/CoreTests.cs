@@ -13,12 +13,14 @@ namespace Renki.Tests
     sealed class FakeBody : IBodyTask
     {
         public Outcome Next;
+        public Exception Throw;
         public bool Cancelled;
         public int Ticks;
 
         public Outcome Tick(double dt)
         {
             Ticks++;
+            if (Throw != null) throw Throw;
             return Next;
         }
 
@@ -31,10 +33,12 @@ namespace Renki.Tests
         public readonly List<string> Instants = new List<string>();
         public int Idles;
         public TaskRefused Refuse;
+        public Exception Throw;
 
         public IBodyTask StartBody(TaskRequest req, object args)
         {
             if (Refuse != null) throw Refuse;
+            if (Throw != null) throw Throw;
             var b = new FakeBody();
             Bodies.Add(b);
             return b;
@@ -42,6 +46,7 @@ namespace Renki.Tests
 
         public Outcome RunInstant(TaskRequest req, object args)
         {
+            if (Throw != null) throw Throw;
             Instants.Add(req.Task + (args is SayArgs s ? ":" + s.Text : ""));
             return Outcome.Succeeded();
         }
@@ -97,6 +102,35 @@ namespace Renki.Tests
             Assert.Equal("native-grey", reports.Last().Entity);
             Assert.Equal("t-1", reports.Last().Re);
             Assert.Null(reports.First().Entity);
+        }
+
+        [Fact]
+        public void ThrowingBodyTaskFailsIdlesAndFreesTheRunner()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            var idles = host.Idles;
+            host.Bodies[0].Throw = new NullReferenceException("gone");
+            runner.FixedTick(0.02);
+            Assert.Equal("t-1:accepted t-1:running t-1:failed/internal", Log());
+            Assert.Contains("NullReferenceException", reports.Last().Detail);
+            Assert.True(host.Bodies[0].Cancelled);
+            Assert.Equal(idles + 1, host.Idles);
+            Assert.Null(runner.Current);
+            runner.FixedTick(0.02);
+            Assert.Equal(1, host.Bodies[0].Ticks);
+        }
+
+        [Fact]
+        public void ThrowingStartOrInstantStillReplies()
+        {
+            runner.Welcome(TaskNames.M1);
+            host.Throw = new InvalidOperationException(new string('x', 500));
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.Handle(Req("t-2", "emote", "{\"name\":\"wave\"}"));
+            Assert.Equal("t-1:rejected/internal t-2:accepted t-2:failed/internal", Log());
+            Assert.True(reports.All(r => r.Detail == null || r.Detail.Length <= 200));
+            Assert.Null(runner.Current);
         }
 
         [Fact]
