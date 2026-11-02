@@ -108,20 +108,29 @@ namespace Renki.Movement
         readonly V3 goal;
         readonly double within;
         readonly double arrivalLevel;
+        readonly bool projectHintHeight;
         readonly List<V3> path = new List<V3>();
         V3 from, legStart;
         int index, part, parts;
         public int Samples { get; private set; }
         public V3? Checking { get; private set; }
+        public V3 CheckingFrom { get; private set; }
+        public V3? Supported { get; private set; }
+        public string Rejection { get; private set; }
+        public double MaxHintHeightOffset { get; private set; }
         public RouteStatus Status { get; private set; } = RouteStatus.Searching;
         public IReadOnlyList<V3> Path => path;
 
-        public RouteValidation(V3 start, V3 goal, RouteHint hint, Func<V3, V3, V3?> probe, double within = .25, double arrivalLevel = Arrival.Level)
+        public RouteValidation(V3 start, V3 goal, RouteHint hint, Func<V3, V3, V3?> probe, double within = .25, double arrivalLevel = Arrival.Level,
+            bool projectHintHeight = false)
         {
             from = legStart = start; this.goal = goal; this.hint = hint.Points; this.probe = probe;
             this.within = within;
             this.arrivalLevel = arrivalLevel;
+            this.projectHintHeight = projectHintHeight;
         }
+
+        RouteStatus Reject(string why) { Rejection = why; return Status = RouteStatus.NoRoute; }
 
         public RouteStatus Advance(int budget = 8)
         {
@@ -133,19 +142,25 @@ namespace Renki.Movement
                 }
                 if (index == hint.Count)
                 {
-                    Status = Arrival.Reached(from, goal, within, arrivalLevel) ? RouteStatus.Found : RouteStatus.NoRoute;
+                    if (Arrival.Reached(from, goal, within, arrivalLevel)) Status = RouteStatus.Found;
+                    else Reject("actual_goal_not_reached");
                     break;
                 }
-                if (Samples >= MaxSamples) { Status = RouteStatus.NoRoute; break; }
+                if (Samples >= MaxSamples) { Reject("sample_budget"); break; }
                 if (parts == 0) parts = Math.Max(1, (int)Math.Ceiling((hint[index] - legStart).Length / .5));
                 var expected = legStart + (hint[index] - legStart) * (++part / (double)parts);
                 Checking = expected;
+                CheckingFrom = from;
                 Samples++;
                 var supported = probe(from, expected);
-                if (!(supported is V3 at) || V3.FlatDistance(at, expected) > .1 || Math.Abs(at.Y - expected.Y) > .65)
-                {
-                    Status = RouteStatus.NoRoute; break;
-                }
+                Supported = supported;
+                if (!(supported is V3 at)) { Reject("physical_probe"); break; }
+                if (V3.FlatDistance(at, expected) > .1) { Reject("support_position"); break; }
+                MaxHintHeightOffset = Math.Max(MaxHintHeightOffset, Math.Abs(at.Y - expected.Y));
+                // Navmesh heights smooth across stair treads. Only the live
+                // probe grants each step; arrival still uses measured height.
+                // A recorded trail retains its original floor agreement.
+                if (!projectHintHeight && Math.Abs(at.Y - expected.Y) > .65) { Reject("recorded_floor_changed"); break; }
                 from = at;
                 if (path.Count == 0 || (path[path.Count - 1] - at).Length >= .01) path.Add(at);
                 if (part == parts) { index++; part = parts = 0; legStart = from; }

@@ -38,7 +38,8 @@ namespace Renki.Movement
                 attempted.Count >= MaxAttempts || attempted.Any(old => Same(old, points))) return null;
             var copy = points.ToArray();
             attempted.Add(copy);
-            return new RouteValidation(from, complete ? goal : end, new RouteHint(0, copy), probe, complete ? within : .15, complete ? arrivalLevel : Arrival.Level);
+            return new RouteValidation(from, complete ? goal : end, new RouteHint(0, copy), probe, complete ? within : .15, complete ? arrivalLevel : Arrival.Level,
+                projectHintHeight: true);
         }
 
         /// <summary>A failure can leave useful checked ground before the
