@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EYEMRVAG415PX2A10XSXDC
 title: "Loot: reach grows while the anchor stays settled in a small area"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-lead
-  branch: t3/adaptive-reach
-  worktree: /home/sothr/.t3/worktrees/renki/t3-c2254fa1
-  commit: 9414f22bc122ee5c93810df425cc5a2091ae996e
-  session: null
-  claimed_at: 2026-11-02T21:59:32Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-02T20:15:45Z
-updated_at: 2026-11-02T22:03:40Z
+updated_at: 2026-11-02T22:20:18Z
 created_by:
   id: agent:claude-code/renki-wave1
   name: ""
@@ -71,7 +64,7 @@ Keep the settle tracker a pure type in `internal/behaviour` (positions and times
 - [x] A pure settle tracker gives the settle area and loot reach from the anchor's positions over time, with defaults in LootParams
 - [x] Reach grows while the anchor stays in the area, which may drift and grow a little, and resets when they leave it completely, covered by tracker tests
 - [x] A loot test shows a far drop ignored on arrival and taken once the anchor has settled
-- [ ] docs/BEHAVIOURS.md describes the model and its parameters; just check ci passes
+- [x] docs/BEHAVIOURS.md describes the model and its parameters; just check ci passes
 
 ## Implementation plan
 
@@ -84,3 +77,17 @@ The shared `Loot` keeps one tracker per (player, area shape). `Observe` feeds ev
 New LootParams fields, where 0 means the default: `baseRadius` 8, `growS` 120, `settleDelayS` 5, `settleRadius` 6, `settleMaxRadius` 10, `settleSlack` 2. Each is validated. Saved instances pick up the defaults.
 
 Tests: tracker sequences (standing still, drifting, one step out, full exit, walking through, a gap) and the reach curve. A loot test: a drop at 20 m is ignored on arrival and taken after settling. Existing tests whose drops lie beyond 8 m are adjusted. Docs: BEHAVIOURS.md.
+
+## Summary
+
+Landed on t3/adaptive-reach. The pure `Settle` tracker (internal/behaviour/settle.go) works as follows:
+- it opens a 6 m area;
+- its centre drifts with a 30 s time constant;
+- it widens to 10 m once the player has stayed 5 s;
+- it resets on a full exit (past the edge plus 2 m) or after 30 s unseen.
+
+`LootReach` gives the radius: 8 m until 5 s settled, then linear to the 30 m radius over 120 s. The numbers are LootParams fields (baseRadius, growS, settleDelayS, settleRadius, settleMaxRadius, settleSlack); zero means the default. Saved instances, including the built-in one, follow the defaults.
+
+The shared Loot tracks every commander in sight with the default shape, so the settle time accrues even while Tas is busy. A custom shape is tracked while an instance keeps asking, and is dropped after 10 minutes without a check.
+
+Tests cover standing still, drift, a step out and a full exit, a jog and a walk through, the gap, a far drop taken once settled, and validation. Tuning is left to the panel view (TKT-01M6EYEMTX). Nothing has been checked live.
