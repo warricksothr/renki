@@ -181,16 +181,20 @@ class Lease:
             yield
 
     def record(self, value):
-        """Replace .vm-lease atomically, so a reader never sees it half written."""
-        text = json.dumps(value) + '\n' if value is not None else None
-        current = self.local_path.read_text() if self.local_path.exists() else None
-        if text == current:
+        """Replace .vm-lease atomically, so a reader never sees it half written.
+        None forgets the id but keeps the actor. Every change bumps a
+        generation that never repeats, which read() uses to see that nothing
+        here changed while it read the VM."""
+        current = self.local()
+        new = {k: v for k, v in (value or {}).items() if k != 'gen'}
+        if value is None and current.get('actor'):
+            new['actor'] = current['actor']
+        if 'gen' in current and {k: v for k, v in current.items() if k != 'gen'} == new:
             return
-        if text is None:
-            self.local_path.unlink(missing_ok=True)
-            return
+        gen = current.get('gen')
+        new['gen'] = (gen if isinstance(gen, int) else 0) + 1
         tmp = Path(str(self.local_path) + f'.{os.getpid()}.tmp')
-        tmp.write_text(text)
+        tmp.write_text(json.dumps(new) + '\n')
         os.replace(tmp, self.local_path)
 
     def forget(self, seen):
@@ -213,19 +217,22 @@ class Lease:
                 or f'{user}@{socket.gethostname()}')
 
     def read(self):
-        # The local id is read under the lock before and after the VM, and the
-        # read repeats if it changed: a take records its id before its swap and
-        # a release forgets it only after, so an unchanged id means no swap from
-        # this worktree landed in between, and a taker's provisional id is never
-        # mistaken for ours.
-        while True:
+        # The local record is read under the lock before and after the VM, and
+        # the read repeats if its generation moved: a take records its id
+        # before its swap and a release forgets it only after, so an unchanged
+        # generation means no swap from this worktree landed in between, and a
+        # taker's provisional id is never mistaken for ours.
+        for _ in range(20):
             with self.local_lock():
-                before = self.local().get('id')
+                before = self.local()
             now, sha, data = self.transport.read()
             with self.local_lock():
-                mine = self.local().get('id')
-            if mine == before:
+                after = self.local()
+            if after.get('gen') == before.get('gen'):
                 break
+        else:
+            raise SystemExit('the lease record in this worktree kept changing; try again')
+        mine = after.get('id')
         state, lease = classify(data, now, mine)
         return now, sha, state, lease, mine
 

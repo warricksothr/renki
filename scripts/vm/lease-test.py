@@ -84,7 +84,7 @@ def held_by_self(case):
     check(renewed['expires'] == '2026-11-02T13:50:00Z', f'renewal moves the expiry: {renewed}')
     out = case.lease('release')
     check(out.returncode == 0 and case.held() is None, f'release removes it: {out}')
-    check(not (case.root / 'a.vm-lease').exists(), 'release forgets the local id')
+    check('id' not in json.loads((case.root / 'a.vm-lease').read_text()), 'release forgets the local id')
     check(case.lease('guard', worktree='b').returncode == 0, 'anyone may take a released lease')
 
 
@@ -246,7 +246,7 @@ def lost_race(case):
         check(False, 'a lost race must be refused')
     except lease.Refused as error:
         check('agent:y/two' in str(error), f'the winner is named: {error}')
-    check(not local.exists(), 'the loser records no lease id')
+    check('id' not in json.loads(local.read_text()), 'the loser records no lease id')
 
 
 def lost_reply(case):
