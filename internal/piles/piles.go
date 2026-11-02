@@ -139,7 +139,7 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 		members  []member
 	}
 	sums := map[key]*sum{}
-	drops, farthest := 0, 0.0
+	drops, farthest, rejected := 0, 0.0, false
 	for _, r := range p.Resources {
 		if r.Kind != protocol.ResourceDrop {
 			continue
@@ -149,6 +149,9 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 			break
 		}
 		if r.Prefab == "" || len(r.Prefab) > 100 || !finite(r.Pos) {
+			// A drop the plugin listed but this cannot place or name
+			// still lies somewhere, so no ground is known to be clear.
+			rejected = true
 			continue
 		}
 		d := distance(bot, r.Pos)
@@ -199,7 +202,7 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 		}
 		return less(a.key, b.key)
 	})
-	if drops > MaxDropsPerFrame {
+	if drops > MaxDropsPerFrame || rejected {
 		f.reach = 0
 	}
 	if len(f.piles) > MaxPilesPerFrame {

@@ -350,3 +350,11 @@ func TestPresentAtTheEdgeAndForgottenAfterAStall(t *testing.T) {
 		t.Fatalf("piles after a stall = %+v", p)
 	}
 }
+
+func TestARejectedDropSeesNothingAsClear(t *testing.T) {
+	var tr Tracker
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "", 5, 5, 1)), start)
+	if n := tr.Snapshot(hello, "w").Near(start, protocol.Vec3{5, 0, 5}, 8, nil); n.State != Unseen {
+		t.Fatalf("a nameless drop = %+v", n)
+	}
+}

@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T19:38:39Z
+updated_at: 2026-11-02T20:20:13Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
@@ -83,6 +83,10 @@ After review: perception carries no scan origin, so the engine pairs a frame onl
 **agent:claude-code/renki-m2-drops** at 2026-11-02T19:38:39Z
 
 Second review: Near now measures pile membership in 3D like coverage (pass an r that allows for terrain height), and a welcome without maxPerKind is treated as the plugin's cap of 24. Known limit: a scan that fills the plugin's 2048-collider buffer is not flagged in the message, so it can read as clear ground. Filed TKT-01M6EWAJ0N (Perception: report the scan origin and a truncated scan) for that and the scan origin; it should land before deliver-when-gone relies on Absent.
+
+**agent:claude-code/renki-m2-drops** at 2026-11-02T20:20:13Z
+
+Supersedes the previous note on maxPerKind: a welcome without maxPerKind now gives every frame no reach, so Near answers unknown (the plugin keeps whatever cap it had, of any size). Near also answers unknown when the plugin listed a drop with no usable prefab or position, when a frame has over 256 drops or 128 piles, and when the frame was paired with a state whose drift (the larger of 15 m/s x scan-to-state time and the distance from the last state at or before the scan plus running since) eats the reach. A drop in sight in the circle answers present even when the rest of the circle is out of reach (Total is then a lower bound).
 
 ## Summary
 
