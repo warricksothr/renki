@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSEGQP80TT6N087B6NH1
 title: "Behaviours: stow walks avoid hostiles; marker health baseline"
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-m3-marker
-  branch: t3/marker-health-baseline
-  worktree: /home/sothr/.t3/worktrees/renki/t3-c2254fa1
-  commit: 26dd1f039e9942423eadf30ab229fec1aee78bfb
-  session: null
-  claimed_at: 2026-11-02T18:48:52Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T19:07:21Z
+updated_at: 2026-11-02T19:08:48Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -88,3 +81,7 @@ Fixed: check() now sets r.health to the current sample after lost() passes. New 
 **agent:claude-code/renki-m3-marker** at 2026-11-02T19:07:21Z
 
 Supersedes the earlier note's description of the fix. Review found that moving the baseline to every passing sample lets losses under lost()'s 0.15 tolerance add up step by step. The fix is now healthSample.roll(), a baseline that ratchets up (peak, clamped to the current maximum), sharing mealRefresh() with lost(). The marker rest guard had the same start-only baseline and now uses roll() too. New tests: TestMarkerFoodNoticesAHitAfterHealingPastItsStart, TestCargoNoticesAHitAfterHealingPastItsStart, TestRestNoticesAHitAfterHealingPastItsStart, TestMarkerFoodAddsUpSmallLossesAgainstThePeak, TestMarkerFoodKeepsThePeakWhenTheMaximumRisesWithoutAMeal. Each was checked to fail against the defect it covers. just check ci passed at 38288e3 (153 s). Not deployed; no live check needed for the criteria.
+
+## Summary
+
+Marker food, cargo and rest guards keep a baseline that ratchets up (healthSample.roll), so a hit after healing past the start health stops the run, and small losses add up against the peak. Covered by five behaviour tests; just ci and just review clean. Stow walks were fixed earlier in #156.
