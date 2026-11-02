@@ -132,6 +132,36 @@ def run_releases_after_cleanup(case):
     check(case.held() is None and 'released the VM lease' in out.stderr, f'released afterwards: {out}')
 
 
+def run_forwards_termination(case):
+    """SIGTERM to run reaches the command; the lease is released after its cleanup."""
+    import signal
+    import time
+    probe = case.root / 'probe'
+    child = (
+        'import pathlib, signal, sys, time\n'
+        'def stop(*_):\n'
+        '    time.sleep(0.2)\n'
+        '    pathlib.Path(sys.argv[2]).write_text(str(pathlib.Path(sys.argv[1]).exists()))\n'
+        '    sys.exit(5)\n'
+        'signal.signal(signal.SIGTERM, stop)\n'
+        'pathlib.Path(sys.argv[2] + ".ready").write_text("")\n'
+        'time.sleep(30)\n'
+    )
+    proc = subprocess.Popen([sys.executable, '-B', str(LEASE), 'run', '--', sys.executable, '-c', child,
+                             str(case.file), str(probe)], env=case.env(),
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    ready = Path(str(probe) + '.ready')
+    for _ in range(200):
+        if ready.exists():
+            break
+        time.sleep(0.05)
+    proc.send_signal(signal.SIGTERM)
+    code = proc.wait(timeout=30)
+    check(code == 5, f'run returns the command status: {code} {proc.stderr.read()}')
+    check(probe.read_text() == 'True', 'the lease was held through the cleanup')
+    check(case.held() is None, 'and released afterwards')
+
+
 def run_releases_when_the_command_cannot_start(case):
     """A command that cannot start does not leave the lease run took."""
     out = case.lease('run', '--', str(case.root / 'missing-interpreter'))
@@ -269,7 +299,7 @@ def lost_reply(case):
 
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
-             run_releases_after_cleanup, run_releases_when_the_command_cannot_start,
+             run_releases_after_cleanup, run_forwards_termination, run_releases_when_the_command_cannot_start,
              run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
              concurrent_guards, release_racing_guards, lost_race, lost_reply]
     for case in cases:

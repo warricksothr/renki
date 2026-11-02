@@ -327,9 +327,20 @@ def run(lease, command, minutes, renew_seconds):
     if took:
         print(f"took the VM lease for {held['actor']} until {held['expires']}", file=sys.stderr)
     # Ctrl-C reaches the child too; wait for its cleanup instead of dying first.
-    previous = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    # SIGTERM and SIGHUP (a timeout, a closed terminal) reach only this
+    # process, so they are passed on to the child, and the lease is still
+    # released only after the child's cleanup.
+    started = []
+
+    def forward(signum, _frame):
+        for child in started:
+            child.send_signal(signum)
+
+    previous = {signum: signal.signal(signum, handler) for signum, handler in
+                ((signal.SIGINT, signal.SIG_IGN), (signal.SIGTERM, forward), (signal.SIGHUP, forward))}
     try:
         child = subprocess.Popen(command, preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
+        started.append(child)
         while True:
             try:
                 code = child.wait(timeout=renew_seconds)
@@ -345,7 +356,8 @@ def run(lease, command, minutes, renew_seconds):
         print(f'cannot start {command[0]}: {error}', file=sys.stderr)
         code = 127
     finally:
-        signal.signal(signal.SIGINT, previous)
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
         if took:
             try:
                 released = lease.release_if_self()
