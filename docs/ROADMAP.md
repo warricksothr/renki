@@ -88,7 +88,7 @@ Goals marked **(proposed)** have thresholds the owner has not confirmed yet. See
 | 3.4 | Avoid where it was hurt | A replay test shows routes home detouring around remembered danger zones. One live trip detours around a zone still scoring at least 1 | test name plus an audit window | TKT-01M6EFHEK3, TKT-01M6EFHS5E |
 | 3.5 | Containment for the fights | TKT-01M6DCFSEG (stow and marker safety) and TKT-01M6DCFSG0 (goal lifecycle, three children) are done | ticket status | TKT-01M6DCF2AB |
 
-3.1 counts natural episodes because the trials refuse to injure the bot on purpose. If too few occur by the time M3's other goals are met, the owner decides between funding the isolated world (TKT-01M656NE4C) and accepting a slip. 3.3 says "confirmed attacker" because a remotely owned creature may not reveal whom it targets (docs/ESCORT.md). A confirmed attacker is one whose observed AI target is a protected player other than the bot. The plugin must first report that trigger (TKT-01M6EHP58N).
+3.1 counts natural episodes because the trials refuse to injure the bot on purpose. If fewer than 3 have occurred when M3's other goals are met or its target passes, whichever comes first, the owner decides between funding the isolated world (TKT-01M656NE4C) and accepting a slip. 3.3 says "confirmed attacker" because a remotely owned creature may not reveal whom it targets (docs/ESCORT.md). A confirmed attacker is one whose observed AI target is a protected player other than the bot. The plugin must first report that trigger (TKT-01M6EHP58N).
 
 ### M4: safe to leave running (target 2026-11-22)
 

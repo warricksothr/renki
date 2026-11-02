@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-11-02T17:45:01Z
+updated_at: 2026-11-02T17:48:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -111,3 +111,7 @@ Applied on 2026-11-02 by the planning pass, superseding the "proposed moves (own
 **agent:claude-code/renki-plan** at 2026-11-02T16:35:32Z
 
 Supersedes two lines of the earlier planning note. First, TKT-01M62EP0PD moved to M3 because it extends the danger memory that goal 3.4's tickets read; goal 3.4 does not name it (TKT-01M6EFHEK3 and TKT-01M6EFHS5E own 3.4). Second, the proposed unlink of TKT-01M62N12JW from TKT-01M62N12HJ, TKT-01M62N12G9 and TKT-01M62N12DN is now applied, so goal 2.1 no longer waits on goal 2.2.
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:48:25Z
+
+Supersedes the dated wording in the goal-review planning note. 2026-11-08 is this milestone's guideline target, not a deadline (docs/ROADMAP.md). Goal 2.2 is not judged against that date: it closes when two owner sessions pass, and a target that passes with it open gets a new target at the next review. Goal 2.5 asks for a note in the last 3 days on every in-progress M2 ticket at the time M2 is assessed, whenever that is, not in the 3 days before a fixed date.

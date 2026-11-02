@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T01:26:52Z
-updated_at: 2026-11-02T17:47:06Z
+updated_at: 2026-11-02T17:48:25Z
 created_by:
   id: agent:codex/renki-resume
   name: ""
@@ -64,3 +64,7 @@ Not ready for an agent: it needs a supported local hosting/startup method chosen
 **agent:claude-code/renki-plan** at 2026-11-02T17:47:06Z
 
 Supersedes the "2026-11-09 weekly review" trigger in the M3 grooming note. The owner decides on this isolated world at the first review (docs/ROADMAP.md, Cadence) where too few qualifying episodes for goal 3.1 have occurred while M3's other goals are met.
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:48:25Z
+
+Supersedes the trigger in the previous note: the owner decides on this isolated world at the first review where fewer than 3 qualifying goal 3.1 episodes have occurred and either M3's other goals are met or its target has passed, whichever comes first.
