@@ -11,6 +11,7 @@ target := env("RENKI_VM", if path_exists(justfile_directory() / "vm.local") == "
 dir := env("RENKI_VM_DIR", "C:/renki")
 ssh := "ssh -o BatchMode=yes -o ConnectTimeout=10 " + target
 ps := "powershell -NoProfile -ExecutionPolicy Bypass"
+lease := "python3 -B " + quote(justfile_directory() / "scripts/vm/lease.py") + " --target " + quote(target) + " --dir " + quote(dir)
 
 # List the VM recipes.
 default:
@@ -19,6 +20,34 @@ default:
 [private]
 need-target:
     @[ -n "{{target}}" ] || { echo "no VM: set RENKI_VM=user@host or write it to vm.local" >&2; exit 1; }
+
+# Every recipe that changes the VM, the game or the bot depends on `guard` or
+# runs through `lease.py run`: it refuses while another worktree holds the VM
+# lease, and takes the lease when it is free. Reading needs no lease, and
+# neither do the emergency stops, `stop` and `panel POST /api/act/stop`, when
+# a person runs them; inside a supervised run they guard too. See
+# docs/VM.md, "The VM lease", and scripts/vm/lease.py.
+
+# Who holds the VM lease and until when, without changing it.
+lease-status: need-target
+    @{{lease}} status
+
+# Take the VM lease for deploys and live trials, or renew the one you hold.
+[positional-arguments]
+lease ACTOR MINUTES="60": need-target
+    @{{lease}} take "$1" "$2"
+
+# Give the VM lease back. --force clears another holder's lease: owner only.
+[positional-arguments]
+release *FLAGS: need-target
+    @{{lease}} release "$@"
+
+[private]
+guard: need-target
+    @{{lease}} guard
+
+test-lease:
+    python3 -B "{{justfile_directory()}}/scripts/vm/lease-test.py"
 
 # Check the connection, the account and the scheduled tasks.
 check: need-target
@@ -32,17 +61,17 @@ status LINES="0": need-target
 logs LINES="60": (status LINES)
 
 # Keep the web panel available while the game is offline.
-panel-start: need-target
+panel-start: need-target guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/start-bot.ps1" "{{justfile_directory()}}/scripts/vm/start-panel.ps1" "{{target}}:/{{dir}}/"
     {{ssh}} "{{ps}} -File {{dir}}/start-panel.ps1"
 
 # Stop a controller that keeps the panel available while Valheim is offline.
-panel-stop: need-target
+panel-stop: need-target guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/stop-panel.ps1" "{{target}}:/{{dir}}/stop-panel.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/stop-panel.ps1"
 
 # Start the bot in the VM's desktop session and wait for it to be in the world.
-start MINUTES="5": need-target
+start MINUTES="5": need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     {{ssh}} "Start-ScheduledTask -TaskName RenkiStart"
@@ -57,10 +86,13 @@ start MINUTES="5": need-target
     echo "not in the world after {{MINUTES}} min; try: just vm logs" >&2
     exit 1
 
-# Log the bot out, close the game and stop the controller.
+# Log the bot out, close the game and stop the controller. This is the
+# emergency stop, so a person needs no lease for it; inside a supervised run
+# it still guards (`lease.py guard --emergency`).
 stop: need-target
     #!/usr/bin/env bash
     set -euo pipefail
+    {{lease}} guard --emergency
     {{ssh}} "Start-ScheduledTask -TaskName RenkiStop"
     for _ in $(seq 1 30); do
         if ! {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 1 }" >/dev/null 2>&1; then
@@ -73,11 +105,12 @@ stop: need-target
     echo "the game is still running after 150 s" >&2
     exit 1
 
-# Stop, then start.
-restart: stop start
+# Stop, then start. The guard comes first, so a restart under someone else's
+# lease refuses before it stops anything.
+restart: guard stop start
 
 # Restart only the controller, refreshing welcome/allowedTasks without reloading Valheim.
-reconnect: need-target
+reconnect: need-target guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/reconnect.ps1" "{{target}}:/{{dir}}/reconnect.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/reconnect.ps1"
 
@@ -87,7 +120,7 @@ migration-inspect: need-target
     {{ssh}} "{{ps}} -File {{dir}}/migration-backup.ps1"
 
 # Back up the mod loader, Renki settings/memory and saves; require an offline client/controller.
-migration-backup: need-target
+migration-backup: need-target guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/migration-backup.ps1" "{{target}}:/{{dir}}/migration-backup.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/migration-backup.ps1 -Create"
 
@@ -98,7 +131,7 @@ vplus-stage VERSION='10.4.0.0':
 
 # Install a staged V+ DLL while offline, requiring a completed verified backup.
 [positional-arguments]
-vplus-install VERSION='10.4.0.0': need-target
+vplus-install VERSION='10.4.0.0': need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Use an exact four-part version' >&2; exit 2; }
@@ -116,7 +149,7 @@ vplus-inspect: need-target
     {{ssh}} "{{ps}} -File {{dir}}/vplus.ps1"
 
 # Build, stop and install with checksum verification; leave Tas offline.
-install: need-target
+install: need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     just --justfile "{{justfile()}}" package
@@ -128,6 +161,9 @@ install: need-target
             echo "cannot inspect the VM (SSH exit $probe_status); installation stopped before copying or stopping anything" >&2
             exit "$probe_status"
         fi
+        # Guard again: packaging takes a while, and the nested stop, being an
+        # emergency stop, would not refuse if the lease changed hands meanwhile.
+        {{lease}} guard
         just --justfile "{{justfile()}}" vm stop
     fi
     # Controller-only panel sessions also lock controller.exe on Windows.
@@ -149,7 +185,7 @@ deploy: install
     just --justfile "{{justfile()}}" vm start
 
 # Deploy a controller-only change; preserve the running/offline game state.
-deploy-controller: need-target
+deploy-controller: need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     just --justfile "{{justfile()}}" controller build-windows
@@ -196,7 +232,7 @@ audit-summary SINCE UNTIL:
 
 # Run once, and again after the Tailscale address changes. Then `just vm restart`.
 [doc("Turn the control panel on: Tailscale address, firewall, token.")]
-panel-setup PORT="8780": need-target
+panel-setup PORT="8780": need-target guard
     {{ssh}} "{{ps}} -File {{dir}}/setup-panel.ps1 -Port {{PORT}}"
 
 # Read only the panel address, without printing its login token.
@@ -218,6 +254,10 @@ panel METHOD PATH BODY='': need-target
     endpoint=$2
     [[ "$method" = GET || "$method" = POST ]] || { echo 'METHOD must be GET or POST' >&2; exit 2; }
     [[ "$endpoint" =~ ^/api/[a-zA-Z0-9_/?=\&.%:-]+$ ]] || { echo 'Use an /api/ path without shell metacharacters' >&2; exit 2; }
+    # POST /api/act/stop is the panel's emergency stop, guarded like `stop`.
+    emergency=()
+    [ "$endpoint" != /api/act/stop ] || emergency=(--emergency)
+    [ "$method" = GET ] || {{lease}} guard "${emergency[@]}"
     encoded=$(printf '%s' "${3:-}" | base64 -w0)
     bodyarg=()
     [ -z "$encoded" ] || bodyarg=(-BodyBase64 "$encoded")
@@ -250,23 +290,23 @@ task TASK ARGS='{}' TIMEOUT='60':
 # Send once, wait for the terminal outcome, retain full task evidence locally.
 [positional-arguments]
 task-check TASK ARGS='{}' TIMEOUT='60':
-    python3 "{{justfile_directory()}}/scripts/vm/task-check.py" "$1" "$2" "$3"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/task-check.py" "$1" "$2" "$3"
 
 # Start one automatic normal-controls encounter if a safe Greyling is available;
 # retain results and stay online. --restart-client and --allow-logout are opt-in.
 [positional-arguments]
 combat-trial *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
 
 # Harvest one isolated full beech and newly observed nearby logs; retain the client.
 [positional-arguments]
 harvest-trial *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-tree "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-tree "$@"
 
 # Retry already fallen beech logs without felling another tree; retain the client.
 [positional-arguments]
 harvest-logs X Y Z *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-logs "$1" "$2" "$3" "${@:4}"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-logs "$1" "$2" "$3" "${@:4}"
 
 # Read only matching bounded harvest evidence from a retained audit.
 [positional-arguments]
@@ -290,6 +330,7 @@ combat VALUE='': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    [ -z "$1" ] || {{lease}} guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/combat.ps1" "{{target}}:/{{dir}}/combat.ps1"
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")
@@ -301,6 +342,7 @@ gather VALUE='': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    [ -z "$1" ] || {{lease}} guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/gather.ps1" "{{target}}:/{{dir}}/gather.ps1"
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")
@@ -309,7 +351,7 @@ gather VALUE='': need-target
 # Prompts here without echoing, and sends the value over SSH's standard
 # input, so it is in no command line, log or chat. `just vm secret CPA_API_KEY`.
 [doc("Store a secret for the controller on the VM, such as an LLM key.")]
-secret NAME: need-target
+secret NAME: need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     [[ "{{NAME}}" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "NAME must look like CPA_API_KEY" >&2; exit 2; }
@@ -329,7 +371,7 @@ shell: need-target
 # Monitor one durable combat objective across native encounter failures.
 [positional-arguments]
 goal-trial *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --persistent "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --persistent "$@"
 
 test-goal-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/goal-trial-test.py"
@@ -337,7 +379,7 @@ test-goal-trial:
 # Return home, verify food withdrawals and let the food keeper replenish meals.
 [positional-arguments]
 resupply-food *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --resupply-food "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --resupply-food "$@"
 
 test-resupply-food:
     python3 -B "{{justfile_directory()}}/scripts/vm/resupply-trial-test.py"
@@ -351,7 +393,7 @@ trial-status *ARGS:
 # With Tas online, verify native on/off marker telemetry and preserve the selected final state.
 [positional-arguments]
 marker-check FINAL='restore':
-    python3 -B "{{justfile_directory()}}/scripts/vm/marker-check.py" "$1"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/marker-check.py" "$1"
 
 test-marker-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/marker-check-test.py"
@@ -406,7 +448,7 @@ map-snapshot *ARGS:
 # Requires an in-world bot and enabled normal 5s camera; retain the client.
 [positional-arguments]
 camera-check *ARGS: need-target
-    @python3 -B "{{justfile_directory()}}/scripts/vm/camera-check.py" "$@"
+    @{{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/camera-check.py" "$@"
 
 # Check actual-frame cadence analysis without game or network access.
 test-camera-check:
@@ -419,7 +461,7 @@ test-client-lifecycle:
 # Test the controller gather -> gain-only storage -> return chain; retain the client.
 [positional-arguments]
 gather-trial *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --gather-tree "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --gather-tree "$@"
 
 test-gather-trial:
     python3 -B "{{justfile_directory()}}/scripts/vm/gather-trial-test.py"
@@ -427,7 +469,7 @@ test-gather-trial:
 # Start native escort in an already joined/recovered game; retain bounded evidence.
 [positional-arguments]
 escort-check +ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/escort-check.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/escort-check.py" "$@"
 
 test-escort-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/escort-check-test.py"
@@ -435,7 +477,7 @@ test-escort-check:
 # Native nighttime bed entry; optionally interrupt a finite owner/operator escort.
 [positional-arguments]
 sleep-check *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check.py" "$@"
 
 test-sleep-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check-test.py"
@@ -444,7 +486,7 @@ test-sleep-check:
 # Retain the client after the proof; --allow-logout explicitly enables shutdown.
 [positional-arguments]
 cooking-check *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check.py" "$@"
 
 test-cooking-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check-test.py"
@@ -452,12 +494,12 @@ test-cooking-check:
 # One production food-resupply goal, with optional guarded join and proof predicates.
 [positional-arguments]
 food-check *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/food-check.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/food-check.py" "$@"
 
 # One bounded marker food batch, optional movement and automatic idle dwell.
 [positional-arguments]
 marker-food-check *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/marker-food-check.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/marker-food-check.py" "$@"
 
 test-marker-food-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/marker-food-check-test.py"
@@ -473,7 +515,7 @@ bank-evidence AUDIT:
 # Return an adequately supplied outdoor bot through guarded native movement.
 [positional-arguments]
 recover-home WORLD *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/recover-home.py" "$@"
 
 test-recover-home:
     python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
@@ -486,7 +528,7 @@ recovery-evidence AUDIT:
 # Finite existing-marker round trips, each proved by native receipts and arrival.
 [positional-arguments]
 route-benchmark *ARGS:
-    python3 -B "{{justfile_directory()}}/scripts/vm/route-benchmark.py" "$@"
+    {{lease}} run -- python3 -B "{{justfile_directory()}}/scripts/vm/route-benchmark.py" "$@"
 
 # Read bounded support/search diagnostics from a retained audit; no VM requests.
 [positional-arguments]
@@ -498,7 +540,7 @@ test-route-benchmark:
 
 # Arm/clear a one-shot order using the controller's pinned home.
 [positional-arguments]
-recovery-return ACTION='arm' WORLD='' PROFILE='local': need-target
+recovery-return ACTION='arm' WORLD='' PROFILE='local': need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
@@ -515,6 +557,7 @@ recovery VALUE='': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    [ -z "$1" ] || {{lease}} guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery.ps1" "{{target}}:/{{dir}}/recovery.ps1"
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")
@@ -526,6 +569,7 @@ auto-logout VALUE='': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    [ -z "$1" ] || {{lease}} guard
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery.ps1" "{{target}}:/{{dir}}/recovery.ps1"
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")

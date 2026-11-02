@@ -7,6 +7,19 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## The VM lease during tests
+
+One session at a time deploys or runs a live trial. Take the lease before a
+live session with `just vm lease agent:tool/session` and give it back with
+`just vm release` when you are finished; `just vm lease-status` shows who holds
+it. Every mutating `just vm` recipe refuses, naming the holder and expiry,
+while someone else holds it. Read-only recipes (status, logs, audit windows,
+map snapshots, `panel GET`) never need it. A supervised trial started without
+a lease takes one and releases it only after its own cleanup (combat off,
+stop or logout) has finished; a lease you took yourself stays yours. Leases
+expire after 60 minutes unless renewed. docs/VM.md, "The VM lease", has the
+details.
+
 ## Client lifecycle during tests
 
 Live test tools retain the game after success, refusal, injury or failure by

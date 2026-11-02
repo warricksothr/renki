@@ -27,3 +27,7 @@ vm.local
 # Python tooling caches
 __pycache__/
 *.pyc
+
+# The VM lease id of this worktree (scripts/vm/lease.py)
+/.vm-lease
+/.vm-lease.*

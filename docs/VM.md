@@ -13,6 +13,55 @@ the game is never launched that way. SSH starts a scheduled task, and the
 task runs the game in the bot account's own desktop session. That session
 has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
 
+## The VM lease
+
+There is one VM and one game client, so one session at a time deploys or runs
+a live trial. The lease that says whose turn it is lives on the VM, in
+`C:\renki\lease.json`: the actor, the workstation, the worktree and branch,
+when it started and when it expires.
+
+    just vm lease agent:claude-code/session-3   # take it for 60 min, or renew yours
+    just vm lease agent:claude-code/session-3 120
+    just vm lease-status                        # who holds it and until when; read-only
+    just vm release                             # give it back
+
+Every recipe that changes the VM, the game or the bot (`deploy`, `install`,
+`deploy-controller`, `start`, `restart`, `reconnect`, the panel
+start/stop/setup, `secret`, `panel POST` and the recipes built on it, the
+setters such as `combat true`, and every supervised trial and check) checks
+the lease first. While someone else holds an unexpired lease it refuses and
+names the holder and the expiry. When the lease is free it takes it for this
+worktree and keeps it, so run `just vm release` when you are finished. When
+this worktree holds it with under 15 minutes left, the recipe renews it to an
+hour, so a deploy does not outlive its lease.
+Reading needs no lease: `status`, `logs`, `audit`, `audit-window`,
+`observe`, `inspect`, `map-snapshot`, `camera`, `panel GET`, and the setters
+without a value. Neither do the two emergency stops, `just vm stop` and
+`just vm panel POST /api/act/stop`: run by a person, they work whoever holds
+the lease, and they do not take it. Inside a supervised trial, which sets
+`RENKI_VM_LEASE_RUN` (see `lease.py guard --emergency`), they guard like any other recipe, so a trial's cleanup
+that lost its lease cannot stop the next holder's session.
+
+A supervised trial (`combat-trial`, `gather-trial`, `goal-trial`,
+`escort-check`, `route-benchmark` and the rest) that starts without a lease
+takes one, renews it every five minutes while it runs, and releases it only
+after the supervisor has exited, which is after its own cleanup (combat off,
+stop or logout). If you took the lease yourself first, the trial leaves it
+with you. The trial runs in its own process group: the first Ctrl-C, Ctrl-\,
+SIGTERM or SIGHUP (a closed terminal, a `timeout`) reaches it as Ctrl-C,
+later ones are not passed on, so its cleanup still runs under the lease.
+Ctrl-Z is ignored, because it would stop only the lease's renewals. A trial
+killed outright, which may not have cleaned up, keeps the lease until it
+expires: check the VM, then release it.
+
+A worktree knows its lease by the random id it keeps in `.vm-lease`
+(gitignored), so set `RENKI_VM_ACTOR` or take the lease by name to have it
+recorded under your actor rather than `user@host`. Expiry is measured on the
+VM's clock and bounds a crashed session: an expired lease is free to the next
+taker. `just vm release --force` clears another holder's lease or an
+unreadable lease file; it is for the owner, not for an agent that is waiting.
+`just vm shell` is interactive and does not check the lease.
+
 ## Monitor while the game is offline
 
 `just vm panel-start` starts only the controller and web panel using a separate

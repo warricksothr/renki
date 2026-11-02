@@ -127,11 +127,15 @@ class RecoverySupervisorTests(unittest.TestCase):
                 target = bindir / name
                 target.write_text('#!/bin/sh\n' + body + '\n')
                 target.chmod(0o755)
-            env = os.environ | dict(RENKI_VM='unittest@invalid', PATH=str(bindir)+os.pathsep+os.environ['PATH'])
+            # The VM lease guard reads a local stand-in instead of the fake ssh.
+            lease = bindir / 'lease.json'
+            env = os.environ | dict(RENKI_VM='unittest@invalid', PATH=str(bindir)+os.pathsep+os.environ['PATH'],
+                                    RENKI_VM_LEASE_FILE=str(lease), RENKI_VM_LEASE_LOCAL=str(bindir / '.vm-lease'))
             result = recovery.subprocess.run(['just', 'vm', 'recovery-return', 'arm', 'one', 'nearby'], cwd=recovery.ROOT,
                                             env=env, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("-ReturnProfile 'nearby'", result.stdout)
+            self.assertTrue(lease.exists(), 'arming a return order takes the VM lease')
 
     def test_explicit_nearby_profile_is_forwarded_without_body_orders(self):
         code, result, calls = self.run_trial([dict(connected=False), OUTSIDE | dict(hp=44, hpMax=53.5, pos=[20,30,0]), HEALTHY], nearby=True)
