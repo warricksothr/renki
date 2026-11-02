@@ -138,12 +138,13 @@ func TestLootReachesAFarDropOnlyOnceTheAnchorHasSettled(t *testing.T) {
 	if o.Args.(*protocol.PickupArgs).Entity != "wood" {
 		t.Fatal(o.Args)
 	}
-	// Walking off resets the reach.
+	// Walking off resets the reach: from x=50 the wood is again 20 m away,
+	// inside the reach just grown but outside the base.
 	v.Now = v.Now.Add(time.Second)
 	v.Perception.Seq++
-	v.Perception.Characters[0].Pos = protocol.Vec3{25, 0, 0}
+	v.Perception.Characters[0].Pos = protocol.Vec3{50, 0, 0}
 	l.Observe(v)
-	if l.Ready(json.RawMessage(`{"items":["Resin"]}`), v) || l.reach("Nimah", lootDefaults(LootParams{}), v.Now) != 8 {
+	if l.Ready(json.RawMessage(`{}`), v) || l.reach("Nimah", lootDefaults(LootParams{}), v.Now) != 8 {
 		t.Fatal("a full exit shrinks the reach back to its base")
 	}
 }

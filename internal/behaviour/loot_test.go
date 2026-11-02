@@ -239,6 +239,9 @@ func TestLootValidation(t *testing.T) {
 			t.Error(bad)
 		}
 	}
+	if p, err := decodeLoot(json.RawMessage(`{"radius":5}`)); err != nil || p.BaseRadius != 5 || l.Validate(json.RawMessage(`{"radius":5}`)) != nil {
+		t.Fatal("a radius under the base keeps its flat reach", p, err)
+	}
 	d := LootDefinition()
 	if err := validate(d, map[string]Template{"loot": l}); err != nil || !d.Enabled {
 		t.Fatal(err, d)

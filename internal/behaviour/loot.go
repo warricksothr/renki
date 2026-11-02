@@ -139,10 +139,14 @@ func lootDefaults(p LootParams) LootParams {
 	if p.MaxTargets == 0 {
 		p.MaxTargets = 16
 	}
+	// A radius under the usual base keeps its flat reach.
+	if p.BaseRadius == 0 {
+		p.BaseRadius = min(8, p.Radius)
+	}
 	for _, d := range []struct {
 		field *float64
 		value float64
-	}{{&p.BaseRadius, 8}, {&p.GrowS, 120}, {&p.SettleDelayS, 5}, {&p.SettleRadius, 6}, {&p.SettleMaxRadius, 10}, {&p.SettleSlack, 2}} {
+	}{{&p.GrowS, 120}, {&p.SettleDelayS, 5}, {&p.SettleRadius, 6}, {&p.SettleMaxRadius, 10}, {&p.SettleSlack, 2}} {
 		if *d.field == 0 {
 			*d.field = d.value
 		}
@@ -174,14 +178,14 @@ func (*Loot) Validate(raw json.RawMessage) error {
 	if !finite(p.GrowS) || p.GrowS <= 0 || p.GrowS > 600 {
 		return errors.New("loot growS must be above 0 and at most 600 s")
 	}
-	if !finite(p.SettleDelayS) || p.SettleDelayS < 0 || p.SettleDelayS > 120 {
-		return errors.New("loot settleDelayS must be 0 to 120 s")
+	if !finite(p.SettleDelayS) || p.SettleDelayS <= 0 || p.SettleDelayS > 120 {
+		return errors.New("loot settleDelayS must be above 0 and at most 120 s")
 	}
 	if !finite(p.SettleRadius) || p.SettleRadius <= 0 || !finite(p.SettleMaxRadius) || p.SettleMaxRadius < p.SettleRadius || p.SettleMaxRadius > 20 {
 		return errors.New("loot settle radius must be above 0, and its maximum at least that and at most 20 m")
 	}
-	if !finite(p.SettleSlack) || p.SettleSlack < 0 || p.SettleSlack > 10 {
-		return errors.New("loot settleSlack must be 0 to 10 m")
+	if !finite(p.SettleSlack) || p.SettleSlack <= 0 || p.SettleSlack > 10 {
+		return errors.New("loot settleSlack must be above 0 and at most 10 m")
 	}
 	if p.MaxTargets < 1 || p.MaxTargets > 64 {
 		return errors.New("loot needs 1–64 targets")
