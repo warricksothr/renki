@@ -64,13 +64,34 @@ func TestViewAsksWhetherAPileIsNearAnOwner(t *testing.T) {
 		t.Fatalf("a stale frame answered %+v", n)
 	}
 
-	// A frame newer than every state cannot be paired, but the wood it
-	// lists is there, and it ends the clear run.
+	// A frame newer than every state waits for one: until then it is not
+	// observed, so the answer stays as it was.
 	see(30.5, wood)
+	wait(t, func() bool { return e.view().Perception != nil && e.view().Perception.T == 30.5 })
+	if n := near(); n.State != piles.Absent {
+		t.Fatalf("an unpaired early frame answered %+v", n)
+	}
+	// A state pairs it then, placed: the wood is present.
+	state("test", 0, 30.6)
 	wait(t, func() bool { return near().State == piles.Present })
+	// A frame two seconds behind state can no longer be paired, but the
+	// wood it lists is there, and it ends the clear run.
+	state("test", 0, 30.7)
+	see(30.7)
+	wait(t, func() bool { return near().State == piles.Absent })
 	state("test", 0, 31)
 	wait(t, func() bool { return e.view().State.T == 31 })
-	see(31)
+	see(29, wood)
+	wait(t, func() bool { return near().State == piles.Present })
+	e.mu.Lock()
+	unplaced := e.piles.Snapshot(e.piles.conn, "test").Near(time.Now(), protocol.Vec3{-20, 0, 0}, 1, nil)
+	e.mu.Unlock()
+	if unplaced.State != piles.Unseen {
+		t.Fatalf("an unplaced frame cleared ground: %+v", unplaced)
+	}
+	state("test", 0, 31.5)
+	wait(t, func() bool { return e.view().State.T == 31.5 })
+	see(31.5)
 	wait(t, func() bool { return near().State == piles.Absent })
 	if n, at := near(), e.view().PerceptionAt; !n.Since.Equal(at) {
 		t.Fatalf("the clear run reached back past the unpaired pile: %+v, want since %v", n, at)

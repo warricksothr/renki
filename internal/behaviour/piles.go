@@ -14,9 +14,8 @@ const (
 	// pilePairing is how much newer than a scan, in game seconds, a state
 	// may be and still be paired with it.
 	pilePairing = 1.0
-	// pileUnplaced is how far apart, in game seconds, a scan and the newest
-	// state may be for a scan that cannot be paired still to count its
-	// drops. Further apart, the scan is too old to say what lies there now.
+	// pileUnplaced is how far behind the newest state, in game seconds, a
+	// scan that cannot be paired may be and still count its drops. Further apart, the scan is too old to say what lies there now.
 	pileUnplaced = 5.0
 	// pileStates bounds the recent states kept to find one before a scan.
 	pileStates = 32
@@ -48,8 +47,10 @@ type pileWatch struct {
 // state and that bound holds. If after, the scan ran within pileSpeed times
 // the time since the last state at or before it of that state, so the
 // distance from there to the paired state counts too. The larger of the two
-// holds either way. A frame that cannot be paired, within pileUnplaced of
-// the state, is recorded unplaced: its drops count, but it clears no ground.
+// holds either way. A frame that can no longer be paired (more than
+// pilePairing behind the state, or with no state kept at or before it) but
+// is within pileUnplaced of it is recorded unplaced: its drops count, but it
+// clears no ground.
 // An older frame teaches nothing, and Near answers unknown once the newest
 // is too old.
 func (e *Engine) observePiles(v *View, hello *protocol.Hello) {
@@ -69,9 +70,11 @@ func (e *Engine) observePiles(v *View, hello *protocol.Hello) {
 		}
 		w.states = append([]pileState(nil), w.states[cut:]...)
 	}
-	if p := v.Perception; p != nil && math.Abs(st.T-p.T) <= pileUnplaced {
+	// A frame newer than the newest state waits for a state to pair it:
+	// observing it marks it seen, so it could not be placed later.
+	if p := v.Perception; p != nil && p.T <= st.T && st.T-p.T <= pileUnplaced {
 		var before *pileState
-		for i := len(w.states) - 1; i >= 0 && st.T-p.T >= 0 && st.T-p.T <= pilePairing; i-- {
+		for i := len(w.states) - 1; i >= 0 && st.T-p.T <= pilePairing; i-- {
 			if w.states[i].t <= p.T {
 				before = &w.states[i]
 				break
