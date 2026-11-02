@@ -60,7 +60,7 @@ M5's base-upkeep goals (docs/ROADMAP.md, M5 goals 5.1, 5.2, 5.3 and 5.6) are mea
 
 Offline: the soak's self-test (wired into `just ci` by TKT-01M6DDFTF6) gains cases for a missing upkeep instance, for folding a failing report section into the verdict, and for an inconclusive section that stops a pass. `just check ci`.
 
-Live: `just vm soak 2 --upkeep` twice in a row, holding the VM lease (TKT-01M6EF5DTG). Each `summary.json` shows the soak verdict `pass` and the report sections for coverage, fires, fuel reserve, cooking, assignments and pantry `pass`; an `inconclusive` section is not a pass. Link both paths in a note here and on the goal tickets.
+Live: `just vm soak 2 --upkeep` twice in a row, holding the VM lease (TKT-01M6EF5DTG). Each `summary.json` shows the soak verdict `pass` and the report sections for coverage, fires, fuel reserve, cooking, assignments and pantry `pass` (pantry fails on any death, goal 5.6); an `inconclusive` section is not a pass. The supervisor saves `GET /api/goals` at the end of each soak beside the audit window and passes it to the report with `--goals FILE`. Link both paths in a note here and on the goal tickets.
 
 ## Acceptance criteria
 
