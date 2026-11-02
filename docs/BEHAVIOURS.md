@@ -161,7 +161,9 @@ reach.
 
 When the run ends, the engine sends the same follow again through the same
 handle (`Automation.Return`): same player, arguments, timeout and origin. It
-does so whether the run succeeded, failed, timed out or was cut short. The
+does so whether the run succeeded, failed, timed out or was cut short. If
+the follow cannot be sent, because `follow` is no longer allowed for example,
+the run's step is stopped, as it is for any interrupted run. The
 new follow is the owner's again and can be lent again. A run that sent no
 step leaves the follow running and sends nothing.
 
@@ -180,9 +182,10 @@ step leaves the follow running and sends nothing.
   the handle, so no follow is restarted. The chat brain's resume after a
   death covers only a follow that was running when Tas died.
 
-The chat brain ignores the end of a lent follow (`Task.Lent`). It says
-nothing, does not send Tas home, and keeps its anchor, because the follow
-restarts.
+The chat brain ignores a lent follow (`Task.Lent`) that ended `superseded`.
+It says nothing, does not send Tas home, and keeps its anchor, because the
+follow restarts. A lent follow that failed before the run's step replaced
+it, a death for example, is handled as any follow's failure is.
 
 ### Visibility
 

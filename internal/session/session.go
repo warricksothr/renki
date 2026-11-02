@@ -614,19 +614,23 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.automation = nil
 		s.orders++
 	}
-	if automation != nil && automation.loan != nil && !protocol.Instant(o.Task) {
-		// The first body task over a loan replaces the follow.
-		automation.loan.task.mu.Lock()
-		automation.loan.task.lent = true
-		automation.loan.task.mu.Unlock()
+	// The first body task over a loan replaces the follow. It is marked
+	// before the send, so that its superseded end cannot arrive first, and
+	// unmarked again if the send fails and nothing replaced it.
+	var lentNow *Task
+	if automation != nil && automation.loan != nil && !o.giveBack && !protocol.Instant(o.Task) {
+		f := automation.loan.task
+		f.mu.Lock()
+		if !f.lent {
+			f.lent, lentNow = true, f
+		}
+		f.mu.Unlock()
 	}
 	s.tasks[id] = t
 	t.sentAt, t.serial, t.connection, t.automation, t.timeoutS = time.Now().UTC(), s.nextTask, conn.ID(), automation, o.TimeoutS
 	if o.giveBack {
-		// The follow is the owner's again: it can be lent once more, and
-		// the handle that borrowed it is spent.
+		// The follow is the owner's again, and can be lent once more.
 		t.automation = nil
-		s.automation = nil
 	}
 	if s.state != nil {
 		t.world, t.worldUID = s.state.World, s.state.WorldUID
@@ -637,7 +641,21 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.mu.Lock()
 		delete(s.tasks, id)
 		s.mu.Unlock()
+		if lentNow != nil {
+			lentNow.mu.Lock()
+			lentNow.lent = false
+			lentNow.mu.Unlock()
+		}
 		return nil, fmt.Errorf("send %s: %w", o.Task, err)
+	}
+	if o.giveBack {
+		// Only a follow that went out spends the handle that borrowed it.
+		// dispatchMu is held, so no other order came in between.
+		s.mu.Lock()
+		if s.automation == automation {
+			s.automation = nil
+		}
+		s.mu.Unlock()
 	}
 	s.log.Info("task sent", "id", id, "task", o.Task)
 	return t, nil

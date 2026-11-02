@@ -237,3 +237,19 @@ func isDone(t *session.Task) bool {
 		return false
 	}
 }
+
+func TestAFollowThatCannotBeSentBackStopsTheBorrowedStep(t *testing.T) {
+	f := followingNimah(t)
+	f.settle()
+	req := f.pickup()
+	f.s.SetPermit(func(task string) bool { return task != protocol.TaskFollow })
+	f.now = f.now.Add(time.Second)
+	f.see(25, req.ID)
+	f.tick()
+	if got := f.p.NextTask(); got.Task != protocol.TaskStop {
+		t.Fatal("the borrowed step must not keep running unowned", got)
+	}
+	if !strings.Contains(f.log.String(), "could not return the follow") {
+		t.Fatal(f.log.String())
+	}
+}

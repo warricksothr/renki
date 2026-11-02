@@ -624,7 +624,10 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 		return nil
 	}
 	i := e.instances[e.active]
-	if e.lease.Valid() && i.task != nil && e.loan == nil {
+	// Sending the follow back replaces the running step. If it could not be
+	// sent, the handle is still valid and the step is stopped as usual.
+	e.giveBack(ctx, why)
+	if e.lease.Valid() && i.task != nil {
 		select {
 		case <-i.task.Done():
 		default:
@@ -634,8 +637,6 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 		}
 	}
 	e.o.Logger.Info("behaviour interrupted", "instance", e.active, "reason", why)
-	// Sending the follow again replaces the running step, in place of stop.
-	e.giveBack(ctx, why)
 	e.ended(i, why)
 	i.pending = requeue
 	i.interrupted = requeue
