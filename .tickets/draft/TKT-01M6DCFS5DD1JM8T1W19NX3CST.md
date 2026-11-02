@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:33Z
-updated_at: 2026-11-02T05:42:33Z
+updated_at: 2026-11-02T06:07:37Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -56,3 +56,9 @@ Four small state bugs found in plugin review. Each is a one-line or few-line fix
 - [ ] Two players with the same character name do not throw in Reporter
 - [ ] A chest request with no reply for 30 s no longer blocks later transfers
 - [ ] Perception says when the collider buffer truncated a scan
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T06:07:37Z
+
+From the vuoro review of the review-fixes PR: TaskRunner.Release contains a throwing Cancel but then calls only host.Idle (Driver.Stand). KiteTask, EscortTask and TravelEncounter run their ClearCombat and Active cleanup after child cancels that could throw, so a partial Cancel can leave LookAt, the queued attack, dodge and block state, and the static Active pointers behind. Fix it here with the stale-pointer work: either do each task's cleanup in a finally block, or give ITaskHost a stronger reset that Release calls when Cancel throws.

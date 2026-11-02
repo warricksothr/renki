@@ -8,6 +8,9 @@ import (
 	"github.com/warricksothr/renki/internal/session"
 )
 
+// The 20 s windows here are Delays, not ErrWait: the engine ends a run that
+// waits on ErrWait for 5 s, which would cut each window short.
+//
 // A short ordinary running approach can make a passive deer leave a work site.
 // It grants no harvest permission: all original exclusions must be clear afterward.
 func (r *gatherRun) clearWildlife(v View, result *Result) (*session.Order, error) {
@@ -18,13 +21,13 @@ func (r *gatherRun) clearWildlife(v View, result *Result) (*session.Order, error
 		r.clearingWildlife = false
 		r.wildlifeScan = v.Perception.Seq
 		r.wildlifeUntil = v.Now.Add(20 * time.Second)
-		return nil, ErrWait
+		return nil, &Delay{Until: r.wildlifeUntil}
 	}
 	if !r.wildlifeUntil.IsZero() && v.Perception.Seq <= r.wildlifeScan {
 		if !v.Now.Before(r.wildlifeUntil) {
 			return nil, errors.New("no fresh work-site observation after wildlife clearance")
 		}
-		return nil, ErrWait
+		return nil, &Delay{Until: r.wildlifeUntil}
 	}
 	// Delivery pressures and genuine threats retain their existing handling.
 	if gatherSupplied(v) != nil {
@@ -57,7 +60,7 @@ func (r *gatherRun) clearWildlife(v View, result *Result) (*session.Order, error
 	}
 	if !r.wildlifeUntil.IsZero() {
 		if v.Now.Before(r.wildlifeUntil) {
-			return nil, ErrWait
+			return nil, &Delay{Until: r.wildlifeUntil}
 		}
 		return nil, errors.New("passive wildlife remains inside the falling-tree exclusion after clearance")
 	}
@@ -82,7 +85,7 @@ func (r *gatherRun) clearWildlife(v View, result *Result) (*session.Order, error
 			r.wildlifeObserveUntil = v.Now.Add(20 * time.Second)
 		}
 		if v.Now.Before(r.wildlifeObserveUntil) {
-			return nil, ErrWait
+			return nil, &Delay{Until: r.wildlifeObserveUntil}
 		}
 		return nil, errors.New("passive wildlife blocks the work site outside bounded approach range")
 	}

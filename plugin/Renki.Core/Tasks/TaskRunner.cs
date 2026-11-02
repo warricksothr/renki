@@ -69,6 +69,7 @@ namespace Renki.Tasks
         readonly Action<TaskStatus> report;
         readonly SayLimiter say;
         readonly Func<double> now;
+        readonly Action<string, Exception> fault;
 
         HashSet<string> allowed;
         TaskRequest current;
@@ -76,8 +77,10 @@ namespace Renki.Tasks
         double elapsed;
 
         public TaskRunner(SafetyConfig safety, IEnumerable<string> implemented, ITaskHost host,
-            Action<TaskStatus> report, Func<double> now, SayLimiter say = null)
+            Action<TaskStatus> report, Func<double> now, SayLimiter say = null,
+            Action<string, Exception> fault = null)
         {
+            this.fault = fault;
             this.safety = safety;
             this.implemented = new HashSet<string>(implemented);
             this.host = host;
@@ -206,6 +209,11 @@ namespace Renki.Tasks
                 {
                     o = Outcome.Failed(e.Reason, e.Message);
                 }
+                catch (Exception e)
+                {
+                    o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
+                    Log($"instant {req.Task} {req.Id}", e);
+                }
                 Reply(req, o.Status, o.Reason, o.Detail);
                 return;
             }
@@ -218,6 +226,12 @@ namespace Renki.Tasks
             catch (TaskRefused e)
             {
                 Reply(req, Wire.StatusRejected, e.Reason, e.Message);
+                return;
+            }
+            catch (Exception e)
+            {
+                Log($"start of {req.Task} {req.Id}", e);
+                Reply(req, Wire.StatusRejected, Wire.ReasonInternal, Fault(e));
                 return;
             }
             CancelBody(Wire.ReasonSuperseded, $"replaced by {req.Id}", reportIt: true);
@@ -234,20 +248,41 @@ namespace Renki.Tasks
             if (body == null) return;
             elapsed += dt;
             Outcome o;
+            // A timed-out or throwing task is still live and must be cancelled;
+            // one that returned an outcome has already stopped itself.
+            var cancel = false;
             if (current.TimeoutS > 0 && elapsed > current.TimeoutS)
             {
-                body.Cancel();
                 o = Outcome.Failed(Wire.ReasonTimeout, $"{current.TimeoutS:0.#} s elapsed");
+                cancel = true;
             }
             else
             {
-                o = body.Tick(dt);
+                try
+                {
+                    o = body.Tick(dt);
+                }
+                catch (Exception e)
+                {
+                    // A throw escaping here would skip SetControls on every
+                    // later step and leave the game holding the last inputs.
+                    o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
+                    Log($"tick of {current.Task} {current.Id}", e);
+                    cancel = true;
+                }
                 if (o == null) return;
             }
             var finished = current;
-            current = null;
-            body = null;
-            host.Idle();
+            if (cancel)
+            {
+                Release();
+            }
+            else
+            {
+                current = null;
+                body = null;
+                Idle();
+            }
             Reply(finished, o.Status, o.Reason, o.Detail, o.Entity);
         }
 
@@ -256,10 +291,7 @@ namespace Renki.Tasks
         {
             if (body == null) return;
             var finished = current;
-            body.Cancel();
-            current = null;
-            body = null;
-            host.Idle();
+            Release();
             Reply(finished, Wire.StatusFailed, Wire.ReasonDied, null);
         }
 
@@ -267,15 +299,44 @@ namespace Renki.Tasks
         {
             if (body == null)
             {
-                host.Idle();
+                Idle();
                 return;
             }
             var cancelled = current;
-            body.Cancel();
+            Release();
+            if (reportIt) Reply(cancelled, Wire.StatusCancelled, reason, detail);
+        }
+
+        /// <summary>Drops the body task, cancels it and idles the host. The state
+        /// is cleared first and a throw from Cancel or Idle is contained, so a
+        /// faulty task can never leave the runner holding it or the game
+        /// holding its last inputs.</summary>
+        void Release()
+        {
+            var dropped = body;
             current = null;
             body = null;
-            host.Idle();
-            if (reportIt) Reply(cancelled, Wire.StatusCancelled, reason, detail);
+            try { dropped?.Cancel(); } catch (Exception e) { Log("cancel", e); }
+            Idle();
+        }
+
+        void Idle()
+        {
+            try { host.Idle(); } catch (Exception e) { Log("idle", e); }
+        }
+
+        /// <summary>Reports a contained exception, with its stack, to the
+        /// fault sink. A throwing sink is ignored: containment comes first.</summary>
+        void Log(string where, Exception e)
+        {
+            try { fault?.Invoke(where, e); } catch (Exception) { }
+        }
+
+        /// <summary>A bounded description of an unexpected exception.</summary>
+        static string Fault(Exception e)
+        {
+            var text = e.GetType().Name + ": " + e.Message;
+            return text.Length <= 200 ? text : text.Substring(0, 200);
         }
 
         void Reply(TaskRequest req, string status, string reason = null, string detail = null, string entity = null) =>

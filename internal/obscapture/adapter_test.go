@@ -4,7 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -107,5 +112,41 @@ func TestCaptureHealthWriteFailureStaysContainedAndRetries(t *testing.T) {
 				t.Fatalf("published=%d", published)
 			}
 		})
+	}
+}
+
+func TestStatusPollsReuseOneConnection(t *testing.T) {
+	var mu sync.Mutex
+	opened := 0
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer secret" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	server.Config.ConnState = func(_ net.Conn, s http.ConnState) {
+		if s == http.StateNew {
+			mu.Lock()
+			opened++
+			mu.Unlock()
+		}
+	}
+	server.Start()
+	defer server.Close()
+	config := filepath.Join(t.TempDir(), "controller.json")
+	listen := strings.TrimPrefix(server.URL, "http://")
+	if err := os.WriteFile(config, []byte(`{"panel":{"listen":"`+listen+`","token":"secret"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 50; i++ {
+		if _, err := status(context.Background(), Config{ControllerConfig: config}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if opened > 2 {
+		t.Fatalf("50 polls opened %d connections; want them reused", opened)
 	}
 }

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSRNNFS3MJHW1P8CDCNB
 title: "OBS adapter: leaked connection per poll, unchecked source restore"
 type: bug
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T05:48:47Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -54,6 +54,12 @@ Fix:
 
 ## Acceptance criteria
 
-- [ ] status() reuses one client and a test proves open connections stay bounded over many polls
+- [x] status() reuses one client and a test proves open connections stay bounded over many polls
 - [ ] The source-loss trial restores the window with its own context and fails if the restore fails
 - [ ] configure repairs an existing capture source's settings
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T05:48:47Z
+
+Done in the review-fixes PR: one package-level client with IdleConnTimeout 30 s and MaxIdleConnsPerHost 2. TestStatusPollsReuseOneConnection fails with 50 connections for 50 polls on the old code and passes now. The panel server now also sets IdleTimeout 2 min. Still open: the source-loss trial restore and configure repair.

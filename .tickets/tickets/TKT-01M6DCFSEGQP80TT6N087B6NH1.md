@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSEGQP80TT6N087B6NH1
 title: "Behaviours: stow walks avoid hostiles; marker health baseline"
 type: bug
-status: draft
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T05:48:47Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -49,5 +49,11 @@ Fix: roll the baseline forward on each `check`, keeping the meal-refresh excepti
 
 ## Acceptance criteria
 
-- [ ] Stow move orders avoid hostiles when the caller asks for it, covered by a test
+- [x] Stow move orders avoid hostiles when the caller asks for it, covered by a test
 - [ ] Marker food and cargo detect an injury after healing past their start health
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T05:48:47Z
+
+Done in the review-fixes PR: stow walks now set AvoidHostiles from dry, since the protocol requires dry for avoidHostiles. TestDryStowWalksAvoidHostiles covers both walks. Plain collect stows are not dry and still do not avoid. Making collect dry is a separate decision. Still open: marker food/cargo health baseline.
