@@ -26,7 +26,7 @@ when it started and when it expires.
     just vm release                             # give it back
 
 Every recipe that changes the VM, the game or the bot (`deploy`, `install`,
-`deploy-controller`, `start`, `stop`, `restart`, `reconnect`, the panel
+`deploy-controller`, `start`, `restart`, `reconnect`, the panel
 start/stop/setup, `secret`, `panel POST` and the recipes built on it, the
 setters such as `combat true`, and every supervised trial and check) checks
 the lease first. While someone else holds an unexpired lease it refuses and
@@ -36,7 +36,9 @@ this worktree holds it with under 15 minutes left, the recipe renews it to an
 hour, so a deploy does not outlive its lease.
 Reading needs no lease: `status`, `logs`, `audit`, `audit-window`,
 `observe`, `inspect`, `map-snapshot`, `camera`, `panel GET`, and the setters
-without a value.
+without a value. Neither do the two emergency stops, `just vm stop` and
+`just vm panel POST /api/act/stop`: they work whoever holds the lease, and
+they do not take it.
 
 A supervised trial (`combat-trial`, `gather-trial`, `goal-trial`,
 `escort-check`, `route-benchmark` and the rest) that starts without a lease

@@ -84,8 +84,9 @@ start MINUTES="5": need-target guard
     echo "not in the world after {{MINUTES}} min; try: just vm logs" >&2
     exit 1
 
-# Log the bot out, close the game and stop the controller.
-stop: need-target guard
+# Log the bot out, close the game and stop the controller. This is the
+# emergency stop, so it needs no lease and works whoever holds it.
+stop: need-target
     #!/usr/bin/env bash
     set -euo pipefail
     {{ssh}} "Start-ScheduledTask -TaskName RenkiStop"
@@ -100,8 +101,9 @@ stop: need-target guard
     echo "the game is still running after 150 s" >&2
     exit 1
 
-# Stop, then start.
-restart: stop start
+# Stop, then start. The guard comes first, so a restart under someone else's
+# lease refuses before it stops anything.
+restart: guard stop start
 
 # Restart only the controller, refreshing welcome/allowedTasks without reloading Valheim.
 reconnect: need-target guard
@@ -245,7 +247,8 @@ panel METHOD PATH BODY='': need-target
     endpoint=$2
     [[ "$method" = GET || "$method" = POST ]] || { echo 'METHOD must be GET or POST' >&2; exit 2; }
     [[ "$endpoint" =~ ^/api/[a-zA-Z0-9_/?=\&.%:-]+$ ]] || { echo 'Use an /api/ path without shell metacharacters' >&2; exit 2; }
-    [ "$method" = GET ] || {{lease}} guard
+    # POST /api/act/stop is the panel's emergency stop and, like `stop`, needs no lease.
+    [ "$method" = GET ] || [ "$endpoint" = /api/act/stop ] || {{lease}} guard
     encoded=$(printf '%s' "${3:-}" | base64 -w0)
     bodyarg=()
     [ -z "$encoded" ] || bodyarg=(-BodyBase64 "$encoded")
