@@ -224,10 +224,13 @@ fresh perception frame and is missing from the next, placed where it was last
 seen. Felling and splitting therefore excuse the wood they produce, even when
 it lands at the owner's feet. The rule is `DeliberateDrop` in
 `internal/behaviour/loot.go`, a pure function of the drop's position and
-time, owner positions and breaks, and the haul report scores pickups with it.
+time, owner positions and breaks, so that the haul report (TKT-01M6DDFTDD)
+can score pickups by the same rule.
 
-Limits: a drop is judged once, so one already lying near an owner when Tas
-first sees it counts as deliberate if nothing broke near it. A tree that
+A drop is judged once. Its verdict survives a missed frame or Tas walking out
+of range, and is forgotten only after the drop has been out of sight for
+5 minutes. Limits: a drop already lying near an owner when Tas first sees it
+counts as deliberate if nothing broke near it. A tree that
 simply leaves perception range as Tas walks counts as a break. A drop not yet
 judged is never picked up.
 

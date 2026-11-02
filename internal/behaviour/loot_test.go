@@ -178,6 +178,31 @@ func TestLootTakesDropsFromFellingAtTheOwnersFeet(t *testing.T) {
 	}
 }
 
+func TestLootJudgesADropOnceEvenAfterItLeavesSight(t *testing.T) {
+	l := &Loot{}
+	l.Observe(lootView(1, protocol.PerceivedResource{ID: "log", Kind: protocol.ResourceLog, Pos: protocol.Vec3{14, 0, 0}}))
+	split := target("split", protocol.ResourceDrop, "Wood", 11)
+	v := lootView(2, split)
+	l.Observe(v)
+	// Out of sight for a while, then back beside the owner with nothing felled.
+	v = lootView(3)
+	v.Now = v.Now.Add(time.Minute)
+	l.Observe(v)
+	v = lootView(4, split)
+	v.Now = v.Now.Add(2 * time.Minute)
+	l.Observe(v)
+	if !l.Ready(json.RawMessage(`{}`), v) {
+		t.Fatal("a felling drop was judged again as deliberate")
+	}
+	// Gone for longer than the ignore period, it is forgotten.
+	v = lootView(5)
+	v.Now = v.Now.Add(2*time.Minute + DeliberateIgnore + time.Second)
+	l.Observe(v)
+	if _, ok := l.drops["split"]; ok {
+		t.Fatal("an old absent drop was kept")
+	}
+}
+
 func TestLootValidation(t *testing.T) {
 	l := &Loot{}
 	for _, bad := range []string{`{"radius":41}`, `{"radius":-1}`, `{"items":["wood"]}`, `{"items":[]}`, `{"maxWeightFraction":0.95}`, `{"maxTargets":65}`, `{"preemptFollow":true}`, `{"site":{}}`} {

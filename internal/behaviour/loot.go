@@ -16,7 +16,7 @@ import (
 // The deliberate-drop rule. A drop first seen within DeliberateReach of a
 // live owner, with no tree, log or stump breaking within FellingReach of it
 // in the FellingWindow before, was put down on purpose. Loot leaves it for
-// DeliberateIgnore. The haul report scores pickups by the same rule.
+// DeliberateIgnore. The haul report (TKT-01M6DDFTDD) is to reuse this rule.
 const (
 	DeliberateReach  = 2.0
 	FellingReach     = 10.0
@@ -66,8 +66,9 @@ type Loot struct {
 	drops   map[string]lootDrop
 }
 type lootDrop struct {
-	seen   bool // in the last fresh frame
-	ignore time.Time
+	seen     bool // in the last fresh frame
+	lastSeen time.Time
+	ignore   time.Time
 }
 type LootParams struct {
 	Items             []string `json:"items,omitempty"`
@@ -169,13 +170,16 @@ func (l *Loot) Observe(v View) {
 		l.drops = map[string]lootDrop{}
 	}
 	for id, d := range l.drops {
-		// Forget a drop once it is gone and its ignore period is over.
-		if !drops[id] && !now.Before(d.ignore) {
+		// A drop is judged once: its verdict outlives a missed frame or a
+		// walk out of range, and is forgotten only after DeliberateIgnore away.
+		if drops[id] {
+			d.lastSeen = now
+		} else if now.Sub(d.lastSeen) > DeliberateIgnore && !now.Before(d.ignore) {
 			delete(l.drops, id)
-		} else {
-			d.seen = drops[id]
-			l.drops[id] = d
+			continue
 		}
+		d.seen = drops[id]
+		l.drops[id] = d
 	}
 	for _, r := range v.Perception.Resources {
 		if r.Kind != protocol.ResourceDrop || r.ID == "" {
@@ -184,7 +188,7 @@ func (l *Loot) Observe(v View) {
 		if _, ok := l.drops[r.ID]; ok {
 			continue
 		}
-		d := lootDrop{seen: true}
+		d := lootDrop{seen: true, lastSeen: now}
 		if DeliberateDrop(r.Pos, now, owners, l.breaks) {
 			d.ignore = now.Add(DeliberateIgnore)
 		}
