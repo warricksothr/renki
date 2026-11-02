@@ -263,7 +263,7 @@ commander in sight with a *settle area* (`Settle`, in
 The reach is `baseRadius` (8 m, or `radius` if that is smaller) until the anchor has been settled
 `settleDelayS`, then grows linearly to `radius` (30 m) over `growS` (120 s),
 and stays there (`LootReach`). With the defaults, a drop 20 m from the anchor
-is in reach after 70 s settled. `baseRadius` must be at most `radius`,
+is in reach after about 70.5 s settled. `baseRadius` must be at most `radius`,
 `growS` at most 600 s, `settleDelayS` at most 120 s, the settle radii at most 20 m
 with the maximum at least the opening radius, and `settleSlack` at most 10 m;
 all of them are above zero, since a zero means the default.

@@ -129,7 +129,7 @@ func TestLootReachesAFarDropOnlyOnceTheAnchorHasSettled(t *testing.T) {
 		v.Now = v.Now.Add(time.Second)
 		v.Perception.Seq = uint64(i)
 		l.Observe(v)
-		// The reach is base+22*(settled-5)/120; 20 m needs 70 s settled.
+		// The reach is base+22*(settled-5)/120; 20 m needs 5+120*12/22, about 70.5 s, settled.
 		if got, want := l.Ready(json.RawMessage(`{}`), v), i >= 72; got != want {
 			t.Fatalf("after %d s ready %v", i-1, got)
 		}
