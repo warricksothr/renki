@@ -647,6 +647,28 @@ and preventing new idle chores from waking an attached/sleeping body. Enable
 the presets only after controlled routing checks; do not report shared
 time-skip or respawn-at-bed from a movement or sleep interaction receipt.
 
+Controller `7cb3fd4` installed with `just check vm deploy-controller` while
+the game/plugin `6e23e2d` remained running. The editable bot-created `home rest`
+place zone at[-36.45,36.09,6.57], radius14, covers both the bedroom and the
+existing cooking/storage work areas without changing home or old markers.
+Both rest presets were enabled and the four prior idle definitions restored.
+Automatic night mode passed at04:10:17Z on day142: the scheduler dispatched
+`t-2` to owned bed `1:99058`, the game returned "I'm in bed", and newer
+state2286 showed `in_bed` at[-31.08,36.55,15.19]. Later idle observations
+retained attachment with no observed injury. Evidence:
+`.checks/audit-window-qymPoj.jsonl` and
+`.checks/20261102T041058Z-Y1LwjJ.log`. This proves night entry and waiting for
+other players; shared time skip and respawn remain unobserved.
+
+The first daytime wait reached the bed area but its1.25m arrival radius
+failed against the crowded raised beds. Retained `t-1` search reached the
+actual floor node[-30.47,36.09,16.62], about1.55m from the owned bed. Daytime
+waiting now uses1.75m native arrival with observed distance at most2m and the
+same75cm floor tolerance, rather than attempting to climb into the bed frame.
+The captured reachable-node regression covers this change. The adjusted
+daytime wait still needs a new live pass after night ends; do not wake the
+nighttime sleeper merely to manufacture that test.
+
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"
 (day 51, fraction about 0.34). Perception then showed `mine:true,owned:true`;

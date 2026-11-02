@@ -71,6 +71,45 @@ func TestDayRestWalksOnceAndLeavesTheBodyAvailable(t *testing.T) {
 		t.Fatal("already beside bed should wait without dispatch", o, err)
 	}
 }
+
+func TestDayRestUsesReachableFloorBesideACrowdedBed(t *testing.T) {
+	r, v := restFixture(t, false)
+	v.State.Pos = protocol.Vec3{-32.97, 36.09, 16.62}
+	home := protocol.Vec3{-35.9, 37.66, 6.53}
+	v.Home = &home
+	v.Waypoints[0].Pos = protocol.Vec3{-36.45, 36.09, 6.57}
+	v.Waypoints[0].Radius = 14
+	v.Perception.Structures[0].Pos = protocol.Vec3{-31.08, 36.11, 15.19}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil {
+		t.Fatal(o, err)
+	}
+	a := o.Args.(*protocol.MoveToArgs)
+	// The captured search reached this actual floor node, but the former
+	// 1.25m arrival radius demanded climbing into the row of raised beds.
+	closest := protocol.Vec3{-30.47, 36.09, 16.62}
+	if a.StopDistance == nil || distance(closest, v.Perception.Structures[0].Pos) > *a.StopDistance {
+		t.Fatal(a)
+	}
+	v.State.Pos = closest
+	v.State.Seq++
+	if o, err := r.Next(v, &Result{Status: protocol.StatusSucceeded}); err != nil || o != nil {
+		t.Fatal(o, err)
+	}
+}
+
+func TestDayRestDoesNotTreatALowerFloorAsAlreadyBesideBed(t *testing.T) {
+	r, v := restFixture(t, false)
+	v.State.Pos = protocol.Vec3{4, -1, 0}
+	o, err := r.Next(v, nil)
+	if err != nil || o == nil || o.Task != protocol.TaskMoveTo {
+		t.Fatal("lower floor bypassed observed arrival", o, err)
+	}
+	v.State.Seq++
+	if _, err = r.Next(v, &Result{Status: protocol.StatusSucceeded}); err == nil {
+		t.Fatal("lower floor earned a bedside wait")
+	}
+}
 func TestRestNeverClaimsUnknownFreeTakenOrAnotherFloorBeds(t *testing.T) {
 	for _, kind := range []string{"unknown", "free", "taken", "floor", "distant"} {
 		t.Run(kind, func(t *testing.T) {

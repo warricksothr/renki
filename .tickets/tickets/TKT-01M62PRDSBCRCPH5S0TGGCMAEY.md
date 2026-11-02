@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-02T04:04:27Z
+updated_at: 2026-11-02T04:16:56Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -132,3 +132,21 @@ Focused just check controller test-packages ./internal/behaviour ./internal/app 
 **agent:codex/renki-milestones** at 2026-11-02T04:04:27Z
 
 Full just check ci passed179s (.checks/20261102T040048Z-c59KfI.log); final focused behaviour/app/food/protocol checks passed (.checks/20261102T040310Z-vlZVhu.log), including suppression of automatic eating while in_bed before shared sleep begins. Controller-only installation and live idle-rest observations follow committed review; no nighttime automation proof yet.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:13:15Z
+
+Controller7cb3fd4 passed full just check ci179s (.checks/20261102T040048Z-c59KfI.log), final focused behaviour/app/food/protocol checks (.checks/20261102T040310Z-vlZVhu.log), committed review (.checks/20261102T040427Z-2lnEY9.log), and controller-only deployment5s (.checks/20261102T040433Z-xbewHi.log). Valheim/plugin6e23e2d stayed running. No logout enabled.
+
+Created editable bot-source home rest place zone at the freshly observed sheltered home floor[-36.45,36.09,6.57], radius14, to include both the bed and cooking/storage work areas. This replaces the plan's narrower existing-marker anchor: home cooking radius6 excludes the bed and home-storage edge. Original home and existing waypoints were preserved. Enabled both rest modes and restored the four paused food/cargo definitions. Exact configuration requests/responses are in .checks/current-batch/rest-install.log and rest-behaviours-installed.json.
+
+Automatic nighttime sleep PASSED: at04:10:17Z on day142, idle sleep dispatched native interact t-2 to owned bed1:99058. Receipt seq2285 succeeded with "used the Bed: I'm in bed." Newer state seq2286 confirmed in_bed at[-31.08,36.55,15.19], sheltered, nighttime fraction0.764. Fresh04:10:58Z state retained attachment,65.7/65.7HP, injury{seq:0,damage:0}. Evidence .checks/audit-window-qymPoj.jsonl and .checks/20261102T041058Z-Y1LwjJ.log. This proves idle-triggered native nighttime bed entry; shared time skip is waiting for other players and is not claimed. No wake/test movement was sent after entry.
+
+Daytime idle wait triggered naturally after120s, but its first native move t-1 failed near the crowded row of beds. Saved task query .checks/20261102T040901Z-qasaFp.log shows actual reachable floor node[-30.47,36.09,16.62], about1.55m from Tas's bed, against the overly tight1.25m radius. The old path correctly rejected0.4m upward steps into bed surfaces; don't weaken climbing/collision checks. Adjust waiting to1.75m native arrival and observed<=2m distance on the same75cm floor band; already beside the bed is a no-op. Added captured reachable-node regression. Focused behaviour/app/food checks passed (.checks/20261102T041010Z-IiaOYG.log); new full gate is running. The amended daytime wait needs a new live pass after night; preserve the sleeping body instead of waking it to force that test.
+
+All original automatic-claim/no-bed-notice/actual-respawn acceptance remains open. The previous nighttime owner-command/escort AC remains checked; this automatic owned-bed slice does not claim free-bed selection or respawn proof.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:16:56Z
+
+The bedside spacing adjustment passed full just check ci177s (.checks/20261102T041047Z-oa2Qx6.log). A final lower-floor no-op guard and regression then passed focused just check controller test-packages ./internal/behaviour (.checks/20261102T041402Z-N6mxUN.log). Running the full gate again on that final code before committing/deploying.
+
+Fresh just check vm observe at04:15:54Z (.checks/20261102T041553Z-nliLZR.log) shows Tas naturally awake on day143, fraction0.34, grounded and sheltered at[-31.08,36.49,15.19], full37.5/37.5HP and injury seq0/damage0. No wake order or logout was sent. All remaining automatic-claim/no-bed-notice/respawn criteria stay open.

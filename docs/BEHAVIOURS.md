@@ -418,8 +418,8 @@ The selected home, marker and bed stay pinned for the bounded90s attempt.
 The authenticated API supplies two separate editable presets:
 
 ```json
-{"action":"idle-rest","marker":{"world":"your world","name":"home cooking","kind":"cooking"},"sleep":true,"enabled":true}
-{"action":"idle-rest","marker":{"world":"your world","name":"home cooking","kind":"cooking"},"sleep":false,"enabled":true}
+{"action":"idle-rest","marker":{"world":"your world","name":"home rest","kind":"place"},"sleep":true,"enabled":true}
+{"action":"idle-rest","marker":{"world":"your world","name":"home rest","kind":"place"},"sleep":false,"enabled":true}
 ```
 
 Night mode waits15s of idle time, then sends the normal bed sleep interaction.
@@ -429,7 +429,9 @@ the night can skip, and native roof/fire/wet/enemy refusals remain visible.
 Day mode waits120s, at lower priority than food/cargo work, then makes one
 dry/hostile-aware move near the bed and releases the body. It waits nearby
 without trying an invalid daytime sleep or holding a task open. Already
-being beside the bed needs no movement.
+being within2m of the bed needs no movement. Native waiting approaches use
+a1.75m arrival radius and require a fresh sheltered floor observation within
+2m and75cm vertically, avoiding a demand to climb into crowded bed frames.
 
 Both presets have a five-minute cooldown and100-attempt controller-session
 limit; none are enabled by default. Their ordinary behaviour rows expose
