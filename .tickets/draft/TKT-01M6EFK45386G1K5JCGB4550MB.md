@@ -45,8 +45,9 @@ The audit (docs/AUDIT.md) keeps every `perception` frame (1 Hz) and `state` fram
 
 - **Coverage:** share of the window with Tas in the world and within 32 m of home, and the share of perception samples that saw each in-scope fire and cooking station. A soak where Tas was home for less than 80 % of the window, or a structure seen in less than 80 % of those samples, is `inconclusive`, not a pass.
 - **Fires:** per fire ID, samples seen, samples lit, lit share at night (`time.night`) excluding the first 120 s after each dusk, the grace goal 5.1 allows, lit share while a cooking slot within 3 m is `cooking` or `done`, failing samples at fuel 0 under goal 5.1's rule (A fire at fuel 0 within the first 120 s after dusk passes, because the bot can only start stoking once it sees night and may have to fetch fuel from a chest; any night sample at fuel 0 after that, or any sample at fuel 0 with food cooking over it, fails. Fires may run dry by day.), the longest unlit stretch at night in seconds, and the count of matched fuel receipts (the add_to task from TKT-01M62VXZ4D (Plugin: add fuel and ore to machines and take their output) once it exists; count none before then).
+- **Fuel reserve:** for each fuel type, stored fuel at every fresh chest snapshot plus the pack, against the reserve, and any sample below it (goal 5.1: stored fuel never drops below the reserve).
 - **Cooking:** per station and slot, transitions into `burnt` from a sample that was `cooking` or `done`, and each `done` slot's time until it emptied.
-- **Assignments:** given the assignment table (a JSON file, or read from the controller once TKT-01M62VXZ84 exists), the last snapshot of each chest seen during the window, and the units of each assigned item found outside its chests. Don't-touch chests are excluded. Snapshots older than the window start count as unknown, not as correct.
+- **Assignments:** given the assignment table (a JSON file, or read from the controller once TKT-01M62VXZ84 exists), the last snapshot of each chest seen during the window, the units of each assigned item found outside its chests, and the units of each assigned item in the pack above its `keep` (goal 5.3). Don't-touch chests are excluded. For each full-chest event (a deposit refused as full), the delay to the owners' chat line naming the item and count (goal 5.3 needs at most 10 s) and the gap since the previous such line for the same chest (at least 5 min). Snapshots older than the window start count as unknown, not as correct.
 - **Pantry:** from goal summaries, each household target's count at every fresh inspection, and episodes that ended with an uncertain pending action.
 - **Incidents:** deaths, plugin task failures with reason `internal`, storage-shortfall chat lines and perception scan traces with `truncated: true` (the evidence TKT-01M62VXZM9 needs).
 
@@ -62,11 +63,11 @@ Each section has its own verdict (`pass`, `fail`, `inconclusive`) against thresh
 
 ### Verification
 
-`just check vm test-upkeep-report` runs the self-test against small fixture windows: a fire that goes out at night, a fire dry by day and relit within 120 s of dusk (pass), one still dry 120 s after dusk (fail), a slot that burns, a misplaced assigned item, a window with Tas away from home (inconclusive), and a clean pass. `just check ci` runs it. No game is needed.
+`just check vm test-upkeep-report` runs the self-test against small fixture windows: a fire that goes out at night, a fire dry by day and relit within 120 s of dusk (pass), one still dry 120 s after dusk (fail), fuel dipping below the reserve (fail), an assigned item held in the pack above keep (fail), a full chest reported after 10 s or twice within 5 min (fail), a slot that burns, a misplaced assigned item, a window with Tas away from home (inconclusive), and a clean pass. `just check ci` runs it. No game is needed.
 
 ## Acceptance criteria
 
 - [ ] just vm upkeep-report writes .checks/upkeep-<ts>/summary.json with coverage, fires, cooking, assignments, pantry and incidents sections, each with a pass, fail or inconclusive verdict
 - [ ] A window with Tas within 32 m of home for less than 80 % of it, or a structure seen in less than 80 % of those samples, is inconclusive, never pass
-- [ ] just vm test-upkeep-report runs in just ci against fixture windows: a fire out at night, a fire relit at dusk, a fire still dry after dusk, a burnt slot, a misplaced assigned item, Tas away from home, and a clean pass
+- [ ] just vm test-upkeep-report runs in just ci against fixture windows: a fire out at night, a fire relit at dusk, a fire still dry after dusk, fuel below the reserve, pack above keep, a late or repeated full-chest line, a burnt slot, a misplaced assigned item, Tas away from home, and a clean pass
 - [ ] docs/TESTING.md says how to run the report and read each section
