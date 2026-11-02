@@ -303,6 +303,13 @@ at `(-37.03, 36.09, 7.92)`. Tas finished at 25/25 HP, with all 15 seeds.
 Close-follow waiting across a wall, cancellation during planning and changed
 or blocked walls/doorways still need separate live checks.
 
+When the walker spends its recoveries within the follow distance plus 1.5 m
+of the leader, `follow` (and `escort` through it) now waits instead of
+failing `stuck`; `FollowNearWaitTests` covers the decision with the captured
+house positions. The live check is to stand inside the house with the bot
+outside the east wall, look for the `follow` `wait` trace and no `stuck`
+failure, then walk 2 m and see `resume`.
+
 ### Cached local-planner geometry
 
 The plugin retains nearby upright box and capsule solids in a spatial index.

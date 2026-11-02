@@ -1475,6 +1475,7 @@ namespace Renki.Plugin
         readonly FollowArgs args;
         readonly bool safeTravel;
         readonly FollowPace pace = new FollowPace();
+        readonly NearLeaderWait stall = new NearLeaderWait();
         readonly Walker walker = new Walker();
         Vector3 pathedTo;
         float lastSeen;
@@ -1529,6 +1530,21 @@ namespace Renki.Plugin
                 leaderSpeed = Mathf.Lerp(leaderSpeed, flat.magnitude / (float)dt, 0.1f);
             }
             leaderLast = lead;
+            if (stall.Waiting)
+            {
+                if (stall.Hold(Convert.ToV3(lead)))
+                {
+                    Driver.Stand();
+                    Driver.LookAt = leader.GetHeadPoint();
+                    Driver.LookUntil = Time.time + .5f;
+                    return null;
+                }
+                Trace("resume", "leader moved on", gap, pos, lead);
+                // Start the walk afresh: a new path and a full set of recoveries.
+                moving = false;
+                pathedTo = new Vector3(float.MaxValue, 0, 0);
+                lastGait = Unset;
+            }
             var nearWall = gap <= args.Distance + pace.Slack && System.Math.Abs(pos.y - lead.y) <= Arrival.Level &&
                            !WallRoute.Clear(Convert.ToV3(pos), Convert.ToV3(lead), WorldNavigation.Walls);
             var mayStop = !safeTravel || System.Math.Abs(pos.y - lead.y) <= Arrival.Level &&
@@ -1575,10 +1591,29 @@ namespace Renki.Plugin
             if (!walker.Steer(pos, gait == Gait.Run))
             {
                 Driver.Stand();
+                // Near the leader but unable to get closer, as outside the
+                // wall of the house they stand in: wait for them rather than
+                // fail and walk home.
+                if (stall.GiveUp(Convert.ToV3(pos), Convert.ToV3(lead), args.Distance))
+                {
+                    Trace("wait", $"cannot get closer after {walker.RecoveryAttempts} recoveries", gap, pos, lead);
+                    moving = false;
+                    return null;
+                }
                 return Outcome.Failed(Wire.ReasonStuck, $"no progress after {walker.RecoveryAttempts} recoveries");
             }
             return null;
         }
+
+        void Trace(string msg, string reason, float gap, Vector3 pos, Vector3 lead) =>
+            Tracer.Emit("follow", msg, new Dictionary<string, object>
+            {
+                ["reason"] = reason,
+                ["gap"] = System.Math.Round(gap, 2),
+                ["distance"] = args.Distance,
+                ["pos"] = Convert.ToArray(pos),
+                ["leader"] = Convert.ToArray(lead),
+            });
 
         public void Cancel() => Driver.Stand();
     }
