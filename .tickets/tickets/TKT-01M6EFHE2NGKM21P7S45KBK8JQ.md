@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFHE2NGKM21P7S45KBK8JQ
 title: "Behaviours: loot template picks up drops near the owner"
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T19:21:12Z
+updated_at: 2026-11-02T19:44:31Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
@@ -65,11 +65,11 @@ Part of TKT-01M62N12HJ (Controller: loot and deliver-when-full behaviours for ha
 
 ## Acceptance criteria
 
-- [ ] A loot template picks up eligible drops within its radius of the followed owner, verified against inventory receipts, in a test
-- [ ] A drop that appears at an owner's feet with no felling or splitting nearby is left alone for 5 minutes, in a test
-- [ ] A built-in loot instance exists and is on by default, and an owner can switch it off
+- [x] A loot template picks up eligible drops within its radius of the followed owner, verified against inventory receipts, in a test
+- [x] A drop that appears at an owner's feet with no felling or splitting nearby is left alone for 5 minutes, in a test
+- [x] A built-in loot instance exists and is on by default, and an owner can switch it off
 - [ ] If follow pre-emption is enabled, the same follow is started again after the pickup, in a test
-- [ ] docs/BEHAVIOURS.md describes the template and the deliberate-drop rule
+- [x] docs/BEHAVIOURS.md describes the template and the deliberate-drop rule
 
 ## Implementation plan
 
@@ -80,3 +80,27 @@ Part of TKT-01M62N12HJ (Controller: loot and deliver-when-full behaviours for ha
 5. Built-in instance `Loot`: timer trigger every 2 s, repeat `trigger`, `when.owner.radius` 40, priority -5, enabled; `Engine.InstallLoot` creates it when absent, called from `app.Serve` (not `New`, so the app tests that count rows stay valid). Disable is the off switch.
 6. Follow pre-emption: the engine cannot borrow a body from an active follow (TryAutomationFor refuses busy bodies), and doing so needs the owner's agreement (TKT-01M62VXYQB). `preemptFollow:true` is rejected by validation for now; AC 4 stays unticked with a note and a follow-up.
 7. Tests in `loot_test.go`; docs in docs/BEHAVIOURS.md.
+
+## Notes
+
+**agent:claude-code/renki-m2-loot** at 2026-11-02T19:44:31Z
+
+Implemented on branch t3/loot-template. `just check ci` passes and `just review` reports no findings on the final head.
+
+Evidence for the ticked criteria (all offline, in internal/behaviour/loot_test.go):
+- AC 1: TestLootPicksNearestDropsNearTheOwnerAndChecksReceipts, TestEngineLootPicksUpADropNearTheOwner (the built-in instance dispatches `pickup` through the engine).
+- AC 2: TestLootLeavesADeliberateDropForFiveMinutes, TestDeliberateDropRule, TestLootTakesDropsFromFellingAtTheOwnersFeet, TestLootExcusesWoodSeenAFrameBeforeItsLogBreaks.
+- AC 3: TestBuiltInLootIsInstalledOnceOnAndCanBeSwitchedOff (installed on, disable survives a restart and a second install).
+- AC 5: docs/BEHAVIOURS.md "Loot near owners".
+
+AC 4 is left unticked. The engine cannot start loot during a follow: `session.TryAutomationFor` refuses a body with a running task, and pausing an owner's follow needs the owners' agreement (TKT-01M62VXYQB). `preemptFollow` exists as a parameter and validation rejects `true`. Filed TKT-01M6EWN4WH (Behaviours: loot pauses and resumes an owner's follow) as a draft for that piece.
+
+Two decisions the next person needs:
+- The rule now has a 2 s lag: a break up to 2 s after a drop's first sighting also excuses it, because a split log's wood can be seen a frame before the log goes. The haul report (TKT-01M6DDFTDD) should call `behaviour.DeliberateDrop` rather than restating the numbers.
+- The built-in instance is installed from `app.Serve`, not `app.New`; deleting it brings it back on the next start, so disabling is the off switch.
+
+Live check, still to run (needs the VM; not done here): with the controller deployed, stand idle near Tas, fell and split a beech within 30 m, and drop a stack of wood at your feet. Expect Tas to pick up the felling wood and leave the dropped stack for 5 minutes. Read the `behaviour started`/`behaviour step` lines for instance `Loot` in the controller log.
+
+## Summary
+
+Loot template, deliberate-drop rule (DeliberateDrop) and an on-by-default built-in Loot instance landed on t3/loot-template, for the idle-near-owner case. Follow pre-emption is reserved and moved to TKT-01M6EWN4WH; AC 4 stays open for it.
