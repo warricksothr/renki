@@ -15,13 +15,14 @@ parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies:
   - TKT-01M6DCFSHHG0DZJW21HTZGZGH4
+  - TKT-01M62EP0PDAB02DNJAJ6WS3MYD
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:54:52Z
-updated_at: 2026-11-02T16:23:39Z
+updated_at: 2026-11-02T16:52:52Z
 created_by:
   id: agent:claude-code/renki-plan-m4
   name: ""

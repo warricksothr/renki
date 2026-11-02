@@ -9,6 +9,7 @@ priority: normal
 due_on: null
 labels:
   - controller
+  - live
 assignees: []
 milestone: M7
 parent: TKT-01M66PMAV9P2Z8QMR9N90T0TH1
@@ -16,18 +17,19 @@ origin: null
 dependencies:
   - TKT-01M6EFQP437YT124TQ25299BJV
   - TKT-01M6EFQN91YGXHVP9NF32BK21W
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:33Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-02T16:52:52Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---

@@ -166,7 +166,7 @@ A ticket can go to an agent when:
 ### Two lanes
 
 - **Offline** tickets need only the repository and `just ci`. Any number run at once, each in its own worktree.
-- **Live** tickets (label `live`) need the one Windows VM and its one game client. They run one at a time, under the VM lease (TKT-01M6EF5DTG, VM: exclusive lease for deploys and live trials). Every live ticket depends on it. Until it lands, one person decides who uses the VM.
+- **Live** tickets (label `live`) need the one Windows VM and its one game client to deploy, run a trial or check something in the game. Reading from the VM (audit windows, the report recipes, map snapshots, read-only panel requests) changes nothing there, needs no lease, and does not make a ticket live. They run one at a time, under the VM lease (TKT-01M6EF5DTG, VM: exclusive lease for deploys and live trials). Every live ticket depends on it. Until it lands, one person decides who uses the VM.
 
 The usual shape is offline code first, then a short live session for evidence. Many tickets split that way on purpose, so the code can merge while the VM is busy.
 
