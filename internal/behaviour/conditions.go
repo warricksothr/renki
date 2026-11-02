@@ -23,6 +23,7 @@ type View struct {
 	Owners       []string
 	Home         *protocol.Vec3
 	Danger       []home.DangerZone
+	Waypoints    []home.Waypoint
 	Idle         bool
 }
 

@@ -7,6 +7,17 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Marker idle food work
+
+For one bounded marker food batch, use `just vm marker-food-check "marker name"`.
+`--go` first visits the marker; `--idle` verifies its automatic 30-second dwell.
+The helper records pack snapshots, behaviour status, native task receipts and
+health under `.checks/marker-food-*`, returns home after success, and disables
+its test definition. `--keep-online` leaves the client running only when a
+fresh final check proves idle shelter near home with no observed threat.
+Command takeover yields without logging out the new owner. Pure safety checks
+run through `just check vm test-marker-food-check`, included in `just check ci`.
+
 ## Development checks with concise output
 
 Use `just check <recipe> [arguments...]` to save full output in a unique,

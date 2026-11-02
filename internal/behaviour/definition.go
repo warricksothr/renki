@@ -26,9 +26,18 @@ type Definition struct {
 	Enabled  bool            `json:"enabled"`
 }
 type Trigger struct {
-	Kind   string  `json:"kind"` // manual, event, timer
+	Kind   string  `json:"kind"` // manual, event, timer, idle
 	Event  string  `json:"event,omitempty"`
 	EveryS float64 `json:"everyS,omitempty"`
+	Marker *Marker `json:"marker,omitempty"`
+	DwellS float64 `json:"dwellS,omitempty"`
+}
+
+// Marker binds work to a current named waypoint and its expected kind.
+type Marker struct {
+	World string `json:"world"`
+	Name  string `json:"name"`
+	Kind  string `json:"kind"`
 }
 type Repeat struct {
 	Mode      string      `json:"mode"` // once, trigger, while, until
@@ -102,6 +111,10 @@ func (d *Delay) Error() string { return "waiting until " + d.Until.String() }
 type Runner interface {
 	Next(View, *Result) (*session.Order, error)
 }
+
+// Guard is checked during native tasks too, so safety is not deferred until
+// a long-running interaction completes. It must never dispatch actions.
+type Guard interface{ Check(View) error }
 type Template interface {
 	Validate(json.RawMessage) error
 	Start(json.RawMessage) (Runner, error)
@@ -172,6 +185,9 @@ func validate(d Definition, templates map[string]Template) error {
 	if err := t.Validate(d.Params); err != nil {
 		return fmt.Errorf("%s parameters: %w", d.Template, err)
 	}
+	if d.Trigger.Kind != "idle" && (d.Trigger.Marker != nil || d.Trigger.DwellS != 0) {
+		return errors.New("marker and dwell belong to idle triggers")
+	}
 	switch d.Trigger.Kind {
 	case "manual":
 		if d.Trigger.Event != "" || d.Trigger.EveryS != 0 {
@@ -185,8 +201,22 @@ func validate(d Definition, templates map[string]Template) error {
 		if !seconds(d.Trigger.EveryS) || d.Trigger.EveryS < 1 || d.Trigger.Event != "" {
 			return errors.New("timer interval must be 1–86400 seconds")
 		}
+	case "idle":
+		if d.Trigger.Marker == nil || d.Trigger.Marker.validate() != nil || d.Trigger.Event != "" || d.Trigger.EveryS != 0 || !seconds(d.Trigger.DwellS) || d.Trigger.DwellS < 10 || d.Trigger.DwellS > 600 {
+			return errors.New("idle trigger needs a marker and 10–600 seconds of dwell")
+		}
+		if d.Repeat.Mode != "trigger" || d.Repeat.CooldownS < 60 || d.Repeat.MaxRuns < 1 || d.Repeat.MaxRuns > 100 {
+			return errors.New("idle work needs trigger repeat, at least 60 seconds cooldown and 1–100 runs")
+		}
+		if d.Template == "marker_food" {
+			var p MarkerFoodParams
+			_ = Decode(d.Params, &p)
+			if p.Marker != *d.Trigger.Marker {
+				return errors.New("food work and idle trigger must use the same marker")
+			}
+		}
 	default:
-		return errors.New("trigger kind must be manual, event or timer")
+		return errors.New("trigger kind must be manual, event, timer or idle")
 	}
 	if err := d.When.validate(); err != nil {
 		return err

@@ -152,12 +152,13 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	}
 	a.goalTemplate = &goal.Template{Store: a.Goals, Landmarks: homes.Landmarks, Allowed: a.Session.Allowed}
 	a.supplyLog = log.With("part", "resupply")
-	a.Food.SetReserved(a.Goals.FoodRunning)
+	a.Food.SetReserved(func() bool { return a.Goals.FoodRunning() || a.Behaviours != nil && a.Behaviours.PreparingFood() })
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate},
 		Owners:     func() []string { v := set.Values(); return v.Players.Commanders(v.Owners) },
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
 		Landmarks:  homes.Landmarks,
+		Waypoints:  homes.Waypoints,
 		Danger:     homes.DangerZones,
 		Notify: func(ctx context.Context, line string) {
 			_, err := s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}, TimeoutS: 5})

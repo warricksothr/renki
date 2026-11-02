@@ -30,6 +30,7 @@ type Options struct {
 	Home       func() (protocol.Vec3, bool)
 	Containers func(world string) []home.RememberedContainer
 	Landmarks  func(world string) []home.Landmark
+	Waypoints  func(world string) []home.Waypoint
 	Danger     func(world string, now time.Time) []home.DangerZone
 	Logger     *slog.Logger
 	Now        func() time.Time
@@ -65,6 +66,8 @@ type instance struct {
 	noticeAt              time.Time
 	requestConn           *protocol.Hello
 	requestWorld          string
+	idleSince             time.Time
+	idleMarker            *home.Waypoint
 }
 type Status struct {
 	Name          string       `json:"name"`
@@ -90,7 +93,7 @@ func New(o Options) *Engine {
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -150,6 +153,19 @@ func (e *Engine) List() []Status {
 	var cloned []Status
 	_ = json.Unmarshal(raw, &cloned)
 	return cloned
+}
+
+// PreparingFood reserves newly cooked output until its native and host
+// inventory receipts are checked. Normal meal upkeep resumes after the batch.
+func (e *Engine) PreparingFood() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	i := e.instances[e.active]
+	if i == nil || i.definition.Template != "marker_food" {
+		return false
+	}
+	var p MarkerFoodParams
+	return Decode(i.definition.Params, &p) == nil && p.Marker.Kind == "cooking"
 }
 func (e *Engine) Put(ctx context.Context, name string, raw json.RawMessage, by string) error {
 	var d Definition
@@ -227,6 +243,15 @@ func (e *Engine) action(ctx context.Context, name, action, by string) error {
 			i = e.instances[name]
 		}
 		i.requestConn, i.requestWorld = hello, state.World
+		if i.definition.Trigger.Kind == "idle" {
+			v := e.view()
+			w, ok := i.definition.Trigger.Marker.resolve(v)
+			if !ok || !idleFresh(v) || !withinMarker(state.Pos, w) {
+				return errors.New("idle work must start at its current marker")
+			}
+			i.idleMarker = &w
+			i.idleSince = e.o.Now().Add(-duration(i.definition.Trigger.DwellS))
+		}
 		i.pending = true
 		i.completed = 0
 		i.next = time.Time{}
@@ -241,6 +266,8 @@ func (e *Engine) action(ctx context.Context, name, action, by string) error {
 			e.ended(i, "stopped")
 		}
 		i.pending = false
+		i.idleSince = time.Time{}
+		i.idleMarker = nil
 		e.o.Logger.Info("behaviour stopped", "instance", name, "by", by)
 	case "enable", "disable":
 		d := i.definition
@@ -343,6 +370,9 @@ func (e *Engine) view() View {
 	if e.o.Danger != nil && v.State != nil {
 		v.Danger = e.o.Danger(v.State.World, v.Now)
 	}
+	if e.o.Waypoints != nil && v.State != nil {
+		v.Waypoints = e.o.Waypoints(v.State.World)
+	}
 	if e.o.Containers != nil && v.State != nil {
 		// Live contents supersede the entire old observation, including an
 		// empty chest. Never satisfy a condition from an older duplicate.
@@ -399,6 +429,10 @@ func (e *Engine) triggers(v View, now time.Time) {
 	}
 	for name, i := range e.instances {
 		d := i.definition
+		if d.Trigger.Kind == "idle" {
+			e.idleTrigger(name, i, v, now)
+			continue
+		}
 		if !d.Enabled {
 			continue
 		}
@@ -449,6 +483,8 @@ func (e *Engine) clearPending(why string) {
 			e.ended(i, why)
 		}
 		i.pending = false
+		i.idleSince = time.Time{}
+		i.idleMarker = nil
 	}
 }
 
@@ -470,6 +506,11 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 	e.o.Logger.Info("behaviour interrupted", "instance", e.active, "reason", why)
 	e.ended(i, why)
 	i.pending = requeue
+	i.idleSince = time.Time{}
+	i.idleMarker = nil
+	if i.definition.Trigger.Kind == "idle" {
+		i.next = e.o.Now().Add(duration(i.definition.Repeat.CooldownS))
+	}
 	i.runner = nil
 	i.task = nil
 	i.last = why
@@ -492,6 +533,8 @@ func (e *Engine) finish(success bool, detail string, v View) {
 		cooldown = time.Second
 	}
 	i.next = e.o.Now().Add(cooldown)
+	i.idleSince = time.Time{}
+	i.idleMarker = nil
 	i.pending = success && (i.definition.Repeat.Mode == "while" || i.definition.Repeat.Mode == "until") && i.allowed(v)
 	msg := "behaviour finished"
 	if !success {
@@ -536,6 +579,8 @@ func (e *Engine) Tick(ctx context.Context) {
 		e.full, e.night, e.atHome = false, false, false
 		e.drops = nil
 		for _, i := range e.instances {
+			i.idleSince = time.Time{}
+			i.idleMarker = nil
 			if i.requestConn != hello || i.requestWorld != e.world {
 				if i.pending {
 					e.ended(i, "session/world changed")
@@ -562,6 +607,24 @@ func (e *Engine) Tick(ctx context.Context) {
 	if e.active != "" && !e.instances[e.active].allowed(v) {
 		if err := e.cancel(ctx, "condition changed", false); err != nil {
 			e.o.Logger.Warn("could not stop behaviour", "err", err)
+			return
+		}
+	}
+	if e.active != "" {
+		i := e.instances[e.active]
+		var err error
+		if i.definition.Trigger.Kind == "idle" && !idleMarkerValid(i, v) {
+			err = errors.New("idle marker changed or left")
+		} else if guard, ok := i.runner.(Guard); ok {
+			err = guard.Check(v)
+		}
+		if err != nil {
+			if stopErr := e.cancel(ctx, err.Error(), false); stopErr != nil {
+				e.o.Logger.Warn("could not stop guarded work", "err", stopErr)
+			} else {
+				i.completed++
+				i.next = now.Add(duration(i.definition.Repeat.CooldownS))
+			}
 			return
 		}
 	}

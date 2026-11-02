@@ -123,7 +123,7 @@ def main():
         if args.stow_ready:
             if not args.storage or args.stow_ready in args.storage.split(','):
                 raise RuntimeError('staging destination must be excluded from an explicit search scope')
-            foods = ('CookedDeerMeat', 'NeckTailGrilled', 'CookedMeat', 'Honey', 'Raspberry', 'Blueberries', 'Mushroom')
+            foods = ('CookedDeerMeat', 'NeckTailGrilled', 'CookedMeat', 'Honey', 'Raspberry', 'Blueberries', 'Mushroom', 'MushroomYellow')
             before = call('panel', 'GET', '/api/inventory')['inventory']
             items = [dict(prefab=p, count='all') for p in foods if any(i.get('prefab') == p for i in before['items'])]
             if items:

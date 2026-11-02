@@ -22,6 +22,7 @@ type CollectParams struct {
 	MaxWeightFraction float64        `json:"maxWeightFraction,omitempty"`
 	Drops             bool           `json:"drops,omitempty"`
 	Return            bool           `json:"return,omitempty"`
+	CarryOnly         bool           `json:"carryOnly,omitempty"`
 }
 
 func (p CollectParams) stow() StowParams {
@@ -32,7 +33,14 @@ func (Collect) Validate(raw json.RawMessage) error {
 	if err := Decode(raw, &p); err != nil {
 		return err
 	}
-	if err := p.stow().validate(); err != nil {
+	storage := p.stow()
+	if p.CarryOnly {
+		if len(p.To) != 0 || p.Return {
+			return errors.New("carry-only collection cannot have storage or a return trip")
+		}
+		storage.To = []string{"pack"} // validate shared item/reserve fields
+	}
+	if err := storage.validate(); err != nil {
 		return err
 	}
 	if err := (Conditions{Near: &p.Site}).validate(); err != nil {
@@ -208,6 +216,10 @@ func (r *collectRun) Next(v View, result *Result) (*session.Order, error) {
 		if best != nil {
 			return r.take(v, *best), nil
 		}
+	}
+	if r.p.CarryOnly {
+		r.finished = true
+		return nil, nil
 	}
 	r.stow = &stowRun{p: r.p.stow()}
 	return r.Next(v, nil)

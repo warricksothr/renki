@@ -689,6 +689,8 @@ export function startController() {
 
   function onStatus(s) {
     publishStatus(s);
+    if ($("places").open && Date.now() - idleFoodRefreshAt >= 5000)
+      refreshIdleFood();
     const inWorld = s.connected && s.phase === "in_world";
     const nextInventoryScope = inWorld
       ? `${s.connection}:${s.world}:${s.worldUid || ""}`
@@ -2223,6 +2225,7 @@ export function startController() {
     $("place-radius").value = "0";
     $("place-nearby").replaceChildren();
     $("place-source").textContent = "";
+    $("place-idle").hidden = true;
     placeResult("");
     $("place-pick").setAttribute("aria-pressed", "false");
     $("map").classList.remove("picking-place");
@@ -2248,7 +2251,69 @@ export function startController() {
     placeResult("");
     for (const id of ["place-go", "place-delete", "place-near"])
       $(id).disabled = false;
+    $("place-idle").hidden = !["berries", "cooking", "storage"].includes(
+      p.kind,
+    );
+    $("place-idle-status").textContent = "Loading idle work…";
+    refreshIdleFood();
   }
+  let idleFoodRefreshAt = 0,
+    idleFoodLoading = false;
+  async function refreshIdleFood() {
+    if (idleFoodLoading || !placeOriginal || $("place-idle").hidden) return;
+    const name = placeOriginal,
+      selectedWorld = mapWorld,
+      generation = mapGeneration;
+    idleFoodLoading = true;
+    idleFoodRefreshAt = Date.now();
+    try {
+      const response = await fetch("/api/behaviours", { cache: "no-store" });
+      if (!response.ok) throw new Error(await response.text());
+      const rows = await response.json();
+      if (name !== placeOriginal || generation !== mapGeneration) return;
+      const row = rows.find(
+        (r) =>
+          r.definition?.template === "marker_food" &&
+          r.definition.trigger?.kind === "idle" &&
+          r.name.startsWith("idle food ") &&
+          r.definition.params?.marker?.world === selectedWorld &&
+          r.definition.params.marker.name === name,
+      );
+      $("place-idle-status").textContent = row
+        ? `${row.definition.enabled ? "Enabled" : "Disabled"} · ${row.running ? "Working" : row.pending ? "Queued" : "Waiting"} · ${row.runs}/12 batches${row.last ? " · " + row.last : ""}`
+        : "Off · no idle food work configured";
+    } catch (error) {
+      if (name === placeOriginal && generation === mapGeneration)
+        $("place-idle-status").textContent = error.message;
+    } finally {
+      idleFoodLoading = false;
+    }
+  }
+  async function setIdleFood(enabled) {
+    const marker = world.waypoints.find((p) => p.name === placeOriginal);
+    if (!marker) return;
+    const name = placeOriginal,
+      generation = mapGeneration;
+    try {
+      const response = await fetch("/api/behaviours", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+        body: JSON.stringify({
+          action: "idle-food",
+          marker: { world: mapWorld, name: marker.name, kind: marker.kind },
+          enabled,
+        }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      if (name === placeOriginal && generation === mapGeneration)
+        refreshIdleFood();
+    } catch (error) {
+      if (name === placeOriginal && generation === mapGeneration)
+        $("place-idle-status").textContent = error.message;
+    }
+  }
+  $("place-idle-enable").addEventListener("click", () => setIdleFood(true));
+  $("place-idle-disable").addEventListener("click", () => setIdleFood(false));
   function useBotPlace() {
     if (!world.bot) {
       placeResult("Tas must be in the world to use his position.", true);

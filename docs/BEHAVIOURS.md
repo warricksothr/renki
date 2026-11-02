@@ -351,3 +351,57 @@ instance cancels it through the normal lease/stop handshake; a new manual
 start validates the new goal. No instance is installed or enabled by default.
 See SELF_DEFENSE.md for single-enemy limits and live-test status. Autonomous
 combat discovery still selects Greylings; wild Boars require an explicit target.
+
+## Food work while idle near markers
+
+Select a saved `berries`, `cooking` or `storage` marker in the panel's place
+editor and enable **Idle food work**. Other marker types have no automatic
+food action. Nothing is enabled by default. The authenticated behaviour API
+exposes the same preset to tools:
+
+```json
+{"action":"idle-food","marker":{"world":"your world","name":"pantry","kind":"storage"},"enabled":true}
+```
+
+The preset waits for 30 seconds of fresh idle observations in that marker's
+zone, at most 2 m above/below its floor. Point markers use a 3 m work radius;
+large zones are limited to 40 m. Leaving, editing or deleting the marker,
+world/session changes and owner orders discard queued work. Active work uses
+the same pinned marker and body lease. Safety checks also run during native
+steps. Disable persists the off switch and stops active work; Stop clears the
+current attempt and dwell, allowing another attempt after a new dwell period.
+An enabled policy may resume after an owner task ends and Tas becomes idle.
+
+Each attempt lasts at most six minutes:
+
+- `berries`: collect up to four fresh visible raspberry, blueberry or mushroom
+  targets, then return to the marker. Skip nearby creatures, unsuitable floors,
+  insufficient capacity and yields exceeding 20 carried items of that kind.
+  This is wild-food foraging; it does not plant or harvest cultivated crops.
+- `cooking`: prepare at most three carried raw meats/tails using a currently
+  seen, heated, empty supported cooker within 4 m. Match native removal,
+  spawned output, pickup and inventory receipts. Missing supplies or uncertain
+  partial cooking stop the batch. It does not withdraw ingredients or fuel fires.
+- `storage`: deposit surplus ready food into currently visible chests within
+  4 m and the marker zone. Keep two of every supported ready-food prefab.
+  Existing exact transfer receipts prove delivery; inaccessible/full boxes
+  leave an actionable result rather than discard food.
+
+All actions require fresh surroundings, dry footing, an active meal, at least
+25 HP and 80% health at admission, no nearby hostiles and no injury during the
+batch. Newly eaten food may raise maximum HP before healing; continued work
+still requires 40% health and checks actual injury separately. There
+is a five-minute cooldown after completed/failed attempts and a limit of 12
+attempts per controller session. Empty/depleted sites therefore back off.
+Definitions and enabled flags persist; counters and dwell reset on restart.
+The editor shows enabled state, attempt count and last result. Cross-site
+production, hunting, crop cultivation and pressure-driven return/repair remain
+separate goal work.
+
+Generic definitions can use `trigger.kind: "idle"` with `marker` and `dwellS`
+(10–600 seconds). They require `repeat.mode: "trigger"`, `cooldownS >= 60` and
+`maxRuns` from 1–100. The `marker_food` template takes `{ "marker": {...} }`;
+its marker must match the idle trigger. A manual trigger can run one bounded
+food batch when already at that marker. `collect` also supports `carryOnly`
+without storage destinations or a return trip; the enclosing routine owns
+what happens next.
