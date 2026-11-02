@@ -17,19 +17,18 @@ parent: TKT-01M62VXYQB6ZDBQE4E6ERGN83C
 origin: null
 dependencies:
   - TKT-01M62N12C9EWXCD54WMBH08T4E
-  - TKT-01M62EP0PDAB02DNJAJ6WS3MYD
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T15:57:19Z
+updated_at: 2026-11-02T16:17:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -75,3 +74,9 @@ The remaining work is to confirm each criterion against those tests and close th
 - [ ] The controller keeps each container's contents and when they were seen, per world, across restarts
 - [ ] Room for an item in a remembered chest is worked out as for the bot's pack
 - [ ] What the bot finds on opening a chest replaces what it remembered
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:17:51Z
+
+Applied on 2026-11-02 by the planning pass: removed the dependency on TKT-01M62EP0PD (Controller: remember where things are and should be, per world), which moved to M3. Chest memory is already built in internal/home/containers.go and only needs confirming, so M2 and the M5 fuel and stock tickets no longer wait on M3 work.

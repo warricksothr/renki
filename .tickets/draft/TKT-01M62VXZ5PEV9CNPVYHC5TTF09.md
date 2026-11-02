@@ -23,7 +23,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:15:14Z
+updated_at: 2026-11-02T16:17:51Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -35,14 +35,15 @@ extensions: {}
 
 ## Description
 
-A template on the behaviour engine. Parameters: which fires and machines
-(those in the base by default), what to burn (wood for fires, resin for
-torches, coal for furnaces), when (cold, night, someone near, a cooking
-station in use over it, a furnace with something queued), and a reserve of
-fuel that stoking never uses up.
+A template on the behaviour engine. Parameters: which fires (those in the
+base by default), what to burn (wood for fires, resin for torches), when
+(cold, night, someone near, a cooking station in use over it), and a reserve
+of fuel that stoking never uses up.
 
-Fuel comes from the bot's pack first, then the base chests (withdraw). A
-furnace with nothing queued gets no coal.
+Fuel comes from the bot's pack first, then the base chests (withdraw).
+Smelters, kilns and furnaces are out of scope until the owner decides whether
+the base has them; that follow-up depends on TKT-01M62VXZ39 (Perception:
+machine state).
 
 This is M5 goal 5.1 (docs/ROADMAP.md): with the fuel instance on, fires in the base stay lit, measured over two 2 h home soaks.
 
@@ -61,7 +62,7 @@ A `fuel` template, run from an idle trigger at home and a timer while at home:
 - Top up a fire when, in a fresh perception sample, it is below a threshold (default half of `fuelMax`) and it is night, Tas or an owner is cold, or a cooking slot within 3 m is `cooking` or `done`. Light a fire that is out under the same conditions.
 - Fuel by fire type: Wood for campfires and hearths, Resin for torches and sconces, unless the parameters say otherwise.
 - Take fuel from the pack, then withdraw from home chests, never below the reserve (default 10 of each fuel counted across fresh chest snapshots and the pack). When there is none, tell the owners once per hour per fuel type.
-- Smelters and kilns only once TKT-01M62VXZ39 reports their queue: fuel only while something is queued.
+- Smelters and kilns are out of scope until the owner decides whether the base has them; that follow-up depends on TKT-01M62VXZ39 (Perception: machine state).
 - Bounded per run (at most 8 fires and 3 minutes), and survival, owner orders and the body lease come first as for every instance.
 
 ### Files
@@ -76,7 +77,7 @@ A `fuel` template, run from an idle trigger at home and a timer while at home:
 
 ### Verification
 
-`just check controller test-packages ./internal/behaviour` with tests for: a low fire at night topped up from the pack; a fire left alone by day with no cooking and nobody cold; withdrawal stopping at the reserve; a fire out at night relit; the once-per-hour no-fuel message; a furnace with nothing queued left alone. `just check ci`.
+`just check controller test-packages ./internal/behaviour` with tests for: a low fire at night topped up from the pack; a fire left alone by day with no cooking and nobody cold; withdrawal stopping at the reserve; a fire out at night relit; the once-per-hour no-fuel message. `just check ci`.
 
 Live evidence is the fires section of `just vm upkeep-report` in TKT-01M6EFM4G7 (VM: two 2 h base upkeep soaks): in-scope fires lit in at least 98 % of night samples, never at fuel 0, and at least one matched fuel receipt per soak.
 
@@ -92,3 +93,7 @@ Live evidence is the fires section of `just vm upkeep-report` in TKT-01M6EFM4G7 
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:14Z
 
 Supersedes the earlier criteria on smelters, kilns, fermenters and beehives. The 2026-11-02 planning pass removed this ticket's dependency on TKT-01M62VXZ39 (Perception: fuel, lit, queued and finished for fires and machines), so its criteria now cover fires and cooking stations only, which need nothing new from perception. Machine support (fuel or ore into smelters and kilns, output from fermenters and beehives, furnaces fuelled only while queued) waits on the owner's decision on whether the base has those machines. If it does, file it as a follow-up that depends on TKT-01M62VXZ39.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:17:51Z
+
+Supersedes the previous note on this ticket. That note said this ticket's dependency on TKT-01M62VXZ39 (Perception: machine state) was removed. This ticket never had that dependency; only TKT-01M62VXZ4D (add_to and take_from) did. The description, criteria and verification now cover fires only. Furnace, smelter and kiln fuelling is a follow-up that depends on TKT-01M62VXZ39, filed if the owner keeps machines in M5.
