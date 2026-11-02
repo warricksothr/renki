@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/piles"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 	"github.com/warricksothr/renki/internal/settings"
@@ -50,6 +51,7 @@ type Engine struct {
 	orders              uint64
 	full, night, atHome bool
 	drops               map[string]bool
+	piles               piles.Tracker
 }
 type instance struct {
 	episodeID             string
@@ -382,6 +384,7 @@ func (e *Engine) view() View {
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
+	e.observePiles(&v, currentHello)
 	v.Injury = e.o.Session.InjuryStatus()
 	if v.Injury != nil {
 		n := v.Injury.Sequence
