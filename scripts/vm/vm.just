@@ -161,6 +161,9 @@ install: need-target guard
             echo "cannot inspect the VM (SSH exit $probe_status); installation stopped before copying or stopping anything" >&2
             exit "$probe_status"
         fi
+        # Guard again: packaging takes a while, and the nested stop, being an
+        # emergency stop, would not refuse if the lease changed hands meanwhile.
+        {{lease}} guard
         just --justfile "{{justfile()}}" vm stop
     fi
     # Controller-only panel sessions also lock controller.exe on Windows.
