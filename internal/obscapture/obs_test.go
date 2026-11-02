@@ -3,10 +3,12 @@ package obscapture
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/coder/websocket"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -100,5 +102,176 @@ func TestOBSRefusesUnauthenticatedServerAndStalledHandshake(t *testing.T) {
 	}
 	if time.Since(started) > time.Second {
 		t.Fatal("Handshake deadline ignored")
+	}
+}
+
+// fakeOBS authenticates any client, then answers each request with handle.
+// A nil response is sent as an empty object.
+func fakeOBS(t *testing.T, handle func(kind string, data json.RawMessage) (bool, any)) *OBS {
+	t.Helper()
+	address := mockOBS(t, true, func(ctx context.Context, c *websocket.Conn) {
+		if _, _, err := c.Read(ctx); err != nil {
+			return
+		}
+		c.Write(ctx, websocket.MessageText, []byte(`{"op":2,"d":{"negotiatedRpcVersion":1}}`))
+		for {
+			_, b, err := c.Read(ctx)
+			if err != nil {
+				return
+			}
+			var request struct {
+				D struct {
+					ID   string          `json:"requestId"`
+					Kind string          `json:"requestType"`
+					Data json.RawMessage `json:"requestData"`
+				}
+			}
+			json.Unmarshal(b, &request)
+			ok, response := handle(request.D.Kind, request.D.Data)
+			if response == nil {
+				response = map[string]any{}
+			}
+			answer, _ := json.Marshal(map[string]any{"op": 7, "d": map[string]any{"requestId": request.D.ID, "requestStatus": map[string]any{"result": ok}, "responseData": response}})
+			if c.Write(ctx, websocket.MessageText, answer) != nil {
+				return
+			}
+		}
+	})
+	o, err := connect(context.Background(), address, "password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(o.Close)
+	return o
+}
+
+// captureState is the game source as a fake OBS holds it.
+type captureState struct {
+	mu       sync.Mutex
+	settings map[string]any
+	sets     []map[string]any
+}
+
+func newCaptureState(window string) *captureState {
+	return &captureState{settings: map[string]any{"capture_mode": "window", "window": window, "priority": 0}}
+}
+
+// input answers the source requests and reports whether it handled kind.
+func (s *captureState) input(kind string, data json.RawMessage) (handled, ok bool, response any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch kind {
+	case "GetInputSettings":
+		settings := map[string]any{}
+		for k, v := range s.settings {
+			settings[k] = v
+		}
+		return true, true, map[string]any{"inputKind": "game_capture", "inputSettings": settings}
+	case "SetInputSettings":
+		var args struct {
+			InputName     string         `json:"inputName"`
+			Overlay       bool           `json:"overlay"`
+			InputSettings map[string]any `json:"inputSettings"`
+		}
+		json.Unmarshal(data, &args)
+		if args.InputName != Source {
+			return true, true, nil
+		}
+		if !args.Overlay {
+			s.settings = map[string]any{}
+		}
+		for k, v := range args.InputSettings {
+			s.settings[k] = v
+		}
+		s.sets = append(s.sets, args.InputSettings)
+		return true, true, nil
+	}
+	return false, false, nil
+}
+
+func (s *captureState) window() any {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.settings["window"]
+}
+
+func TestSourceLossTrialRestoresWindowAfterCancel(t *testing.T) {
+	state := newCaptureState(Window)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+		if handled, ok, response := state.input(kind, data); handled {
+			return ok, response
+		}
+		if kind == "GetCurrentProgramScene" {
+			// The interrupt arrives while standby is still pending.
+			cancel()
+			return true, map[string]any{"currentProgramSceneName": Gameplay}
+		}
+		return false, nil
+	})
+	err := o.SourceLossTrial(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Cancelled trial reported %v", err)
+	}
+	if state.window() != Window {
+		t.Fatalf("Window left on %v", state.window())
+	}
+}
+
+func TestSourceLossTrialFailsWhenRestoreFails(t *testing.T) {
+	state := newCaptureState(Window)
+	o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+		if kind == "SetInputSettings" && strings.Contains(string(data), `"window":"`+Window+`"`) {
+			return false, nil
+		}
+		if handled, ok, response := state.input(kind, data); handled {
+			return ok, response
+		}
+		if kind == "GetCurrentProgramScene" {
+			return true, map[string]any{"currentProgramSceneName": Offline}
+		}
+		return false, nil
+	})
+	if err := o.SourceLossTrial(context.Background()); err == nil {
+		t.Fatal("Trial passed with the capture on a nonexistent window")
+	}
+}
+
+func TestConfigureRepairsExistingSourceSettings(t *testing.T) {
+	state := newCaptureState("Renki nonexistent window:UnityWndClass:valheim.exe")
+	state.settings["priority"] = 2
+	o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+		if handled, ok, response := state.input(kind, data); handled {
+			return ok, response
+		}
+		switch kind {
+		case "GetSceneList":
+			return true, map[string]any{"scenes": []any{map[string]any{"sceneName": Offline}, map[string]any{"sceneName": Gameplay}}}
+		case "GetCurrentProgramScene":
+			return true, map[string]any{"currentProgramSceneName": Offline}
+		case "GetInputList":
+			return true, map[string]any{"inputs": []any{map[string]any{"inputName": "Renki Standby"}, map[string]any{"inputName": Source}}}
+		case "GetSceneItemList":
+			var args struct {
+				SceneName string `json:"sceneName"`
+			}
+			json.Unmarshal(data, &args)
+			name := "Renki Standby"
+			if args.SceneName == Gameplay {
+				name = Source
+			}
+			return true, map[string]any{"sceneItems": []any{map[string]any{"sourceName": name, "sceneItemEnabled": true}}}
+		case "CreateScene", "CreateInput":
+			t.Errorf("Configure recreated existing %s", kind)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err := o.Configure(context.Background(), "slate.html"); err != nil {
+		t.Fatalf("Configure did not repair the source: %v", err)
+	}
+	if state.window() != Window || state.settings["priority"] != float64(0) {
+		t.Fatalf("Source left with %v", state.settings)
 	}
 }

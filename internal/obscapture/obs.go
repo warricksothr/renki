@@ -218,15 +218,30 @@ func (o *OBS) StopLocal(ctx context.Context) error {
 // SourceLossTrial selects only a nonexistent exact game window, waits for the
 // running adapter to select standby, then restores the verified exact window.
 // It never changes the game process, output destination or capture mode.
-func (o *OBS) SourceLossTrial(ctx context.Context) error {
-	if err := o.VerifySource(ctx); err != nil {
+//
+// The restore runs whatever happens to ctx, and the trial fails if it does
+// not verify. OBS requests use a context that ctx cannot cancel, because a
+// cancelled read closes the connection and the restore would then be lost;
+// each request keeps its own Call timeout. Only the wait between polls
+// watches ctx.
+func (o *OBS) SourceLossTrial(ctx context.Context) (err error) {
+	calls := context.WithoutCancel(ctx)
+	if err := o.VerifySource(calls); err != nil {
 		return err
 	}
-	set := func(window string) error {
+	set := func(ctx context.Context, window string) error {
 		return o.Call(ctx, "SetInputSettings", map[string]any{"inputName": Source, "overlay": true, "inputSettings": map[string]any{"window": window}}, nil)
 	}
-	defer set(Window)
-	if err := set("Renki nonexistent window:UnityWndClass:valheim.exe"); err != nil {
+	defer func() {
+		restore, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if rerr := set(restore, Window); rerr != nil {
+			err = errors.Join(err, errors.New("Capture window not restored"))
+		} else if rerr := o.VerifySource(restore); rerr != nil {
+			err = errors.Join(err, rerr)
+		}
+	}()
+	if err := set(calls, "Renki nonexistent window:UnityWndClass:valheim.exe"); err != nil {
 		return err
 	}
 	deadline := time.Now().Add(8 * time.Second)
@@ -234,7 +249,7 @@ func (o *OBS) SourceLossTrial(ctx context.Context) error {
 		var current struct {
 			CurrentProgramSceneName string `json:"currentProgramSceneName"`
 		}
-		if err := o.Call(ctx, "GetCurrentProgramScene", nil, &current); err != nil {
+		if err := o.Call(calls, "GetCurrentProgramScene", nil, &current); err != nil {
 			return err
 		}
 		if current.CurrentProgramSceneName == Offline {
@@ -372,6 +387,11 @@ func (o *OBS) Configure(ctx context.Context, slate string) error {
 			if err := o.Call(ctx, "CreateInput", map[string]any{"sceneName": spec.scene, "inputName": spec.name, "inputKind": spec.kind, "inputSettings": spec.settings, "sceneItemEnabled": true}, nil); err != nil {
 				return err
 			}
+		} else if err := o.Call(ctx, "SetInputSettings", map[string]any{"inputName": spec.name, "overlay": true, "inputSettings": spec.settings}, nil); err != nil {
+			// An existing input may carry settings an earlier run or a
+			// person changed, such as a trial window that was never
+			// restored. Reapply ours over them.
+			return err
 		}
 	}
 	// Keep the game source active in the private studio preview while Program
