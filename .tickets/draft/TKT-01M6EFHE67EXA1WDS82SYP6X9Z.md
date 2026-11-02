@@ -36,9 +36,9 @@ Split out of TKT-01M62N12G9 (Controller: notice where owners work, and the drops
 
 ### What to build
 
-- From perception over time, group drops (`protocol.ResourceDrop`) within 30 m of the bot by a 4 m cell and prefab, with the stack total per cell and its trend over the last 5 minutes (rising, steady, falling, gone).
+- From perception over time, group drops (`protocol.ResourceDrop`) within the bot's perception radius by a 4 m cell and prefab, with the stack total per cell and its trend over the last 5 minutes (rising, steady, falling, gone).
 - Keep it in memory only, scoped to the world and connection, and bounded. It is a live signal, not a durable record.
-- Expose it to the behaviour `View` so a trigger can ask "is there an eligible pile within R of this owner, and since when not".
+- Expose it to the behaviour `View` so a trigger can ask "is there an eligible pile within R of this owner, and since when not". Answer "unknown", not "gone", for any part of that circle outside the bot's perception radius, so the deliver-when-gone timer (TKT-01M6EFHE4E) never starts on ground the bot cannot see.
 
 ### Files
 
