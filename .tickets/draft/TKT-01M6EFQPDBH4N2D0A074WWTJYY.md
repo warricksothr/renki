@@ -44,7 +44,7 @@ Rollout step 5, display. On the existing map, show the active expedition: author
 - `just check controller test-map`
 - `just check panel ci`
 - `just controller preview-map --serve` with a recorded expedition fixture
-- One `just vm map-snapshot` during a TKT-01M6EFQPB8 (Earn three consecutive bounded expedition passes on the VM) run, saved under .checks/ (read-only)
+- The live snapshot for goal 7.6 is not part of this ticket: TKT-01M6EFQPB8 (Earn three consecutive bounded expedition passes on the VM) takes it after this ticket lands
 
 ## Acceptance criteria
 

@@ -36,7 +36,7 @@ extensions: {}
 
 ## Description
 
-The live half of goal 3.4 in docs/ROADMAP.md: one trip home detours around a danger zone recorded earlier the same day.
+The live half of goal 3.4 in docs/ROADMAP.md: one trip home detours around a danger zone that a natural injury created and that still scores at least 1.
 
 ### Outcome
 
