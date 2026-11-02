@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-02T03:10:55Z
+updated_at: 2026-11-02T03:52:01Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -56,11 +56,11 @@ Use the retained terrain and collider evidence to determine whether a safe route
 
 ## Implementation plan
 
-Continue M2/M3 validation with the existing finite route benchmark. First repair its explicit legacy-home floor handling before another live trip: an opt-in --home-floor-marker selects an existing named waypoint near the pinned home. Require a fresh, idle, grounded, sheltered observation on that marker's floor, inside the existing native home-level envelope. Pin the marker's measured reference height for this run/connection/world/character, without editing home or waypoint positions, changing native move targets, lowering the 0.75 m arrival tolerance or rebasing after return. Record original home, reference marker, starting observation and scope in the trial plan. Refuse missing, changed, distant, malformed or unobserved references and wrong-floor returns.
+User reserved Tas for indoor routing trials. Deploy the reviewed bounded bed-exit/transfer recovery stack, then run actual bed-to-chest withdrawal, cooking, storage and original home return. Pause only the four previously enabled idle definitions and preserve their names for restoration; newer human orders still win. Native receipts and fresh scoped floor observations earn passes, not wrappers alone. Keep Tas online on failure.
 
-Use the compact inspection endpoint to establish fresh state/run identity and outstanding dispatch provenance before movement; require new scoped perception at reference admission. Retain existing native receipt, injury, budget, command-yield and sheltered arrival requirements. Add synthetic supervisor regressions for the captured 1.57 m eye-height offset, wrong-floor returns, changed reference/home/world UID/run, stale or missing observation, malformed references and no reference opt-in. Keep snapshot/receipt evidence distinct from successful live motion.
+Build e399641 proved direct bed-to-food-chest recovery including native alternate approach traces (.checks/task-zldsa_g_.json), followed by food recovery and cooking output proof (.checks/cooking-20261102T033906Z/summary.json). Storage task t-7 then failed at its starting point (.checks/task-l0muz79i.json), not at the destination chest. Zero centre-ray hits beneath grounded feet[-33.5333595,36.1935692,11.1112156] confined every search to its first node; camera-20261102T034054378124Z.jpg shows Tas at the cooking-fire floor opening edge.
 
-Read-only restart checks confirmed clean branch state and offline Tas. The cancelled terrain test is already complete in committed source; do not append it again or restart an unnecessary preview server. Native join waits for fresh clearance at the saved position after the previous 0.645 m hostile refusal. Once clearance is established, use supervised recovery, one short existing-marker round trip, then expand only on earned passes. No repeated unchanged hazardous login or manual per-enemy staging. Run focused tooling checks, full just check ci, commit and just check review, then publish a stacked PR above behavior inspection. Record incomplete field criteria honestly; original coastal AC1/AC2 remain open.
+Measure a bounded eight-ray footprint of radius0.3m only when the actual grounded body's centre footing ray has no hits. Retain current nearest-footing height band and require walkable normals on side measurements. Refuse saturated physics, airborne/remote query points and all original slope/height/footing-band refusals. Future endpoint/midpoint samples still need centre support. Do not increase drop/step bounds, substitute a different floor or authorize a move from grounded flags alone. Keep one bounded successful footprint trace per diagnostic probe so native evidence can verify it. Test synthetic edge departure separately from captured zero-hit provenance, run full checks/commit/review/deploy, then retry the changed storage route before home and repeated indoor loops.
 
 ## Notes
 
@@ -305,3 +305,15 @@ The route benchmark now yields on in_bed/sleeping even with no active task, incl
 **agent:codex/renki-milestones** at 2026-11-02T03:10:55Z
 
 Full just check ci passed in165s (.checks/20261102T030751Z-bTNhmi.log); just check plugin fmt passed. Committing bounded bed descent and benchmark sleep-order yield; deployment and corrected live loops remain pending routing coordination.
+
+**agent:codex/renki-milestones** at 2026-11-02T03:52:01Z
+
+User explicitly reserved Tas for routing trials, with the subsequent requirement that nighttime sleep and eventual idle bed waiting remain available. Four previously enabled idle definitions were temporarily paused; original definitions and names are saved in .checks/current-batch/routing-behaviours-before.json and routing-paused-names.json. New human commands still win; no automatic logout enabled.
+
+Reviewed e399641 deployed successfully with verified package checksums (.checks/20261102T033554Z-WLbiWO.log,77s). Direct bed-to-food-chest withdrawal t-1 passed (.checks/task-zldsa_g_.json): alternate-side measurement and approach traces occurred from the exact bed start, then CookedDeerMeat1/MushroomYellow1 transferred. Tas ate and recovered (.checks/current-batch/routing-food-recovery.jsonl). Cooking wrapper initially admitted zero tasks pending80% recovery, then the changed-state rerun passed (.checks/cooking-20261102T033906Z/summary.json): RawMeat1, station1:73601, verified direct_spawn CookedMeat1 with matched pickup/inventory proof.
+
+Storage deposit t-7 failed in15s (.checks/task-l0muz79i.json). Every local/alternate approach search expanded only its origin because centre footing ray had zero hits at[-33.5333595,36.1935692,11.1112156]. Camera-20261102T034054378124Z.jpg shows the grounded capsule at the fire opening edge. Implemented eight-ray0.3m footprint only for the actual grounded body's missing centre contact; future endpoint/midpoint rays remain unchanged. Side measurements require walkable normals, existing height band and unsaturated probes. Captured provenance plus synthetic adjacent geometry are separated in FootprintSupportTests (.checks/20261102T034336Z-ralFVm.log).
+
+While idle there, injury counters revealed environmental damage despite repeatedly full HP through regeneration. Audit .checks/audit-window-mir4Co.jsonl records54 two-HP un-attributed damage events after cooking; hit type is unavailable, so smoke versus flame is not proven. Safety relocation using ordinary native move_to succeeded in7s (.checks/20261102T034610Z-KePdtk.log), ending[-31.81,36.09,12.31]. This non-dry diagnostic move is not proof of dry planner recovery. An initial invalid avoidHostiles-without-dry request was rejected before dispatch; no guard was changed. Damage stopped after relocation in the retained fresh state. Do not claim an injury-free loop.
+
+Cooking now records its checked tending position, returns there after collecting output using ordinary dry/hostile-aware native travel and the original task deadline plus12s local return bound, and only then reports full success. Cancellation stops the return; refused returns leave the real collected output as partial evidence. Cooking standing-position checks include the game's head-height smoke sphere as well as fire bounds. A prior full CI pass168s predates these extra cooking changes; the new complete gate is running. Corrected live departure, safe cooking handoff, final home and repeated routing remain unearned until actual receipts.

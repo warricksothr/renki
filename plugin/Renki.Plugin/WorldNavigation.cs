@@ -103,7 +103,7 @@ namespace Renki.Plugin
 
         // Start at this floor's level; never snap onto a different storey.
         static V3? Support(V3 at, double fromY, out bool saturated, out object evidence,
-            bool footing = false, bool walking = false, bool diagnostics = false)
+            bool footing = false, bool walking = false, bool diagnostics = false, bool footprint = true)
         {
             var top = new Vector3((float)at.X, (float)fromY + Step + .05f, (float)at.Z);
             var count = Physics.RaycastNonAlloc(top, Vector3.down, supportHits, Step * 2 + .1f, Mask, QueryTriggerInteraction.Ignore);
@@ -142,6 +142,30 @@ namespace Renki.Plugin
                         Tracer.Emit("navigation", "building support slope refused", new Dictionary<string, object>
                         { ["piece"] = piece.name, ["supportQuery"] = evidence });
                 }
+            var player = Player.m_localPlayer;
+            if (!saturated && footing && footprint && count == 0 && player != null)
+            {
+                // A capsule may stand on a floor edge with no floor beneath
+                // its centre. Only the actual grounded body gets this probe;
+                // future nodes/midpoints still require their centre support.
+                var contact = FootprintSupport.Find(at, Convert.ToV3(player.transform.position), player.IsOnGround(),
+                    selection.Refusal, sample =>
+                    {
+                        var point = Support(sample, fromY, out var full, out _, footing: true, walking: true, footprint: false);
+                        return (point, full);
+                    }, out var queries, out var fullFootprint);
+                saturated |= fullFootprint;
+                if (diagnostics && queries > 0)
+                    evidence = new
+                    {
+                        reason = contact.HasValue ? "footprint_contact" : fullFootprint ? "saturated" : "no_footprint_contact",
+                        centre = evidence,
+                        radius = FootprintSupport.Radius,
+                        queries,
+                        selected = contact?.ToArray()
+                    };
+                return saturated ? null : contact;
+            }
             return saturated ? null : selection.Point;
         }
 
@@ -167,6 +191,7 @@ namespace Renki.Plugin
             readonly bool dry;
             readonly bool bankExit;
             readonly V3? diagnosticGoal;
+            bool footprintTraced;
             internal readonly bool Executing;
             long slice;
             internal Failure LastFailure { get; private set; }
@@ -215,6 +240,12 @@ namespace Renki.Plugin
                 {
                     var result = Support(at, y, out var full, out var evidence, footing: true, diagnostics: diagnostics);
                     if (full) Saturated++;
+                    if (diagnostics && result.HasValue && evidence != null && !footprintTraced)
+                    {
+                        footprintTraced = true;
+                        Tracer.Emit("navigation", "using measured footprint support", new Dictionary<string, object>
+                        { ["at"] = at.ToArray(), ["supportQuery"] = evidence });
+                    }
                     return (result, evidence);
                 });
             }

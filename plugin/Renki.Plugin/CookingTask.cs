@@ -21,6 +21,9 @@ namespace Renki.Plugin
         readonly List<ItemDrop> outputs = new List<ItemDrop>();
         CookingBatch batch;
         PickupTask pickup;
+        MoveToTask returnWalk;
+        Vector3 standingPosition;
+        float returnAt;
         bool arrived, removing, cancelled;
         float began, previousHp;
         int spawned, received;
@@ -105,6 +108,7 @@ namespace Renki.Plugin
                 if (result != null) return Finish(result);
                 if (walking) return null;
                 arrived = true;
+                standingPosition = me.transform.position;
             }
             if (batch == null)
             {
@@ -148,6 +152,29 @@ namespace Renki.Plugin
             if (action == CookAction.Failed) return Finish(Outcome.Failed(Wire.ReasonRefused, batch.Failure));
             if (action == CookAction.Succeeded)
             {
+                // Collecting the spawned food may move closer to the fire
+                // than the checked tending position. Complete the handoff
+                // there, rather than leaving an idle body on the fire edge.
+                if (Vector3.Distance(me.transform.position, standingPosition) > .25f)
+                {
+                    if (!fire.SafeFooting(standingPosition))
+                        return Finish(Outcome.Failed(Wire.ReasonRefused, "the cooking return position is no longer clear of fire/smoke; output is already collected"));
+                    if (returnWalk == null)
+                    {
+                        returnWalk = new MoveToTask(new MoveToArgs
+                        { To = new Target { Pos = Convert.ToV3(standingPosition) }, StopDistance = .15, Dry = true, AvoidHostiles = true }, standingPosition, null);
+                        returnAt = Time.unscaledTime;
+                        Trace("returning collected output to checked cooking position", new Dictionary<string, object>
+                        { ["from"] = Convert.ToArray(me.transform.position), ["to"] = Convert.ToArray(standingPosition) });
+                    }
+                    var result = returnWalk.Tick(dt);
+                    if (result != null && result.Status != Wire.StatusSucceeded) return Finish(result);
+                    if (Time.unscaledTime - returnAt > 12)
+                        return Finish(Outcome.Failed(Wire.ReasonTimeout, "cooking output collected but checked standing position was not regained"));
+                    return null;
+                }
+                if (!fire.SafeFooting(me.transform.position))
+                    return Finish(Outcome.Failed(Wire.ReasonRefused, "cooking output collected but standing position has fire/smoke"));
                 Trace("verified cooked inventory receipt", new Dictionary<string, object>
                 { ["output"] = Output, ["count"] = batch.OutputCount, ["evidence"] = remoteOutput == null ? "direct_spawn" : "remote_correlation" });
                 return Finish(Outcome.Succeeded($"cooked one {raw}; collected {batch.OutputCount} {Output}"));
@@ -207,7 +234,7 @@ namespace Renki.Plugin
         public void Cancel()
         {
             if (cancelled) return;
-            cancelled = true; approach.Cancel(); pickup?.Cancel(); Driver.Stand();
+            cancelled = true; approach.Cancel(); pickup?.Cancel(); returnWalk?.Cancel(); Driver.Stand();
             if (Active == this) Active = null;
         }
 

@@ -10,6 +10,7 @@ namespace Renki.Plugin
     /// fire's burning-area bounds, including when those areas are inactive.</summary>
     sealed class CookingFire
     {
+        static readonly int SmokeMask = LayerMask.GetMask("smoke");
         readonly CookingStation station;
         readonly string taskId;
         Fireplace fire;
@@ -33,6 +34,11 @@ namespace Renki.Plugin
 
         internal bool SafeFooting(Vector3 feet)
         {
+            // Match the game's head-height smoke sphere at the proposed
+            // standing position, rather than merely checking flame bounds.
+            var player = Player.m_localPlayer;
+            if (player == null || Physics.CheckSphere(feet + player.GetTopPoint() - player.transform.position + Vector3.up * .1f,
+                .5f, SmokeMask, QueryTriggerInteraction.Collide)) return false;
             foreach (var nearby in Nearby())
                 foreach (var original in BurningBounds(nearby))
                 {

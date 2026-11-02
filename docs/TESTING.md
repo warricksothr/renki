@@ -2129,3 +2129,39 @@ ownership are covered by `just check vm test-route-benchmark`.
 
 The corrected bed exit, final home leg and repeated indoor loops still need
 live receipts. Do not count the stopped sequence as a completed benchmark.
+
+After Tas was reserved for routing, build `e399641` passed the direct
+bed-to-food withdrawal. `.checks/task-zldsa_g_.json` records measured alternate
+chest positions and exact CookedDeerMeat1/MushroomYellow1 transfers. Cooking
+then passed with RawMeat1 withdrawn and CookedMeat1 collected at `1:73601`
+(`.checks/cooking-20261102T033906Z/summary.json`). An earlier cooking wrapper
+correctly admitted no tasks while the newly eaten meals were still restoring
+health; it is not a cooking pass.
+
+Storage task `t-7` failed at its origin, not at the chest:
+`.checks/task-l0muz79i.json` shows zero footing-ray hits at
+[-33.53336,36.19357,11.11122], despite grounded state. The saved camera shows
+the character supported at the cooking-fire opening edge. Current-footing
+measurement now checks at most eight rays within0.3m of the actual grounded
+body when its centre ray has zero hits. Side contacts require walkable normals
+and the original footing height band. Saturation refuses; existing centre-ray
+slope/height/footing refusals retain their result. Remote route nodes, future
+endpoints and midpoints cannot use the footprint fallback. A bounded native
+`using measured footprint support` trace retains the centre query, radius,
+query count and selected contact. `just check plugin test-core
+FootprintSupportTests` covers a synthetic edge departure, remote/airborne
+refusals, excessive heights/radii and saturated probes; the captured failure
+establishes the missing-centre symptom, not the synthetic adjacent geometry.
+Corrected storage and complete/repeated loops still require live proof.
+
+Later observations and audit `.checks/audit-window-mir4Co.jsonl` found repeated
+2HP environmental damage after the cooking task had completed at that edge;
+regeneration obscured it in full-health snapshots. An ordinary native move
+away succeeded (`.checks/20261102T034610Z-KePdtk.log`). This diagnostic recovery
+is not proof of the dry planner fix. Cooking now returns from output collection
+to its checked tending position before reporting success, using a dry,
+hostile-aware native move with a12s return bound and the original task deadline.
+Cancellation clears that return. Standing-position checks also use the game's
+head-height smoke sphere. A collected output followed by a refused return is
+retained as a partial result, not a complete safe cooking pass. The old damage
+events lack a hit type, so smoke versus flame remains unproven.
