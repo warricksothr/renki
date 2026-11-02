@@ -128,6 +128,13 @@ func (t *Tracker) Observe(conn *protocol.Hello, world string, bot protocol.Vec3,
 	}
 }
 
+// ObserveUnplaced records a frame that cannot be tied to where it was
+// scanned from. Its drops are where they are, so they still count as in
+// sight, and they end a clear run, but the frame calls no ground clear.
+func (t *Tracker) ObserveUnplaced(conn *protocol.Hello, world string, p *protocol.Perception, at time.Time) {
+	t.Observe(conn, world, protocol.Vec3{}, 0, protocol.PerceptionConfig{}, p, at)
+}
+
 func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *protocol.Perception, at time.Time) frame {
 	f := frame{at: at, bot: bot}
 	if seen.Radius > 0 && finiteF(seen.Radius) {

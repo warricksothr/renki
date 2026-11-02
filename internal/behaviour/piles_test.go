@@ -64,6 +64,18 @@ func TestViewAsksWhetherAPileIsNearAnOwner(t *testing.T) {
 		t.Fatalf("a stale frame answered %+v", n)
 	}
 
+	// A frame newer than every state cannot be paired, but the wood it
+	// lists is there, and it ends the clear run.
+	see(30.5, wood)
+	wait(t, func() bool { return near().State == piles.Present })
+	state("test", 0, 31)
+	wait(t, func() bool { return e.view().State.T == 31 })
+	see(31)
+	wait(t, func() bool { return near().State == piles.Absent })
+	if n, at := near(), e.view().PerceptionAt; !n.Since.Equal(at) {
+		t.Fatalf("the clear run reached back past the unpaired pile: %+v, want since %v", n, at)
+	}
+
 	// Walking 40 m off leaves part of the owner's circle out of sight.
 	state("test", 40, 32)
 	see(32)

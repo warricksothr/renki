@@ -14,6 +14,10 @@ const (
 	// pilePairing is how much newer than a scan, in game seconds, a state
 	// may be and still be paired with it.
 	pilePairing = 1.0
+	// pileUnplaced is how far apart, in game seconds, a scan and the newest
+	// state may be for a scan that cannot be paired still to count its
+	// drops. Further apart, the scan is too old to say what lies there now.
+	pileUnplaced = 5.0
 	// pileStates bounds the recent states kept to find one before a scan.
 	pileStates = 32
 )
@@ -44,9 +48,10 @@ type pileWatch struct {
 // state and that bound holds. If after, the scan ran within pileSpeed times
 // the time since the last state at or before it of that state, so the
 // distance from there to the paired state counts too. The larger of the two
-// holds either way. With no state seen at or before the scan the frame is
-// not paired. An older frame teaches nothing, and Near answers unknown once
-// the newest is too old.
+// holds either way. A frame that cannot be paired, within pileUnplaced of
+// the state, is recorded unplaced: its drops count, but it clears no ground.
+// An older frame teaches nothing, and Near answers unknown once the newest
+// is too old.
 func (e *Engine) observePiles(v *View, hello *protocol.Hello) {
 	if v.State == nil || hello == nil {
 		return
@@ -64,15 +69,17 @@ func (e *Engine) observePiles(v *View, hello *protocol.Hello) {
 		}
 		w.states = append([]pileState(nil), w.states[cut:]...)
 	}
-	if p := v.Perception; p != nil && st.T-p.T >= 0 && st.T-p.T <= pilePairing {
+	if p := v.Perception; p != nil && math.Abs(st.T-p.T) <= pileUnplaced {
 		var before *pileState
-		for i := len(w.states) - 1; i >= 0; i-- {
+		for i := len(w.states) - 1; i >= 0 && st.T-p.T >= 0 && st.T-p.T <= pilePairing; i-- {
 			if w.states[i].t <= p.T {
 				before = &w.states[i]
 				break
 			}
 		}
-		if before != nil {
+		if before == nil {
+			w.ObserveUnplaced(hello, world, p, v.PerceptionAt)
+		} else {
 			speed := max(pileSpeed, math.Sqrt(st.Vel[0]*st.Vel[0]+st.Vel[1]*st.Vel[1]+st.Vel[2]*st.Vel[2]))
 			drift := max(speed*(st.T-p.T), distance(st.Pos, before.pos)+speed*(p.T-before.t))
 			var seen protocol.PerceptionConfig
