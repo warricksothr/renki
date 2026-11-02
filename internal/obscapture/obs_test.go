@@ -296,3 +296,29 @@ func TestSourceLossTrialInterruptedBeforeLossChangesNothing(t *testing.T) {
 		t.Fatalf("Interrupted trial changed the source: %v", state.sets)
 	}
 }
+
+func TestSourceLossTrialFailsWhenRestoreDoesNotVerify(t *testing.T) {
+	state := newCaptureState(Window)
+	restored := false
+	o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+		if kind == "SetInputSettings" && strings.Contains(string(data), `"window":"`+Window+`"`) {
+			// OBS accepts the restore but keeps the wrong window.
+			restored = true
+			return true, nil
+		}
+		if kind == "GetInputSettings" && restored {
+			return true, map[string]any{"inputKind": "game_capture", "inputSettings": map[string]any{"capture_mode": "window", "window": "other", "priority": 0}}
+		}
+		if handled, ok, response := state.input(kind, data); handled {
+			return ok, response
+		}
+		if kind == "GetCurrentProgramScene" {
+			return true, map[string]any{"currentProgramSceneName": Offline}
+		}
+		return false, nil
+	})
+	err := o.SourceLossTrial(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "run configure") {
+		t.Fatalf("Unverified restore reported %v", err)
+	}
+}

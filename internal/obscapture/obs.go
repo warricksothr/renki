@@ -240,11 +240,13 @@ func (o *OBS) SourceLossTrial(ctx context.Context) (err error) {
 	defer func() {
 		restore, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if rerr := set(restore, Window); rerr != nil {
+		rerr := set(restore, Window)
+		if rerr == nil {
+			rerr = o.VerifySource(restore)
+		}
+		if rerr != nil {
 			// Call errors are fixed strings, so the cause is safe to keep.
 			err = errors.Join(err, fmt.Errorf("Capture window not restored, run configure to repair it: %w", rerr))
-		} else if rerr := o.VerifySource(restore); rerr != nil {
-			err = errors.Join(err, rerr)
 		}
 	}()
 	if err := set(calls, "Renki nonexistent window:UnityWndClass:valheim.exe"); err != nil {
