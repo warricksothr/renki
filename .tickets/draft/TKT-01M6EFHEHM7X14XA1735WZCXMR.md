@@ -44,7 +44,7 @@ Goal 3.3 in docs/ROADMAP.md: 2 of 2 escort or guard runs engage a confirmed atta
 - start, end and how it ended (target death observed, target lost, stopped, leader lost);
 - `escortStopLatencyS`: when the escort task ends after an owner's "stay out of it" or "stop" chat line, the time from the line to the end of combat, and whether any `attack` or escort-defend started in the 10 s after. Read the chat line and tasks from the audit window for the run.
 
-`summary.json` gains `defences` (a list) and `stop`, and a field `goal33` that is true only when at least one defence with `trigger: protected_target` started within 10 m of that player and, if "stay out of it" was said, no `attack` or escort-defend started in the 10 s after. A `self_hit` or `unknown` defence never counts. The stop latency is reported for information; goal 3.3 sets no time limit on it (the 2 s limit is goal 3.2's).
+`summary.json` gains `defences` (a list) and `stop`, and a field `goal33` that is true only when at least one defence with `trigger: protected_target` started within 10 m of that player, an owner said "stay out of it" during or after that defence, and no `attack` or escort-defend started between that line and the end of the run. A run where "stay out of it" was never said has `goal33` false, because it cannot show the stop half of the goal. A `self_hit`, `proximity` or `unknown` defence never counts. The stop latency is reported for information; goal 3.3 sets no time limit on it (the 2 s limit is goal 3.2's).
 
 The owner says "stay out of it" in game. The script does not send it.
 
@@ -52,11 +52,11 @@ The owner says "stay out of it" in game. The script does not send it.
 
 - `scripts/vm/escort-check.py` and `scripts/vm/escort-check-test.py`
 - `docs/ESCORT.md` ("Diagnostics and validation")
-- Read `plugin/Renki.Plugin/EscortTask.cs` and `plugin/Renki.Core/Tasks/Escort.cs` for what `state.escort` carries; if the trigger kind is not reported, record it as unknown and do not add a protocol change here. File a follow-up for the plugin to report it, because goal 3.3 cannot pass on unknown triggers.
+- Read `plugin/Renki.Plugin/EscortTask.cs` and `plugin/Renki.Core/Tasks/Escort.cs` for what `state.escort` carries; today `state.escort.reason` in defend mode is always "confirmed attacker targets a protected player", even when the threat was confirmed only by targeting Tas or by a recent hit on him (`Threats`, `Defend`), so do not read it as `protected_target`. Read the `trigger` field that TKT-01M6EHP58NR3825QRA6PP0ZHD1 (Escort: report whether a defence was for a charge or for Tas himself) adds; until it lands, record every defence as `unknown`. Do not add a protocol change here.
 
 ### Verification
 
-- `just check vm test-escort-check` with fixtures for: a protected-target defence within 10 m, one beyond, a self-hit defence within 10 m (goal33 false), an unknown trigger (goal33 false), a stop with no restart, a stop followed by a restart, and no encounter.
+- `just check vm test-escort-check` with fixtures for: a protected-target defence within 10 m, one beyond, a self-hit defence within 10 m (goal33 false), an unknown trigger (goal33 false), a defence with no stop said (goal33 false), a stop with no restart, a stop followed by a restart, and no encounter.
 - `just check ci`
 
 ## Acceptance criteria
@@ -64,5 +64,5 @@ The owner says "stay out of it" in game. The script does not send it.
 - [ ] escort-check summary.json lists each defence with creature, start distance from the nearest protected player, start, end and how it ended
 - [ ] summary.json records the latency from an owner's stay out of it or stop chat line to the end of combat, and any attack within 10 s after
 - [ ] summary.json has goal33 true only under the rule in the description
-- [ ] vm::test-escort-check covers the five fixtures named in the description
+- [ ] vm::test-escort-check covers the eight fixtures named under Verification
 - [ ] docs/ESCORT.md describes the new fields
