@@ -229,6 +229,20 @@ All 24 outstanding PRs129–152 are merged into main88f4943; no open PRs remaine
 
 Household CookedMeat2 trial .checks/food-20261102T053524Z cooked a verified batch but failed before deposit. Native home-return t-10 succeeded on frame2342; goal consumed state2341 (81cm from home) before arrival state2344 (36cm from home). This is receipt/state ordering rather than a failed route. Carry the immutable terminal native sequence through session.Task and behaviour.Result and require newer state before reconciling a pending food action. No relaxed arrival threshold or replay. Captured-frame regression and native late-receipt immutability checks pass with just check controller test-packages ./internal/session ./internal/behaviour ./internal/goal ./internal/app (.checks/20261102T054048Z-tFFyTW.log). Full gate, deployment and cooking/deposit retry follow. Broader pantry acceptance stays open; Tas remains online.
 
+**agent:codex/renki-milestones** at 2026-11-02T05:52:10Z
+
+Arrival fix75db0ae passed focused checks, full just check ci178s (.checks/20261102T054116Z-9E2coD.log) and committed just check review HEAD~1..HEAD (.checks/20261102T054418Z-76JbSn.log). Controller-only deployment passed (.checks/20261102T054435Z-WyVc12.log), preserving Valheim. PR153 merged as43de40a; all25 PRs129–153 are landed and the open PR list is empty. Controller75db0ae, plugin6e23e2d.
+
+Retained live results:
+- .checks/food-20261102T054448Z stopped at not-in-world while the controller reconnected; no goal or body work.
+- .checks/food-20261102T054518Z goalc45a0cd5c6f97434d9b58b3d correctly succeeded with one stored CookedMeat satisfying minimum1; supervisor required a deposit and correctly rejected this as the requested proof.
+- .checks/food-20261102T054548Z goal524b1e92efd505813eb75aaf correctly reached exact target2 with one surplus-pack deposit. Supervisor's additional cooking predicate correctly failed because no cooking was needed.
+- .checks/food-20261102T054625Z goala4914aa72b61b3d96fe0c6b8 exercised target4. Native raw withdrawal, t-9 cooking/direct_spawn delivery, t-10 precise cook_return, and t-11 matched pantry deposit all succeeded. This confirms the receipt/state ordering fix on real cooking return. Household full outcome did not pass: stored raw meat was exhausted, five configured search visits failed, and final home return failed unreachable. Goal needs_plan after12 tasks/one batch; no hunting or collection earned. Keep all broader pantry ACs open.
+
+Next blocker is native departure/return near[-30.94,35.54,-0.14], rather than cooked-food receipt ordering. Audit .checks/audit-window-3KPFD5.jsonl (05:47:00–05:50:15Z) records endpoint/midpoint support rejections on wood_stack(Clone)/log (normalY around0.60), no-hit candidates, and support_step transitions from35.53 to36.09. These are investigation leads, not proof that relaxing slope/step clearance is correct. Inspect cached building geometry and supported transitions at the exit before another identical wildlife trial. No manual clearing, teleportation, fabricated resources, automatic action replay or logout.
+
+Final fresh observation .checks/20261102T055127Z-WXwZOu.log: controller75db0ae connected/in-world,62.1/62.1HP, injurySeq0, grounded at the captured exit, no active task. Tas remained online. Automatic resupply and the successful cook-return/deposit evidence remain distinct from the failed outdoor hunt/pantry completion. Repeated full acquisition/cook/deposit/rest loops remain unearned.
+
 **agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
 
 ### Remaining for M3: serves no M3 goal
