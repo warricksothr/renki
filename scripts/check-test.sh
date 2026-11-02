@@ -35,7 +35,7 @@ for expected in 0 37; do
     else
         grep -q '^FAIL:.*exit 37' "$fixture/output"
         grep -q '^last diagnostic$' "$fixture/output"
-        ! grep -q '^first diagnostic$' "$fixture/output"
+        if grep -q '^first diagnostic$' "$fixture/output"; then exit 1; fi
         [ "$(wc -l <"$fixture/output")" -eq 83 ]
     fi
 done
