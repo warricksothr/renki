@@ -41,3 +41,16 @@ func (before healthSample) lost(after healthSample) bool {
 	}
 	return after.hp < math.Min(before.hp, after.maximum)-.15
 }
+
+// roll returns the baseline for the next check after a check that passed. The
+// baseline only ratchets up: healing raises it, while small losses add up
+// against the peak rather than slipping under lost()'s tolerance one step at a
+// time. It falls only with the maximum, as food decays. A meal refresh that
+// lost() forgave under an injury sequence becomes the baseline as it is.
+func (before healthSample) roll(after healthSample) healthSample {
+	if after.injury != nil && after.maximum > before.maximum {
+		return after
+	}
+	after.hp = math.Max(after.hp, math.Min(before.hp, after.maximum))
+	return after
+}

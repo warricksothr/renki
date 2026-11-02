@@ -114,10 +114,8 @@ func (r *markerFoodRun) check(v View, requireMarkerPosition bool) error {
 		if r.health.lost(now) || v.Now.Sub(r.began) > 6*time.Minute {
 			return errors.New("food work injured or time budget exhausted")
 		}
-		// Roll the baseline forward, so a hit after healing past the start
-		// health still counts. lost() already forgives a falling maximum
-		// and, with injury sequences, a meal that raises it.
-		r.health = now
+		// A hit after healing past the start health still counts.
+		r.health = r.health.roll(now)
 	}
 	return nil
 }

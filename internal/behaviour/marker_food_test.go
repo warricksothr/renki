@@ -277,3 +277,17 @@ func TestMarkerFoodNoticesAHitAfterHealingPastItsStart(t *testing.T) {
 		t.Fatal("a hit after healing past the start health was ignored")
 	}
 }
+
+func TestMarkerFoodAddsUpSmallLossesAgainstThePeak(t *testing.T) {
+	r := foodRunner(t, "berries")
+	v := markerView("berries")
+	w := v.Waypoints[0]
+	r.marker, r.began, r.health = &w, v.Now, sampleHealth(v)
+	for i := 0; i < 5; i++ {
+		v.State.HP -= .1
+		if r.Check(v) != nil {
+			return
+		}
+	}
+	t.Fatal("0.5 HP lost in 0.1 steps was never noticed")
+}

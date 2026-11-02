@@ -91,8 +91,13 @@ func (r *markerRestRun) Check(v View) error {
 			return errors.New("nearby threat interrupts rest")
 		}
 	}
-	if r.marker != nil && (v.Now.Sub(r.began) > 90*time.Second || r.health.lost(sampleHealth(v))) {
-		return errors.New("rest injured or time budget exhausted")
+	if r.marker != nil {
+		now := sampleHealth(v)
+		if v.Now.Sub(r.began) > 90*time.Second || r.health.lost(now) {
+			return errors.New("rest injured or time budget exhausted")
+		}
+		// Resting heals, so a hit after healing past the start still counts.
+		r.health = r.health.roll(now)
 	}
 	if r.bed != nil {
 		for _, b := range v.Perception.Structures {
