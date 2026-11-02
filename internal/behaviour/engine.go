@@ -465,9 +465,18 @@ func (e *Engine) triggers(v View, now time.Time) {
 		}
 	}
 }
-func (i *instance) allowed(v View) bool {
+
+// stillAllowed is the check on a run in progress: only the enabled flag and
+// the `when` conditions can stop it. The repeat policy decides whether
+// another run starts, never whether this one finishes.
+func (i *instance) stillAllowed(v View) bool {
+	return i.definition.Enabled && i.definition.When.Match(v)
+}
+
+// canStart is the check before a run starts or is queued again.
+func (i *instance) canStart(v View) bool {
 	d := i.definition
-	if !d.Enabled || (d.Repeat.Mode == "once" && i.completed > 0) || (d.Repeat.MaxRuns > 0 && i.completed >= d.Repeat.MaxRuns) || !d.When.Match(v) {
+	if !i.stillAllowed(v) || (d.Repeat.Mode == "once" && i.completed > 0) || (d.Repeat.MaxRuns > 0 && i.completed >= d.Repeat.MaxRuns) {
 		return false
 	}
 	if d.Repeat.Mode == "while" && !d.Repeat.Condition.Match(v) {
@@ -481,7 +490,7 @@ func (i *instance) allowed(v View) bool {
 func (e *Engine) candidate(v View, now time.Time) string {
 	best := ""
 	for name, i := range e.instances {
-		if i.pending && !now.Before(i.next) && i.allowed(v) && (best == "" || i.definition.Priority > e.instances[best].definition.Priority || (i.definition.Priority == e.instances[best].definition.Priority && name < best)) {
+		if i.pending && !now.Before(i.next) && i.canStart(v) && (best == "" || i.definition.Priority > e.instances[best].definition.Priority || (i.definition.Priority == e.instances[best].definition.Priority && name < best)) {
 			best = name
 		}
 	}
@@ -562,7 +571,7 @@ func (e *Engine) finish(success bool, detail string, v View) {
 	i.next = e.o.Now().Add(cooldown)
 	i.idleSince = time.Time{}
 	i.idleMarker = nil
-	i.pending = success && (i.definition.Repeat.Mode == "while" || i.definition.Repeat.Mode == "until") && i.allowed(v)
+	i.pending = success && (i.definition.Repeat.Mode == "while" || i.definition.Repeat.Mode == "until") && i.canStart(v)
 	msg := "behaviour finished"
 	if !success {
 		msg = "behaviour failed"
@@ -635,7 +644,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		e.clearPending("new order")
 		return
 	}
-	if e.active != "" && !e.instances[e.active].allowed(v) {
+	if e.active != "" && !e.instances[e.active].stillAllowed(v) {
 		if err := e.cancel(ctx, "condition changed", false); err != nil {
 			e.o.Logger.Warn("could not stop behaviour", "err", err)
 			return

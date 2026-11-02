@@ -51,7 +51,7 @@ func (e *Engine) idleTrigger(name string, i *instance, v View, now time.Time) {
 		return
 	}
 	w, ok := i.definition.Trigger.Marker.resolve(v)
-	if !i.definition.Enabled || !idleFresh(v) || resting(v.State) || !v.Idle || e.active != "" || !ok || !withinMarker(v.State.Pos, w) || !i.allowed(v) {
+	if !i.definition.Enabled || !idleFresh(v) || resting(v.State) || !v.Idle || e.active != "" || !ok || !withinMarker(v.State.Pos, w) || !i.canStart(v) {
 		if i.pending {
 			e.ended(i, "idle marker unavailable")
 		}

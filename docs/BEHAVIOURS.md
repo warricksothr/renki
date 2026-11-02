@@ -75,7 +75,10 @@ event buffer logs overflow rather than blocking the bridge.
 
 Repeat `mode` is `once`, `trigger`, `while` or `until`. The latter two need
 `condition` with the same condition fields. They repeat after successful
-runs while that condition holds or until it holds. `cooldownS` applies
+runs while that condition holds or until it holds. The repeat condition only
+decides whether another run starts: a run in progress is stopped by `enabled`
+and `when`, never by its repeat condition, so a collect whose `until` goal is
+reached mid-trip still stows and counts as a success. `cooldownS` applies
 between runs (at least one second); optional `maxRuns` bounds completed
 attempts. Failures do not loop automatically. Timer intervals, cooldowns,
 run limits and counters are controller-session runtime state; saved

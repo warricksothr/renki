@@ -92,6 +92,38 @@ func TestWhileAndUntilRespectTheirConditionAndMaximumRuns(t *testing.T) {
 		})
 	}
 }
+
+// The repeat condition decides whether to run again. Reaching the goal
+// mid-run (the 20th flint picked up before the stow) must not stop the run.
+func TestUntilConditionReachedMidRunLetsTheRunFinish(t *testing.T) {
+	f := setup(t)
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 5}}})
+	wait(t, func() bool { return f.s.Inventory() != nil })
+	d := def()
+	d.Template = "two_steps"
+	d.Repeat = Repeat{Mode: "until", Condition: &Conditions{Items: map[string]int{"Flint": 20}}}
+	f.put(t, "collect", d)
+	f.act(t, "collect", "start")
+	f.tick()
+	first := f.p.NextTask()
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 20}}})
+	wait(t, func() bool { return f.s.Inventory().Items[0].Stack == 20 })
+	f.tick()
+	f.done(t, first, protocol.StatusSucceeded, "")
+	f.tick()
+	second := f.p.NextTask()
+	if second.Task == protocol.TaskStop {
+		t.Fatal("until condition stopped the run in progress")
+	}
+	f.done(t, second, protocol.StatusSucceeded, "")
+	f.tick()
+	f.now = f.now.Add(time.Hour)
+	f.tick()
+	f.p.Quiet(20 * time.Millisecond)
+	if list := f.e.List(); list[0].Runs != 1 || list[0].Running || list[0].Pending || list[0].Last != "completed" {
+		t.Fatal(list)
+	}
+}
 func TestManualStartBeforeFirstSchedulerTickIsNotLost(t *testing.T) {
 	f := setup(t)
 	e := New(f.e.o)
