@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:10Z
-updated_at: 2026-11-02T16:02:28Z
+updated_at: 2026-11-02T16:35:45Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -79,4 +79,14 @@ Start TKT-01M6EFGJY8 first. Live tickets (label `live`) depend on TKT-01M6EF5DTG
 - [ ] 4.3 A crash test plus 3 live controller kills during saves, before the soak window, leave memory.json, goals.json and settings readable with no lost home (TKT-01M6DCFSHH, TKT-01M6EFGYV6)
 - [ ] 4.4 Owners bind to player IDs, and a replayed chat-injection test cannot steer an owner's turn (TKT-01M6DCFSME, TKT-01M6EFGYX3, TKT-01M6EFGYYY)
 - [ ] 4.5 After a 20 s controller pause the plugin reconnects and accepts tasks within 10 s of resume, in a bridge test and one live pause (TKT-01M6DCFS8Y, TKT-01M6EFGYNM)
-- [ ] 4.6 Every child of this epic is done or has a note saying why it stands, and the panel epic's criteria are ticked or moved
+- [ ] 4.6 Every child of this epic is done, or has a note saying why it stands, which includes a move to a later milestone; the panel epic's criteria are ticked or moved
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:35:32Z
+
+Goal 4.6 now counts a child moved to a later milestone with a note saying why as standing. As of 2026-11-02 that covers TKT-01M6EFGYQR (world UID, moved to M5) and TKT-01M6DDFTDD (haul report, M2). TKT-01M6DCFSEG and TKT-01M6DCFSG0 are in M3 and must be done.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:35:45Z
+
+Supersedes the previous note's list: TKT-01M6DDFTDD (haul report) is a child of the M2 epic, not this one. The only child of this epic in a later milestone is TKT-01M6EFGYQR (world UID, M5), and its move note says why it stands. TKT-01M6DCFSEG and TKT-01M6DCFSG0 are in M3 and must be done.

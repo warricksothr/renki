@@ -94,7 +94,7 @@ Goals marked **(proposed)** have thresholds the owner has not confirmed yet. See
 | 4.3 | Stores survive a hard stop | A crash test plus 3 live controller kills during saves, before the soak window, leave memory.json, goals.json and settings readable, with no lost home | test name and a note | TKT-01M6DCFSHH, TKT-01M6EFGYV6 |
 | 4.4 | Only owners command it | Owners bind to player IDs. Lines from other players cannot steer an owner's turn, as shown by a test that replays the review's injection scenario | tests | TKT-01M6DCFSME, TKT-01M6EFGYX3, TKT-01M6EFGYYY |
 | 4.5 | The link heals itself | After a 20 s controller pause the plugin reconnects and accepts tasks within 10 s of resume | bridge test plus one live pause | TKT-01M6DCFS8Y, TKT-01M6EFGYNM |
-| 4.6 | Review closed | Every child of TKT-01M6DCF2AB is done, or has a note saying why it stands. The panel epic's criteria are ticked or moved | ticket status | TKT-01M6DCF2AB, TKT-01M628X106 |
+| 4.6 | Review closed | Every child of TKT-01M6DCF2AB is done, or has a note saying why it stands, which includes a move to a later milestone. The panel epic's criteria are ticked or moved | ticket status | TKT-01M6DCF2AB, TKT-01M628X106 |
 
 ### M5: runs the base (due 2026-12-06)
 

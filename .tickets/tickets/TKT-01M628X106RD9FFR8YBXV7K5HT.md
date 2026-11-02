@@ -28,12 +28,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-11-02T15:57:46Z
+updated_at: 2026-11-02T16:35:32Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m4
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -101,3 +101,7 @@ Children still open: TKT-01M628X13X (criterion 1 only, belongs in M5), TKT-01M63
 ### How to verify
 
 `just check ci` for the code; the panel's live criteria were seen on the VM in earlier notes. Owner action: tick criteria 1 and 3, decide 2, and move criterion 4's instance half to M5.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:35:32Z
+
+Supersedes the claim in the earlier planning note that internal/panel/panel.go has no instances endpoint. GET and POST /api/behaviours already exist. The behaviour-instance panel work is TKT-01M6EFK472 (Panel: list, start, stop, clone and edit behaviour instances) in M5, and the behaviour-instance half of criterion 4 moves with it.

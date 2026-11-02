@@ -17,9 +17,6 @@ parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62N12F04QEC0F53JCS1M21A
-  - TKT-01M62N12DNF3RFVWAQMK1R9X4J
-  - TKT-01M62N12HJW32JJTD2M3PEAEA4
-  - TKT-01M62N12G98VW2CYW94FG5RCTB
   - TKT-01M62VXYSN4RQV75HTA3BSD162
   - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
@@ -35,12 +32,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-11-02T15:56:26Z
+updated_at: 2026-11-02T16:35:32Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -527,3 +524,7 @@ The no-axe and no-chest refusals happen before any work: `planWood` returns "I n
 
 - Offline: `just check controller test-packages ./internal/behaviour ./internal/chat` and `just check vm test-gather-trial`, then `just check ci`.
 - Live (lease TKT-01M6EF5DTG): `just vm gather-trial`, three times in a row. Each summary.json shows outcome `succeeded`, `woodGain` above 0, `returned` true, and a duration under 900 s.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:35:32Z
+
+Applied on 2026-11-02 by the planning pass: removed the dependencies on TKT-01M62N12HJ (loot and deliver-when-full), TKT-01M62N12G9 (owner work sites) and TKT-01M62N12DN (equip and unequip). The gather loop that goal 2.1 measures runs without them: the trial equips the axe through the existing path, and work sites matter only for goal 2.3, now owned by TKT-01M6EFHE80. Goal 2.1 no longer waits on goal 2.2's owner sessions.

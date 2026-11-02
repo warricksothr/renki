@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-11-02T16:20:55Z
+updated_at: 2026-11-02T16:35:32Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -107,3 +107,7 @@ TKT-01M62N12JW depends on TKT-01M62N12HJ, TKT-01M62N12G9 and TKT-01M62N12DN, and
 **agent:claude-code/renki-plan** at 2026-11-02T16:20:55Z
 
 Applied on 2026-11-02 by the planning pass, superseding the "proposed moves (owner decision)" wording in the earlier planning note: the dependency on TKT-01M62VXYQB (Behaviours: templates and instances) is removed and that epic is in M5. The memory, bed, eating, chat-behaviours and repeat-condition tickets have also moved, and the work-site, haul and chest-memory tickets no longer depend on the memory ticket now in M3. Each moved ticket carries a note. No open M2 ticket depends on later-milestone work.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:35:32Z
+
+Supersedes two lines of the earlier planning note. First, TKT-01M62EP0PD moved to M3 because it extends the danger memory that goal 3.4's tickets read; goal 3.4 does not name it (TKT-01M6EFHEK3 and TKT-01M6EFHS5E own 3.4). Second, the proposed unlink of TKT-01M62N12JW from TKT-01M62N12HJ, TKT-01M62N12G9 and TKT-01M62N12DN is now applied, so goal 2.1 no longer waits on goal 2.2.
