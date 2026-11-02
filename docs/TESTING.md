@@ -1182,6 +1182,34 @@ positions, retain physical dry validation and report hostileRejected in local
 planning diagnostics. Starting inside a clearance may back out; it must not
 route through another creature. Passive deer must not block ordinary travel.
 
+`just check plugin test-core ThreatGuidanceTests` covers a coast/threat
+bottleneck whose first checked leg must move away from the goal, continuing
+legs to real arrival, bridges over terrain classified as water, inaccessible
+support and floors, changed threats, bounded hints and a single guided retry.
+The captured `hostile-return.json` fixture contains the failed return's threat
+positions and sampled terrain. It establishes a longer geometric alternative,
+not physical clearance: it does not replay Unity colliders, loaded support or
+the complete live threat population.
+
+For a live blocked return, retain the ordinary and guided search diagnostics,
+including expansions, phase, build time and total/worst-frame work. Use the
+existing guarded `just vm recover-home DizzysHellheim` order; preserve its
+120 s, 160 m travelled and 80 m home-radius bounds. Verify the correct home
+floor and unchanged health before retrying outdoor work. A geometric hint
+that exceeds those limits or fails physical probes remains a failed return;
+do not repeat unchanged failures or treat a planned leg as arrival.
+
+On 2026-11-01, guarded recovery on29db3b8 exercised the fallback after4096
+ordinary expansions and found an initially-away leg with103 guided expansions.
+Tas reached the actual36.09m home floor and shelter after about111m travel
+and100.5s in-world, without observed injury (70.4/70.4HP at release). The
+16-point/602-hint graph built synchronously in13.65ms; worst measured slice
+was15.01ms, exceeding the2ms target for that slice. Later live threat changes
+allowed ordinary routing; the initial234m geometric estimate did not describe
+the final travelled route. Repeated stair-approach replans were still needed.
+Full evidence: `.checks/recovery-20261101T003515Z` and
+`.checks/audit-window-GWZnrB.jsonl`; details are on the hostile-return ticket.
+
 ## Household food pressure checks
 
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`

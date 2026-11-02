@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M6A62GWANGQWSB1GYCZ66G37
 title: Validate outdoor household food delivery and fallback
 type: task
-status: blocked
-status_reason: Outdoor delivery and home repair trials await safe recovery around the unchanged hostile corridor; both normal and guarded returns exhausted the native bounded search without injury. See the linked navigation follow-up and retained audits.
+status: in-progress
+status_reason: null
 priority: high
 due_on: null
 labels:
@@ -19,10 +19,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/hostile-return-detours
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 29db3b84b1cb994a35df3a6a9505a0273f8cef21
+  session: null
+  claimed_at: 2026-11-01T00:38:51Z
+  expires_at: null
 archive: null
 created_at: 2026-10-31T23:52:44Z
-updated_at: 2026-11-01T00:10:08Z
+updated_at: 2026-11-01T00:41:14Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -78,3 +85,11 @@ in-progress to blocked: Outdoor delivery and home repair trials await safe recov
 **agent:codex/renki-milestones** at 2026-11-01T00:10:08Z
 
 Final full gate passed: `just check ci`, `.checks/20261101T000718Z-QcrM0B.log`. Focused goal tests passed in `.checks/20261101T000502Z-CcQRwJ.log`; food supervisor checks passed in `.checks/20261101T000304Z-wyyuNw.log`. The follow-up native-failure reporting and safe-retention fixes are included in PR #137; final committed review and clean controller deployment are the publication steps. AC1 remains unticked deliberately: positive outdoor stock delivery is not proved. AC4 stays unticked while the complete live sequence, including repair, remains blocked. The navigation follow-up was filed in draft and was not independently promoted.
+
+**agent:codex/renki-milestones** at 2026-11-01T00:41:14Z
+
+The navigation dependency is now done: PR #138 /29db3b8 passed a guarded111m return to the correct home floor without injury; see that ticket's retained recovery evidence.
+
+Retried the positive outdoor test with `just check vm food-check --storage 1:70031 --stock-target Mushroom=1 --sources 'west mushrooms' --require-acquisition --require-deposit --keep-online`. Evidence `.checks/food-20261101T003807Z`; exact audit `.checks/audit-window-R7JtyI.jsonl`. Goal432d0ad89e3af334119b78a4 reached roughly[-61.65,33.37,-85.6] (about96m from home,157m observed travel) but entered needs_plan: nearby threat interrupts household work. A live Neck was targeting Tas about22m away; the unchanged household guard interrupted the source trip. No damage, collection or deposit was observed; final67.9/67.9HP, grounded and dry. The supervisor logged out and stopped the game; the panel remains online. Do not count this as outdoor production proof.
+
+The body is now beyond the existing80m local startup-return radius. Do not retry that order or silently enlarge it. The next implementation should add an explicitly selected, capped work-trip recovery profile with stronger admission reserves, the same injury/water/threat/authority checks, explicit diagnostics, and tests for its independent distance/time/travel bounds. Local default recovery must remain unchanged. This allows a healthy interrupted outer trip to return autonomously without changing the pinned home, using cheats, or asking a person to clear creatures. Positive outdoor delivery and repair remain unverified.

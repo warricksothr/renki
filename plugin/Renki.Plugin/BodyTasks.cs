@@ -52,12 +52,13 @@ namespace Renki.Plugin
         Vector3 goal;
         double arrivalWithin = .5;
         bool hasGoal, checkedOnly;
-        LocalRoute localRoute;
+        RouteSearch localRoute;
+        bool preferGuidance;
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
         float localStarted, nextWallCheck, nextNavmeshCheck, nextDryNavmeshTrace, nextDryRefusalTrace;
-        double localMs, localWorstMs;
+        double localMs, localWorstMs, localGuidanceMs;
         float strafeUntil;
         float strafeSign = 1;
 
@@ -145,6 +146,7 @@ namespace Renki.Plugin
         public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false, bool avoidHostiles = false)
         {
             checkedOnly = false;
+            preferGuidance = false;
             approach.Reset();
             refusals.Clear();
             execution.Reset(); commandedLeg = null;
@@ -675,8 +677,23 @@ namespace Renki.Plugin
             localWaterBlocked = Blocked;
             Blocked = null;
             localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance);
-            localRoute = new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
-                progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel);
+            ThreatGuidance Guidance()
+            {
+                if (!dryGround || !avoidHostiles || !preferGuidance && localProbe.HostileRejected == 0) return null;
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                var threats = hostiles.Current();
+                var result = threats != null && threats.Count > 0 ? new ThreatGuidance(Convert.ToV3(from), Convert.ToV3(target), threats, at =>
+                {
+                    var height = Ground(at.X, at.Z);
+                    return double.IsNaN(height) || height >= WorldNavigation.WaterLevel(at) + DryTravel.Margin;
+                }) : null;
+                watch.Stop(); localGuidanceMs = watch.Elapsed.TotalMilliseconds;
+                return result;
+            }
+            localGuidanceMs = 0;
+            localRoute = new RouteSearch(guidance => new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
+                progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel,
+                guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null), Guidance, preferGuidance);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
@@ -731,7 +748,8 @@ namespace Renki.Plugin
             // consume the two-ms slice budget. Do not discard a still-live
             // entrance search after only half its permitted nodes. Frame
             // work, node count and the enclosing task timeout remain bounded.
-            if (localRoute.Status == RouteStatus.Searching && elapsed < 16) return true;
+            if (localRoute.Guidance?.Active == true) preferGuidance = true;
+            if (localRoute.Status == RouteStatus.Searching && elapsed < 16 * (localRoute.Phase + 1)) return true;
             // Even an enclosed start may exhaust the local search before
             // the navmesh's asynchronous tile request has had one retry.
             if (localRoute.Status == RouteStatus.NoRoute && elapsed < 1.25f) return true;
@@ -753,6 +771,17 @@ namespace Renki.Plugin
                 ["supportHeights"] = !found ? localProbe.LastRefusal?.SupportHeights : null,
                 ["failures"] = !found ? localProbe.Failures : null,
                 ["searchStatus"] = localRoute.Status.ToString(),
+                ["nodeLimitReached"] = localRoute.NodeLimitReached,
+                ["guidance"] = localRoute.Guidance == null ? null : new
+                {
+                    active = localRoute.Guidance.Active,
+                    waypoints = localRoute.Guidance.Waypoints,
+                    rejectedHints = localRoute.Guidance.RejectedHints,
+                    hintSamples = localRoute.Guidance.HintSamples,
+                    buildMs = System.Math.Round(localGuidanceMs, 2),
+                    initialEstimate = localRoute.Guidance.InitialEstimate,
+                    phase = localRoute.Phase,
+                },
                 ["elapsedS"] = System.Math.Round(elapsed, 2),
                 ["ms"] = System.Math.Round(localMs, 2),
                 ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),

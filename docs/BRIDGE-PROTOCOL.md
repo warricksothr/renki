@@ -787,7 +787,7 @@ Notes:
   exempt their frames or swinging leaves from physics checks. Nearby door scans
   and route-leg validation use current objects/geometry after rebuilding a base;
   old door refusals are cleared on world/session reset. Unknown support and water
-  more than 0.5 m deep are refused. Each search is limited to 4096 expansions,
+  more than 0.5 m deep are refused. Each search phase is limited to 4096 expansions,
   48 m from its start on each axis, and 16 s. The wall-clock allowance lets
   the existing node bound finish under sliced physical probes; the enclosing
   task timeout is unchanged. It advances at most eight nodes
@@ -795,7 +795,20 @@ Notes:
   clock meanwhile. Traces record probes and actual total/worst-frame time.
   For destinations more than 24 m away horizontally, a search may instead
   finish a supported leg at least 16 m from its start that reduces the
-  remaining horizontal distance by at least 8 m. The final destination is
+  remaining horizontal distance by at least 8 m. If a dry hostile-avoiding
+  search fails after rejecting hostile corridors, it may try one guided phase.
+  A visibility graph uses at most four current threat envelopes with eight
+  conservative ring points each. Known submerged terrain rejects hint points
+  and corridors; terrain hints are cached in at most 4096 two-metre cells for
+  that search. Unknown terrain grants no physical support. The graph estimates
+  remaining distance around threats for A* ordering and the 8 m progress test,
+  allowing a checked leg to initially move away from the destination. Every
+  actual step still uses the same live physical and hostile checks. The
+  ordinary search runs first so terrain hints do not displace a bridge it can
+  find; subsequent legs may prefer guidance after it has been needed. There
+  are at most two phases and 32 s total per local search; the per-frame and
+  enclosing task limits remain unchanged. Diagnostics expose phase, hint
+  samples, graph build time and node-limit exhaustion. The final destination is
   preserved: reaching a leg endpoint triggers another plan, not task success.
   Intermediate heights follow live support; the final floor is still required
   for arrival. This permits progress toward unloaded distant destinations
