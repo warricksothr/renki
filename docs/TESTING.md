@@ -15,6 +15,11 @@ The helper records pack snapshots, behaviour status, native task receipts and
 health under `.checks/marker-food-*`, returns home after success, and disables
 its test definition. `--keep-online` leaves the client running only when a
 fresh final check proves idle shelter near home with no observed threat.
+Use `--go --travel-only` for an outward/home route check without consuming
+resources or waiting for regrowth. `--travel-timeout 180` permits a bounded
+longer leg when a dry, hostile-avoiding route requires a wide detour (default120 s).
+Keep any earlier120 s timeout as a failure in the evidence. Outdoor travel requires a pinned home and
+an active meal with at least five minutes remaining; resupply first.
 Command takeover yields without logging out the new owner. Pure safety checks
 run through `just check vm test-marker-food-check`, included in `just check ci`.
 
@@ -1158,10 +1163,12 @@ in BRIDGE-PROTOCOL.md. A refusal is a refusal, never death proof. Retain the
 exact task death receipt and audit, then restore combat off and stop the game.
 
 When planning accepts a leg that live movement refuses, retain the refused
-approach while replanning that goal. Only physical body-cast/overlap refusals
-are retained; backing away and other storeys remain eligible. Evidence expires
-after 45 s or immediately when its measured collider changes, and a new goal
-clears it. Check an under-house wood stack and the doorway return without
+approach while replanning that goal. Physical body-cast/overlap refusals and
+stalled execution approaches are retained. Four seconds of commanded movement without new forward progress
+rejects the approach across replans; planning and door holds pause that budget.
+Backing away and other storeys remain eligible. Evidence expires after 45 s
+or a new goal. Collider evidence also clears immediately when its measured
+geometry changes. Check an under-house wood stack and the doorway return without
 allowing the planner to retry the identical failed approach indefinitely.
 
 Dry route probes must also check the exact flat half-metre lookahead used by
