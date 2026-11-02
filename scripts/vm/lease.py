@@ -9,8 +9,9 @@ lease", is the operator's guide.
     status                 print the holder, without changing anything
     take ACTOR [MINUTES]   take the lease, or renew it when this worktree holds it
     release [--force]      give it back; --force removes another holder's lease
-    guard                  pass when this worktree holds the lease, take it when
-                           it is free or expired, refuse when someone else holds it
+    guard                  pass when this worktree holds the lease (renewing it when
+                           under 15 minutes are left), take it when it is free or
+                           expired, refuse when someone else holds it
     run -- COMMAND...      guard, run COMMAND while renewing the lease, then
                            release it after COMMAND exits if run took it
 
@@ -34,6 +35,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MINUTES = 60
 RENEW_SECONDS = 300
+# A guard renews the holder's lease when less than this is left, so a deploy
+# started just before expiry does not outlive its lease.
+GUARD_MARGIN_MINUTES = 15
 EXIT_REFUSED = 1
 
 
@@ -191,15 +195,18 @@ class Lease:
 
     def take(self, actor=None, minutes=DEFAULT_MINUTES, renew='always'):
         """Take the lease, or renew it when this worktree holds it: 'always',
-        'extend' (only if that moves the expiry later) or 'never'. Returns
-        (lease, took). Raises Refused."""
+        'extend' (only if that moves the expiry later) or 'short' (only when
+        less than GUARD_MARGIN_MINUTES are left). Returns (lease, took).
+        Raises Refused."""
         for _ in range(5):
             now, sha, state, lease = self.read()
             if state in ('other', 'malformed'):
                 raise Refused(self.refusal(state, lease, now))
             expires = now + datetime.timedelta(minutes=minutes)
             if state == 'self':
-                if renew == 'never' or (renew == 'extend' and parse_time(lease['expires']) >= expires):
+                left = parse_time(lease['expires'])
+                if ((renew == 'extend' and left >= expires) or
+                        (renew == 'short' and left - now >= datetime.timedelta(minutes=GUARD_MARGIN_MINUTES))):
                     return lease, False
                 new = dict(lease, expires=iso(expires))
                 if actor:
@@ -208,9 +215,16 @@ class Lease:
                 new = dict(id=secrets.token_hex(16), actor=self.actor(actor), host=socket.gethostname(),
                            worktree=str(ROOT), branch=branch(), started=iso(now), expires=iso(expires))
             data = (json.dumps(new, indent=2) + '\n').encode()
+            # Record the id before the swap: if the swap lands but its reply is
+            # lost, this worktree still recognises the lease as its own.
+            previous = self.local_path.read_text() if self.local_path.exists() else None
+            self.local_path.write_text(json.dumps(dict(id=new['id'], actor=new['actor'])) + '\n')
             if self.transport.write(sha, data):
-                self.local_path.write_text(json.dumps(dict(id=new['id'], actor=new['actor'])) + '\n')
                 return new, state != 'self'
+            if previous is None:
+                self.local_path.unlink(missing_ok=True)
+            else:
+                self.local_path.write_text(previous)
         raise Refused('the VM lease kept changing while it was being taken; try again')
 
     def release(self, force=False):
@@ -337,7 +351,7 @@ def main(argv=None):
             print(lease.release(args.force))
             return 0
         if args.action == 'guard':
-            held, took = lease.take(minutes=DEFAULT_MINUTES, renew='never')
+            held, took = lease.take(minutes=DEFAULT_MINUTES, renew='short')
             if took:
                 print(f"took the VM lease for {held['actor']} until {held['expires']}; "
                       '`just vm release` when you are finished', file=sys.stderr)

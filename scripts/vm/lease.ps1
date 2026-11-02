@@ -13,10 +13,16 @@
 $ErrorActionPreference = 'Stop'
 $path = Join-Path $Dir 'lease.json'
 
-# The file's bytes, or $null when absent.
+# The file's bytes, or $null when absent. A reader shares delete and write,
+# so a Read running in another session never makes a release or swap fail.
 function Get-LeaseBytes {
     if (-not (Test-Path -LiteralPath $path)) { return $null }
-    return ,[IO.File]::ReadAllBytes($path)
+    $stream = [IO.File]::Open($path, 'Open', 'Read', 'ReadWrite, Delete')
+    try {
+        $buffer = New-Object IO.MemoryStream
+        $stream.CopyTo($buffer)
+        return ,$buffer.ToArray()
+    } finally { $stream.Dispose() }
 }
 
 # The SHA-256 of exactly the bytes given, so a hash always matches the content
@@ -56,7 +62,7 @@ if (-not $lock) { 'the lease lock stayed busy for 10 s'; exit 4 }
 try {
     if ((Get-LeaseHash (Get-LeaseBytes)) -ne $Expect) { 'conflict'; exit 3 }
     if ($Content -eq '') {
-        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $path -Force
     } else {
         $tmp = "$path.tmp"
         [IO.File]::WriteAllBytes($tmp, [Convert]::FromBase64String($Content))

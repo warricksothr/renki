@@ -31,7 +31,9 @@ start/stop/setup, `secret`, `panel POST` and the recipes built on it, the
 setters such as `combat true`, and every supervised trial and check) checks
 the lease first. While someone else holds an unexpired lease it refuses and
 names the holder and the expiry. When the lease is free it takes it for this
-worktree and keeps it, so run `just vm release` when you are finished.
+worktree and keeps it, so run `just vm release` when you are finished. When
+this worktree holds it with under 15 minutes left, the recipe renews it to an
+hour, so a deploy does not outlive its lease.
 Reading needs no lease: `status`, `logs`, `audit`, `audit-window`,
 `observe`, `inspect`, `map-snapshot`, `camera`, `panel GET`, and the setters
 without a value.

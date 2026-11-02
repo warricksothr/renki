@@ -67,12 +67,15 @@ def expired(case):
 
 
 def held_by_self(case):
-    """The holder passes the guard without a write, renews, and releases."""
+    """The holder passes the guard without a write until little is left, renews, and releases."""
     check(case.lease('take', 'agent:x/one', '30').returncode == 0, 'take')
     before = case.file.read_bytes()
     out = case.lease('guard')
     check(out.returncode == 0 and out.stderr == '', f'guard passes quietly for the holder: {out}')
     check(case.file.read_bytes() == before, 'guard does not rewrite a held lease')
+    out = case.lease('guard', now='2026-11-02T12:20:00Z')
+    check(out.returncode == 0 and case.held()['expires'] == '2026-11-02T13:20:00Z',
+          f'guard renews a lease with under 15 minutes left: {case.held()}')
     first = case.held()
     out = case.lease('take', 'agent:x/one', '90', now='2026-11-02T12:20:00Z')
     check(out.returncode == 0 and out.stdout.startswith('renewed'), f'renew: {out}')
@@ -175,20 +178,57 @@ def run_survives_a_failed_renewal(case):
     check('could not renew' in out.stderr, f'the failed renewal is reported: {out.stderr}')
 
 
-def lost_race(case):
-    """A write against a stale read is refused, so two takers cannot both win."""
+def module():
     sys.path.insert(0, str(LEASE.parent))
     import importlib
-    lease = importlib.import_module('lease')
+    return importlib.import_module('lease')
+
+
+def lost_race(case):
+    """A write against a stale read is refused, so two takers cannot both win,
+    and the loser keeps no id for a lease it did not get."""
+    lease = module()
     transport = lease.FileTransport(case.file)
     check(transport.write('', b'{}'), 'first write of an absent file')
     check(not transport.write('', b'{}'), 'second write with a stale hash is refused')
+
+    class Racing(lease.FileTransport):
+        def write(self, expect, data):
+            self.path.write_text(json.dumps(dict(id='theirs', actor='agent:y/two', expires='2099-01-01T00:00:00Z')))
+            return super().write(expect, data)
+
+    case.file.unlink()
+    local = case.root / 'a.vm-lease'
+    try:
+        lease.Lease(Racing(case.file), local).take('agent:x/one')
+        check(False, 'a lost race must be refused')
+    except lease.Refused as error:
+        check('agent:y/two' in str(error), f'the winner is named: {error}')
+    check(not local.exists(), 'the loser records no lease id')
+
+
+def lost_reply(case):
+    """A swap that lands but whose reply is lost still leaves the lease recognisable."""
+    lease = module()
+
+    class Lossy(lease.FileTransport):
+        def write(self, expect, data):
+            super().write(expect, data)
+            raise SystemExit('the VM lease Write timed out after 90 s')
+
+    local = case.root / 'a.vm-lease'
+    try:
+        lease.Lease(Lossy(case.file), local).take('agent:x/one')
+    except SystemExit:
+        pass
+    out = case.lease('guard')
+    check(out.returncode == 0 and out.stderr == '', f'the worktree still holds its lease: {out}')
 
 
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
              run_releases_after_cleanup, run_releases_when_the_command_cannot_start, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
-             lost_race]
+             lost_race, lost_reply]
     for case in cases:
         with tempfile.TemporaryDirectory() as root:
             case(Case(root))
