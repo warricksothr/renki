@@ -386,6 +386,7 @@ def run(lease, command, minutes, renew_seconds):
                 signal.pthread_sigmask(signal.SIG_SETMASK, mask)
                 code, retook = wait(lease, child, minutes, renew_seconds)
                 took = took or retook
+                started.clear()  # the command is gone; later signals only wait for the release
         # Python exits with -SIGINT after KeyboardInterrupt has unwound its
         # `finally` blocks, so that cleanup ran. Any other signal may have
         # cut it short: the lease is kept and expires on its own.
