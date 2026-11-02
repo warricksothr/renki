@@ -10,7 +10,7 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: M2
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -20,46 +20,51 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:48:47Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
 
 ## Description
 
-Timing problems in the behaviour engine, found in review.
+Timing problems in the behaviour engine, found in review. Items 1 and 3 are fixed (see the 2026-11-02 note). Item 2 is what is left.
 
-### 1. Gather's 15 s and 20 s waits are cut off at 5 s (medium)
+### 1. Gather's 15 s and 20 s waits are cut off at 5 s (medium) — fixed
 
-`internal/behaviour/engine.go` (Tick, the `ErrWait` branch) ends any run that has returned `ErrWait` for 5 s. Gather returns `ErrWait` for waits that docs/BEHAVIOURS.md documents as longer:
+`internal/behaviour/engine.go` (Tick, the `ErrWait` branch) ended any run that had returned `ErrWait` for 5 s, while gather returned `ErrWait` for longer waits documented in docs/BEHAVIOURS.md: the work-site pursuer wait of 15 s (`gather_defense.go`) and both wildlife windows of 20 s (`gather_wildlife.go`). They now return `&Delay{Until: deadline}`, pinned by `TestEngineHonoursDelaysPastTheObservationWaitLimit`.
 
-- the work-site pursuer wait of 15 s (`gather_defense.go:58-66`);
-- both wildlife windows of 20 s (`gather_wildlife.go:17-27`, `:79-85`).
-
-With `defend:true`, a Greyling targeting the bot from 25 m never gets its window: the run ends at 5 s with "fresh observation did not arrive within five seconds". The existing tests call the runner directly, so they never meet the engine's cap.
-
-Fix: return `&Delay{Until: deadline}` for these waits. Delay is allowed up to 30 s. Add an engine-level test that runs past 5 s.
-
-### 2. A `while`/`until` repeat condition cancels the run in progress (medium)
+### 2. A `while`/`until` repeat condition cancels the run in progress (medium) — open
 
 `engine.go`: `allowed()` checks the repeat condition, and Tick calls it on the active run every 250 ms. Take a `collect` with `repeat:{mode:"until", condition:{items:{Flint:20}}}`. It is stopped with "condition changed" the moment the 20th flint is picked up, before it stows, so the cargo stays in the pack and the run is not counted.
 
-The docs say repeat only decides whether to run again. Fix: check the repeat condition only when picking a candidate and when a run finishes, and check the active run against `When` only.
+The intended semantics are already written down. docs/BEHAVIOURS.md (the repeat paragraph) says `while` and `until` "repeat after successful runs while that condition holds or until it holds", so repeat decides only whether to run again. Fix: check the repeat condition when picking a candidate (`candidate`) and when a run finishes (`finish`, which sets `pending`), and check the active run against `When` only. Splitting `allowed()` into a start check and a still-allowed check is one way.
 
-### 3. Two clock reads per tick (low)
+### 3. Two clock reads per tick (low) — fixed
 
-The engine reads `v.Now` in `e.view()` and then `now := e.o.Now()` separately. A runner's `Delay{Until}` that falls between the two reads is rejected as "invalid or expired bounded wait". This is rare, but it ends the run for no reason. Fix: take one timestamp per tick.
+The engine judges a Delay by `v.Now`, the clock the runner decided on. Tick still reads `now` separately for `waitingSince`, which is harmless.
+
+### Files
+
+- `internal/behaviour/engine.go` (`allowed`, `candidate`, `finish`, Tick)
+- `internal/behaviour/engine_test.go`, `internal/behaviour/delay_test.go`, `internal/behaviour/hauling_test.go`
+- `docs/BEHAVIOURS.md`
+
+### Verification
+
+- A new engine-level test: a `collect` with an `until` condition that becomes true mid-run still stows, finishes as a success, and is not queued again.
+- `just check controller test-packages ./internal/behaviour`, then `just check ci`.
 
 ## Acceptance criteria
 
 - [x] Gather's 15 s pursuer and 20 s wildlife waits survive the engine for their documented length, proven by an engine-level test
 - [ ] A while/until repeat condition no longer cancels the run in progress
 - [x] The engine uses one timestamp per tick
+- [ ] docs/BEHAVIOURS.md still matches: repeat decides only whether to run again
 
 ## Notes
 

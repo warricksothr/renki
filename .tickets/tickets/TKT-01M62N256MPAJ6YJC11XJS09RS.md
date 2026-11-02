@@ -11,11 +11,16 @@ labels:
   - plugin
   - movement
   - safety
+  - live
 assignees: []
 milestone: M3
 parent: TKT-01M62N2557R401S3E6JECSAPN4
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFHED7E7YV0VWND0F2CYMJ
+  - TKT-01M6EFHEENT3MJX2G80JMD60TA
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
+  - TKT-01M638V1VYY93J6343W7CJAD2X
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T20:42:44Z
+updated_at: 2026-11-02T15:57:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m3
   name: ""
 extensions: {}
 ---
@@ -47,6 +52,7 @@ extensions: {}
 
 - [ ] flee moves the bot away from a threat to a distance
 - [ ] On low health with a threat near, the bot retreats toward its owner or home and says so
+- [ ] Goal 3.1: three retreat-evidence episodes pass (flee within 1 s of HP below 0.4 with a threat within 15 m, owner or home reached alive), one starting on the raised base; paths linked in a note
 
 ## Implementation plan
 
@@ -126,3 +132,21 @@ Unstaged return-home trial on 41110b0 supplied partial retreat evidence: Greylin
 New live raised-base escape failure after successful food/cooking trials; no live follow-up is authorized by a safe route yet. Audit .checks/audit-window-SNFFE5.jsonl retains Greydwarf845473195:381 damage7.97 at2026-10-31T20:39:43Z. Automatic flee taskt-20 was dispatched/accepted/running within0.3s, goal[-20.85,36.09,-2.57] from[-33.9,36.09,6.68], with no safety destination. Tas remained nearly stationary inside the raised base. Greydwarf_Elite845473195:448 then inflicted27.73 at20:39:58Z; user emergency logout at20:40:00Z ended the attempt. Last native observation43.7/67.1HP at[-33.13,36.09,5.99], no death observed. Game stopped and independent panel restored; RecoveryGuard remains true. Do not rejoin blindly into the known base attack or request manual enemy clearing.
 
 Next implementation should distinguish a physically blocked escape from an active successful retreat, retain actual egress/door/floor geometry, and react to a second stronger attacker rather than waiting for the original60s flee task. A bounded native emergency logout backstop on worsening injury/no progress can remove the human from this testing loop; it must preserve ordinary successful movement, controller stop, permissions and exact native diagnostics. This failure does not erase the separately earned successful startup return83.4m to the original sheltered home floor (.checks/recovery-20261031T203218Z).
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:57:39Z
+
+### Remaining for M3 goal 3.1
+
+Goal 3.1 (docs/ROADMAP.md): in 3 of 3 runs where HP falls below the retreat threshold (`retreat.Low`, 0.4) with a threat within 15 m, `flee` is dispatched within 1 s and the bot reaches its owner or home alive. One run starts on the raised base that failed on 2026-10-31.
+
+What is left:
+
+- The raised-base failure in the previous note is not fixed. TKT-01M6EFHED7 (Flee: fail fast on a blocked escape and re-aim on a new attacker) owns the code change; this ticket now depends on it. Commit 9263f4b (checked escape bearings) landed afterwards and covers hostile-avoiding escape children only.
+- TKT-01M638V1VY (Stuck recovery: don't strafe off a ledge) stops a recovery dropping the bot off the deck under the floor; also a dependency.
+- Scoring: TKT-01M6EFHEEN (VM: retreat-evidence report for goal 3.1 from an audit window) turns an audit window into pass/fail per episode. Retreats happen inside other trials, so run it over the audit of every live trial this week and link the passing episodes here.
+- Policy change since this ticket's ACs: TKT-01M6CFDS6R (Protect charges without survival vetoes) makes a native escort keep fighting at low HP, and `retreat.Tick` skips while a matching escort or native travel owns the body. Goal 3.1 therefore applies to runs that are not escorting.
+- Live work needs the VM lease, TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials).
+
+Files to start in: `internal/retreat/retreat.go`, `plugin/Renki.Plugin/FleeTask.cs`, `plugin/Renki.Core/Movement/FleeBearings.cs`.
+
+Verify: `just check controller test-packages ./internal/retreat`, `just check plugin test-core FleeBearings`, `just check ci`; live, `just vm retreat-evidence AUDIT` over each trial's audit window, three passing episodes, one starting within the raised base (around [-33.9,36.09,6.68]).

@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T06:00:03Z
-updated_at: 2026-11-02T06:00:03Z
+updated_at: 2026-11-02T15:57:27Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -47,12 +47,25 @@ A `just vm haul-report` recipe, with an offline `test-haul-report` in `just ci` 
 
 Write the result to `.checks/haul-<ts>/summary.json`, plus a short text summary. Base it on `scripts/vm/audit-summary.py` and the existing trial-status helpers.
 
+The report reads audit files only, so building it needs no VM lease. Running it on a real owner session is TKT-01M62N12HJ's evidence (its criterion 5). That live criterion moved there from this ticket so this one stays offline.
+
 ### Why
 
 Without a number, "the bot keeps hauling" stays a judgement call. Goal 2.2 needs a pickup ratio of at least 80 % and at least 3 trips in each of 2 owner sessions.
+
+### Files
+
+- `scripts/vm/audit-summary.py`, `scripts/vm/trial-status.py`, `scripts/vm/trial-status-test.py` (helpers and test style)
+- `scripts/vm/vm.just` (beside `audit-summary`), root `justfile` (`ci` list)
+- `docs/AUDIT.md` (the record shapes), `docs/TESTING.md`
+
+### Verification
+
+- `just check vm test-haul-report` against a fixture audit with known drops, pickups and two trips, then `just check ci`.
+- On any retained audit window: `just vm haul-report SINCE UNTIL` writes summary.json with the fields above.
 
 ## Acceptance criteria
 
 - [ ] just vm haul-report summarises drops near owners, pickups, trips, deposits and incidents for an audit window
 - [ ] An offline test-haul-report runs in just ci against a fixture audit
-- [ ] One real owner session has a report linked on TKT-01M62N12HJ
+- [ ] The summary.json fields (dropped, picked up, ratio, trips with trigger, incidents) are documented in docs/TESTING.md

@@ -16,18 +16,19 @@ parent: null
 origin: null
 dependencies:
   - TKT-01M6701B73BXT58GXFS0FYNZK8
+  - TKT-01M6DCFSMEWJG8Z30WR59KBG5Y
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T18:09:42Z
-updated_at: 2026-10-30T18:21:43Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/procedure-research
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---

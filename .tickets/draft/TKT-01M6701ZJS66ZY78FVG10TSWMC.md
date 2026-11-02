@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T18:09:52Z
-updated_at: 2026-10-30T18:21:43Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/procedure-research
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---

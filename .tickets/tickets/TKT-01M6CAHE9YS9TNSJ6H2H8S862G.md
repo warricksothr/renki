@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-01T19:49:16Z
-updated_at: 2026-11-01T20:32:06Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -92,3 +92,15 @@ AC1 remains unticked: the target V+ release, client runtime, network compatibili
 **agent:codex/renki-milestones** at 2026-11-01T20:32:06Z
 
 in-progress to blocked: Deployment and smoke checks passed; only exact host game/BepInEx build inventory remains unavailable without server-side version evidence (public query timed out).
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Only criterion 1 is open: the exact host game, Valheim Plus and BepInEx versions and the effective server-synced configuration. The blocking reason says the public query timed out. This needs the owner or the server host to report the versions; no agent can get them from the client side. Nothing else in M4 depends on this ticket.
+
+Related: TKT-01M6DDBX7K (VM trials: combat setting, cleanup stop race, stale V+ backups) hardens `scripts/vm/vplus.ps1`'s backup choice.
+
+### How to verify
+
+A note with the host's versions and config, compared against `just vm vplus-inspect` (read-only) and the client's startup log.

@@ -28,12 +28,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-11-02T06:10:52Z
+updated_at: 2026-11-02T15:57:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -84,3 +84,20 @@ Remaining staged game checks: compare a shoreline/contours to the actual terrain
 **agent:codex/renki-resume** at 2026-10-30T13:38:50Z
 
 The owner reported the tailnet panel was unavailable. Cause: live-test cleanup intentionally stopped both game and controller. Added just vm panel-start, a separate scheduled task that starts only the controller and survives SSH disconnect, plus a ControllerOnly mode reusing normal configuration/secrets handling. It was run successfully; independent tailnet HTTP returned 303 to login while Valheim stayed stopped. Combat/harvest supervisor cleanup now runs it after logout/stop/combat-off. Focused supervisor tests passed for success/failure cleanup ordering; full gate and committed review follow. The web panel will show Tas offline between trials rather than stop responding. Explicit just vm stop still stops both processes.
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Goal 4.6 says this epic's criteria are ticked or moved. State at 0b932ef, read from the code and the children:
+
+- Criterion 1 (tailnet, token): TKT-01M628X12E (Panel: server on the tailnet, token login, live view) is done, and the 10-30 note shows the tailnet panel answering 303 to login. Ready to tick.
+- Criterion 2 (position, task, chat, decisions live): the live view, timeline and inspection are in `internal/panel/panel.go` and `panel/src`. One gap: after a logout the header can show stale connected/in_world state, filed as TKT-01M64Z4P8 (Logout: publish an accurate final connection and phase state), now a child of this epic. Tick after it lands, or tick now and leave that bug as a 4.6 child.
+- Criterion 3 (stop, home, log out): TKT-01M628X134 has every criterion ticked and `POST /api/act/{action}` is in `internal/panel/panel.go:194`. Ready to tick.
+- Criterion 4 (behaviour switches without a restart): the settings half is done (TKT-01M628X13X's note of 10-29). Behaviour instances in the panel (list, start, stop, enable, disable, clone, edit) are not: there is no instances endpoint in `internal/panel/panel.go`. That work is M5's owner-editable behaviours (docs/ROADMAP.md, M5). Move it there.
+
+Children still open: TKT-01M628X13X (criterion 1 only, belongs in M5), TKT-01M630V7ZT (one live check), TKT-01M64Z4P8 (logout state). TKT-01M628X134 and TKT-01M628X14M have every criterion ticked and need only their status closed by whoever holds them.
+
+### How to verify
+
+`just check ci` for the code; the panel's live criteria were seen on the VM in earlier notes. Owner action: tick criteria 1 and 3, decide 2, and move criterion 4's instance half to M5.

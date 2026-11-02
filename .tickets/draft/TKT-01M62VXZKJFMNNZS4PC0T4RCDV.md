@@ -22,13 +22,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:49Z
-updated_at: 2026-10-29T03:40:49Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan
+  name: ""
 extensions: {}
 ---
 
@@ -39,6 +39,21 @@ slow link it can arrive later, so Tick judges the door refused, forgets it,
 and does not shut it behind the bot. The door is then left open. Accepted in
 PR 3 as rare. Fix if it shows up: wait longer while the door's owner has not
 answered, or watch for the state for a while after judging it refused.
+
+### Goal
+
+None of goals 4.1-4.6 needs this. It was filed as "fix if it shows up" and has not been reported since. It waits on TKT-01M62MB5YR (Open closed doors in the bot's way, and close them behind it), which is in review in M2.
+
+### Files
+
+- `plugin/Renki.Plugin/Doorman.cs` (`SettleFor` at :28, the judging in `Tick`)
+- `plugin/Renki.Core/Movement/Doors.cs` (`DoorRules`) and `plugin/Renki.Tests/DoorNavigationTests.cs`, if the timing decision moves into Core
+
+### Verification
+
+- `just check plugin test-core DoorNavigation` for any logic moved into Core.
+- `just check plugin build` with `VALHEIM_DIR` set, and `just check ci`.
+- Reproducing the slow link needs the game; a live check is optional.
 
 ## Acceptance criteria
 

@@ -11,12 +11,14 @@ labels:
   - vm
   - controller
   - tooling
+  - live
 assignees: []
-milestone: null
+milestone: M4
 parent: null
 origin: null
 dependencies:
   - TKT-01M67CF3AMXYJJB2PYR790ZDH5
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -30,12 +32,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-30T22:11:32Z
-updated_at: 2026-10-31T16:17:03Z
+updated_at: 2026-11-02T15:57:46Z
 created_by:
   id: agent:codex/local-streaming
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -83,6 +85,22 @@ Repair committed ate3c444d in PR130 and deployed with just check streaming windo
 Actual Windows proof: RenkiCapture and RenkiCaptureWatchdog now Running with new process IDs6004/11768 and fresh status, while OBS18488 and relay16200 retain their original processes. In-world verifier observedAt2026-10-31T11:14:35.0061537-05:00 reports Verified changing game frames; exact Valheim source active, Program Renki Gameplay, silent local outputActive true. Browser API content gameplay, matching world scope1:DizzysHellheim:827096491,1280x720 readyState4,8428 decoded frames, same original MediaStream and unchanged one WHEP negotiation. Screenshot visually inspected: /home/sothr/.t3/userdata/browser-artifacts/browser-screenshot-blight-raccoon-grue-ts-net-mvwlqjz6-068edd28.png.
 
 Tas healed under native recovery guard and was logged out/stopped safely at29.7HP. Browser returned to Tas is resting/standby while sameStream stayed true,10465 decoded frames and one WHEP negotiation (.checks/video-offline-after-recovery.json). OBS output duration increased from62070866ms offline after deployment to62137466ms inworld. No output/relay restart or broader capture source was needed. Original exit1 was confirmed; its precise filesystem cause remains unproven. AC3 desktop/minimize/GPU loss/encoder contention trials remain open. This repair does not establish those transitions.
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Criteria 1 and 2 are ticked. Criterion 3 is open: RDP, lock and unlock, minimise, GPU loss, a forced render freeze and sustained encoder contention, with evidence retained. None of goals 4.1-4.5 needs these transitions, and some (locking the console) need the owner present with a recovery method, as the summary warns. Recommendation: move criterion 3 to a streaming ticket outside M4, or have the owner schedule it.
+
+If it is run, start in:
+
+- `cmd/obs-adapter`, `internal/obscapture/capture.go`, `internal/obscapture/obs.go`
+- `scripts/streaming/windows.ps1`, `scripts/streaming/streaming.just` (`windows-status`, `windows-action`)
+- `docs/WINDOWS-VIDEO.md`
+
+### How to verify
+
+Live, under the VM lease (TKT-01M6EF5DTG): each transition followed by `just streaming windows-status` showing the capture verified again and OBS output still active, recorded in a note. `just check streaming test` for any script change.
 
 ## Summary
 

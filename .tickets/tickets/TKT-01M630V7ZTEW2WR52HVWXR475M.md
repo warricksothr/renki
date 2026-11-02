@@ -11,13 +11,15 @@ labels:
   - controller
   - llm
   - terva
+  - live
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M628X106RD9FFR8YBXV7K5HT
 origin: null
 dependencies:
   - TKT-01M62VXYR69PKZGJFEWQ1759GV
   - TKT-01M628X13X2G0849113H4BSRP3
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -31,13 +33,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T05:06:42Z
-updated_at: 2026-10-29T07:51:07Z
+updated_at: 2026-11-02T15:57:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m4
+  name: ""
 extensions: {}
 ---
 
@@ -71,3 +73,18 @@ Settings store keys model.provider/name/baseURL seeded from llm.terva; the voice
 **agent:claude-code/renki-groom** at 2026-10-29T07:51:07Z
 
 2026-10-29: deployed. The VM's panel lists cpa-api's 31 models (GET /api/models, checked from the VM without printing the token) and shows claude-haiku-5-5 in use, seeded from llm.terva. Switching and the per-reply log line (model, ms, tokensIn, tokensOut) are tested and seen in a local preview against a stub /models; not yet seen with a real reply on the VM. The agent may change model.name but never model.provider or model.baseURL, so it cannot send the key elsewhere. The list includes image and review models the voice cannot use; it is cpa-api's whole list.
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Every criterion is ticked. The 10-29 note says the per-reply log line (model, ms, tokensIn, tokensOut) was seen only in a local preview, not with a real reply on the VM. One live check closes that:
+
+- Under the VM lease (TKT-01M6EF5DTG, VM: exclusive lease for deploys and live trials), with Tas in-world, send one line through the panel's chat box (`POST /api/say` needs the plugin connected, `internal/app/panel.go:138-143`).
+- Read the reply's audit record with `just vm audit 1` and confirm it names the model, latency and tokens. Record it in a note.
+
+The dependency on TKT-01M628X13X is now satisfied in practice (its settings half is done); it still shows as blocking because that ticket stays in progress for its M5 half.
+
+### How to verify
+
+The note above, plus `just check controller test-packages ./internal/voice ./internal/settings`.

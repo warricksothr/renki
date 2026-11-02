@@ -12,11 +12,13 @@ labels:
   - plugin
   - safety
   - vm
+  - live
 assignees: []
-milestone: M3
+milestone: M5
 parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -30,12 +32,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-02T04:02:24Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -327,3 +329,11 @@ The corrected indoor sequence passed on this deployed build: direct bed-to-food 
 Then just check vm route-benchmark --marker 'home storage' --cycles3 --leg-timeout120 --home-floor-marker 'home cooking' --keep-online passed in92s. Evidence .checks/routes-20261102T035907454646Z/summary.json and audit-window-UpVrS8.jsonl: three round trips, six scoped native success receipts,18.60m sampled travel, minimum89.5HP, grounded/sheltered home-floor verification, kept online, no ownership yield or observed injury. Original home and all markers were preserved. Fresh04:00:58Z snapshot at[-36.45,36.09,6.57],88.5/88.5HP, injury{seq:0,damage:0}, idle/sheltered. Broader outdoor stair/coast routing and extended pantry reliability are not closed by this indoor pass.
 
 The user added automatic nighttime sleep and daytime idle bedside waiting while preserving manual sleep during reservation. That follow-on is tracked on TKT-01M62PRDSBCRCPH5S0TGGCMAEY (Claim a bed near home, or tell the owner there is none). Ordinary idle definitions remain temporarily paused until controlled checks finish, then restore the four saved enabled names alongside optional rest presets.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Remaining for M3: serves no M3 goal
+
+Milestone review (M3 grooming, 2026-11-02): this ticket serves none of M3's goals 3.1-3.5 in docs/ROADMAP.md. It is a household-return routing problem under TKT-01M6864352 (Pressure-driven work, storage and maintenance goals), whose epic is M5. Proposed for M5; the owner decides.
+
+What is left: AC 1 and 2 (route feasibility from the retained coastal threats and terrain, and bounded initially-away progress or an actionable infeasible outcome). The latest notes record indoor passes only. Files to start in: `plugin/Renki.Core/Movement/ThreatGuidance.cs`, `plugin/Renki.Core/Movement/HostileClearance.cs`, `plugin/Renki.Plugin/HostileRoute.cs`, fixture `plugin/Renki.Tests/Fixtures/coastal-return.json`. Verify: `just check plugin test-core ThreatGuidance`, `just check ci`; live, `just vm route-benchmark` or a supervised work-trip return under the VM lease (TKT-01M6EF5DTG).

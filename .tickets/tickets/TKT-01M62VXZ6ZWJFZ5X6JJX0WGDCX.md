@@ -9,8 +9,9 @@ priority: normal
 due_on: null
 labels:
   - controller
+  - live
 assignees: []
-milestone: null
+milestone: M5
 parent: TKT-01M62VXZ2FWDX3D4Z6XX1MB5A6
 origin: null
 dependencies:
@@ -18,6 +19,7 @@ dependencies:
   - TKT-01M62VXZ4D32W7WBX7WV84DAVY
   - TKT-01M62VXYWJHB5BC9VGCBM0PVXD
   - TKT-01M62VXYY6F094WXQS3FBQ57RF
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -31,12 +33,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-31T18:28:13Z
+updated_at: 2026-11-02T16:00:07Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m5
   name: ""
 extensions: {}
 ---
@@ -58,6 +60,7 @@ What it collects goes to `stow`.
 - [x] Cooked food comes off before it burns while the bot is in the base
 - [ ] Ready fermenters and beehives are emptied and the goods stowed
 - [ ] Ore in the chests is carried to a smelter that takes it
+- [ ] Food another player left cooking is taken off when done, before it burns, and stowed, in tests and in one owner session of at least 30 min with at least 5 items; upkeep-report linked
 
 ## Implementation plan
 
@@ -148,3 +151,19 @@ Final live health49.5/49.5, injurySeq0, feet[-33.12,36.15,9.7] inside home; one 
 **agent:codex/renki-milestones** at 2026-10-31T18:28:13Z
 
 Evidence clarification for the positive trial: saved task traces prove end-to-end remote cooking and actual matched pickup, but contain no requesting/granted normal drop ownership messages. The ordinary automatic pickup path may have acquired the drop before the new explicit wait branch was needed. Do not cite this trial as direct live coverage of the five-second manual owner-wait branch. That branch compiles against actual game RequestOwn/CanPickup APIs; an explicit forced-delay/denied-grant case remains unproved. No additional batch is needed to repeat the already-earned cooking receipt.
+
+**agent:claude-code/renki-plan-m5** at 2026-11-02T16:00:06Z
+
+### Remaining for M5 goal 5.2
+
+docs/ROADMAP.md M5 goal 5.2 (no food burns) is measured two ways: zero cooking slots seen to turn `burnt` during two consecutive 2 h home soaks (TKT-01M6EFM4G7 (VM: two 2 h base upkeep soaks), report from TKT-01M6EFK453), and one owner session of at least 30 min where the owner leaves at least 5 raw items cooking and every one comes off before `burnt` and reaches a chest.
+
+Criterion 1 was earned for Tas's own single batch (note of 2026-10-31). What is left for the goal:
+
+- A tend template, run from an idle trigger at home, that takes food someone else put on a station when its slot is `done`, using the existing native removal and output receipts (`remote_correlation` included). Today native cooking only removes output from a slot whose recorded producer is Tas, so taking another player's batch needs a deliberate, documented relaxation of that check, limited to `done` slots.
+- The collected food goes to `stow` (or the assignment table once TKT-01M62VXZ84 lands).
+- Criteria 2 and 3 (fermenters, beehives, ore) depend on TKT-01M62VXZ39 (machine perception) and TKT-01M62VXZ4D (add_to and take_from). Whether they are in M5 is an owner decision; goal 5.2 does not need them.
+
+Files to start in: internal/behaviour/marker_food.go (the idle cooking preset), internal/behaviour/cooking_receipt.go, plugin/Renki.Plugin/CookingTask.cs and CookingDelivery.cs, plugin/Renki.Core/Tasks/CookingBatch.cs and CookingRemoteOutput.cs.
+
+Verify offline with `just check plugin test-core CookingTests` and `just check controller test-packages ./internal/behaviour`, then `just check ci`. Live: the cooking section of `just vm upkeep-report` over the soak windows and over the owner-session window, holding the VM lease (TKT-01M6EF5DTG).

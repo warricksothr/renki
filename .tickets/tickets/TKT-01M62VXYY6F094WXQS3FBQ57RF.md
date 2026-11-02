@@ -10,6 +10,7 @@ due_on: null
 labels:
   - controller
   - chat
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62VXYQB6ZDBQE4E6ERGN83C
@@ -18,6 +19,7 @@ dependencies:
   - TKT-01M62VXYSN4RQV75HTA3BSD162
   - TKT-01M62VXYWJHB5BC9VGCBM0PVXD
   - TKT-01M62N12C9EWXCD54WMBH08T4E
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -31,12 +33,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T22:26:17Z
+updated_at: 2026-11-02T15:56:26Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -133,3 +135,22 @@ This is a resumed-delivery pass, not a fresh flint collection loop. It still tri
 Fresh one-target flint loop passed on the height-aware waypoint build with the bounded stow home fallback: 22:23:51–22:25:01Z, t-2 moved from home to (-28.15,30.43,42.11), t-3 used pickable 1:39745, t-4 took exactly Flint1, t-5's direct chest approach failed unreachable, t-6 went to configured home through the west door, and t-7 deposited Flint1. Task-matched receipt and newer pack observation confirmed chest Stone1/Flint3/ArmorRagsChest1 and pack BeechSeeds15. Every recorded state was 25/25 HP. No manual door staging occurred in this loop. Both temporary test definitions were deleted afterward. Evidence: .checks/audit-window-IM0XXq.jsonl.
 
 This is a full bounded collection/delivery pass. It is not efficient/reliable direct chest routing: the direct approach still searched the underside and failed before the home fallback. Height-aware following prevents consuming waypoints from another floor; it does not add route memory. A reusable, live-validated entrance/successful-path hint is still needed, along with repeated unattended route checks. Tree cutting, mining, crafting, default loot, deliberate-drop detection, leader/work-site resumption and live multi-chest/full/ward checks remain open.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:26Z
+
+### Remaining for M2 goals 2.2 and 2.4
+
+stow is built and used live: the 10-29 flint loop deposited with a task-matched receipt, partial and busy cases are tested (`internal/behaviour/hauling_test.go`), and the storage-needed notice is deduplicated (`TestStorageNoticeIsScopedCopiedAndDeduplicated`). None of the five criteria is ticked.
+
+- Criteria 1, 2, 3 and 5: tick them against the named tests in `hauling_test.go` (`TestStowReplansAfterPartialTransferAndPreservesKeep`, `TestStowBusyChestFallsBackAndReportsShortfall`, `TestStowProtectsGearAndKeepsExactCounts`), adding a test for "several chests for one item fill one after another" if none covers it.
+- Criterion 4 (shortfall told to owners and shown on the panel, repeated only on change): the chat half goes through `Engine.fail` and `Notify` in `internal/behaviour/engine.go`. Check that the panel shows it (`internal/app/panel.go`), and tick it with a test name.
+- Goal 2.4's chest-full case uses this path. One live run with a full chest is needed for 2.4 as written; see the M2 epic's goal review.
+
+### Files
+
+- `internal/behaviour/stow.go`, `internal/behaviour/engine.go`, `internal/behaviour/hauling_test.go`, `internal/app/panel.go`
+
+### Verification
+
+- Offline: `just check controller test-packages ./internal/behaviour ./internal/app`.
+- Live (lease TKT-01M6EF5DTG): a stow into a full chest says "I need storage for ..." in chat within 10 s. Read it from `just vm audit-summary SINCE UNTIL`.

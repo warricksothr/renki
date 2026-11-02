@@ -22,12 +22,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T06:10:52Z
+updated_at: 2026-11-02T15:57:05Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -53,7 +53,7 @@ Fix: add shared *reject* fixtures that both suites must refuse, and line the bou
 
 ### 3. Whisper `to` is ignored
 
-Valheim's whisper is a short-range line with no recipient, and the plugin ignores `to` (`GameTaskHost.cs:146-149`). The doc (§ say/whisper, around line 524) and Go require it. `internal/chat/brain.go:531` treats every whisper it hears as addressed to the bot, so a whisper between two nearby players can trigger commands. Fix: document whisper as range-limited, drop the `to` requirement, and do not count an overheard whisper as addressed.
+Moved to TKT-01M6EFGYYY (Chat: an overheard whisper is not addressed to the bot).
 
 ### 4. Doc and fake plugin drift
 
@@ -63,9 +63,30 @@ Valheim's whisper is a short-range line with no recipient, and the plugin ignore
 - There are no `task_harvest`, `task_use_item` or `reject/controller/version_missing` fixtures.
 - `cmd/fakeplugin` sends no `accepted` before instant results, answers unknown tasks with `bad_args` instead of `unsupported`, and ignores `allowedTasks`.
 
+### Goal
+
+Goal 4.6 (review closed). Item 3 (whisper) moved to TKT-01M6EFGYYY (Chat: an overheard whisper is not addressed to the bot), because it is a trust fix for goal 4.4. Item 1 also protects the soak: a NaN in `HpFrac` drops a whole state frame.
+
+### Files
+
+Line numbers refer to commit f1a5483.
+
+- `plugin/Renki.Core/Protocol/Codec.cs`, `plugin/Renki.Plugin/Perceiver.cs`
+- `internal/protocol/task.go`, `plugin/Renki.Core/Protocol/TaskArgs.cs`
+- `internal/protocol/testdata` (its `reject`, `controller` and `plugin` folders and README), `plugin/Renki.Tests/FixtureTests.cs`
+- `internal/protocol/envelope.go`, `docs/BRIDGE-PROTOCOL.md` (§7.1, §7.2)
+- `cmd/fakeplugin`
+
+### Verification
+
+- `just check plugin test-core Fixture` and a new Core test that encodes a NaN.
+- `just check controller test-packages ./internal/protocol ./cmd/fakeplugin`.
+- `just check plugin test` (both suites refuse the same reject fixtures) and `just check ci`.
+
+Size: about a day. If the reject fixtures grow past that, split item 4 (doc and fakeplugin drift) into its own child.
+
 ## Acceptance criteria
 
 - [ ] A NaN or Infinity in a plugin message does not drop the frame
 - [ ] Shared reject fixtures exist and both Go and C# refuse the same bad task args
-- [ ] Whisper semantics in the doc, Go and the chat brain match what Valheim does
 - [ ] BRIDGE-PROTOCOL.md, envelope comments and fakeplugin match the implementations

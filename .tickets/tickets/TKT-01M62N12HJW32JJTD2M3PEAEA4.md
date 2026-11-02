@@ -10,6 +10,7 @@ due_on: null
 labels:
   - controller
   - chat
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
@@ -23,6 +24,10 @@ dependencies:
   - TKT-01M62G71QCVNG3DVW1HZ8HXA23
   - TKT-01M62VXYSN4RQV75HTA3BSD162
   - TKT-01M62VXYY6F094WXQS3FBQ57RF
+  - TKT-01M6EFHE2NGKM21P7S45KBK8JQ
+  - TKT-01M6EFHE4EMKX75VMHWWW7DY7P
+  - TKT-01M6DDFTDDA6D23TTDJPAA2SV0
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -36,12 +41,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T22:26:17Z
+updated_at: 2026-11-02T15:56:26Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -73,6 +78,7 @@ up. Owners only.
 - [ ] loot leaves an owner's deliberate drops alone
 - [ ] Full, deliver-when-full stows the load in the chests at home and goes back
 - [ ] It says when it cannot go on (no chest, chests full), and stop ends the run at once
+- [ ] Two owner sessions of 30+ min each have a haul report linked here showing at least 3 trips and a pickup ratio of at least 0.8 (goal 2.2)
 
 ## Implementation plan
 
@@ -122,3 +128,25 @@ This is a resumed-delivery pass, not a fresh flint collection loop. It still tri
 Fresh one-target flint loop passed on the height-aware waypoint build with the bounded stow home fallback: 22:23:51–22:25:01Z, t-2 moved from home to (-28.15,30.43,42.11), t-3 used pickable 1:39745, t-4 took exactly Flint1, t-5's direct chest approach failed unreachable, t-6 went to configured home through the west door, and t-7 deposited Flint1. Task-matched receipt and newer pack observation confirmed chest Stone1/Flint3/ArmorRagsChest1 and pack BeechSeeds15. Every recorded state was 25/25 HP. No manual door staging occurred in this loop. Both temporary test definitions were deleted afterward. Evidence: .checks/audit-window-IM0XXq.jsonl.
 
 This is a full bounded collection/delivery pass. It is not efficient/reliable direct chest routing: the direct approach still searched the underside and failed before the home fallback. Height-aware following prevents consuming waypoints from another floor; it does not add route memory. A reusable, live-validated entrance/successful-path hint is still needed, along with repeated unattended route checks. Tree cutting, mining, crafting, default loot, deliberate-drop detection, leader/work-site resumption and live multi-chest/full/ward checks remain open.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.2
+
+The bounded pieces work: a `collect` instance picked up a flint and a `stow` instance deposited it with a task-matched receipt (10-29, `.checks/audit-window-IM0XXq.jsonl`). None of the four criteria is ticked. What goal 2.2 needs is still missing: nothing picks up drops near the owner by default, nothing delivers at 80 % full, and nothing comes back to the owner. That is more than one pull request, so it is now split into drafts this ticket depends on:
+
+- TKT-01M6EFHE2N (Behaviours: loot template picks up drops near the owner): criteria 1 and 2.
+- TKT-01M6EFHE4E (Behaviours: deliver at 80% full or when the pile is gone, then return): criteria 3 and 4, and the "help me" / "collect wood" chat switch.
+- TKT-01M6EFHE67 (Controller: sum drops per cell and prefab with their trend): the "pile is gone" signal the deliver trigger needs.
+- TKT-01M6DDFTDD (VM: haul report from the audit for owner-haul sessions): the measurement.
+
+What stays on this ticket is the integration and the evidence: deploy the three behaviour pieces together, then two owner sessions of at least 30 minutes with at least 3 trips each. Each session's haul report is linked here, and the new criterion 5 is ticked when both meet goal 2.2 (80 % pickup ratio, delivery at 80 % full or 60 s after the pile is gone, return to the owner). The owner has to play for this, so book the two sessions with them early. A session cannot be retried the same afternoon the way a supervised trial can.
+
+### Files
+
+- `internal/behaviour/collect.go`, `internal/behaviour/stow.go`, `internal/behaviour/engine.go`, `internal/chat/gather.go`, `scripts/vm/audit-summary.py`
+
+### Verification
+
+- Offline: `just check controller test-packages ./internal/behaviour ./internal/chat`, then `just check ci`.
+- Live (lease TKT-01M6EF5DTG): `just vm haul-report` (from TKT-01M6DDFTDD) over each owner session. Its summary.json shows a pickup ratio of at least 0.8 and at least 3 trips.

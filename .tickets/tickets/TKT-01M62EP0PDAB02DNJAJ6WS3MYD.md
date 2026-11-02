@@ -9,12 +9,14 @@ priority: normal
 due_on: null
 labels:
   - controller
+  - live
 assignees: []
-milestone: M2
+milestone: M3
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62BMD18K3SE1WXJ7FDN8EPT
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -28,12 +30,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-10-30T18:12:31Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -130,3 +132,23 @@ claim taken from agent:codex/renki-resume by agent:codex/renki-milestones
 **agent:codex/renki-milestones** at 2026-10-30T18:12:31Z
 
 PR #91 merged as 3d07700 and deployed. Live shared-memory verification passed: .checks/reconciliation-live-20261030T181201Z/summary.json. Current perception's 26 home structures (14 containers, 3 beds, 3 stations, 5 fires, 1 door) all have current landmark IDs; no older matching counterparts remain within the reconciliation tolerance. The map and shared container API agree on IDs. Six inherited content records preserve old source IDs/timestamps as hints, while the directly opened food chest retains its exact observation without inherited provenance. Tas is idle inside home at [-36.87,36.09,6.25], 83/83 HP. CI .checks/20261030T180541Z-zboyoT.log and committed review .checks/20261030T180647Z-GLNFqT.log passed, including current-empty-contents precedence. Installation's first attempt hit a transient Windows file lock despite the executable-release probe; retry passed (.checks/20261030T180907Z-u3zP2c.log). Missing-in-view and death-recording criteria remain unearned; reconciliation is positive observation only. Research/procedure design continues separately on t3/procedure-research for later review, without changing native behavior.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.5
+
+The parts M2 needs are done: criterion 1 (structures and resources kept per world across restarts) and criterion 4 (the map draws remembered things), with reconciliation evidence in .checks/reconciliation-live-20261030T181201Z/summary.json. What is left is not on any M2 goal:
+
+- Criterion 2, a remembered thing in view that perception no longer reports is marked missing. The 10-30 note says reconciliation is positive-only and never infers absence from a capped frame.
+- Criterion 3, deaths and danger zones. `internal/memory/danger.go` already records damage and death events as harms through `internal/home/danger.go`. Check whether that meets the criterion (cause, place, time, decay), and tick it with the test names if so.
+
+Proposal: move this ticket to M3. Goal 3.4 (avoid where it was hurt) already names it. Today TKT-01M62N12G9 (notice where owners work), TKT-01M62PRDSB (claim a bed) and TKT-01M62VXYWJ (chest memory) depend on it, so it sits on M2's dependency chain for criteria M2 does not need.
+
+### Files
+
+- `internal/memory/landmarks.go`, `internal/memory/danger.go`, `internal/home/landmarks.go`, `internal/home/reconcile.go`, `internal/home/danger.go`
+
+### Verification
+
+- `just check controller test-packages ./internal/memory ./internal/home`
+- Live (lease TKT-01M6EF5DTG): a structure removed in view is marked missing within one perception frame; read it from `just vm audit-summary SINCE UNTIL`.

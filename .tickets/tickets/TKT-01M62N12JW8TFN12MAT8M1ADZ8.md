@@ -10,6 +10,7 @@ due_on: null
 labels:
   - controller
   - chat
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
@@ -20,6 +21,7 @@ dependencies:
   - TKT-01M62N12HJW32JJTD2M3PEAEA4
   - TKT-01M62N12G98VW2CYW94FG5RCTB
   - TKT-01M62VXYSN4RQV75HTA3BSD162
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -33,12 +35,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-31T14:40:42Z
+updated_at: 2026-11-02T15:56:26Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -54,6 +56,7 @@ No-chop zones (places to leave alone) come later and are filed separately; the c
 - [ ] Told to chop wood, the bot goes to the last work site, or else the nearest trees it knows
 - [ ] It fells, splits and collects, and hauls home when full
 - [ ] It says why it cannot (no axe, no trees known) and stops when told
+- [ ] Three consecutive just vm gather-trial summaries show outcome succeeded, returned true, no death or swimming, and a duration under 900 s (goal 2.1)
 
 ## Implementation plan
 
@@ -493,3 +496,34 @@ da83b50 passed just check ci (.checks/20261031T143158Z-QhARHq.log) and committed
 The bounded just vm harvest-logs trial (.checks/harvest-trial-20261031T143727972667Z; .checks/20261031T143727Z-dJXvmE.log) aborted during its pre-existing automatic return-home task, before dispatching any harvest. Narrow evidence .checks/audit-window-zynRJW.jsonl shows multiple Necks and a Greyling along the route. Neck -226710862:1219 inflicted one4.52 damage event at[41.77,32.82,28.12]; the native controller replaced move_to with flee, then the supervisor detected startup injury and logged out/stopped the game, restored combat off and offline panel. Final23.8HP at[23.21,32.16,11.83]. Do not repeat this unsafe startup without a recovery/route improvement or changed threat observations; no owner staging/clearance is requested.
 
 Live perception emitted19 frames with up to11 log envelopes (nine in the first supervisor observation), including network identity, collider ID, oriented outline and vertical extent. This establishes deployment and native-to-controller transport, not a positive low-log detour or split-lifecycle check. During startup travel, dry route validation completed94-sample and50-sample prefixes with376/204 physics casts, worst planning frame1.25/0.26ms. The sole early obstacle-cache timing trace was its first empty discovery (2.96ms), so it does not measure steady-state log-cache CPU. Core move/rotation/removal/split tests and synthetic desktop/mobile map checks pass; actual log avoidance/rolling/splitting and the uninterrupted two-tree/home/store benchmark remain open. Automatic home preparation selected a mixed-hostile corridor; inspect that existing route/survival behavior before risking another harvesting trial.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goals 2.1, 2.3 and 2.4
+
+This ticket owns goal 2.1: `just vm gather-trial` passes 3 runs in a row (fell, split, collect, deposit gains into a home chest, return), each under 15 minutes, with no death or drowning. It has never passed. The last run (10-31, `.checks/harvest-trial-20261031T143727972667Z`) stopped on the way out, when a Neck hit the bot during the automatic return home. Work-trip defense, encounter handling and hostile-aware return detours have merged since (PRs 138, 140 and 143), so the next step is a fresh run on the current build, not more code.
+
+### What is left
+
+1. Take the VM lease (TKT-01M6EF5DTG), install the current build, and run `just vm gather-trial`. Read the summary's `reason` and the audit window before changing anything.
+2. Fix what that run shows, one cause per pull request. Known risks: hostile corridors on the way out, a falling log (it killed the bot on 10-31), and raised-home stair returns.
+3. Make the summary prove the goal by itself: record start, end and `durationS`, and fail the run on any death or swimming state. Today the trial's deadline is `trees * 480 + 10` s (`scripts/vm/gather_trial.py`, `run`), which bounds a one-tree run but writes no duration.
+4. Three consecutive passes. Link the three summary.json paths, then tick criterion 2.
+
+### Goal 2.3
+
+Goal 2.3 moves to TKT-01M6EFHE80 (VM: wood-request trial for go chop wood and its refusals), because `gather-trial` picks its own tree and never calls `StartWood`. `planWood` (`internal/behaviour/wood.go`) already prefers the last requested site, then the nearest safe Beech1 within 60 m, then a remembered tree hint. It does not know where an owner worked; that needs TKT-01M62N12G9. It also caps home at 150 m from the bot and the site at 150 m from home, so the 300 m in goal 2.3 cannot be met as written (see the note on the M2 epic).
+
+### Goal 2.4
+
+The no-axe and no-chest refusals happen before any work: `planWood` returns "I need known storage within 10 m of home", and `gatherSupplied` returns `errGatherTool`. `gatherCommand` says either one in chat at once. Chest full is said through `StorageNeed` and `Notify`. Point to the existing tests for these (`internal/behaviour/wood_test.go` `TestWoodPlanRefusesMissingPrerequisitesBeforeStartingWork`, `internal/chat/gather_test.go`, `internal/behaviour/hauling_test.go` `TestStorageNoticeIsScopedCopiedAndDeduplicated`), and add any that are missing. A gather run that fails part-way for another reason, such as the axe breaking, is only logged (`Engine.finish`); say it in chat too if the owner asked for the run.
+
+### Files
+
+- `internal/behaviour/gather.go`, `internal/behaviour/wood.go`, `internal/behaviour/gather_defense.go`, `internal/behaviour/gather_wildlife.go`, `internal/behaviour/engine.go`
+- `scripts/vm/gather_trial.py`, `scripts/vm/combat-trial.py`, `scripts/vm/gather-trial-test.py`
+
+### Verification
+
+- Offline: `just check controller test-packages ./internal/behaviour ./internal/chat` and `just check vm test-gather-trial`, then `just check ci`.
+- Live (lease TKT-01M6EF5DTG): `just vm gather-trial`, three times in a row. Each summary.json shows outcome `succeeded`, `woodGain` above 0, `returned` true, and a duration under 900 s.

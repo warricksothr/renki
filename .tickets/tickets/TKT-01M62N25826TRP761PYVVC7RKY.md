@@ -10,11 +10,15 @@ due_on: null
 labels:
   - plugin
   - safety
+  - live
 assignees: []
 milestone: M3
 parent: TKT-01M62N2557R401S3E6JECSAPN4
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFHEBCYEFSTZNJJPFGAJCP
+  - TKT-01M6EFHEG5TSEF99CS0TBYY0TF
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -28,12 +32,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-31T10:58:35Z
+updated_at: 2026-11-02T15:57:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m3
   name: ""
 extensions: {}
 ---
@@ -46,6 +50,7 @@ extensions: {}
 
 - [x] attack fights an entity until it dies or the task is stopped
 - [ ] It blocks and dodges, and is refused unless AllowCombat is on
+- [ ] Goal 3.2: three consecutive combat-trial summaries with an observed Greyling death, and one with stopLatencyS at most 2 and no attack after the stop; paths linked in a note
 
 ## Implementation plan
 
@@ -511,3 +516,23 @@ c356b89 passed full CI .checks/20261031T104442Z-6MNeJj.log, committed review .ch
 Trial .checks/gather-trial-20261031T105126279575Z/summary.json repaired the axe, left home, felled Beech1 1:61682 and split its first trunk2433514394:158 and both halves, collecting22 Wood. It then continued another newly bound collateral trunk2433514394:182; contrary to the initial progress report, this was still the first tree chain, not a second standing tree. It broke that log after four local hits, but a37.01 falling-log damage event killed Tas1.12s later. No successful full-loop claim. Audit .checks/audit-window-psdxvO.jsonl records the died event and no other characters at the cut.
 
 Root cause: AfterBreak skipped retreat whenever Tas was5.5m from the resource pivot. Here the pivot[82.29,43.32,24.04] was7.9m from Tas[85.91,42.68,31.08], despite a physical strike contact only~1.4m away. Require reaching within0.5m horizontally of the prevalidated six-metre escape goal[88.76,43.42,36.41] before settling/collection, with unchanged physical rechecks and six-second limit. New captured-coordinate regression passes with just check plugin test-core HarvestTests (.checks/20261031T105749Z-HwxifP.log); emit exact escape-completed evidence. Autonomous ordinary corpse retrieval, food, repair and a fresh two-tree trial follow full CI/review/deployment. Earlier trunk is now baseline work and cannot satisfy fresh-tree proof.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:57:39Z
+
+### Remaining for M3 goal 3.2
+
+Goal 3.2 (docs/ROADMAP.md): with AllowCombat on, 3 of 3 `just vm combat-trial` runs end in an observed Greyling death; an owner stop ends combat within 2 s in at least one; with it off, no attack is ever sent.
+
+What is left:
+
+- Three consecutive passing combat-trial runs with `ground.death` set in `summary.json` (from the `death_observed` trace; see `scripts/vm/combat-trial.py`). None is recorded on this ticket yet.
+- Stop: TKT-01M6EFHEBC (Retreat: an owner stop must not let a remembered hit restart combat) fixes a gap where `retreat.defend` can start a defensive attack after a stop. TKT-01M6EFHEG5 (combat-trial: time an owner stop sent mid-melee) adds `--stop-after-contact` and `stopLatencyS`. A trial cannot type chat, so it uses the panel stop, which dispatches the same `stop` task as chat `cmdStop`.
+- Off case: `MeleeTests.AttackNeedsBothCombatAndMovementPermission` in `plugin/Renki.Tests/MeleeTests.cs` already shows the plugin refuses `attack` without AllowCombat. Link it here as the offline evidence.
+- Blight now runs with AllowCombat=true and trials no longer reset it (TKT-01M6CFDS6R). TKT-01M6DDBX7K (VM trials: combat setting, cleanup stop race) is about trials checking the setting; it is in M4.
+- The second AC (blocks and dodges) needs at least one observed block or dodge in a trial's traces; say so in the note that links the runs.
+- Group peeling (TKT-01M6BPPVDE) is a child here but is not needed for goal 3.2, which is one ordinary Greyling.
+- Live work needs the VM lease, TKT-01M6EF5DTG.
+
+Files to start in: `scripts/vm/combat-trial.py`, `plugin/Renki.Plugin/KiteTask.cs`, `plugin/Renki.Plugin/MeleeTask.cs`, `internal/retreat/retreat.go`.
+
+Verify: `just check plugin test-core MeleeTests`, `just check vm test-combat-trial`, `just check ci`; live, three consecutive `just vm combat-trial` summaries with `ground.death` set, and one run with `--stop-after-contact` showing `stopLatencyS <= 2` and `attacksAfterStop == 0`.

@@ -11,11 +11,13 @@ labels:
   - movement
   - safety
   - plugin
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,13 +31,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T00:16:03Z
-updated_at: 2026-10-29T14:17:45Z
+updated_at: 2026-11-02T15:56:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m2
+  name: ""
 extensions: {}
 ---
 
@@ -76,3 +78,22 @@ Landed on t3/m2 and deployed on 2026-10-29. The plugin loads, and the bot is in 
 - **Controller:** it explains `deep_water` and does not send the bot home after one. Idling remembers a spot where a trip home failed with `deep_water`, as it already does for `unreachable`.
 
 The criteria are met in code and unit tests (CoreTests and home_test). Nobody was online to walk the bot to the north side of the lake, so the swim itself has not been watched in the game yet. Keep this ticket open until someone has seen it: say "come to me" from z 130 with the bot at home.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.1
+
+All three criteria are ticked from code and unit tests. The swim itself has never been watched. Goal 2.1 requires runs with no drowning, so one live observation is still owed before this closes.
+
+- Stage the walk the 10-29 note describes: Tas at home, an owner at the north side of the lake near z 130, then "come to me". Pass: Tas either goes round or fails `deep_water` with a chat explanation, and never loses health in the water.
+- If the owner cannot stage it, a gather-trial run whose route touches water counts. Its summary already refuses `inWater` or `swimming` states (scripts/vm/gather_trial.py).
+- Link the audit window, then move the ticket to done.
+
+### Files
+
+- `plugin/Renki.Core/Movement/DeepWater.cs`, `plugin/Renki.Plugin/BodyTasks.cs`, `internal/home/home.go`
+
+### Verification
+
+- Offline: `just check plugin test-core CoreTests` and `just check controller test-packages ./internal/home`.
+- Live (lease TKT-01M6EF5DTG): `just vm audit-summary SINCE UNTIL` over the walk shows no `deep_water` crossing and no damage while swimming.

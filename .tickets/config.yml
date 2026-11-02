@@ -18,6 +18,7 @@ labels:
   - vm
   - tooling
   - docs
+  - live
 milestones:
   - M1
   - M2

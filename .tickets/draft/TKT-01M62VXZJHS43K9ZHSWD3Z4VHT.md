@@ -11,7 +11,7 @@ labels:
   - controller
   - safety
 assignees: []
-milestone: M3
+milestone: null
 parent: TKT-01M62N2557R401S3E6JECSAPN4
 origin: null
 dependencies:
@@ -22,13 +22,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:49Z
-updated_at: 2026-10-29T03:40:49Z
+updated_at: 2026-11-02T16:01:43Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan
+  name: ""
 extensions: {}
 ---
 
@@ -42,3 +42,15 @@ whether it is wanted at all before building anything.
 ## Acceptance criteria
 
 - [ ] An owner has decided whether this is wanted, and the decision is recorded here
+
+## Notes
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Milestone review: owner decision, not an M3 goal
+
+M3 grooming, 2026-11-02: this spike serves none of goals 3.1-3.5 and is waiting only on an owner's decision. Proposed: take it out of M3 (unscheduled). If the owner says no, archive it with that reason; if yes, it waits on TKT-01M62VXZHF (Controller: hunt down the creature that killed the owner) and on owner-bound player identity, TKT-01M6DCFSME (M4, only owners command it).
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:34Z
+
+Correction to the previous note: TKT-01M6DCFSME's title is "Chat: fence untrusted lines in owner turns, stop naming owners". It owns roadmap goal 4.4 (only owners command it), which is what the note meant.

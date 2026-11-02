@@ -9,11 +9,13 @@ priority: high
 due_on: null
 labels:
   - plugin
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -27,12 +29,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-10-29T22:29:16Z
+updated_at: 2026-11-02T15:56:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -74,3 +76,20 @@ Live at 22:22:51–22:22:52Z: sleep selected explicitly free bed 1:38548, set sp
 Fixed interaction reach to ignore trigger colliders and trigger ray hits. After full deployment, go to sleep at 22:28:17–22:28:19Z actually walked Tas from (-36.53,36.09,7.96) to (-32.03,36.09,11.97), close enough to the physical bed collider, and relayed only "You can't sleep at this time" as a refused task. HP25 throughout. Evidence .checks/audit-window-GuhIsv.jsonl. Sent him back to configured home afterward. No player's bed was reset and no death/time-of-day was staged.
 
 Only acceptance criterion 1 is complete. Criterion 2 includes actual respawn at the bed, which has not been tested. Automatic claiming on home/join/respawn, persistent bed status and automatic no-free-bed notices remain unimplemented; nighttime positive sleep and roof/fire/wet/enemy/ward staging remain live checks. Owner stop/death/reconnect uses the existing task cancellation; there is no scheduled continuation after cancellation. Do not call the entire bed ticket or M2 complete.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.5
+
+Criterion 1 is ticked. Criterion 2 (a refusal comes back as a failure with the game's reason) has live evidence: on 10-29 "You can't sleep at this time" came back as a `refused` task (`.checks/audit-window-GuhIsv.jsonl`). The 10-29 note held it open because actual respawn at the bed was untested, but respawn belongs to TKT-01M62PRDSB, not to this ticket.
+
+- Tick criterion 2 against that window and `plugin/Renki.Tests/BedSleepTests.cs`, then close. No M2 goal needs more from this ticket.
+
+### Files
+
+- `plugin/Renki.Plugin/InteractTask.cs`, `plugin/Renki.Core/Tasks/InteractRule.cs`, `plugin/Renki.Core/Tasks/BedSleep.cs`
+
+### Verification
+
+- Offline: `just check plugin test-core BedSleepTests`.
+- Live: already recorded; no new run is needed.

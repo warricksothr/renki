@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T06:10:52Z
+updated_at: 2026-11-02T15:56:49Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -51,6 +51,24 @@ Fix:
 - Restore with a fresh bounded `context.Background()` timeout.
 - Return the restore error with `errors.Join`.
 - Make `configure` reapply the settings of an existing source.
+
+### Goal
+
+Goal 4.6 (review closed). The leak fix in criterion 1 is what lets goal 4.2's 100-connection limit pass.
+
+### Files
+
+Line numbers refer to commit f1a5483; at 0b932ef the restore is `defer set(Window)` at `internal/obscapture/obs.go:228` and `Configure` is at :325.
+
+- `internal/obscapture/obs.go`, `internal/obscapture/obs_test.go`
+- `cmd/obs-adapter` (the `trial-source-loss` action)
+- `docs/WINDOWS-VIDEO.md` (around :119)
+
+### Verification
+
+- `just check controller test-packages ./internal/obscapture ./cmd/obs-adapter`, with tests that a cancelled trial context still restores the window, that a failed restore fails the trial, and that `Configure` rewrites an existing source's settings.
+- `just check ci`.
+- Optional live confirmation under the VM lease: `just streaming windows-action trial-source-loss`, then `just streaming windows-status` shows the capture back on the Valheim window. The criteria do not need it.
 
 ## Acceptance criteria
 

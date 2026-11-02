@@ -11,11 +11,13 @@ labels:
   - plugin
   - controller
   - protocol
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,13 +31,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T04:12:58Z
-updated_at: 2026-10-29T05:06:44Z
+updated_at: 2026-11-02T15:56:26Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m2
+  name: ""
 extensions: {}
 ---
 
@@ -80,3 +82,21 @@ up later (by an owner, or by the bot once hauling exists).
 **agent:claude-code/renki-groom** at 2026-10-29T05:06:42Z
 
 2026-10-29 00:05: deployed with drop in the VM's allowedTasks. On connecting at 306/300 the bot dropped 3 Wood and shouted 'I was carrying too much, so I left 3 Wood here. I'll remember where.' Criterion 4 is built and tested (status, panel map diamond, forgetting by perception) but the panel map and the forgetting have not been seen in the game yet. Three low review findings stand, all on recovery when the game refuses some drops: a partial drop continues the plan, the 'can't put anything down' line after refusals, and any non-success answer counting as a refusal.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:26Z
+
+### Remaining for M2 goal 2.2
+
+Four of five criteria are ticked and the drop was seen live on 10-29. Criterion 4 is built and tested but not seen in the game: the left-behind place in status and on the panel map, and forgetting it once perception shows the drops gone. The owner-haul sessions in goal 2.2 will load the bot heavily, so this is worth closing before them.
+
+- At the next live session where the bot overloads, or by withdrawing heavy items with `just vm task withdraw`, check status and the panel map for the left-behind marker, then pick the drops up and check it is forgotten.
+- Three low review findings stand (see the 10-29 note). They concern partial refusals, not the M2 path; file them as one low bug if they are still true, rather than holding this ticket open.
+
+### Files
+
+- `internal/burden/burden.go`, `internal/burden/plan.go`, `internal/chat/status.go`, `panel/src/workspace.jsx`
+
+### Verification
+
+- Offline: `just check controller test-packages ./internal/burden ./internal/chat`.
+- Live (lease TKT-01M6EF5DTG): `just vm map-snapshot` shows the left-behind marker (the panel status carries it as `leftBehind`, `internal/app/panel.go`), and a later snapshot after pickup does not.
