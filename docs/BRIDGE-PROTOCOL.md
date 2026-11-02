@@ -394,7 +394,7 @@ target cannot be substituted by another receipt entity.
 | `superseded` | A newer body task replaced it. |
 | `stopped` | `stop`, the dead-man rule, or a logout. |
 | `died` | — |
-| `internal` | The plugin threw unexpectedly while starting or running the task. The body task is cancelled and the bot stands still. `detail` names the exception. |
+| `internal` | The plugin threw unexpectedly. `detail` names the exception. What happens to the body depends on where it threw. A body task that throws while starting is `rejected`, and any task already running carries on, so send `stop` if the bot must stand still. An instant task that throws fails and leaves the running body task alone. A running body task that throws fails, is cancelled, and the bot stands still. |
 
 ### 6.7 `trace` (when the plugin decides something itself)
 
