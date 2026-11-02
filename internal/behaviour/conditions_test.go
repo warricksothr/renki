@@ -1,6 +1,7 @@
 package behaviour
 
 import (
+	"bytes"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"testing"
@@ -122,6 +123,52 @@ func TestUntilConditionReachedMidRunLetsTheRunFinish(t *testing.T) {
 	f.p.Quiet(20 * time.Millisecond)
 	if list := f.e.List(); list[0].Runs != 1 || list[0].Running || list[0].Pending || list[0].Last != "completed" {
 		t.Fatal(list)
+	}
+}
+
+// A run preempted after its until goal is reached is still a run in
+// progress: it resumes to stow rather than waiting forever as pending.
+func TestPreemptedRunResumesAfterItsUntilGoalIsReached(t *testing.T) {
+	f := setup(t)
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 20}}})
+	wait(t, func() bool { return f.s.Inventory() != nil })
+	low := def()
+	low.Template = "two_steps"
+	low.Repeat = Repeat{Mode: "until", Condition: &Conditions{Items: map[string]int{"Flint": 30}}}
+	f.put(t, "collect", low)
+	high := def()
+	high.Priority = 10
+	f.put(t, "high", high)
+	f.act(t, "collect", "start")
+	f.tick()
+	first := f.p.NextTask()
+	// The goal is reached while the run is in progress.
+	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 30}}})
+	wait(t, func() bool { return f.s.Inventory().Items[0].Stack == 30 })
+	f.act(t, "high", "start")
+	f.tick()
+	stop := f.p.NextTask()
+	if stop.Task != protocol.TaskStop {
+		t.Fatal(stop)
+	}
+	f.p.Report(first.ID, protocol.StatusCancelled, protocol.ReasonStopped)
+	f.p.Report(stop.ID, protocol.StatusSucceeded, "")
+	wait(t, func() bool {
+		lease, err := f.s.TryAutomation()
+		if err != nil {
+			return false
+		}
+		lease.Release()
+		return true
+	})
+	f.tick()
+	next := f.p.NextTask()
+	f.done(t, next, protocol.StatusSucceeded, "")
+	f.tick()
+	f.tick()
+	resumed := f.p.NextTask()
+	if resumed.Task != protocol.TaskMoveTo || !bytes.Contains(resumed.Args, []byte(`[1,0,0]`)) {
+		t.Fatal("preempted run did not resume", resumed)
 	}
 }
 func TestManualStartBeforeFirstSchedulerTickIsNotLost(t *testing.T) {

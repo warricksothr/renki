@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T18:55:00Z
+updated_at: 2026-11-02T18:58:08Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -83,6 +83,10 @@ Applied on 2026-11-02 by the planning pass: milestone set to M4, to match the ex
 **agent:claude-code/renki-m4-repeat** at 2026-11-02T18:55:00Z
 
 allowed() is split: canStart() (enabled, when, once/maxRuns, repeat condition) gates candidate(), finish() and the idle trigger; stillAllowed() (enabled, when) is the only check on the active run. TestUntilConditionReachedMidRunLetsTheRunFinish (conditions_test.go) uses two_steps rather than collect, with until items Flint:20 reached after step one: the run is not stopped, finishes as completed, Runs=1 and is not queued again. It fails against the old check. BEHAVIOURS.md repeat paragraph now says the repeat condition never interrupts a run. No VM check made; none needed for engine timing.
+
+**agent:claude-code/renki-m4-repeat** at 2026-11-02T18:58:08Z
+
+Follow-up from just review: a run preempted after its until goal was reached was requeued and then judged as a new start, so it stayed pending forever and never stowed. instance.interrupted now marks a requeued, preempted run; candidate() judges it with stillAllowed() (via mayRun) instead of canStart(). Every other place that sets or clears pending resets the flag. Pinned by TestPreemptedRunResumesAfterItsUntilGoalIsReached.
 
 ## Summary
 
