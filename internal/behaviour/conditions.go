@@ -2,6 +2,7 @@ package behaviour
 
 import (
 	"github.com/warricksothr/renki/internal/home"
+	"github.com/warricksothr/renki/internal/piles"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 	"math"
@@ -30,8 +31,11 @@ type View struct {
 	Danger    []home.DangerZone
 	Waypoints []home.Waypoint
 	Pickups   []home.Pickup
-	Features  []string
-	Idle      bool
+	// Piles sums the drops in sight per 4 m cell and prefab over the last
+	// five minutes. Ask Piles.Near before treating ground as clear.
+	Piles    piles.Snapshot
+	Features []string
+	Idle     bool
 }
 
 func (c Conditions) Match(v View) bool {

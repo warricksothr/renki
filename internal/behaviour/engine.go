@@ -51,6 +51,7 @@ type Engine struct {
 	orders              uint64
 	full, night, atHome bool
 	drops               map[string]bool
+	piles               pileWatch
 }
 type instance struct {
 	episodeID             string
@@ -386,6 +387,7 @@ func (e *Engine) view() View {
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
+	e.observePiles(&v, currentHello)
 	v.Injury = e.o.Session.InjuryStatus()
 	if v.Injury != nil {
 		n := v.Injury.Sequence
