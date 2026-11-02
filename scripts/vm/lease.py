@@ -32,6 +32,7 @@ import signal
 import socket
 import subprocess
 import sys
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MINUTES = 60
@@ -109,7 +110,8 @@ class SSHTransport:
 
 class FileTransport:
     """A local lease file standing in for the VM in offline tests
-    (RENKI_VM_LEASE_FILE). RENKI_VM_LEASE_NOW fixes the clock."""
+    (RENKI_VM_LEASE_FILE). RENKI_VM_LEASE_NOW fixes the clock, and
+    RENKI_VM_LEASE_DELAY_S slows each write as an SSH round trip would."""
 
     def __init__(self, path):
         self.path = Path(path)
@@ -130,6 +132,7 @@ class FileTransport:
         return self._now().replace(microsecond=0), sha, data
 
     def write(self, expect, data):
+        time.sleep(float(os.environ.get('RENKI_VM_LEASE_DELAY_S', '0')))
         with open(str(self.path) + '.lock', 'a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             if self._state()[0] != expect:
@@ -348,7 +351,7 @@ def run(lease, command, minutes, renew_seconds):
         if len(received) == 1:
             if started:
                 started[0].send_signal(signal.SIGINT)
-        else:
+        elif started:
             say('the command is cleaning up; further signals are not passed on (kill it to abort, '
                 'and the VM lease is kept)')
 

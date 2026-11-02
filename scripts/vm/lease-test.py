@@ -183,6 +183,25 @@ def run_forwards_termination(case):
         probe.unlink()
 
 
+def run_interrupted_while_taking(case):
+    """A signal while run takes the lease starts no command and gives the lease back."""
+    probe = case.root / 'started'
+    env = dict(case.env(), RENKI_VM_LEASE_DELAY_S='0.5')
+    proc = subprocess.Popen([sys.executable, '-B', str(LEASE), 'run', '--', sys.executable, '-c',
+                             f'import pathlib; pathlib.Path({str(probe)!r}).write_text("x")'],
+                            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # The id is recorded just before the slowed swap: signal inside it.
+    for _ in range(200):
+        if (case.root / 'a.vm-lease').exists():
+            break
+        time.sleep(0.02)
+    proc.send_signal(signal.SIGTERM)
+    code = proc.wait(timeout=30)
+    err = proc.stderr.read()
+    check(code == 128 + signal.SIGINT and 'before the command started' in err, f'interrupted: {code} {err}')
+    check(not probe.exists() and case.held() is None, f'no command, no lease left: {err}')
+
+
 def run_keeps_the_lease_after_an_uncleaned_death(case):
     """A command killed outright may not have cleaned up, so its lease is kept."""
     proc, _, child_pid = run_child(case, SUPERVISOR)
@@ -330,7 +349,7 @@ def lost_reply(case):
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
              run_releases_after_cleanup, run_forwards_termination,
-             run_keeps_the_lease_after_an_uncleaned_death, run_releases_when_the_command_cannot_start,
+             run_interrupted_while_taking, run_keeps_the_lease_after_an_uncleaned_death, run_releases_when_the_command_cannot_start,
              run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
              concurrent_guards, release_racing_guards, lost_race, lost_reply]
     for case in cases:
