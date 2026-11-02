@@ -695,7 +695,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		select {
 		case <-i.task.Done():
 			status, reason, detail := i.task.Status()
-			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID, Entity: i.task.Entity()}
+			i.result = &Result{Status: status, Reason: reason, Detail: detail, TaskID: i.task.ID, Entity: i.task.Entity(), ReceiptSeq: i.task.ReceiptSeq()}
 			i.result.Cooking = i.task.CookingTraces()
 			i.task = nil
 			i.waitingSince = time.Time{}

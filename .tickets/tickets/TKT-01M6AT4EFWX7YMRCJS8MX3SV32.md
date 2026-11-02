@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-02T05:25:51Z
+updated_at: 2026-11-02T05:41:16Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -220,3 +220,9 @@ Controller0347b4f passed full just check ci177s (.checks/20261102T051903Z-sIS8ie
 The episode failed at a recovery wait with "invalid or expired bounded wait". Engine.Tick used a clock sample from view construction for the runner, then a later sample for deadline validation; a persisted wake between those samples was future to the runner and expired to the engine. Align View.Now with the tick's validation timestamp. A deterministic advancing-clock regression reproduces a stored wake boundary and requires normal completion on the next tick; wait/deadline budgets are unchanged.
 
 Also separate daytime admission from ongoing execution: a new personal episode requires awake daytime shelter, but sunset alone must not cancel an already dispatched native food/cooking action. Remove the preset's continuing night condition, retain admission guard and sleeping/owner-command precedence, and add a sunset-during-owned-action regression. Full revalidation and another automatic live episode follow. The first goal's failed result and exact receipts remain retained; no automatic replay of its actions or logout occurred.
+
+**agent:codex/renki-milestones** at 2026-11-02T05:41:16Z
+
+All 24 outstanding PRs129–152 are merged into main88f4943; no open PRs remained after landing. Controller8653c38 and plugin6e23e2d remain deployed. Permanent automatic personal-food preset passed without a manual body task: goal34db7b46b5898b16d97ac004 inspected actual storage, withdrew3MushroomYellow, ate1 and verified2reserve; safe sheltered completion, no injury (.checks/20261102T053423Z-6rUGlo.log).
+
+Household CookedMeat2 trial .checks/food-20261102T053524Z cooked a verified batch but failed before deposit. Native home-return t-10 succeeded on frame2342; goal consumed state2341 (81cm from home) before arrival state2344 (36cm from home). This is receipt/state ordering rather than a failed route. Carry the immutable terminal native sequence through session.Task and behaviour.Result and require newer state before reconciling a pending food action. No relaxed arrival threshold or replay. Captured-frame regression and native late-receipt immutability checks pass with just check controller test-packages ./internal/session ./internal/behaviour ./internal/goal ./internal/app (.checks/20261102T054048Z-tFFyTW.log). Full gate, deployment and cooking/deposit retry follow. Broader pantry acceptance stays open; Tas remains online.

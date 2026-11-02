@@ -207,7 +207,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		if g.Pending.Run != r.t.Store.runID || last == nil || last.TaskID == "" || last.TaskID != g.Pending.TaskID {
 			return r.need("uncertain food action; native receipt missing or mismatched")
 		}
-		if v.State.Seq <= f.BeforeSeq {
+		if v.State.Seq <= f.BeforeSeq || v.State.Seq <= last.ReceiptSeq {
 			return r.foodWait(g, v, "waiting for post-action state")
 		}
 		if err := r.foodResult(g, v, last); err != nil {
