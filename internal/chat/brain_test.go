@@ -1118,3 +1118,32 @@ func TestAVoiceEscortAnchorsOnTheEscortedPlayer(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 	}
 }
+
+func TestGoalCommandsAndUnseenSpeakersLeaveTheAnchor(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, World: "one"}
+	b.opts.Places = home.Memory()
+	b.opts.GatherWood = func(context.Context, string) (string, error) { return "Off to chop.", nil }
+	b.opts.ResupplyFood = func(context.Context, string) (string, error) { return "Getting food.", nil }
+	for _, text := range []string{"chop wood", "resupply food", "mark this as the mine", "go to the mine"} {
+		b.Chat(line("Sothr", "bjorn "+text))
+		if b.Anchor() != "" {
+			t.Fatalf("%q set the anchor to %q", text, b.Anchor())
+		}
+	}
+	if len(f.tasks()) == 0 {
+		t.Fatal("the waypoint walk was not sent, so the case proves nothing")
+	}
+	// Panel chat from an owner Tas cannot see: the stop is obeyed, the
+	// anchor is not moved to someone out of the world.
+	stop := line("Sothr", "bjorn stop")
+	stop.Channel, stop.Dist = channelPanel, -1
+	b.Chat(stop)
+	if b.Anchor() != "" {
+		t.Fatalf("an unseen panel speaker became the anchor %q", b.Anchor())
+	}
+	b.Chat(line("Sothr", "bjorn stop"))
+	if b.Anchor() != "Sothr" {
+		t.Fatalf("a seen speaker's stop left the anchor at %q", b.Anchor())
+	}
+}

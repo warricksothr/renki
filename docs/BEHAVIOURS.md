@@ -220,7 +220,9 @@ follow or escort, or else the player who gave the order. The chat brain
 records it when it sends a body order (`Brain.Anchor`): the chat commands
 (follow, escort, stop, wait, come here, go home, pick up, use, cook, fetch),
 whether typed in game or in the panel's chat box, and a task the voice
-proposes. A refused order does not move it, and neither do the food, gather
+proposes. A speaker counts only while Tas can see them in the world, so an
+owner typing in the panel from outside it does not become the anchor. A
+refused order does not move it, and neither do the food, gather
 and waypoint commands, which start goals and walks rather than work beside
 someone. The panel's task buttons have no speaker, so only their `follow` and
 `escort` set the anchor, to the player followed; the others leave it. The

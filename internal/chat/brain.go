@@ -190,9 +190,12 @@ func (b *Brain) Anchor() string {
 }
 
 func (b *Brain) ordered(o origin) {
-	if o.follow != "" {
+	switch {
+	case o.follow != "":
 		b.Follows(o.follow)
-	} else {
+	case o.seen:
+		// An owner typing in the panel from outside the world is not
+		// someone Tas can work beside; the anchor stays where it was.
 		b.Follows(o.player)
 	}
 }
@@ -281,6 +284,9 @@ type origin struct {
 	// follow is the player a follow command was for, so a death can
 	// resume it.
 	follow string
+	// seen says the speaker is in the world where Tas can see them, which
+	// panel chat from an owner who is not playing is not.
+	seen bool
 	// grave is set on a corpse run: the walk to the grave, then the
 	// emptying of it. emptied are the graves already emptied on this run:
 	// a bot killed over and over in one place has several there.
@@ -340,7 +346,7 @@ func (b *Brain) Chat(c *protocol.Chat) {
 		b.opts.Logger.Debug("not addressed", "from", c.From.Name, "name", b.agentName())
 		return
 	}
-	from := origin{player: c.From.Name, channel: replyChannel(c.Channel)}
+	from := origin{player: c.From.Name, channel: replyChannel(c.Channel), seen: located(c)}
 	if c.Channel == channelPanel && b.opts.PlayerQuery != nil {
 		if reply, handled := b.opts.PlayerQuery(c.From.Name, c.Text); handled {
 			b.say(from, reply)
