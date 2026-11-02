@@ -327,7 +327,8 @@ def say(message):
     """Best effort: after a hangup stderr is a dead terminal, and an OSError
     from a diagnostic must not abandon a running trial."""
     try:
-        print(message, file=sys.stderr)
+        # Unbuffered, so nothing is left to fail a flush at exit.
+        os.write(2, (message + '\n').encode())
     except OSError:
         pass
 
@@ -335,9 +336,6 @@ def say(message):
 def run(lease, command, minutes, renew_seconds):
     """Hold the lease for COMMAND. The command does its own cleanup (combat off,
     stop or logout) before it exits; the lease is released only after that."""
-    held, took = lease.take(minutes=minutes, renew='extend')
-    if took:
-        say(f"took the VM lease for {held['actor']} until {held['expires']}")
     # The child runs in its own process group, so a Ctrl-C, a closed
     # terminal or a `timeout` reaches only this process, which passes the
     # first of them on as SIGINT: the supervisors clean up in `finally` on
@@ -359,23 +357,32 @@ def run(lease, command, minutes, renew_seconds):
     handlers = ((signal.SIGINT, forward), (signal.SIGTERM, forward), (signal.SIGHUP, forward),
                 (signal.SIGQUIT, forward), (signal.SIGTSTP, signal.SIG_IGN))
     previous = {signum: signal.signal(signum, handler) for signum, handler in handlers}
-    code = 127
+    code, took = 127, False
     try:
-        try:
-            # Out of the terminal's foreground group, a read from the
-            # terminal would stop the child (SIGTTIN); no supervisor reads it.
-            child = subprocess.Popen(command, process_group=0, stdin=subprocess.DEVNULL)
-        except OSError as error:
-            say(f'cannot start {command[0]}: {error}')
+        # The handlers are already in place, so a signal during the take is
+        # noted and the lease is given back rather than left with no trial.
+        held, took = lease.take(minutes=minutes, renew='extend')
+        if took:
+            say(f"took the VM lease for {held['actor']} until {held['expires']}")
+        if received:
+            say('interrupted before the command started')
+            code = -signal.SIGINT
         else:
-            # Blocked here, so a signal arriving now is passed on exactly once.
-            mask = signal.pthread_sigmask(signal.SIG_BLOCK, [signum for signum, _ in handlers])
-            started.append(child)
-            if received:
-                child.send_signal(signal.SIGINT)
-            signal.pthread_sigmask(signal.SIG_SETMASK, mask)
-            code, retook = wait(lease, child, minutes, renew_seconds)
-            took = took or retook
+            try:
+                # Out of the terminal's foreground group, a read from the
+                # terminal would stop the child (SIGTTIN); no supervisor reads it.
+                child = subprocess.Popen(command, process_group=0, stdin=subprocess.DEVNULL)
+            except OSError as error:
+                say(f'cannot start {command[0]}: {error}')
+            else:
+                # Blocked here, so a signal arriving now is passed on exactly once.
+                mask = signal.pthread_sigmask(signal.SIG_BLOCK, [signum for signum, _ in handlers])
+                started.append(child)
+                if received:
+                    child.send_signal(signal.SIGINT)
+                signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+                code, retook = wait(lease, child, minutes, renew_seconds)
+                took = took or retook
         # Python exits with -SIGINT after KeyboardInterrupt has unwound its
         # `finally` blocks, so that cleanup ran. Any other signal may have
         # cut it short: the lease is kept and expires on its own.
