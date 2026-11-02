@@ -242,7 +242,14 @@ func TestLootValidation(t *testing.T) {
 	if p, err := decodeLoot(json.RawMessage(`{"radius":5}`)); err != nil || p.BaseRadius != 5 || l.Validate(json.RawMessage(`{"radius":5}`)) != nil {
 		t.Fatal("a radius under the base keeps its flat reach", p, err)
 	}
+	if p, err := decodeLoot(json.RawMessage(`{"settleRadius":12}`)); err != nil || p.SettleMaxRadius != 12 || l.Validate(json.RawMessage(`{"settleRadius":12}`)) != nil {
+		t.Fatal("an opening circle past the usual maximum does not widen", p, err)
+	}
 	d := LootDefinition()
+	var saved map[string]any
+	if json.Unmarshal(d.Params, &saved); saved["baseRadius"] != nil {
+		t.Fatal("the built-in instance leaves the reach fields to their defaults", saved)
+	}
 	if err := validate(d, map[string]Template{"loot": l}); err != nil || !d.Enabled {
 		t.Fatal(err, d)
 	}

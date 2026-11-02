@@ -254,7 +254,7 @@ commander in sight with a *settle area* (`Settle`, in
   over a few metres draws the area along without resetting it.
 - **Widening.** After `settleDelayS` (5 s) in the area, a step into the
   `settleSlack` (2 m) band past its edge widens the circle to that distance,
-  up to `settleMaxRadius` (10 m). Before then the area does not widen, so a
+  up to `settleMaxRadius` (10 m, or `settleRadius` if that is larger). Before then the area does not widen, so a
   jog or run through leaves it within the delay.
 - **Leaving.** A step beyond the edge plus the slack, or 30 s unseen
   (`SettleGap`), opens a fresh area where they stand, and the reach falls back
@@ -300,7 +300,7 @@ judged is never picked up.
 ### The built-in instance
 
 On its first start the controller saves an instance named `Loot`: this
-template with the defaults above, a 2-second timer, `when.owner.radius` 40,
+template with the defaults above (it saves `items`, `radius`, `maxWeightFraction` and `maxTargets`, and leaves the reach fields to their defaults), a 2-second timer, `when.owner.radius` 40,
 `repeat` `trigger` with a 2-second cooldown, priority -5 (above idle chores,
 below gathering and every owner order), enabled. The timer queues a run only
 when Tas is idle and an eligible drop is in reach, so an empty check leaves

@@ -146,10 +146,14 @@ func lootDefaults(p LootParams) LootParams {
 	for _, d := range []struct {
 		field *float64
 		value float64
-	}{{&p.GrowS, 120}, {&p.SettleDelayS, 5}, {&p.SettleRadius, 6}, {&p.SettleMaxRadius, 10}, {&p.SettleSlack, 2}} {
+	}{{&p.GrowS, 120}, {&p.SettleDelayS, 5}, {&p.SettleRadius, 6}, {&p.SettleSlack, 2}} {
 		if *d.field == 0 {
 			*d.field = d.value
 		}
+	}
+	// A wider opening circle than the usual maximum does not widen.
+	if p.SettleMaxRadius == 0 {
+		p.SettleMaxRadius = max(10, p.SettleRadius)
 	}
 	return p
 }
@@ -468,7 +472,9 @@ const LootInstance = "Loot"
 // of a live owner, and queues only when an eligible drop is in reach of
 // its anchor player.
 func LootDefinition() Definition {
-	params, _ := json.Marshal(lootDefaults(LootParams{Items: LootItems}))
+	// The reach fields stay unset, so they follow the defaults and an owner
+	// who edits only radius is not held to a saved base.
+	params, _ := json.Marshal(LootParams{Items: LootItems, Radius: 30, MaxWeightFraction: .8, MaxTargets: 16})
 	return Definition{Template: "loot", Params: params, Trigger: Trigger{Kind: "timer", EveryS: 2},
 		When: Conditions{Owner: &OwnerNear{Radius: 40}}, Repeat: Repeat{Mode: "trigger", CooldownS: 2}, Priority: -5, Enabled: true}
 }
