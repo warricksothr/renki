@@ -159,3 +159,35 @@ func TestIdleSessionChangeDropsAccumulatedDwell(t *testing.T) {
 		t.Fatal("old session dwell survived", i.idleSince)
 	}
 }
+
+type travellingEpisode struct{ ended string }
+
+func (*travellingEpisode) Next(View, *Result) (*session.Order, error) { return nil, nil }
+func (*travellingEpisode) Check(View) error                           { return nil }
+func (*travellingEpisode) TravelFromIdleMarker() bool                 { return true }
+func (*travellingEpisode) EpisodeID() string                          { return "durable-episode" }
+func (r *travellingEpisode) EndRun(why string) error                  { r.ended = why; return nil }
+func TestDurableIdleJourneyCanTravelButCannotOutliveEditedAdmissionMarker(t *testing.T) {
+	f, w := idleSetup(t)
+	i := f.e.instances["idle"]
+	i.idleMarker = w
+	run := &travellingEpisode{}
+	i.runner = run
+	v := View{Now: f.now, StateAt: f.now, State: &protocol.State{World: "test", Phase: protocol.PhaseInWorld, HP: 25, Pos: protocol.Vec3{30, 0, 0}}, Waypoints: []home.Waypoint{*w}}
+	if !idleMarkerValid(i, v) {
+		t.Fatal("durable episode cancelled just for travelling")
+	}
+	v.Waypoints[0].At = v.Now.Add(time.Second)
+	if idleMarkerValid(i, v) {
+		t.Fatal("edited marker still admitted travel")
+	}
+	f.e.ended(i, "new order")
+	if run.ended != "new order" || i.episodeID != "durable-episode" {
+		t.Fatal(run, i.episodeID)
+	}
+	i.runner = nil
+	v.Waypoints[0] = *w
+	if idleMarkerValid(i, v) {
+		t.Fatal("ordinary idle work gained travel permission")
+	}
+}

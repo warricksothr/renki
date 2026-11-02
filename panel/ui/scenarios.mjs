@@ -710,7 +710,48 @@ export const scenarios = {
     });
     await page.locator("#feed-pane").scrollIntoViewIfNeeded();
   },
-  "goals-inventory": async ({ page, check }) => {
+  "goals-inventory": async ({ page, check, shot }) => {
+    await page.locator("#goals details summary").click();
+    await page.locator("#goal-stock-storage").fill("fixture-chest");
+    await check(
+      "Household stock control retains personal reserve and explicit destinations",
+      async () => {
+        await page.locator("#goal-stock-start").click();
+        await expect(page.locator("#goal-result")).toContainText(
+          "Read-only preview",
+        );
+        const request = await page.evaluate(() =>
+          renkiPreview.requests.findLast(
+            (r) => r.path === "/api/goals" && r.method === "POST",
+          ),
+        );
+        const body = JSON.parse(request.body);
+        assert.equal(body.spec.reserve, 2);
+        assert.deepEqual(body.spec.storage, ["fixture-chest"]);
+        assert.deepEqual(body.spec.stock.targets, { Mushroom: 4 });
+      },
+    );
+    await check(
+      "Idle household episodes have finite runs, dwell and cooldown",
+      async () => {
+        await page.locator("#goal-stock-idle").click();
+        await expect(page.locator("#goal-result")).toContainText(
+          "Read-only preview",
+        );
+        const request = await page.evaluate(() =>
+          renkiPreview.requests.findLast(
+            (r) => r.path === "/api/behaviours" && r.method === "POST",
+          ),
+        );
+        const body = JSON.parse(request.body);
+        assert.equal(body.definition.template, "household_food");
+        assert.equal(body.definition.trigger.marker.kind, "storage");
+        assert.equal(body.definition.trigger.dwellS, 30);
+        assert.equal(body.definition.repeat.maxRuns, 12);
+        assert.equal(body.definition.repeat.cooldownS, 300);
+      },
+    );
+    await shot("household-food");
     await check(
       "Recorded goal recovery, history and resume control",
       async () => {

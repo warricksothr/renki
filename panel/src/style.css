@@ -2024,3 +2024,30 @@ footer {
   margin: 12px 0 0;
   border-radius: 5px;
 }
+
+.household-targets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+.household-targets label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.household-targets label:last-child {
+  grid-column: 1 / -1;
+}
+.household-targets input,
+.household-targets select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .household-targets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

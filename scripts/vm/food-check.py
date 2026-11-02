@@ -61,8 +61,18 @@ def escort_receipt(history, intent, leader):
     return bool(intent.get('run')) and bool(intent.get('taskId')) and requested and {'accepted', 'running'} <= outcomes
 
 
+def household_definition(spec, marker):
+    return dict(template='household_food', params=spec,
+                trigger=dict(kind='idle', marker=dict(world=spec['world'], name=marker, kind='storage'), dwellS=30),
+                repeat=dict(mode='trigger', cooldownS=300, maxRuns=1), priority=-10, enabled=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--stock-target', action='append', default=[], help='household food prefab=count; repeat for several foods')
+    parser.add_argument('--sources', default='', help='comma-separated food source marker names')
+    parser.add_argument('--idle-marker', help='start a household episode after idle dwell at this storage marker')
+    parser.add_argument('--require-deposit', action='store_true')
     parser.add_argument('--join', action='store_true')
     parser.add_argument('--storage', default='', help='comma-separated allowed current home chest IDs; default all eligible chests')
     parser.add_argument('--reserve', type=int, choices=range(1, 4), default=2)
@@ -73,11 +83,20 @@ def main():
     parser.add_argument('--stow-ready', help='stage a shortage by normally depositing carried ready meals into this excluded chest')
     parser.add_argument('--escort', help='verify a bounded food-to-escort handoff for this commander, then stop escort at home')
     args = parser.parse_args()
+    targets = {}
+    for target in args.stock_target:
+        item, separator, count = target.partition('=')
+        if not separator or not count.isdigit() or not 1 <= int(count) <= 20 or item in targets:
+            parser.error('stock targets require unique prefab=count pairs with counts1–20')
+        targets[item] = int(count)
+    if (targets and (not args.storage or args.escort)) or (args.idle_marker and not targets):
+        parser.error('household work needs targets and explicit storage; escort is separate')
     folder = ROOT / '.checks' / ('food-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
     log = (folder / 'commands.log').open('a')
     summary = dict(outcome='failed', reason='not started', evidence=str(folder))
     launch, owns_game, previous, goal = None, False, None, None
+    idle_name = None
     deadline = time.monotonic() + 720
 
     def call(*arguments, decode=True):
@@ -157,7 +176,31 @@ def main():
                 raise RuntimeError('handoff check needs a current commander and reserve of at least two')
             spec['escort'] = dict(player=args.escort, collect=False, defend=False, resupply=True)
         if args.storage: spec['storage'] = args.storage.split(',')
-        goal = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)))
+        if targets:
+            spec['radius'] = 200
+            spec['stock'] = dict(targets=targets, sources=[s.strip() for s in args.sources.split(',') if s.strip()])
+        if args.idle_marker:
+            candidate_name = 'household check ' + folder.name
+            definition = household_definition(spec, args.idle_marker)
+            call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=candidate_name, definition=definition)))
+            idle_name = candidate_name
+            until = time.monotonic() + 90
+            while time.monotonic() < until:
+                status = observe()
+                instances = call('panel', 'GET', '/api/behaviours')
+                instances = instances.get('value', []) if isinstance(instances, dict) else instances
+                instance = next(r for r in instances if r['name'] == idle_name)
+                (folder / 'behaviour.json').write_text(json.dumps(instance, indent=2))
+                if instance.get('episodeId'):
+                    goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=instance['episodeId'])))
+                    break
+                if instance.get('runs') or instance.get('last') == 'new order':
+                    raise RuntimeError('household idle episode did not start: ' + str(instance.get('last')))
+                time.sleep(2)
+            else:
+                raise RuntimeError('household idle admission deadline')
+        else:
+            goal = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)))
         summary['goal'] = goal['id']
         while True:
             status = observe()
@@ -174,6 +217,10 @@ def main():
         summary.update(status=goal['status'], tasks=goal['taskCount'], reason=goal.get('reason'), batches=(goal.get('food') or {}).get('batches', 0))
         if goal['status'] != 'succeeded': raise RuntimeError(summary['reason'])
         receipts = goal['food'].get('receipts', [])
+        deposits = [r for r in receipts if r['action'] == 'stock_deposit']
+        summary['deposits'] = deposits
+        summary['stock'] = goal['food'].get('stock')
+        if args.require_deposit and not deposits: raise RuntimeError('household goal lacks a verified stock deposit')
         cooks = [r for r in receipts if r['action'] == 'cook']
         acquired = [r for r in receipts if r['action'] == 'collect']
         fuel = []
@@ -222,10 +269,13 @@ def main():
                 time.sleep(1)
             else: raise RuntimeError('escort stop not observed')
             summary['escortHandoff'] = dict(taskId=intent['taskId'], leader=args.escort, modes=sorted(modes), stopped=True)
-        summary.update(outcome='succeeded', reason='production food goal verified reserve, active food and recovery')
+        summary.update(outcome='succeeded', reason='household food targets verified' if targets else 'production food goal verified reserve, active food and recovery')
     except Exception as error:
         summary['reason'] = str(error)
     finally:
+        if idle_name:
+            try: call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='disable', name=idle_name)))
+            except Exception as error: summary.update(outcome='failed', reason='cannot disable household test definition: ' + str(error))
         retained = False
         if owns_game and args.keep_online and summary['outcome'] == 'succeeded':
             try:

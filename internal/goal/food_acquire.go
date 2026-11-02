@@ -45,7 +45,13 @@ func foodAtHome(pos, center protocol.Vec3) bool {
 }
 
 // Reserve room for the native encounter's 52 m travel bound and rounding.
-func acquisitionRadius(g Record) float64 { return math.Min(80, g.Radius-64) }
+func acquisitionRadius(g Record) float64 {
+	limit := 80.0
+	if g.Food != nil && g.Food.Stock != nil {
+		limit = 120
+	}
+	return math.Min(limit, g.Radius-64)
+}
 func validFoodPos(pos protocol.Vec3) bool {
 	for _, x := range pos {
 		if !finite(x) {
@@ -113,7 +119,7 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 	}
 	var candidates []protocol.PerceivedResource
 	for _, p := range v.Perception.Resources {
-		if p.ID == "" || slices.Contains(a.Tried, p.ID) || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || p.Yield == nil || !slices.Contains(items, p.Yield.Prefab) || !foodResourceFits(v, p.Yield) || !foodSiteSafe(v, p.Pos, "") {
+		if p.ID == "" || slices.Contains(a.Tried, p.ID) || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || p.Yield == nil || !slices.Contains(items, p.Yield.Prefab) || !foodResourceFits(v, p.Yield) || !foodSiteSafe(v, p.Pos, "") || !stockSource(g, p.Pos) {
 			continue
 		}
 		if p.Kind == protocol.ResourceDrop || p.Kind == protocol.ResourcePickable {
@@ -135,6 +141,27 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 	})
 	if len(candidates) > 0 {
 		return r.foodTake(g, v, candidates[0], true)
+	}
+	if s := g.Food.Stock; s != nil && len(s.Sources) > 0 {
+		sites := slices.Clone(s.Pinned)
+		sort.Slice(sites, func(i, j int) bool {
+			a, b := foodTravelCost(v, sites[i].Pos), foodTravelCost(v, sites[j].Pos)
+			if a != b {
+				return a < b
+			}
+			return sites[i].Name < sites[j].Name
+		})
+		for _, w := range sites {
+			key := foodSiteKey(w.Pos)
+			if len(a.Visits) >= 6 || slices.Contains(a.Visits, key) || distance(v.State.Pos, w.Pos) <= math.Max(3, w.Radius) || !foodSiteSafe(v, w.Pos, "") || home.DangerRisk(v.Danger, w.Pos) >= 1 {
+				continue
+			}
+			return r.foodDispatch(g, v, "search_food", "", "marker:"+w.Name, &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &w.Pos}, Dry: true, AvoidHostiles: true}, TimeoutS: 180}, func(g *Record) { g.Food.Acquisition.Visits = append(g.Food.Acquisition.Visits, key) })
+		}
+		if !foodAtHome(v.State.Pos, g.Center) {
+			return r.stockReturn(g, v, s.Known, s.Shortage, "safe source search exhausted; deliver before stopping")
+		}
+		return r.need("household source markers exhausted or unsafe; wait for regrowth or revise sources")
 	}
 	// Site memory only offers a travel hint. A new live yield is required there.
 	if len(a.Visits) < 6 && r.t.Landmarks != nil {
@@ -161,7 +188,7 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 	}
 	// Native attack permission is checked now and again by the dispatch lease.
 	// No discovery attack: a single exact, fresh wild creature is pinned.
-	if slices.Contains(items, "RawMeat") && a.Hunts < 2 && r.t.Allowed != nil && r.t.Allowed(protocol.TaskAttack) && nourished(v.State) && v.State.HP >= 30 && v.State.Stamina >= 40 && v.Inventory.Free() >= 3 {
+	if g.Food.Stock == nil && slices.Contains(items, "RawMeat") && a.Hunts < 2 && r.t.Allowed != nil && r.t.Allowed(protocol.TaskAttack) && nourished(v.State) && v.State.HP >= 30 && v.State.Stamina >= 40 && v.Inventory.Free() >= 3 {
 		var prey []protocol.PerceivedCharacter
 		for _, c := range v.Perception.Characters {
 			d := distance(c.Pos, v.State.Pos)
@@ -236,7 +263,7 @@ func (r *runner) foodProductNext(g Record, v behaviour.View) (*session.Order, er
 		if err := r.t.Store.update(g.ID, func(g *Record) error {
 			g.Food.Receipts = append(g.Food.Receipts, FoodReceipt{Run: p.Run, TaskID: p.TaskID, Action: "collect", Entity: p.Entity, Item: p.Item, Count: gain, Evidence: "observed_yield_fresh_inventory"})
 			g.Food.Acquisition.Product = nil
-			g.Food.Acquisition.Returning = !foodAtHome(v.State.Pos, g.Center)
+			g.Food.Acquisition.Returning = g.Food.Stock == nil && !foodAtHome(v.State.Pos, g.Center)
 			return nil
 		}); err != nil {
 			return nil, err

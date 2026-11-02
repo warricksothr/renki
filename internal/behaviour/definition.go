@@ -100,6 +100,20 @@ type Lifecycle interface {
 	End(json.RawMessage, string) error
 }
 
+// Episode exposes the identity of a durable episode for diagnosis.
+type Episode interface{ EpisodeID() string }
+
+// RunLifecycle checkpoints an episode created by this particular runner.
+// It cannot dispatch, and must be idempotent. Queued work has no runner yet.
+type RunLifecycle interface{ EndRun(string) error }
+
+// IdleJourney explicitly allows a guarded durable episode to leave its idle
+// admission marker. The engine still validates that marker's exact identity.
+type IdleJourney interface {
+	Guard
+	TravelFromIdleMarker() bool
+}
+
 // TaskStarted checkpoints the assigned receipt identity after dispatch.
 type TaskStarted interface{ Dispatched(string) error }
 

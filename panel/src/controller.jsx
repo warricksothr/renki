@@ -2487,6 +2487,8 @@ export function startController() {
     goalSnapshot = s;
     const active = s.connected && s.phase === "in_world" && !!s.pos;
     $("goal-combat").disabled = !active;
+    for (const id of ["goal-stock-start", "goal-stock-idle"])
+      $(id).disabled = !active || !s.home?.pos || s.home.world !== s.world;
     const records = s.goals || [];
     const key = JSON.stringify([active, s.world, records]);
     if (key === goalRenderKey) return;
@@ -2504,7 +2506,9 @@ export function startController() {
       const title = document.createElement("strong");
       const objective =
         g.kind === "food_resupply"
-          ? "Food resupply"
+          ? g.food?.stock
+            ? "Household food"
+            : "Food resupply"
           : g.returnHome
             ? "Greyling encounter and return"
             : "Greyling encounter";
@@ -2520,6 +2524,13 @@ export function startController() {
         if (g.food.acquisition) {
           const a = g.food.acquisition;
           supply.textContent += ` · Forage visits ${a.visitCount || 0}/6 · Collections ${a.targets}/12 · Hunts ${a.hunts}/2`;
+        }
+        if (g.food.stock) {
+          const stock = g.food.stock;
+          supply.textContent += ` · Stock: ${Object.entries(stock.targets)
+            .map(([p, n]) => `${p} ${stock.known?.[p] ?? "?"}/${n}`)
+            .join(", ")}`;
+          if (stock.decision) supply.textContent += ` · ${stock.decision}`;
         }
         article.append(supply);
       }
@@ -2595,6 +2606,94 @@ export function startController() {
         },
       });
   });
+
+  function householdSpec() {
+    const s = goalSnapshot;
+    if (
+      !s?.connected ||
+      s.phase !== "in_world" ||
+      !s.home?.pos ||
+      s.home.world !== s.world
+    )
+      throw new Error("Tas needs a known home in his current world.");
+    const count = Number($("goal-stock-count").value),
+      food = $("goal-stock-food").value;
+    const storage = $("goal-stock-storage")
+      .value.split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    if (!Number.isInteger(count) || count < 1 || count > 20 || !storage.length)
+      throw new Error(
+        "Choose 1–20 meals and at least one destination chest ID.",
+      );
+    return {
+      kind: "food_resupply",
+      world: s.world,
+      center: s.home.pos,
+      radius: 200,
+      reserve: 2,
+      storage,
+      stock: {
+        targets: { [food]: count },
+        sources: $("goal-stock-sources")
+          .value.split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+      },
+    };
+  }
+  $("goal-stock-start").addEventListener("click", () => {
+    try {
+      goalCommand({ action: "start", spec: householdSpec() });
+    } catch (e) {
+      $("goal-result").textContent = e.message;
+    }
+  });
+  async function householdIdle(enabled) {
+    const out = $("goal-result");
+    try {
+      const scope = goalSnapshot?.world || mapWorld;
+      if (!scope) throw new Error("Select a known world first.");
+      const request = {
+        action: enabled ? "save" : "disable",
+        name: `household food ${scope}`,
+      };
+      if (enabled) {
+        const spec = householdSpec(),
+          name = $("goal-stock-marker").value.trim();
+        if (
+          mapWorld !== spec.world ||
+          !world.waypoints.some((w) => w.name === name && w.kind === "storage")
+        )
+          throw new Error("Choose a current storage marker in Tas’s world.");
+        request.definition = {
+          template: "household_food",
+          params: spec,
+          trigger: {
+            kind: "idle",
+            marker: { world: spec.world, name, kind: "storage" },
+            dwellS: 30,
+          },
+          repeat: { mode: "trigger", cooldownS: 300, maxRuns: 12 },
+          priority: -10,
+          enabled: true,
+        };
+      }
+      const response = await fetch("/api/behaviours", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Renki-Act": "1" },
+        body: JSON.stringify(request),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      out.textContent = enabled
+        ? "Household food work enabled: 30-second idle dwell, five-minute cooldown, up to 12 episodes per controller session."
+        : "Household idle food work disabled.";
+    } catch (e) {
+      out.textContent = e.message;
+    }
+  }
+  $("goal-stock-idle").addEventListener("click", () => householdIdle(true));
+  $("goal-stock-disable").addEventListener("click", () => householdIdle(false));
 
   // ---- player profiles and map presence ----
   let presenceSnapshot = null,

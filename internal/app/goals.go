@@ -88,8 +88,8 @@ func (a *App) goalAction(ctx context.Context, id, action string) error {
 		saveErr := a.goalTemplate.Cancel(id)
 		var stopErr error
 		for _, instance := range a.Behaviours.List() {
-			if instance.Name == name {
-				stopErr = a.Behaviours.Action(ctx, name, "stop", "panel")
+			if instance.Name == name || instance.Running && instance.EpisodeID == id {
+				stopErr = a.Behaviours.Action(ctx, instance.Name, "stop", "panel")
 				break
 			}
 		}

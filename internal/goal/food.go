@@ -21,6 +21,7 @@ var cooked = map[string]string{"RawMeat": "CookedMeat", "DeerMeat": "CookedDeerM
 
 // FoodProgress is a typed host adapter, not a checkpoint of an arbitrary runner.
 type FoodProgress struct {
+	Stock            *FoodStock           `json:"stock,omitempty"`
 	Acquisition      *FoodAcquisition     `json:"acquisition,omitempty"`
 	CandidateCount   int                  `json:"candidateCount,omitempty"`
 	AttemptCount     int                  `json:"attemptCount,omitempty"`
@@ -44,6 +45,8 @@ type FoodProgress struct {
 	Batches          int                  `json:"batches"`
 }
 type FoodChest struct {
+	ObservedAt  time.Time      `json:"observedAt,omitempty"`
+	Run         string         `json:"run,omitempty"`
 	Entity      string         `json:"entity"`
 	Pos         protocol.Vec3  `json:"pos"`
 	Contents    map[string]int `json:"contents,omitempty"`
@@ -67,6 +70,9 @@ func validateFood(g Record) error {
 	}
 	if !slices.Contains([]string{"home", "ready", "raw", "wood", "cook", "recover", "complete"}, f.Phase) {
 		return errors.New("invalid food phase")
+	}
+	if err := validateStock(g); err != nil {
+		return err
 	}
 	if err := validateAcquisition(g); err != nil {
 		return err
@@ -159,7 +165,14 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	if !foodView(v, g) {
 		return r.foodWait(g, v, "waiting for scoped state, pack and surroundings")
 	}
+	if err := r.pinStockSources(g, v); err != nil {
+		return r.need(err.Error())
+	}
+	g, _ = r.t.Store.Get(g.ID)
 	s, f := v.State, g.Food
+	if err := stockScope(g, v); err != nil {
+		return r.need(err.Error())
+	}
 	if !finite(s.HP) || !finite(s.HPMax) || s.HPMax <= 0 || s.HP < math.Max(20, s.HPMax*.4) || s.Stranded() || s.Encumbered() || slices.Contains(s.Flags, protocol.FlagSwimming) || s.Location != nil && s.Location.InWater {
 		return r.need("unsafe food resupply health, footing or capacity")
 	}
@@ -205,6 +218,17 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		g, _ = r.t.Store.Get(g.ID)
 		f = g.Food
 	}
+	if f.Stock != nil && f.Stock.ReturnAfterCooking {
+		if !foodAtHome(s.Pos, g.Center) || s.Pos.FlatDistance(g.Center) > .75 {
+			within := .5
+			return r.foodDispatch(g, v, "cook_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, StopDistance: &within, Dry: true, AvoidHostiles: true}, TimeoutS: 90})
+		}
+		if err := r.t.Store.update(g.ID, func(g *Record) error { g.Food.Stock.ReturnAfterCooking = false; return nil }); err != nil {
+			return nil, err
+		}
+		g, _ = r.t.Store.Get(g.ID)
+		f = g.Food
+	}
 	if g.Wake.After(v.Now) {
 		return nil, &behaviour.Delay{Until: g.Wake}
 	}
@@ -218,6 +242,9 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	// A reserve is measured after filling eligible food slots, so the normal
 	// keeper cannot immediately eat the entire newly prepared reserve.
 	if !fillSlot && mealCount(v.Inventory) >= f.Reserve && nourished(s) && s.HP >= s.HPMax*.8 {
+		if f.Stock != nil {
+			return r.stockNext(g, v)
+		}
 		if !foodAtHome(s.Pos, g.Center) {
 			return r.foodDispatch(g, v, "food_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 120})
 		}
@@ -487,6 +514,10 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 		if !success || !foodAtHome(v.State.Pos, g.Center) {
 			return errors.New("food return lacks confirmed home arrival")
 		}
+	case "cook_return":
+		if !success || !foodAtHome(v.State.Pos, g.Center) || v.State.Pos.FlatDistance(g.Center) > .75 {
+			return errors.New("post-cooking wait point lacks confirmed precise home-floor arrival")
+		}
 	case "food_return":
 		if !success || !foodAtHome(v.State.Pos, g.Center) {
 			return errors.New("food acquisition lacks confirmed home floor arrival")
@@ -501,16 +532,31 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 			return behaviour.ErrWait
 		}
 		receipt = &FoodReceipt{TaskID: last.TaskID, Action: "eat", Item: f.Item, Count: 1, Evidence: "active_food_refresh"}
-	case "ready", "raw", "wood":
+	case "ready", "raw", "wood", "stock_probe", "stock_deposit":
+		direction := protocol.TaskWithdraw
+		if p.Template == "stock_deposit" {
+			direction = protocol.TaskDeposit
+		}
 		for _, c := range v.Containers {
-			if c.Task == last.TaskID && c.Entity == p.Entity && c.Direction == protocol.TaskWithdraw {
+			if c.Task == last.TaskID && c.Entity == p.Entity && c.Direction == direction {
 				observed = c
 				break
 			}
 		}
 		if observed != nil {
 			moved := observed.Moved[f.Item]
-			if moved < 0 || moved > 4 {
+			limit := 4
+			if p.Template == "stock_deposit" {
+				var a protocol.TransferArgs
+				if json.Unmarshal(p.Params, &a) != nil || len(a.Items) != 1 {
+					return errors.New("invalid stock deposit intent")
+				}
+				limit = int(a.Items[0].Count)
+			}
+			if p.Template == "stock_probe" {
+				limit = 1
+			}
+			if moved < 0 || moved > limit {
 				return errors.New("invalid food transfer count")
 			}
 			if moved > 0 {
@@ -518,7 +564,11 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 				if slices.Contains(meals, f.Item) && remaining(v.State, f.Item) > f.BeforeRemaining+1 {
 					consumed = 1
 				}
-				if v.Inventory.Seq <= f.BeforePackSeq || v.Inventory.Count(f.Item) < f.BeforeCount+moved-consumed {
+				validPack := v.Inventory.Count(f.Item) >= f.BeforeCount+moved-consumed
+				if p.Template == "stock_deposit" {
+					validPack = v.Inventory.Count(f.Item) == f.BeforeCount-moved
+				}
+				if v.Inventory.Seq <= f.BeforePackSeq || !validPack {
 					return behaviour.ErrWait
 				}
 				receipt = &FoodReceipt{TaskID: last.TaskID, Action: p.Template, Entity: p.Entity, Item: f.Item, Count: moved, Evidence: "matched_transfer_inventory"}
@@ -527,7 +577,7 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 			return errors.New("food transfer succeeded without its scoped receipt")
 		}
 		missingStock := observed != nil && last.Reason == protocol.ReasonInvalidTarget
-		if !success && !missingStock && !slices.Contains([]string{protocol.ReasonMissingMaterials, protocol.ReasonRefused, protocol.ReasonTargetLost, protocol.ReasonUnreachable}, last.Reason) {
+		if !success && !missingStock && !slices.Contains([]string{protocol.ReasonMissingMaterials, protocol.ReasonRefused, protocol.ReasonTargetLost, protocol.ReasonUnreachable, protocol.ReasonInventoryFull}, last.Reason) {
 			return errors.New("food transfer execution fault: " + last.Reason + " " + last.Detail)
 		}
 	case "cook":
@@ -553,7 +603,7 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 			receipt.Run = p.Run
 			g.Food.Receipts = append(g.Food.Receipts, *receipt)
 		}
-		if slices.Contains([]string{"ready", "raw", "wood"}, p.Template) {
+		if slices.Contains([]string{"ready", "raw", "wood", "stock_probe", "stock_deposit"}, p.Template) {
 			for i := range g.Food.Chests {
 				c := &g.Food.Chests[i]
 				if c.Entity != p.Entity {
@@ -564,6 +614,7 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 					continue
 				}
 				c.Observed = true
+				c.ObservedAt, c.Run = v.Now, r.t.Store.runID
 				c.Contents = map[string]int{}
 				for _, item := range observed.Items {
 					if slices.Contains(meals, item.Prefab) || slices.Contains(ingredients, item.Prefab) || item.Prefab == "Wood" {
@@ -572,7 +623,17 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 				}
 			}
 		}
+		if p.Template == "stock_deposit" && !success {
+			g.Food.Tried = append(g.Food.Tried, "stock_deposit:"+p.Entity+":"+f.Item)
+		}
+		if p.Template == "cook_return" && g.Food.Stock != nil {
+			g.Food.Stock.ReturnAfterCooking = false
+		}
 		if p.Template == "cook" {
+			if g.Food.Stock != nil {
+				g.Food.Stock.ReturnAfterCooking = true
+				g.Food.Stock.Delivering = true
+			}
 			g.Food.Batches++
 			g.Food.Phase = "raw"
 		}

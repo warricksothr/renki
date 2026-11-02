@@ -35,6 +35,7 @@ func emptySearch(outcome Outcome) bool {
 }
 
 type Spec struct {
+	Stock      *FoodStock           `json:"stock,omitempty"`
 	Kind       string               `json:"kind"`
 	World      string               `json:"world"`
 	Center     protocol.Vec3        `json:"center"`
@@ -46,6 +47,10 @@ type Spec struct {
 }
 
 func NewRecord(spec Spec, now time.Time) (Record, error) {
+	if s := spec.Stock; s != nil && (len(s.Pinned) > 0 || s.ReturnAfterCooking || s.Delivering || s.Decision != "" || len(s.Known) > 0 || len(s.Shortage) > 0) {
+		return Record{}, errors.New("new stock goals cannot supply checkpoint evidence")
+	}
+
 	var token [12]byte
 	if _, err := rand.Read(token[:]); err != nil {
 		return Record{}, err
@@ -59,7 +64,10 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 		}
 		r.Policy, r.PolicyHash = foodPolicy, hash(foodPolicy)
 		r.MaxTasks, r.MaxAttempts = 256, 256
-		r.Food = &FoodProgress{Phase: "home", Reserve: reserve, Storage: spec.Storage, Escort: spec.Escort, Acquisition: &FoodAcquisition{}}
+		r.Food = &FoodProgress{Phase: "home", Reserve: reserve, Storage: spec.Storage, Escort: spec.Escort, Acquisition: &FoodAcquisition{}, Stock: spec.Stock}
+	}
+	if spec.Stock != nil && spec.Kind != "food_resupply" {
+		return Record{}, errors.New("household stock requires a food goal")
 	}
 	if r.ReturnHome {
 		r.MaxTasks++

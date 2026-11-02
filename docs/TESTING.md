@@ -1181,3 +1181,21 @@ inland food-patch Boar/Neck: the route should detour around their loaded
 positions, retain physical dry validation and report hostileRejected in local
 planning diagnostics. Starting inside a clearance may back out; it must not
 route through another creature. Passive deer must not block ordinary travel.
+
+## Household food pressure checks
+
+`just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
+covers household target validation, remembered versus freshly inspected stock,
+wrong-task receipts, partial/full destinations, personal reserves, continuing
+collection versus capacity return, source revisions, danger-ranked visits and
+uncertain episode cancellation/restart. The guarded idle journey remains bound
+to its original admission marker even while travelling.
+
+For live home cooking/storage, use `just vm food-check --storage IDS
+--stock-target NeckTailGrilled=1 --idle-marker "home storage" --require-cooking
+--require-deposit --keep-online`. The named chest must have normal ingredients
+or Tas must already carry them. No supplies are spawned. Evidence includes the
+actual behaviour episode ID, durable food checkpoint, stock totals, matched
+deposit and cooking receipts. Absence of ingredients or a full chest remains an
+honest incomplete trial. A successful home cooking episode does not prove an
+outdoor multi-source production trip.
