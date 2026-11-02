@@ -13,7 +13,7 @@ labels:
   - live
 assignees: []
 milestone: M5
-parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
+parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
 dependencies:
   - TKT-01M6EFKWGAF7P8V6W004YECKCF
@@ -25,12 +25,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T21:48:07Z
-updated_at: 2026-11-02T15:59:48Z
+updated_at: 2026-11-02T16:28:08Z
 created_by:
   id: agent:codex/renki-resume
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m5
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---

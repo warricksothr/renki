@@ -70,7 +70,7 @@ Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entit
 ## Acceptance criteria
 
 - [ ] Both respect wards and a Safety switch, and fail with the reasons 6.6 names
-- [ ] An uncertain unit (no pack decrease or no fuel or queue increase) stops the task without a retry, in a core test
+- [ ] An uncertain unit (no pack decrease or no fuel increase) stops the task without a retry, in a core test
 - [ ] One live add_to of 2 Wood into a home fire reports 2 added and the next perception shows its fuel up by 2; audit window linked
 - [ ] add_to puts fuel from the pack into a fire and reports how many
 - [ ] take_from collects finished food from cooking stations

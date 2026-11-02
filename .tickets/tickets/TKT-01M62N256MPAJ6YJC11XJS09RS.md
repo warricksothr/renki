@@ -34,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-02T15:57:39Z
+updated_at: 2026-11-02T16:28:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m3
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -52,7 +52,7 @@ extensions: {}
 
 - [ ] flee moves the bot away from a threat to a distance
 - [ ] On low health with a threat near, the bot retreats toward its owner or home and says so
-- [ ] Goal 3.1: three retreat-evidence episodes pass (flee within 1 s of HP below 0.4 with a threat within 15 m, owner or home reached alive), one starting on the raised base; paths linked in a note
+- [ ] Goal 3.1: three retreat-evidence episodes pass (flee within 1.5 s of HP below 0.4 with a threat within 15 m, owner or home reached alive), one starting on the raised base; paths linked in a note
 
 ## Implementation plan
 
@@ -150,3 +150,7 @@ What is left:
 Files to start in: `internal/retreat/retreat.go`, `plugin/Renki.Plugin/FleeTask.cs`, `plugin/Renki.Core/Movement/FleeBearings.cs`.
 
 Verify: `just check controller test-packages ./internal/retreat`, `just check plugin test-core FleeBearings`, `just check ci`; live, `just vm retreat-evidence AUDIT` over each trial's audit window, three passing episodes, one starting within the raised base (around [-33.9,36.09,6.68]).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:28:21Z
+
+Supersedes the goal wording in the "Remaining for M3 goal 3.1" note: goal 3.1 in docs/ROADMAP.md now counts natural low-HP episodes across all live trials from 11-03 to 11-15, scored by TKT-01M6EFHEEN, with flee dispatched within 1.5 s rather than 1 s, because the retreat check runs once a second. The rest of that note stands.

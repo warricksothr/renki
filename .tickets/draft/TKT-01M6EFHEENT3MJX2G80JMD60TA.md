@@ -34,7 +34,7 @@ extensions: {}
 
 ## Description
 
-Goal 3.1 in docs/ROADMAP.md is measured from audit windows: HP falls below the retreat threshold with a threat within 15 m, `flee` is dispatched within 1 s, and the bot reaches its owner or home alive. Today someone reads those numbers by hand from `just vm audit-window` output. Retreats mostly happen during other trials (combat, gather, work trips), so the report must work on any audit window rather than only inside one supervisor.
+Goal 3.1 in docs/ROADMAP.md is measured from audit windows: HP falls below the retreat threshold with a threat within 15 m, `flee` is dispatched within 1.5 s, and the bot reaches its owner or home alive. Today someone reads those numbers by hand from `just vm audit-window` output. Retreats mostly happen during other trials (combat, gather, work trips), so the report must work on any audit window rather than only inside one supervisor.
 
 ### Outcome
 

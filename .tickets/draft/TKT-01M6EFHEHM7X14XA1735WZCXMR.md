@@ -34,7 +34,7 @@ extensions: {}
 
 ## Description
 
-Goal 3.3 in docs/ROADMAP.md: 2 of 2 escort or guard runs engage a creature that targets the owner within 10 m, and stop on "stay out of it". `just vm escort-check` (`scripts/vm/escort-check.py`) only records health, the set of escort modes it saw and whether the escort ended. It does not say whether a defence happened, against what, how far from the owner, or how fast a stop took effect. So a run cannot be scored against 3.3.
+Goal 3.3 in docs/ROADMAP.md: 2 of 2 escort or guard runs engage a confirmed attacker of a protected player within 10 m, and stop on "stay out of it" with no further attack. `just vm escort-check` (`scripts/vm/escort-check.py`) only records health, the set of escort modes it saw and whether the escort ended. It does not say whether a defence happened, against what, how far from the owner, or how fast a stop took effect. So a run cannot be scored against 3.3.
 
 ### Outcome
 
