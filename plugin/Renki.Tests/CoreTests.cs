@@ -13,16 +13,24 @@ namespace Renki.Tests
     sealed class FakeBody : IBodyTask
     {
         public Outcome Next;
+        public Exception Throw;
         public bool Cancelled;
         public int Ticks;
 
         public Outcome Tick(double dt)
         {
             Ticks++;
+            if (Throw != null) throw Throw;
             return Next;
         }
 
-        public void Cancel() => Cancelled = true;
+        public Exception CancelThrows;
+
+        public void Cancel()
+        {
+            Cancelled = true;
+            if (CancelThrows != null) throw CancelThrows;
+        }
     }
 
     sealed class FakeHost : ITaskHost
@@ -31,10 +39,12 @@ namespace Renki.Tests
         public readonly List<string> Instants = new List<string>();
         public int Idles;
         public TaskRefused Refuse;
+        public Exception Throw;
 
         public IBodyTask StartBody(TaskRequest req, object args)
         {
             if (Refuse != null) throw Refuse;
+            if (Throw != null) throw Throw;
             var b = new FakeBody();
             Bodies.Add(b);
             return b;
@@ -42,6 +52,7 @@ namespace Renki.Tests
 
         public Outcome RunInstant(TaskRequest req, object args)
         {
+            if (Throw != null) throw Throw;
             Instants.Add(req.Task + (args is SayArgs s ? ":" + s.Text : ""));
             return Outcome.Succeeded();
         }
@@ -52,6 +63,7 @@ namespace Renki.Tests
     public class TaskRunnerTests
     {
         readonly List<TaskStatus> reports = new List<TaskStatus>();
+        readonly List<string> faults = new List<string>();
         readonly FakeHost host = new FakeHost();
         double clock;
         readonly SafetyConfig safety = new SafetyConfig();
@@ -59,7 +71,8 @@ namespace Renki.Tests
 
         public TaskRunnerTests()
         {
-            runner = new TaskRunner(safety, TaskNames.M1, host, reports.Add, () => clock);
+            runner = new TaskRunner(safety, TaskNames.M1, host, reports.Add, () => clock,
+                fault: (where, e) => faults.Add(where + ": " + e));
         }
 
         static TaskRequest Req(string id, string task, string args = null, double timeout = 0) =>
@@ -97,6 +110,60 @@ namespace Renki.Tests
             Assert.Equal("native-grey", reports.Last().Entity);
             Assert.Equal("t-1", reports.Last().Re);
             Assert.Null(reports.First().Entity);
+        }
+
+        [Fact]
+        public void ThrowingBodyTaskFailsIdlesAndFreesTheRunner()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            var idles = host.Idles;
+            host.Bodies[0].Throw = new NullReferenceException("gone");
+            runner.FixedTick(0.02);
+            Assert.Equal("t-1:accepted t-1:running t-1:failed/internal", Log());
+            Assert.Contains("NullReferenceException", reports.Last().Detail);
+            Assert.Single(faults);
+            Assert.StartsWith("tick of follow t-1", faults[0]);
+            Assert.True(host.Bodies[0].Cancelled);
+            Assert.Equal(idles + 1, host.Idles);
+            Assert.Null(runner.Current);
+            runner.FixedTick(0.02);
+            Assert.Equal(1, host.Bodies[0].Ticks);
+        }
+
+        [Fact]
+        public void ThrowingStartOrInstantStillReplies()
+        {
+            runner.Welcome(TaskNames.M1);
+            host.Throw = new InvalidOperationException(new string('x', 500));
+            runner.Handle(Req("t-1", "follow", "{\"player\":\"Sothr\"}"));
+            runner.Handle(Req("t-2", "emote", "{\"name\":\"wave\"}"));
+            Assert.Equal("t-1:rejected/internal t-2:accepted t-2:failed/internal", Log());
+            Assert.True(reports.All(r => r.Detail == null || r.Detail.Length <= 200));
+            Assert.Null(runner.Current);
+        }
+
+        [Fact]
+        public void ThrowingCancelStillReleasesOnTimeoutSupersedeAndDeath()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "move_to", "{\"to\":[1,2,3]}", timeout: 1));
+            host.Bodies[0].CancelThrows = new InvalidOperationException("cancel");
+            for (var i = 0; i < 60; i++) runner.FixedTick(0.02);
+            Assert.Null(runner.Current);
+            Assert.EndsWith("t-1:failed/timeout", Log());
+            Assert.Contains(faults, f => f.StartsWith("cancel:") && f.Contains("at "));
+
+            runner.Handle(Req("t-2", "follow", "{\"player\":\"Sothr\"}"));
+            host.Bodies[1].CancelThrows = new InvalidOperationException("cancel");
+            runner.Handle(Req("t-3", "follow", "{\"player\":\"Sothr\"}"));
+            Assert.Equal("t-3", runner.Current.Id);
+            Assert.EndsWith("t-2:cancelled/superseded t-3:accepted t-3:running", Log());
+
+            host.Bodies[2].CancelThrows = new InvalidOperationException("cancel");
+            runner.Died();
+            Assert.Null(runner.Current);
+            Assert.EndsWith("t-3:failed/died", Log());
         }
 
         [Fact]

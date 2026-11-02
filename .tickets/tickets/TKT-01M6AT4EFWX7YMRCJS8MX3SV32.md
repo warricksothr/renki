@@ -11,11 +11,13 @@ labels:
   - controller
   - safety
   - vm
+  - live
 assignees: []
-milestone: M3
+milestone: M5
 parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-02T05:52:10Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -240,3 +242,15 @@ Retained live results:
 Next blocker is native departure/return near[-30.94,35.54,-0.14], rather than cooked-food receipt ordering. Audit .checks/audit-window-3KPFD5.jsonl (05:47:00–05:50:15Z) records endpoint/midpoint support rejections on wood_stack(Clone)/log (normalY around0.60), no-hit candidates, and support_step transitions from35.53 to36.09. These are investigation leads, not proof that relaxing slope/step clearance is correct. Inspect cached building geometry and supported transitions at the exit before another identical wildlife trial. No manual clearing, teleportation, fabricated resources, automatic action replay or logout.
 
 Final fresh observation .checks/20261102T055127Z-WXwZOu.log: controller75db0ae connected/in-world,62.1/62.1HP, injurySeq0, grounded at the captured exit, no active task. Tas remained online. Automatic resupply and the successful cook-return/deposit evidence remain distinct from the failed outdoor hunt/pantry completion. Repeated full acquisition/cook/deposit/rest loops remain unearned.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Remaining for M3: serves no M3 goal
+
+Milestone review (M3 grooming, 2026-11-02): pantry stocking serves none of M3's goals 3.1-3.5 in docs/ROADMAP.md. It belongs with its parent TKT-01M6864352 (Pressure-driven work, storage and maintenance goals) in M5, where the roadmap measures "no food burns" and assigned items reaching chests. Proposed for M5; the owner decides.
+
+What is left: all five ACs are open; the last note says the cooking/deposit retry and full gate follow. Files to start in: `internal/goal/food_stock.go`, `internal/goal/food_work.go`, `internal/behaviour/idle.go`, `internal/session`. Verify: `just check controller test-packages ./internal/session ./internal/behaviour ./internal/goal ./internal/app`, `just check ci`; live, `just vm food-check` / `just vm resupply-food` under the VM lease (TKT-01M6EF5DTG).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

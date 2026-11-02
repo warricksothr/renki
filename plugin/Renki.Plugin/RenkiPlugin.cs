@@ -113,7 +113,7 @@ namespace Renki.Plugin
             if (Recovering && !string.IsNullOrWhiteSpace(returnConfig.Value))
             {
                 try { recoveryReturnOrder = JsonConvert.DeserializeObject<RecoveryReturnOrder>(returnConfig.Value); }
-                catch (JsonException) { /* Invalid orders fail closed in RecoveryReturn. */ }
+                catch (JsonException) { /* Invalid orders stay null and fail closed in RecoveryReturn.Decide; every use before Decide is null-guarded. */ }
                 recoveryReturn = new RecoveryReturn(recoveryReturnOrder);
                 returnConfig.Value = "";
                 Config.Save();
@@ -128,7 +128,8 @@ namespace Renki.Plugin
                 t.Task = runner?.Current?.Id;
                 if (client != null && client.Connected) Send(t);
             };
-            runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble);
+            runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble,
+                fault: (where, e) => Logger.LogError($"task runner contained an exception in {where}: {e}"));
             Driver.OnFixedStep = dt => { if (!GuardRecovery(true, dt) && Driver.Active) runner.FixedTick(dt); };
             reporter = new Reporter(this);
             TerrainReporter.Current = terrain;
@@ -159,7 +160,7 @@ namespace Renki.Plugin
                 var gap = recoveryCharacters.Where(c => c != null && c != p && !(c is Player) && !c.IsDead() &&
                     !c.IsTamed() && !(c.GetBaseAI() is AnimalAI) && BaseAI.IsEnemy(p, c))
                     .Select(c => (double)Vector3.Distance(p.transform.position, c.transform.position)).DefaultIfEmpty(double.PositiveInfinity).Min();
-                var foodReserve = recoveryReturnOrder.FoodReserveSeconds(p.GetFoods().Select(food => (double)food.m_time).ToArray());
+                var foodReserve = recoveryReturnOrder?.FoodReserveSeconds(p.GetFoods().Select(food => (double)food.m_time).ToArray()) ?? 0;
                 var actionReturn = recoveryReturn.Decide(ZNet.instance?.GetWorldName(), DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                     Time.unscaledTimeAsDouble, Convert.ToV3(p.transform.position), p.GetHealth(), p.GetMaxHealth(),
                     p.GetStamina(), p.GetFoods().Count, p.IsOnGround(), p.InWater() || p.IsSwimming(), p.InShelter(), gap,
@@ -208,7 +209,7 @@ namespace Renki.Plugin
                     Tracer.Emit("recovery", "startup return refused", new Dictionary<string, object>
                     {
                         ["reason"] = recoveryReturn.Reason,
-                        ["profile"] = recoveryReturnOrder.Profile,
+                        ["profile"] = recoveryReturnOrder?.Profile,
                         ["pos"] = Convert.ToArray(p.transform.position),
                         ["hp"] = p.GetHealth(),
                         ["hpMax"] = p.GetMaxHealth(),

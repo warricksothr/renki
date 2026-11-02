@@ -1,7 +1,7 @@
 ---
 schema: 4
 id: TKT-01M6DCFSHHG0DZJW21HTZGZGH4
-title: "Memory: durable memory.json writes, rollback and world identity"
+title: "Memory: durable memory.json and settings writes, with rollback"
 type: bug
 status: draft
 status_reason: null
@@ -10,7 +10,7 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T15:57:56Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -48,16 +48,31 @@ Fix: move goal's save helper into a small shared package and use it from home an
 
 ### 3. World identity (low; plausible)
 
-- Homes, containers, landmarks, waypoints and danger are keyed by world *name*. docs/ATLAS.md uses UID + epoch, and pickups already record `WorldUID`.
-- Two servers named "Dedicated", or a restored save, share homes and chests.
-- memory.json has no schema `version`.
-- The `interrupted` flag is one global boolean (`store.go:52`, `home.go:351-357`), so an outage in world A sends the bot "home" in world B.
+Moved to TKT-01M6EFGYQR (Memory: key by world UID, per-world interrupted flag, schema version).
 
-Fix: add `version`, store the world with the interrupted flag, and key by `worldUid` when the state provides it, migrating entries keyed by name. Related: TKT-01M62EP0 (Controller: remember where things are and should be, per world).
+### Goal
+
+Goal 4.3 (stores survive a hard stop): 3 forced controller kills during saves leave memory.json, goals.json and settings readable, with no lost home. Item 3 (world identity) moved to TKT-01M6EFGYQR (Memory: key by world UID, per-world interrupted flag, schema version); goal 4.3 does not need it. The live kills are in TKT-01M6EFGYV6 (VM: run the 24 h soak and link its summary from the M4 epic).
+
+### Files
+
+Line numbers refer to commit f1a5483; at 0b932ef the weak save is `internal/home/store.go:255-258` and `internal/settings/settings.go:424-427`.
+
+- `internal/goal/store.go`, `internal/goal/replace_unix.go`, `internal/goal/replace_windows.go` (the helper to move into a small shared package)
+- `internal/home/store.go` (`save`, and the setters `SetHome`, `SetInterrupted`, `UpdateLeftBehind`, `Shun`, `Unshun`, `AddGrave`, `ForgetGrave`)
+- `internal/settings/settings.go`
+- `cmd/controller/main.go` (:86-90, the exit on a bad memory.json)
+
+### Verification
+
+- `just check controller test-packages ./internal/home ./internal/settings ./internal/goal` plus the new shared package.
+- A test that runs a helper process saving in a loop, kills it 3 times mid-save, and asserts memory.json, goals.json and settings each parse afterwards with the home present (or fall back to `.bak` with a logged warning).
+- A test per setter that a failed save leaves memory unchanged.
+- `just check ci`.
 
 ## Acceptance criteria
 
 - [ ] memory.json and settings writes fsync the file and directory and replace it write-through, using one shared helper
 - [ ] A corrupt memory.json falls back to the last good copy with a loud log instead of exiting
 - [ ] Every home store setter rolls back on a failed save
-- [ ] The interrupted flag is per world, and memory.json carries a schema version
+- [ ] A test kills a saving controller process 3 times, and memory.json, goals.json and settings each load afterwards with the home present

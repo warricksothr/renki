@@ -204,7 +204,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 				if pos, ok := chestPosition(v, r.p.To[r.index]); ok && distance(pos, *v.Home) <= 10 {
 					r.walking, r.homeApproach = true, true
 					home := *v.Home
-					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}, Dry: r.dry, AvoidHostiles: r.p.MatchExisting}, TimeoutS: 90}, nil
+					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}, Dry: r.dry, AvoidHostiles: r.dry}, TimeoutS: 90}, nil
 				}
 			}
 			r.failures = append(r.failures, r.p.To[r.index]+": "+result.Reason)
@@ -266,7 +266,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 	// positions. A controller move_to at the solid chest center can fail first.
 	if pos, ok := chestPosition(v, id); ok && !r.p.MatchExisting && !r.approached && distance(v.State.Pos, pos) > 4 {
 		r.walking = true
-		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: r.dry, AvoidHostiles: r.p.MatchExisting}, TimeoutS: 90}, nil
+		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: r.dry, AvoidHostiles: r.dry}, TimeoutS: 90}, nil
 	}
 	items := []protocol.TransferItem{}
 	for _, name := range sortedKeys(r.remaining) {

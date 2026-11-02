@@ -10,7 +10,7 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T15:56:49Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -50,6 +50,22 @@ One terrain batch that can never succeed stops atlas recording for every world.
 - The recorder drops and logs those batches, or sets them aside counted, and keeps draining.
 - Surface the condition in panel status.
 - The recorder has no tests. Add some covering transient retry, permanent drop, and one world's failure not blocking another's.
+
+### Goal
+
+Goal 4.6 (review closed). Also protects long unattended runs (goal 4.2): after a Valheim update the queue overflow logs every second.
+
+### Files
+
+Line numbers refer to commit f1a5483.
+
+- `internal/atlas/recorder.go`, `internal/atlas/store.go` (`Ingest` at :138, `Maintain` at :263), `internal/atlas/store_test.go`, a new `internal/atlas/recorder_test.go`
+- `internal/app/atlas.go`, `internal/app/panel.go` (`PanelStatus`)
+
+### Verification
+
+- `just check controller test-packages ./internal/atlas ./internal/app`, including the new recorder tests for transient retry, permanent drop and per-world isolation.
+- `just check ci`.
 
 ## Acceptance criteria
 

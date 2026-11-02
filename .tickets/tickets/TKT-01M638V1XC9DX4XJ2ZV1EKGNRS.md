@@ -9,9 +9,10 @@ priority: normal
 due_on: null
 labels:
   - plugin
+  - movement
 assignees: []
-milestone: null
-parent: null
+milestone: M3
+parent: TKT-01M62N2557R401S3E6JECSAPN4
 origin: null
 dependencies: []
 blocks_on: none
@@ -20,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-10-31T00:36:19Z
+updated_at: 2026-11-02T15:57:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m3
   name: ""
 extensions: {}
 ---
@@ -34,14 +35,37 @@ extensions: {}
 
 Seen on the VM, 2026-10-29 01:39-01:40, follow task t-1: Nimah stood inside the house at (-31.54, 36.09, 12.45). The bot stood outside the east wall at about (-28.1, 36.09, 11.55), 3.5 m away. The wall runs from (-28.6, 12.0) to (-29.4, 10.1), per the layout. Every re-path returned 2 waypoints, a straight line through the wall. The walker went through 9 recoveries (Jump, Strafe, Repath, Climb, three rounds) and gave up `stuck`, which sent it home.
 
-Open question: why did the navmesh give a straight path through a wall? Either the navmesh does not include that wall, there is a gap the agent fits through and the bot does not, or GetPath returned a partial path that we treat as whole. Read the path trace's `end` (new: it is set when a path stops more than 1 m short) the next time this happens.
+The cause is known and recorded in the notes (the first criterion is ticked): the local planner's 0.75 m grid stride skipped stair treads, fixed in PR117 (33be3ba) with 0.5 m spacing. Raised-house egress has since been observed live.
 
-Follow should also not count it as stuck when it is already within its distance plus a little of the leader and cannot get closer.
+### What is left
+
+Follow should not count it as stuck when it is already within its distance plus a little of the leader and cannot get closer. Today `FollowTask` in `plugin/Renki.Plugin/BodyTasks.cs` runs the `Walker`'s recoveries and fails with `stuck` ("no progress after N recoveries") even when it is 3.5 m from a leader on the other side of a wall. The failure then sends the bot home.
+
+### Why it matters for M3
+
+Goal 3.3 needs the bot to stay with its owner. Escort (`plugin/Renki.Plugin/EscortTask.cs`) follows at 3.5 m with the same `Walker`, and a follower that gives up and walks home next to its owner is not standing with them. Check whether escort has the same failure path, and fix both if so.
+
+### Approach
+
+When the leader is within the follow distance plus 1.5 m and the walker has used its recoveries, stop recovering and wait (stand, face the leader), reporting a wait reason in the follow trace. Resume when the leader moves more than `RepathAfter` (2 m). Keep the decision in Renki.Core so it is testable (for example a small `FollowPace`-style class); the plugin wires it.
+
+### Files
+
+- `plugin/Renki.Plugin/BodyTasks.cs` (`FollowTask`, `Walker`)
+- `plugin/Renki.Plugin/EscortTask.cs` and `plugin/Renki.Core/Tasks/Escort.cs` if escort shares the path
+- Tests in `plugin/Renki.Tests/` (new class, or `EscortTests.cs` for the escort part)
+
+### Verification
+
+- `just check plugin test-core` with the new class name (for example `just check plugin test-core FollowNear`), using the captured positions above
+- `just check plugin test-core EscortTests` if escort changed
+- `just check ci`
 
 ## Acceptance criteria
 
 - [x] The cause of the straight path through the wall is known and written down
 - [ ] A follower that is near the leader but cannot get closer waits, not recovers
+- [ ] A Core test with the captured house positions shows the follower waits instead of failing stuck, and resumes when the leader moves 2 m; just check ci passes
 
 ## Implementation plan
 

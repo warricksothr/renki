@@ -725,10 +725,11 @@ func (e *Engine) Tick(ctx context.Context) {
 	order, err := i.runner.Next(v, i.result)
 	var delay *Delay
 	if errors.As(err, &delay) {
-		if i.waitingSince.IsZero() {
-			i.waitingSince = now
-		}
-		if delay.Until.After(now.Add(30*time.Second)) || !delay.Until.After(now) {
+		// A Delay is bounded by its own Until. It must not start or keep the
+		// five-second ErrWait clock, or a later ErrWait would end the run at once.
+		i.waitingSince = time.Time{}
+		// Judge the wait by the clock the runner decided on, not a later read.
+		if delay.Until.After(v.Now.Add(30*time.Second)) || !delay.Until.After(v.Now) {
 			e.finish(false, "invalid or expired bounded wait", v)
 		}
 		return

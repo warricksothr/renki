@@ -1,7 +1,6 @@
 package behaviour
 
 import (
-	"errors"
 	"math"
 	"testing"
 	"time"
@@ -24,16 +23,16 @@ func TestGatherMovesOnceThenRequiresFreshActualWildlifeClearance(t *testing.T) {
 		!args.Dry || !args.AvoidHostiles || order.TimeoutS != 30 || r.targets != 0 || r.trees != 0 {
 		t.Fatal(order, r)
 	}
-	if _, err := r.Next(v, success("clear")); !errors.Is(err, ErrWait) {
+	if _, err := r.Next(v, success("clear")); !waiting(err) {
 		t.Fatal("receipt alone authorized harvesting", err)
 	}
 	v.Perception.Characters = nil
-	if _, err := r.Next(v, success("clear")); !errors.Is(err, ErrWait) {
+	if _, err := r.Next(v, success("clear")); !waiting(err) {
 		t.Fatal("stale observation authorized harvesting", err)
 	}
 	v.Perception.Seq++
 	worksiteDeer(&v)
-	if _, err := r.Next(v, success("clear")); !errors.Is(err, ErrWait) || r.wildlifeAttempts != 1 {
+	if _, err := r.Next(v, success("clear")); !waiting(err) || r.wildlifeAttempts != 1 {
 		t.Fatal("chased the deer instead of waiting", err, r.wildlifeAttempts)
 	}
 	v.Perception.Seq++
@@ -88,7 +87,7 @@ func TestGatherWildlifeClearanceHasReceiptAndObservationDeadlines(t *testing.T) 
 			if mode == "failed" {
 				result.Status = protocol.StatusFailed
 			} else {
-				if _, err := r.Next(v, result); !errors.Is(err, ErrWait) {
+				if _, err := r.Next(v, result); !waiting(err) {
 					t.Fatal(err)
 				}
 				v.Now = v.Now.Add(21 * time.Second)
@@ -96,7 +95,7 @@ func TestGatherWildlifeClearanceHasReceiptAndObservationDeadlines(t *testing.T) 
 					v.Perception.Seq++
 				}
 			}
-			if order, err := r.Next(v, result); order != nil || err == nil || errors.Is(err, ErrWait) || r.targets != 0 {
+			if order, err := r.Next(v, result); order != nil || err == nil || waiting(err) || r.targets != 0 {
 				t.Fatal(order, err, r)
 			}
 		})
@@ -108,7 +107,7 @@ func TestGatherObservesOutOfRangeWildlifeWithoutChasingIt(t *testing.T) {
 		r, v := gathering(t)
 		worksiteDeer(&v)
 		v.Perception.Characters[0].Pos[0] = 26
-		if order, err := r.Next(v, nil); order != nil || !errors.Is(err, ErrWait) || r.wildlifeAttempts != 0 {
+		if order, err := r.Next(v, nil); order != nil || !waiting(err) || r.wildlifeAttempts != 0 {
 			t.Fatal(order, err, r)
 		}
 		v.Perception.Seq++
@@ -118,7 +117,7 @@ func TestGatherObservesOutOfRangeWildlifeWithoutChasingIt(t *testing.T) {
 			nextTask(t, r, v, nil, protocol.TaskMoveTo)
 		} else {
 			v.Now = v.Now.Add(21 * time.Second)
-			if order, err := r.Next(v, nil); order != nil || err == nil || errors.Is(err, ErrWait) {
+			if order, err := r.Next(v, nil); order != nil || err == nil || waiting(err) {
 				t.Fatal("observation did not expire", order, err)
 			}
 		}

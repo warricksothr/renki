@@ -22,13 +22,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T22:34:11Z
-updated_at: 2026-10-29T01:37:46Z
+updated_at: 2026-11-02T16:49:55Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan
+  name: ""
 extensions: {}
 ---
 
@@ -85,3 +85,18 @@ Real case, 2026-10-28 18:39: told to come to a player 184 m away, the bot ran a 
 **agent:claude-code/renki-groom** at 2026-10-29T01:37:46Z
 
 Case from the game on 2026-10-28, 20:34: on 'go home' from outside, the navmesh had no path into the house (home is on a raised floor at (-35.9, 37.66, 6.53)), so the bot took a straight line, and that line runs through the wood piles 7 m short of the door at about (-43.4, 16.5). Jump, strafe and a 10-waypoint repath did not clear it; the second strafe did, after 17 s. Built pieces the navmesh does not see, and the stuck circles the walker already traces, are what a sparse grid could remember so that the second trip plans around them.
+
+**agent:claude-code/renki-plan-m7** at 2026-11-02T16:00:07Z
+
+### M7 planning: does exploration need this spike?
+No. The first M7 expedition is dry ground in a familiar biome, away from buildings, and this spike's cases are building interiors and a straight-line fallback into a lake. Since it was filed, the plugin has gained much of what it proposes: plugin/Renki.Core/Movement/LocalRoute.cs (bounded A* around obstacles the navmesh missed, with height in node identity), ObstacleIndex.cs, Doors.cs, DeepWater.cs and DryTravel.cs. Visited ground for exploration is handled by TKT-01M6EFQN91 (Report and keep the ground the bot actually walked), which reuses RouteMemory.cs rather than a grid.
+
+Recommendation for the owner: move it out of M7. Before rescheduling, check whether its three questions are already answered by the LocalRoute and Doors work; if so, close it with that evidence. It still depends on TKT-01M62BMD18K3SE1WXJ7FDN8EPT (Plugin: send perception of characters, structures and resources), in review in M2.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:49:55Z
+
+Corrects the 2026-11-02 "milestone cleared" note: this ticket had no milestone before the planning pass either. It was briefly given one and then returned to unscheduled, so its milestone is unchanged. It stays unscheduled because no exit goal in docs/ROADMAP.md needs it.

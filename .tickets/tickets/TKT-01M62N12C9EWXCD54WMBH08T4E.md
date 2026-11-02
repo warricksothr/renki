@@ -9,12 +9,14 @@ priority: high
 due_on: null
 labels:
   - plugin
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62N129K1RGB8VSJZ3SDAC7N
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -28,12 +30,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T23:02:27Z
+updated_at: 2026-11-02T15:56:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -72,3 +74,22 @@ Live busy-chest check passed: Nimah held chest 1:30592 open. Deposit t-1 at 18:1
 **agent:codex/renki-resume** at 2026-10-29T23:02:27Z
 
 2026-10-29 live storage continuation: rag chest 1:30592 supplied exactly one owner-designated AxeFlint (withdraw t-5 at 22:50:19Z). Stone 1, Flint 3 and ArmorRagsChest 1 retained. Extra chest 1:30595 initially refused unreachable; after explicit accessible floor waypoint (-40.1,36.09,6.8), deposited one BeechSeeds and withdrew exactly one, retaining Wood 32. Final pack AxeFlint 1/BeechSeeds 15. At 23:00:48–23:00:50Z, distant deposit t-4 toward outside chest 1:31261 was cancelled by explicit stop before access or transfer. Position stayed (-39.38,36.09,7.28), HP 25, seeds unchanged. Evidence .checks/audit-window-GndxY7.jsonl; concise inspection through new just vm audit-summary recipe. Full/partial destination overflow, ward refusal and ordered multi-chest overflow are still unverified live; neither observed chest is full. Busy refusal was already passed in earlier staged test. No ward or house changes were made.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.4
+
+withdraw is ticked. Deposit works live with task-matched receipts (10-29 notes). Open:
+
+- Criterion 1 (deposit reports what moved and what did not fit): the moved part has live evidence. Add the partial-fit part from a test in `plugin/Renki.Tests/TransferTests.cs` and tick it.
+- Criterion 3 (full, in use or warded fails with a reason): busy was seen in a staged test. Full and warded have not been seen live. Goal 2.4 needs "chest full" said in chat within 10 s, which the stow template does through `StorageNeed` (`internal/behaviour/engine.go`, `fail`). A live full chest needs a chest that is really full. Ask the owner to name one chest that may be filled with Tas's test seeds, or accept the offline test for the full case (see the M2 epic's goal 2.4 review).
+- Ward refusal can stay unverified live if no ward exists near home. Say so in a note rather than staging one.
+
+### Files
+
+- `plugin/Renki.Plugin/TransferTask.cs`, `plugin/Renki.Core/Tasks/Transfer.cs`, `plugin/Renki.Tests/TransferTests.cs`, `internal/behaviour/stow.go`
+
+### Verification
+
+- Offline: `just check plugin test-core TransferTests` and `just check controller test-packages ./internal/behaviour` (`TestStowBusyChestFallsBackAndReportsShortfall`).
+- Live (lease TKT-01M6EF5DTG): `just vm task deposit` into a full chest returns a failure naming the reason and the remaining counts.

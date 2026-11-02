@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSRNNFS3MJHW1P8CDCNB
 title: "OBS adapter: leaked connection per poll, unchecked source restore"
 type: bug
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -11,7 +11,7 @@ labels:
   - vm
   - tooling
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T15:56:49Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -52,8 +52,32 @@ Fix:
 - Return the restore error with `errors.Join`.
 - Make `configure` reapply the settings of an existing source.
 
+### Goal
+
+Goal 4.6 (review closed). The leak fix in criterion 1 is what lets goal 4.2's 100-connection limit pass.
+
+### Files
+
+Line numbers refer to commit f1a5483; at 0b932ef the restore is `defer set(Window)` at `internal/obscapture/obs.go:228` and `Configure` is at :325.
+
+- `internal/obscapture/obs.go`, `internal/obscapture/obs_test.go`
+- `cmd/obs-adapter` (the `trial-source-loss` action)
+- `docs/WINDOWS-VIDEO.md` (around :119)
+
+### Verification
+
+- `just check controller test-packages ./internal/obscapture ./cmd/obs-adapter`, with tests that a cancelled trial context still restores the window, that a failed restore fails the trial, and that `Configure` rewrites an existing source's settings.
+- `just check ci`.
+- Optional live confirmation under the VM lease: `just streaming windows-action trial-source-loss`, then `just streaming windows-status` shows the capture back on the Valheim window. The criteria do not need it.
+
 ## Acceptance criteria
 
-- [ ] status() reuses one client and a test proves open connections stay bounded over many polls
+- [x] status() reuses one client and a test proves open connections stay bounded over many polls
 - [ ] The source-loss trial restores the window with its own context and fails if the restore fails
 - [ ] configure repairs an existing capture source's settings
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T05:48:47Z
+
+Done in the review-fixes PR: one package-level client with IdleConnTimeout 30 s and MaxIdleConnsPerHost 2. TestStatusPollsReuseOneConnection fails with 50 connections for 50 polls on the old code and passes now. The panel server now also sets IdleTimeout 2 min. Still open: the source-loss trial restore and configure repair.

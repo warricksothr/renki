@@ -18,10 +18,15 @@ labels:
   - vm
   - tooling
   - docs
+  - live
 milestones:
   - M1
   - M2
   - M3
+  - M4
+  - M5
+  - M6
+  - M7
 series: []
 defaults:
   type: task

@@ -607,4 +607,5 @@ const (
 	ReasonStopped          = "stopped"
 	ReasonDied             = "died"
 	ReasonRefused          = "refused"
+	ReasonInternal         = "internal"
 )

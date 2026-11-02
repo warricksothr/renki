@@ -196,3 +196,12 @@ read it. Pass it whenever you read, decide, and then write.
 Text that opens with a dash goes after a bare `--`.
 
 <!-- git-ticket:end -->
+
+## Planning
+
+The `live` label marks a ticket that needs the game client on the Windows VM.
+There is one, so live work runs one at a time: `git ticket ready --not-label
+live` is the queue that can run in parallel. docs/ROADMAP.md, "Working in
+parallel", says how tickets are handed to agents and where they conflict.
+docs/HANDOFF.md says where the last session left off and what waits on the
+owner. Read it before you start, and replace it when you hand off.

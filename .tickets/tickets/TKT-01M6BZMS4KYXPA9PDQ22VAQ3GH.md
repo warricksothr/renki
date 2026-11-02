@@ -12,7 +12,7 @@ labels:
   - tooling
   - docs
 assignees: []
-milestone: null
+milestone: M4
 parent: null
 origin: null
 dependencies: []
@@ -29,12 +29,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T16:38:51Z
-updated_at: 2026-11-01T17:23:27Z
+updated_at: 2026-11-02T15:57:46Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -88,3 +88,24 @@ Tas remains offline at the previously observed unsafe position. No new live peel
 First increment committed as 8fcb2e6 and opened as PR 149 above PR 148. Full just check ci passed (.checks/20261101T171659Z-Yw6oTR.log), including all 58 desktop/mobile scenarios. Committed just check review f189ad3..HEAD passed without findings (.checks/20261101T172028Z-15SwcE.log). Reviewed the new desktop phase/ownership and mobile offline pantry screenshots; specific decisions are retained in .checks/panel-ui/visual-review.json.
 
 Controller-only deployment completed with game not started. The authenticated browser and compact API report inspection-v1, offline, unavailable body ownership, 52 saved choices and no live native phase. Saved goals display without horizontal page overflow. The first SSH capture exposed existing Windows PowerShell Latin-1 response decoding and console-codepage output. Fixed panel-request.ps1 to read JSON explicitly as UTF-8 and emit UTF-8 stdout. The follow-up just vm inspect output decodes strictly as UTF-8 and round-trips the 0–3 s guard label (.checks/inspection-utf8-8fcb2e6.txt). No game login, task dispatch or live combat result is claimed. Causal-history and synchronized map/camera ACs remain open.
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Criteria 1, 2 and 5 are ticked. Open:
+
+- Criterion 3, a read-only graph and causal timeline linking decisions, intents, outcomes and checkpoints with explicit gaps.
+- Criterion 4, map and camera evidence that keep capture scope and tell planned from measured state.
+
+Neither is part of goals 4.1-4.5, and each is more than a day. This ticket also has no parent. Recommendation: split criteria 3 and 4 into two child tickets under the panel epic TKT-01M628X106 (or under M5's behaviour work, which this inspection serves), and close this one for M4 with the first increment (PR 149).
+
+Start in:
+
+- `internal/inspection`, `internal/app/inspection.go`, `internal/panel/panel.go` (`GET /api/inspection`)
+- `panel/src/inspection.js`, `panel/src/inspection.jsx`, `panel/test/inspection.test.js`, `panel/ui/scenarios.mjs`
+- `docs/BEHAVIOUR-INSPECTION.md`
+
+### How to verify
+
+`just check controller test-packages ./internal/inspection ./internal/app ./internal/panel`, `just check panel ci` (desktop and mobile scenarios), then `just check ci`. Live review of the panel, controller-only, needs no game client.

@@ -10,12 +10,14 @@ due_on: null
 labels:
   - plugin
   - controller
+  - live
 assignees: []
-milestone: M2
+milestone: M5
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62N129K1RGB8VSJZ3SDAC7N
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T17:51:51Z
+updated_at: 2026-11-02T16:25:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -98,3 +100,28 @@ PR #89 merged as 19c5045. Third resupply trial reached the correct raised-home f
 **agent:codex/renki-milestones** at 2026-10-30T17:51:51Z
 
 Autonomous resupply passed after PR #90 (9433ba9): .checks/resupply-trial-20261030T174523565524Z/summary.json. Exact current chest/task receipts report CookedDeerMeat3 and NeckTailGrilled1 withdrawn; newer inventory and active-food observations verify both, with automatic recovery from 22/25 to 78/84.4 HP. Native audit reports zero damage events during this run, and cleanup logged out/stopped Valheim with combat off and panel online. The next M3 run can start fed, without owner preparation. The owner now reports all remembered/live objects doubled; prioritizing durable memory reconciliation under TKT-01M62EP0PDAB02DNJAJ6WS3MYD (Controller: remember where things are and should be, per world), then returning to combat and M2 checks. This does not earn the unrelated low-health owner-warning criterion.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.5
+
+Criteria 1 and 2 are ticked, and the autonomous resupply trial passed on 10-30 (`.checks/resupply-trial-20261030T174523565524Z/summary.json`). The gather loop depends on this ticket: `gatherSupplied` refuses to start without active food. Only criterion 3 is left: ask an owner for food when there is none and health is low. No M2 goal needs it.
+
+Proposal: move this ticket to M5 (runs the base), with the food and household track (TKT-01M6864352), or tick criterion 3 against the existing food warnings if `internal/food` already does it. Check `internal/food/food.go` and `internal/chat/food.go` for an owner-facing "I have no food" line before writing new code.
+
+### Files
+
+- `internal/food/food.go`, `internal/chat/food.go`, `internal/app/food.go`
+
+### Verification
+
+- Offline: `just check controller test-packages ./internal/food ./internal/chat`.
+- Live (lease TKT-01M6EF5DTG): with no food carried and HP below the threshold, one chat line to an owner. Read it from `just vm audit-summary SINCE UNTIL`.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:25:44Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal names it. No exit goal names it. What is left, asking an owner for food, belongs with the household food track in M5. The owner can unschedule it.

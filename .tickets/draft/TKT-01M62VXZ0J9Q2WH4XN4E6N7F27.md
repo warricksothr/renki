@@ -11,23 +11,29 @@ labels:
   - plugin
   - controller
   - protocol
+  - live
+  - movement
 assignees: []
-milestone: null
+milestone: M7
 parent: TKT-01M62VXYQB6ZDBQE4E6ERGN83C
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFQN74X0EDYJAVBJJK2DY8
+  - TKT-01M6EFQN91YGXHVP9NF32BK21W
+  - TKT-01M6EFQNBJCQP8BGKX658XVNBS
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-30T15:40:14Z
+updated_at: 2026-11-02T15:59:32Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-atlas
+  id: agent:claude-code/renki-plan-m7
   name: ""
 extensions: {}
 ---
@@ -41,10 +47,24 @@ ground and avoid sending the bot across unexplored land to reach a goal.
 This needs a protocol message (or a field on an existing one) for the
 explored cells and a fixture. The controller keeps it per world.
 
+### Extended for M7 (docs/EXPLORATION.md, "What Tas knows about an area")
+Exploration needs three coverage kinds kept apart, each with provenance: map knowledge (minimap or shared), measured terrain coverage (atlas samples first received during a window), and visited ground (where Tas actually walked, with elevation). Loaded terrain is not personal visual coverage, and a shared map reveal is not discovery. This ticket stays under its current parent and is now the umbrella for three one-PR children:
+
+- TKT-01M6EFQN74 (Atlas: first-seen time and a measured-coverage query): the number M7 goal 7.3 measures
+- TKT-01M6EFQN91 (Report and keep the ground the bot actually walked): visited ground and measured travel
+- TKT-01M6EFQNBJ (Report minimap explored cells as map knowledge): this ticket's original scope and its two original criteria
+
+### Files
+- internal/atlas/store.go, internal/app/atlas.go, plugin/Renki.Core/Movement/RouteMemory.cs, plugin/Renki.Plugin/BodyTasks.cs, plugin/Renki.Plugin/TerrainReporter.cs, internal/protocol/terrain.go, internal/protocol/task.go
+
+### Verification
+Done when the three children are done. Offline: `just check controller test-packages ./internal/atlas ./internal/app ./internal/protocol ./internal/session` and `just check plugin test-core RouteMemoryTests`. Live: the minimap child's capture after `just vm deploy`.
+
 ## Acceptance criteria
 
 - [ ] The plugin reports explored map cells when they change, with a protocol fixture
 - [ ] The controller keeps the explored area per world and can say whether a straight route crosses unexplored land
+- [ ] Measured terrain coverage (TKT-01M6EFQN74) and visited ground (TKT-01M6EFQN91) are done, and map knowledge is never counted as measured coverage
 
 ## Notes
 

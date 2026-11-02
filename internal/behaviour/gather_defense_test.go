@@ -87,7 +87,7 @@ func TestGatherKeepsItsUnfinishedChainWhileAConfirmedPursuerApproaches(t *testin
 	v.Perception.Characters[0].Pos[0] = 25
 	log := gatherResource("unfinished", protocol.ResourceLog, 6)
 	order, err := gatherFinishedTarget(t, r, &v, 0, log)
-	if order != nil || !errors.Is(err, ErrWait) || !r.completed["tree"] || !r.chain[log.ID] || r.defenses != 0 {
+	if order != nil || !waiting(err) || !r.completed["tree"] || !r.chain[log.ID] || r.defenses != 0 {
 		t.Fatal(order, err, r)
 	}
 	v.Now = v.Now.Add(5 * time.Second)
@@ -110,7 +110,8 @@ func TestGatherPursuerWaitCannotExtendOrSubstituteItsTarget(t *testing.T) {
 			r.began = v.Now
 			gatherPursuer(&v)
 			v.Perception.Characters[0].Pos[0] = 25
-			if order, err := r.defend(v); order != nil || !errors.Is(err, ErrWait) {
+			var delay *Delay
+			if order, err := r.defend(v); order != nil || !errors.As(err, &delay) || !delay.Until.Equal(v.Now.Add(15*time.Second)) {
 				t.Fatal(order, err)
 			}
 			v.Now = v.Now.Add(16 * time.Second)
@@ -127,7 +128,7 @@ func TestGatherPursuerWaitCannotExtendOrSubstituteItsTarget(t *testing.T) {
 				v.Perception.Characters[0].TargetingMe = false
 			}
 			order, err := r.defend(v)
-			if order != nil || errors.Is(err, ErrWait) || mode != "unconfirmed" && err == nil || r.defenses != 0 {
+			if order != nil || waiting(err) || mode != "unconfirmed" && err == nil || r.defenses != 0 {
 				t.Fatal(order, err, r)
 			}
 		})
@@ -136,7 +137,7 @@ func TestGatherPursuerWaitCannotExtendOrSubstituteItsTarget(t *testing.T) {
 
 func finishDefense(t *testing.T, r *gatherRun, v *View) {
 	t.Helper()
-	if _, err := r.Next(*v, defenseSuccess()); !errors.Is(err, ErrWait) {
+	if _, err := r.Next(*v, defenseSuccess()); !waiting(err) {
 		t.Fatal(err)
 	}
 	v.State.Seq++
@@ -218,12 +219,12 @@ func TestGatherDefenseRequiresExactDeathAndSubsequentFreshObservations(t *testin
 				result.Detail = "enemy disappeared"
 			}
 			if mode == "failed" || mode == "wrong entity" || mode == "disappeared" {
-				if order, err := r.Next(v, result); order != nil || err == nil || errors.Is(err, ErrWait) {
+				if order, err := r.Next(v, result); order != nil || err == nil || waiting(err) {
 					t.Fatal(order, err)
 				}
 				return
 			}
-			if _, err := r.Next(v, result); !errors.Is(err, ErrWait) {
+			if _, err := r.Next(v, result); !waiting(err) {
 				t.Fatal(err)
 			}
 			v.State.Seq++
@@ -247,7 +248,7 @@ func TestGatherDefenseRequiresExactDeathAndSubsequentFreshObservations(t *testin
 			if order != nil || err == nil {
 				t.Fatal(order, err)
 			}
-			if mode != "injured" && mode != "missing resource" && !errors.Is(err, ErrWait) {
+			if mode != "injured" && mode != "missing resource" && !waiting(err) {
 				t.Fatal(err)
 			}
 		})
@@ -292,7 +293,7 @@ func TestGatherRefusalFailsClosedWithoutSafeOptedInPursuer(t *testing.T) {
 			case "unreachable":
 				result.Reason = protocol.ReasonUnreachable
 			}
-			if order, err := r.Next(v, result); order != nil || err == nil || errors.Is(err, ErrWait) {
+			if order, err := r.Next(v, result); order != nil || err == nil || waiting(err) {
 				t.Fatal(order, err)
 			}
 			if r.completed["tree"] || r.trees != 1 || r.logs != 0 {
@@ -300,4 +301,9 @@ func TestGatherRefusalFailsClosedWithoutSafeOptedInPursuer(t *testing.T) {
 			}
 		})
 	}
+}
+
+func waiting(err error) bool {
+	var delay *Delay
+	return errors.Is(err, ErrWait) || errors.As(err, &delay)
 }

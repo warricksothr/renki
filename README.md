@@ -33,11 +33,11 @@ Mono runtime. Everything outside the game is Go.
 
 ## Status
 
-Milestone 1 is written and waiting to be tried in the game. The bot can
-join, follow, stop, report its status and chat. `just ci` covers everything
-that runs without Valheim, including the C# bridge client talking to the real
-Go controller. [docs/TESTING.md](docs/TESTING.md) is the in-game checklist,
-and `git ticket list --status review` lists the tickets waiting on it.
+- **M1** (join, follow, stop, status, chat) was proven in the game on 2026-10-28.
+- **The panel** is in daily use.
+- **M2** (hauling and gathering wood) and **M3** (surviving danger and standing with the owner) are in progress. Many of their parts work in the game, but none of their exit goals is met yet.
+
+[docs/ROADMAP.md](docs/ROADMAP.md) has the milestones, their dates and the measurable goals that close each one. `just ci` covers everything that runs without Valheim, and docs/TESTING.md describes the checks in the game.
 
 ## Working on it
 

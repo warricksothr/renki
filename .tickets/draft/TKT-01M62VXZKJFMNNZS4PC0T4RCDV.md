@@ -22,13 +22,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:49Z
-updated_at: 2026-10-29T03:40:49Z
+updated_at: 2026-11-02T16:49:55Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan
+  name: ""
 extensions: {}
 ---
 
@@ -40,6 +40,31 @@ and does not shut it behind the bot. The door is then left open. Accepted in
 PR 3 as rare. Fix if it shows up: wait longer while the door's owner has not
 answered, or watch for the state for a while after judging it refused.
 
+### Goal
+
+None of goals 4.1-4.6 needs this. It was filed as "fix if it shows up" and has not been reported since. It waits on TKT-01M62MB5YR (Open closed doors in the bot's way, and close them behind it), which is in review in M2.
+
+### Files
+
+- `plugin/Renki.Plugin/Doorman.cs` (`SettleFor` at :28, the judging in `Tick`)
+- `plugin/Renki.Core/Movement/Doors.cs` (`DoorRules`) and `plugin/Renki.Tests/DoorNavigationTests.cs`, if the timing decision moves into Core
+
+### Verification
+
+- `just check plugin test-core DoorNavigation` for any logic moved into Core.
+- `just check plugin build` with `VALHEIM_DIR` set, and `just check ci`.
+- Reproducing the slow link needs the game; a live check is optional.
+
 ## Acceptance criteria
 
 - [ ] A door that opens after the settle time is still shut behind the bot
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:49:55Z
+
+Corrects the 2026-11-02 "milestone cleared" note: this ticket had no milestone before the planning pass either. It was briefly given one and then returned to unscheduled, so its milestone is unchanged. It stays unscheduled because no exit goal in docs/ROADMAP.md needs it.

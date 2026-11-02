@@ -16,18 +16,19 @@ parent: null
 origin: null
 dependencies:
   - TKT-01M6701B73BXT58GXFS0FYNZK8
+  - TKT-01M6DCFSMEWJG8Z30WR59KBG5Y
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T18:09:42Z
-updated_at: 2026-10-30T18:21:43Z
+updated_at: 2026-11-02T16:49:55Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/procedure-research
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -49,3 +50,13 @@ Publication has two stages: validated/replayed immutable candidate artifact, the
 - [ ] Diagnose/edit/validate/replay/compare works offline for wrong food hints, empty alternatives and restart/permission cases with compact reproducible reports
 - [ ] Validated candidates can publish before canary; stable promotion requires evidence for the exact candidate; authorized rollback preserves pinned active goals and world effects
 - [ ] Publication/operation permissions, If-Match conflicts, idempotency-key conflicts and incompatible schema/version transitions have tested explicit outcomes
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:49:55Z
+
+Corrects the 2026-11-02 "milestone cleared" note: this ticket had no milestone before the planning pass either. It was briefly given one and then returned to unscheduled, so its milestone is unchanged. It stays unscheduled because no exit goal in docs/ROADMAP.md needs it.

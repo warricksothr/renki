@@ -10,11 +10,13 @@ due_on: null
 labels:
   - plugin
   - protocol
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -28,13 +30,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:55:57Z
-updated_at: 2026-10-29T02:09:28Z
+updated_at: 2026-11-02T15:56:21Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m2
+  name: ""
 extensions: {}
 ---
 
@@ -101,3 +103,21 @@ Measured in the game on 2026-10-28 at home in DizzysHellheim, with 317 pieces, 1
 - **The first scan after a start** takes about 15 ms, while the game warms up and the caches fill. It happens once.
 
 The plugin sends this as a `perception: scan` trace every 30 s, so `just vm audit 1 | grep 'perception: scan'` shows it in any base.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:21Z
+
+### Remaining for M2 goal 2.5
+
+Three of four criteria are ticked. Only criterion 3 is open: the panel's map shows players, creatures and structures from the real game. The map code exists (panel/src/workspace.jsx draws perception and remembered things), so this is evidence, not code.
+
+- With Tas in the world and an owner or a creature in range, open the panel map and record what it draws, or read `just vm map-snapshot` output, and link it here.
+- Then tick criterion 3 and move the ticket to done. Nothing on M2's goals waits on more perception work.
+
+### Files
+
+- `plugin/Renki.Plugin/Perceiver.cs`, `panel/src/workspace.jsx`, `docs/BRIDGE-PROTOCOL.md` 6.2
+
+### Verification
+
+- Offline: `just check panel test` and `just check plugin test-core FixtureTests`.
+- Live (needs the VM lease, TKT-01M6EF5DTG): `just vm map-snapshot` while a player or creature is within the perception radius. The snapshot shows the character and at least one structure.

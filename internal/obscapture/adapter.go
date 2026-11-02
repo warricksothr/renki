@@ -29,9 +29,15 @@ type Config struct {
 
 var ErrWarmup = errors.New("Waiting for distinct fresh game frames")
 
-func localClient() *http.Client {
-	return &http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{Proxy: nil}, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+// local is shared by every poll. A client per call kept one idle keep-alive
+// connection open per poll, without bound, in a transport nothing closed.
+var local = &http.Client{
+	Timeout:       3 * time.Second,
+	Transport:     &http.Transport{Proxy: nil, MaxIdleConnsPerHost: 2, IdleConnTimeout: 30 * time.Second},
+	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 }
+
+func localClient() *http.Client { return local }
 
 func ReadConfig(path string) (Config, error) {
 	var c Config

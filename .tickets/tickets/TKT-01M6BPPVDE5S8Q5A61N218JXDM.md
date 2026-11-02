@@ -11,11 +11,13 @@ labels:
   - plugin
   - safety
   - movement
+  - live
 assignees: []
 milestone: null
 parent: TKT-01M62N25826TRP761PYVVC7RKY
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T14:02:42Z
-updated_at: 2026-11-01T16:43:36Z
+updated_at: 2026-11-02T16:49:55Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -90,3 +92,19 @@ Added docs/BEHAVIOUR-INSPECTION.md describing shipped inspection, proposed share
 Added native refusal extraction to the recovery supervisor so a login/logout between polls retains the authoritative native reason, threat/readiness values and connection/sequence evidence instead of only join failed. Added read-only just vm recovery-evidence for saved audits and focused regression coverage for missed startup refusal, cleanup, unrelated traces, malformed rows, relative audit paths and preserving observed success or stronger supervisor failures. The real capture now projects the0.645m threat refusal without contacting the VM. No game admission/combat thresholds changed and no live retry into the unchanged crowd was made.
 
 Focused just check vm test-recover-home passed (.checks/20261101T164047Z-AOpziA.log); the real just check vm recovery-evidence passed (.checks/20261101T164047Z-LV9Ql2.log). Full just check ci passed (.checks/20261101T164029Z-lJ1pWU.log). Final VM/API checks confirm Valheim stopped, independent panel online and connected=false at installed559a261. The inspection design is documented and the implementation ticket remains draft; no graph/authoring/replay UI has shipped. No additional field acceptance criterion is checked. Commit review and PR update follow.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Remaining for M3: not needed for M3's goals
+
+Milestone review (M3 grooming, 2026-11-02): group peeling is not required by goals 3.1-3.5. Goal 3.2 is one ordinary Greyling; goal 3.3 is defence of an owner. Proposed: finish the in-flight PR, then move the open field ACs (3-5) to M7 (explores and maps), where groups are met away from home. The owner decides.
+
+What is left: AC 3 (second pursuer, fresh spawn, lost observation and blocked escape abort safely), AC 4 (one verified kill then reassessment) and AC 5 (live one-then-two enemy checks). Files: `plugin/Renki.Plugin/PeelTask.cs`, `plugin/Renki.Core/Tasks/PursuitGroup.cs`, `internal/goal/peel_test.go`, `internal/retreat/peel_test.go`. Verify: `just check plugin test-core PursuitGroup`, `just check controller test-packages ./internal/goal ./internal/retreat`, `just check ci`; live, `just vm combat-trial --persistent --peel` under the VM lease (TKT-01M6EF5DTG).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:49:55Z
+
+Corrects the 2026-11-02 "milestone cleared" note: this ticket had no milestone before the planning pass either. It was briefly given one and then returned to unscheduled, so its milestone is unchanged. It stays unscheduled because no exit goal in docs/ROADMAP.md needs it.

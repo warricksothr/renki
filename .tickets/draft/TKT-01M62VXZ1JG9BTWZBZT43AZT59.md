@@ -10,7 +10,7 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: null
+milestone: M7
 parent: TKT-01M62VXYQB6ZDBQE4E6ERGN83C
 origin: null
 dependencies:
@@ -24,13 +24,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-10-29T03:40:48Z
+updated_at: 2026-11-02T16:23:39Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan
+  name: ""
 extensions: {}
 ---
 
@@ -45,8 +45,34 @@ whether the way crosses unexplored land (strongly avoided), and danger
 zones. When nothing is good enough, the bot says so rather than taking a
 long, risky trip.
 
+### Status and fit (2026-11-02)
+
+This is not on an M5 exit goal, and it depends on TKT-01M62VXZ0J (Know which parts of the map the bot has explored), which is in M7. It belongs with the expedition work in M7, where the bot is far enough from home for the choice to matter.
+
+What exists: `gather` with `returnHome` and `marker_cargo` deliver home or to a `storage` waypoint only (internal/behaviour/gather.go, internal/behaviour/marker_cargo.go). Remembered chests carry positions, contents and ages (internal/home/containers.go), and danger zones carry scores (internal/home/danger.go). Ships are not reported as containers today.
+
+### Files
+
+- `internal/behaviour/gather.go` (`deliver`, `goHome`) and `internal/behaviour/stow.go`
+- `internal/home/containers.go`, `internal/home/danger.go`, `internal/home/waypoints.go`
+- the explored-area layer from TKT-01M62VXZ0J
+
+### Verification
+
+`just check controller test-packages ./internal/behaviour ./internal/home` with tests for: a storage waypoint chosen over a farther home, a route over unexplored land avoided, a danger zone avoided, and a "nothing good enough" message. `just check ci`.
+
 ## Acceptance criteria
 
 - [ ] Deliver-when-full can choose the ship's hold or a waypoint's chests instead of home
 - [ ] A route over unexplored land or through a danger zone is avoided where another will do
 - [ ] When no storage is good enough, the bot says so
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M7, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:23:39Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal needs it. No exit goal names it. It is in M7 because it depends on TKT-01M62VXZ0J (Know which parts of the map the bot has explored), which is in M7. The owner can unschedule it.

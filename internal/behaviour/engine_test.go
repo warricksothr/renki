@@ -413,3 +413,58 @@ func TestControllerDeadlineStopsTheStepAndCountsTheFailedAttempt(t *testing.T) {
 		t.Fatal(list, f.log.String())
 	}
 }
+
+// pause waits for a fixed span after starting, as a Delay or as ErrWait.
+// With blink set, a Delay is interrupted by one ErrWait tick at 10 s.
+type pause struct{ delay, blink bool }
+
+func (pause) Validate(json.RawMessage) error { return nil }
+func (p pause) Start(json.RawMessage) (Runner, error) {
+	return &pauseRun{delay: p.delay, blink: p.blink}, nil
+}
+
+type pauseRun struct {
+	delay, blink bool
+	start, until time.Time
+}
+
+func (r *pauseRun) Next(v View, _ *Result) (*session.Order, error) {
+	if r.until.IsZero() {
+		r.start, r.until = v.Now, v.Now.Add(15*time.Second)
+	}
+	if r.blink && v.Now.Sub(r.start) == 10*time.Second {
+		return nil, ErrWait
+	}
+	if !v.Now.Before(r.until) {
+		return nil, nil
+	}
+	if r.delay {
+		return nil, &Delay{Until: r.until}
+	}
+	return nil, ErrWait
+}
+
+// Gather's 15 s pursuer and 20 s wildlife windows rely on this contract: a
+// Delay lasts as long as it says (up to 30 s), while ErrWait ends at 5 s.
+func TestEngineHonoursDelaysPastTheObservationWaitLimit(t *testing.T) {
+	for _, p := range []pause{{delay: true}, {delay: true, blink: true}, {}} {
+		delay := p.delay
+		f := setup(t)
+		f.e.o.Templates["pause"] = p
+		d := def()
+		d.Template = "pause"
+		d.Params = json.RawMessage(`{}`)
+		f.put(t, "pause", d)
+		f.act(t, "pause", "start")
+		f.tick()
+		for i := 0; i < 10; i++ {
+			f.now = f.now.Add(time.Second)
+			f.p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25, HPMax: 25, WeightMax: 300})
+			f.tick()
+		}
+		running := f.e.List()[0].Running
+		if running != delay {
+			t.Fatalf("%+v: running after 10 s = %v", p, running)
+		}
+	}
+}

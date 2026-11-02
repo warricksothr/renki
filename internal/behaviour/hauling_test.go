@@ -499,3 +499,23 @@ func TestStowDoesNotUseHomeForAnUnrelatedChestOrUnsafeApproach(t *testing.T) {
 		t.Fatal("deep water is not a reason to send another route")
 	}
 }
+
+// avoidHostiles requires dry, so dry stows (gather, marker food, cargo) avoid
+// hostiles on both chest walks and plain stows send neither.
+func TestDryStowWalksAvoidHostiles(t *testing.T) {
+	for _, dry := range []bool{false, true} {
+		v := haulView()
+		home := protocol.Vec3{20, 4, 0}
+		v.Home = &home
+		v.Containers = []*protocol.Container{{Entity: "a", Pos: protocol.Vec3{21, 4, 0}}}
+		r := &stowRun{p: stowParams(), dry: dry}
+		chest := nextTask(t, r, v, nil, protocol.TaskMoveTo).Args.(*protocol.MoveToArgs)
+		failed := &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable}
+		viaHome := nextTask(t, r, v, failed, protocol.TaskMoveTo).Args.(*protocol.MoveToArgs)
+		for _, a := range []*protocol.MoveToArgs{chest, viaHome} {
+			if a.Dry != dry || a.AvoidHostiles != dry {
+				t.Fatalf("dry=%v: %+v", dry, a)
+			}
+		}
+	}
+}
