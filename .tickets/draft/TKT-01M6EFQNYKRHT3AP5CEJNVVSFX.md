@@ -15,19 +15,19 @@ milestone: M7
 parent: TKT-01M66PMAQSBK2TH076X7M5FGAM
 origin: null
 dependencies:
-  - TKT-01M6EFQNWT6P9JJA3KVHFSQA2F
+  - TKT-01M6EFQN91YGXHVP9NF32BK21W
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:32Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-02T17:28:48Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -55,3 +55,9 @@ Goal 7.3 counts a run only with verified arrival at the anchor inside the elapse
 - [ ] Arrival proof requires a succeeded receipt and a later state within 3 m horizontally and 1.75 m vertically of the pinned anchor (test with a stale state rejected)
 - [ ] A failed return tries at most one alternative (reversed trail without descending segments), then ends needs_plan with the reason; no further retry (test)
 - [ ] An owner stop during return cancels without another dispatch (test)
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:28:48Z
+
+Applied on 2026-11-02 by the planning pass: this ticket now depends on TKT-01M6EFQN91 (Report and keep the ground the bot actually walked) instead of TKT-01M6EFQNWT (native survey task). The return sends move_to to the pinned anchor and, as its one alternative, follows the walked trail reversed. Both come from N91, and neither needs the survey task, so the return can be built offline.

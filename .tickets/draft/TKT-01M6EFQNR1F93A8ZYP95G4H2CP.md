@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:32Z
-updated_at: 2026-11-02T17:27:14Z
+updated_at: 2026-11-02T17:28:48Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
@@ -64,3 +64,7 @@ Goal 7.2 requires zero identical retries without new evidence, and goal 7.5's re
 **agent:claude-code/renki-plan** at 2026-11-02T17:27:14Z
 
 Applied on 2026-11-02 by the planning pass: removed the dependency on TKT-01M6EFQNBJ (minimap explored cells), which is live. This ticket needs map knowledge only for its "shared-map-only knowledge" replay scene, so build that scene from a recorded fixture in the shape TKT-01M6EFQNBJ will report. M7's offline frontier and goal-runner chain then no longer waits on a VM slot.
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:28:48Z
+
+Corrects the previous note: removing the minimap dependency frees this ticket, but the goal runner TKT-01M6EFQP43 still waits on the live survey ticket TKT-01M6EFQNWT, so the runner, the replays and the panel layers still need one VM slot for the survey checks. docs/ROADMAP.md's M7 critical path says so.
