@@ -63,6 +63,7 @@ namespace Renki.Tests
     public class TaskRunnerTests
     {
         readonly List<TaskStatus> reports = new List<TaskStatus>();
+        readonly List<string> faults = new List<string>();
         readonly FakeHost host = new FakeHost();
         double clock;
         readonly SafetyConfig safety = new SafetyConfig();
@@ -70,7 +71,8 @@ namespace Renki.Tests
 
         public TaskRunnerTests()
         {
-            runner = new TaskRunner(safety, TaskNames.M1, host, reports.Add, () => clock);
+            runner = new TaskRunner(safety, TaskNames.M1, host, reports.Add, () => clock,
+                fault: (where, e) => faults.Add(where + ": " + e));
         }
 
         static TaskRequest Req(string id, string task, string args = null, double timeout = 0) =>
@@ -120,6 +122,8 @@ namespace Renki.Tests
             runner.FixedTick(0.02);
             Assert.Equal("t-1:accepted t-1:running t-1:failed/internal", Log());
             Assert.Contains("NullReferenceException", reports.Last().Detail);
+            Assert.Single(faults);
+            Assert.StartsWith("tick of follow t-1", faults[0]);
             Assert.True(host.Bodies[0].Cancelled);
             Assert.Equal(idles + 1, host.Idles);
             Assert.Null(runner.Current);
@@ -148,6 +152,7 @@ namespace Renki.Tests
             for (var i = 0; i < 60; i++) runner.FixedTick(0.02);
             Assert.Null(runner.Current);
             Assert.EndsWith("t-1:failed/timeout", Log());
+            Assert.Contains(faults, f => f.StartsWith("cancel:") && f.Contains("at "));
 
             runner.Handle(Req("t-2", "follow", "{\"player\":\"Sothr\"}"));
             host.Bodies[1].CancelThrows = new InvalidOperationException("cancel");

@@ -69,6 +69,7 @@ namespace Renki.Tasks
         readonly Action<TaskStatus> report;
         readonly SayLimiter say;
         readonly Func<double> now;
+        readonly Action<string, Exception> fault;
 
         HashSet<string> allowed;
         TaskRequest current;
@@ -76,8 +77,10 @@ namespace Renki.Tasks
         double elapsed;
 
         public TaskRunner(SafetyConfig safety, IEnumerable<string> implemented, ITaskHost host,
-            Action<TaskStatus> report, Func<double> now, SayLimiter say = null)
+            Action<TaskStatus> report, Func<double> now, SayLimiter say = null,
+            Action<string, Exception> fault = null)
         {
+            this.fault = fault;
             this.safety = safety;
             this.implemented = new HashSet<string>(implemented);
             this.host = host;
@@ -209,6 +212,7 @@ namespace Renki.Tasks
                 catch (Exception e)
                 {
                     o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
+                    Log($"instant {req.Task} {req.Id}", e);
                 }
                 Reply(req, o.Status, o.Reason, o.Detail);
                 return;
@@ -226,6 +230,7 @@ namespace Renki.Tasks
             }
             catch (Exception e)
             {
+                Log($"start of {req.Task} {req.Id}", e);
                 Reply(req, Wire.StatusRejected, Wire.ReasonInternal, Fault(e));
                 return;
             }
@@ -262,6 +267,7 @@ namespace Renki.Tasks
                     // A throw escaping here would skip SetControls on every
                     // later step and leave the game holding the last inputs.
                     o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
+                    Log($"tick of {current.Task} {current.Id}", e);
                     cancel = true;
                 }
                 if (o == null) return;
@@ -310,13 +316,20 @@ namespace Renki.Tasks
             var dropped = body;
             current = null;
             body = null;
-            try { dropped?.Cancel(); } catch (Exception) { }
+            try { dropped?.Cancel(); } catch (Exception e) { Log("cancel", e); }
             Idle();
         }
 
         void Idle()
         {
-            try { host.Idle(); } catch (Exception) { }
+            try { host.Idle(); } catch (Exception e) { Log("idle", e); }
+        }
+
+        /// <summary>Reports a contained exception, with its stack, to the
+        /// fault sink. A throwing sink is ignored: containment comes first.</summary>
+        void Log(string where, Exception e)
+        {
+            try { fault?.Invoke(where, e); } catch (Exception) { }
         }
 
         /// <summary>A bounded description of an unexpected exception.</summary>
