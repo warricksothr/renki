@@ -57,6 +57,12 @@ examples *ARGS: build
 ui-report *ARGS:
     node ui/report.mjs "$@"
 
-# Explicit operator setup; may need administrator privileges for OS packages.
+# Chromium's OS packages; uses sudo unless already root (CI runs this too).
 ui-install-system: install
-    npx --no-install playwright install-deps chromium
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "$(id -u)" = 0 ]; then
+        npx --no-install playwright install-deps chromium
+    else
+        sudo env "PATH=$PATH" npx --no-install playwright install-deps chromium
+    fi

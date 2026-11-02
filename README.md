@@ -46,8 +46,13 @@ Every task is a `just` recipe; `just` lists them. `just ci` is the gate,
 `just package` builds the bundle for the Windows VM. AGENTS.md has the
 conventions and the ticket workflow.
 
-Development checks use Go, the .NET SDK, `just`, and Node.js 20+ for the
-panel's terrain maths (`just controller test-map`).
+`just ci` needs what CI (.github/workflows/ci.yml) installs: Go at the
+version in `go.mod`, the .NET 8 SDK, Node.js 20+, Python 3, `just`,
+[`git-ticket`](https://github.com/terva-sh/git-ticket) for the ticket check,
+and Playwright's Chromium for the panel UI suite (`just panel ui-install`, plus
+`just panel ui-install-system` for its OS libraries). The Renki.Plugin DLL
+also needs a Valheim install (plugin/Directory.Build.props); without one,
+`just ci` says it skipped it.
 
 ## Prior art
 

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFGJY8TTS36QZRACX5CW9X
 title: "CI: run just ci on every pull request"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -17,15 +17,22 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-m4-ci
+  branch: t3/ci-pull-request-workflow
+  worktree: /home/sothr/.t3/worktrees/renki/t3-a879aa85
+  commit: e0ea1b0833b2d4f26205e097313156e24c5bf0e5
+  session: null
+  claimed_at: 2026-11-02T19:18:48Z
+  expires_at: null
 archive: null
 created_at: 2026-11-02T15:54:40Z
-updated_at: 2026-11-02T19:17:51Z
+updated_at: 2026-11-02T19:18:49Z
 created_by:
   id: agent:claude-code/renki-plan-m4
   name: ""
 updated_by:
-  id: agent:claude-code/renki-wave1
+  id: agent:claude-code/renki-m4-ci
   name: ""
 extensions: {}
 ---
@@ -62,3 +69,7 @@ The Renki.Plugin build stays skipped in CI until TKT-01M6DCFST1's required-plugi
 - [ ] The workflow installs Go, .NET 8, Node, Playwright Chromium, Python 3, just and git-ticket, and its first run is green
 - [ ] A planted Go compile error on a scratch branch turns the run red, and both runs are linked in a note
 - [ ] The root justfile no longer says there is no CI
+
+## Implementation plan
+
+Add .github/workflows/ci.yml on ubuntu-24.04, triggered by pull_request and push to main. Toolchains from the repo: setup-go with go-version-file go.mod (module cache on), setup-dotnet 8.0.x (NuGet cache keyed on plugin csproj files), setup-node from panel/.nvmrc-free engines (>=20, use 22) with npm cache on panel/package-lock.json, Python 3 from the image (scripts use stdlib only), just via extractions/setup-just, git-ticket via go install github.com/terva-sh/git-ticket/cmd/git-ticket@v0.24.0, Playwright Chromium via just panel ui-install plus playwright install-deps through just panel ui-install-system (sudo). The single gate step runs just ci; the plugin DLL skip line from plugin/justfile stays in the log and is called out in the step summary. Fix the justfile header comment and README prerequisites. Then plant a Go compile error on a scratch branch to show a red run.
