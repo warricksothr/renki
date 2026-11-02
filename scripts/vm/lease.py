@@ -84,7 +84,8 @@ class SSHTransport:
             raise SystemExit(f'cannot read the VM lease (SSH exit {result.returncode}): {result.stderr.strip()[-400:]}')
         try:
             reply = json.loads(result.stdout.strip().splitlines()[-1])
-            content = base64.b64decode(reply['content'], validate=True) if reply['content'] else None
+            # An empty file has a hash and no content; it is malformed, not absent.
+            content = base64.b64decode(reply['content'], validate=True) if reply['sha256'] else None
             return parse_time(reply['now']), reply['sha256'], content
         except (ValueError, IndexError, KeyError, TypeError, AttributeError) as error:
             raise SystemExit(f'cannot parse the VM lease reply: {error}') from None
@@ -221,10 +222,13 @@ class Lease:
             self.local_path.write_text(json.dumps(dict(id=new['id'], actor=new['actor'])) + '\n')
             if self.transport.write(sha, data):
                 return new, state != 'self'
-            if previous is None:
-                self.local_path.unlink(missing_ok=True)
-            else:
-                self.local_path.write_text(previous)
+            # Roll back only our own record: a concurrent taker in this
+            # worktree may have won and written its id since.
+            if self.local().get('id') == new['id']:
+                if previous is None:
+                    self.local_path.unlink(missing_ok=True)
+                else:
+                    self.local_path.write_text(previous)
         raise Refused('the VM lease kept changing while it was being taken; try again')
 
     def release(self, force=False):
@@ -285,7 +289,7 @@ def run(lease, command, minutes, renew_seconds):
                 # Any failure to renew is a warning: the trial keeps its lease
                 # until expiry and is still waited for, never abandoned.
                 try:
-                    lease.take(minutes=minutes, renew='extend')
+                    took = lease.take(minutes=minutes, renew='extend')[1] or took
                 except (SystemExit, Exception) as error:
                     print(f'could not renew the VM lease: {error}', file=sys.stderr)
     except OSError as error:

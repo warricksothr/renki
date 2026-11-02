@@ -90,7 +90,7 @@ def held_by_self(case):
 
 def malformed(case):
     """An unreadable lease file blocks everyone until the owner clears it."""
-    for content in (b'{not json', b'[]', b'{"id": "x", "actor": "y", "expires": "soon"}', b'\xff\xfe'):
+    for content in (b'', b'{not json', b'[]', b'{"id": "x", "actor": "y", "expires": "soon"}', b'\xff\xfe'):
         case.file.write_bytes(content)
         out = case.lease('guard')
         check(out.returncode == 1 and 'unreadable' in out.stderr, f'guard refuses {content!r}: {out}')
@@ -132,6 +132,14 @@ def run_releases_when_the_command_cannot_start(case):
     out = case.lease('run', '--', str(case.root / 'missing-interpreter'))
     check(out.returncode == 127 and 'cannot start' in out.stderr, f'run reports it: {out}')
     check(case.held() is None, 'and releases the lease it took')
+
+
+def run_releases_a_lease_retaken_mid_run(case):
+    """A lease run had to take again during the command is released afterwards."""
+    check(case.lease('take', 'agent:x/one').returncode == 0, 'take')
+    child = 'import pathlib, sys, time; pathlib.Path(sys.argv[1]).unlink(); time.sleep(0.4)'
+    out = case.lease('run', '--renew-seconds', '0.05', '--', sys.executable, '-c', child, str(case.file))
+    check(out.returncode == 0 and case.held() is None, f'released afterwards: {out}')
 
 
 def run_keeps_a_taken_lease(case):
@@ -227,7 +235,8 @@ def lost_reply(case):
 
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
-             run_releases_after_cleanup, run_releases_when_the_command_cannot_start, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
+             run_releases_after_cleanup, run_releases_when_the_command_cannot_start,
+             run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
              lost_race, lost_reply]
     for case in cases:
         with tempfile.TemporaryDirectory() as root:
