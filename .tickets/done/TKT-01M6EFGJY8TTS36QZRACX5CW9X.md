@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFGJY8TTS36QZRACX5CW9X
 title: "CI: run just ci on every pull request"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -17,17 +17,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-m4-ci
-  branch: t3/ci-pull-request-workflow
-  worktree: /home/sothr/.t3/worktrees/renki/t3-a879aa85
-  commit: e0ea1b0833b2d4f26205e097313156e24c5bf0e5
-  session: null
-  claimed_at: 2026-11-02T19:18:48Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-02T15:54:40Z
-updated_at: 2026-11-02T19:51:40Z
+updated_at: 2026-11-02T20:14:07Z
 created_by:
   id: agent:claude-code/renki-plan-m4
   name: ""
@@ -65,10 +58,10 @@ The Renki.Plugin build stays skipped in CI until TKT-01M6DCFST1's required-plugi
 
 ## Acceptance criteria
 
-- [ ] A workflow runs just ci on every pull request and on pushes to main
-- [ ] The workflow installs Go, .NET 8, Node, Playwright Chromium, Python 3, just and git-ticket, and its first run is green
-- [ ] A planted Go compile error on a scratch branch turns the run red, and both runs are linked in a note
-- [ ] The root justfile no longer says there is no CI
+- [x] A workflow runs just ci on every pull request and on pushes to main
+- [x] The workflow installs Go, .NET 8, Node, Playwright Chromium, Python 3, just and git-ticket, and its first run is green
+- [x] A planted Go compile error on a scratch branch turns the run red, and both runs are linked in a note
+- [x] The root justfile no longer says there is no CI
 
 ## Implementation plan
 
@@ -93,3 +86,16 @@ The first CI runs on PR #164 found three things that a workstation run of `just 
 1. Run 41509791593 failed the plugin's `dotnet format` lint, because the runner picked SDK 10 when no global.json was present. Fixed by plugin/global.json.
 2. Run 41511564549, attempt 1, failed internal/memory TestPerceptionMemoryExcludesPreStateMenuAndReplacedConnections under -race. Filed as draft TKT-01M6EWJ9EE (Flaky gate: memory test races a replaced connection under -race) and not fixed here. TKT-01M6ESNXKF's app flake did not appear.
 3. Attempt 2 failed check-test with `rg: command not found`. Fixed by switching scripts/check-test.sh to grep.
+
+**agent:claude-code/renki-m4-ci** at 2026-11-02T20:14:07Z
+
+Goal 4.1 evidence.
+
+- Green: https://github.com/warricksothr/renki/actions/runs/41515661244 on PR #164 (final workflow; also https://github.com/warricksothr/renki/actions/runs/41514135257 before the cache/upload-artifact bump). The log shows `-- panel ci`, `-- controller ci`, `-- plugin ci`, all 16 `vm::test-*` recipes, `streaming::test`, `broadcast-test`, `check-test` and `tickets-check`; the plugin DLL skip appears as a "Renki.Plugin not built" warning annotation.
+- Red: https://github.com/warricksothr/renki/actions/runs/41516639527 on scratch draft PR #166 (closed unmerged, branch deleted), which planted `var plantedCompileError int = "not an int"` in cmd/controller; `just controller lint`'s go vet failed the run.
+
+Not built on the runner: the Renki.Plugin DLL (needs Valheim's assemblies). Left to TKT-01M6DCFST1's required-plugin child.
+
+## Summary
+
+Landed in PR #164: .github/workflows/ci.yml runs just ci on every pull request and push to main (ubuntu-24.04), green in run 41515661244 and red on a planted Go error in run 41516639527. Side fixes the runner exposed: plugin/global.json pins SDK 8 (the image's SDK 10 formatter disagrees), check-test uses grep instead of rg and its negated assertion now fails properly. Renki.Plugin DLL still skipped on the runner, shown as a warning annotation; TKT-01M6DCFST1 makes it required. New flake filed as draft TKT-01M6EWJ9EE.
