@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFHE2NGKM21P7S45KBK8JQ
 title: "Behaviours: loot template picks up drops near the owner"
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -18,15 +18,22 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-m2-loot
+  branch: t3/loot-template
+  worktree: /home/sothr/.t3/worktrees/renki/t3-a7446e67
+  commit: e0ea1b0833b2d4f26205e097313156e24c5bf0e5
+  session: null
+  claimed_at: 2026-11-02T19:21:12Z
+  expires_at: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T19:17:51Z
+updated_at: 2026-11-02T19:21:12Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
 updated_by:
-  id: agent:claude-code/renki-wave1
+  id: agent:claude-code/renki-m2-loot
   name: ""
 extensions: {}
 ---
@@ -63,3 +70,13 @@ Part of TKT-01M62N12HJ (Controller: loot and deliver-when-full behaviours for ha
 - [ ] A built-in loot instance exists and is on by default, and an owner can switch it off
 - [ ] If follow pre-emption is enabled, the same follow is started again after the pickup, in a test
 - [ ] docs/BEHAVIOURS.md describes the template and the deliberate-drop rule
+
+## Implementation plan
+
+1. `internal/behaviour/loot.go`: a `Loot` template (pointer, shared by every instance and clone) with params `items` (default Wood, Resin, BeechSeeds, Feathers), `radius` (default 30 m, at most 40), `maxWeightFraction` (default 0.8, 0.1–0.9), `maxTargets` (default 16, 1–64) and `preemptFollow` (default false).
+2. The runner embeds a carry-only `collectRun` and reuses its `fits`, `take`, `productGain` and pickup-recovery rules. It takes the nearest eligible drop within `radius` of a live owner in fresh perception, sends `pickup`, and requires a newer inventory frame with a measured gain before the next target.
+3. The deliberate-drop rule is one exported pure function `DeliberateDrop(drop, at, owners, breaks)`, with its constants. The `Loot` template keeps a small observation tracker: it records tree/log/stump disappearances from fresh perception as breaks, and on a drop's first sighting asks the rule; a deliberate drop is ignored for 5 minutes.
+4. Engine: register `loot` in the template map; call an optional `Observer` on templates each tick; an optional `Readiness` check gates trigger queuing so an idle timer does not queue empty runs. No change near `drop_appeared`.
+5. Built-in instance `Loot`: timer trigger every 2 s, repeat `trigger`, `when.owner.radius` 40, priority -5, enabled; `Engine.InstallLoot` creates it when absent, called from `app.Serve` (not `New`, so the app tests that count rows stay valid). Disable is the off switch.
+6. Follow pre-emption: the engine cannot borrow a body from an active follow (TryAutomationFor refuses busy bodies), and doing so needs the owner's agreement (TKT-01M62VXYQB). `preemptFollow:true` is rejected by validation for now; AC 4 stays unticked with a note and a follow-up.
+7. Tests in `loot_test.go`; docs in docs/BEHAVIOURS.md.
