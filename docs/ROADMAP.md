@@ -37,10 +37,10 @@ The pace that matters for dates is not PRs a day. It is *passing live trials a d
 
 | Milestone | Open tickets | Offline | Live |
 |---|---|---|---|
-| M2 | 23 | 9 | 14 |
+| M2 | 22 | 9 | 13 |
 | M3 | 22 | 14 | 8 |
-| M4 | 36 | 29 | 7 |
-| M5 | 29 | 13 | 16 |
+| M4 | 37 | 29 | 8 |
+| M5 | 30 | 14 | 16 |
 | M6 | 16 | 15 | 1 |
 | M7 | 26 | 19 | 7 |
 | Unscheduled | 21 | 20 | 1 |
