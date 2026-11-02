@@ -149,7 +149,7 @@ func TestBoundedInSize(t *testing.T) {
 	for i := range 400 {
 		many = append(many, drop("d", "Wood", float64(i%20)*4-38, float64(i/20)*4-38, 1))
 	}
-	open := protocol.PerceptionConfig{Radius: 1000}
+	open := protocol.PerceptionConfig{Radius: 1000, MaxPerKind: 1000}
 	// A fast stream: many more frames than the cap within the window.
 	for i := range MaxFrames * 3 {
 		tr.Observe(hello, "w", protocol.Vec3{}, 0, open, frameOf(many...), start.Add(time.Duration(i)*100*time.Millisecond))
@@ -289,7 +289,7 @@ func TestDriftAndStaleFramesSeeLess(t *testing.T) {
 	}
 }
 
-func TestNearIsASphereAndAMissingCapIsThePlugins(t *testing.T) {
+func TestNearIsASphereAndAMissingCapSeesNothing(t *testing.T) {
 	var tr Tracker
 	owner := protocol.Vec3{5, 0, 5}
 	// A drop 3 m from the owner on the ground but 10 m up a ledge is not
@@ -304,16 +304,12 @@ func TestNearIsASphereAndAMissingCapIsThePlugins(t *testing.T) {
 	if n := s.Near(start, owner, 11, nil); n.State != Present || n.Total != 3 {
 		t.Fatalf("ledge inside an 11 m sphere = %+v", n)
 	}
-	// No maxPerKind in the welcome: the plugin still stops at 24 drops,
-	// so a list of 24 is full and ground beyond its farthest is unseen.
+	// No maxPerKind in the welcome: the plugin keeps an earlier cap of any
+	// size, so even a short list is not known to be complete.
 	var capped Tracker
-	many := []protocol.PerceivedResource{}
-	for i := range 24 {
-		many = append(many, drop("d", "Stone", -3-float64(i)/10, 1, 1)) // outside the circle
-	}
-	capped.Observe(hello, "w", protocol.Vec3{}, 0, protocol.PerceptionConfig{Radius: 40}, frameOf(many...), start)
+	capped.Observe(hello, "w", protocol.Vec3{}, 0, protocol.PerceptionConfig{Radius: 40}, frameOf(drop("d", "Stone", -3, 1, 1)), start)
 	if n := capped.Snapshot(hello, "w").Near(start, owner, 8, nil); n.State != Unseen {
-		t.Fatalf("a list at the plugin's cap = %+v", n)
+		t.Fatalf("a list under an unknown cap = %+v", n)
 	}
 }
 

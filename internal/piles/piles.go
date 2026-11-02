@@ -33,9 +33,6 @@ const (
 	// Gap is the longest pause between two frames that still counts as
 	// watching without a break.
 	Gap = 5 * time.Second
-	// pluginMaxPerKind is the plugin's own cap, kept when the welcome
-	// sends no maxPerKind.
-	pluginMaxPerKind = 24
 	// maxStack bounds one drop's stack so a sum cannot overflow.
 	maxStack = 1_000_000
 )
@@ -181,11 +178,11 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 	if f.reach > 0 {
 		f.reach = max(f.reach-drift, 0)
 	}
-	limit := seen.MaxPerKind
-	if limit <= 0 {
-		limit = pluginMaxPerKind
-	}
-	if drops >= limit {
+	// Without a maxPerKind the plugin keeps whatever cap it had, which
+	// may be any size, so no list is known to be complete.
+	if seen.MaxPerKind <= 0 {
+		f.reach = 0
+	} else if drops >= seen.MaxPerKind {
 		f.reach = max(min(f.reach, farthest-2*drift), 0)
 	}
 	for k, s := range sums {
