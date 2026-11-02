@@ -20,18 +20,19 @@ dependencies:
   - TKT-01M6EFQNYKRHT3AP5CEJNVVSFX
   - TKT-01M6EFQNR1F93A8ZYP95G4H2CP
   - TKT-01M6EFQN74X0EDYJAVBJJK2DY8
+  - TKT-01M6EFQNWT6P9JJA3KVHFSQA2F
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:33Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-02T17:29:49Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
