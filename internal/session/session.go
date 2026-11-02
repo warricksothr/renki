@@ -63,13 +63,14 @@ type Task struct {
 	world, worldUID string
 	automation      *Automation
 
-	mu      sync.Mutex
-	status  string
-	reason  string
-	detail  string
-	entity  string
-	cooking []*protocol.Trace
-	done    chan struct{}
+	mu         sync.Mutex
+	status     string
+	reason     string
+	detail     string
+	entity     string
+	receiptSeq uint64
+	cooking    []*protocol.Trace
+	done       chan struct{}
 }
 
 // Status returns the newest status, reason and detail.
@@ -84,6 +85,14 @@ func (t *Task) Entity() string {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.entity
+}
+
+// ReceiptSeq is the terminal native frame's sequence. Locally ended tasks
+// have no native receipt and return zero.
+func (t *Task) ReceiptSeq() uint64 {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.receiptSeq
 }
 
 // Done is closed when the task reaches a final status.
@@ -103,6 +112,10 @@ func (t *Task) Wait(ctx context.Context) (status, reason string, err error) {
 // update records a status and reports whether it made the task final. A
 // task that is already final ignores later reports.
 func (t *Task) update(status, reason, detail string, entity ...string) bool {
+	return t.record(status, reason, detail, 0, entity...)
+}
+
+func (t *Task) record(status, reason, detail string, receiptSeq uint64, entity ...string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if protocol.Final(t.status) {
@@ -110,6 +123,7 @@ func (t *Task) update(status, reason, detail string, entity ...string) bool {
 	}
 	t.status, t.reason, t.detail = status, reason, detail
 	if protocol.Final(status) {
+		t.receiptSeq = receiptSeq
 		if len(entity) > 0 {
 			t.entity = entity[0]
 		}
@@ -375,7 +389,7 @@ func (s *Session) taskStatus(m *protocol.TaskStatus) {
 		return
 	}
 	s.log.Info("task", "id", t.ID, "task", t.Name, "status", m.Status, "reason", m.Reason, "detail", m.Detail)
-	if t.update(m.Status, m.Reason, m.Detail, m.Entity) {
+	if t.record(m.Status, m.Reason, m.Detail, m.Seq, m.Entity) {
 		s.listener.TaskDone(t)
 	}
 }

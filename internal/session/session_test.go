@@ -83,9 +83,13 @@ func TestFinalReceiptBindsEntityAndIgnoresLateSubstitution(t *testing.T) {
 	p.NextTask()
 	p.Send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: task.ID}, Status: protocol.StatusSucceeded, Detail: "observed Greyling death", Entity: "native-grey"})
 	waitFor(t, func() bool { st, _, _ := task.Status(); return st == protocol.StatusSucceeded })
-	s.taskStatus(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: task.ID}, Status: protocol.StatusSucceeded, Entity: "other"})
-	if task.Entity() != "native-grey" {
-		t.Fatal(task.Entity())
+	nativeSeq := task.ReceiptSeq()
+	if nativeSeq == 0 {
+		t.Fatal("missing native receipt sequence")
+	}
+	s.taskStatus(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: task.ID, Seq: nativeSeq + 1}, Status: protocol.StatusSucceeded, Entity: "other"})
+	if task.Entity() != "native-grey" || task.ReceiptSeq() != nativeSeq {
+		t.Fatal(task.Entity(), task.ReceiptSeq())
 	}
 }
 

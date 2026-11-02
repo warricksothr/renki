@@ -76,6 +76,7 @@ type Stock struct {
 // Result is the last completed step, or nil at the start of a run.
 type Result struct {
 	Status, Reason, Detail, TaskID, Entity string
+	ReceiptSeq                             uint64
 	Cooking                                []*protocol.Trace
 }
 
