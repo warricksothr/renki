@@ -118,7 +118,10 @@ was logged out after testing.
 
 `just check streaming windows-action trial-source-loss` temporarily selects
 only a nonexistent exact Valheim window, verifies adapter standby, then restores
-the fixed game window. `just check streaming windows-action trial-watchdog`
+the fixed game window. The restore runs even when the trial is interrupted, on
+its own bounded context, and the trial fails unless the restored source
+verifies. `configure` reapplies the fixed settings to sources that already
+exist, so it also repairs a capture left on the wrong window. `just check streaming windows-action trial-watchdog`
 kills only the adapter, verifies independent standby with increasing output
 duration, then restarts it. Both passed on Windows; gameplay recovered. Body stop
 and logout also passed while OBS output and the same browser MediaStream
