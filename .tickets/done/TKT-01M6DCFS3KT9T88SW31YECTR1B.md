@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:33Z
-updated_at: 2026-11-02T05:48:46Z
+updated_at: 2026-11-02T06:07:37Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -69,6 +69,10 @@ Wrap body Tick, StartBody and RunInstant in TaskRunner with catch-all handlers: 
 **agent:claude-code/renki-review** at 2026-11-02T05:48:46Z
 
 Added protocol reason 'internal' in docs/BRIDGE-PROTOCOL.md 6.6, Go protocol.ReasonInternal and C# Wire.ReasonInternal. The controller has no reason allowlist, so older controllers just see an unfamiliar reason. Still unverified in the game: no live exception has been forced. The guard is exercised by Core tests only.
+
+**agent:claude-code/renki-review** at 2026-11-02T06:07:37Z
+
+Follow-up in the same PR: every Cancel and Idle now goes through Release, which clears the runner's state first and contains throws. TaskRunner takes an optional fault sink, which the plugin wires to the BepInEx log with full stack traces. Not compiled here: Renki.Plugin needs VALHEIM_DIR, see TKT-01M6DCFST1. The plugin-side edits are three lines in RenkiPlugin.cs.
 
 ## Summary
 
