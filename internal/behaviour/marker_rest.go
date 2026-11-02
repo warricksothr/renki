@@ -142,7 +142,7 @@ func (r *markerRestRun) Next(v View, result *Result) (*session.Order, error) {
 		if r.p.Sleep {
 			return nil, ErrWait
 		} // a sleep receipt alone is not bed attachment
-		if distance(v.State.Pos, r.bed.Pos) > 2 || math.Abs(v.State.Pos[1]-r.bed.Pos[1]) > .75 {
+		if !besideBedOnFloor(v.State.Pos, r.bed.Pos) {
 			return nil, errors.New("bedside move lacks observed arrival on the bed floor")
 		}
 		return nil, nil
@@ -150,13 +150,19 @@ func (r *markerRestRun) Next(v View, result *Result) (*session.Order, error) {
 	if !v.Idle {
 		return nil, errors.New("another body order owns rest time")
 	}
-	if !r.p.Sleep && distance(v.State.Pos, r.bed.Pos) <= 2 && math.Abs(v.State.Pos[1]-r.bed.Pos[1]) <= .75 {
+	if !r.p.Sleep && besideBedOnFloor(v.State.Pos, r.bed.Pos) {
 		return nil, nil
 	}
 	r.sent, r.beforeSeq = true, v.State.Seq
 	if r.p.Sleep {
 		return &session.Order{Task: protocol.TaskInteract, Args: &protocol.InteractArgs{Entity: r.bed.ID, Sleep: true}, TimeoutS: 60}, nil
 	}
-	within := 1.75
+	within := 2.0
 	return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Entity: r.bed.ID}, StopDistance: &within, Dry: true, AvoidHostiles: true}, TimeoutS: 60}, nil
+}
+
+func besideBedOnFloor(pos, bed protocol.Vec3) bool {
+	// Match native movement's horizontal arrival radius, retaining the
+	// stricter floor band so a lower storey cannot count as bedside waiting.
+	return math.Hypot(pos[0]-bed[0], pos[2]-bed[2]) <= 2 && math.Abs(pos[1]-bed[1]) <= .75
 }

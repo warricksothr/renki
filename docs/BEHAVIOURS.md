@@ -429,8 +429,8 @@ the night can skip, and native roof/fire/wet/enemy refusals remain visible.
 Day mode waits120s, at lower priority than food/cargo work, then makes one
 dry/hostile-aware move near the bed and releases the body. It waits nearby
 without trying an invalid daytime sleep or holding a task open. Already
-being within2m of the bed needs no movement. Native waiting approaches use
-a1.75m arrival radius and require a fresh sheltered floor observation within
+being within2m horizontally of the bed needs no movement. Native waiting approaches use
+a2m arrival radius and require a fresh sheltered floor observation within
 2m and75cm vertically, avoiding a demand to climb into crowded bed frames.
 
 Both presets have a five-minute cooldown and100-attempt controller-session

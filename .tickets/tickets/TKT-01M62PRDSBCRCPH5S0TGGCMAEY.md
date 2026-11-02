@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-02T04:16:56Z
+updated_at: 2026-11-02T04:24:13Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -150,3 +150,11 @@ All original automatic-claim/no-bed-notice/actual-respawn acceptance remains ope
 The bedside spacing adjustment passed full just check ci177s (.checks/20261102T041047Z-oa2Qx6.log). A final lower-floor no-op guard and regression then passed focused just check controller test-packages ./internal/behaviour (.checks/20261102T041402Z-N6mxUN.log). Running the full gate again on that final code before committing/deploying.
 
 Fresh just check vm observe at04:15:54Z (.checks/20261102T041553Z-nliLZR.log) shows Tas naturally awake on day143, fraction0.34, grounded and sheltered at[-31.08,36.49,15.19], full37.5/37.5HP and injury seq0/damage0. No wake order or logout was sent. All remaining automatic-claim/no-bed-notice/respawn criteria stay open.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:24:13Z
+
+Spacing controller5394f13 passed final full just check ci174s (.checks/20261102T041559Z-z67dea.log), committed review (.checks/20261102T041901Z-PLkoCg.log) and controller-only deployment4s (.checks/20261102T041921Z-RnF3f5.log). All six enabled idle definitions survived, including the four food/cargo definitions. Tas remained online; fresh state was idle and awake before deployment, no command was displaced.
+
+Daytime retest exposed another earned failure: after native move t-1 to the previously verified indoor tending position succeeded (.checks/task-fkhnzqob.json), the scheduler itself started idle rest t-2 at04:21:59Z. Tas reached[-31.18,36.09,13.2], horizontal1.99m from bed1:99058, grounded/sheltered with25/25HP and injury0. The controller already accepted this as a valid waiting distance, but native arrival still required1.75m, causing repeated approach searches and eventual unreachable. Evidence .checks/audit-window-FWKt7I.jsonl and .checks/20261102T042300Z-jgx28y.log. Do not report this as a live pass.
+
+Align native and controller daytime arrival at2m horizontally with a separate75cm floor band. Preserve the narrower floor requirement, native dry/hostile checks and sleep attachment requirements. Added regression for the actual reached body position, plus native-horizontal arrival with a modest same-floor height difference. Focused behaviour/app checks passed (.checks/20261102T042347Z-V7p0xO.log); full gate rerunning for the new code. Final deployed automatic daytime pass remains pending. No wake or logout follows refusal.

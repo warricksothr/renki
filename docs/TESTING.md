@@ -663,11 +663,20 @@ other players; shared time skip and respawn remain unobserved.
 The first daytime wait reached the bed area but its1.25m arrival radius
 failed against the crowded raised beds. Retained `t-1` search reached the
 actual floor node[-30.47,36.09,16.62], about1.55m from the owned bed. Daytime
-waiting now uses1.75m native arrival with observed distance at most2m and the
+waiting initially used1.75m native arrival with observed distance at most2m and the
 same75cm floor tolerance, rather than attempting to climb into the bed frame.
 The captured reachable-node regression covers this change. The adjusted
 daytime wait still needs a new live pass after night ends; do not wake the
 nighttime sleeper merely to manufacture that test.
+
+The natural daytime retest on controller `5394f13` dispatched idle-owned
+`t-2` at04:21:59Z. It reached[-31.18,36.09,13.2], about1.99m from the bed,
+but the1.75m native radius demanded a closer approach and eventually refused.
+Evidence: `.checks/audit-window-FWKt7I.jsonl` and
+`.checks/20261102T042300Z-jgx28y.log`. Align native arrival and observed
+waiting at2m horizontally, with the separate75cm vertical floor limit.
+The captured body position and a horizontal-arrival/floor-offset regression
+cover that mismatch. A further deployed live pass remains required.
 
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"

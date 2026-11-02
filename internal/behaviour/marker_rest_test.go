@@ -87,7 +87,9 @@ func TestDayRestUsesReachableFloorBesideACrowdedBed(t *testing.T) {
 	a := o.Args.(*protocol.MoveToArgs)
 	// The captured search reached this actual floor node, but the former
 	// 1.25m arrival radius demanded climbing into the row of raised beds.
-	closest := protocol.Vec3{-30.47, 36.09, 16.62}
+	// The next live attempt reached this unobstructed approach, 1.99m from
+	// the bed, before the 1.75m native radius kept searching unnecessarily.
+	closest := protocol.Vec3{-31.18, 36.09, 13.2}
 	if a.StopDistance == nil || distance(closest, v.Perception.Structures[0].Pos) > *a.StopDistance {
 		t.Fatal(a)
 	}
@@ -95,6 +97,23 @@ func TestDayRestUsesReachableFloorBesideACrowdedBed(t *testing.T) {
 	v.State.Seq++
 	if o, err := r.Next(v, &Result{Status: protocol.StatusSucceeded}); err != nil || o != nil {
 		t.Fatal(o, err)
+	}
+}
+
+func TestDayRestAcceptsNativeHorizontalArrivalWithFloorOffset(t *testing.T) {
+	r, v := restFixture(t, false)
+	if o, err := r.Next(v, nil); err != nil || o == nil {
+		t.Fatal(o, err)
+	}
+	v.State.Pos = protocol.Vec3{2, .5, 0}
+	v.State.Seq++
+	if o, err := r.Next(v, &Result{Status: protocol.StatusSucceeded}); err != nil || o != nil {
+		t.Fatal("native arrival on the same floor was rejected", o, err)
+	}
+	r, v = restFixture(t, false)
+	v.State.Pos = protocol.Vec3{2, .5, 0}
+	if o, err := r.Next(v, nil); err != nil || o != nil {
+		t.Fatal("same-floor bedside wait dispatched another movement", o, err)
 	}
 }
 
