@@ -11,7 +11,7 @@ labels:
   - controller
   - chat
 assignees: []
-milestone: M2
+milestone: M5
 parent: null
 origin: null
 dependencies: []
@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T06:11:09Z
+updated_at: 2026-11-02T16:20:55Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -67,3 +67,7 @@ Grouping items into chests on its own comes later (the base upkeep epic).
 **agent:claude-code/renki-review** at 2026-11-02T06:11:09Z
 
 Roadmap (docs/ROADMAP.md, 2026-11-01): only criterion 1 (loot and deliver as template instances) gates M2, and it is largely met by the gather, collect and stow templates. Criteria 2 (clone and edit from chat or the panel) and 3 (storage notices in the panel) are scheduled with M5. Proposal for the owner: drop M2's dependency on this epic, or split criterion 1 into its own ticket, so M2 can close on its own criteria.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:20:55Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, and the M2 epic no longer depends on this epic. Its owner-editing outcome is M5 goals 5.4 and 5.5 (docs/ROADMAP.md), and its only M2 part, loot and deliver as template instances, is the same work as TKT-01M62N12HJ (Controller: loot and deliver-when-full behaviours for hauling). Children stay in the milestones whose goals they serve. The owner can revert this.

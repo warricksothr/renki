@@ -45,12 +45,12 @@ The only fuelling today is inside native cooking: a cold station may first use o
 
 ### What to build
 
-- `add_to {entity, item, count}`: put fuel or ore from the pack into a fire (including hearths, torches and braziers), smelter or kiln, one item per game use, up to `count` or until the game reports it full. Generalise the `CookingFuel` receipt: each unit needs the pack decrease and the synchronized fuel or queue increase; an uncertain unit stops the task without retrying. Report how many went in.
-- `take_from {entity}`: take what is ready from a cooking station, fermenter or beehive, with a pickup and inventory receipt as cooking's output path has. The cooking-station half overlaps TKT-01M62VXZ6Z (tend template), which already collects its own cooked output; reuse that receipt code rather than writing a second one.
+- `add_to {entity, item, count}`: put fuel from the pack into a fire (including hearths, torches and braziers), one item per game use, up to `count` or until the game reports it full. Generalise the `CookingFuel` receipt: each unit needs the pack decrease and the synchronized fuel increase; an uncertain unit stops the task without retrying. Report how many went in.
+- `take_from {entity}`: take what is ready from a cooking station, with a pickup and inventory receipt as cooking's output path has. The cooking-station half overlaps TKT-01M62VXZ6Z (tend template), which already collects its own cooked output; reuse that receipt code rather than writing a second one.
 - Both walk to the station first using the existing interaction approach, and fail with `invalid_target`, `inventory_full`, `missing_item`, `not_allowed` or `unreachable`.
 - A Safety switch for using stations (off by default), and a session permission for each task.
 
-Do fires first; they are what goal 5.1 measures, and they need nothing new from perception. The smelter and kiln half needs queue state from TKT-01M62VXZ39 (Perception: machine state); that dependency was removed from this ticket on 2026-11-02 so the fire half is not held behind it. If the PR grows past a day, land `add_to` for fires alone and file the smelter, kiln and `take_from` parts as a follow-up.
+Fires are what goal 5.1 measures, and they need nothing new from perception. Smelters, kilns, fermenters and beehives are out of scope until the owner decides whether the base has them; that follow-up depends on TKT-01M62VXZ39 (Perception: machine state), and this ticket no longer does. If the PR grows past a day, land `add_to` for fires alone and file `take_from` as a follow-up.
 
 ### Files
 
@@ -63,7 +63,7 @@ Do fires first; they are what goal 5.1 measures, and they need nothing new from 
 
 ### Verification
 
-`just check plugin test-core CookingTests` plus new core tests for the generalised receipt (a full fire stops, a missing fuel increase stops without retrying, ore into a smelter counts per unit). `just check controller test-packages ./internal/protocol`. `just check ci`.
+`just check plugin test-core CookingTests` plus new core tests for the generalised receipt (a full fire stops, a missing fuel increase stops without retrying, each unit is counted). `just check controller test-packages ./internal/protocol`. `just check ci`.
 
 Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entity":"<home fire id>","item":"Wood","count":2}'` at home reports 2 added, and the next perception shows the fire's fuel up by 2. Link the audit window.
 

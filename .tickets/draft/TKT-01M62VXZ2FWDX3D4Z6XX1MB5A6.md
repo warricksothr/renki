@@ -71,7 +71,7 @@ docs/ROADMAP.md, M5: goal 5.1 (fires stay lit), 5.2 (no food burns) and 5.3 (ass
 
 ## Acceptance criteria
 
-- [ ] With fuel on, fires in the base stay lit when cold or at night and working furnaces stay fuelled
+- [ ] With fuel on, fires in the base stay lit when cold or at night (furnaces, smelters and kilns join this criterion only if the owner keeps machines in M5)
 - [ ] With machines on, food comes off cooking stations before it burns
 - [ ] Every item an owner has assigned ends up in its chests, and the owners hear when there is no room
 

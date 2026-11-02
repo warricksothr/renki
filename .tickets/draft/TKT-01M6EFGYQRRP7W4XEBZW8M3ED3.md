@@ -44,7 +44,7 @@ The world-identity part of TKT-01M6DCFSHH (Memory: durable memory.json and setti
 
 ### Fix
 
-Add `version` to memory.json, store the world with the interrupted flag, and key by `worldUid` when the state provides it, migrating entries keyed by name. Related: TKT-01M62EP0PD (Controller: remember where things are and should be, per world), which is in progress in M2. Coordinate with it before starting, because both edit the per-world maps in `internal/home`.
+Add `version` to memory.json, store the world with the interrupted flag, and key by `worldUid` when the state provides it, migrating entries keyed by name. Related: TKT-01M62EP0PD (Controller: remember where things are and should be, per world), which is in progress and now in M3. Coordinate with it before starting, because both edit the per-world maps in `internal/home`.
 
 ### Files
 

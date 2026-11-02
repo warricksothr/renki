@@ -14,8 +14,7 @@ assignees: []
 milestone: M2
 parent: null
 origin: null
-dependencies:
-  - TKT-01M62VXYQB6ZDBQE4E6ERGN83C
+dependencies: []
 blocks_on: none
 references: []
 moved_to: null
@@ -29,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-11-02T16:02:27Z
+updated_at: 2026-11-02T16:20:55Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -104,3 +103,7 @@ This epic depends on TKT-01M62VXYQB (Behaviours: templates and instances the bot
 ### Dependency links that hold M2 behind M3 work (owner decision)
 
 TKT-01M62N12JW depends on TKT-01M62N12HJ, TKT-01M62N12G9 and TKT-01M62N12DN, and TKT-01M62N12G9 and TKT-01M62N12HJ depend on TKT-01M62EP0PD. So goal 2.1 waits in the graph on the hauling scene and on memory criteria M2 does not need. The gather loop works without them: gather stows its own load, harvest equips its own axe, and the memory parts it uses are done. Proposal: unlink TKT-01M62N12JW from those three, and TKT-01M62N12G9 and TKT-01M62N12HJ from TKT-01M62EP0PD.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:20:55Z
+
+Applied on 2026-11-02 by the planning pass, superseding the "proposed moves (owner decision)" wording in the earlier planning note: the dependency on TKT-01M62VXYQB (Behaviours: templates and instances) is removed and that epic is in M5. The memory, bed, eating, chat-behaviours and repeat-condition tickets have also moved, and the work-site, haul and chest-memory tickets no longer depend on the memory ticket now in M3. Each moved ticket carries a note. No open M2 ticket depends on later-milestone work.
