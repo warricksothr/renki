@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSRNNFS3MJHW1P8CDCNB
 title: "OBS adapter: leaked connection per poll, unchecked source restore"
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-m4-obs
-  branch: t3/obs-restore
-  worktree: /home/sothr/.t3/worktrees/renki/t3-c765f67a
-  commit: 26dd1f039e9942423eadf30ab229fec1aee78bfb
-  session: null
-  claimed_at: 2026-11-02T18:48:56Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T18:53:35Z
+updated_at: 2026-11-02T19:07:21Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -96,3 +89,11 @@ Done in the review-fixes PR: one package-level client with IdleConnTimeout 30 s 
 **agent:claude-code/renki-m4-obs** at 2026-11-02T18:53:35Z
 
 Trial requests now run on context.WithoutCancel: coder/websocket closes the connection when a read's context is cancelled, so the old code lost the connection on an interrupt mid-request and no restore could have worked (the new cancel test fails on the old code with 'OBS response unavailable'). The restore uses a fresh 5 s context, then VerifySource, joined with errors.Join. Configure reapplies settings (overlay) to both existing inputs, the standby browser source as well as the game capture. Live confirmation under the VM lease was skipped by instruction; the VM was not touched and this is not deployed.
+
+**agent:claude-code/renki-m4-obs** at 2026-11-02T19:07:21Z
+
+Review follow-ups: the trial returns before blanking the capture if interrupted during the first VerifySource; a refused or unverified restore reports 'Capture window not restored, run configure to repair it' with the fixed-string cause. Not done: a restore after a request timeout cannot succeed, because the timed-out read closed the connection and OBS keeps no password to reconnect. The trial fails loudly in that case and configure repairs the source.
+
+## Summary
+
+Landed on t3/obs-restore. SourceLossTrial runs its OBS requests on a context the interrupt cannot cancel, restores the exact window on a fresh 5 s context, verifies it, and fails the trial with a configure hint if either step fails. Configure reapplies its settings to inputs that already exist. Five obs_test.go tests against a stateful fake OBS; the cancel, refused-restore and configure tests fail on the old code. Not live-confirmed and not deployed.
