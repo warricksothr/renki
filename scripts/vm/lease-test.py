@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Offline checks of the VM lease guard (lease.py) against a local lease file."""
+import datetime
 import json
 import os
 from pathlib import Path
@@ -132,12 +133,39 @@ def run_keeps_a_taken_lease(case):
 
 def run_renews(case):
     """run renews the lease while a long command runs, on the VM clock."""
-    check(case.lease('take', 'agent:x/one', '1', now=None).returncode == 0, 'take a short lease')
-    short = case.held()['expires']
+    check(case.lease('take', 'agent:x/one', '120', now=None).returncode == 0, 'take a lease')
+    # The child stands in for time passing: it shortens the lease to a minute
+    # after run started, so only a renewal inside the loop can lengthen it.
+    child = (
+        'import json, pathlib, sys, time\n'
+        'path = pathlib.Path(sys.argv[1])\n'
+        'lease = json.loads(path.read_text())\n'
+        'lease["expires"] = sys.argv[2]\n'
+        'path.write_text(json.dumps(lease))\n'
+        'time.sleep(0.4)\n'
+    )
+    short = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
     out = case.lease('run', '--minutes', '90', '--renew-seconds', '0.05', '--',
-                     sys.executable, '-c', 'import time; time.sleep(0.4)', now=None)
+                     sys.executable, '-c', child, str(case.file), short, now=None)
     check(out.returncode == 0, f'run: {out}')
-    check(case.held()['expires'] > short, f'renewed beyond {short}: {case.held()}')
+    check(case.held()['expires'] > short, f'renewed during the command beyond {short}: {case.held()}')
+
+
+def run_survives_a_failed_renewal(case):
+    """A renewal that fails is a warning; run still waits for the command and its cleanup."""
+    probe = case.root / 'done'
+    # A directory in place of the lease file makes every read fail with an
+    # error that is not a refusal, as a broken SSH reply would.
+    child = (
+        'import pathlib, sys, time\n'
+        'lease, probe = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n'
+        'lease.unlink(); lease.mkdir(); time.sleep(0.3); lease.rmdir()\n'
+        'probe.write_text("cleanup finished")\n'
+    )
+    check(case.lease('take', 'agent:x/one').returncode == 0, 'take')
+    out = case.lease('run', '--renew-seconds', '0.05', '--', sys.executable, '-c', child, str(case.file), str(probe))
+    check(out.returncode == 0 and probe.exists(), f'run waited for the command: {out}')
+    check('could not renew' in out.stderr, f'the failed renewal is reported: {out.stderr}')
 
 
 def lost_race(case):
@@ -152,7 +180,8 @@ def lost_race(case):
 
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
-             run_releases_after_cleanup, run_keeps_a_taken_lease, run_renews, lost_race]
+             run_releases_after_cleanup, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
+             lost_race]
     for case in cases:
         with tempfile.TemporaryDirectory() as root:
             case(Case(root))

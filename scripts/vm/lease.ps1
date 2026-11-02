@@ -13,21 +13,29 @@
 $ErrorActionPreference = 'Stop'
 $path = Join-Path $Dir 'lease.json'
 
-function Get-LeaseHash {
-    if (-not (Test-Path -LiteralPath $path)) { return '' }
+# The file's bytes, or $null when absent.
+function Get-LeaseBytes {
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    return ,[IO.File]::ReadAllBytes($path)
+}
+
+# The SHA-256 of exactly the bytes given, so a hash always matches the content
+# it is reported with; '' for an absent file.
+function Get-LeaseHash($bytes) {
+    if ($null -eq $bytes) { return '' }
     $sha = [Security.Cryptography.SHA256]::Create()
     try {
-        $bytes = [IO.File]::ReadAllBytes($path)
         return ([BitConverter]::ToString($sha.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
     } finally { $sha.Dispose() }
 }
 
 if ($Action -eq 'Read') {
+    $bytes = Get-LeaseBytes
     $content = ''
-    if (Test-Path -LiteralPath $path) { $content = [Convert]::ToBase64String([IO.File]::ReadAllBytes($path)) }
+    if ($null -ne $bytes) { $content = [Convert]::ToBase64String($bytes) }
     [ordered]@{
         now     = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
-        sha256  = Get-LeaseHash
+        sha256  = Get-LeaseHash $bytes
         content = $content
     } | ConvertTo-Json -Compress
     exit 0
@@ -46,7 +54,7 @@ for ($i = 0; $i -lt 100 -and -not $lock; $i++) {
 }
 if (-not $lock) { 'the lease lock stayed busy for 10 s'; exit 4 }
 try {
-    if ((Get-LeaseHash) -ne $Expect) { 'conflict'; exit 3 }
+    if ((Get-LeaseHash (Get-LeaseBytes)) -ne $Expect) { 'conflict'; exit 3 }
     if ($Content -eq '') {
         Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
     } else {

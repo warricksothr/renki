@@ -68,16 +68,22 @@ class SSHTransport:
         preamble = f"$Dir='{self.vm_dir}'; $Action='{action}'; $Expect='{expect}'; $Content='{content}'\n"
         encoded = base64.b64encode((preamble + self.script).encode('utf-16-le')).decode()
         command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ' + encoded
-        return subprocess.run(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', self.target, command],
-                              capture_output=True, text=True, timeout=90)
+        try:
+            return subprocess.run(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', self.target, command],
+                                  capture_output=True, text=True, timeout=90)
+        except subprocess.TimeoutExpired:
+            raise SystemExit(f'the VM lease {action} timed out after 90 s') from None
 
     def read(self):
         result = self._run('Read')
         if result.returncode != 0:
             raise SystemExit(f'cannot read the VM lease (SSH exit {result.returncode}): {result.stderr.strip()[-400:]}')
-        reply = json.loads(result.stdout.strip().splitlines()[-1])
-        content = base64.b64decode(reply['content']) if reply['content'] else None
-        return parse_time(reply['now']), reply['sha256'], content
+        try:
+            reply = json.loads(result.stdout.strip().splitlines()[-1])
+            content = base64.b64decode(reply['content'], validate=True) if reply['content'] else None
+            return parse_time(reply['now']), reply['sha256'], content
+        except (ValueError, IndexError, KeyError, TypeError, AttributeError) as error:
+            raise SystemExit(f'cannot parse the VM lease reply: {error}') from None
 
     def write(self, expect, data):
         content = base64.b64encode(data).decode() if data is not None else ''
@@ -260,17 +266,22 @@ def run(lease, command, minutes, renew_seconds):
                 code = child.wait(timeout=renew_seconds)
                 break
             except subprocess.TimeoutExpired:
+                # Any failure to renew is a warning: the trial keeps its lease
+                # until expiry and is still waited for, never abandoned.
                 try:
                     lease.take(minutes=minutes, renew='extend')
-                except (Refused, SystemExit) as error:
+                except (SystemExit, Exception) as error:
                     print(f'could not renew the VM lease: {error}', file=sys.stderr)
     finally:
         signal.signal(signal.SIGINT, previous)
-        if took:
-            if lease.release_if_self():
-                print('released the VM lease', file=sys.stderr)
-            else:
-                print('the VM lease was no longer ours to release', file=sys.stderr)
+    if took:
+        try:
+            released = lease.release_if_self()
+        except (SystemExit, Exception) as error:
+            print(f'could not release the VM lease, which expires on its own: {error}', file=sys.stderr)
+        else:
+            print('released the VM lease' if released else 'the VM lease was no longer ours to release',
+                  file=sys.stderr)
     return code
 
 
