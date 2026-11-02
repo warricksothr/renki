@@ -197,12 +197,16 @@ The `loot` template picks up drops near the player Tas is with, its
 
 ```json
 {"items":["Wood","Resin","BeechSeeds","Feathers"],"radius":30,
- "maxWeightFraction":0.8,"maxTargets":16}
+ "maxWeightFraction":0.8,"maxTargets":16,
+ "baseRadius":8,"growS":120,"settleDelayS":5,
+ "settleRadius":6,"settleMaxRadius":10,"settleSlack":2}
 ```
 
-Every field is optional; these are the defaults. `items` are exact prefabs
-(no `wood` or `*` groups). `radius`, at most 40 m, is measured from the
-anchor, who must be alive and in fresh perception. Each run takes the nearest eligible
+Every field is optional; these are the defaults, and a zero means the
+default. `items` are exact prefabs (no `wood` or `*` groups). Loot's reach
+is measured from the anchor, who must be alive and in fresh perception, and
+grows while the anchor stays in one place (see [Reach](#reach)): from
+`baseRadius` up to `radius`, at most 40 m. Each run takes the nearest eligible
 drop, sends `pickup`, and waits for a newer inventory frame that holds more of
 that item before choosing the next. A success without that gain fails the
 run. A drop someone else took (`invalid_target` or `target_lost`) is skipped.
@@ -228,13 +232,48 @@ someone. The panel's task buttons have no speaker, so only their `follow` and
 `escort` set the anchor, to the player followed; the others leave it. The
 anchor must still command Tas, as an owner or an `operator` profile;
 companions and guests never anchor loot, and an anchor who loses that grant
-stops anchoring it. Drops near other owners, outside the anchor's radius, are
+stops anchoring it. Drops near other owners, outside the anchor's reach, are
 left alone, and with the anchor out of sight or dead loot does not run.
 
 Until anyone has given an order since the controller started, a single
 commander in sight stands in as the anchor. With several in sight and none
 chosen, loot waits rather than guess. The deliberate-drop rule below still
 looks at every live owner, since any of them can put something down.
+
+### Reach
+
+A player walking through gets only a short reach, and one who stops to fell
+trees or fight gets a wider sweep. The shared loot tracker follows every
+commander in sight with a *settle area* (`Settle`, in
+`internal/behaviour/settle.go`):
+
+- **Opening.** The first sighting opens a circle of `settleRadius` (6 m)
+  around them, and the settle time starts.
+- **Drifting.** While they stay inside it, its centre follows their position
+  as an average with a 30 s time constant (`SettleDrift`), so moving the work
+  over a few metres draws the area along without resetting it.
+- **Widening.** After `settleDelayS` (5 s) in the area, a step into the
+  `settleSlack` (2 m) band past its edge widens the circle to that distance,
+  up to `settleMaxRadius` (10 m, or `settleRadius` if that is larger). Before then the area does not widen, so a
+  jog or run through leaves it within the delay, and a walk through gains
+  less than a metre of reach before it leaves.
+- **Leaving.** A step beyond the edge plus the slack, or 30 s unseen
+  (`SettleGap`), opens a fresh area where they stand, and the reach falls back
+  to its base.
+
+The reach is `baseRadius` (8 m, or `radius` if that is smaller) until the anchor has been settled
+`settleDelayS`, then grows linearly to `radius` (30 m) over `growS` (120 s),
+and stays there (`LootReach`). With the defaults, a drop 20 m from the anchor
+is in reach after about 70.5 s settled. `baseRadius` must be at most `radius`,
+`growS` at most 600 s, `settleDelayS` at most 120 s, the settle radii at most 20 m
+with the maximum at least the opening radius, and `settleSlack` at most 10 m;
+all of them are above zero, since a zero means the default.
+The default shape is tracked for every commander all the time. An instance
+with a different area shape gets its own tracker from the first time it
+checks for work, and that tracker is dropped after 10 minutes without a
+check (Tas busy, or the instance gone), so it starts again from the base
+reach. The defaults are starting points, to be tuned with the panel
+view (TKT-01M6EYEMTX).
 
 ### The deliberate-drop rule
 
@@ -265,7 +304,7 @@ judged is never picked up.
 ### The built-in instance
 
 On its first start the controller saves an instance named `Loot`: this
-template with the defaults above, a 2-second timer, `when.owner.radius` 40,
+template with the defaults above (it saves `items`, `radius`, `maxWeightFraction` and `maxTargets`, and leaves the reach fields to their defaults), a 2-second timer, `when.owner.radius` 40,
 `repeat` `trigger` with a 2-second cooldown, priority -5 (above idle chores,
 below gathering and every owner order), enabled. The timer queues a run only
 when Tas is idle and an eligible drop is in reach, so an empty check leaves
