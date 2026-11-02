@@ -409,14 +409,12 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if !ok {
 		return
 	}
+	// A follow lent to a passive behaviour (t.Lent) ends cancelled and
+	// superseded, which says nothing, sends nobody home and leaves the
+	// anchor: the behaviour sends the same follow again when it is done.
+	// A lent follow that failed before it was replaced (a death) is a real
+	// end, handled below like any other.
 	status, reason, detail := t.Status()
-	if t.Lent() && reason == protocol.ReasonSuperseded {
-		// A passive behaviour borrowed the follow and sends it again when
-		// it is done: a pause, not an end. Nothing to say, no trip home,
-		// and the anchor stays the followed player. A lent follow that
-		// failed before it was replaced (a death) is a real end.
-		return
-	}
 	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
 		// The plugin says "the other N" when some of the stack stayed behind:
 		// "no room for the other N" when it filled up first, "the other N

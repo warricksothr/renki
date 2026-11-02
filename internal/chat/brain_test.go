@@ -649,6 +649,8 @@ func TestALentFollowEndsInSilenceAndKeepsTheAnchor(t *testing.T) {
 	b.Chat(line("Sothr", "bjorn follow me"))
 	follow := f.sent()[0]
 	before := len(f.sent())
+	// Silence here comes from the cancelled status, which every superseded
+	// task has; nothing in the brain special-cases a loan.
 	b.TaskDone(session.FinishedLent(follow.Task, follow.Origin, protocol.StatusCancelled, protocol.ReasonSuperseded))
 	if len(f.sent()) != before || len(h.trips) != 0 || h.resume != nil {
 		t.Fatalf("a lent follow sent %v, trips %v, resume %v", f.sent()[before:], h.trips, h.resume != nil)

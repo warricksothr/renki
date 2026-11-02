@@ -158,8 +158,8 @@ func (a *Automation) Lent() (Follow, bool) {
 // same arguments, timeout and origin, while the handle is still valid. It
 // is not a new owner order: ControlRevision stays. The new follow is the
 // owner's, and the handle ends with it. A revoked handle returns nothing.
-// A handle that never sent a body task leaves the follow running, releases
-// itself and returns a nil task.
+// A handle whose follow was never replaced returns a nil task, sends
+// nothing and stays valid until released.
 func (a *Automation) Return(ctx context.Context) (*Task, error) {
 	a.s.dispatchMu.Lock()
 	defer a.s.dispatchMu.Unlock()
@@ -169,8 +169,9 @@ func (a *Automation) Return(ctx context.Context) (*Task, error) {
 	t := a.loan.task
 	a.loan.returned = true
 	if !t.Lent() {
-		// Nothing replaced the follow, so it is still running: let it be.
-		a.Release()
+		// Nothing replaced the follow: it is still running, or it ended
+		// on its own. Send nothing; the handle stays for the caller to
+		// stop its own step, if any, and release.
 		return nil, nil
 	}
 	return a.s.dispatch(ctx, Order{giveBack: true, Task: protocol.TaskFollow, Args: json.RawMessage(t.Args), TimeoutS: t.timeoutS, Origin: t.Origin}, a)

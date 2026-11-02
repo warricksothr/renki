@@ -123,7 +123,8 @@ func TestALoanThatSentNothingLeavesTheFollowRunning(t *testing.T) {
 	if back, err := lease.Return(context.Background()); back != nil || err != nil {
 		t.Fatal(back, err)
 	}
-	if lease.Valid() || follow.Lent() {
+	lease.Release()
+	if follow.Lent() {
 		t.Fatal("an unused loan ends without touching the follow")
 	}
 	if got, ok := s.OwnerFollow(); !ok || got.TaskID != follow.ID {
@@ -149,5 +150,27 @@ func TestAutomationsOwnFollowIsNotAnOwnerFollow(t *testing.T) {
 	waitFor(t, func() bool { return s.State().Task != nil })
 	if _, ok := s.OwnerFollow(); ok {
 		t.Fatal("only an owner's follow can be lent")
+	}
+}
+
+func TestAFollowThatEndedBeforeTheStepIsNotLentOrReturned(t *testing.T) {
+	s, l, next, follow, send := following(t)
+	ctx := context.Background()
+	hello, _, _ := s.Handshake()
+	lease, err := s.TryLoanFrom(hello, "test", follow.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	send(&protocol.TaskStatus{Envelope: protocol.Envelope{Re: follow.ID}, Status: protocol.StatusFailed, Reason: protocol.ReasonTargetLost})
+	waitFor(t, func() bool { return len(l.finished()) == 1 })
+	if _, err = lease.Dispatch(ctx, Order{Task: protocol.TaskPickup, Args: &protocol.PickupArgs{Entity: "wood"}, TimeoutS: 10}); err != nil {
+		t.Fatal(err)
+	}
+	next()
+	if follow.Lent() {
+		t.Fatal("a follow that already ended was marked lent")
+	}
+	if back, err := lease.Return(ctx); back != nil || err != nil {
+		t.Fatal("an ended follow came back", back, err)
 	}
 }

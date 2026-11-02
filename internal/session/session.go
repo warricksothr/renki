@@ -621,7 +621,9 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	if automation != nil && automation.loan != nil && !o.giveBack && !protocol.Instant(o.Task) {
 		f := automation.loan.task
 		f.mu.Lock()
-		if !f.lent {
+		// A follow that already ended on its own is not replaced, and
+		// Return must not bring it back.
+		if !f.lent && !protocol.Final(f.status) {
 			f.lent, lentNow = true, f
 		}
 		f.mu.Unlock()

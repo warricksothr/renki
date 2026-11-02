@@ -182,10 +182,12 @@ step leaves the follow running and sends nothing.
   the handle, so no follow is restarted. The chat brain's resume after a
   death covers only a follow that was running when Tas died.
 
-The chat brain ignores a lent follow (`Task.Lent`) that ended `superseded`.
-It says nothing, does not send Tas home, and keeps its anchor, because the
-follow restarts. A lent follow that failed before the run's step replaced
-it, a death for example, is handled as any follow's failure is.
+A lent follow (`Task.Lent`) ends `cancelled`/`superseded`, which the chat
+brain answers as it does every superseded task. It says nothing, does not
+send Tas home and keeps its anchor, and the follow restarts. A follow that
+ended on its own before the run's first step went out is not marked lent and
+is not sent again. A lent follow that failed before the step replaced it,
+a death for example, is handled as any follow's failure is.
 
 ### Visibility
 
@@ -194,7 +196,7 @@ its latest run borrowed a follow: the follow's task ID and the player
 followed. With `running`, the current run is passive. The audit log's
 `behaviour started` record carries `passive: true`, `follow` and `player`.
 The end of a loan logs one of three records: `follow returned` (with the new
-task `id`), `follow kept` (no step was sent) or `follow not returned` (an
+task `id`), `follow kept` (nothing replaced the follow, so nothing is sent) or `follow not returned` (an
 order or the world intervened).
 
 ## Bounded collection and stowing
