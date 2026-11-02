@@ -16,10 +16,19 @@ $path = Join-Path $Dir 'lease.json'
 # The file's bytes, or $null when absent. A reader shares delete and write,
 # so a Read running in another session never makes a release or swap fail.
 function Get-LeaseBytes {
-    # A release in another session may delete the file between the two steps.
-    try {
-        $stream = [IO.File]::Open($path, 'Open', 'Read', 'ReadWrite, Delete')
-    } catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] { return $null }
+    # A file another session is deleting can refuse access until its last
+    # handle closes, so access denied is retried briefly before it counts.
+    $stream = $null
+    for ($try = 1; -not $stream; $try++) {
+        try {
+            $stream = [IO.File]::Open($path, 'Open', 'Read', 'ReadWrite, Delete')
+        } catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] {
+            return $null
+        } catch [UnauthorizedAccessException] {
+            if ($try -ge 20) { throw }
+            Start-Sleep -Milliseconds 50
+        }
+    }
     try {
         $buffer = New-Object IO.MemoryStream
         $stream.CopyTo($buffer)

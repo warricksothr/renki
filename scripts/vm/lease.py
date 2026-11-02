@@ -116,9 +116,10 @@ class FileTransport:
         return parse_time(fixed) if fixed else datetime.datetime.now(datetime.timezone.utc)
 
     def _state(self):
-        if not self.path.exists():
+        try:
+            data = self.path.read_bytes()
+        except FileNotFoundError:
             return '', None
-        data = self.path.read_bytes()
         return hashlib.sha256(data).hexdigest(), data
 
     def read(self):

@@ -203,8 +203,11 @@ def release_racing_guards(case):
         procs = [subprocess.Popen([sys.executable, '-B', str(LEASE), action], env=case.env(),
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                  for action in ('guard', 'release', 'guard', 'release', 'guard')]
-        for p in procs:
-            p.wait(timeout=60)
+        for p, action in zip(procs, ('guard', 'release', 'guard', 'release', 'guard')):
+            code, err = p.wait(timeout=60), p.stderr.read()
+            check('Traceback' not in err, f'{action} must not crash: {err}')
+            check(code == 0 or (action == 'release' and err.startswith('refused:')),
+                  f'{action} passes, or a release is refused cleanly: {code} {err}')
         held = case.held()
         if held:
             local = json.loads((case.root / 'a.vm-lease').read_text())
