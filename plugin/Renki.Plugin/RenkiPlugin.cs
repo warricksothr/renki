@@ -34,6 +34,9 @@ namespace Renki.Plugin
 
         ConfigEntry<string> controllerUrl;
         ConfigEntry<string> token;
+        ConfigEntry<bool> suppressTutorials;
+        internal bool SuppressTutorials => suppressTutorials != null && suppressTutorials.Value;
+        internal bool ObservePickups => runner != null && runner.InSession && client != null && client.Connected && !loggingOut;
         readonly SafetyConfig safety = new SafetyConfig();
 
         BridgeClient client;
@@ -77,6 +80,8 @@ namespace Renki.Plugin
                 "Where the controller listens (docs/BRIDGE-PROTOCOL.md section 2).");
             token = Config.Bind("Bridge", "Token", "",
                 "Sent in hello. Required when the controller listens on anything but loopback.");
+            suppressTutorials = Config.Bind("Gameplay", "SuppressTutorials", true,
+                "Suppress local tutorial raven spawns so hints do not obstruct the bot. Non-tutorial raven text is unchanged.");
             captureBeaconEnabled = Config.Bind("Streaming", "CaptureBeacon", false,
                 "Draw a tiny changing in-frame nonce for verified OBS capture. Requires restart.").Value;
             terrain.Namespace = Config.Bind("Mapping", "Namespace", "local",
@@ -412,6 +417,7 @@ namespace Renki.Plugin
             Character = Game.instance?.GetPlayerProfile()?.GetName() ?? "",
             World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "",
             Capabilities = runner.Capabilities.ToList(),
+            Features = new List<string> { "deposit_match_existing_v1" },
         };
 
         void OnDestroy()

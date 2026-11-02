@@ -9,6 +9,35 @@ namespace Renki.Tests
 {
     public sealed class TransferTests
     {
+        [Theory]
+        [InlineData(true, 12, "unreachable", true)]
+        [InlineData(true, 3, "stuck", true)]
+        [InlineData(true, 12.01, "unreachable", false)]
+        [InlineData(false, 3, "stuck", false)]
+        [InlineData(true, 3, "deep_water", false)]
+        [InlineData(true, 3, "not_allowed", false)]
+        [InlineData(true, 3, "refused", false)]
+        [InlineData(true, 3, "stopped", false)]
+        [InlineData(true, double.NaN, "unreachable", false)]
+        [InlineData(true, double.PositiveInfinity, "unreachable", false)]
+        public void AlternateChestApproachesCannotBroadenOtherRefusals(bool conditional, double distance, string reason, bool allowed)
+        {
+            Assert.Equal(allowed, Transfer.CanReposition(conditional, new V3(0, 0, 0), new V3(distance, 0, 0), Outcome.Failed(reason)));
+        }
+
+        [Fact]
+        public void ConditionalDepositRequiresEveryPrefabCurrentlyInTheDestination()
+        {
+            var items = new[] { new TransferItem { Prefab = "Coal", Count = 5 }, new TransferItem { Prefab = "CopperOre", Count = 3 } };
+            Assert.False(Transfer.MatchesDestination(items, new string[0]));
+            Assert.False(Transfer.MatchesDestination(items, new[] { "Wood", "Coal" }));
+            Assert.False(Transfer.MatchesDestination(items, new[] { "Coal", "copperore" }));
+            Assert.True(Transfer.MatchesDestination(items, new[] { "Coal", "CopperOre", "Wood" }));
+            var args = JObject.Parse("{\"container\":\"1:2\",\"matchExisting\":true,\"items\":[{\"prefab\":\"Coal\",\"count\":5}]}");
+            Assert.True(((TransferArgs)TaskArgs.Parse(new TaskRequest { Task = TaskNames.Deposit, Args = args })).MatchExisting);
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(new TaskRequest { Task = TaskNames.Withdraw, Args = args }));
+        }
+
         sealed class Stack
         {
             public string Prefab;

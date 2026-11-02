@@ -135,6 +135,8 @@ type Session struct {
 	injuryDamage   float64
 	injuryUnknown  bool
 	playerChatSeq  uint64
+	pickupSeq      uint64
+	pickups        []PickupObservation
 	seen           *protocol.Perception
 	seenAt         time.Time
 	seenWorld      string
@@ -209,6 +211,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	s.injurySeq = 0
 	s.injuryDamage, s.injuryUnknown = 0, false
 	s.playerChatSeq = 0
+	s.pickupSeq, s.pickups = 0, nil
 	s.terrain, s.terrainSeq = nil, 0
 	s.terrainScope = nil
 	s.layout = nil
@@ -296,6 +299,7 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 			s.listener.Chat(m)
 		}
 	case *protocol.Event:
+		s.observePickup(c, m, time.Now().UTC())
 		if observation, valid := s.ObserveInjury(c, m, time.Now().UTC()); valid {
 			if observer, ok := s.listener.(InjuryListener); ok {
 				observer.Injury(m, observation)
@@ -516,6 +520,9 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	decoded, err := req.DecodeArgs()
 	if err != nil {
 		return nil, err
+	}
+	if args, ok := decoded.(*protocol.TransferArgs); ok && args.MatchExisting && !slices.Contains(conn.Hello.Features, protocol.FeatureMatchingDeposit) {
+		return nil, errors.New("plugin does not support conditional matching deposits")
 	}
 	resolved := false
 	if args, ok := decoded.(*protocol.MoveToArgs); ok && resolve != nil && args.To.Entity != "" && !strings.Contains(args.To.Entity, ":") {

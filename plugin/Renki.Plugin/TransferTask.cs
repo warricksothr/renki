@@ -19,6 +19,7 @@ namespace Renki.Plugin
         readonly Container chest;
         readonly bool withdraw;
         readonly Walker walker = new Walker();
+        InteractionApproach approach;
         float requestedAt = -1;
         bool? granted;
         bool cancelled, opened;
@@ -33,7 +34,8 @@ namespace Renki.Plugin
             this.args = args;
             this.chest = chest;
             withdraw = request.Task == TaskNames.Withdraw;
-            walker.SetGoal(Player.m_localPlayer.transform.position, chest.transform.position);
+            walker.SetGoal(Player.m_localPlayer.transform.position, chest.transform.position,
+                dryGround: args.MatchExisting, avoidHostiles: args.MatchExisting);
             walker.ResetStuck(Player.m_localPlayer.transform.position);
         }
 
@@ -46,11 +48,30 @@ namespace Renki.Plugin
             if (!UseReach.Near(p, chest.gameObject, 2.5f))
             {
                 if (requestedAt >= 0) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "moved out of reach of the chest"));
-                if (walker.Unreachable(pos, 2.5) is Outcome under) return Finish(under);
                 if (Walker.Stranded(p) is Outcome stranded) return Finish(stranded);
-                if (walker.Refused() is Outcome wet) return Finish(wet);
-                if (!walker.Steer(pos, false)) return Finish(Outcome.Failed(Wire.ReasonStuck, "cannot reach the chest"));
-                return null;
+                if (approach != null)
+                {
+                    var approachResult = approach.Tick(dt, out var waiting);
+                    if (approachResult != null) return Finish(approachResult);
+                    if (waiting) return null;
+                }
+                else
+                {
+                    var failed = walker.Refused() ?? walker.Unreachable(pos, 2.5);
+                    if (failed == null && !walker.Steer(pos, false))
+                        failed = walker.Refused() ?? Outcome.Failed(Wire.ReasonStuck, "cannot reach the chest");
+                    if (failed != null)
+                    {
+                        // A solid chest center is a poor standing goal. Conditional
+                        // cargo work may instead reach one measured interaction side.
+                        if (!Transfer.CanReposition(args.MatchExisting, Convert.ToV3(pos), Convert.ToV3(chest.transform.position), failed)) return Finish(failed);
+                        approach = new InteractionApproach("transfer", "chest interaction", args.Container, chest.gameObject,
+                            (me, feet) => UseReach.From(me, chest.gameObject, 2.5f, feet) &&
+                                EffectArea.IsPointInsideArea(feet + Vector3.up * .5f, EffectArea.Type.Burning, .4f) == null);
+                        Driver.Stand();
+                    }
+                    return null;
+                }
             }
             Driver.Stand();
             if (!PrivateArea.CheckAccess(chest.transform.position, 0f, false, false) ||
@@ -81,6 +102,9 @@ namespace Renki.Plugin
             var pack = p.GetInventory();
             var source = withdraw ? chest.GetInventory() : pack;
             var destination = withdraw ? pack : chest.GetInventory();
+            if (args.MatchExisting && !Transfer.MatchesDestination(args.Items,
+                destination.GetAllItems().Where(item => item.m_stack > 0).Select(Prefab)))
+                return Finish(Outcome.Failed(Wire.ReasonRefused, "chest does not currently contain every requested material; nothing moved"));
             var result = Transfer.Run(args.Items, source.GetAllItems().ToArray(), Prefab,
                 item => item.m_stack, item => item.m_equipped,
                 (item, count) => Move(p, source, destination, item, count, withdraw));
@@ -157,6 +181,7 @@ namespace Renki.Plugin
         public void Cancel()
         {
             cancelled = true;
+            approach?.Cancel();
             Driver.Stand();
             if (chest != null && opened && chest.IsOwner()) chest.SetInUse(false);
             opened = false;

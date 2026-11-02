@@ -26,6 +26,8 @@ type View struct {
 	Home         *protocol.Vec3
 	Danger       []home.DangerZone
 	Waypoints    []home.Waypoint
+	Pickups      []home.Pickup
+	Features     []string
 	Idle         bool
 }
 

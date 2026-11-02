@@ -5,10 +5,10 @@ using Xunit;
 
 namespace Renki.Tests
 {
-    public sealed class CookingApproachesTests
+    public sealed class InteractionApproachesTests
     {
-        static V3[] Candidates(double bearing) => Enumerable.Range(0, CookingApproaches.Limit)
-            .Select(i => CookingApproaches.Offset(i, bearing)).ToArray();
+        static V3[] Candidates(double bearing) => Enumerable.Range(0, InteractionApproaches.Limit)
+            .Select(i => InteractionApproaches.Offset(i, bearing)).ToArray();
 
         [Fact]
         public void NarrowStandingSideCannotDisappearWithTheArrivalBearing()
@@ -20,7 +20,7 @@ namespace Renki.Tests
             foreach (var bearing in new[] { -2.148, -1.6, 0.12, 2.6 })
                 Assert.Contains(Candidates(bearing), Clear);
             // Original twelve relative spokes alone miss this opening.
-            Assert.DoesNotContain(Enumerable.Range(0, 12).Select(i => CookingApproaches.Offset(i, -2.148)), Clear);
+            Assert.DoesNotContain(Enumerable.Range(0, 12).Select(i => InteractionApproaches.Offset(i, -2.148)), Clear);
         }
 
         [Theory]
@@ -40,10 +40,10 @@ namespace Renki.Tests
         [Fact]
         public void ExhaustionAndInvalidBearingsCannotProduceMoreCandidates()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => CookingApproaches.Offset(-1, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => CookingApproaches.Offset(CookingApproaches.Limit, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => CookingApproaches.Offset(0, double.NaN));
-            Assert.Throws<ArgumentOutOfRangeException>(() => CookingApproaches.Offset(0, double.PositiveInfinity));
+            Assert.Throws<ArgumentOutOfRangeException>(() => InteractionApproaches.Offset(-1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => InteractionApproaches.Offset(InteractionApproaches.Limit, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => InteractionApproaches.Offset(0, double.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() => InteractionApproaches.Offset(0, double.PositiveInfinity));
         }
     }
 }

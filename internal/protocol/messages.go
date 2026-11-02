@@ -51,7 +51,10 @@ type Hello struct {
 	Character    string   `json:"character"`
 	World        string   `json:"world"`
 	Capabilities []string `json:"capabilities"`
+	Features     []string `json:"features,omitempty"`
 }
+
+const FeatureMatchingDeposit = "deposit_match_existing_v1"
 
 func (*Hello) MessageType() string { return TypeHello }
 
@@ -501,6 +504,8 @@ const (
 // optional fields are set depends on Event.
 type Event struct {
 	Envelope
+	World      string  `json:"world,omitempty"`
+	WorldUID   string  `json:"worldUid,omitempty"`
 	Event      string  `json:"event"`
 	By         string  `json:"by,omitempty"`
 	Amount     float64 `json:"amount,omitempty"`
@@ -541,6 +546,7 @@ const (
 	EventDied         = "died"
 	EventRespawned    = "respawned"
 	EventItemAdded    = "item_added"
+	EventItemPickedUp = "item_picked_up"
 	EventSkillRaised  = "skill_raised"
 	EventPlayerJoined = "player_joined"
 	EventPlayerLeft   = "player_left"

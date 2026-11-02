@@ -229,6 +229,13 @@ func validate(d Definition, templates map[string]Template) error {
 				return errors.New("food work and idle trigger must use the same marker")
 			}
 		}
+		if d.Template == "marker_cargo" {
+			var p MarkerCargoParams
+			_ = Decode(d.Params, &p)
+			if p.Marker != *d.Trigger.Marker {
+				return errors.New("cargo work and idle trigger must use the same marker")
+			}
+		}
 	default:
 		return errors.New("trigger kind must be manual, event, timer or idle")
 	}

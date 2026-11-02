@@ -32,6 +32,7 @@ type Options struct {
 	Landmarks  func(world string) []home.Landmark
 	Waypoints  func(world string) []home.Waypoint
 	Danger     func(world string, now time.Time) []home.DangerZone
+	Pickups    func(world string) []home.Pickup
 	Logger     *slog.Logger
 	Now        func() time.Time
 	Notify     func(context.Context, string)
@@ -95,7 +96,7 @@ func New(o Options) *Engine {
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -364,11 +365,15 @@ func (e *Engine) view() View {
 	state, stateAt := e.o.Session.StateObservation()
 	hello, world, perception, perceptionAt := e.o.Session.PerceptionObservation()
 	currentHello, _, _ := e.o.Session.Handshake()
+	features := []string(nil)
+	if currentHello != nil {
+		features = slices.Clone(currentHello.Features)
+	}
 	if state == nil || hello != currentHello || world != state.World {
 		perception = nil
 		perceptionAt = time.Time{}
 	}
-	v := View{StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	v := View{Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
@@ -382,6 +387,9 @@ func (e *Engine) view() View {
 	}
 	if e.o.Waypoints != nil && v.State != nil {
 		v.Waypoints = e.o.Waypoints(v.State.World)
+	}
+	if e.o.Pickups != nil && v.State != nil {
+		v.Pickups = e.o.Pickups(v.State.World)
 	}
 	if e.o.Containers != nil && v.State != nil {
 		// Live contents supersede the entire old observation, including an

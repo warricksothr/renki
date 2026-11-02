@@ -17,12 +17,13 @@ import (
 // Remembered chests provide locations only; every destination is attempted once.
 type Stow struct{}
 type StowParams struct {
-	World    string         `json:"world"`
-	Items    []string       `json:"items"`
-	From     string         `json:"from,omitempty"`
-	To       []string       `json:"to"`
-	Keep     map[string]int `json:"keep,omitempty"`
-	Overflow string         `json:"overflow,omitempty"`
+	World         string         `json:"world"`
+	Items         []string       `json:"items"`
+	From          string         `json:"from,omitempty"`
+	To            []string       `json:"to"`
+	Keep          map[string]int `json:"keep,omitempty"`
+	Overflow      string         `json:"overflow,omitempty"`
+	MatchExisting bool           `json:"matchExisting,omitempty"`
 }
 
 type StorageNeed struct {
@@ -203,7 +204,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 				if pos, ok := chestPosition(v, r.p.To[r.index]); ok && distance(pos, *v.Home) <= 10 {
 					r.walking, r.homeApproach = true, true
 					home := *v.Home
-					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}, Dry: r.dry}, TimeoutS: 90}, nil
+					return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &home}, Dry: r.dry, AvoidHostiles: r.p.MatchExisting}, TimeoutS: 90}, nil
 				}
 			}
 			r.failures = append(r.failures, r.p.To[r.index]+": "+result.Reason)
@@ -261,9 +262,11 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 		return nil, &StorageNeed{World: r.p.World, Items: maps.Clone(r.remaining), Chests: slices.Clone(r.p.To), Reason: why, Quiet: r.p.Overflow == "leave"}
 	}
 	id := r.p.To[r.index]
-	if pos, ok := chestPosition(v, id); ok && !r.approached && distance(v.State.Pos, pos) > 4 {
+	// Conditional transfers own dry hostile-avoiding travel and measured standing
+	// positions. A controller move_to at the solid chest center can fail first.
+	if pos, ok := chestPosition(v, id); ok && !r.p.MatchExisting && !r.approached && distance(v.State.Pos, pos) > 4 {
 		r.walking = true
-		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: r.dry}, TimeoutS: 90}, nil
+		return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: r.dry, AvoidHostiles: r.p.MatchExisting}, TimeoutS: 90}, nil
 	}
 	items := []protocol.TransferItem{}
 	for _, name := range sortedKeys(r.remaining) {
@@ -271,5 +274,5 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	r.pending = true
 	r.beforeSeq = v.Inventory.Seq
-	return &session.Order{Task: protocol.TaskDeposit, Args: &protocol.TransferArgs{Container: id, Items: items}, TimeoutS: 90}, nil
+	return &session.Order{Task: protocol.TaskDeposit, Args: &protocol.TransferArgs{Container: id, Items: items, MatchExisting: r.p.MatchExisting}, TimeoutS: 90}, nil
 }

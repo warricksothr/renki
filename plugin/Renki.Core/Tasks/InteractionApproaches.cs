@@ -4,7 +4,7 @@ namespace Renki.Tasks
 {
     /// <summary>Bounded candidate offsets, never claims of support or reach.
     /// Fixed bearings keep a narrow usable side independent of arrival angle.</summary>
-    public static class CookingApproaches
+    public static class InteractionApproaches
     {
         const int RelativeSpokes = 12, FixedSpokes = 24, Spokes = RelativeSpokes + FixedSpokes;
         public const int Limit = Spokes * 4;

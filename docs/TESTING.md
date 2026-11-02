@@ -1902,3 +1902,113 @@ The first south-meadow round trip also passed, in
 no observed injury and sheltered home-floor return[-36.24,36.09,7.05]. These
 are individual route passes; ten-return reliability and repeated pantry
 production remain separate live criteria.
+
+East-meadow trial `.checks/routes-20261101T183424910659Z` stopped with zero
+completed trips: native t-8 refused a hostile corridor beside the boss stones.
+Final in-world position[8.39,33.28,-4.5],62.8/62.8HP, no observed injury.
+The final search expanded4096 nodes and reported332 hostile-corridor and417
+body-cast refusals, including `BossStone_Bonemass(Clone)/stone`. The supervisor
+logged out and restored the panel. This is not a tutorial-bird diagnosis or a
+successful east route. Storage and south-meadow passes remain earned; ten
+returns and pantry production remain open. Benchmark PR #150 passed the full
+gate and committed review with no findings.
+
+### Pickup origins and idle cargo storage
+
+The local plugin observes actual positive pack gains inside ground pickup calls,
+including automatic and partially fitting pickups. `item_picked_up` carries the
+source position, prefab/count and optional entity. Chest withdrawals and generic
+inventory increases never create these observations. Fresh ingress pins world
+UID, connection and arrival time; the shared memory recorder persists at most256
+records per world for14 days, deduplicates retries and preserves original scope.
+`GET /api/memory/containers` includes `pickups` beside chest contents. Origins are
+inspection hints, not proof that a chest is assigned to an item.
+
+`marker_cargo` uses a normal30-second storage-marker idle trigger. It considers
+materials and trophies, keeps all food/gear/unknown item types, and respects
+per-prefab `keep` counts (the preset keeps10 Wood for fuel). It checks every
+unique currently seen storage chest inside its marker or another explicit
+storage marker within40m, with each chest on that marker's floor. It tries each
+once per material: known matching contents first, then recent pickup proximity,
+then other candidates. Missing IDs, tombstones and other floors cannot become
+storage. Failed/full/busy/wrong-content candidates preserve cargo and ultimately
+publish a storage-needed result. State, health, food, threat, injury, marker,
+six-minute work and command-ownership guards remain active during native tasks.
+Admission still requires grounded feet on the original storage floor. A journey
+pins both storage markers, retains the40m bound and returns to its original floor
+before reporting completion or shortages. Marker edits and newer orders cancel
+the journey. Conditional transfers own their physical approach, including clear
+standing positions, rather than a controller `move_to` at a solid chest center.
+
+Enable the existing home-storage marker after deployment/readiness with:
+
+```sh
+just vm panel POST /api/behaviours '{"action":"idle-cargo","marker":{"world":"DizzysHellheim","name":"home storage","kind":"storage"},"enabled":true}'
+```
+
+The preset uses a five-minute cooldown and at most100 runs per controller
+session. A saved `marker_cargo` definition can configure `keep` through the normal
+behaviour editor/API. Automatic conditional deposits require the advertised
+`deposit_match_existing_v1` feature. The native transfer opens the chest through
+normal ownership/access checks and moves nothing if the prefab is absent; empty
+or unrelated chests never become inferred destinations. Successful transfers
+still require matched native container receipts and a newer pack observation.
+
+`just check controller test-packages ./internal/session ./internal/home ./internal/memory ./internal/behaviour ./internal/app`
+covers pickup scope/dedup/persistence/retry, matching preference, origin ranking,
+protected cargo, refused candidate exhaustion and receipt verification.
+`just check plugin test-core TransferTests` covers current destination matching
+and deposit-only argument parsing. A native copper/coal stow and a new live ground
+pickup/restart proof require native evidence beyond these deterministic checks.
+
+`[Gameplay] SuppressTutorials = true` suppresses local tutorial raven spawns via
+`Raven.Spawn`; non-tutorial raven text is retained. It does not mark tutorials
+seen or change other players/server settings. Set false to restore normal
+spawning. Deploy/restart before the next join so no earlier tutorial bird remains
+in that scene.
+
+Native home-storage check on2026-11-01 (`b0ca753`, evidence
+`.checks/cargo-20261101T1900Z`, audit `.checks/audit-window-jYhjca.jsonl`): the
+automatic idle trigger stored Copper11, BeechSeeds9, Feathers2, Resin7 and
+Wood25, with matching native receipts/newer pack frames. It kept Wood10,
+equipped gear and food, reducing carry weight from299.7 to114.5. Coal45 stayed
+in the pack: ten unique home-floor candidates had no currently matching coal
+destination. Older contents were only hints; conditional refusals moved nothing.
+A temporary Coal1 reserve was removed after the check. A native Coal1 drop and
+pickup produced the exact source position/entity, world UID, count and timestamp;
+the same origin record survived a controller-only restart. Automatic eating
+subsequently consumed the carried meal. Saved local plugin configuration confirms
+`SuppressTutorials = true`; this does not establish that a raven caused any
+previous path failure.
+
+Two exterior chests beside the copper/coal production drops (`1:73618` and
+`1:73622`) refused ordinary conditional-transfer routes after a validated porch
+prefix, with `endpoint_support` and zero hostile rejections. Tas returned inside
+without observed injury. This does not prove their contents or complete coal
+storage. Conditional transfers now share cooking's measured interaction approach
+after a nearby unreachable/stuck result: supported dry footing, body clearance,
+actual eye reach and sight, at most144 seeds/four checked walks/60s. Cooking keeps
+its fuel, heat and fire checks. Water, permission and stopped-task refusals cannot
+start this recovery. `just check plugin test-core 'FullyQualifiedName~TransferTests|FullyQualifiedName~InteractionApproachesTests'`
+covers its admission and shared candidate bounds.
+
+Native retry on7f39fc7 reached both exterior chests. `1:73618` contained copper/tin
+ore and refused Coal without movement. `1:73622` accepted Coal45, with exact
+transfer and newer pack evidence. Three incidental Copper ingots collected on
+that walk generated real production-site origin records. Tas returned inside
+uninjured. The observed `home workshop storage` marker identifies that separate
+floor; the original home and home-storage marker were preserved.
+
+The automatic home/workshop journey then passed ona1c80b2 (controller-only
+deployment; plugin7f39fc7). After the normal30-second idle dwell, the cargo
+instance dispatched exactly two native tasks: conditional deposit Coal1 into
+`1:73622`, then dry/hostile-avoiding return to `home storage`. Matched transfer
+receipt/newer pack observations confirmed the deposit; fresh grounded shelter at
+[-39.57,36.09,8.02] confirmed return. The native approach measured a second clear
+standing position after its first walk reached the bounded work limit. No
+observed injury; minimum70.3HP. Final pack: equipped rags/axe, CookedDeerMeat1,
+Mushroom1 and Wood10, with no Copper or Coal. Shared origins survived both
+controller and game restarts. Evidence `.checks/cargo-20261101T1900Z/summary.json`
+and `.checks/audit-window-ibzxah.jsonl`; full CI172s and committed review passed.
+The ordinary home-storage idle definition remains enabled with its default
+reserves. These receipts do not close broader M2/M3 route/pantry acceptance.
