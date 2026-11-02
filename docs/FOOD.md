@@ -83,3 +83,72 @@ Trials log out after unsafe, uncertain or failed outcomes. `--keep-online`
 retains Tas after success only with a fresh safe idle shelter observation near
 home and no nearby observed threats. Native plugin changes still require a
 client restart; controller-only changes can use `just vm deploy-controller`.
+
+New food goals can also acquire missing supplies after storage is exhausted.
+They prefer exact live ready-food yields and loose raw ingredients, then visit
+remembered raspberry, blueberry or mushroom sites within 80 m of home. A
+remembered site offers a position to check; it never proves a harvest or an
+empty area. Cold cooking fires can obtain wood from observed branches or
+loose wood when storage has none. The native movement task checks dry ground,
+known obstacles and hostile avoidance for each visit.
+
+If those sources cannot supply food, current attack permission can admit an
+explicitly selected isolated unstarred wild Boar or Neck within 30 m of Tas.
+Active food, recovered health, stamina, pack capacity and the native weapon,
+bystander, pursuit and retreat guards remain required. There is no blind
+wildlife discovery attack, and no hunt when combat permission is disabled.
+Observed death is a separate receipt from food collection: meat must still
+appear as an eligible live drop and reach the pack. Any injury still stops the
+food goal; this adapter does not reset the injury baseline to continue hunting.
+
+The acquisition checkpoint limits a goal to 12 resource interactions/pickups,
+six remembered-site visits and two hunts, within the original overall task and
+time budgets. A failed visit consumes its attempt but does not assert that the
+site was empty. Pickable products have a short persisted observation deadline;
+matching nearby drops can be picked up once, or fresh measured inventory gain
+can prove ordinary auto-pickup. Success text, disappearance and remembered
+stock do not prove a gain. Every uncertain action remains non-replayable.
+After acquisition, Tas returns to the original home floor before cooking,
+completion or escort handoff. Older saved goals without an acquisition
+checkpoint retain their original storage-only scope on explicit resume.
+
+`just vm food-check --require-acquisition` additionally requires a verified
+collection receipt outside storage. The panel shows bounded forage-visit,
+collection and hunt counts; the full checkpoint retains source attempts.
+Controller-only deployment now preserves an offline game as well as a running
+one, keeping the independent panel available without launching Valheim.
+
+## Outdoor startup recovery
+
+`just vm recover-home WORLD` can recover an adequately supplied bot saved
+outside, without disabling `RecoveryGuard`. It reads that exact world's pinned
+home from controller memory while the game is offline and arms a five-minute,
+one-shot native order. The plugin consumes the order before moving. Invalid or
+wrong-world orders log out; an absent order retains passive sheltered healing.
+
+Admission requires at least 50 HP and 70% maximum health, two active foods,
+25 stamina, dry grounded feet and six metres of hostile clearance. Normal
+native dry movement avoids hostiles. Injury, water, less than eight stamina,
+close threats, cancellation, bridge/session loss or permission loss log out.
+The return permits 120 seconds, 160 metres travelled and at most 80 metres
+from home. It cannot combat, collect supplies or accept ordinary body tasks.
+An operator stop aborts it, and reconnect cannot resume it.
+
+Arrival requires the original home floor, actual shelter and twelve metres of
+hostile clearance. It then resumes passive healing; ordinary tasks remain held
+until the existing 95% health guard releases them. The supervisor keeps the
+client online only after same-world, same-connection safe-home evidence. On
+failure it stops the game and restores the independent panel. Observations,
+compact results and an audit window stay under `.checks/recovery-*`.
+Use `just check plugin test-core RecoveryReturnTests` and
+`just check vm test-recover-home` for policy bounds and cleanup checks.
+
+`just vm food-check --reserve 2 --escort Nimah --keep-online` also verifies
+the food goal's durable handoff to a named current commander. This bounded
+check disables collection and defense, requires exact native request,
+acceptance/running receipts and the pinned escort identity, and observes ten
+seconds of quiet follow/wait at safe home before stopping escort. It proves
+the handoff without requiring the leader to be present; it does not prove
+following a moving player or defending one. Normal escort settings and combat
+permission remain separate. `just vm trial-status` reads compact progress for
+food, cooking, recovery and escort evidence as well as harvesting/combat.

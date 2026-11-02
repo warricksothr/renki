@@ -73,7 +73,7 @@ func (a *App) startFoodFor(ctx context.Context, by string, escort *protocol.Esco
 		_ = a.goalAction(ctx, g.ID, "stop")
 		return "", errors.New("newer order replaced food resupply")
 	}
-	return "I'll check home storage for ready meals, cook from raw supplies if needed, and recover with a small food reserve. Tell me stop to cancel.", nil
+	return "I'll check home storage, forage for missing food, hunt only if permitted and safe, then return to cook and recover with a small food reserve. Tell me stop to cancel.", nil
 }
 
 func (a *App) queueEscortSupply(t *session.Task) bool {

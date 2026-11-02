@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-10-30T17:34:54Z
+updated_at: 2026-10-31T20:42:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -120,3 +120,9 @@ PR #63 merged23248bb; its dead-attacker threat correction is installed in cd0843
 **agent:codex/renki-milestones** at 2026-10-30T17:34:54Z
 
 Unstaged return-home trial on 41110b0 supplied partial retreat evidence: Greyling 1:43163 hit Tas for 2.98 at 17:31:25Z near [-40.56,31.99,1.83]. At 17:31:26Z the controller replaced move_to t-1 with flee t-2 and said it was getting away. Native states show movement west/south to [-48.73,33.75,17.06], HP22/25, before the resupply supervisor logged out. This proves hit attribution, survival preemption and some movement; it does not prove a completed escape or low-health fallback. Evidence .checks/audit-window-V6dJ5V.jsonl. Existing retreat AC remains open.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:42:44Z
+
+New live raised-base escape failure after successful food/cooking trials; no live follow-up is authorized by a safe route yet. Audit .checks/audit-window-SNFFE5.jsonl retains Greydwarf845473195:381 damage7.97 at2026-10-31T20:39:43Z. Automatic flee taskt-20 was dispatched/accepted/running within0.3s, goal[-20.85,36.09,-2.57] from[-33.9,36.09,6.68], with no safety destination. Tas remained nearly stationary inside the raised base. Greydwarf_Elite845473195:448 then inflicted27.73 at20:39:58Z; user emergency logout at20:40:00Z ended the attempt. Last native observation43.7/67.1HP at[-33.13,36.09,5.99], no death observed. Game stopped and independent panel restored; RecoveryGuard remains true. Do not rejoin blindly into the known base attack or request manual enemy clearing.
+
+Next implementation should distinguish a physically blocked escape from an active successful retreat, retain actual egress/door/floor geometry, and react to a second stronger attacker rather than waiting for the original60s flee task. A bounded native emergency logout backstop on worsening injury/no progress can remove the human from this testing loop; it must preserve ordinary successful movement, controller stop, permissions and exact native diagnostics. This failure does not erase the separately earned successful startup return83.4m to the original sheltered home floor (.checks/recovery-20261031T203218Z).

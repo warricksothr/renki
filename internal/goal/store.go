@@ -402,6 +402,12 @@ func (s *Store) Summaries() []Record {
 			f.ReceiptCount = len(f.Receipts)
 			f.Chests = nil
 			f.Tried = nil
+			if a := f.Acquisition; a != nil {
+				a.VisitCount = len(a.Visits)
+				a.Visits = nil
+				a.Tried = nil
+				a.Product = nil
+			}
 			if len(f.Receipts) > 3 {
 				f.Receipts = f.Receipts[len(f.Receipts)-3:]
 			}

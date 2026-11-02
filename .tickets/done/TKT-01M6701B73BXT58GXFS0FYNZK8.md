@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6701B73BXT58GXFS0FYNZK8
 title: Generalize durable goals for multistep food search
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/renki-milestones
-  branch: t3/cooking-food
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: db3d986e726fec11034b106bdedd68f4e1350361
-  session: null
-  claimed_at: 2026-10-31T18:51:46Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-30T18:09:31Z
-updated_at: 2026-10-31T19:15:31Z
+updated_at: 2026-10-31T20:48:22Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -52,7 +45,7 @@ Add compact decision/evidence diagnostics and bounded scenario capture before au
 - [x] Wrong or empty food hints update a durable scoped candidate ledger and select another allowed chest; unchanged retries stay bounded across restart
 - [x] Host food completion requires declared receipt and fresh inventory/consumption proof; uncertainty, cancellation, current permissions and spent budgets cannot be bypassed
 - [x] Compact diagnosis links decisions, host context, scoped native receipts and candidate outcomes and distinguishes missing evidence from zero observed events
-- [ ] Replay covers partial transfers, distinct empty chests, exhausted search, uncertain restart, checkpoint failure and owner takeover; separately authorized bounded live resupply earns its native evidence
+- [x] Replay covers partial transfers, distinct empty chests, exhausted search, uncertain restart, checkpoint failure and owner takeover; separately authorized bounded live resupply earns its native evidence
 
 ## Implementation plan
 
@@ -77,3 +70,21 @@ Live evidence: .checks/food-20261031T190130Z exposed normal empty-transfer reaso
 A staged shortage trial .checks/food-20261031T190904Z normally deposited the carried ready meals into excluded storage1:70031, with exact moved/fresh-pack receipts. The production goal checked the eight scoped candidate chests (one inaccessible), reconciled stale hints, withdrew one remaining cooked tail from1:70039, then exhausted available raw ingredients and stopped needs_plan after9 native tasks. There are no observed supported raw drops nearby. Relevant recent actual contents of1:70031 and1:70040 also contain no supported raw ingredient. Nearby cooking-backed fires remain lit/fueled. No combined raw-to-cooked live success or actual cold-fire fuel receipt is earned. Keep those checks open; do not invent supplies, alter network ownership or request manual setup as a prerequisite to committing the implementation.
 
 The final ready-food trial .checks/food-20261031T191150Z refused a newly observed nearby threat before any task, without observed injury, then logged out. Tas remains reserved for cooking/resupply trials. Added just vm food-check with --keep-online: success can retain the client only at verified idle shelter near home with scoped surroundings and no nearby threats; failed/unsafe/uncertain outcomes log out. Native DLL updates still need restart; controller-only changes use just vm deploy-controller. No repetitive login is required between safe trials on the same installed plugin. Native escort handoff is replay-tested, not yet live-tested. Wider M2/M3, fuel proof and autonomous raw-food acquisition remain open.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:43:28Z
+
+The final carried-raw cooking/readiness/home-return benchmark succeeded under production food goal49a97e3b768d462d64b37fdc (.checks/food-20261031T203634Z):10 native steps, full direct_spawn cooking receipt at1:70085 forNeckTailGrilled1, exact native returnt-16 to original home floor,70/70HP, safe keep-online. No cold-fire fuel was required. A separate ready-storage goal6c40aee16794f82b1e5573bb also passed with matched3-Blueberries withdrawal/fresh-pack evidence and reserve2. New native one-shot guarded startup return passed83.4m from the eastern forage site to actual home floor/shelter (.checks/recovery-20261031T203218Z), without relaxing passive critical-health healing or disabling RecoveryGuard.
+
+Live escort handoff is still unearned. Added a bounded just vm food-check --reserve2 --escort Nimah --keep-online verifier, with exact persisted continuation task/native request/accepted/running evidence and a10s quiet safe-home observation followed by stop. Focused checks and full just check ci142s passed (.checks/20261031T203926Z-oJ3xPR.log); no live execution occurred before the user emergency logout during a later separate base attack. That attack exposed trapped normal fleeing inside the raised house, recorded on TKT-01M62N256 — Plugin: flee task, and retreating when health is low. Last native health43.7/67.1; game stopped, independent panel online, no rejoin into the known attack. Full natural-acquisition-to-readiness, cold-fire fuel, live hunting and escort handoff remain open; earlier actual raw-drop/forage primitive receipts are recorded on child acquisition ticketTKT-01M69R5A75H3CTVWY175RZ9PS1.
+
+**agent:codex/renki-milestones** at 2026-10-31T20:48:22Z
+
+Supersedes the earlier no-rejoin state: user explicitly reported the base clear again. just check vm food-check --join --reserve2 --escort Nimah --keep-online then passed93s (.checks/20261031T204411Z-ww5qmc.log; evidence .checks/food-20261031T204411Z). Passive native startup healing held the injured saved body until recovered, without an armed return or disabled guard. Production goalc7365784629373999f8db6db normally withdrew2 Blueberries from1:70040 with exact matched transfer/inventory proof, satisfied readiness and issued the persisted escort continuationt-2 under runfd3409021ffef814407a81b3a25e4840.
+
+The saved outgoing request and native accepted/running receipts match leaderNimah, resupply=true and current protected commandersNimah/Sothr/jarl. Collection and defense were explicitly false for this bounded handoff check. Native escort stayed in wait while Nimah was out of sight; ten seconds of quiet safe-home observation passed, followed by a normal stop and verified idle body. This earns food-to-native-escort handoff and missing-leader wait, not following a moving player, collection or defense. Final observed67.9/67.9HP at[-34.02,36.09,5.2], sheltered, three active foods, keptOnline=true. Tas remains online and idle at home; no full escort routine was left running.
+
+Cold-fire fuel, live hunting and a complete natural-acquisition-to-readiness goal remain open. The latest map now observes additional unheated supported stations214050226:4621 and214050226:4627 around[-57,32.76,27], roughly29m southwest of home. This is a new candidate for guarded fuel testing, not evidence that supporting fire fuel is zero or that a safe route exists. Current production food cooking selects within12m at home, so this needs explicit bounded travel/native cooking validation rather than treating the remembered station as an immediately usable home cooker. Existing home stations1:70084/70085 remain heated. The trapped normal escape after a Greydwarf/Elite attack remains separately open on TKT-01M62N256 — Plugin: flee task, and retreating when health is low.
+
+## Summary
+
+Implemented the typed durable food_resupply adapter, bounded unique chest search, scoped transfer/consumption/cooking receipts, uncertainty/cancellation/budget handling and leased escort continuation in PR132 with follow-ups in PR133. Full CI and focused replay checks passed. Production ready-food, carried-raw cooking/readiness/home-return, guarded startup home recovery, and native food-to-escort handoff/wait/stop each earned separate live evidence; see the final notes for goal IDs and retained audits. Current Tas state is online, idle, sheltered and healthy at home after the user confirmed the base clear. Natural acquisition/hunting and actual cold-fire fuel remain on their separate open acquisition/cooking work; moving escort/collection/defense and trapped escape remain M2/M3 work. No milestone completion is claimed.

@@ -21,25 +21,27 @@ var cooked = map[string]string{"RawMeat": "CookedMeat", "DeerMeat": "CookedDeerM
 
 // FoodProgress is a typed host adapter, not a checkpoint of an arbitrary runner.
 type FoodProgress struct {
-	CandidateCount  int                  `json:"candidateCount,omitempty"`
-	AttemptCount    int                  `json:"attemptCount,omitempty"`
-	ReceiptCount    int                  `json:"receiptCount,omitempty"`
-	Continuation    *Intent              `json:"continuation,omitempty"`
-	Phase           string               `json:"phase"`
-	Reserve         int                  `json:"reserve"`
-	Storage         []string             `json:"storage,omitempty"`
-	Escort          *protocol.EscortArgs `json:"escort,omitempty"`
-	Chests          []FoodChest          `json:"chests,omitempty"`
-	SearchPinned    bool                 `json:"searchPinned"`
-	Tried           []string             `json:"tried,omitempty"`
-	Receipts        []FoodReceipt        `json:"receipts,omitempty"`
-	BeforeSeq       uint64               `json:"beforeSeq,omitempty"`
-	BeforePackSeq   uint64               `json:"beforePackSeq,omitempty"`
-	BeforeCount     int                  `json:"beforeCount,omitempty"`
-	BeforeRemaining float64              `json:"beforeRemaining,omitempty"`
-	Item            string               `json:"item,omitempty"`
-	Injury          *uint64              `json:"injury,omitempty"`
-	Batches         int                  `json:"batches"`
+	Acquisition      *FoodAcquisition     `json:"acquisition,omitempty"`
+	CandidateCount   int                  `json:"candidateCount,omitempty"`
+	AttemptCount     int                  `json:"attemptCount,omitempty"`
+	ReceiptCount     int                  `json:"receiptCount,omitempty"`
+	Continuation     *Intent              `json:"continuation,omitempty"`
+	Phase            string               `json:"phase"`
+	Reserve          int                  `json:"reserve"`
+	Storage          []string             `json:"storage,omitempty"`
+	Escort           *protocol.EscortArgs `json:"escort,omitempty"`
+	Chests           []FoodChest          `json:"chests,omitempty"`
+	SearchPinned     bool                 `json:"searchPinned"`
+	Tried            []string             `json:"tried,omitempty"`
+	Receipts         []FoodReceipt        `json:"receipts,omitempty"`
+	BeforeSeq        uint64               `json:"beforeSeq,omitempty"`
+	BeforePackSeq    uint64               `json:"beforePackSeq,omitempty"`
+	BeforePerception uint64               `json:"beforePerception,omitempty"`
+	BeforeCount      int                  `json:"beforeCount,omitempty"`
+	BeforeRemaining  float64              `json:"beforeRemaining,omitempty"`
+	Item             string               `json:"item,omitempty"`
+	Injury           *uint64              `json:"injury,omitempty"`
+	Batches          int                  `json:"batches"`
 }
 type FoodChest struct {
 	Entity      string         `json:"entity"`
@@ -65,6 +67,9 @@ func validateFood(g Record) error {
 	}
 	if !slices.Contains([]string{"home", "ready", "raw", "wood", "cook", "recover", "complete"}, f.Phase) {
 		return errors.New("invalid food phase")
+	}
+	if err := validateAcquisition(g); err != nil {
+		return err
 	}
 	seen := map[string]bool{}
 	for _, c := range f.Chests {
@@ -203,11 +208,19 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	if g.Wake.After(v.Now) {
 		return nil, &behaviour.Delay{Until: g.Wake}
 	}
+	if a := f.Acquisition; a != nil {
+		if a.Product != nil {
+			return r.foodProductNext(g, v)
+		}
+	}
 	itemToEat := food.Choose(s.Food)
 	fillSlot := itemToEat != "" && s.Food != nil && len(s.Food.Active) < 3 && remaining(s, itemToEat) == 0
 	// A reserve is measured after filling eligible food slots, so the normal
 	// keeper cannot immediately eat the entire newly prepared reserve.
 	if !fillSlot && mealCount(v.Inventory) >= f.Reserve && nourished(s) && s.HP >= s.HPMax*.8 {
+		if !foodAtHome(s.Pos, g.Center) {
+			return r.foodDispatch(g, v, "food_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 120})
+		}
 		d, err := Evaluate(g.Policy, map[string]any{"objectiveSatisfied": true}, g.State, g.Last)
 		if err != nil || d.Action != "done" {
 			return r.need("food policy refused host readiness")
@@ -230,8 +243,11 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		}
 		return r.foodWait(g, v, "recovering health before food work")
 	}
+	if a := f.Acquisition; a != nil && a.Returning {
+		return r.foodDispatch(g, v, "food_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 120})
+	}
 	if f.Phase == "home" {
-		if distance(s.Pos, g.Center) > 3 {
+		if !foodAtHome(s.Pos, g.Center) {
 			return r.foodDispatch(g, v, "home", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true}, TimeoutS: 180})
 		}
 		if err := r.pinFoodSearch(g, v); err != nil {
@@ -271,10 +287,13 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 			if o, item, chest := foodWithdrawal(g, v, ingredients, max(1, f.Reserve+1-mealCount(v.Inventory))); o != nil {
 				return r.foodDispatch(g, v, "raw", item, chest, o)
 			}
-			return r.need("no raw ingredient in pack or eligible observed home chests")
+			return r.foodAcquire(g, v, append(slices.Clone(meals), ingredients...))
 		}
 	}
 	if f.Phase == "wood" || f.Phase == "cook" {
+		if !foodAtHome(s.Pos, g.Center) {
+			return r.foodDispatch(g, v, "food_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 120})
+		}
 		if f.Batches >= 4 {
 			return r.need("bounded cooking batch limit reached")
 		}
@@ -286,7 +305,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 			if o, item, chest := foodWithdrawal(g, v, []string{"Wood"}, 1); o != nil {
 				return r.foodDispatch(g, v, "wood", item, chest, o)
 			}
-			return r.need("cold cooking station needs wood from allowed storage")
+			return r.foodAcquire(g, v, []string{"Wood"})
 		}
 		if s.Food == nil || len(s.Food.Active) == 0 {
 			return r.need("native cooking requires active food; no safe bootstrap meal available")
@@ -414,7 +433,7 @@ func foodStation(v behaviour.View) (string, bool) {
 	return id, hot
 }
 
-func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity string, o *session.Order) (*session.Order, error) {
+func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity string, o *session.Order, prepare ...func(*Record)) (*session.Order, error) {
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("food native-task budget exhausted")
 	}
@@ -436,12 +455,16 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 		g.Reason = "food " + action + ": " + entity + " " + item
 		g.Food.BeforeSeq = v.State.Seq
 		g.Food.BeforePackSeq = v.Inventory.Seq
+		g.Food.BeforePerception = v.Perception.Seq
 		g.Food.BeforeCount = v.Inventory.Count(item)
 		g.Food.BeforeRemaining = remaining(v.State, item)
 		g.Food.Item = item
 		g.Pending = &Intent{Run: r.t.Store.runID, At: v.Now, Template: action, Params: raw, Entity: entity, Fingerprint: fmt.Sprintf("%s:%s:%s:%d", action, entity, item, v.Inventory.Seq)}
 		if slices.Contains([]string{"ready", "raw", "wood"}, action) {
 			g.Food.Tried = append(g.Food.Tried, g.Food.Phase+":"+entity+":"+item)
+		}
+		for _, p := range prepare {
+			p(g)
 		}
 		return nil
 	})
@@ -461,9 +484,15 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 	success := last.Status == protocol.StatusSucceeded
 	switch p.Template {
 	case "home":
-		if !success || distance(v.State.Pos, g.Center) > 3 {
+		if !success || !foodAtHome(v.State.Pos, g.Center) {
 			return errors.New("food return lacks confirmed home arrival")
 		}
+	case "food_return":
+		if !success || !foodAtHome(v.State.Pos, g.Center) {
+			return errors.New("food acquisition lacks confirmed home floor arrival")
+		}
+	case "forage", "pickup_food", "search_food", "hunt_food":
+		return r.foodAcquisitionResult(g, v, last, out)
 	case "eat":
 		if !success {
 			return errors.New("normal food consumption failed")
@@ -546,6 +575,9 @@ func (r *runner) foodResult(g Record, v behaviour.View, last *behaviour.Result) 
 		if p.Template == "cook" {
 			g.Food.Batches++
 			g.Food.Phase = "raw"
+		}
+		if p.Template == "food_return" && g.Food.Acquisition != nil {
+			g.Food.Acquisition.Returning = false
 		}
 		return nil
 	})

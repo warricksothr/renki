@@ -3,6 +3,7 @@
 import datetime
 import json
 import math
+import re
 from pathlib import Path
 import sys
 
@@ -61,16 +62,29 @@ def report(folder, now=None):
         except ValueError:
             final = None
         if final:
-            goal = final.get('goal') or goal
+            if isinstance(final.get('goal'), dict):
+                goal = final['goal']
+            elif isinstance(final.get('goal'), str):
+                result['goalId'] = final['goal']
             for key in ('outcome', 'reason', 'supplied', 'minimumHP', 'damageEvents', 'finalNativeHP', 'finalNativePos', 'cleanupErrors', 'mode', 'treesHarvested', 'logsHarvested', 'defenses', 'woodGain', 'deposited', 'returned'):
                 if key in final:
                     result[key] = final[key]
-            result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: (t.get('result') or {}).get(k)
-                               for k in ('status', 'reason', 'detail')}) for t in final.get('tasks', [])[-6:]]
+            tasks = final.get('tasks', [])
+            if isinstance(tasks, int):
+                result['taskCount'] = tasks
+                result['batches'] = final.get('batches', 0)
+                result['keptOnline'] = final.get('keptOnline', False)
+            else:
+                result['tasks'] = [dict(id=t['id'], task=t['task'], **{k: (t.get('result') or {}).get(k)
+                                   for k in ('status', 'reason', 'detail')}) for t in tasks[-6:]]
             if final.get('result'):
                 result['result'] = {k: final['result'][k] for k in ('status', 'reason', 'detail') if k in final['result']}
     if goal:
         result['goal'] = {k: goal[k] for k in ('status', 'reason', 'attempts', 'maxAttempts', 'taskCount', 'waitS') if k in goal}
+        if goal.get('food'):
+            food = goal['food']
+            result['goal']['food'] = {k: food[k] for k in ('phase', 'reserve', 'batches') if k in food}
+            result['goal']['food']['receipts'] = len(food.get('receipts', []))
         if goal.get('postCombat'):
             result['goal']['postCombat'] = goal['postCombat']
         if goal.get('proof'):
@@ -92,11 +106,13 @@ def main():
     if len(sys.argv) > 1:
         folder = Path(sys.argv[1])
     else:
-        choices = [p for pattern in ('combat-trial-*', 'harvest-trial-*', 'resupply-trial-*', 'gather-trial-*')
-                   for p in (ROOT / '.checks').glob(pattern) if p.is_dir()]
+        choices = [p for pattern in ('combat-trial-*', 'harvest-trial-*', 'resupply-trial-*', 'gather-trial-*',
+                                    'food-*', 'cooking-*', 'recovery-*', 'escort-*')
+                   for p in (ROOT / '.checks').glob(pattern) if p.is_dir() and
+                   re.fullmatch(r'\d{8}T\d{6,12}Z', p.name.rsplit('-', 1)[-1])]
         if not choices:
             raise SystemExit('No retained trial evidence')
-        folder = max(choices, key=lambda p: p.name.split('-trial-', 1)[1])
+        folder = max(choices, key=lambda p: p.name.rsplit('-', 1)[-1])
     if not folder.is_dir():
         raise SystemExit('Trial evidence directory does not exist')
     print(json.dumps(report(folder), indent=2))

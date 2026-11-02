@@ -2452,6 +2452,10 @@ export function startController() {
       if (g.food) {
         const supply = document.createElement("p");
         supply.textContent = `Food: ${g.food.phase} · Reserve ${g.food.reserve} · Chests ${g.food.candidateCount || 0} · Cooking batches ${g.food.batches}`;
+        if (g.food.acquisition) {
+          const a = g.food.acquisition;
+          supply.textContent += ` · Forage visits ${a.visitCount || 0}/6 · Collections ${a.targets}/12 · Hunts ${a.hunts}/2`;
+        }
         article.append(supply);
       }
       if (g.proof) {

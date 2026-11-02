@@ -114,7 +114,7 @@ install: need-target
 deploy: install
     just --justfile "{{justfile()}}" vm start
 
-# Deploy a controller-only change and refresh the bridge without restarting Valheim.
+# Deploy a controller-only change; preserve the running/offline game state.
 deploy-controller: need-target
     #!/usr/bin/env bash
     set -euo pipefail
@@ -389,6 +389,26 @@ food-check *ARGS:
 
 test-food-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/food-check-test.py"
+
+# Return an adequately supplied outdoor bot through guarded native movement.
+[positional-arguments]
+recover-home WORLD:
+    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home.py" "$1"
+
+test-recover-home:
+    python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
+
+# Arm/clear a one-shot order using the controller's pinned home.
+[positional-arguments]
+recovery-return ACTION='arm' WORLD='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
+    encoded=$(printf '%s' "$2" | base64 -w0)
+    worldarg=()
+    [ -z "$encoded" ] || worldarg=(-WorldBase64 "$encoded")
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery-return.ps1" "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/"
+    {{ssh}} "{{ps}} -File {{dir}}/recovery-return.ps1 -Action '$1' ${worldarg[*]}"
 
 # One-shot native sheltered healing guard; observes threats every physics step.
 [positional-arguments]
