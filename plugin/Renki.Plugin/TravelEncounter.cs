@@ -8,13 +8,14 @@ using UnityEngine;
 
 namespace Renki.Plugin
 {
-    /// <summary>Native defend/escape/observe/resume children of one move_to.</summary>
-    sealed class TravelEncounter
+    /// <summary>Native defend/escape/observe/resume children of one body task.</summary>
+    sealed class TravelEncounter : IWorkEncounter
     {
         internal static TravelEncounter Active;
         readonly TravelRecovery policy = new TravelRecovery();
         readonly List<Character> characters = new List<Character>();
         readonly string id;
+        readonly string task;
         readonly bool defend;
         Character threat;
         Character opponent;
@@ -32,14 +33,16 @@ namespace Renki.Plugin
         internal JourneyStatus Status => new JourneyStatus
         {
             Id = id,
+            Task = task,
             Mode = policy.Mode.ToString().ToLowerInvariant(),
             Attempts = policy.Attempts,
             Reason = policy.Reason
         };
 
-        public TravelEncounter(string id, bool defend)
+        public TravelEncounter(string id, bool defend, string task = TaskNames.MoveTo)
         {
             this.id = id; this.defend = defend && !string.IsNullOrEmpty(id);
+            this.task = task;
             if (!string.IsNullOrEmpty(id)) Active = this;
         }
 
@@ -53,7 +56,15 @@ namespace Renki.Plugin
                 p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(), p.GetFoods().Count > 0,
                 MeleeTask.Best(p) != null, p.IsOnGround());
 
-        public bool Tick(Player p, double dt, out Outcome failure)
+        bool IWorkEncounter.Tick(double dt, bool canSuspend, out Outcome failure)
+        {
+            var p = Player.m_localPlayer;
+            if (p != null && !p.IsDead()) return Tick(p, dt, out failure, canSuspend);
+            failure = Outcome.Failed(Wire.ReasonStopped, "collection body unavailable");
+            return true;
+        }
+
+        public bool Tick(Player p, double dt, out Outcome failure, bool canSuspend = true)
         {
             failure = null; Resumed = false;
             var now = Time.unscaledTime;
@@ -62,6 +73,12 @@ namespace Renki.Plugin
                 nextScan = now + .25f;
                 Scan(p);
                 if (policy.Mode == TravelMode.Blocked) observedVersion = RouteVersion(p);
+            }
+            if (!canSuspend && threat != null)
+            {
+                Driver.Stand();
+                failure = Outcome.Failed(Wire.ReasonStopped, "collection use is unresolved at encounter; not suspended or replayed");
+                return true;
             }
             var previous = policy.Mode;
             policy.Decide(now, threat != null, saturated || !TravelRecovery.Safe(p.GetHealth(), p.GetMaxHealth(),
@@ -190,6 +207,7 @@ namespace Renki.Plugin
         void Emit() => Tracer.Emit("journey", "travel encounter transition", new Dictionary<string, object>
         {
             ["id"] = id,
+            ["task"] = task,
             ["mode"] = policy.Mode.ToString().ToLowerInvariant(),
             ["reason"] = policy.Reason,
             ["attempts"] = policy.Attempts,

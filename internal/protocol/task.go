@@ -477,10 +477,15 @@ func (a *EmoteArgs) validate() error {
 
 // PickupArgs are the arguments to `pickup`: the drop, by entity id.
 type PickupArgs struct {
-	Entity string `json:"entity"`
+	Entity         string `json:"entity"`
+	RecoverThreats bool   `json:"recoverThreats,omitempty"`
+	DefendThreats  bool   `json:"defendThreats,omitempty"`
 }
 
 func (a *PickupArgs) validate() error {
+	if a.DefendThreats && !a.RecoverThreats {
+		return errors.New("defendThreats requires recoverThreats")
+	}
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
 	}
@@ -507,15 +512,23 @@ func (a *DropArgs) validate() error {
 // InteractArgs are the arguments to `interact`: the entity to use, with
 // the alternative use (Alt) or the use key held (Hold).
 type InteractArgs struct {
-	Entity string `json:"entity"`
-	Alt    bool   `json:"alt,omitempty"`
-	Hold   bool   `json:"hold,omitempty"`
-	Sleep  bool   `json:"sleep,omitempty"`
-	Repair bool   `json:"repair,omitempty"`
-	Cook   string `json:"cook,omitempty"`
+	RecoverThreats bool   `json:"recoverThreats,omitempty"`
+	DefendThreats  bool   `json:"defendThreats,omitempty"`
+	Entity         string `json:"entity"`
+	Alt            bool   `json:"alt,omitempty"`
+	Hold           bool   `json:"hold,omitempty"`
+	Sleep          bool   `json:"sleep,omitempty"`
+	Repair         bool   `json:"repair,omitempty"`
+	Cook           string `json:"cook,omitempty"`
 }
 
 func (a *InteractArgs) validate() error {
+	if a.DefendThreats && !a.RecoverThreats {
+		return errors.New("defendThreats requires recoverThreats")
+	}
+	if a.RecoverThreats && (a.Alt || a.Hold || a.Sleep || a.Repair || a.Cook != "") {
+		return errors.New("interaction recovery requires a single ordinary pickable use")
+	}
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
 	}

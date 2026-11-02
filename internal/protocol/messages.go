@@ -167,6 +167,7 @@ type CombatStatus struct {
 
 type JourneyStatus struct {
 	ID       string `json:"id"`
+	Task     string `json:"task"`
 	Mode     string `json:"mode"`
 	Attempts int    `json:"attempts"`
 	Reason   string `json:"reason,omitempty"`

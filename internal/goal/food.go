@@ -215,9 +215,9 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 			}
 			return r.need(err.Error())
 		}
-		// Reconcile the action first. Only a verified owned travel result can
+		// Reconcile the action first. Only a verified owned recovery result can
 		// acknowledge bounded encounter damage for subsequent stationary work.
-		if r.travelIntent(g) && foodTravelDamage(g, v) && v.InjurySeq != nil {
+		if last.Status == protocol.StatusSucceeded && r.recoveryTask(g) != "" && foodTravelDamage(g, v) && v.InjurySeq != nil {
 			if err := r.t.Store.update(g.ID, func(g *Record) error {
 				n := *v.InjurySeq
 				g.Food.Injury = &n
@@ -226,6 +226,12 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 				return nil, err
 			}
 		}
+		g, _ = r.t.Store.Get(g.ID)
+		f = g.Food
+	}
+	if credited, err := r.foodProductGain(g, v); err != nil {
+		return r.need(err.Error())
+	} else if credited {
 		g, _ = r.t.Store.Get(g.ID)
 		f = g.Food
 	}
@@ -491,10 +497,22 @@ func foodStation(v behaviour.View) (string, bool) {
 }
 
 func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity string, o *session.Order, prepare ...func(*Record)) (*session.Order, error) {
-	if args, ok := o.Args.(*protocol.MoveToArgs); ok {
-		args.RecoverThreats = args.Dry && args.AvoidHostiles && v.State != nil && v.State.Food != nil && len(v.State.Food.Active) > 0 &&
-			(r.t.Allowed == nil || r.t.Allowed(protocol.TaskFlee))
+	fedRecovery := v.State != nil && v.State.Food != nil && len(v.State.Food.Active) > 0 && (r.t.Allowed == nil || r.t.Allowed(protocol.TaskFlee))
+	defend := fedRecovery && r.t.Allowed != nil && r.t.Allowed(protocol.TaskAttack)
+	recovering := false
+	switch args := o.Args.(type) {
+	case *protocol.MoveToArgs:
+		args.RecoverThreats = args.Dry && args.AvoidHostiles && fedRecovery
 		args.DefendThreats = args.RecoverThreats && r.t.Allowed != nil && r.t.Allowed(protocol.TaskAttack)
+		recovering = args.RecoverThreats
+	case *protocol.PickupArgs:
+		args.RecoverThreats = action == "pickup_food" && fedRecovery
+		args.DefendThreats = args.RecoverThreats && defend
+		recovering = args.RecoverThreats
+	case *protocol.InteractArgs:
+		args.RecoverThreats = action == "forage" && !args.Hold && !args.Alt && !args.Sleep && !args.Repair && args.Cook == "" && fedRecovery
+		args.DefendThreats = args.RecoverThreats && defend
+		recovering = args.RecoverThreats
 	}
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("food native-task budget exhausted")
@@ -521,7 +539,7 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 		g.Food.BeforeCount = v.Inventory.Count(item)
 		g.Food.BeforeRemaining = remaining(v.State, item)
 		g.Food.Item = item
-		if a, ok := o.Args.(*protocol.MoveToArgs); ok && a.RecoverThreats && g.Food.TravelBudget == nil &&
+		if recovering && g.Food.TravelBudget == nil &&
 			v.InjurySeq != nil && v.Injury != nil && v.Injury.Complete && v.Injury.Sequence == *v.InjurySeq &&
 			finite(v.Injury.Damage) && v.Injury.Damage >= 0 && v.State.HP >= 30 && g.Food.Injury != nil && *g.Food.Injury == *v.InjurySeq {
 			g.Food.TravelBudget = &FoodTravelBudget{Injury: *v.InjurySeq, Damage: v.Injury.Damage, HP: v.State.HP}

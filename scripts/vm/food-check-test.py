@@ -22,7 +22,7 @@ trip = dict(id='goal', kind='food_resupply', status='running', world='one',
             pending=dict(run='current', taskId='travel', template='food_return',
                          params=dict(dry=True, avoidHostiles=True, recoverThreats=True)))
 walking = s | dict(injurySeq=0, injury=dict(seq=0, damage=0, complete=True),
-                   journey=dict(id='travel', mode='defend', attempts=1),
+                   journey=dict(id='travel', task='move_to', mode='defend', attempts=1),
                    task=dict(id='travel', task='move_to', status='running'))
 hurt = walking | dict(hp=35, injurySeq=111, injury=dict(seq=111, damage=5, complete=True))
 assert food.safe(hurt, walking, trip) is None
@@ -45,6 +45,31 @@ for patch in (dict(history=[]), dict(history=[dict(run='old', taskId='travel', t
     assert food.safe(resting, walking, finished | patch, trip)
 assert food.safe(resting | dict(task=dict(id='human', task='follow')), walking, finished, trip)
 assert food.safe(resting, walking, finished)  # No previous owned intent.
+
+# Collection owns the same finite allowance only for the exact source/use.
+for template, task_name in (('forage', 'interact'), ('pickup_food', 'pickup')):
+    pending = dict(run='current', taskId='collection', template=template, entity='1:2',
+                   params=dict(entity='1:2', recoverThreats=True))
+    collecting = trip | dict(pending=pending)
+    before = walking | dict(task=dict(id='collection', task=task_name, status='running'),
+                            journey=dict(id='collection', task=task_name, mode='escape', attempts=1))
+    after = before | dict(hp=35, injurySeq=111, injury=dict(seq=111, damage=5, complete=True))
+    assert food.safe(after, before, collecting) is None
+    for patch in (dict(journey=dict(id='collection', task='move_to', mode='escape', attempts=1)),
+                  dict(journey=dict(id='stale', task=task_name, mode='escape', attempts=1)),
+                  dict(task=dict(id='collection', task='harvest', status='running'))):
+        assert food.safe(after | patch, before, collecting)
+    for patch in (dict(entity='other'), dict(params=pending['params'] | dict(entity='other')),
+                  dict(params=pending['params'] | dict(recoverThreats=False))):
+        assert food.safe(after, before, collecting | dict(pending=pending | patch))
+    if template == 'forage':
+        for mode in ('hold', 'alt', 'repair', 'sleep', 'cook'):
+            assert food.safe(after, before, collecting | dict(pending=pending | dict(params=pending['params'] | {mode: True})))
+    completed = collecting | dict(pending=None, food=trip['food'] | dict(injury=111),
+                                  history=[dict(run='current', taskId='collection', template=template, status='succeeded')])
+    assert food.safe(after | dict(task=None), before, completed, collecting) is None
+    assert food.safe(after | dict(task=None), before, completed | dict(history=[]), collecting)
+
 sampled = dict(task=dict(id='owned-previous'))
 advanced = dict(pending=dict(taskId='owned-next'), history=[dict(taskId='owned-previous', status='succeeded')])
 assert food.goal_owned_task(sampled, advanced)

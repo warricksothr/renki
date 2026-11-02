@@ -31,23 +31,32 @@ def food_travel_damage(status, goal, previous=None, previous_goal=None):
         return False
     task, pending = status.get('task') or {}, goal.get('pending') or {}
 
-    def travel(intent):
+    def recovery_task(intent):
         args = intent.get('params') or {}
-        return (bool(intent.get('run')) and bool(intent.get('taskId')) and
-                intent.get('template') in ('search_food', 'food_return', 'cook_return', 'home') and
-                args.get('recoverThreats') is True and args.get('dry') is True and args.get('avoidHostiles') is True)
+        if not intent.get('run') or not intent.get('taskId') or args.get('recoverThreats') is not True:
+            return None
+        template = intent.get('template')
+        if template in ('search_food', 'food_return', 'cook_return', 'home'):
+            return 'move_to' if args.get('dry') is True and args.get('avoidHostiles') is True else None
+        if not args.get('entity') or args['entity'] != intent.get('entity'):
+            return None
+        if template == 'pickup_food':
+            return 'pickup'
+        if template == 'forage' and not any(args.get(k) for k in ('alt', 'hold', 'sleep', 'repair', 'cook')):
+            return 'interact'
+        return None
 
     journey = status.get('journey') or {}
-    if (task.get('id') == pending.get('taskId') and task.get('task') == 'move_to' and task.get('status') == 'running' and
-            journey.get('id') == task.get('id') and journey.get('mode') in ('walk', 'defend', 'escape', 'observe', 'blocked') and
-            type(journey.get('attempts')) is int and 0 <= journey['attempts'] <= 3 and travel(pending)):
+    if (task.get('id') == pending.get('taskId') and task.get('task') == recovery_task(pending) and task.get('status') == 'running' and
+            journey.get('id') == task.get('id') and journey.get('task') == task.get('task') and journey.get('mode') in ('walk', 'defend', 'escape', 'observe', 'blocked') and
+            type(journey.get('attempts')) is int and 0 <= journey['attempts'] <= 3 and recovery_task(pending)):
         return True
     # A slow poll may see the next task. Require the previous exact travel
     # intent, its successful same-run outcome, and acknowledged injury count.
     old = (previous_goal or {}).get('pending') or {}
     prior_task = (previous or {}).get('task') or {}
-    return (bool(previous_goal) and previous_goal.get('id') == goal.get('id') and travel(old) and
-            prior_task.get('id') == old.get('taskId') and prior_task.get('task') == 'move_to' and
+    return (bool(previous_goal) and previous_goal.get('id') == goal.get('id') and bool(recovery_task(old)) and
+            prior_task.get('id') == old.get('taskId') and prior_task.get('task') == recovery_task(old) and
             food.get('injury') == seq and (not task or task.get('id') == pending.get('taskId')) and
             any(r.get('run') == old['run'] and r.get('taskId') == old['taskId'] and
                 r.get('template') == old['template'] and r.get('status') == 'succeeded'

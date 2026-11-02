@@ -238,8 +238,8 @@ func nativeEscort(st *protocol.State) bool {
 // step. Do not replace it with a second controller-owned body after a small hit.
 func nativeTravel(st *protocol.State) bool {
 	j := st.Journey
-	return st.Task != nil && st.Task.Task == protocol.TaskMoveTo && st.Task.Status == protocol.StatusRunning &&
-		j != nil && j.ID != "" && j.ID == st.Task.ID && j.Attempts >= 0 && j.Attempts <= 3 &&
+	return st.Task != nil && slices.Contains([]string{protocol.TaskMoveTo, protocol.TaskPickup, protocol.TaskInteract}, st.Task.Task) && st.Task.Status == protocol.StatusRunning &&
+		j != nil && j.ID != "" && j.ID == st.Task.ID && j.Task == st.Task.Task && j.Attempts >= 0 && j.Attempts <= 3 &&
 		slices.Contains([]string{"walk", "defend", "escape", "observe", "blocked"}, j.Mode) &&
 		st.HP >= math.Max(20, st.HPMax*.4) && st.Stamina >= 8 && st.Food != nil && len(st.Food.Active) > 0 &&
 		!st.Encumbered() && !st.Stranded() && !slices.Contains(st.Flags, protocol.FlagSwimming) &&

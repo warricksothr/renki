@@ -15,7 +15,7 @@ namespace Renki.Plugin
     /// bed someone else owns or a missing roof comes back as the failure
     /// <c>refused</c> with the game's own words.
     /// </summary>
-    sealed class InteractTask : IBodyTask
+    sealed class InteractTask : IRecoverableWork
     {
         /// <summary>How far from the bot's eye it uses a thing. The game
         /// allows 5 m; nearer, the bot is plainly at it.</summary>
@@ -40,6 +40,7 @@ namespace Renki.Plugin
         bool used;
         float sightTraceAt;
         readonly List<string> heard = new List<string>();
+        WorkCheckpoint checkpoint;
 
         public InteractTask(InteractArgs args, Interactable target, bool safeTravel = false)
         {
@@ -52,6 +53,30 @@ namespace Renki.Plugin
             goal = obj.transform.position;
             walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             walker.ResetStuck(p.transform.position);
+        }
+
+        WorkCheckpoint ObserveWork()
+        {
+            var pick = target as Pickable;
+            var p = Player.m_localPlayer;
+            if (pick == null || p == null || pick.m_nview == null || !pick.m_nview.IsValid() || pick.m_itemPrefab == null)
+                return new WorkCheckpoint(null, null, 0, 0, false);
+            var prefab = pick.m_itemPrefab.name;
+            var carried = p.GetInventory().GetAllItems().Where(i => i.m_dropPrefab != null && i.m_dropPrefab.name == prefab).Sum(i => i.m_stack);
+            return new WorkCheckpoint(Perceiver.Id(pick.m_nview), prefab, pick.m_amount, carried,
+                pick.gameObject.activeInHierarchy && !pick.GetPicked());
+        }
+
+        public bool Checkpoint() { checkpoint = ObserveWork(); return true; }
+        public Outcome Resume()
+        {
+            if (checkpoint == null || !checkpoint.Matches(ObserveWork()))
+                return Outcome.Failed(Wire.ReasonStopped, "forage source or inventory changed during encounter; not replayed");
+            goal = obj.transform.position;
+            var pos = Player.m_localPlayer.transform.position;
+            walker.SetGoal(pos, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
+            walker.ResetStuck(pos);
+            return null;
         }
 
         /// <summary>The kind InteractRule decides by, from the game's type.</summary>
@@ -144,7 +169,7 @@ namespace Renki.Plugin
             if ((obj.transform.position - goal).sqrMagnitude > 1)
             {
                 goal = obj.transform.position;
-                walker.SetGoal(pos, goal);
+                walker.SetGoal(pos, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             }
             if (walker.Unreachable(pos, Reach) is Outcome under)
             {
@@ -161,7 +186,7 @@ namespace Renki.Plugin
                 Driver.Stand();
                 return wet;
             }
-            if (!walker.Steer(pos, false))
+            if (!walker.Steer(pos, false, climbObstacles: !safeTravel))
             {
                 Driver.Stand();
                 return Outcome.Failed(Wire.ReasonStuck,

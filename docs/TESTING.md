@@ -1305,10 +1305,36 @@ threat/injury, unfed bootstrap and distant targeting.
 covers cumulative damage despite healed HP/arbitrary wire sequence gaps,
 unknown/death/reconnect invalidation and preventing a competing emergency body
 while an exact native journey owns recovery. `just check vm test-food-check`
-checks supervisor budget/identity and exact completed travel between polls.
+checks supervisor budget/identity and exact completed travel/collection between polls.
+`just check plugin test-core RecoverableWorkTests` covers collection child
+retention, source/pack revalidation, unresolved-use refusal, failed recovery
+without a false negative-source result, original timeout, stop/death/reconnect/
+deadman cancellation and mode/permission gates. Controller goal/protocol tests
+cover exact forage/pickup ownership, unchanged damage baselines and delayed
+collection gains accounted before threats/injury without dispatching new work.
+Session tests require recovery child capabilities, welcome and live permissions;
+retreat/supervisor checks reject stale journey task types and source substitutions.
 Field coverage still requires the same task ID across encounter recovery and
 actual subsequent travel/collection; policy tests do not establish Unity
 escape clearance or a route through the retained coastal bottleneck.
+
+Build1502720 field checks retained in `.checks/audit-window-QhlFlM.jsonl`
+showed a normal food-goal task retaining its ID through blocked observation,
+changed-condition replanning and eventual arrival on the sheltered36.09m home
+floor, without injury. Chest resupply succeeded. The separate forced-acquisition
+run `.checks/food-20261101T034506Z` retained its search task through two recovery
+cycles but reached its90s deadline before collecting. Rejected route candidates
+included the southwest stair approach near[-41.16,35.29,13.28]; a later flint
+approach also refused physical clearance. These are route failures, not empty
+food-source or combat results. Do not infer an impossible path from the timeout.
+
+The subsequent ordinary return/resupply check
+`.checks/food-20261101T034826Z` passed and kept Tas online at home. A controlled
+normal drop of one Wood followed by recovery-enabled pickup succeeded for exact
+source2008100581:219 (`.checks/task-in0jsm6k.json`); carried Wood returned34→35.
+This proves the opted-in pickup path without an encounter. Creature defense,
+encounter-to-collection resumption and outdoor collection-to-storage remain
+unproven. No physical or hostile clearances were relaxed.
 
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,

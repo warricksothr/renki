@@ -247,10 +247,17 @@ func (r *runner) foodTake(g Record, v behaviour.View, p protocol.PerceivedResour
 	})
 }
 
-func (r *runner) foodProductNext(g Record, v behaviour.View) (*session.Order, error) {
-	a, p := g.Food.Acquisition, g.Food.Acquisition.Product
+// Account for a completed exact action without issuing any further work.
+func (r *runner) foodProductGain(g Record, v behaviour.View) (bool, error) {
+	if g.Food.Acquisition == nil || g.Food.Acquisition.Product == nil {
+		return false, nil
+	}
+	p := g.Food.Acquisition.Product
 	if p.TaskID == "" {
-		return r.need("food product missing scoped native result; not replayed")
+		return false, nil
+	}
+	if p.Run != r.t.Store.runID {
+		return false, errors.New("food product belongs to another run; not replayed")
 	}
 	gain := v.Inventory.Count(p.Item) - p.BeforeCount
 	if remaining(v.State, p.Item) > p.BeforeRemaining+1 {
@@ -258,7 +265,7 @@ func (r *runner) foodProductNext(g Record, v behaviour.View) (*session.Order, er
 	}
 	if v.Inventory.Seq > p.BeforePack && gain > 0 {
 		if gain > p.Maximum {
-			return r.need("food product gain exceeds observed yield; receipt is ambiguous")
+			return false, errors.New("food product gain exceeds observed yield; receipt is ambiguous")
 		}
 		if err := r.t.Store.update(g.ID, func(g *Record) error {
 			g.Food.Receipts = append(g.Food.Receipts, FoodReceipt{Run: p.Run, TaskID: p.TaskID, Action: "collect", Entity: p.Entity, Item: p.Item, Count: gain, Evidence: "observed_yield_fresh_inventory"})
@@ -266,10 +273,17 @@ func (r *runner) foodProductNext(g Record, v behaviour.View) (*session.Order, er
 			g.Food.Acquisition.Returning = g.Food.Stock == nil && !foodAtHome(v.State.Pos, g.Center)
 			return nil
 		}); err != nil {
-			return nil, err
+			return false, err
 		}
-		g, _ = r.t.Store.Get(g.ID)
-		return r.foodNext(g, v, nil)
+		return true, nil
+	}
+	return false, nil
+}
+
+func (r *runner) foodProductNext(g Record, v behaviour.View) (*session.Order, error) {
+	a, p := g.Food.Acquisition, g.Food.Acquisition.Product
+	if p.TaskID == "" {
+		return r.need("food product missing scoped native result; not replayed")
 	}
 	if v.Now.Before(p.Until) {
 		for _, drop := range v.Perception.Resources {

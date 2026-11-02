@@ -54,12 +54,16 @@ namespace Renki.Protocol
         static bool IsNumber(JToken t) => t.Type == JTokenType.Integer || t.Type == JTokenType.Float;
     }
 
-    public sealed class MoveToArgs
+    public class EncounterArgs
+    {
+        public bool RecoverThreats;
+        public bool DefendThreats;
+    }
+
+    public sealed class MoveToArgs : EncounterArgs
     {
         public bool Dry;
         public bool AvoidHostiles;
-        public bool RecoverThreats;
-        public bool DefendThreats;
         public Target To;
         public double StopDistance = 1.5;
         public bool Run;
@@ -118,7 +122,7 @@ namespace Renki.Protocol
         public double? SearchLimit;
     }
 
-    public sealed class PickupArgs
+    public sealed class PickupArgs : EncounterArgs
     {
         /// <summary>The drop, by entity id from perception.</summary>
         public string Entity;
@@ -130,7 +134,7 @@ namespace Renki.Protocol
         public bool Collect = true;
     }
 
-    public sealed class InteractArgs
+    public sealed class InteractArgs : EncounterArgs
     {
         /// <summary>What to use, by entity id from perception.</summary>
         public string Entity;
@@ -305,7 +309,10 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        return new PickupArgs { Entity = entity };
+                        var recover = Bool(a, "recoverThreats", false);
+                        var defend = Bool(a, "defendThreats", false);
+                        if (defend && !recover) throw new BadArgsException("defendThreats requires recoverThreats");
+                        return new PickupArgs { Entity = entity, RecoverThreats = recover, DefendThreats = defend };
                     }
                 case TaskNames.Attack:
                     {
@@ -380,8 +387,11 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook") };
+                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook"), RecoverThreats = Bool(a, "recoverThreats", false), DefendThreats = Bool(a, "defendThreats", false) };
                         if (args.Cook == "") args.Cook = null;
+                        if (args.DefendThreats && !args.RecoverThreats) throw new BadArgsException("defendThreats requires recoverThreats");
+                        if (args.RecoverThreats && (args.Alt || args.Hold || args.Sleep || args.Repair || args.Cook != null))
+                            throw new BadArgsException("interaction recovery requires a single ordinary pickable use");
                         if (args.Sleep && (args.Alt || args.Hold)) throw new BadArgsException("`sleep` cannot be combined with `alt` or `hold`");
                         if (args.Repair && (args.Sleep || args.Alt || args.Hold)) throw new BadArgsException("`repair` cannot combine with sleep, alt or hold");
                         if (args.Cook != null && (!CookingBatch.Supported(args.Cook) || args.Repair || args.Sleep || args.Alt || args.Hold))

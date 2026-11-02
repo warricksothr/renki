@@ -26,7 +26,7 @@ func TestHouseholdTravelRecoveryRequiresMatchingCurrentNativeTask(t *testing.T) 
 				t.Fatal(err)
 			}
 			v.State.Task = &protocol.TaskRef{ID: "journey", Task: protocol.TaskMoveTo, Status: protocol.StatusRunning}
-			v.State.Journey = &protocol.JourneyStatus{ID: "journey", Mode: "escape", Attempts: 1}
+			v.State.Journey = &protocol.JourneyStatus{Task: protocol.TaskMoveTo, ID: "journey", Mode: "escape", Attempts: 1}
 			v.Perception.Characters = []protocol.PerceivedCharacter{{ID: "neck", Prefab: "Neck", Hostile: true, TargetingMe: true, HPFrac: 1, Pos: protocol.Vec3{10, 0, 0}}}
 			switch change {
 			case "other_task":
@@ -60,7 +60,7 @@ func TestHouseholdTravelRecoveryRequiresMatchingCurrentNativeTask(t *testing.T) 
 				t.Fatal(change, err)
 			}
 			g, _ = host.Store.Get(id)
-			if r.nativeTravelRecovery(g, v) != (change == "matching" || change == "injury") {
+			if r.nativeFoodRecovery(g, v) != (change == "matching" || change == "injury") {
 				t.Fatal("non-running/foreign task acquired native recovery permission")
 			}
 			if g.Status != "running" || g.Pending.TaskID != "journey" || len(g.Food.Receipts) != 0 {
@@ -153,7 +153,7 @@ func TestOwnedFoodTravelHasOneFiniteDamageAllowance(t *testing.T) {
 				t.Fatal(err)
 			}
 			v.State.Task = &protocol.TaskRef{ID: "owned-travel", Task: protocol.TaskMoveTo, Status: protocol.StatusRunning}
-			v.State.Journey = &protocol.JourneyStatus{ID: "owned-travel", Mode: "defend", Attempts: 1}
+			v.State.Journey = &protocol.JourneyStatus{Task: protocol.TaskMoveTo, ID: "owned-travel", Mode: "defend", Attempts: 1}
 			n := uint64(111)
 			v.InjurySeq, v.State.HP = &n, 45
 			v.Injury = &session.InjuryStatus{Sequence: n, Damage: 5, Complete: true}

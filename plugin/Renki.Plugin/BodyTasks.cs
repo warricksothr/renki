@@ -1105,7 +1105,7 @@ namespace Renki.Plugin
     /// stands on it, the task picks it up itself. It succeeds when the bot
     /// carries more of the item than it did, however that came about.
     /// </summary>
-    sealed class PickupTask : IBodyTask
+    sealed class PickupTask : IRecoverableWork
     {
         /// <summary>How close counts as standing on the drop.</summary>
         const float Close = (float)PickupTracking.PickupDistance;
@@ -1132,6 +1132,7 @@ namespace Renki.Plugin
         float arrivedAt = -1;
         float ownershipAt = -1;
         int tries;
+        WorkCheckpoint checkpoint;
 
         public PickupTask(ItemDrop drop, bool safeTravel = false, bool allowMerge = true)
         {
@@ -1144,6 +1145,28 @@ namespace Renki.Plugin
             goal = drop.transform.position;
             walker.SetGoal(p.transform.position, goal, within: Close, dryGround: safeTravel, avoidHostiles: safeTravel);
             walker.ResetStuck(p.transform.position);
+        }
+
+        WorkCheckpoint ObserveWork()
+        {
+            var p = Player.m_localPlayer;
+            if (drop == null || p == null || drop.m_nview == null || !drop.m_nview.IsValid() || drop.m_itemData?.m_dropPrefab == null)
+                return new WorkCheckpoint(null, null, 0, 0, false);
+            return new WorkCheckpoint(Perceiver.Id(drop.m_nview), drop.m_itemData.m_dropPrefab.name,
+                drop.m_itemData.m_stack, Carried(p, prefab), drop.gameObject.activeInHierarchy);
+        }
+
+        public bool Checkpoint() { checkpoint = ObserveWork(); return tries == 0; }
+        public Outcome Resume()
+        {
+            if (checkpoint == null || !checkpoint.Matches(ObserveWork()))
+                return Outcome.Failed(Wire.ReasonStopped, "pickup source or inventory changed during encounter; not replayed");
+            goal = drop.transform.position;
+            var pos = Player.m_localPlayer.transform.position;
+            walker.SetGoal(pos, goal, within: Close, dryGround: safeTravel, avoidHostiles: safeTravel);
+            walker.ResetStuck(pos);
+            arrivedAt = ownershipAt = -1;
+            return null;
         }
 
         public Outcome Tick(double dt)
@@ -1249,7 +1272,7 @@ namespace Renki.Plugin
                 Driver.Stand();
                 return wet;
             }
-            if (!walker.Steer(pos, true))
+            if (!walker.Steer(pos, true, climbObstacles: !safeTravel))
             {
                 Driver.Stand();
                 return Outcome.Failed(Wire.ReasonStuck,

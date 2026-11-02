@@ -65,7 +65,7 @@ func TestNativeWorkTravelKeepsTheBodyThroughItsBoundedEncounter(t *testing.T) {
 			f.st.Combat = nil
 			f.st.Task.Task = protocol.TaskMoveTo
 			f.st.Food = &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Mushroom", RemainingS: 300}}}
-			f.st.Journey = &protocol.JourneyStatus{ID: f.st.Task.ID, Mode: mode, Attempts: 1}
+			f.st.Journey = &protocol.JourneyStatus{Task: protocol.TaskMoveTo, ID: f.st.Task.ID, Mode: mode, Attempts: 1}
 			switch mode {
 			case "stale":
 				f.st.Journey.ID = "previous-task"
@@ -93,6 +93,27 @@ func TestNativeWorkTravelKeepsTheBodyThroughItsBoundedEncounter(t *testing.T) {
 				t.Fatal("native ownership was ignored or stale metadata suppressed retreat", mode, f.sent)
 			}
 		})
+	}
+}
+
+func TestCollectionJourneyRequiresItsMatchingBodyType(t *testing.T) {
+	for _, task := range []string{protocol.TaskPickup, protocol.TaskInteract} {
+		for _, matches := range []bool{false, true} {
+			f := fighting()
+			f.st.Combat = nil
+			f.st.Task.Task = task
+			f.st.Food = &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Mushroom", RemainingS: 300}}}
+			f.st.Journey = &protocol.JourneyStatus{Task: task, ID: f.st.Task.ID, Mode: "escape", Attempts: 1}
+			if !matches {
+				f.st.Journey.Task = protocol.TaskMoveTo
+			}
+			r := New(f, func() []string { return nil }, nil, quiet, nil)
+			r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+			r.Tick(context.Background())
+			if (len(f.sent) == 0) != matches {
+				t.Fatal(task, matches, f.sent)
+			}
+		}
 	}
 }
 

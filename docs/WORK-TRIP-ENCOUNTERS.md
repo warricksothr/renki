@@ -27,9 +27,9 @@ Human commands, reconnects and world changes revoke that continuation.
    structure protection, combat permissions, stamina reserves and death proof.
    A new fight cannot compete with an active escape or another body owner.
 
-Travel now includes a narrow defensive slice and a measured damage allowance
-for food goals. Stationary gathering, storage and cooking still need encounter
-continuation. Hostile route clearance is unchanged, and the retained seven-threat
+Travel and ordinary single-use food collection now include a narrow defensive
+slice and a measured damage allowance for food goals. Storage, cooking and tree
+swings still need encounter continuation. Hostile route clearance is unchanged, and the retained seven-threat
 coastal bottleneck still has no complete physical route proof.
 
 ## First native slice
@@ -85,7 +85,7 @@ lost target, insufficient reserves or melee retreat cancels that child and uses
 checked escape. Neither transition resets the original task deadline or lifetime
 three-attempt budget. Only exact observed Greyling death permits quiet observation
 before replanning the original destination. Disappearance is not death proof.
-`state.journey` reports the owning task ID, mode, attempt count and reason. The
+`state.journey` reports the owning task ID and task type, mode, attempt count and reason. The
 controller's emergency retreat loop yields to that matching native owner while
 reserves remain safe; stale, refused or unrelated metadata does not suppress it.
 
@@ -96,16 +96,49 @@ reports cumulative accepted damage independently of healing. The injury sequence
 is a wire event marker, not a hit count. Unknown damage amounts or death invalidate
 the allowance; reconnect clears it and revokes the old body lease. The original
 goal baseline persists across travel tasks. Permission to absorb damage is limited
-to the exact running native travel intent and reported journey identity.
+to the exact running native recovery intent and reported journey identity.
 
 At a completed body boundary, reconcile the exact native action and inventory,
 container or cooking receipt before applying threat/injury guards to further work.
 This preserves verified progress without replaying an uncertain transfer or
-inventing a collection. Only verified owned travel can acknowledge bounded injury
+inventing a collection. Only successful owned recovery tasks can acknowledge bounded injury
 for the next step. Stationary injury still ends the run after receipt accounting.
 The food supervisor checks the same budget/identity and accepts a completed travel
 between polls only with its prior intent, same-run successful history and the
 controller's acknowledged injury marker.
+
+## Single-use collection continuation
+
+`pickup` and ordinary pickable `interact` can request `recoverThreats` and
+optional `defendThreats`. They share the travel encounter's lifetime attempts,
+quiet period, checked escape, narrow defense and original enclosing deadline.
+The controller and plugin both require the enabled flee/attack permissions.
+Fed personal and household food goals opt in; their original cumulative damage
+baseline persists across collection and travel tasks.
+
+One wrapper retains the original collection child and snapshots its exact network
+identity, item, source quantity and carried count before an encounter can issue
+inputs. After quiet recovery, all must still match before rebuilding the approach.
+Changed or disappeared sources and inventory changes stop with an uncertain
+outcome. The wrapper disables pickup merge substitution. Once pickup has issued
+a game use, a new threat stops it before combat/escape rather than suspending an
+unresolved write. A failed encounter also returns `stopped`, retaining diagnostic
+detail: incidental auto-pickup during escape cannot establish the source receipt.
+
+Only non-aggravating ordinary pickables with one known item yield are supported.
+Alternate, held, sleep, repair and cooking modes are refused. Cooking slots,
+pending chest access and harvesting swings need their own transactional rules.
+Approach replanning retains dry, hostile and obstacle checks without climbing.
+
+After a completed exact collection result, a fresh positive pack gain is accounted
+before a subsequent threat/injury decision, including delayed RPC delivery. It
+retains the original task/source/run and yield limit and never dispatches further
+work as part of accounting. Unknown results, stale packs, previous controller
+runs and excessive gains cannot create collection receipts. Injury after the
+completed task remains a reason to stop after accounting.
+
+Install controller and plugin together: recovery ownership now requires both
+`journey.id` and `journey.task` to match the current body.
 
 ## Validation and remaining work
 
@@ -123,4 +156,4 @@ Before another live work trip, readiness and a physically checked exit or a
 validated mixed-threat capability still need resolution. Tests
 must retain failures and distinguish recoverable encounters from emergencies;
 the current slice does not prove live combat/resumed production or interrupted
-stationary-work resumption.
+collection resumption.
