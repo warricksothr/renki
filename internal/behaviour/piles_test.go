@@ -86,8 +86,27 @@ func TestViewAsksWhetherAPileIsNearAnOwner(t *testing.T) {
 		t.Fatalf("a scan from before the jump answered %+v", n)
 	}
 
+	// A 14 m jump just after a scan, paired a tenth of a second later. The
+	// scan ran up to 14 m plus 13.5 m of running from the paired position,
+	// so its reach there is 12.5 m: too short for an 8 m circle 5 m off.
+	state("test", 0, 50)
+	wait(t, func() bool { return e.view().State.T == 50 })
+	state("test", 14, 51)
+	wait(t, func() bool { return e.view().State.T == 51 })
+	see(50.9)
+	wait(t, func() bool { return e.view().Perception != nil && e.view().Perception.T == 50.9 })
+	e.mu.Lock()
+	v = e.view()
+	e.mu.Unlock()
+	if n := v.Piles.Near(v.Now, protocol.Vec3{14, 0, 5}, 8, nil); n.State != piles.Unseen {
+		t.Fatalf("a scan before a short jump answered %+v", n)
+	}
+	if n := v.Piles.Near(v.Now, protocol.Vec3{14, 0, 2}, 2, nil); n.State != piles.Absent {
+		t.Fatalf("a circle inside the shrunk reach answered %+v", n)
+	}
+
 	// Another world starts with nothing known.
-	state("another", 0, 41)
+	state("another", 0, 52)
 	wait(t, func() bool { return e.view().State.World == "another" })
 	if got := e.view().Piles.Piles(time.Now()); len(got) != 0 {
 		t.Fatalf("piles crossed worlds: %+v", got)
