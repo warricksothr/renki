@@ -26,16 +26,16 @@ for expected in 0 37; do
     log=${first##*full log: }
     logs+=("$log")
     # Both streams must remain in the full log, even on success.
-    rg -q '^first diagnostic$' "$log"
-    rg -q '^stderr via tee$' "$log"
-    rg -q '^last diagnostic$' "$log"
+    grep -q '^first diagnostic$' "$log"
+    grep -q '^stderr via tee$' "$log"
+    grep -q '^last diagnostic$' "$log"
     if [ "$expected" -eq 0 ]; then
-        rg -q '^PASS:' "$fixture/output"
+        grep -q '^PASS:' "$fixture/output"
         [ "$(wc -l <"$fixture/output")" -eq 2 ]
     else
-        rg -q '^FAIL:.*exit 37' "$fixture/output"
-        rg -q '^last diagnostic$' "$fixture/output"
-        ! rg -q '^first diagnostic$' "$fixture/output"
+        grep -q '^FAIL:.*exit 37' "$fixture/output"
+        grep -q '^last diagnostic$' "$fixture/output"
+        if grep -q '^first diagnostic$' "$fixture/output"; then exit 1; fi
         [ "$(wc -l <"$fixture/output")" -eq 83 ]
     fi
 done

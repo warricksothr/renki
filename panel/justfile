@@ -57,6 +57,7 @@ examples *ARGS: build
 ui-report *ARGS:
     node ui/report.mjs "$@"
 
-# Explicit operator setup; may need administrator privileges for OS packages.
+# Chromium's OS packages. Playwright runs apt through sudo itself when not
+# root, so this may prompt for a password; CI runs it too.
 ui-install-system: install
     npx --no-install playwright install-deps chromium

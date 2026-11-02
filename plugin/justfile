@@ -19,11 +19,14 @@ default:
 # "yes" when the plugin DLL can be built here.
 has_game := if env("VALHEIM_DIR", "") != "" { "yes" } else if path_exists(source_directory() / "game.local.props") == "true" { "yes" } else { "" }
 skip_note := "-- plugin DLL skipped: set VALHEIM_DIR or create plugin/game.local.props"
+# On GitHub Actions the skip is also a warning annotation on the run, so a
+# green run cannot hide it (TKT-01M6DCFST1 makes it a failure).
+skip_mark := if env("GITHUB_ACTIONS", "") == "true" { "::warning title=Renki.Plugin not built::" } else { "" }
 
 # Build Renki.Core and the tests, and the plugin DLL when the game path is set.
 build:
     dotnet build Renki.Tests -c Release --nologo -v quiet
-    {{ if has_game == "yes" { "dotnet build Renki.Plugin -c Release --nologo -v quiet" } else { "echo '" + skip_note + "' >&2" } }}
+    {{ if has_game == "yes" { "dotnet build Renki.Plugin -c Release --nologo -v quiet" } else { "echo '" + skip_mark + skip_note + "' >&2" } }}
 
 # Run the tests, including the interop tests against the Go controller.
 test *ARGS:

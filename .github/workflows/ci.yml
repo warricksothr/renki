@@ -1,0 +1,95 @@
+# The gate. Every step before "just ci" only installs a toolchain; the gate
+# itself is `just ci` and nothing else (AGENTS.md, "Tasks"), so a green
+# `just ci` on a workstation means a green run here.
+#
+# Renki.Plugin is not built here: it compiles against Valheim's own
+# assemblies, which a GitHub runner does not have. plugin/justfile prints
+# that skip as a warning annotation on the run. TKT-01M6DCFST1 decides how CI
+# builds it and then makes the skip a failure.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # `git describe` stamps the controller version.
+          fetch-depth: 0
+
+      # go.mod's go directive, with the module and build caches.
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      # Renki.Tests targets net8.0. plugin/global.json pins SDK 8, because
+      # the runner image also carries a newer SDK whose formatter disagrees.
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: plugin/global.json
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('plugin/**/*.csproj', 'plugin/nuget.config') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # panel/package.json engines: node >=20. `npm ci` deletes node_modules
+      # before it installs, so the npm download cache is what is kept.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: panel/package-lock.json
+
+      # Python 3 for the vm::test-*, broadcast-test and streaming::test
+      # recipes, which use only the standard library.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - uses: extractions/setup-just@v3
+
+      # `just tickets-check` runs `git ticket check --strict`.
+      - name: Install git-ticket
+        run: go install github.com/terva-sh/git-ticket/cmd/git-ticket@v0.24.0
+
+      # The Chromium revision panel/package-lock.json pins, and its OS
+      # libraries, for the panel UI suite in `just panel ci`.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('panel/package-lock.json') }}
+      - name: Install Playwright Chromium
+        run: just panel ui-install
+      - name: Install Chromium's OS libraries
+        run: just panel ui-install-system
+
+      - name: just ci
+        run: just ci
+
+      # The UI suite's screenshots and JSON diagnostics, for a failed run.
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: panel-ui
+          path: .checks/panel-ui
+          if-no-files-found: ignore
+          retention-days: 7
