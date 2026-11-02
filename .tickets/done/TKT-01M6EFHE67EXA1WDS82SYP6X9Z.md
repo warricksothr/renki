@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T19:28:29Z
+updated_at: 2026-11-02T19:38:39Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
@@ -79,6 +79,10 @@ Pile membership in `Near` is by flat distance from the pile's stack-weighted cen
 **agent:claude-code/renki-m2-drops** at 2026-11-02T19:28:29Z
 
 After review: perception carries no scan origin, so the engine pairs a frame only with a state at most 1 s newer and shrinks its reach by max(15 m/s, |vel|) x lag. Piles(now) now treats a newest frame older than 5 s as out of view (trend unknown). A scan origin in the perception message would remove the guesswork; that is a plugin protocol change, not done here.
+
+**agent:claude-code/renki-m2-drops** at 2026-11-02T19:38:39Z
+
+Second review: Near now measures pile membership in 3D like coverage (pass an r that allows for terrain height), and a welcome without maxPerKind is treated as the plugin's cap of 24. Known limit: a scan that fills the plugin's 2048-collider buffer is not flagged in the message, so it can read as clear ground. Filed TKT-01M6EWAJ0N (Perception: report the scan origin and a truncated scan) for that and the scan origin; it should land before deliver-when-gone relies on Absent.
 
 ## Summary
 

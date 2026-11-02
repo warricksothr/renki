@@ -30,6 +30,9 @@ const (
 	// Gap is the longest pause between two frames that still counts as
 	// watching without a break.
 	Gap = 5 * time.Second
+	// pluginMaxPerKind is the plugin's own cap, kept when the welcome
+	// sends no maxPerKind.
+	pluginMaxPerKind = 24
 	// maxStack bounds one drop's stack so a sum cannot overflow.
 	maxStack = 1_000_000
 )
@@ -162,7 +165,11 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 	if f.reach > 0 {
 		f.reach = max(f.reach-drift, 0)
 	}
-	if seen.MaxPerKind > 0 && drops >= seen.MaxPerKind {
+	limit := seen.MaxPerKind
+	if limit <= 0 {
+		limit = pluginMaxPerKind
+	}
+	if drops >= limit {
 		f.reach = max(min(f.reach, farthest-2*drift), 0)
 	}
 	for k, s := range sums {
@@ -289,7 +296,9 @@ type Nearby struct {
 }
 
 // Near asks whether a pile whose prefab is eligible (every prefab when
-// eligible is nil) lies within r metres, on the ground, of pos. Any part of
+// eligible is nil) lies within r metres of pos. Both the pile and the
+// coverage are measured in 3D, as the scan is a sphere, so pass an r that
+// allows for the height of the ground around pos. Any part of
 // the circle outside what the newest frame reports, or a newest frame older
 // than Gap at now, answers Unseen: that ground is not known to be clear.
 func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible func(prefab string) bool) Nearby {
@@ -300,7 +309,7 @@ func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible fun
 	inCircle := func(f frame) int {
 		total := 0
 		for _, e := range f.piles {
-			if (eligible == nil || eligible(e.Prefab)) && e.pos.FlatDistance(pos) <= r {
+			if (eligible == nil || eligible(e.Prefab)) && distance(e.pos, pos) <= r {
 				total += e.total
 			}
 		}

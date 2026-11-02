@@ -269,3 +269,31 @@ func TestDriftAndStaleFramesSeeLess(t *testing.T) {
 		}
 	}
 }
+
+func TestNearIsASphereAndAMissingCapIsThePlugins(t *testing.T) {
+	var tr Tracker
+	owner := protocol.Vec3{5, 0, 5}
+	// A drop 3 m from the owner on the ground but 10 m up a ledge is not
+	// within 8 m of them, and the sphere it would need is not all in view
+	// unless the reach covers it.
+	ledge := protocol.PerceivedResource{ID: "l", Kind: protocol.ResourceDrop, Prefab: "Wood", Pos: protocol.Vec3{7, 10, 7}, Stack: 3}
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(ledge), start)
+	s := tr.Snapshot(hello, "w")
+	if n := s.Near(start, owner, 8, nil); n.State != Absent {
+		t.Fatalf("ledge outside an 8 m sphere = %+v", n)
+	}
+	if n := s.Near(start, owner, 11, nil); n.State != Present || n.Total != 3 {
+		t.Fatalf("ledge inside an 11 m sphere = %+v", n)
+	}
+	// No maxPerKind in the welcome: the plugin still stops at 24 drops,
+	// so a list of 24 is full and ground beyond its farthest is unseen.
+	var capped Tracker
+	many := []protocol.PerceivedResource{}
+	for i := range 24 {
+		many = append(many, drop("d", "Stone", 1+float64(i)/10, 1, 1))
+	}
+	capped.Observe(hello, "w", protocol.Vec3{}, 0, protocol.PerceptionConfig{Radius: 40}, frameOf(many...), start)
+	if n := capped.Snapshot(hello, "w").Near(start, owner, 8, nil); n.State != Unseen {
+		t.Fatalf("a list at the plugin's cap = %+v", n)
+	}
+}
