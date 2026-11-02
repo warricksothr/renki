@@ -88,7 +88,9 @@ class SSHTransport:
     def write(self, expect, data):
         content = base64.b64encode(data).decode() if data is not None else ''
         result = self._run('Write', expect, content)
-        if result.returncode == 3:
+        # A nested `powershell -Command` may report exit 3 as 1, so the line
+        # lease.ps1 prints is what marks a lost compare-and-swap.
+        if result.returncode == 3 or 'conflict' in result.stdout.split():
             return False
         if result.returncode != 0:
             raise SystemExit(f'cannot write the VM lease (SSH exit {result.returncode}): '
@@ -272,17 +274,21 @@ def run(lease, command, minutes, renew_seconds):
                     lease.take(minutes=minutes, renew='extend')
                 except (SystemExit, Exception) as error:
                     print(f'could not renew the VM lease: {error}', file=sys.stderr)
+    except OSError as error:
+        print(f'cannot start {command[0]}: {error}', file=sys.stderr)
+        code = 127
     finally:
         signal.signal(signal.SIGINT, previous)
-    if took:
-        try:
-            released = lease.release_if_self()
-        except (SystemExit, Exception) as error:
-            print(f'could not release the VM lease, which expires on its own: {error}', file=sys.stderr)
-        else:
-            print('released the VM lease' if released else 'the VM lease was no longer ours to release',
-                  file=sys.stderr)
-    return code
+        if took:
+            try:
+                released = lease.release_if_self()
+            except (SystemExit, Exception) as error:
+                print(f'could not release the VM lease, which expires on its own: {error}', file=sys.stderr)
+            else:
+                print('released the VM lease' if released else 'the VM lease was no longer ours to release',
+                      file=sys.stderr)
+    # A command ended by a signal exits as a shell would report it.
+    return 128 - code if code < 0 else code
 
 
 def main(argv=None):

@@ -34,7 +34,7 @@ if ($Action -eq 'Read') {
     $content = ''
     if ($null -ne $bytes) { $content = [Convert]::ToBase64String($bytes) }
     [ordered]@{
-        now     = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+        now     = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
         sha256  = Get-LeaseHash $bytes
         content = $content
     } | ConvertTo-Json -Compress

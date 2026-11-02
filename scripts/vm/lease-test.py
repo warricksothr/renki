@@ -124,6 +124,13 @@ def run_releases_after_cleanup(case):
     check(case.held() is None and 'released the VM lease' in out.stderr, f'released afterwards: {out}')
 
 
+def run_releases_when_the_command_cannot_start(case):
+    """A command that cannot start does not leave the lease run took."""
+    out = case.lease('run', '--', str(case.root / 'missing-interpreter'))
+    check(out.returncode == 127 and 'cannot start' in out.stderr, f'run reports it: {out}')
+    check(case.held() is None, 'and releases the lease it took')
+
+
 def run_keeps_a_taken_lease(case):
     """A lease taken with `take` before a trial stays with its holder afterwards."""
     check(case.lease('take', 'agent:x/one').returncode == 0, 'take')
@@ -180,7 +187,7 @@ def lost_race(case):
 
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
-             run_releases_after_cleanup, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
+             run_releases_after_cleanup, run_releases_when_the_command_cannot_start, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
              lost_race]
     for case in cases:
         with tempfile.TemporaryDirectory() as root:
