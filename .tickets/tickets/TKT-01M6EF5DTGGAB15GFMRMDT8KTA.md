@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T15:48:34Z
-updated_at: 2026-11-02T21:39:51Z
+updated_at: 2026-11-02T21:41:55Z
 created_by:
   id: agent:claude-code/renki-plan
   name: ""
@@ -120,3 +120,7 @@ Supersedes step 2 of the live check in the 19:29 note. The owner chose to exempt
 **agent:claude-code/renki-lead** at 2026-11-02T21:39:51Z
 
 Supersedes the 21:34 note's description of the stop exemption. `just vm stop` and `just vm panel POST /api/act/stop` are free only when a person runs them. Inside `lease.py run`, which sets RENKI_VM_LEASE_RUN, they guard like any other recipe, so a trial's cleanup that lost its lease cannot stop the next holder. Add to the live check, step 2: while A holds the lease, `RENKI_VM_LEASE_RUN=1 just vm stop` in B must be refused before anything stops, and `just vm stop` in B (no variable) goes through. Run that last one only when stopping A's game is acceptable.
+
+**agent:claude-code/renki-lead** at 2026-11-02T21:41:55Z
+
+Adds to the 21:39 note. The stop exemption is now decided in `lease.py guard --emergency` for both `just vm stop` and `panel POST /api/act/stop`, and it is covered offline by the `emergency_stop` case in `just vm test-lease` (19 cases). In step 2 of the live check, `RENKI_VM_LEASE_RUN=1 just vm panel POST /api/act/stop {}` in B must also be refused.

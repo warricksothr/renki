@@ -28,14 +28,15 @@ class Case:
         env = dict(os.environ, RENKI_VM_LEASE_FILE=str(self.file),
                    RENKI_VM_LEASE_LOCAL=str(self.root / f'{worktree}.vm-lease'))
         env.pop('RENKI_VM_ACTOR', None)
+        env.pop('RENKI_VM_LEASE_RUN', None)
         if now:
             env['RENKI_VM_LEASE_NOW'] = now
         else:
             env.pop('RENKI_VM_LEASE_NOW', None)
         return env
 
-    def lease(self, *args, worktree='a', now=NOW):
-        return subprocess.run([sys.executable, '-B', str(LEASE), *args], env=self.env(worktree, now),
+    def lease(self, *args, worktree='a', now=NOW, **extra):
+        return subprocess.run([sys.executable, '-B', str(LEASE), *args], env={**self.env(worktree, now), **extra},
                               capture_output=True, text=True, timeout=60)
 
     def held(self):
@@ -54,6 +55,20 @@ def other_holder(case):
     check(case.file.read_bytes() == before, 'a refused action leaves the lease untouched')
     status = case.lease('status', worktree='b')
     check(status.returncode == 0 and 'held by agent:x/one' in status.stdout, f'status reads: {status.stdout}')
+
+
+def emergency_stop(case):
+    """A person's emergency stop passes under another's lease without touching it;
+    inside a supervised run it is refused like any other guard."""
+    check(case.lease('take', 'agent:x/one', '30').returncode == 0, 'take a free lease')
+    before = case.file.read_bytes()
+    out = case.lease('guard', '--emergency', worktree='b')
+    check(out.returncode == 0 and out.stderr == '', f"a person's emergency stop passes: {out}")
+    out = case.lease('guard', '--emergency', worktree='b', RENKI_VM_LEASE_RUN='1')
+    check(out.returncode == 1 and 'agent:x/one' in out.stderr, f'a supervised emergency stop is refused: {out}')
+    check(case.file.read_bytes() == before, 'neither touches the lease')
+    out = case.lease('guard', '--emergency', worktree='a', RENKI_VM_LEASE_RUN='1')
+    check(out.returncode == 0, f"the holder's supervised stop passes: {out}")
 
 
 def expired(case):
@@ -363,7 +378,7 @@ def lost_reply(case):
 
 
 def main():
-    cases = [other_holder, expired, held_by_self, malformed, forced_release,
+    cases = [other_holder, emergency_stop, expired, held_by_self, malformed, forced_release,
              run_releases_after_cleanup, run_forwards_termination,
              run_interrupted_while_taking, run_keeps_the_lease_after_an_uncleaned_death, run_releases_when_the_command_cannot_start,
              run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,

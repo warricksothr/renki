@@ -382,9 +382,8 @@ def run(lease, command, minutes, renew_seconds):
             try:
                 # Out of the terminal's foreground group, a read from the
                 # terminal would stop the child (SIGTTIN); no supervisor reads it.
-                # RENKI_VM_LEASE_RUN tells the emergency stops, which a person runs
-                # unguarded, to guard inside a supervised run: a cleanup that
-                # lost its lease must not stop the new holder's session.
+                # RENKI_VM_LEASE_RUN makes `guard --emergency` guard inside a
+                # supervised run: see the `guard` parser in main.
                 child = subprocess.Popen(command, preexec_fn=os.setpgrp, stdin=subprocess.DEVNULL,
                                          env={**os.environ, 'RENKI_VM_LEASE_RUN': '1'})
             except OSError as error:
@@ -446,7 +445,11 @@ def main(argv=None):
     take.add_argument('minutes', nargs='?', type=int, default=DEFAULT_MINUTES)
     release = sub.add_parser('release')
     release.add_argument('--force', action='store_true')
-    sub.add_parser('guard')
+    guard = sub.add_parser('guard')
+    # An emergency stop needs no lease when a person runs it, but inside a
+    # supervised run (RENKI_VM_LEASE_RUN, set by `run`) it guards like any
+    # other recipe, so a cleanup that lost its lease cannot stop the next holder.
+    guard.add_argument('--emergency', action='store_true')
     runner = sub.add_parser('run')
     runner.add_argument('--minutes', type=int, default=DEFAULT_MINUTES)
     runner.add_argument('--renew-seconds', type=float, default=RENEW_SECONDS)
@@ -481,6 +484,8 @@ def main(argv=None):
             print(lease.release(args.force))
             return 0
         if args.action == 'guard':
+            if args.emergency and not os.environ.get('RENKI_VM_LEASE_RUN'):
+                return 0
             held, took = lease.take(minutes=DEFAULT_MINUTES, renew='short')
             if took:
                 print(f"took the VM lease for {held['actor']} until {held['expires']}; "
