@@ -190,6 +190,11 @@ panel METHOD PATH BODY='': need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/panel-request.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/panel-request.ps1 -Method '$method' -ApiPath '$endpoint' ${bodyarg[*]}"
 
+# Read status and body provenance through one SSH process; no body actions.
+observe: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/panel-request.ps1" "{{target}}:/{{dir}}/panel-request.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/panel-request.ps1 -Method GET -ApiPath '/api/status' -IncludeInspection"
+
 # Compact read-only explanation shared with the panel; optional saved goal ID.
 [positional-arguments]
 inspect GOAL='':

@@ -22,15 +22,15 @@ references: []
 moved_to: null
 claim:
   actor: agent:codex/renki-milestones
-  branch: t3/blocked-travel-observation
+  branch: t3/route-floor-reference
   worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
-  commit: a5b1dc30c996e767f7a9906f3825a63774790073
+  commit: f4aaa30a3d88ef883483357564a41f92f4466237
   session: null
   claimed_at: 2026-11-01T01:17:02Z
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T06:48:33Z
+updated_at: 2026-11-01T18:35:20Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -56,11 +56,11 @@ Use the retained terrain and collider evidence to determine whether a safe route
 
 ## Implementation plan
 
-Continue above #145 /7df0cb2 on t3/checked-escape-bearings. Replace the single straight-away native escape target with a finite seven-bearing search only for hostile-avoiding flee children. A sliced physical/hostile preflight checks the first3m in half-metre steps before a bearing becomes a normal Walker goal. The preflight is guidance, never movement authority; the walker still checks the full route and live execution. A refused walker goal consumes its bearing, then tries the next without resetting the original body task or30s encounter budget. Cancel/exhaustion are terminal. Keep explicit toward-safety semantics and ordinary non-hostile flee behavior.
+Continue M2/M3 validation with the existing finite route benchmark. First repair its explicit legacy-home floor handling before another live trip: an opt-in --home-floor-marker selects an existing named waypoint near the pinned home. Require a fresh, idle, grounded, sheltered observation on that marker's floor, inside the existing native home-level envelope. Pin the marker's measured reference height for this run/connection/world/character, without editing home or waypoint positions, changing native move targets, lowering the 0.75 m arrival tolerance or rebasing after return. Record original home, reference marker, starting observation and scope in the trial plan. Refuse missing, changed, distant, malformed or unobserved references and wrong-floor returns.
 
-Align food-source admission with native horizontal exclusion radii for currently perceived hostile creatures (ordinary Neck16m, Boar24m, other/starred40m), preserving the existing smaller conservative exclusion for other non-player creatures. Native loaded observations remain authoritative beyond controller perception. Add captured shore-position/synthetic-support regressions, all-bearing refusals, per-tick/lifetime budgets, chosen-goal refusal, moving-threat reaim and cancellation; controller regressions cover captured berry/bush clearance, horizontal/wrong-height threats, safe alternative resources and unmodified isolated prey selection.
+Use the compact inspection endpoint to establish fresh state/run identity and outstanding dispatch provenance before movement; require new scoped perception at reference admission. Retain existing native receipt, injury, budget, command-yield and sheltered arrival requirements. Add synthetic supervisor regressions for the captured 1.57 m eye-height offset, wrong-floor returns, changed reference/home/world UID/run, stale or missing observation, malformed references and no reference opt-in. Keep snapshot/receipt evidence distinct from successful live motion.
 
-Run focused plugin/core and controller checks, full just check ci, commit and review against7df0cb2, publish/link a draft above #145. Deploy reviewed controller/plugin together with checksum verification. Use a distinct safe source or an addressed escape route under existing supervised tools; no unchanged failed trapped coastal retry, extra deadlines, lowered clearances, cheats or manual clearing. Earn actual pack gain, home-floor return and exact storage receipts separately; retain incomplete field outcomes. Preserve home and Jarl's Copper. Leave Tas online only after fresh idle safe-home verification. Original coastal AC1/AC2 remain open until evidence earns them.
+Read-only restart checks confirmed clean branch state and offline Tas. The cancelled terrain test is already complete in committed source; do not append it again or restart an unnecessary preview server. Native join waits for fresh clearance at the saved position after the previous 0.645 m hostile refusal. Once clearance is established, use supervised recovery, one short existing-marker round trip, then expand only on earned passes. No repeated unchanged hazardous login or manual per-enemy staging. Run focused tooling checks, full just check ci, commit and just check review, then publish a stacked PR above behavior inspection. Record incomplete field criteria honestly; original coastal AC1/AC2 remain open.
 
 ## Notes
 
@@ -263,3 +263,13 @@ Build148dd78 nearby return .checks/recovery-20261101T063927Z stopped at admissio
 Build86b47f5 nearby return .checks/recovery-20261101T064503Z passed the corrected meal admission but stalled on its first physically valid bank candidate: audit .checks/audit-window-AGi7Y3.jsonl shows0.4m initial travel to[-51.92,31.01,10.58], then only centimetre bobbing until the original8s budget expired. No water/threat/probe refusal or damage; exactly one sampled candidate. The retained target lacked execution feedback.
 
 BankExit now abandons a held candidate after1s without3cm closer approach, continues the existing bearing sweep and retains original8s/3m/128-probe limits. True short-step progress resets only the per-candidate stall timer; bobbing does not. Added exact no-progress/real-progress and total-budget regressions and one bounded native stall trace. Next native return and pantry proof remain pending; offline, about50.1HP.
+
+**agent:codex/renki-milestones** at 2026-11-01T18:35:20Z
+
+User confirmed the saved location clear. Guarded nearby recovery .checks/recovery-20261101T182501Z passed (71s), with native home return and sheltered health recovery. Kept online under supervision; no repeat clearance request.
+
+Explicit legacy-floor admission now pins the existing home-storage Y36.09 reference against original home Y37.66, preserving native target, 0.75m vertical arrival tolerance and 3m start envelope. Reference evidence retains initial state/inspection fence and newer scoped perception, run/world UID/connection/character and unchanged marker. Receipt acceptance also requires newer inspector state and perception. Foreign dispatch/run/scope revokes cleanup. Compact sampled status omits repeated saved goal histories. New just vm observe bundles read-only status/inspection in one SSH process, avoiding duplicate SSH freshness overhead and concurrent helper uploads. The 3s bound is unchanged and latency rejection remains tested.
+
+Negative admissions .checks/routes-20261101T182921964637Z (SSH freshness budget) and .checks/routes-20261101T183041237466Z (starting feet drifted beyond 3m) dispatched no task. A normal checked move_to restored the recorded home start (.checks/20261101T183123Z-NHT3U5.log). First benchmark .checks/routes-20261101T183156038798Z passed storage out/home: 2 receipts, 6.5m sampled travel, actual floor return[-36.48,36.09,6.6], no observed injury. South-meadow benchmark .checks/routes-20261101T183240074821Z passed: 2 receipts, 95.9m sampled travel, return[-36.24,36.09,7.05], no observed injury. East-meadow test now running; no success claimed yet.
+
+Focused just check vm test-route-benchmark passed including legacy reference, admission fence retention, stale post-receipt state, malformed/changed reference, command/scope cleanup revocation, request latency and actual just observation launcher without network (.checks/20261101T183335Z-CxkXVU.log). Previously passing just check controller test-map confirms the restart-cancelled terrain regression was already committed. Full CI currently running. Original coastal AC1/AC2, native escape/resume, ten-return reliability, combat progression and repeated fresh pantry delivery remain open.

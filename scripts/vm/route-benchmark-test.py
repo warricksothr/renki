@@ -4,6 +4,7 @@ import copy
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import unittest
 import subprocess
@@ -25,7 +26,7 @@ MARKER = [10, 37, 0]
 
 class Native:
     def __init__(self):
-        self.state = dict(connected=True, phase='in_world', world='one', connection=2, character='Tas',
+        self.state = dict(connected=True, phase='in_world', world='one', worldUid='uid-one', connection=2, character='Tas',
                           pos=HOME, hp=65, hpMax=65, injurySeq=0, flags=['grounded', 'in_shelter'],
                           location=dict(inWater=False), home=dict(world='one', pos=HOME),
                           food=dict(active=[dict(prefab='Mushroom', remainingS=600)]))
@@ -33,9 +34,15 @@ class Native:
         self.tasks, self.seq = 0, 10
         self.receipt, self.target = None, None
         self.change, self.before_task, self.bad_seq, self.foreign_receipt, self.missing_receipt = None, None, False, False, False
+        self.floor = None
+        self.run = 'controller-one'
+        self.inspection_change = {}
 
     def call(self, *args):
         self.calls.append(args)
+        if args == ('observe',):
+            return dict(status=self.call('panel', 'GET', '/api/status'),
+                        inspection=self.call('panel', 'GET', '/api/inspection'))
         if args == ('panel', 'GET', '/api/status'):
             if self.target:
                 self.state['pos'] = self.target
@@ -43,8 +50,15 @@ class Native:
                     self.state.update(self.change)
             return copy.deepcopy(self.state)
         if args == ('panel', 'GET', '/api/map'):
-            return dict(world='one', connection=2, waypoints=[dict(name='east', pos=MARKER)],
+            return dict(world='one', worldUid='uid-one', connection=2,
+                        waypoints=[dict(name='east', pos=MARKER)] + ([dict(name='floor', pos=self.floor)] if self.floor else []),
                         perception=dict(seq=(self.seq if self.bad_seq else self.seq+1), characters=[]))
+        if args == ('panel', 'GET', '/api/inspection'):
+            result = dict(contract='inspection-v1', run=self.run, world=self.state.get('world'),
+                          worldUid=self.state.get('worldUid'), connection=self.state.get('connection'),
+                          freshness=dict(status='fresh', ageS=0, seq=self.seq + bool(self.receipt)), body=dict(owner='idle'))
+            result.update(self.inspection_change)
+            return result
         if args[:2] == ('task', 'move_to'):
             self.tasks += 1
             self.target = json.loads(args[2])['to']
@@ -83,10 +97,13 @@ class Routes(unittest.TestCase):
         self.assertFalse(any(c[:2] == ('recovery-return', 'arm') for c in native.calls))
 
     def test_success_text_needs_new_perception_and_measured_arrival(self):
-        for mode in ('stale', 'wrong_floor', 'foreign_receipt', 'missing_receipt'):
+        for mode in ('stale', 'stale_state', 'wrong_floor', 'foreign_receipt', 'missing_receipt'):
             with self.subTest(mode=mode):
                 native = Native()
-                if mode == 'stale': native.bad_seq = True
+                if mode == 'stale': native.before_task = lambda n: setattr(n, 'bad_seq', True)
+                if mode == 'stale_state':
+                    native.before_task = lambda n: n.inspection_change.update(
+                        freshness=dict(status='fresh', ageS=0, seq=n.seq))
                 if mode == 'wrong_floor': native.change = dict(pos=[10, 34, 0])
                 if mode == 'foreign_receipt': native.foreign_receipt = True
                 if mode == 'missing_receipt': native.missing_receipt = True
@@ -147,6 +164,140 @@ class Routes(unittest.TestCase):
             with self.assertRaises(RuntimeError): native.trial().run(names, cycles, 30)
             self.assertEqual(native.calls, [])
 
+    def legacy_home(self):
+        native = Native()
+        native.state['home']['pos'] = [0, 37.66, 0]
+        native.state['pos'] = [0, 36.09, 0]
+        native.floor = [2, 36.09, 0]
+        return native
+
+    def test_explicit_legacy_floor_keeps_native_home_target_and_pins_scoped_reference(self):
+        native = self.legacy_home()
+        def arrive(n):
+            if n.tasks % 2 == 0:
+                n.target = [0, 36.09, 0]
+        native.before_task = arrive
+        trial = native.trial()
+        trial.run(['east'], 2, 30, 'floor')
+        self.assertEqual(trial.result['completedTrips'], 2)
+        home_requests = [json.loads(c[2])['to'] for c in native.calls if c[:2] == ('task', 'move_to')][1::2]
+        self.assertEqual(home_requests, [[0, 37.66, 0]] * 2)
+        reference = native.saved['home-floor-reference.json']
+        self.assertEqual(reference['run'], 'controller-one')
+        self.assertEqual(reference['worldUid'], 'uid-one')
+        self.assertEqual(reference['connection'], 2)
+        self.assertEqual(reference['target'], [0, 36.09, 0])
+        self.assertGreater(reference['perceptionSeq'], reference['observation']['seq'])
+        self.assertEqual(native.state['home']['pos'], [0, 37.66, 0])
+        self.assertEqual(native.floor, [2, 36.09, 0])
+
+    def test_legacy_floor_requires_explicit_opt_in(self):
+        native = self.legacy_home()
+        trial = native.trial()
+        with self.assertRaisesRegex(RuntimeError, 'grounded, sheltered start'):
+            trial.run(['east'], 1, 30)
+        self.assertFalse(trial.owned)
+        self.assertEqual(native.tasks, 0)
+
+    def test_waiting_for_perception_retains_original_floor_observation(self):
+        native = self.legacy_home()
+        native.bad_seq = True
+        trial = native.trial()
+        def publish(_):
+            native.now += .5
+            native.seq += 10
+            native.bad_seq = False
+        trial.pause = publish
+        native.before_task = lambda n: setattr(n, 'target', [0, 36.09, 0]) if n.tasks == 2 else None
+        trial.run(['east'], 1, 30, 'floor')
+        reference = native.saved['home-floor-reference.json']
+        self.assertEqual(reference['observation']['seq'], 10)
+        self.assertEqual(reference['perceptionSeq'], 21)
+        self.assertEqual(trial.result['completedTrips'], 1)
+
+    def test_wrong_home_floor_cannot_rebase_the_reference(self):
+        native = self.legacy_home()
+        def wrong_floor(n):
+            if n.tasks == 2:
+                n.target = [0, 37, 0]  # Inside native marker envelope, outside pinned 0.75m tolerance.
+        native.before_task = wrong_floor
+        trial = native.trial()
+        with self.assertRaisesRegex(RuntimeError, 'target floor'):
+            trial.run(['east'], 2, 30, 'floor')
+        self.assertEqual(trial.home_target, [0, 36.09, 0])
+        self.assertEqual(trial.result['completedTrips'], 0)
+        self.assertEqual(native.tasks, 2)
+        trial.finish(False)
+        self.assertIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
+
+    def test_unobserved_distant_missing_or_unsafe_floor_reference_never_dispatches(self):
+        for mode in ('distant', 'wrong_height', 'missing', 'nonfinite', 'below_home', 'ungrounded', 'unsheltered'):
+            with self.subTest(mode=mode):
+                native = self.legacy_home()
+                if mode == 'distant': native.floor[0] = 20
+                if mode == 'wrong_height': native.floor[1] = 37
+                if mode == 'missing': native.floor = None
+                if mode == 'nonfinite': native.floor[1] = float('nan')
+                if mode == 'below_home':
+                    native.floor[1] = 35
+                    native.state['pos'][1] = 35
+                if mode == 'ungrounded': native.state['flags'] = ['in_shelter']
+                if mode == 'unsheltered': native.state['flags'] = ['grounded']
+                trial = native.trial()
+                with self.assertRaisesRegex(RuntimeError, 'home floor marker'):
+                    trial.run(['east'], 1, 30, 'floor')
+                self.assertEqual(native.tasks, 0)
+                self.assertFalse(trial.owned)
+
+    def test_changed_floor_reference_stops_before_return_dispatch(self):
+        native = self.legacy_home()
+        native.before_task = lambda n: n.floor.__setitem__(1, 37)
+        trial = native.trial()
+        with self.assertRaisesRegex(RuntimeError, 'reference changed'):
+            trial.run(['east'], 2, 30, 'floor')
+        self.assertEqual(native.tasks, 1)
+        self.assertEqual(trial.home_target[1], 36.09)
+
+    def test_stale_inspection_and_old_perception_refuse_before_body_ownership(self):
+        for mode in ('stale', 'future', 'nan', 'missing_sequence', 'old_perception', 'other_world_uid'):
+            with self.subTest(mode=mode):
+                native = self.legacy_home()
+                if mode == 'old_perception': native.bad_seq = True
+                elif mode == 'other_world_uid': native.inspection_change['worldUid'] = 'other'
+                else:
+                    native.inspection_change['freshness'] = dict(status='fresh', ageS=dict(
+                        stale=4, future=-1, nan=float('nan'), missing_sequence=0)[mode], seq=0 if mode == 'missing_sequence' else 10)
+                trial = native.trial()
+                with self.assertRaises(RuntimeError): trial.run(['east'], 1, 30, 'floor')
+                self.assertEqual(native.tasks, 0)
+                self.assertFalse(trial.owned)
+
+    def test_run_world_uid_and_unstreamed_new_dispatch_revoke_cleanup(self):
+        for mode in ('run', 'world_uid', 'new_dispatch'):
+            with self.subTest(mode=mode):
+                native = Native()
+                def replace(n):
+                    if mode == 'run': n.run = 'controller-two'
+                    elif mode == 'world_uid': n.state['worldUid'] = 'other'
+                    else: n.inspection_change['body'] = dict(owner='direct_or_system', taskId='new-owner-order')
+                native.before_task = replace
+                trial = native.trial()
+                with self.assertRaises(RuntimeError): trial.run(['east'], 1, 30)
+                trial.finish(False)
+                self.assertTrue(trial.yielded)
+                self.assertEqual(native.tasks, 1)
+                self.assertNotIn(('panel', 'POST', '/api/act/logout', '{}'), native.calls)
+
+    def test_request_latency_remains_inside_the_three_second_freshness_limit(self):
+        native = Native()
+        native.inspection_change['freshness'] = dict(status='fresh', ageS=.5, seq=10)
+        trial = native.trial()
+        trial.clock = iter([0, 2.6]).__next__
+        with self.assertRaisesRegex(RuntimeError, 'fresh scoped inspection'):
+            trial.run(['east'], 1, 30)
+        self.assertEqual(native.tasks, 0)
+        self.assertFalse(trial.owned)
+
     def test_keep_online_requires_near_full_health_after_bounded_recovery(self):
         native = Native()
         trial = native.trial()
@@ -183,6 +334,20 @@ class Routes(unittest.TestCase):
                                     cwd=benchmark.ROOT, capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)['recent'], [])
+
+    def test_observation_recipe_uses_one_read_only_ssh_request(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bindir = Path(temp)
+            for name, body in [('ssh', 'printf "%s\\n" "$*"'), ('scp', 'exit 0')]:
+                path = bindir / name
+                path.write_text('#!/bin/sh\n' + body + '\n')
+                path.chmod(0o755)
+            env = os.environ | dict(RENKI_VM='unittest@invalid', PATH=str(bindir)+os.pathsep+os.environ['PATH'])
+            result = subprocess.run(['just', 'vm', 'observe'], cwd=benchmark.ROOT, env=env,
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(len(result.stdout.splitlines()), 1)
+            self.assertIn("-Method GET -ApiPath '/api/status' -IncludeInspection", result.stdout)
 
     def test_a_return_on_the_wrong_floor_does_not_count_a_trip(self):
         native = Native()
