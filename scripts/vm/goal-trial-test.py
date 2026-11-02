@@ -48,6 +48,19 @@ class Goals(unittest.TestCase):
                         self.assertEqual(summary['goal']['attempts'], 2)
                 self.assertEqual(summary['goalId'], 'goal-1')
 
+    def test_peel_is_forwarded_without_steering_or_weakening_the_supervisor(self):
+        with tempfile.TemporaryDirectory() as folder:
+            status = dict(world='one', pos=[0, 30, 0], goals=[dict(id='peel-goal', status='needs_plan')])
+            calls = []
+            def call(*args, **kwargs):
+                calls.append(args)
+                return dict(id='peel-goal')
+            with contextlib.redirect_stdout(io.StringIO()):
+                trial.run_persistent_goal({}, call, lambda: (status, {}), Path(folder), peel=True)
+            self.assertEqual(len(calls), 1)
+            self.assertTrue(json.loads(calls[0][3])['spec']['peel'])
+            self.assertTrue(json.loads(calls[0][3])['spec']['returnHome'])
+
     def test_cleanup_preserves_needs_plan_but_cancels_an_aborted_goal(self):
         for ending in ('needs_plan', 'aborted'):
             with self.subTest(ending=ending), tempfile.TemporaryDirectory() as folder:

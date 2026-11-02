@@ -843,7 +843,7 @@ export function startController() {
     chip(
       "combat",
       inWorld && s.combat
-        ? `combat: ${s.combat.mode}${s.combat.reason ? " · " + s.combat.reason : ""}`
+        ? `combat: ${s.combat.mode}${s.combat.reason ? " · " + s.combat.reason : ""}${s.combat.peel ? ` · peel ${s.combat.peel.phase} · ${s.combat.peel.pursuers.length} pursuing / ${s.combat.peel.members} tracked · ${s.combat.peel.unknown.length} uncertain · isolation ${s.combat.peel.quietS.toFixed(1)}/3 s` : ""}`
         : inWorld && s.escort
           ? `escort ${s.escort.leader}: ${s.escort.mode}${s.escort.reason ? " · " + s.escort.reason : ""}`
           : "",
@@ -2673,6 +2673,7 @@ export function startController() {
           center: s.pos,
           radius: 200,
           returnHome: true,
+          peel: $("goal-peel").checked,
         },
       });
   });

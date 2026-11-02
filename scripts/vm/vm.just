@@ -416,6 +416,11 @@ recover-home WORLD *ARGS:
 test-recover-home:
     python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
 
+# Read native startup refusal details from a saved audit without joining the game.
+[positional-arguments]
+recovery-evidence AUDIT:
+    python3 -B "{{justfile_directory()}}/scripts/vm/recovery-evidence.py" "$@"
+
 # Finite existing-marker round trips, each proved by native receipts and arrival.
 [positional-arguments]
 route-benchmark *ARGS:

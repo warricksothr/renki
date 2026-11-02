@@ -14,6 +14,43 @@ food = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(food)
 
 
+def recovery_diagnostics(audit):
+    """Retain native refusal evidence even when login/logout fell between polls."""
+    result = {}
+    with Path(audit).open(encoding='utf-8-sig') as lines:
+        for line in lines:
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                result['malformedRows'] = result.get('malformedRows', 0) + 1
+                continue
+            if not isinstance(row, dict):
+                continue
+            frame = row.get('frame')
+            if not isinstance(frame, dict) or frame.get('type') != 'trace' or frame.get('source') != 'recovery':
+                continue
+            key = {'startup return refused': 'refusal', 'startup recovery logging out': 'logout'}.get(frame.get('msg'))
+            data = frame.get('data')
+            if not key or not isinstance(data, dict):
+                continue
+            result[key] = dict(at=row.get('at'), connection=row.get('conn'), seq=frame.get('seq'),
+                               message=frame['msg'], **{k: data[k] for k in
+                               ('reason', 'profile', 'pos', 'hp', 'hpMax', 'stamina', 'foods',
+                                'foodReserveS', 'grounded', 'inWater', 'threatDistance') if k in data})
+    return result
+
+
+def explain_native_refusal(result, audit):
+    evidence = recovery_diagnostics(audit)
+    if evidence:
+        result['nativeRecovery'] = evidence
+    refusal = evidence.get('refusal') or evidence.get('logout')
+    if (result.get('outcome') != 'passed' and refusal and refusal.get('reason')
+            and result.get('reason') in ('join failed', 'native recovery left the world', 'recovery supervisor deadline')):
+        result['supervisorReason'] = result['reason']
+        result['reason'] = 'native recovery refused: ' + str(refusal['reason'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('world', help='exact known world name; native login must match')
@@ -117,6 +154,8 @@ def main():
         if owns:
             try:
                 result['audit'] = call('audit-window', result['startedAt'], result['endedAt'], decode=False).strip()
+                if result['audit']:
+                    explain_native_refusal(result, result['audit'])
             except Exception as exc:
                 result['auditError'] = str(exc)
         log.close()

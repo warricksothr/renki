@@ -7,6 +7,25 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Native pursuit and peeling
+
+`just check plugin test-core PursuitGroup` covers temporal isolation, whole-pack
+pursuit, hunt flags, ownership/visibility uncertainty, late arrivals, preparation
+and episode limits. Shared protocol fixtures and `just check controller
+test-packages ./internal/protocol ./internal/behaviour ./internal/goal
+./internal/retreat` check opt-in propagation, native ownership and no replay of
+uncertain intent. The panel `peel-status` scenario checks the control and shared
+status on desktop/mobile.
+
+When a prepared, safe starting position is available, `just vm goal-trial
+--peel` starts one persistent native peel goal with a verified home-return
+requirement. Existing supervisor health, water, extra-creature and logout
+checks remain in force. Begin with one naturally found ordinary Greyling,
+then two. Keep full audit/state/pursuit evidence and distinguish a refusal,
+observed kill, escape, loot and actual return. Current Greydwarf/mixed-group
+combat and native field passes remain unearned. Do not start this from the
+known nine-attacker base capture without new safe-start evidence.
+
 ## Building geometry and portal observations
 
 See [PORTALS.md](PORTALS.md) for cached building-face limits, portal link
@@ -1715,6 +1734,19 @@ The image/metadata stay in `.checks/`; the summary retains their paths or a
 bounded capture error. Capture failure does not grant movement or alter the
 return result, and the supervisor never changes the configured capture rate.
 This avoids relying on a manual image request after a failed native logout.
+
+A native safety logout can occur between supervisor polls, before an in-world
+state reaches the panel. Recovery summaries now retain `nativeRecovery`
+refusal/logout trace details from the exact audit window, including connection,
+sequence, observed health/food and threat distance. A generic join/departure
+failure then reports the native reason while preserving `supervisorReason`.
+This is refusal evidence, not a successful return or combat proof. Inspect a
+retained capture offline with
+`just check vm recovery-evidence .checks/audit-window-JcN6v0.jsonl`; this recipe
+does not contact the VM. The 2026-11-01 guarded check recorded a hostile0.645m
+away at home, followed by native logout, before any peel task started. Field
+isolation, escape, kill and return acceptance remains open. Focused supervision
+coverage is `just check vm test-recover-home`.
 
 Reviewed/deployed `9f993c2` demonstrated one native staging leg in
 `.checks/recovery-20261101T102531Z`, audit `.checks/audit-window-BU9uSQ.jsonl`.

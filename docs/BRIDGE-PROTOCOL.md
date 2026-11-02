@@ -186,6 +186,12 @@ game eligibility, including duplicate/full slots and consumption effects.
 Missing `food` means unknown; empty arrays mean observed empty. The panel
 status API exposes the same observation.
 
+Optional `combat.peel` reports a native peel episode's `phase`, `members`,
+`pursuers`, `unknown`, `quietS` and planned `escape` endpoint. `attack` accepts
+`peel:true` only with `kite:true`; it preserves existing combat permissions and
+melee safety checks. See [WORLD-EVENTS.md](WORLD-EVENTS.md) for preparation,
+isolation and work/escape budgets. Missing/remote members cannot certify clear.
+
 Optional `worldEvents` reports authoritative observed random-event areas and
 locally active notices. Missing means unknown; `{}` means observed no event.
 See [WORLD-EVENTS.md](WORLD-EVENTS.md) for the wire fields, paused timers,

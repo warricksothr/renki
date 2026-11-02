@@ -38,7 +38,7 @@ func nextArea(g Record, pos protocol.Vec3) (*SearchPlan, json.RawMessage, string
 	if best == nil {
 		return nil, nil, ""
 	}
-	raw, _ := json.Marshal(map[string]any{"world": g.World, "searchCenter": best.Center, "searchRadius": best.Radius, "searchAnchor": g.Center, "searchLimit": g.Radius - 52})
+	raw, _ := json.Marshal(map[string]any{"peel": g.Peel, "world": g.World, "searchCenter": best.Center, "searchRadius": best.Radius, "searchAnchor": g.Center, "searchLimit": g.Radius - 52})
 	return best, raw, fmt.Sprintf("area:%d:%g:%g", best.Sector, (*best.Center)[0], (*best.Center)[2])
 }
 

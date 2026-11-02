@@ -31,17 +31,21 @@ The existing implementation is a useful first slice, but has concrete gaps:
 - `internal/goal/policy.go` accepts a deliberately narrow decision-tree subset:
   conditions, local assignments, JSON literals, literal indexing, `len`, and
   dictionary `get`. It rejects loops, arithmetic, helpers and arbitrary calls.
-- `internal/goal/runtime.go` handles `combat_trial` specifically. It constructs
-  a combat runner, calls `Next` once and requires an attack. The child is not
-  retained as a general multistep runner. Registering another template alone
-  cannot make gathering or food resupply durable.
+- Combat constructs a runner, calls `Next` once and requires an attack; food
+  resupply now uses typed, reconstructible host phases and receipts. Neither
+  retains arbitrary multistep runners. Registering another template alone
+  cannot make a new behavior durable.
 - `internal/goal/store.go` persists policy/state/budgets and refuses to replay
   uncertain dispatches. Reconnect continuation remains explicit.
 - `internal/app/goals.go` exposes start, resume and stop. Scripts are bundled;
   there are no draft, upload, revision, replay or publication endpoints.
-- `scripts/vm/resupply_trial.py` already demonstrates bounded chest search,
-  updated contents and exact transfer proofs. It is a test supervisor, not a
-  production persistent food goal.
+- Production food goals own bounded chest search, updated contents and exact
+  transfer proofs. VM scripts supervise field acceptance; procedure authoring
+  and generic child checkpointing remain separate work.
+
+[Watching and explaining behavior](BEHAVIOUR-INSPECTION.md) specifies the
+operator-facing graph, guard inspector, causal timeline and shared agent
+diagnosis direction, distinguishing current inspection from proposed tools.
 
 ## Options considered
 

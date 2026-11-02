@@ -14,6 +14,7 @@ type Combat struct{}
 type combatParams struct {
 	World        string          `json:"world"`
 	Entity       string          `json:"entity,omitempty"`
+	Peel         bool            `json:"peel,omitempty"`
 	Direct       bool            `json:"direct,omitempty"`
 	At           json.RawMessage `json:"at,omitempty"`
 	SearchRadius *float64        `json:"searchRadius,omitempty"`
@@ -35,7 +36,7 @@ func combatArgs(raw json.RawMessage) (combatParams, *protocol.AttackArgs, error)
 	if p.Direct && (p.Entity == "" || p.At != nil) {
 		return p, nil, errors.New("direct combat needs only an entity")
 	}
-	args := map[string]any{"kite": !p.Direct, "style": "melee"}
+	args := map[string]any{"kite": !p.Direct, "style": "melee", "peel": p.Peel}
 	if p.Entity != "" {
 		args["entity"] = p.Entity
 	}

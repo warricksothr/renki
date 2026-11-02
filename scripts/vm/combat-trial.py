@@ -167,10 +167,12 @@ def ground_diagnostics(audit, task_id):
                 detours=dict(states=dict(detour_states), maxExpanded=detour_max_nodes, worstFrameMs=detour_worst_ms, examples=detour_examples)))
 
 
-def run_persistent_goal(summary, call, observe, saved):
+def run_persistent_goal(summary, call, observe, saved, peel=False):
     """One durable objective; a child-task failure is an outcome, not the end."""
     status, _ = observe()
     spec = dict(kind='combat_trial', world=status['world'], center=status['pos'], radius=200, returnHome=True)
+    if peel:
+        spec['peel'] = True
     created = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)), as_json=True)
     goal_id = created['id']
     summary.update(goalId=goal_id, origin=status['pos'], outcome='running')
@@ -216,6 +218,7 @@ def main():
     harvest_mode.add_argument('--harvest-logs', type=float, nargs=3, help='retry existing nearby beech logs around this center; no full-tree claim')
     harvest_mode.add_argument('--resupply-food', action='store_true', help='return home and replenish ordinary carried food from known storage')
     parser.add_argument('--persistent', action='store_true', help='submit and monitor one durable goal through failed native tasks')
+    parser.add_argument('--peel', action='store_true', help='opt into one native group peel; requires --persistent')
     parser.add_argument('--direct', action='store_true', help='test native closing/melee without lure; requires --entity')
     parser.add_argument('--entity', help='optional exact target; otherwise C# acquires a local ordinary Greyling')
     parser.add_argument('--wait-s', type=float, default=30, help='bounded food/stamina/target preparation, 0..120 seconds')
@@ -224,6 +227,8 @@ def main():
     parser.add_argument('--gather-site', type=float, nargs=3, help='known work-site hint; controller revalidates actual resources on arrival')
     parser.add_argument('--gather-defend', action='store_true', help='opt into bounded native defense of a confirmed Greyling pursuer during gathering')
     args = parser.parse_args()
+    if args.peel and not args.persistent:
+        parser.error('--peel requires --persistent')
     harvesting = args.harvest_tree or args.harvest_logs is not None or args.gather_tree
     if (args.gather_trees != 1 or args.gather_site is not None or args.gather_defend) and not args.gather_tree:
         parser.error('gather count/site/defense require --gather-tree')
@@ -342,7 +347,7 @@ def main():
             print('Returning home for a bounded food resupply', flush=True)
             run(summary, call, observe, terminal, saved)
         elif args.persistent:
-            run_persistent_goal(summary, call, observe, saved)
+            run_persistent_goal(summary, call, observe, saved, peel=args.peel)
         elif args.gather_tree:
             from gather_trial import run
             print('Testing controller gather, gains-only delivery and return', flush=True)

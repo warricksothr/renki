@@ -39,6 +39,7 @@ namespace Renki.Plugin
         string groundRegion;
         V3? escapeEnd;
         MeleeTask melee;
+        PeelTask peel;
         CharacterDeathObservation death;
         FleeTask escape;
         MoveToTask preparation;
@@ -53,7 +54,7 @@ namespace Renki.Plugin
         float surveyBegan;
         V3 ScoutOrigin => args.SearchCenter.HasValue ? SearchAreaTravel.LocalOrigin(args.SearchCenter.Value, Convert.ToV3(area)) : Convert.ToV3(origin);
 
-        internal CombatStatus Status => melee != null ? melee.Status :
+        internal CombatStatus Status => peel != null ? peel.Status : melee != null ? melee.Status :
             new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason };
 
         public KiteTask(string id, AttackArgs args)
@@ -70,7 +71,23 @@ namespace Renki.Plugin
             if (MeleeTask.Best(p) == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable melee weapon");
             if (args.At.HasValue && Vector3.Distance(origin, Convert.ToVector3(args.At.Value)) > 12)
                 throw new TaskRefused(Wire.ReasonRefused, "preferred fighting ground must be within 12 m");
+            if (args.Peel && !PeelTask.Prepared(p))
+                throw new TaskRefused(Wire.ReasonRefused, "peeling requires food, armour, 30 HP/80% health, 40 stamina and at least 25% gear durability");
             walker.ResetStuck(origin);
+            if (args.Peel)
+            {
+                // Capture an already visible group before any old single-target
+                // positioning walk. The peel episode validates its own approach.
+                Acquire(p);
+                if (enemy != null)
+                {
+                    ObserveEnemy(p);
+                    Active = this;
+                    return;
+                }
+                if (!string.IsNullOrWhiteSpace(args.Entity))
+                    throw new TaskRefused(Wire.ReasonInvalidTarget, "no supported exposed peel target in range");
+            }
             if (args.SearchCenter.HasValue)
             {
                 if (V3.FlatDistance(Convert.ToV3(origin), args.SearchCenter.Value) > SearchAreaTravel.Range)
@@ -106,6 +123,11 @@ namespace Renki.Plugin
             Driver.Stand();
             var p = Player.m_localPlayer;
             if (cancelled || p == null || p.IsDead()) return Finish(Outcome.Failed(Wire.ReasonStopped, "not in the world"));
+            if (peel != null)
+            {
+                var result = peel.Tick(dt);
+                return result == null ? null : Finish(result);
+            }
             if (melee != null)
             {
                 var ended = melee.Tick(dt);
@@ -228,6 +250,7 @@ namespace Renki.Plugin
                 CancelDetour();
                 walking = false;
                 ObserveEnemy(p);
+                if (peel != null) return null;
                 if (!areaChecked || Kiting.NeedsLocalArea(Convert.ToV3(encounterOrigin), Convert.ToV3(area), args.At.HasValue))
                 {
                     // Search can range widely; the lure stays local to the
@@ -316,8 +339,16 @@ namespace Renki.Plugin
                 if (!Eligible(p, c) || c.IsDead() || c.m_nview.GetZDO() == null) continue;
                 if (!string.IsNullOrWhiteSpace(args.Entity) && c.m_nview.GetZDO().m_uid.ToString() != args.Entity) continue;
                 if (Vector3.Distance(origin, c.transform.position) > searchReach + Kiting.SearchRange) continue;
-                if (!ClearCharacters(p, c, c.transform.position) || !ClearCharacters(p, c, p.transform.position)) continue;
+                if (!args.Peel && (!ClearCharacters(p, c, c.transform.position) || !ClearCharacters(p, c, p.transform.position))) continue;
                 var distance = Vector3.Distance(p.transform.position, c.transform.position);
+                if (args.Peel)
+                {
+                    var competitors = new List<V3>();
+                    foreach (var other in characters)
+                        if (other != null && other != c && other != p && !other.IsDead() && BaseAI.IsEnemy(p, other))
+                            competitors.Add(Convert.ToV3(other.transform.position));
+                    distance = (float)PursuitGroup.EdgeScore(Convert.ToV3(p.transform.position), Convert.ToV3(c.transform.position), competitors);
+                }
                 if (distance < best) { selected = c; best = distance; }
             }
             enemy = selected;
@@ -329,6 +360,12 @@ namespace Renki.Plugin
             enemyPrefab = enemy.m_nview.GetPrefabName();
             death = new CharacterDeathObservation(enemy, entity);
             encounterOrigin = p.transform.position;
+            if (args.Peel)
+            {
+                CancelDetour();
+                peel = new PeelTask(id, args, enemy, death, this);
+                death = null;
+            }
         }
 
         Outcome PrepareSearch(Player p, double dt)
@@ -697,7 +734,7 @@ namespace Renki.Plugin
             return true;
         }
 
-        static bool Ground(Vector3 at, out Vector3 ground)
+        internal static bool Ground(Vector3 at, out Vector3 ground)
         {
             // GetWorldHeight rounds to a mesh vertex. Use the game's terrain-only
             // ray projection so step/grade probes start on the actual surface.
@@ -716,7 +753,9 @@ namespace Renki.Plugin
             return true;
         }
 
-        bool TryArea(Player p, Vector3 at, out Vector3 grounded, out string rejected)
+        internal V3? EscapeEnd => escapeEnd;
+
+        internal bool TryArea(Player p, Vector3 at, out Vector3 grounded, out string rejected)
         {
             groundFailure = null;
             groundRegion = null; escapeEnd = null;
@@ -738,7 +777,7 @@ namespace Renki.Plugin
                 if (nearby[i].GetComponentInParent<Piece>() != null) return false;
                 var c = nearby[i].GetComponentInParent<Character>();
                 rejected = "bystander_or_other_creature";
-                if (c != null && c != p && c != enemy && !c.IsDead() && !Eligible(p, c)) return false;
+                if (c != null && c != p && c != enemy && !c.IsDead() && (args.Peel || !Eligible(p, c))) return false;
             }
             // Validate a usable approach before drawing, not just an empty destination.
             if (Vector3.Distance(p.transform.position, grounded) > 2)
@@ -823,7 +862,7 @@ namespace Renki.Plugin
         public void Cancel()
         {
             CancelDetour();
-            cancelled = true; death?.Dispose(); melee?.Cancel(); escape?.Cancel(); preparation?.Cancel();
+            cancelled = true; death?.Dispose(); peel?.Cancel(); melee?.Cancel(); escape?.Cancel(); preparation?.Cancel();
             if (ReferenceEquals(Active, this)) Active = null;
             Driver.ClearCombat();
         }

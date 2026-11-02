@@ -22,7 +22,8 @@ OUTSIDE = HEALTHY | dict(hp=53, pos=[40, 30, 0], flags=['recovering'])
 
 
 class RecoverySupervisorTests(unittest.TestCase):
-    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False, capture=False):
+    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False, capture=False,
+                  audit_frames=None, join_failed=False):
         calls = []
         snapshots = iter(snapshots)
 
@@ -37,13 +38,17 @@ class RecoverySupervisorTests(unittest.TestCase):
                 if reject_arm:
                     return SimpleNamespace(returncode=1, stdout='', stderr='refused')
                 value = dict(World='one', Pos=[0, 30, 0], Expires=1200)
+            elif args[0] == 'audit-window' and audit_frames is not None:
+                audit = Path(temp) / 'window.jsonl'
+                audit.write_text(''.join(json.dumps(row) + '\n' for row in audit_frames))
+                return SimpleNamespace(returncode=0, stdout=str(audit), stderr='')
             else:
                 return SimpleNamespace(returncode=0, stdout='', stderr='')
             return SimpleNamespace(returncode=0, stdout=json.dumps(value), stderr='')
 
         launch = MagicMock()
         launch.poll.return_value = 0
-        launch.returncode = 0
+        launch.returncode = 1 if join_failed else 0
         clock = itertools.count(0, 3)
         with tempfile.TemporaryDirectory() as temp, patch.object(recovery, 'ROOT', Path(temp)), \
                 patch.object(recovery.subprocess, 'run', side_effect=request), \
@@ -54,6 +59,45 @@ class RecoverySupervisorTests(unittest.TestCase):
             code = recovery.main()
             summary = json.loads(next(Path(temp).glob('.checks/recovery-*/summary.json')).read_text())
         return code, summary, calls
+
+    def test_native_refusal_between_polls_explains_join_failure_without_starting_work(self):
+        frame = dict(at='2026-11-01T10:37:11Z', conn=1,
+                     frame=dict(type='trace', source='recovery', seq=119, msg='startup return refused',
+                                data=dict(reason='unsafe health, food, water or threat clearance',
+                                          hp=66.9551, hpMax=66.9551, foods=2, threatDistance=.64487)))
+        code, result, calls = self.run_trial([dict(connected=False), dict(connected=True, phase='menu')],
+                                              audit_frames=[frame], join_failed=True)
+        self.assertEqual(code, 1)
+        self.assertEqual(result['supervisorReason'], 'join failed')
+        self.assertEqual(result['reason'], 'native recovery refused: unsafe health, food, water or threat clearance')
+        self.assertEqual(result['nativeRecovery']['refusal']['threatDistance'], .64487)
+        self.assertEqual(result['nativeRecovery']['refusal']['connection'], 1)
+        self.assertEqual(result['nativeRecovery']['refusal']['seq'], 119)
+        self.assertFalse(any(c[0] == 'task' for c in calls))
+        for action in (['stop'], ['panel-start'], ['recovery-return', 'clear']):
+            self.assertIn(action, calls)
+
+    def test_native_diagnostics_do_not_infer_success_or_hide_other_failures(self):
+        with tempfile.TemporaryDirectory(dir=recovery.ROOT / '.checks') as temp:
+            path = Path(temp) / 'window.jsonl'
+            refusal = dict(conn=4, frame=dict(type='trace', source='recovery', seq=2,
+                                             msg='startup return refused', data=dict(reason='unsafe')))
+            path.write_text('\ufeff' + json.dumps(dict(frame=dict(type='trace', source='other',
+                                                                 msg='startup return refused', data=dict(reason='wrong')))) + '\n'
+                            + 'invalid row\n' + json.dumps(refusal) + '\n')
+            for outcome, reason in [('passed', 'native return and sheltered recovery observed'),
+                                    ('failed', 'injury outside owned food travel budget')]:
+                result = dict(outcome=outcome, reason=reason)
+                recovery.explain_native_refusal(result, path)
+                self.assertEqual(result['outcome'], outcome)
+                self.assertEqual(result['reason'], reason)
+                self.assertEqual(result['nativeRecovery']['refusal']['reason'], 'unsafe')
+                self.assertEqual(result['nativeRecovery']['malformedRows'], 1)
+                self.assertNotIn('supervisorReason', result)
+            report = recovery.subprocess.run(['just', 'vm', 'recovery-evidence', str(path.relative_to(recovery.ROOT))], cwd=recovery.ROOT,
+                                             capture_output=True, text=True, timeout=10)
+            self.assertEqual(report.returncode, 0, report.stderr)
+            self.assertEqual(json.loads(report.stdout)['nativeRecovery']['refusal']['connection'], 4)
 
     def test_safe_native_return_can_remain_online_without_any_body_orders(self):
         code, result, calls = self.run_trial([dict(connected=False), OUTSIDE, HEALTHY])

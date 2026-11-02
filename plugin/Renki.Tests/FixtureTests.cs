@@ -195,6 +195,8 @@ namespace Renki.Tests
         [InlineData("flee", "{\"from\":\"0:1\",\"distance\":0}")]
         [InlineData("flee", "{\"from\":\"0:1\",\"toward\":7}")]
         [InlineData("interact", "{\"entity\":\"0:1\",\"hold\":\"yes\"}")]
+        [InlineData("attack", "{\"entity\":\"0:1\",\"peel\":true}")]
+        [InlineData("attack", "{\"kite\":true,\"peel\":true,\"defensive\":true,\"entity\":\"0:1\"}")]
         public void BadArgs(string task, string args)
         {
             Assert.Throws<BadArgsException>(() => TaskArgs.Parse(Req(task, args)));

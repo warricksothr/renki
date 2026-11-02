@@ -162,6 +162,8 @@ func TestDecodeArgs(t *testing.T) {
 		err  error
 	}{
 		{TaskStop, ``, &StopArgs{}, nil},
+		{TaskAttack, `{"entity":"0:1","peel":true}`, nil, ErrBadArgs},
+		{TaskAttack, `{"entity":"0:1","kite":true,"peel":true,"defensive":true}`, nil, ErrBadArgs},
 		{TaskMoveTo, `{"to":[1,2,3]}`, &MoveToArgs{To: Target{Pos: &pos}}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true}, nil},
