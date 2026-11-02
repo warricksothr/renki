@@ -54,8 +54,17 @@ namespace Renki.Tests
         {
             var wait = new NearLeaderWait();
             Assert.True(wait.GiveUp(Bot, Nimah, Distance));
-            Assert.False(wait.Hold(Bot + new V3(2, 0, 0), Nimah));
+            Assert.False(wait.Hold(Bot + new V3(2.1, 0, 0), Nimah));
             Assert.False(wait.Waiting);
+        }
+
+        [Fact]
+        public void SettlingAtTheEdgeOfTheNearRingKeepsWaiting()
+        {
+            var edge = Nimah + new V3(Distance + NearLeaderWait.Margin - .05, 0, 0);
+            var wait = new NearLeaderWait();
+            Assert.True(wait.GiveUp(edge, Nimah, Distance));
+            Assert.True(wait.Hold(edge + new V3(.3, 0, 0), Nimah));
         }
 
         [Fact]

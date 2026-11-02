@@ -9,7 +9,8 @@ namespace Renki.Movement
     /// closer, for example outside the wall of the house they stand in. It
     /// stands and waits rather than failing <c>stuck</c>, and walks again
     /// once the leader has moved more than Resume from where they stood when
-    /// the wait began, or the bot itself has been pushed out of range.
+    /// the wait began, or the bot itself has been pushed more than Resume
+    /// from where it stood.
     /// Farther away, or a floor above or below, spent recoveries are still a
     /// failure: a leader upstairs is reached by finding the stairs, which a
     /// fresh attempt may do and standing still never will.
@@ -19,12 +20,12 @@ namespace Renki.Movement
         /// <summary>How far beyond the follow distance still counts as near.</summary>
         public const double Margin = 1.5;
 
-        /// <summary>How far the leader moves before the bot tries again: the
-        /// follower's re-path distance.</summary>
+        /// <summary>How far the leader, or the bot, moves before the bot
+        /// tries again: the follower's re-path distance.</summary>
         public const double Resume = 2.0;
 
         V3? anchor;
-        double near;
+        V3 spot;
 
         public bool Waiting => anchor.HasValue;
 
@@ -33,31 +34,29 @@ namespace Renki.Movement
         /// has failed.</summary>
         public bool GiveUp(V3 pos, V3 leader, double distance)
         {
-            near = distance + Margin;
-            if (!Near(pos, leader))
+            if (V3.FlatDistance(pos, leader) > distance + Margin || Math.Abs(pos.Y - leader.Y) > Arrival.Level)
             {
                 anchor = null;
                 return false;
             }
             anchor = leader;
+            spot = pos;
             return true;
         }
 
         /// <summary>Whether to go on waiting at pos, given where the leader
-        /// is now. Once they have moved more than Resume, or the bot is no
-        /// longer near where they stood when the wait began (knocked back,
-        /// say), the wait ends and this returns false. The bot's range is
-        /// measured from that spot, not from the leader, so a leader moving
-        /// about the room does not end the wait early.</summary>
+        /// is now. Once either has moved more than Resume from where they
+        /// stood when the wait began (the leader walking off, the bot knocked
+        /// back), the wait ends and this returns false. Each is measured from
+        /// its own start, so the leader moving about the room, or the bot
+        /// settling a few centimetres at the edge of the near ring, does not
+        /// end the wait.</summary>
         public bool Hold(V3 pos, V3 leader)
         {
-            if (anchor is V3 at && (leader - at).Length <= Resume && Near(pos, at)) return true;
+            if (anchor is V3 at && (leader - at).Length <= Resume && (pos - spot).Length <= Resume) return true;
             anchor = null;
             return false;
         }
-
-        bool Near(V3 pos, V3 leader) =>
-            V3.FlatDistance(pos, leader) <= near && Math.Abs(pos.Y - leader.Y) <= Arrival.Level;
 
         public void Clear() => anchor = null;
     }
