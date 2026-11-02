@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T19:04:43Z
+updated_at: 2026-11-02T19:07:21Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -84,3 +84,7 @@ Done in the review-fixes PR: stow walks now set AvoidHostiles from dry, since th
 **agent:claude-code/renki-m3-marker** at 2026-11-02T18:55:16Z
 
 Fixed: check() now sets r.health to the current sample after lost() passes. New tests TestMarkerFoodNoticesAHitAfterHealingPastItsStart and TestCargoNoticesAHitAfterHealingPastItsStart go 80/100 -> 100/100 -> 95/95 (food decay) -> 110 max with a new meal -> hit to 85, InjurySeq nil. Both fail on the old code ('a hit after healing past the start health was ignored') and pass now. just check ci passed (167 s). A first ci run failed only in internal/app TestSpeechMemoryAndDeterministicLocationQuestionsIncludingPanel (2 s timeout, machine loaded by parallel gates); it passed alone and is filed as draft TKT-01M6ESNXKF.
+
+**agent:claude-code/renki-m3-marker** at 2026-11-02T19:07:21Z
+
+Supersedes the earlier note's description of the fix. Review found that moving the baseline to every passing sample lets losses under lost()'s 0.15 tolerance add up step by step. The fix is now healthSample.roll(), a baseline that ratchets up (peak, clamped to the current maximum), sharing mealRefresh() with lost(). The marker rest guard had the same start-only baseline and now uses roll() too. New tests: TestMarkerFoodNoticesAHitAfterHealingPastItsStart, TestCargoNoticesAHitAfterHealingPastItsStart, TestRestNoticesAHitAfterHealingPastItsStart, TestMarkerFoodAddsUpSmallLossesAgainstThePeak, TestMarkerFoodKeepsThePeakWhenTheMaximumRisesWithoutAMeal. Each was checked to fail against the defect it covers. just check ci passed at 38288e3 (153 s). Not deployed; no live check needed for the criteria.
