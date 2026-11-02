@@ -44,6 +44,7 @@ type Engine struct {
 	instances           map[string]*instance
 	active              string
 	lease               *session.Automation
+	loan                *loan // the owner's follow the active run borrows
 	events              chan string
 	dropped             atomic.Uint64
 	conn                *protocol.Hello
@@ -53,8 +54,22 @@ type Engine struct {
 	drops               map[string]bool
 	piles               pileWatch
 }
+
+// loan is an owner's follow lent to the active passive run.
+type loan struct {
+	follow session.Follow
+	since  time.Time // when the followed player's settle area opened
+}
+
+// PassiveRun names the follow a passive run borrowed: its task and player.
+type PassiveRun struct {
+	Follow string `json:"follow"`
+	Player string `json:"player"`
+}
+
 type instance struct {
 	episodeID             string
+	passive               *PassiveRun // the follow the latest run borrowed, if it did
 	definition            Definition
 	pending               bool
 	interrupted           bool // pending is a preempted run waiting to restart, judged as still in progress
@@ -83,6 +98,9 @@ type Status struct {
 	Running       bool         `json:"running"`
 	Last          string       `json:"last,omitempty"`
 	StorageNeeded *StorageNeed `json:"storageNeeded,omitempty"`
+	// Passive is set when the latest run borrowed an owner's follow; with
+	// Running, the current one does.
+	Passive *PassiveRun `json:"passive,omitempty"`
 }
 type Origin struct {
 	Instance string
@@ -158,7 +176,7 @@ func (e *Engine) List() []Status {
 		if provider, ok := i.runner.(Episode); ok {
 			episode = provider.EpisodeID()
 		}
-		out = append(out, Status{EpisodeID: episode, Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage})
+		out = append(out, Status{EpisodeID: episode, Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage, Passive: i.passive})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	// Neither callers nor templates can mutate the engine's definitions.
@@ -423,7 +441,46 @@ func (e *Engine) view() View {
 		}
 	}
 	v.Idle = v.State != nil && (v.State.Task == nil || protocol.Final(v.State.Task.Status))
+	if follow, ok := e.o.Session.OwnerFollow(); ok && !v.Idle {
+		v.Following = &follow
+		v.Anchor = follow.Player
+	}
+	if e.loan != nil {
+		v.Anchor = e.loan.follow.Player
+	}
 	return v
+}
+
+// lending reports whether the body is with an owner's follow, lent or not,
+// and whose. Only passive instances may run then.
+func (e *Engine) lending(v View) (string, bool) {
+	if e.loan != nil {
+		return e.loan.follow.Player, true
+	}
+	if v.Following != nil {
+		return v.Following.Player, true
+	}
+	return "", false
+}
+
+// settled asks a passive instance's template whether player has settled.
+func (e *Engine) settled(i *instance, player string, now time.Time) (time.Time, bool) {
+	p, ok := e.o.Templates[i.definition.Template].(Passive)
+	if !ok || !i.definition.passive() {
+		return time.Time{}, false
+	}
+	return p.Settled(i.definition.Params, player, now)
+}
+
+// mayBorrow reports whether i may run now as far as the follow goes: always
+// without one, and with one only when i is passive and its player settled.
+func (e *Engine) mayBorrow(i *instance, v View, now time.Time) bool {
+	player, ok := e.lending(v)
+	if !ok {
+		return true
+	}
+	_, settled := e.settled(i, player, now)
+	return settled
 }
 func (e *Engine) triggers(v View, now time.Time) {
 	events := e.drainEvents()
@@ -470,7 +527,7 @@ func (e *Engine) triggers(v View, now time.Time) {
 			triggered = true
 			i.timer = now.Add(duration(d.Trigger.EveryS))
 		}
-		if triggered && !i.pending && e.active != name && e.ready(i, v) {
+		if triggered && !i.pending && e.active != name && e.mayBorrow(i, v, now) && e.ready(i, v) {
 			i.pending = true
 			i.interrupted = false
 			e.o.Logger.Info("behaviour triggered", "instance", name, "trigger", d.Trigger.Kind, "event", d.Trigger.Event)
@@ -526,7 +583,7 @@ func (i *instance) mayRun(v View) bool {
 func (e *Engine) candidate(v View, now time.Time) string {
 	best := ""
 	for name, i := range e.instances {
-		if i.pending && !now.Before(i.next) && i.mayRun(v) && (best == "" || i.definition.Priority > e.instances[best].definition.Priority || (i.definition.Priority == e.instances[best].definition.Priority && name < best)) {
+		if i.pending && !now.Before(i.next) && i.mayRun(v) && e.mayBorrow(i, v, now) && (best == "" || i.definition.Priority > e.instances[best].definition.Priority || (i.definition.Priority == e.instances[best].definition.Priority && name < best)) {
 			best = name
 		}
 	}
@@ -567,7 +624,7 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 		return nil
 	}
 	i := e.instances[e.active]
-	if e.lease.Valid() && i.task != nil {
+	if e.lease.Valid() && i.task != nil && e.loan == nil {
 		select {
 		case <-i.task.Done():
 		default:
@@ -577,6 +634,8 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 		}
 	}
 	e.o.Logger.Info("behaviour interrupted", "instance", e.active, "reason", why)
+	// Sending the follow again replaces the running step, in place of stop.
+	e.giveBack(ctx, why)
 	e.ended(i, why)
 	i.pending = requeue
 	i.interrupted = requeue
@@ -593,8 +652,35 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 	e.active = ""
 	return nil
 }
-func (e *Engine) finish(success bool, detail string, v View) {
+
+// giveBack ends a loan: while the run's handle is still valid, the same
+// follow is sent again. An owner order, a death, a reconnect or a world
+// change revoked the handle, and then the follow stays ended.
+func (e *Engine) giveBack(ctx context.Context, why string) {
+	l := e.loan
+	if l == nil {
+		return
+	}
+	e.loan = nil
+	attrs := []any{"instance", e.active, "follow", l.follow.TaskID, "player", l.follow.Player, "reason", why}
+	if !e.lease.Valid() {
+		e.o.Logger.Info("follow not returned", attrs...)
+		return
+	}
+	t, err := e.lease.Return(ctx)
+	switch {
+	case err != nil:
+		e.o.Logger.Warn("could not return the follow", append(attrs, "err", err)...)
+	case t == nil:
+		e.o.Logger.Info("follow kept", attrs...)
+	default:
+		e.o.Logger.Info("follow returned", append(attrs, "id", t.ID)...)
+	}
+}
+
+func (e *Engine) finish(ctx context.Context, success bool, detail string, v View) {
 	i := e.instances[e.active]
+	e.giveBack(ctx, detail)
 	e.ended(i, detail)
 	i.completed++
 	i.last = detail
@@ -634,7 +720,7 @@ func (e *Engine) fail(ctx context.Context, err error, v View) {
 			e.o.Notify(ctx, line)
 		}
 	}
-	e.finish(false, err.Error(), v)
+	e.finish(ctx, false, err.Error(), v)
 }
 func (e *Engine) Tick(ctx context.Context) {
 	e.mu.Lock()
@@ -691,6 +777,19 @@ func (e *Engine) Tick(ctx context.Context) {
 			return
 		}
 	}
+	if e.active != "" && e.loan != nil {
+		// The followed player moving on ends the run and the follow resumes.
+		i := e.instances[e.active]
+		if since, ok := e.settled(i, e.loan.follow.Player, now); !ok || !since.Equal(e.loan.since) {
+			if err := e.cancel(ctx, "followed player moved on", false); err != nil {
+				e.o.Logger.Warn("could not end the passive run", "err", err)
+			} else {
+				i.completed++
+				i.next = now.Add(duration(i.definition.Repeat.CooldownS))
+			}
+			return
+		}
+	}
 	if e.active != "" {
 		i := e.instances[e.active]
 		var err error
@@ -721,12 +820,26 @@ func (e *Engine) Tick(ctx context.Context) {
 		if best == "" {
 			return
 		}
-		lease, err := e.o.Session.TryAutomationFor(hello, v.State.World)
+		i := e.instances[best]
+		var lease *session.Automation
+		var err error
+		var borrowed *loan
+		if v.Following != nil {
+			since, _ := e.settled(i, v.Following.Player, now)
+			borrowed = &loan{follow: *v.Following, since: since}
+			lease, err = e.o.Session.TryLoanFrom(hello, v.State.World, v.Following.TaskID)
+		} else {
+			lease, err = e.o.Session.TryAutomationFor(hello, v.State.World)
+		}
 		if err != nil {
 			return
 		}
-		i := e.instances[best]
-		e.active, e.lease = best, lease
+		e.active, e.lease, e.loan = best, lease, borrowed
+		i.passive = nil
+		if borrowed != nil {
+			i.passive = &PassiveRun{Follow: borrowed.follow.TaskID, Player: borrowed.follow.Player}
+			v.Anchor = borrowed.follow.Player
+		}
 		i.pending = false
 		i.interrupted = false
 		i.step = 0
@@ -735,9 +848,13 @@ func (e *Engine) Tick(ctx context.Context) {
 		i.waitingSince = time.Time{}
 		raw := append(json.RawMessage(nil), i.definition.Params...)
 		i.runner, err = e.o.Templates[i.definition.Template].Start(raw)
-		e.o.Logger.Info("behaviour started", "instance", best, "template", i.definition.Template)
+		if borrowed != nil {
+			e.o.Logger.Info("behaviour started", "instance", best, "template", i.definition.Template, "passive", true, "follow", borrowed.follow.TaskID, "player", borrowed.follow.Player)
+		} else {
+			e.o.Logger.Info("behaviour started", "instance", best, "template", i.definition.Template)
+		}
 		if err != nil || i.runner == nil {
-			e.finish(false, fmt.Sprintf("start: %v", err), v)
+			e.finish(ctx, false, fmt.Sprintf("start: %v", err), v)
 			return
 		}
 	}
@@ -753,7 +870,7 @@ func (e *Engine) Tick(ctx context.Context) {
 			if status != protocol.StatusSucceeded {
 				recovery, ok := i.runner.(FailureAware)
 				if !ok || !recovery.Recover(*i.result) {
-					e.finish(false, reason+": "+detail, v)
+					e.finish(ctx, false, reason+": "+detail, v)
 					return
 				}
 			}
@@ -781,7 +898,7 @@ func (e *Engine) Tick(ctx context.Context) {
 		i.waitingSince = time.Time{}
 		// Judge the wait by the clock the runner decided on, not a later read.
 		if delay.Until.After(v.Now.Add(30*time.Second)) || !delay.Until.After(v.Now) {
-			e.finish(false, "invalid or expired bounded wait", v)
+			e.finish(ctx, false, "invalid or expired bounded wait", v)
 		}
 		return
 	}
@@ -790,7 +907,7 @@ func (e *Engine) Tick(ctx context.Context) {
 			i.waitingSince = now
 		}
 		if now.Sub(i.waitingSince) >= 5*time.Second {
-			e.finish(false, "fresh observation did not arrive within five seconds", v)
+			e.finish(ctx, false, "fresh observation did not arrive within five seconds", v)
 		}
 		return
 	}
@@ -825,11 +942,11 @@ func (e *Engine) Tick(ctx context.Context) {
 		if s, ok := i.runner.(Summary); ok {
 			detail = s.Summary()
 		}
-		e.finish(true, detail, v)
+		e.finish(ctx, true, detail, v)
 		return
 	}
 	if order.Task == protocol.TaskStop || order.TimeoutS <= 0 || order.TimeoutS > 300 {
-		e.finish(false, "template step needs a bounded timeout and cannot be stop", v)
+		e.finish(ctx, false, "template step needs a bounded timeout and cannot be stop", v)
 		return
 	}
 	i.step++
@@ -842,7 +959,7 @@ func (e *Engine) Tick(ctx context.Context) {
 			e.clearPending("new order")
 			return
 		}
-		e.finish(false, err.Error(), v)
+		e.finish(ctx, false, err.Error(), v)
 		return
 	}
 	if started, ok := i.runner.(TaskStarted); ok {

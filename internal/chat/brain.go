@@ -409,6 +409,12 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if !ok {
 		return
 	}
+	if t.Lent() {
+		// A passive behaviour borrowed the follow and sends it again when
+		// it is done: a pause, not an end. Nothing to say, no trip home,
+		// and the anchor stays the followed player.
+		return
+	}
 	status, reason, detail := t.Status()
 	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
 		// The plugin says "the other N" when some of the stack stayed behind:

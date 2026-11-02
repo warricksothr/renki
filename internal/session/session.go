@@ -41,9 +41,12 @@ type Listener interface {
 type Order struct {
 	scopeHello *protocol.Hello
 	scopeWorld string
-	Task       string
-	Args       any
-	TimeoutS   float64
+	// giveBack marks a lent follow sent back by Automation.Return: the
+	// task is recorded as the owner's, and the handle ends with it.
+	giveBack bool
+	Task     string
+	Args     any
+	TimeoutS float64
 	// Origin is the caller's own note on why it was sent, such as the chat
 	// line that asked for it. The session only carries it.
 	Origin any
@@ -62,6 +65,11 @@ type Task struct {
 	connection      uint64
 	world, worldUID string
 	automation      *Automation
+	timeoutS        float64
+
+	// lent is set, under the session's lock, when automation borrowed this
+	// follow (TryLoanFrom) and sent a task over it.
+	lent bool
 
 	mu         sync.Mutex
 	status     string
@@ -93,6 +101,17 @@ func (t *Task) ReceiptSeq() uint64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.receiptSeq
+}
+
+// Lent reports whether this follow was lent to automation, which replaced
+// it with its own task (TryLoanFrom). The follow then ended superseded,
+// and the automation sends it again when it is done, unless an owner
+// order, a death or a world change came first. A listener treats its end
+// as a pause, not as the owner stopping the follow.
+func (t *Task) Lent() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.lent
 }
 
 // Done is closed when the task reaches a final status.
@@ -595,8 +614,20 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 		s.automation = nil
 		s.orders++
 	}
+	if automation != nil && automation.loan != nil && !protocol.Instant(o.Task) {
+		// The first body task over a loan replaces the follow.
+		automation.loan.task.mu.Lock()
+		automation.loan.task.lent = true
+		automation.loan.task.mu.Unlock()
+	}
 	s.tasks[id] = t
-	t.sentAt, t.serial, t.connection, t.automation = time.Now().UTC(), s.nextTask, conn.ID(), automation
+	t.sentAt, t.serial, t.connection, t.automation, t.timeoutS = time.Now().UTC(), s.nextTask, conn.ID(), automation, o.TimeoutS
+	if o.giveBack {
+		// The follow is the owner's again: it can be lent once more, and
+		// the handle that borrowed it is spent.
+		t.automation = nil
+		s.automation = nil
+	}
 	if s.state != nil {
 		t.world, t.worldUID = s.state.World, s.state.WorldUID
 	}
@@ -621,6 +652,13 @@ func Finished(name string, origin any, status, reason string) *Task {
 func FinishedWith(name string, origin any, status, reason, detail string) *Task {
 	t := &Task{ID: "t-test", Name: name, Origin: origin, done: make(chan struct{})}
 	t.update(status, reason, detail)
+	return t
+}
+
+// FinishedLent is FinishedWith for a follow lent to automation, for tests.
+func FinishedLent(name string, origin any, status, reason string) *Task {
+	t := &Task{ID: "t-test", Name: name, Origin: origin, lent: true, done: make(chan struct{})}
+	t.update(status, reason, "")
 	return t
 }
 

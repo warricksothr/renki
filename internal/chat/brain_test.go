@@ -643,6 +643,29 @@ func TestAnOrderInTheVoiceCountsAsAnOrder(t *testing.T) {
 	}
 }
 
+func TestALentFollowEndsInSilenceAndKeepsTheAnchor(t *testing.T) {
+	for _, end := range []struct{ status, reason string }{
+		{protocol.StatusCancelled, protocol.ReasonSuperseded},
+		{protocol.StatusFailed, protocol.ReasonTargetLost},
+		{protocol.StatusFailed, protocol.ReasonDied},
+	} {
+		t.Run(end.reason, func(t *testing.T) {
+			b, f, h := homeBrain()
+			h.home = &protocol.Vec3{1, 0, 1}
+			b.Chat(line("Sothr", "bjorn follow me"))
+			follow := f.sent()[0]
+			before := len(f.sent())
+			b.TaskDone(session.FinishedLent(follow.Task, follow.Origin, end.status, end.reason))
+			if len(f.sent()) != before || len(h.trips) != 0 || h.resume != nil {
+				t.Fatalf("a lent follow sent %v, trips %v, resume %v", f.sent()[before:], h.trips, h.resume != nil)
+			}
+			if b.Anchor() != "Sothr" {
+				t.Fatalf("anchor %q", b.Anchor())
+			}
+		})
+	}
+}
+
 func TestADeadFollowLeavesAResumeForTheSamePlayer(t *testing.T) {
 	b, f, h := homeBrain()
 	c := line("Sothr", "bjorn follow me")
