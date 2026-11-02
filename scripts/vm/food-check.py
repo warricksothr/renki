@@ -144,6 +144,14 @@ def household_definition(spec, marker):
                 repeat=dict(mode='trigger', cooldownS=300, maxRuns=1), priority=-10, enabled=True)
 
 
+def personal_definition(spec, marker):
+    if spec.get('stock') is not None or spec.get('escort') is not None or marker['world'] != spec['world']:
+        raise RuntimeError('personal idle trial requires same-world marker without household or escort work')
+    return dict(template='personal_food', params=spec,
+                trigger=dict(kind='idle', marker=marker, dwellS=15), when=dict(night=False),
+                repeat=dict(mode='trigger', cooldownS=300, maxRuns=1), priority=10, enabled=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
@@ -153,6 +161,7 @@ def main():
     parser.add_argument('--hunt-areas', default='', help='comma-separated hunting marker names')
     parser.add_argument('--sources', default='', help='comma-separated food source marker names')
     parser.add_argument('--idle-marker', help='start a household episode after idle dwell at this storage marker')
+    parser.add_argument('--idle-resupply', help='start personal resupply after natural idle dwell at this home marker')
     parser.add_argument('--require-deposit', action='store_true')
     parser.add_argument('--join', action='store_true')
     parser.add_argument('--storage', default='', help='comma-separated allowed current home chest IDs; default all eligible chests')
@@ -172,6 +181,8 @@ def main():
         targets[item] = int(count)
     if (targets and (not args.storage or args.escort)) or (args.idle_marker and not targets):
         parser.error('household work needs targets and explicit storage; escort is separate')
+    if args.idle_resupply and (targets or args.idle_marker or args.escort):
+        parser.error('idle personal resupply is separate from household work and escort')
     minimums = {}
     for low in args.stock_minimum:
         item, separator, count = low.partition('=')
@@ -271,9 +282,16 @@ def main():
         if targets:
             spec['radius'] = 200
             spec['stock'] = dict(targets=targets, minimum=minimums, allowHunting=args.allow_hunting, huntAreas=[s.strip() for s in args.hunt_areas.split(',') if s.strip()], sources=[s.strip() for s in args.sources.split(',') if s.strip()])
-        if args.idle_marker:
-            candidate_name = 'household check ' + folder.name
-            definition = household_definition(spec, args.idle_marker)
+        if args.idle_marker or args.idle_resupply:
+            candidate_name = ('personal check ' if args.idle_resupply else 'household check ') + folder.name
+            if args.idle_resupply:
+                markers = [w for w in mapped.get('waypoints', []) if w.get('name') == args.idle_resupply]
+                if len(markers) != 1 or mapped.get('world') != spec['world'] or mapped.get('connection') != status.get('connection'):
+                    raise RuntimeError('personal trial needs a current unambiguous home marker')
+                marker = dict(world=spec['world'], name=markers[0]['name'], kind=markers[0]['kind'])
+                definition = personal_definition(spec, marker)
+            else:
+                definition = household_definition(spec, args.idle_marker)
             call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=candidate_name, definition=definition)))
             idle_name = candidate_name
             until = time.monotonic() + 90
@@ -287,10 +305,10 @@ def main():
                     goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=instance['episodeId'])))
                     break
                 if instance.get('runs') or instance.get('last') == 'new order':
-                    raise RuntimeError('household idle episode did not start: ' + str(instance.get('last')))
+                    raise RuntimeError('food idle episode did not start: ' + str(instance.get('last')))
                 time.sleep(2)
             else:
-                raise RuntimeError('household idle admission deadline')
+                raise RuntimeError('food idle admission deadline')
         else:
             goal = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)))
         summary['goal'] = goal['id']

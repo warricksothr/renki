@@ -177,6 +177,44 @@ food, cooking, recovery and escort evidence as well as harvesting/combat.
 
 ## Household storage targets and idle episodes
 
+### Personal supply before household work
+
+The optional `personal_food` idle routine starts the existing durable food
+goal when no active meal has at least five minutes left, or fewer than two
+ready meals remain in the pack. A full unfed25/25 health bar does not satisfy
+this need. Nourished bodies with the requested reserve create no new goal.
+Enable it through the authenticated behaviour API using a current home marker:
+
+```json
+{"action":"idle-resupply","marker":{"world":"your-world","name":"home rest","kind":"place"},"enabled":true}
+```
+
+The preset pins that world's saved home, waits15s of daytime idle and runs at
+priority10, before daytime food/cargo chores and bedside waiting. It has a
+five-minute cooldown and100 attempts per controller session. Admission needs
+fresh state, pack and perception, known daytime, awake grounded shelter,
+dry footing within12m horizontally and1.75m vertically of home, and no nearby
+threat. This includes a nearby bedroom without treating the floor underneath
+the base as home. An attached or sleeping body is left alone; a changed home
+refuses the old preset until edited. New orders cancel through the normal
+body lease. Each needed episode exposes its `episodeId` and uses the existing
+receipt, travel, cooking, recovery and uncertain-action limits. It does not
+enable logout or weaken outdoor travel admission for an unfed body.
+
+`just vm food-check --idle-resupply "home rest" --keep-online` observes a
+temporary one-attempt definition through its actual idle dwell and durable
+episode; it disables only that temporary definition afterward. No forced
+movement, wake or food removal is needed when testing the naturally empty pack.
+
+### Desired pantry outcomes
+
+Household targets describe desired verified storage outcomes, not fixed task
+scripts. The same goal can use stored ingredients, collect a missing yield,
+cook and deposit, while keeping Tas supplied first. Exact supported food
+prefabs are accepted today. Aggregate categories such as "ten ready meals"
+and new recipes such as mushroom soup require additional planning and recipe
+support; setting a target does not grant an unknown crafting capability.
+
 A `food_resupply` goal can add `stock` to produce food beyond Tas's personal
 reserve. `stock.targets` maps supported ready-food prefabs to desired totals in
 an explicit `storage` chest set. Counts are1–20 per food and at most40 overall.

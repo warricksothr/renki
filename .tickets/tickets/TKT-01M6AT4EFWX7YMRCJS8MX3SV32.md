@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-01T23:41:48Z
+updated_at: 2026-11-02T05:20:18Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -53,11 +53,9 @@ Implement the user-approved keep-the-pantry-stocked routine: reliable checked ba
 
 ## Implementation plan
 
-Continue toward repeatable pantry production without weakening native walking, combat, injury or task limits. The checked home return and stored-food resupply passed on630dd11; the next pantry episode stopped before dispatch in an actual group attack.
+User approved closing automatic personal-food bootstrap, then testing repeated household loops. Extend the existing durable food goal and behaviour lease rather than starting an independent task dispatcher. Add an opt-in idle home-resupply preset with higher priority than daytime chores/rest and explicit awake/sheltered/fresh/near-home admission. Detect low nourishment or an insufficient carried reserve; a satisfied predicate must create no new durable episode. Use native receipts and the existing goal limits, safety, home pinning, uncertain-action handling and cancellation. Sleep and newer human orders remain protected; never add automatic logout.
 
-Current phase: read the installed native random-event system and AI pursuit semantics. Stream authoritative random-event identity, localized notice, centre/radius, observed timer, possible empty-area pause and Tas's affected status, with known-clear distinct from unavailable. Include local forced/boss notices without inventing their geographic bounds. Publish fresh, scoped event data to tools, panel and shared map; retain observed transitions in audit. Food planning should identify event hazards by area and preserve its work checkpoint through bounded observation, settling owned task receipts first.
-
-Expose per-creature event provenance and owner-authoritative pursuit knowledge so the tactical planner cannot equate distance with lost aggro. Document one-at-a-time peeling as preparation, checked disengagement, edge-target selection, measured single pursuit/isolation, one verified kill, reassessment and return/resupply. Automatic combat eligibility remains earned separately; do not send an unequipped Tas into nine attackers or manufacture an encounter. Regression checks cover event boundaries/scope/staleness, paused timers, lingering enemies after an event, group-pursuit and retained food checkpoints. Use focused just recipes, full just check ci, commit/review and deploy; live checks must not require manual enemy clearing or an unchanged hostile login retry. Repeated route/pantry field acceptance remains open.
+Expose the preset through the authenticated behaviour API and existing behaviour rows/tools. Add meaningful regressions for zero-food25HP bootstrap from the bedroom, proactive reserve refill, satisfied no-op, stale/foreign/home-changed/below-floor/sleeping/threat admission and cancellation. Run focused checks, full just check ci, commit/review, and controller-only deploy. Verify an actual automatic idle-started resupply from the current empty pack, then enable/observe bounded household production goals with real low/high storage targets, source rotation and separate acquisition/cook/deposit receipts. Record honest repeated outcomes and address blockers instead of manually clearing or fabricating supplies. Desired resource outcomes build on the existing stock targets; aggregate meal categories and unsupported soup recipes remain separately scoped follow-up work.
 
 ## Notes
 
@@ -204,3 +202,13 @@ A fresh current-layout cooking test also passed in57s (.checks/20261101T233751Z-
 **agent:codex/renki-milestones** at 2026-11-01T23:41:48Z
 
 Correction to the previous validation note: the exact recipe invocation was just check vm food-check --reserve 2 (with a space before 2).
+
+**agent:codex/renki-milestones** at 2026-11-02T05:20:18Z
+
+Current fresh observation .checks/20261102T051239Z-E43cry.log reproduces the bootstrap gap: Tas awake/sheltered in the bedroom on day145,25/25HP, no active or carried food, idle, injury0. Existing rest works; cooking/cargo refuse for lack of an active meal. This does not establish empty storage.
+
+Implemented personal_food as another mode of the existing FoodWork durable-episode adapter. The authenticated idle-resupply preset pins saved home, admits daytime awake grounded sheltered bodies within12m horizontally/1.75m vertically, uses15s dwell/priority10/five-minute cooldown/100 attempts per controller session, and preserves ordinary lease/cancellation and native food-goal limits. No new dispatcher, model call, logout or weakened outdoor admission. Nourishment with300s remaining plus a two-meal pack reserve is the readiness predicate; full unfed HP does not satisfy it. Satisfied needs create no durable goal. Existing nighttime attachment/idle suppression remains in force.
+
+Focused just check controller test-packages ./internal/goal ./internal/app ./internal/behaviour passed (.checks/20261102T051838Z-ZbT8YP.log), including captured bedroom empty-pack return/storage progression, proactive reserve/meal-expiry pressure, satisfied no-op, sleep/stale/home/floor/threat/busy admission and uncertain cancellation. Extended just vm food-check with --idle-resupply MARKER to verify natural idle dispatch and its episodeId; its temporary definition is disabled afterward. just check vm test-food-check passed (.checks/20261102T051846Z-aYAcoz.log). Full gate is running.
+
+User also proposed editable desired resource outcomes. Existing stock.targets/minimum already express per-item pantry outcomes with real chest receipts and personal supply precedence. Documented this foundation alongside the prerequisite. Aggregate categories such as ten ready meals and unsupported recipes such as mushroom soup need additional planner/recipe support and are not claimed by this change. Live automatic bootstrap and consecutive full acquisition/cook/deposit/rest loops remain unearned.
