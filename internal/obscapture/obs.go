@@ -220,7 +220,8 @@ func (o *OBS) StopLocal(ctx context.Context) error {
 // It never changes the game process, output destination or capture mode.
 //
 // The restore runs whatever happens to ctx, and the trial fails if it does
-// not verify. OBS requests use a context that ctx cannot cancel, because a
+// not verify. A request that timed out has closed the connection, so the
+// restore then fails too and the error says configure repairs the source. OBS requests use a context that ctx cannot cancel, because a
 // cancelled read closes the connection and the restore would then be lost;
 // each request keeps its own Call timeout. Only the wait between polls
 // watches ctx.
@@ -240,7 +241,8 @@ func (o *OBS) SourceLossTrial(ctx context.Context) (err error) {
 		restore, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if rerr := set(restore, Window); rerr != nil {
-			err = errors.Join(err, errors.New("Capture window not restored"))
+			// Call errors are fixed strings, so the cause is safe to keep.
+			err = errors.Join(err, fmt.Errorf("Capture window not restored, run configure to repair it: %w", rerr))
 		} else if rerr := o.VerifySource(restore); rerr != nil {
 			err = errors.Join(err, rerr)
 		}

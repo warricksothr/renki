@@ -234,7 +234,7 @@ func TestSourceLossTrialFailsWhenRestoreFails(t *testing.T) {
 		return false, nil
 	})
 	err := o.SourceLossTrial(context.Background())
-	if err == nil || err.Error() != "Capture window not restored" {
+	if err == nil || !strings.Contains(err.Error(), "Capture window not restored") {
 		t.Fatalf("Refused restore reported %v", err)
 	}
 }
