@@ -127,6 +127,10 @@ type Runner interface {
 	Next(View, *Result) (*session.Order, error)
 }
 
+// Summary replaces "completed" as a successful run's last detail, which the
+// panel shows on the behaviour's card.
+type Summary interface{ Summary() string }
+
 // Observer sees the engine's view every tick, running or not, so a
 // template can keep history that outlives a run. It must never dispatch.
 type Observer interface{ Observe(View) }

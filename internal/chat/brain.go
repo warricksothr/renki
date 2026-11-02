@@ -176,6 +176,36 @@ type Brain struct {
 	spokeTo   map[string]time.Time
 	lastVoice map[string]time.Time
 	recent    []Line
+	// anchor is the player Tas is with: the one its last order followed,
+	// or else the player who gave it.
+	anchor string
+}
+
+// Anchor names the player Tas is with, for work done near them (loot).
+// It is empty until someone has given an order since the controller started.
+func (b *Brain) Anchor() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.anchor
+}
+
+func (b *Brain) ordered(o origin) {
+	if o.follow != "" {
+		b.Follows(o.follow)
+	} else {
+		b.Follows(o.player)
+	}
+}
+
+// Follows makes player the anchor, for orders sent without a speaker, such
+// as the panel's follow and escort buttons.
+func (b *Brain) Follows(player string) {
+	if player == "" {
+		return
+	}
+	b.mu.Lock()
+	b.anchor = player
+	b.mu.Unlock()
 }
 
 // historyLen is how many lines of chat the Voice sees.
@@ -675,6 +705,7 @@ func (b *Brain) run(cmd command, c *protocol.Chat, from origin) {
 		}
 		return
 	}
+	b.ordered(from)
 	if b.opts.Home != nil {
 		b.opts.Home.Told()
 	}
@@ -985,6 +1016,7 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool, offered []string) 
 		b.opts.Logger.Warn("voice proposal refused", "task", p.Task, "args", string(p.Args), "err", err)
 		return
 	}
+	b.ordered(from)
 	if b.opts.Home != nil {
 		// An order in the owner's own words is an order like any other.
 		b.opts.Home.Touch()

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EYEC1M3CWJR3562ZXHJGYW
 title: "Loot: anchor on the followed or commanding player, not any owner"
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -17,15 +17,22 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-loot-anchor
+  branch: t3/loot-anchor
+  worktree: /home/sothr/.t3/worktrees/renki/t3-c2254fa1
+  commit: 88bdd18f0121b7a7c8a27ecd8be75ae873d1449f
+  session: null
+  claimed_at: 2026-11-02T20:23:23Z
+  expires_at: null
 archive: null
 created_at: 2026-11-02T20:15:36Z
-updated_at: 2026-11-02T20:15:36Z
+updated_at: 2026-11-02T20:32:40Z
 created_by:
   id: agent:claude-code/renki-wave1
   name: ""
 updated_by:
-  id: agent:claude-code/renki-wave1
+  id: agent:claude-code/renki-loot-anchor
   name: ""
 extensions: {}
 ---
@@ -57,3 +64,7 @@ The `Loot` instance (TKT-01M6EFHE2N, shipped in #165) is on by default and picks
 - [ ] Loot takes only drops in the anchor player's area, the anchor being the followed player or the last commander, and an owner or operator
 - [ ] Companions and guests never anchor loot, and with no anchor in sight loot does not run, covered by tests
 - [ ] docs/BEHAVIOURS.md describes the anchor; just check ci passes
+
+## Implementation plan
+
+The chat brain records the anchor when it sends an order (follow target, else the speaker; Brain.Anchor/Follows); the panel's follow and escort task buttons set it too. The engine passes it to View.Anchor. Loot's pick measures radius from the anchor, who must be in View.Owners (owners plus operators), alive and in fresh perception; with no anchor yet, a single commander in sight stands in. The deliberate-drop rule still uses every owner. A Summary hook lets loot record 'picked up N near X' as the run's last result, which the panel card shows.

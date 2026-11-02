@@ -285,3 +285,67 @@ func TestEngineLootPicksUpADropNearTheOwner(t *testing.T) {
 		t.Fatal(args, err)
 	}
 }
+
+// twoOwners has Nimah at x=10 and Sothr at x=80, both commanders, with a
+// drop 3 m from each: far enough from their feet not to be deliberate.
+func twoOwners(anchor string) View {
+	v := lootView(1, target("nimahs", protocol.ResourceDrop, "Wood", 13), target("sothrs", protocol.ResourceDrop, "Resin", 83))
+	sothr := owner(80)
+	sothr.Name = "Sothr"
+	v.Perception.Characters = append(v.Perception.Characters, sothr)
+	v.Owners = []string{"Nimah", "Sothr"}
+	v.Anchor = anchor
+	return v
+}
+
+func TestLootWorksAroundItsAnchorOnly(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		edit func(*View)
+		want string // the drop taken first, or "" for none
+	}{
+		{"anchored on Sothr", func(v *View) { v.Anchor = "Sothr" }, "sothrs"},
+		{"anchored on Nimah", func(v *View) { v.Anchor = "Nimah" }, "nimahs"},
+		{"two commanders and no anchor", func(v *View) {}, ""},
+		{"one commander in sight and no anchor", func(v *View) { v.Perception.Characters = v.Perception.Characters[1:] }, "sothrs"},
+		{"the anchor out of sight", func(v *View) {
+			v.Anchor = "Sothr"
+			v.Perception.Characters = v.Perception.Characters[:1]
+		}, ""},
+		{"the anchor no longer commands", func(v *View) { v.Anchor = "Sothr"; v.Owners = []string{"Nimah"} }, ""},
+		{"the anchor is dead", func(v *View) { v.Anchor = "Sothr"; v.Perception.Characters[1].HPFrac = 0 }, ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			l := &Loot{}
+			v := twoOwners("")
+			c.edit(&v)
+			l.Observe(v)
+			if got := l.Ready(json.RawMessage(`{}`), v); got != (c.want != "") {
+				t.Fatalf("ready %v", got)
+			}
+			if c.want == "" {
+				return
+			}
+			o := nextTask(t, lootRunner(t, l, LootParams{}), v, nil, protocol.TaskPickup)
+			if got := o.Args.(*protocol.PickupArgs).Entity; got != c.want {
+				t.Fatalf("took %s", got)
+			}
+		})
+	}
+}
+
+func TestLootSummaryNamesItsAnchorAndCountsConfirmedPickups(t *testing.T) {
+	l := &Loot{}
+	v := lootView(1, target("wood", protocol.ResourceDrop, "Wood", 5))
+	v.Anchor = "Nimah"
+	l.Observe(v)
+	r := lootRunner(t, l, LootParams{})
+	nextTask(t, r, v, nil, protocol.TaskPickup)
+	v.Inventory = pack(11, material("Wood", 3))
+	if o, e := r.Next(v, success("p1")); o != nil || e != nil {
+		t.Fatal(o, e)
+	}
+	if got := r.Summary(); got != "picked up 1 near Nimah" {
+		t.Fatal(got)
+	}
+}

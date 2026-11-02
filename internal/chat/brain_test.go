@@ -1073,3 +1073,25 @@ func TestPanelEscortMayWaitForAnUnseenConfiguredLeader(t *testing.T) {
 		t.Fatal(orders)
 	}
 }
+
+func TestAnchorIsThePlayerTheLastOrderServed(t *testing.T) {
+	f := &fakeSession{allowed: []string{"stop", "move_to", "follow", "say"}}
+	c := &clock{t: time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC)}
+	b := New(Options{AgentName: "Bjorn", Owners: []string{"Sothr", "Nimah"},
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: c.now}, f)
+	if b.Anchor() != "" {
+		t.Fatal("no order yet, no anchor")
+	}
+	b.Chat(line("Sothr", "bjorn follow me"))
+	if b.Anchor() != "Sothr" {
+		t.Fatalf("anchor %q after Sothr's follow", b.Anchor())
+	}
+	b.Chat(line("Mira", "bjorn stop"))
+	if b.Anchor() != "Sothr" {
+		t.Fatalf("a non-owner moved the anchor to %q", b.Anchor())
+	}
+	b.Chat(line("Nimah", "bjorn come here"))
+	if b.Anchor() != "Nimah" {
+		t.Fatalf("anchor %q after Nimah's order", b.Anchor())
+	}
+}

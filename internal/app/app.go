@@ -155,6 +155,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	a.Food.SetReserved(func() bool { return a.Goals.FoodRunning() || a.Behaviours != nil && a.Behaviours.PreparingFood() })
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate, "household_food": &goal.FoodWork{Goal: a.goalTemplate}, "personal_food": &goal.FoodWork{Goal: a.goalTemplate, Personal: true}},
 		Owners:     func() []string { v := set.Values(); return v.Players.Commanders(v.Owners) },
+		Anchor:     brain.Anchor,
 		Home:       func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers: homes.RememberedContainers,
 		Landmarks:  homes.Landmarks,
