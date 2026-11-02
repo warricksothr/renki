@@ -127,8 +127,9 @@ func TestUntilConditionReachedMidRunLetsTheRunFinish(t *testing.T) {
 }
 
 // A run preempted after its until goal is reached is still a run in
-// progress: it resumes to stow rather than waiting forever as pending.
-func TestPreemptedRunResumesAfterItsUntilGoalIsReached(t *testing.T) {
+// progress: it restarts (and so stows) rather than waiting forever as
+// pending, even when the owner presses Start again while it waits.
+func TestPreemptedRunRestartsAfterItsUntilGoalIsReached(t *testing.T) {
 	f := setup(t)
 	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 20}}})
 	wait(t, func() bool { return f.s.Inventory() != nil })
@@ -163,12 +164,13 @@ func TestPreemptedRunResumesAfterItsUntilGoalIsReached(t *testing.T) {
 	})
 	f.tick()
 	next := f.p.NextTask()
+	f.act(t, "collect", "start")
 	f.done(t, next, protocol.StatusSucceeded, "")
 	f.tick()
 	f.tick()
-	resumed := f.p.NextTask()
-	if resumed.Task != protocol.TaskMoveTo || !bytes.Contains(resumed.Args, []byte(`[1,0,0]`)) {
-		t.Fatal("preempted run did not resume", resumed)
+	restarted := f.p.NextTask()
+	if restarted.Task != protocol.TaskMoveTo || !bytes.Contains(restarted.Args, []byte(`[1,0,0]`)) {
+		t.Fatal("preempted run did not restart", restarted)
 	}
 }
 func TestManualStartBeforeFirstSchedulerTickIsNotLost(t *testing.T) {

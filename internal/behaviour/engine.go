@@ -55,7 +55,7 @@ type instance struct {
 	episodeID             string
 	definition            Definition
 	pending               bool
-	interrupted           bool // pending is a preempted run resuming, judged as still in progress
+	interrupted           bool // pending is a preempted run waiting to restart, judged as still in progress
 	completed             int
 	next, timer, deadline time.Time
 	runner                Runner
@@ -260,8 +260,10 @@ func (e *Engine) action(ctx context.Context, name, action, by string) error {
 			i.idleMarker = &w
 			i.idleSince = e.o.Now().Add(-duration(i.definition.Trigger.DwellS))
 		}
+		// A preempted run waiting to restart stays one: Start must not
+		// turn it into a new start that its repeat condition can refuse.
+		i.interrupted = i.pending && i.interrupted
 		i.pending = true
-		i.interrupted = false
 		i.completed = 0
 		i.next = time.Time{}
 		e.o.Logger.Info("behaviour triggered", "instance", name, "trigger", "manual", "by", by)
@@ -492,7 +494,7 @@ func (i *instance) canStart(v View) bool {
 	return true
 }
 
-// mayRun lets a preempted run resume while it is still allowed, since its
+// mayRun lets a preempted run restart while it is still allowed, since its
 // repeat condition never decides whether a run in progress finishes.
 func (i *instance) mayRun(v View) bool {
 	if i.interrupted {
