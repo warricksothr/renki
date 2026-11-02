@@ -66,7 +66,7 @@ Offline tests for the guard (held by another actor, expired, held by self, malfo
 
 ## Acceptance criteria
 
-- [ ] Every mutating vm recipe refuses while another actor holds an unexpired lease, and names the holder and expiry
+- [ ] Every mutating vm recipe except the emergency stops (`stop`, `panel POST /api/act/stop`) refuses while another actor holds an unexpired lease, and names the holder and expiry
 - [x] Read-only vm recipes keep working while a lease is held
 - [x] Leases expire on their own and the holder can renew or release them
 - [x] Trial supervisors release only after their cleanup
