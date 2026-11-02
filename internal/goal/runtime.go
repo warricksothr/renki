@@ -47,7 +47,7 @@ type Spec struct {
 }
 
 func NewRecord(spec Spec, now time.Time) (Record, error) {
-	if s := spec.Stock; s != nil && (len(s.Pinned) > 0 || s.ReturnAfterCooking || s.Delivering || s.Decision != "" || len(s.Known) > 0 || len(s.Shortage) > 0) {
+	if s := spec.Stock; s != nil && (len(s.Pinned) > 0 || len(s.HuntingPinned) > 0 || s.Replenishing || s.ReturnAfterCooking || s.Delivering || s.Decision != "" || len(s.Known) > 0 || len(s.Shortage) > 0) {
 		return Record{}, errors.New("new stock goals cannot supply checkpoint evidence")
 	}
 

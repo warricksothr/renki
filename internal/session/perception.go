@@ -27,3 +27,17 @@ func (s *Session) StateObservation() (*protocol.State, time.Time) {
 	}
 	return s.state, s.stateAt
 }
+
+// WorldEvents returns fresh game knowledge only in the requested live scope.
+// An expired/offline sample is unknown, never an observed event ending.
+func (s *Session) WorldEvents(world string, connection uint64, now time.Time) *protocol.WorldEventStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.conn == nil || s.conn.ID() != connection || s.state == nil ||
+		s.state.World != world || s.state.Phase != protocol.PhaseInWorld ||
+		s.stateAt.IsZero() || now.Sub(s.stateAt) < 0 || now.Sub(s.stateAt) > 3*time.Second ||
+		!s.state.WorldEvents.Valid() {
+		return nil
+	}
+	return s.state.WorldEvents
+}

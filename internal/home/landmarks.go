@@ -16,13 +16,14 @@ const KeepLandmarks = 30 * 24 * time.Hour
 // Landmark is a last-seen place, not proof that an object is still there.
 // Static metadata is expanded on reads; the file shares it per world.
 type Landmark struct {
-	Entity  string        `json:"entity"`
-	Kind    string        `json:"kind"`
-	Prefab  string        `json:"prefab,omitempty"`
-	MinTool *int          `json:"minTool,omitempty"`
-	Pos     protocol.Vec3 `json:"pos"`
-	At      time.Time     `json:"at"`
-	Tag     string        `json:"tag,omitempty"`
+	Entity  string                 `json:"entity"`
+	Kind    string                 `json:"kind"`
+	Prefab  string                 `json:"prefab,omitempty"`
+	MinTool *int                   `json:"minTool,omitempty"`
+	Pos     protocol.Vec3          `json:"pos"`
+	At      time.Time              `json:"at"`
+	Tag     string                 `json:"tag,omitempty"`
+	Portal  *protocol.PortalStatus `json:"portal,omitempty"`
 }
 
 type landmarkType struct {
@@ -32,10 +33,11 @@ type landmarkType struct {
 }
 
 type landmarkRecord struct {
-	Type int           `json:"type"`
-	Pos  protocol.Vec3 `json:"pos"`
-	At   time.Time     `json:"at"`
-	Tag  string        `json:"tag,omitempty"`
+	Type   int                    `json:"type"`
+	Pos    protocol.Vec3          `json:"pos"`
+	At     time.Time              `json:"at"`
+	Tag    string                 `json:"tag,omitempty"`
+	Portal *protocol.PortalStatus `json:"portal,omitempty"`
 }
 
 type landmarkWorld struct {
@@ -76,7 +78,7 @@ func (s *Store) Landmarks(world string) []Landmark {
 			continue
 		}
 		t := w.Types[r.Type]
-		out = append(out, Landmark{Entity: id, Kind: t.Kind, Prefab: t.Prefab, MinTool: copyTool(t.MinTool), Pos: r.Pos, At: r.At, Tag: r.Tag})
+		out = append(out, Landmark{Entity: id, Kind: t.Kind, Prefab: t.Prefab, MinTool: copyTool(t.MinTool), Pos: r.Pos, At: r.At, Tag: r.Tag, Portal: r.Portal.Clone()})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if !out[i].At.Equal(out[j].At) {
@@ -98,6 +100,18 @@ func (s *Store) RememberLandmarks(world string, observations []Landmark, now tim
 	for _, o := range observations {
 		if o.Entity == "" || o.Kind == "" || o.At.IsZero() {
 			return errors.New("landmark observation needs entity, kind and time")
+		}
+		if p := o.Portal; p != nil {
+			if o.Kind != protocol.StructurePortal || p.Connected != (p.TargetID != "") || len(p.TargetID) > 160 || p.TargetID == o.Entity || !p.Connected && p.TargetPos != nil {
+				return errors.New("invalid observed portal link")
+			}
+			if p.TargetPos != nil {
+				for _, v := range *p.TargetPos {
+					if math.IsNaN(v) || math.IsInf(v, 0) {
+						return errors.New("portal destination must be finite")
+					}
+				}
+			}
 		}
 		for _, v := range o.Pos {
 			if math.IsNaN(v) || math.IsInf(v, 0) || math.IsInf(v*2, 0) {
@@ -130,7 +144,7 @@ func (s *Store) RememberLandmarks(world string, observations []Landmark, now tim
 		for i := range o.Pos {
 			o.Pos[i] = math.Round(o.Pos[i]*2) / 2
 		}
-		next.Entities[o.Entity] = landmarkRecord{Type: i, Pos: o.Pos, At: o.At, Tag: o.Tag}
+		next.Entities[o.Entity] = landmarkRecord{Type: i, Pos: o.Pos, At: o.At, Tag: o.Tag, Portal: o.Portal.Clone()}
 	}
 	aliases := supersededLandmarks(next, observations)
 	containerAliases := map[string]string{}

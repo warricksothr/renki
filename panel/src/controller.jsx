@@ -2,6 +2,7 @@ import { render as renderComponent } from "preact";
 import { TimelineRecord } from "./timeline.jsx";
 import { publishStatus } from "./status.js";
 import { subscribeEvents } from "./events.js";
+import { areaEvent, eventDetails } from "./world-events.js";
 
 // Compatibility adapter for the established panel controls and the single map
 // renderer. Only start after Preact has synchronously mounted the workspace.
@@ -32,6 +33,8 @@ export function startController() {
     tiles: new Map(),
     landmarks: [],
     danger: [],
+    worldEvents: null,
+    worldEventsAt: 0,
     waypoints: [],
     containers: new Map(),
   };
@@ -82,6 +85,8 @@ export function startController() {
       tiles: new Map(),
       landmarks: [],
       danger: [],
+      worldEvents: null,
+      worldEventsAt: 0,
       waypoints: [],
       containers: new Map(),
     });
@@ -235,6 +240,10 @@ export function startController() {
         world.tiles = new Map(
           (atlas.tiles || []).map((t) => [RenkiTerrain.key(t.x, t.z), t]),
         );
+        world.landmarks = atlas.landmarks || [];
+        world.containers = new Map(
+          (atlas.containers || []).map((c) => [c.entity, c]),
+        );
       } else {
         if (
           !data ||
@@ -254,6 +263,8 @@ export function startController() {
         world.tiles = RenkiTerrain.merge(data.tiles || [], saved);
         world.landmarks = data.landmarks || [];
         world.danger = data.danger || [];
+        world.worldEvents = data.worldEvents || null;
+        world.worldEventsAt = Date.now();
         world.waypoints = data.waypoints || [];
         syncPlaceList();
         world.containers = new Map(
@@ -738,6 +749,8 @@ export function startController() {
     if (active) {
       world.bot = s.pos || world.bot;
       world.yaw = s.yaw || 0;
+      world.worldEvents = s.worldEvents || null;
+      world.worldEventsAt = Date.now();
     }
     if (Date.now() - atlasListFetchedAt > 30000) loadAtlasWorlds();
     if (Date.now() - mapFetchedAt > 5000) loadMap();
@@ -859,6 +872,14 @@ export function startController() {
   const colour = (name) => css.getPropertyValue("--" + name).trim();
   let pending = false;
 
+  function currentWorldEvents() {
+    return !selectedAtlas &&
+      mapOnline &&
+      Date.now() - world.worldEventsAt <= 3000
+      ? world.worldEvents
+      : null;
+  }
+
   function draw() {
     if (pending) return;
     pending = true;
@@ -916,6 +937,25 @@ export function startController() {
         ctx.stroke();
         ctx.restore();
       }
+
+    const event = layers.danger ? areaEvent(currentWorldEvents()) : null;
+    if (event) {
+      ctx.save();
+      ctx.fillStyle = "#e6a64b18";
+      ctx.strokeStyle = "#e6a64bdd";
+      ctx.setLineDash([10, 5]);
+      ctx.beginPath();
+      ctx.arc(
+        sx(event.center[0]),
+        sy(event.center[2]),
+        event.radius * view.scale,
+        0,
+        2 * Math.PI,
+      );
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
 
     for (const p of world.waypoints) {
       if (!(p.radius > 0)) continue;
@@ -1695,7 +1735,12 @@ export function startController() {
         : s
           ? "Session terrain · measurement age unavailable"
           : "";
+      const event = layers.danger ? areaEvent(currentWorldEvents()) : null;
       const lines = [
+        ...(event &&
+        Math.hypot(wx - event.center[0], wz - event.center[2]) < event.radius
+          ? eventDetails(currentWorldEvents())
+          : []),
         ...logDetailsAt(wx, wz),
         text,
         ...(age ? [age] : []),
@@ -1784,11 +1829,32 @@ export function startController() {
         parts.push(`last seen ${new Date(i.at).toLocaleString()}`);
       if (i.mine) parts.push("the bot's");
       if (i.tag) parts.push(`"${i.tag}"`);
+      if (i.kind === "portal" && i.portal) {
+        const p = i.portal;
+        parts.push(p.connected ? "linked" : "unlinked");
+        if (p.targetId) parts.push(`destination ${p.targetId}`);
+        if (p.targetPos)
+          parts.push(
+            `destination x ${p.targetPos[0].toFixed(1)}, y ${p.targetPos[1].toFixed(1)}, z ${p.targetPos[2].toFixed(1)}`,
+          );
+        else if (p.connected) parts.push("destination location unknown");
+        parts.push(
+          p.allowsAllItems ? "allows all items" : "normal item restrictions",
+        );
+        parts.push("arrival safety unverified");
+      }
       if (i.minTool != null) parts.push(`needs tool tier ${i.minTool}`);
       if (i.stars) parts.push("★".repeat(i.stars));
       if (typeof i.hpFrac === "number")
         parts.push(`${Math.round(i.hpFrac * 100)}% health`);
       if (i.targetingMe) parts.push("after the bot");
+      else if (
+        ["creature", "tamed"].includes(i.kind) &&
+        i.targetingKnown !== true
+      )
+        parts.push("pursuit unknown (remote simulation)");
+      if (i.eventCreature === true) parts.push("event-spawned creature");
+      if (i.huntingPlayers === true) parts.push("persistent player hunt");
       const d = far(i.pos);
       if (d != null) parts.push(`${Math.round(d)} m`);
       if (i.kind !== "container") return [parts.join(" · ")];
@@ -2528,8 +2594,12 @@ export function startController() {
         if (g.food.stock) {
           const stock = g.food.stock;
           supply.textContent += ` · Stock: ${Object.entries(stock.targets)
-            .map(([p, n]) => `${p} ${stock.known?.[p] ?? "?"}/${n}`)
+            .map(
+              ([p, n]) =>
+                `${p} ${stock.known?.[p] ?? "?"}/${n}${stock.minimum?.[p] ? ` (refill below ${stock.minimum[p]})` : ""}`,
+            )
             .join(", ")}`;
+          if (stock.allowHunting) supply.textContent += " · Hunting enabled";
           if (stock.decision) supply.textContent += ` · ${stock.decision}`;
         }
         article.append(supply);
@@ -2616,6 +2686,7 @@ export function startController() {
       s.home.world !== s.world
     )
       throw new Error("Tas needs a known home in his current world.");
+    const minimum = Number($("goal-stock-minimum").value);
     const count = Number($("goal-stock-count").value),
       food = $("goal-stock-food").value;
     const storage = $("goal-stock-storage")
@@ -2626,6 +2697,17 @@ export function startController() {
       throw new Error(
         "Choose 1–20 meals and at least one destination chest ID.",
       );
+    if (!Number.isInteger(minimum) || minimum < 1 || minimum > count)
+      throw new Error(
+        "Refill minimum must be between one and the refill target.",
+      );
+    const allowHunting = $("goal-stock-hunting").checked;
+    const huntAreas = $("goal-stock-hunt-areas")
+      .value.split(",")
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean);
+    if (huntAreas.length && !allowHunting)
+      throw new Error("Enable hunting to select hunting areas.");
     return {
       kind: "food_resupply",
       world: s.world,
@@ -2635,6 +2717,9 @@ export function startController() {
       storage,
       stock: {
         targets: { [food]: count },
+        minimum: { [food]: minimum },
+        allowHunting,
+        huntAreas,
         sources: $("goal-stock-sources")
           .value.split(",")
           .map((x) => x.trim())
@@ -2666,6 +2751,9 @@ export function startController() {
           !world.waypoints.some((w) => w.name === name && w.kind === "storage")
         )
           throw new Error("Choose a current storage marker in Tas’s world.");
+        const maxRuns = Number($("goal-stock-runs").value);
+        if (!Number.isInteger(maxRuns) || maxRuns < 1 || maxRuns > 100)
+          throw new Error("Choose 1–100 episodes per controller session.");
         request.definition = {
           template: "household_food",
           params: spec,
@@ -2674,7 +2762,7 @@ export function startController() {
             marker: { world: spec.world, name, kind: "storage" },
             dwellS: 30,
           },
-          repeat: { mode: "trigger", cooldownS: 300, maxRuns: 12 },
+          repeat: { mode: "trigger", cooldownS: 300, maxRuns },
           priority: -10,
           enabled: true,
         };
@@ -2686,7 +2774,7 @@ export function startController() {
       });
       if (!response.ok) throw new Error(await response.text());
       out.textContent = enabled
-        ? "Household food work enabled: 30-second idle dwell, five-minute cooldown, up to 12 episodes per controller session."
+        ? `Pantry maintenance enabled: 30-second idle dwell, five-minute cooldown, up to ${request.definition.repeat.maxRuns} episodes per controller session.`
         : "Household idle food work disabled.";
     } catch (e) {
       out.textContent = e.message;
@@ -2850,6 +2938,7 @@ export function startController() {
             walls: world.walls,
             containers: [...world.containers.values()],
             danger: world.danger,
+            worldEvents: currentWorldEvents(),
             waypoints: world.waypoints,
             path: world.path,
             trail: world.trail,

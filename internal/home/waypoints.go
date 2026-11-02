@@ -16,7 +16,7 @@ import (
 
 const MaxWaypoints = 128
 
-var WaypointKinds = []string{"place", "storage", "cooking", "wood", "stone", "flint", "berries", "ore"}
+var WaypointKinds = []string{"place", "storage", "cooking", "wood", "stone", "flint", "berries", "hunting", "ore"}
 var ErrWaypointConflict = errors.New("the waypoint changed; reload it before editing")
 var ErrNoWaypoint = errors.New("no waypoint with that name in this world")
 

@@ -1,5 +1,8 @@
 # Self-defense development
 
+See [WORLD-EVENTS.md](WORLD-EVENTS.md) for event-area awareness, pursuit
+knowledge and the proposed native group-peeling phases.
+
 The native companion composition and its current permission, attacker-evidence
 and safety limits are documented in [ESCORT.md](ESCORT.md). The historical
 implementation sequence below predates that composition.

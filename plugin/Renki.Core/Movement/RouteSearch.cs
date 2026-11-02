@@ -23,6 +23,13 @@ namespace Renki.Movement
         public RouteStatus Status => BuildingGuidance ? RouteStatus.Searching : route.Status;
         public IReadOnlyList<V3> Path => route.Path;
         public bool ProgressLeg => route.ProgressLeg;
+        public IReadOnlyList<V3> StagingPath => route.StagingPath;
+        // Evidence belongs to the active phase, not a discarded search.
+        public V3 Target => route.Target;
+        public V3? HighestExpanded => route.HighestExpanded;
+        public V3? ClosestExpanded => route.ClosestExpanded;
+        public double ClosestGap => route.ClosestGap;
+        public int GoalFloorExpanded => route.GoalFloorExpanded;
 
         public RouteSearch(Func<ThreatGuidance, LocalRoute> create, Func<ThreatGuidance> guidance, bool preferGuidance = false)
         {

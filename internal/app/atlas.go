@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/atlas"
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
@@ -93,7 +94,33 @@ func (a *App) AtlasHandler() http.Handler {
 				return
 			}
 		}
-		writeAtlas(w, map[string]any{"worldKey": key, "world": world, "connection": connection, "saved": !live, "manifest": selected, "tiles": tiles})
+		result := map[string]any{"worldKey": key, "world": world, "connection": connection, "saved": !live, "manifest": selected, "tiles": tiles}
+		if !live && selected != nil {
+			// Saved terrain and landmarks share the explicitly selected world.
+			// Never substitute another live session's objects or imply freshness.
+			landmarks := []home.Landmark{}
+			for _, l := range a.Landmarks.Store.Landmarks(selected.Name) {
+				if l.Pos[0] >= bounds.MinX && l.Pos[0] <= bounds.MaxX && l.Pos[2] >= bounds.MinZ && l.Pos[2] <= bounds.MaxZ {
+					landmarks = append(landmarks, l)
+					if len(landmarks) == 512 {
+						break
+					}
+				}
+			}
+			result["landmarks"] = landmarks
+			mapped := make(map[string]bool, len(landmarks))
+			for _, l := range landmarks {
+				mapped[l.Entity] = true
+			}
+			containers := []home.RememberedContainer{}
+			for _, c := range a.Memory.Store.RememberedContainers(selected.Name) {
+				if mapped[c.Entity] {
+					containers = append(containers, c)
+				}
+			}
+			result["containers"] = containers
+		}
+		writeAtlas(w, result)
 	})
 	return mux
 }

@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T05:21:21Z
+updated_at: 2026-11-01T06:48:33Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -229,3 +229,37 @@ Positive native check: ordinary just vm food-check --join --reserve2 --keep-onli
 Follow-up household trial .checks/food-20261101T051602Z failed without injury. Search t-6 repeatedly encountered the west gate and descending support-step refusals; a later checked local route reached marginal shore[-52.47,30.71,10.94]. Native search and automatic return t-7 exhausted bounded recovery with all8 first-neighbor probes refused for water (1 expanded node, not a large-search-budget problem). This is distinct from the corrected synthetic-swim diversion. No fresh collection or stock deposit occurred. Supervisor logged out/stopped game safely and restored the panel. Combined audit .checks/audit-window-uSjpS9.jsonl; .checks/20261101T051925Z-pmpDRA.log. Inter-trial MushroomYellow storage was older personal cargo and is not outdoor-production proof.
 
 Remaining: avoid choosing marginal shoreline approaches and repeated gate/slope failures; retain failed live approach evidence across replans, and expose numeric support/water clearance to distinguish a real boundary from a wrong-floor sample. A bounded physically dry uphill egress may need separate design for a body already below the conservative planning buffer; do not lower global water/hostile margins or enlarge timeouts to force this test. Do not repeat the unchanged northern-source/shore return. Tas is safely offline at the captured shore, not currently at home. Original coastal AC1/AC2, native alternative-bearing/resumed-collection and exact outdoor-to-chest delivery remain open. PR #146 stays draft.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:11:31Z
+
+Deployed6222030 with verified package/native/controller checksums. The first nearby launch was rejected before game mutation because vm recovery-return still allowed only local/work_trip; fixed the recipe and added an actual just launcher integration test with fake SSH/SCP (no network). Commitb47828d also covers a complete simulated hunt/loot/return/two-cook/two-deposit refill using distinct protocol receipts; focused checks and full CI pass (.checks/20261101T060723Z-ANJKFF.log), committed review passed without findings.
+
+Native nearby return .checks/recovery-20261101T060723Z reached the bank departure but refused all16 candidates as water/support policy. Tas logged out at44/53.5HP without observed damage or travel. Audit .checks/audit-window-w0y1ua.jsonl: body[-53.51,30.72,11.48], supportY30.69, currentwater30.0–30.02; final reported candidate descended to30.66. No production or route success. Retaining the complete first16-probe bank sweep in bounded diagnostics to distinguish mathematical clearance failures on the uphill bearings; current single-per-stage sample concealed those. Do not resend the unchanged trial or mark route/pantry live acceptance complete.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:26:06Z
+
+Build5b882a8 replay .checks/recovery-20261101T062326Z (audit .checks/audit-window-dSWtzj.jsonl) isolates the first bank issue: executing/dry are true, installed and loaded core identity is reported, and all eligible uphill hits are0.5011–0.5020m from the body. That exceeds the0.501m physical short-step guard despite safe rising support/water clearance. Request49cm instead of50cm so the measured1–2mm hit offsets fit inside the unchanged bound; no water/uphill/body/hostile checks relaxed. Added synthetic returned-hit-offset regression and retained captured-height fixture. Native proof pending corrected deployment.
+
+Also fixed the confirmed-hunt/perception race: the exact kill receipt may settle for its already charged two-second loot wait while perception still contains that target. Check/Next allow no extra creature or action, stale/foreign receipt or renewed expiry. Focused goal checks pass; full CI/review next. Tas remains offline at44HP; no pantry live production claimed.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:31:58Z
+
+Build9edf05b native nearby return passed: .checks/recovery-20261101T062940Z (supervisor .checks/20261101T062940Z-zjo5iH.log). Tas climbed off the saved bank, travelled37.3m, reached actual sheltered floor[-37.13,36.09,9.13], recovered from44HP to52.7/52.7HP and remained online without observed injury. The49cm request correction preserves the original physical step/water/support limits. Full just check ci and committed just check review9ef2f6f..HEAD passed before deployment.
+
+Pantry field trial now running for one real Mushroom from north mushrooms into1:70040 with acquisition/deposit evidence required. Repeated cooking/hunting/refill acceptance remains open. Separately retaining at most six named-area dispatch timestamps in the food acquisition checkpoint so rolling16-outcome history cannot erase15-minute cooldowns; regression replaces the full history and reopens the store before checking expiry.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:36:16Z
+
+Build9edf05b outdoor trial .checks/food-20261101T063143Z reached north mushrooms, earned exact interact/pickup receipts for one Mushroom and began return without injury. That item filled the personal reserve, so no pantry deposit was earned. Return then stalled at support30.8m: audit .checks/audit-window-pEgTQ2.jsonl shows repeated bank entry/completion at[-52.1,30.86,10.73], with the original8s budget expiring despite only one probe. A later wave briefly set inWater, correctly ending work. Final saved state near[-52.2,30.79,10.75],50.1HP, no observed damage; offline with panel restored.
+
+Correcting the boundary oscillation: once bank recovery starts, require both body and footing at least0.9m above current water before handing back to ordinary0.8m planning. This adds10cm settling/hysteresis clearance without weakening dry execution or renewing the original8s/3m budget. Captured boundary regression added. Continue with accessible reserve chest1:70031 included in household scope so scarce gathered food need not all fund bootstrap reserves.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:41:55Z
+
+Build148dd78 nearby return .checks/recovery-20261101T063927Z stopped at admission before movement; .checks/audit-window-zRuhkE.jsonl retained50.1/53.7HP, dry ground, no nearby perceived creatures and food durations109/406/893s. Caller incorrectly used the minimum across every active meal, requiring the optional third meal to satisfy the two-meal120s nearby reserve. Core helper now measures the second longest duration for nearby/local admission, while work_trip retains all three. Nonfinite/negative/missing durations fail closed. Captured regression checks admission/shortage and unchanged work-trip requirements. One bounded refusal trace now reports exact native reserves to reduce future diagnosis context. Tas remains offline; no further field proof earned.
+
+**agent:codex/renki-milestones** at 2026-11-01T06:48:33Z
+
+Build86b47f5 nearby return .checks/recovery-20261101T064503Z passed the corrected meal admission but stalled on its first physically valid bank candidate: audit .checks/audit-window-AGi7Y3.jsonl shows0.4m initial travel to[-51.92,31.01,10.58], then only centimetre bobbing until the original8s budget expired. No water/threat/probe refusal or damage; exactly one sampled candidate. The retained target lacked execution feedback.
+
+BankExit now abandons a held candidate after1s without3cm closer approach, continues the existing bearing sweep and retains original8s/3m/128-probe limits. True short-step progress resets only the per-candidate stall timer; bobbing does not. Added exact no-progress/real-progress and total-budget regressions and one bounded native stall trace. Next native return and pantry proof remain pending; offline, about50.1HP.

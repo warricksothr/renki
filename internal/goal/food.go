@@ -7,6 +7,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/warricksothr/renki/internal/behaviour"
@@ -217,7 +218,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		}
 		// Reconcile the action first. Only a verified owned recovery result can
 		// acknowledge bounded encounter damage for subsequent stationary work.
-		if last.Status == protocol.StatusSucceeded && r.recoveryTask(g) != "" && foodTravelDamage(g, v) && v.InjurySeq != nil {
+		if last.Status == protocol.StatusSucceeded && (r.recoveryTask(g) != "" || r.foodHuntTask(g)) && foodTravelDamage(g, v) && v.InjurySeq != nil {
 			if err := r.t.Store.update(g.ID, func(g *Record) error {
 				n := *v.InjurySeq
 				g.Food.Injury = &n
@@ -243,8 +244,22 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	}
 	for _, c := range v.Perception.Characters {
 		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, s.Pos) < 15 {
+			if r.foodKillSettling(g, v, c.ID) {
+				continue
+			}
+			// A nearby animal only admits its own eligible hunt. It cannot
+			// exempt chest work, cooking, recovery or another travel action.
+			if prey := r.foodPrey(g, v, foodHuntItems(g, v)); len(prey) > 0 && prey[0].ID == c.ID && (f.Stock == nil || !foodEventHazard(g, v)) {
+				return r.foodHuntNext(g, v, foodHuntItems(g, v))
+			}
 			return r.need("nearby threat prevents food resupply")
 		}
+	}
+	if g.Wake.After(v.Now) {
+		return nil, &behaviour.Delay{Until: g.Wake}
+	}
+	if f.Stock != nil && foodEventHazard(g, v) {
+		return r.foodEventWait(g, v)
 	}
 	if f.Stock != nil && f.Stock.ReturnAfterCooking {
 		if !foodAtHome(s.Pos, g.Center) || s.Pos.FlatDistance(g.Center) > .75 {
@@ -256,9 +271,6 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		}
 		g, _ = r.t.Store.Get(g.ID)
 		f = g.Food
-	}
-	if g.Wake.After(v.Now) {
-		return nil, &behaviour.Delay{Until: g.Wake}
 	}
 	if a := f.Acquisition; a != nil {
 		if a.Product != nil {
@@ -513,6 +525,8 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 		args.RecoverThreats = action == "forage" && !args.Hold && !args.Alt && !args.Sleep && !args.Repair && args.Cook == "" && fedRecovery
 		args.DefendThreats = args.RecoverThreats && defend
 		recovering = args.RecoverThreats
+	case *protocol.AttackArgs:
+		recovering = action == "hunt_food" && args.Entity == entity && args.Style == "melee" && args.Kite && defend
 	}
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("food native-task budget exhausted")
@@ -545,6 +559,9 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 			g.Food.TravelBudget = &FoodTravelBudget{Injury: *v.InjurySeq, Damage: v.Injury.Damage, HP: v.State.HP}
 		}
 		g.Pending = &Intent{Run: r.t.Store.runID, At: v.Now, Template: action, Params: raw, Entity: entity, Fingerprint: fmt.Sprintf("%s:%s:%s:%d", action, entity, item, v.Inventory.Seq)}
+		if action == "search_food" && strings.HasPrefix(entity, "marker:") && g.Food.Acquisition != nil {
+			g.Food.Acquisition.AreaVisits = append(g.Food.Acquisition.AreaVisits, FoodAreaVisit{Name: strings.TrimPrefix(entity, "marker:"), At: v.Now})
+		}
 		if slices.Contains([]string{"ready", "raw", "wood"}, action) {
 			g.Food.Tried = append(g.Food.Tried, g.Food.Phase+":"+entity+":"+item)
 		}

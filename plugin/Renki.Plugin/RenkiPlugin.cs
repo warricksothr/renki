@@ -151,13 +151,14 @@ namespace Renki.Plugin
                 var gap = recoveryCharacters.Where(c => c != null && c != p && !(c is Player) && !c.IsDead() &&
                     !c.IsTamed() && !(c.GetBaseAI() is AnimalAI) && BaseAI.IsEnemy(p, c))
                     .Select(c => (double)Vector3.Distance(p.transform.position, c.transform.position)).DefaultIfEmpty(double.PositiveInfinity).Min();
+                var foodReserve = recoveryReturnOrder.FoodReserveSeconds(p.GetFoods().Select(food => (double)food.m_time).ToArray());
                 var actionReturn = recoveryReturn.Decide(ZNet.instance?.GetWorldName(), DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                     Time.unscaledTimeAsDouble, Convert.ToV3(p.transform.position), p.GetHealth(), p.GetMaxHealth(),
                     p.GetStamina(), p.GetFoods().Count, p.IsOnGround(), p.InWater() || p.IsSwimming(), p.InShelter(), gap,
                     runner.InSession && client.Connected && client.SecondsSinceController <= DeadManSeconds &&
                         safety.Enabled && safety.AllowMovement && runner.Allowed.Contains(TaskNames.MoveTo),
                     Time.unscaledTime - recoverySince >= 2,
-                    p.GetFoods().Count == 0 ? 0 : p.GetFoods().Min(food => food.m_time));
+                    foodReserve);
                 if (actionReturn == RecoveryReturnAction.Move)
                 {
                     // The guard is sampled from Update too, but only physics may steer.
@@ -177,7 +178,7 @@ namespace Renki.Plugin
                             {
                                 ["home"] = recoveryReturnOrder.Pos,
                                 ["pos"] = Convert.ToArray(p.transform.position),
-                                ["profile"] = recoveryReturnOrder.WorkTrip ? "work_trip" : "local",
+                                ["profile"] = recoveryReturnOrder.WorkTrip ? "work_trip" : recoveryReturnOrder.Nearby ? "nearby" : "local",
                                 ["seconds"] = recoveryReturnOrder.Seconds,
                                 ["travelM"] = recoveryReturnOrder.Travel,
                                 ["homeRadiusM"] = recoveryReturnOrder.Radius,
@@ -194,7 +195,24 @@ namespace Renki.Plugin
                     return true;
                 }
                 Driver.ClearCombat();
-                if (actionReturn == RecoveryReturnAction.Logout) { LogoutRecovery(recoveryReturn.Reason); return true; }
+                if (actionReturn == RecoveryReturnAction.Logout)
+                {
+                    Tracer.Emit("recovery", "startup return refused", new Dictionary<string, object>
+                    {
+                        ["reason"] = recoveryReturn.Reason,
+                        ["profile"] = recoveryReturnOrder.Profile,
+                        ["pos"] = Convert.ToArray(p.transform.position),
+                        ["hp"] = p.GetHealth(),
+                        ["hpMax"] = p.GetMaxHealth(),
+                        ["stamina"] = p.GetStamina(),
+                        ["foods"] = p.GetFoods().Count,
+                        ["foodReserveS"] = foodReserve,
+                        ["grounded"] = p.IsOnGround(),
+                        ["inWater"] = p.InWater() || p.IsSwimming(),
+                        ["threatDistance"] = double.IsInfinity(gap) ? null : (object)gap,
+                    });
+                    LogoutRecovery(recoveryReturn.Reason); return true;
+                }
                 if (actionReturn == RecoveryReturnAction.Hold) return true;
                 recoveryWalk?.Cancel(); recoveryWalk = null; recoveryReturn = null;
                 Tracer.Emit("recovery", "startup return reached home floor and shelter");

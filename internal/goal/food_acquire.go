@@ -18,13 +18,21 @@ import (
 // Acquisition is admitted only for new goals. Older checkpoints without this
 // adapter retain their original storage-only scope on explicit resume.
 type FoodAcquisition struct {
-	VisitCount int          `json:"visitCount,omitempty"`
-	Targets    int          `json:"targets"`
-	Hunts      int          `json:"hunts"`
-	Visits     []string     `json:"visits,omitempty"`
-	Tried      []string     `json:"tried,omitempty"`
-	Returning  bool         `json:"returning,omitempty"`
-	Product    *FoodProduct `json:"product,omitempty"`
+	VisitCount int             `json:"visitCount,omitempty"`
+	Targets    int             `json:"targets"`
+	Hunts      int             `json:"hunts"`
+	Visits     []string        `json:"visits,omitempty"`
+	AreaVisits []FoodAreaVisit `json:"areaVisits,omitempty"`
+	Tried      []string        `json:"tried,omitempty"`
+	Returning  bool            `json:"returning,omitempty"`
+	Product    *FoodProduct    `json:"product,omitempty"`
+}
+
+// Keep dispatch feedback independently of the rolling native-outcome history.
+// An uncertain or refused visit still spends its area cooldown.
+type FoodAreaVisit struct {
+	Name string    `json:"name"`
+	At   time.Time `json:"at"`
 }
 
 type FoodProduct struct {
@@ -65,8 +73,14 @@ func validateAcquisition(g Record) error {
 	if a == nil {
 		return nil
 	}
-	if a.Targets < 0 || a.Targets > 12 || a.Hunts < 0 || a.Hunts > 2 || len(a.Visits) > 6 || len(a.Tried) > 24 {
+	if a.Targets < 0 || a.Targets > 12 || a.Hunts < 0 || a.Hunts > 2 || len(a.Visits) > 6 || len(a.AreaVisits) > 6 || len(a.Tried) > 24 {
 		return errors.New("invalid food acquisition budgets")
+	}
+	for _, visit := range a.AreaVisits {
+		name, err := home.WaypointName(visit.Name)
+		if err != nil || name != visit.Name || visit.At.IsZero() || visit.At.Before(g.Created) || visit.At.After(g.Deadline) {
+			return errors.New("invalid food area visit")
+		}
 	}
 	if p := a.Product; p != nil {
 		if p.Entity == "" || !slices.Contains(append(append(slices.Clone(meals), ingredients...), "Wood"), p.Item) || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || p.Maximum < 1 || p.Maximum > 50 || p.BeforeCount < 0 || !finite(p.BeforeRemaining) || p.BeforeRemaining < 0 || p.Until.IsZero() || p.Until.After(g.Deadline) {
@@ -134,7 +148,7 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 	}
 	var candidates []protocol.PerceivedResource
 	for _, p := range v.Perception.Resources {
-		if p.ID == "" || slices.Contains(a.Tried, p.ID) || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || p.Yield == nil || !slices.Contains(items, p.Yield.Prefab) || !foodResourceFits(v, p.Yield) || !foodSiteSafe(v, p.Pos, "") || !stockSource(g, p.Pos) {
+		if p.ID == "" || slices.Contains(a.Tried, p.ID) || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || p.Yield == nil || !slices.Contains(items, p.Yield.Prefab) || !foodResourceFits(v, p.Yield) || !foodSiteSafe(v, p.Pos, "") || !stockResourceSource(g, p) {
 			continue
 		}
 		if p.Kind == protocol.ResourceDrop || p.Kind == protocol.ResourcePickable {
@@ -157,22 +171,16 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 	if len(candidates) > 0 {
 		return r.foodTake(g, v, candidates[0], true)
 	}
-	if s := g.Food.Stock; s != nil && len(s.Sources) > 0 {
-		sites := slices.Clone(s.Pinned)
-		sort.Slice(sites, func(i, j int) bool {
-			a, b := foodTravelCost(v, sites[i].Pos), foodTravelCost(v, sites[j].Pos)
-			if a != b {
-				return a < b
-			}
-			return sites[i].Name < sites[j].Name
-		})
-		for _, w := range sites {
-			key := foodSiteKey(w.Pos)
-			if len(a.Visits) >= 6 || slices.Contains(a.Visits, key) || distance(v.State.Pos, w.Pos) <= math.Max(3, w.Radius) || !foodSiteSafe(v, w.Pos, "") || home.DangerRisk(v.Danger, w.Pos) >= 1 {
-				continue
-			}
-			return r.foodDispatch(g, v, "search_food", "", "marker:"+w.Name, &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &w.Pos}, Dry: true, AvoidHostiles: true}, TimeoutS: 180}, func(g *Record) { g.Food.Acquisition.Visits = append(g.Food.Acquisition.Visits, key) })
+	if g.Food.Stock != nil && g.Food.Stock.AllowHunting {
+		if o, err := r.foodHuntNext(g, v, items); o != nil || err != nil {
+			return o, err
 		}
+	}
+	if s := g.Food.Stock; s != nil && len(s.Sources) > 0 {
+		if o, err := r.foodSearchAreas(g, v, s.Pinned); o != nil || err != nil {
+			return o, err
+		}
+
 		if !foodAtHome(v.State.Pos, g.Center) {
 			return r.stockReturn(g, v, s.Known, s.Shortage, "safe source search exhausted; deliver before stopping")
 		}
@@ -190,7 +198,7 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 		})
 		for _, p := range sites {
 			item := map[string]string{"RaspberryBush": "Raspberry", "BlueberryBush": "Blueberries", "Pickable_Mushroom": "Mushroom", "Pickable_Branch": "Wood"}[p.Prefab]
-			if p.Entity == "" || p.Kind != protocol.ResourcePickable || !slices.Contains(items, item) || slices.Contains(a.Tried, p.Entity) || p.At.IsZero() || p.At.After(v.Now) || v.Now.Sub(p.At) > 7*24*time.Hour || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || distance(p.Pos, v.State.Pos) <= 8 || !foodSiteSafe(v, p.Pos, "") {
+			if p.Entity == "" || p.Kind != protocol.ResourcePickable || !slices.Contains(items, item) || slices.Contains(a.Tried, p.Entity) || p.At.IsZero() || p.At.After(v.Now) || v.Now.Sub(p.At) > 7*24*time.Hour || !validFoodPos(p.Pos) || distance(p.Pos, g.Center) > acquisitionRadius(g) || distance(p.Pos, v.State.Pos) <= 8 || !foodSiteSafe(v, p.Pos, "") || !stockSource(g, p.Pos) {
 				continue
 			}
 			// Don't revisit a different remembered ID for the same small location.
@@ -201,31 +209,9 @@ func (r *runner) foodAcquire(g Record, v behaviour.View, items []string) (*sessi
 			return r.foodDispatch(g, v, "search_food", item, p.Entity, &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &p.Pos}, Dry: true, AvoidHostiles: true}, TimeoutS: 90}, func(g *Record) { g.Food.Acquisition.Visits = append(g.Food.Acquisition.Visits, key) })
 		}
 	}
-	// Native attack permission is checked now and again by the dispatch lease.
-	// No discovery attack: a single exact, fresh wild creature is pinned.
-	if g.Food.Stock == nil && slices.Contains(items, "RawMeat") && a.Hunts < 2 && r.t.Allowed != nil && r.t.Allowed(protocol.TaskAttack) && nourished(v.State) && v.State.HP >= 30 && v.State.Stamina >= 40 && v.Inventory.Free() >= 3 {
-		var prey []protocol.PerceivedCharacter
-		for _, c := range v.Perception.Characters {
-			d := distance(c.Pos, v.State.Pos)
-			if c.ID == "" || c.Kind != protocol.CharacterCreature || !c.Hostile || c.Stars != 0 || c.HPFrac <= 0 || !finite(c.HPFrac) || !slices.Contains([]string{"Boar", "Neck"}, c.Prefab) || slices.Contains(a.Tried, c.ID) || d > 30 || distance(c.Pos, g.Center) > acquisitionRadius(g) || !foodSiteSafe(v, c.Pos, c.ID) {
-				continue
-			}
-			// Native combat additionally checks current weapon, bystanders and ground.
-			prey = append(prey, c)
-		}
-		sort.Slice(prey, func(i, j int) bool {
-			di, dj := distance(v.State.Pos, prey[i].Pos), distance(v.State.Pos, prey[j].Pos)
-			if di != dj {
-				return di < dj
-			}
-			return prey[i].ID < prey[j].ID
-		})
-		if len(prey) > 0 {
-			c := prey[0]
-			return r.foodDispatch(g, v, "hunt_food", c.Prefab, c.ID, &session.Order{Task: protocol.TaskAttack, Args: &protocol.AttackArgs{Entity: c.ID, Style: "melee", Kite: true}, TimeoutS: 180}, func(g *Record) {
-				g.Food.Acquisition.Hunts++
-				g.Food.Acquisition.Tried = append(g.Food.Acquisition.Tried, c.ID)
-			})
+	if g.Food.Stock == nil {
+		if o, err := r.foodHuntNext(g, v, items); o != nil || err != nil {
+			return o, err
 		}
 	}
 	if !foodAtHome(v.State.Pos, g.Center) {

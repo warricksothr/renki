@@ -3,7 +3,9 @@
 import contextlib
 import importlib.util
 import io
+import itertools
 import json
+import os
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -20,7 +22,7 @@ OUTSIDE = HEALTHY | dict(hp=53, pos=[40, 30, 0], flags=['recovering'])
 
 
 class RecoverySupervisorTests(unittest.TestCase):
-    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False):
+    def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False, capture=False):
         calls = []
         snapshots = iter(snapshots)
 
@@ -42,10 +44,12 @@ class RecoverySupervisorTests(unittest.TestCase):
         launch = MagicMock()
         launch.poll.return_value = 0
         launch.returncode = 0
+        clock = itertools.count(0, 3)
         with tempfile.TemporaryDirectory() as temp, patch.object(recovery, 'ROOT', Path(temp)), \
                 patch.object(recovery.subprocess, 'run', side_effect=request), \
                 patch.object(recovery.subprocess, 'Popen', return_value=launch), \
-                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else [])), \
+                patch.object(recovery.time, 'monotonic', side_effect=lambda: next(clock)), \
+                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else ['--nearby'] if nearby else []) + (['--capture'] if capture else [])), \
                 contextlib.redirect_stdout(io.StringIO()):
             code = recovery.main()
             summary = json.loads(next(Path(temp).glob('.checks/recovery-*/summary.json')).read_text())
@@ -64,6 +68,32 @@ class RecoverySupervisorTests(unittest.TestCase):
         self.assertEqual(result['profile'], 'work_trip')
         self.assertIn(['recovery-return', 'arm', 'one', 'work_trip'], calls)
         self.assertIn(['recovery-return', 'clear'], calls)
+        self.assertFalse(any(c[0] in ('task', 'task-check') for c in calls))
+
+    def test_optional_camera_checkpoint_is_read_once_without_config_or_body_changes(self):
+        code, result, calls = self.run_trial([dict(connected=False), OUTSIDE, OUTSIDE, HEALTHY], capture=True)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(calls.count(['camera']), 1)
+        self.assertFalse(any(c[0] in ('camera-rate', 'camera-config', 'task') for c in calls))
+
+    def test_just_launcher_accepts_nearby_without_contacting_a_vm(self):
+        with tempfile.TemporaryDirectory() as temp:
+            bindir = Path(temp)
+            for name, body in [('ssh', 'printf "%s\\n" "$*"'), ('scp', 'exit 0')]:
+                target = bindir / name
+                target.write_text('#!/bin/sh\n' + body + '\n')
+                target.chmod(0o755)
+            env = os.environ | dict(RENKI_VM='unittest@invalid', PATH=str(bindir)+os.pathsep+os.environ['PATH'])
+            result = recovery.subprocess.run(['just', 'vm', 'recovery-return', 'arm', 'one', 'nearby'], cwd=recovery.ROOT,
+                                            env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("-ReturnProfile 'nearby'", result.stdout)
+
+    def test_explicit_nearby_profile_is_forwarded_without_body_orders(self):
+        code, result, calls = self.run_trial([dict(connected=False), OUTSIDE | dict(hp=44, hpMax=53.5, pos=[20,30,0]), HEALTHY], nearby=True)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result['profile'], 'nearby')
+        self.assertIn(['recovery-return', 'arm', 'one', 'nearby'], calls)
         self.assertFalse(any(c[0] in ('task', 'task-check') for c in calls))
 
     def test_work_trip_injury_still_stops_and_clears_the_order(self):

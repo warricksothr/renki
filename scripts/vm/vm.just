@@ -268,6 +268,11 @@ secret NAME: need-target
     [ -n "$value" ] || { echo "empty; nothing changed" >&2; exit 1; }
     printf '%s' "$value" | {{ssh}} "{{ps}} -File {{dir}}/set-secret.ps1 -Name {{NAME}}"
 
+# Read-only native DLL locations and checksums, including duplicate installs.
+native-libraries: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/native-libraries.ps1" "{{target}}:/{{dir}}/native-libraries.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/native-libraries.ps1"
+
 # An interactive PowerShell on the VM.
 shell: need-target
     ssh {{target}}
@@ -398,6 +403,11 @@ test-marker-food-check:
 test-food-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/food-check-test.py"
 
+# Inspect at most sixteen captured bank candidates without querying the game.
+[positional-arguments]
+bank-evidence AUDIT:
+    python3 -B "{{justfile_directory()}}/scripts/vm/bank-evidence.py" "$@"
+
 # Return an adequately supplied outdoor bot through guarded native movement.
 [positional-arguments]
 recover-home WORLD *ARGS:
@@ -406,13 +416,26 @@ recover-home WORLD *ARGS:
 test-recover-home:
     python3 -B "{{justfile_directory()}}/scripts/vm/recover-home-test.py"
 
+# Finite existing-marker round trips, each proved by native receipts and arrival.
+[positional-arguments]
+route-benchmark *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/route-benchmark.py" "$@"
+
+# Read bounded support/search diagnostics from a retained audit; no VM requests.
+[positional-arguments]
+route-evidence *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/route-evidence.py" "$@"
+
+test-route-benchmark:
+    python3 -B "{{justfile_directory()}}/scripts/vm/route-benchmark-test.py"
+
 # Arm/clear a one-shot order using the controller's pinned home.
 [positional-arguments]
 recovery-return ACTION='arm' WORLD='' PROFILE='local': need-target
     #!/usr/bin/env bash
     set -euo pipefail
     [[ "$1" = arm || "$1" = clear ]] || { echo 'Use arm or clear' >&2; exit 2; }
-    [[ "$3" = local || "$3" = work_trip ]] || { echo 'Use local or work_trip profile' >&2; exit 2; }
+    [[ "$3" = local || "$3" = work_trip || "$3" = nearby ]] || { echo 'Use local, work_trip or nearby profile' >&2; exit 2; }
     encoded=$(printf '%s' "$2" | base64 -w0)
     worldarg=()
     [ -z "$encoded" ] || worldarg=(-WorldBase64 "$encoded")

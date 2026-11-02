@@ -19,11 +19,15 @@ namespace Renki.Plugin
         readonly LinkedList<Entry> sweep = new LinkedList<Entry>();
         readonly Stopwatch watch = new Stopwatch();
         readonly Func<int, bool> current;
+        readonly Func<int, V3, V3, bool> buildingBlocked;
         public readonly ObstacleIndex Index = new ObstacleIndex();
+        readonly ObstacleIndex buildingIndex = new ObstacleIndex();
         public readonly LogFootprintIndex Logs;
         readonly V3[] corners = new V3[8];
         const int MaxLogs = 256;
         int logCount;
+        int buildingTriangles;
+        const int BuildingTriangleLimit = 32768;
         float nextNear, nextAhead, nextFar, nextTrace;
         int pending, cursor;
         long serial;
@@ -36,8 +40,10 @@ namespace Renki.Plugin
             public Collider Collider;
             public TreeLog Log;
             public bool IsLog;
+            public bool IsPortal;
+            public BuildingMesh Building;
             public LogFootprint? Footprint;
-            public (Matrix4x4, Vector3, Vector3, float, float, int) Stamp;
+            public (Matrix4x4, Vector3, Vector3, float, float, int, bool) Stamp;
             public float Seen;
             public (double, long, int)? Queued;
             public LinkedListNode<Entry> Sweep;
@@ -45,10 +51,15 @@ namespace Renki.Plugin
             public bool Current;
         }
 
-        public NavigationObstacles(int mask) { this.mask = mask; current = Current; Logs = new LogFootprintIndex(current); }
+        public NavigationObstacles(int mask)
+        {
+            this.mask = mask; current = Current; buildingBlocked = BuildingBlocked;
+            Logs = new LogFootprintIndex(current);
+        }
+        public long Revision => Index.Revision + buildingIndex.Revision;
         public void Clear()
         {
-            entries.Clear(); dirty.Clear(); sweep.Clear(); Index.Clear(); Logs.Clear(); logCount = 0;
+            entries.Clear(); dirty.Clear(); sweep.Clear(); Index.Clear(); buildingIndex.Clear(); Logs.Clear(); logCount = buildingTriangles = 0;
             nextNear = nextAhead = nextFar = 0;
             // NonAlloc buffers otherwise retain references to unloaded scenes.
             Array.Clear(found, 0, found.Length); pending = cursor = 0;
@@ -90,14 +101,35 @@ namespace Renki.Plugin
                 // Discovery and rebuild may be on different frames. Stamp
                 // the geometry actually measured, never the queued version.
                 entry.Stamp = Stamp(entry.Collider); entry.CheckedFrame = -1;
-                if (entry.IsLog)
+                if (entry.IsPortal)
+                {
+                    if (Shape(entry.Collider, portal: true) is ObstacleShape trigger) Index.Put(entry.Id, trigger);
+                    else Index.Remove(entry.Id);
+                }
+                else if (entry.IsLog)
                 {
                     entry.Footprint = MeasureLog(entry.Collider);
                     if (entry.Footprint is LogFootprint footprint) Logs.Put(entry.Id, footprint);
                     else Logs.Remove(entry.Id);
                 }
-                else if (Shape(entry.Collider) is ObstacleShape shape) Index.Put(entry.Id, shape);
-                else Index.Remove(entry.Id);
+                else
+                {
+                    ClearBuilding(entry);
+                    if (Shape(entry.Collider) is ObstacleShape shape) Index.Put(entry.Id, shape);
+                    else
+                    {
+                        Index.Remove(entry.Id);
+                        var building = MeasureBuilding(entry.Collider);
+                        if (building != null && buildingTriangles + building.Triangles <= BuildingTriangleLimit)
+                        {
+                            entry.Building = building; buildingTriangles += building.Triangles;
+                            var b = entry.Collider.bounds;
+                            // Envelope is only broad phase. The actual faces
+                            // decide collision, preserving doors and arches.
+                            buildingIndex.Put(entry.Id, new ObstacleShape(Convert.ToV3(b.center), b.extents.x, b.extents.z, b.min.y, b.max.y));
+                        }
+                    }
+                }
                 rebuilt++;
             }
             // Round-robin sweep is bounded even in a large base. Eviction
@@ -117,6 +149,8 @@ namespace Renki.Plugin
                     ["tracked"] = entries.Count,
                     ["indexed"] = Index.Count,
                     ["logs"] = Logs.Count,
+                    ["buildingMeshes"] = buildingIndex.Count,
+                    ["buildingTriangles"] = buildingTriangles,
                     ["dirty"] = dirty.Count,
                     ["rebuilt"] = rebuilt,
                     ["removed"] = removed,
@@ -132,25 +166,28 @@ namespace Renki.Plugin
         void Discover(Vector3 center, float radius)
         {
             queries++;
-            pending = Physics.OverlapSphereNonAlloc(center, radius, found, mask, QueryTriggerInteraction.Ignore);
+            pending = Physics.OverlapSphereNonAlloc(center, radius, found, mask | LayerMask.GetMask("character_trigger"), QueryTriggerInteraction.Collide);
             cursor = 0;
             if (pending == found.Length) truncated++;
         }
 
         bool Usable(Collider c) => c != null && c.enabled && c.gameObject.activeInHierarchy &&
-            !c.isTrigger && (mask & (1 << c.gameObject.layer)) != 0 &&
-            (IsLog(c) || c.attachedRigidbody == null && (c is BoxCollider || c is CapsuleCollider));
+            (IsPortal(c) || !c.isTrigger && (mask & (1 << c.gameObject.layer)) != 0 &&
+            (IsLog(c) || c.attachedRigidbody == null && (c is BoxCollider || c is CapsuleCollider ||
+                c is MeshCollider && c.GetComponentInParent<Piece>() != null)));
+
+        internal static bool IsPortal(Collider c) => c != null && c.isTrigger && c.GetComponentInParent<TeleportWorldTrigger>() != null;
 
         static TreeLog Owner(Collider c) => c != null ? c.GetComponentInParent<TreeLog>() : null;
         static bool IsLog(Collider c) => Owner(c) != null;
 
-        static (Matrix4x4, Vector3, Vector3, float, float, int) Stamp(Collider c)
+        static (Matrix4x4, Vector3, Vector3, float, float, int, bool) Stamp(Collider c)
         {
             var capsule = c as CapsuleCollider;
             var bounds = LocalBounds(c, out _);
             return (c.transform.localToWorldMatrix, bounds.center, bounds.size, capsule != null ? capsule.radius : 0,
                 capsule != null ? capsule.height : 0, capsule != null ? capsule.direction :
-                c is MeshCollider mesh && mesh.sharedMesh != null ? mesh.sharedMesh.GetInstanceID() : 0);
+                c is MeshCollider mesh && mesh.sharedMesh != null ? mesh.sharedMesh.GetInstanceID() : 0, c.isTrigger);
         }
 
         void Mark(Collider c, Vector3 bot, Vector3 toward, float now)
@@ -163,7 +200,7 @@ namespace Renki.Plugin
             {
                 var log = Owner(c);
                 if (entries.Count >= MaxEntries || log != null && logCount >= MaxLogs) return;
-                e = new Entry { Id = id, Collider = c, Log = log, IsLog = log != null };
+                e = new Entry { Id = id, Collider = c, Log = log, IsLog = log != null, IsPortal = IsPortal(c) };
                 if (e.IsLog) logCount++;
                 entries[id] = e; e.Sweep = sweep.AddLast(e);
             }
@@ -172,7 +209,7 @@ namespace Renki.Plugin
             {
                 // Drop stale bounds immediately, then rebuild in priority
                 // order. Unmeasured space is still checked by live physics.
-                Index.Remove(id); Logs.Remove(id); e.Footprint = null; e.Stamp = stamp; e.CheckedFrame = -1;
+                Index.Remove(id); Logs.Remove(id); ClearBuilding(e); e.IsPortal = IsPortal(c); e.Footprint = null; e.Stamp = stamp; e.CheckedFrame = -1;
             }
             else if (!e.Queued.HasValue) return;
             // Pending work follows the current bot and heading, even when
@@ -187,7 +224,10 @@ namespace Renki.Plugin
             e.Queued = key; dirty.Add(key);
         }
 
-        public bool Blocked(V3 from, V3 to) => Index.Blocked(from, to, current);
+        public bool Blocked(V3 from, V3 to) => Index.Blocked(from, to, current) ||
+            buildingIndex.Any(from, to, buildingBlocked);
+
+        bool BuildingBlocked(int id, V3 from, V3 to) => Current(id) && entries[id].Building != null && entries[id].Building.Blocks(from, to);
 
         bool Current(int id)
         {
@@ -196,7 +236,7 @@ namespace Renki.Plugin
             {
                 e.CheckedFrame = Time.frameCount;
                 e.Current = Usable(e.Collider) && e.Stamp.Equals(Stamp(e.Collider)) &&
-                    (!e.IsLog || e.Log != null) &&
+                    (!e.IsLog || e.Log != null) && (!e.IsPortal || IsPortal(e.Collider)) &&
                     e.Collider.GetComponentInParent<Door>() == null;
             }
             return e.Current;
@@ -204,10 +244,60 @@ namespace Renki.Plugin
 
         void Remove(Entry e)
         {
+            ClearBuilding(e);
             Index.Remove(e.Id); Logs.Remove(e.Id); entries.Remove(e.Id); sweep.Remove(e.Sweep);
             if (e.IsLog) logCount--;
             if (e.Queued.HasValue) dirty.Remove(e.Queued.Value);
             removed++;
+        }
+
+        void ClearBuilding(Entry e)
+        {
+            buildingIndex.Remove(e.Id);
+            if (e.Building != null) buildingTriangles -= e.Building.Triangles;
+            e.Building = null;
+        }
+
+        static BuildingMesh MeasureBuilding(Collider c)
+        {
+            if (c.GetComponentInParent<Piece>() == null || c.GetComponentInParent<Door>() != null || c.isTrigger || c.attachedRigidbody != null) return null;
+            if (c.bounds.extents.x > 16 || c.bounds.extents.z > 16) return null;
+            var t = c.transform;
+            var right = t.TransformVector(Vector3.right); var up = t.TransformVector(Vector3.up); var forward = t.TransformVector(Vector3.forward);
+            if (right.magnitude < .0001f || up.magnitude < .0001f || forward.magnitude < .0001f ||
+                Math.Abs(Vector3.Dot(right.normalized, up.normalized)) > .00001f ||
+                Math.Abs(Vector3.Dot(right.normalized, forward.normalized)) > .00001f ||
+                Math.Abs(Vector3.Dot(up.normalized, forward.normalized)) > .00001f) return null;
+            Vector3[] vertices; int[] triangles;
+            if (c is MeshCollider mesh && mesh.sharedMesh != null)
+            {
+                // Convex cooking can replace the source mesh with a different
+                // hull. Unreadable/large/convex meshes retain live physics.
+                var source = mesh.sharedMesh;
+                if (mesh.convex || !source.isReadable || source.vertexCount > 6144 || source.subMeshCount > 32) return null;
+                ulong indices = 0;
+                for (var sub = 0; sub < source.subMeshCount; sub++) indices += source.GetIndexCount(sub);
+                if (indices > BuildingMesh.TriangleLimit * 3) return null;
+                vertices = source.vertices; triangles = source.triangles;
+            }
+            else if (c is BoxCollider box)
+            {
+                vertices = new Vector3[8];
+                for (var i = 0; i < 8; i++) vertices[i] = box.center + Vector3.Scale(box.size * .5f,
+                    new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                triangles = new[] { 0, 1, 3, 0, 3, 2, 4, 6, 7, 4, 7, 5, 0, 4, 5, 0, 5, 1,
+                    2, 3, 7, 2, 7, 6, 0, 2, 6, 0, 6, 4, 1, 5, 7, 1, 7, 3 };
+            }
+            else return null;
+            if (triangles.Length == 0 || triangles.Length % 3 != 0 || triangles.Length / 3 > BuildingMesh.TriangleLimit) return null;
+            var faces = new V3[triangles.Length];
+            for (var i = 0; i < triangles.Length; i++)
+            {
+                if (triangles[i] < 0 || triangles[i] >= vertices.Length) return null;
+                faces[i] = Convert.ToV3(t.TransformPoint(vertices[triangles[i]]));
+            }
+            try { return new BuildingMesh(faces); }
+            catch (ArgumentException) { return null; }
         }
 
         // Primitive/mesh local bounds preserve the log's orientation. Unknown
@@ -296,9 +386,9 @@ namespace Renki.Plugin
             return result;
         }
 
-        static ObstacleShape? Shape(Collider c)
+        static ObstacleShape? Shape(Collider c, bool portal = false)
         {
-            if (c.isTrigger || c.attachedRigidbody != null || c.GetComponentInParent<Door>() != null) return null;
+            if (c.isTrigger && !portal || c.attachedRigidbody != null || c.GetComponentInParent<Door>() != null) return null;
             var t = c.transform;
             // Tilted boxes include stairs; their AABB is not a solid prism.
             if (Vector3.Dot(t.up, Vector3.up) < .9999f) return null;

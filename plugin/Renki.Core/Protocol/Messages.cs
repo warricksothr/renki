@@ -208,6 +208,7 @@ namespace Renki.Protocol
         [JsonProperty("hp")] public double Hp;
         [JsonProperty("hpMax")] public double HpMax;
         [JsonProperty("pvp", NullValueHandling = NullValueHandling.Ignore)] public bool? Pvp;
+        [JsonProperty("worldEvents", NullValueHandling = NullValueHandling.Ignore)] public WorldEventStatus WorldEvents;
         [JsonProperty("food", NullValueHandling = NullValueHandling.Ignore)] public FoodStatus Food;
         [JsonProperty("combat", NullValueHandling = NullValueHandling.Ignore)] public CombatStatus Combat;
         [JsonProperty("journey", NullValueHandling = NullValueHandling.Ignore)] public JourneyStatus Journey;
@@ -240,6 +241,9 @@ namespace Renki.Protocol
         [JsonProperty("stars", NullValueHandling = NullValueHandling.Ignore)] public int? Stars;
         [JsonProperty("hostile", NullValueHandling = NullValueHandling.Ignore)] public bool? Hostile;
         [JsonProperty("targetingMe", NullValueHandling = NullValueHandling.Ignore)] public bool? TargetingMe;
+        [JsonProperty("targetingKnown", NullValueHandling = NullValueHandling.Ignore)] public bool? TargetingKnown;
+        [JsonProperty("eventCreature", NullValueHandling = NullValueHandling.Ignore)] public bool? EventCreature;
+        [JsonProperty("huntingPlayers", NullValueHandling = NullValueHandling.Ignore)] public bool? HuntingPlayers;
     }
 
     public sealed class PerceivedResource
@@ -275,6 +279,15 @@ namespace Renki.Protocol
         [JsonProperty("open", NullValueHandling = NullValueHandling.Ignore)] public bool? Open;
         [JsonProperty("fire", NullValueHandling = NullValueHandling.Ignore)] public FireStatus Fire;
         [JsonProperty("cooking", NullValueHandling = NullValueHandling.Ignore)] public CookingStatus Cooking;
+        [JsonProperty("portal", NullValueHandling = NullValueHandling.Ignore)] public PortalStatus Portal;
+    }
+
+    public sealed class PortalStatus
+    {
+        [JsonProperty("connected")] public bool Connected;
+        [JsonProperty("targetId", NullValueHandling = NullValueHandling.Ignore)] public string TargetId;
+        [JsonProperty("targetPos", NullValueHandling = NullValueHandling.Ignore)] public double[] TargetPos;
+        [JsonProperty("allowsAllItems")] public bool AllowsAllItems;
     }
 
     public sealed class FireStatus

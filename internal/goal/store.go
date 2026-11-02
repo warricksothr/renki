@@ -234,15 +234,29 @@ func (s *Store) Add(r Record) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if len(s.records) >= MaxRecords {
-		return errors.New("goal record limit reached")
-	}
 	if _, ok := s.records[r.ID]; ok {
 		return errors.New("goal already exists")
 	}
 	records := make(map[string]Record, len(s.records)+1)
 	for k, v := range s.records {
 		records[k] = v
+	}
+	if len(records) >= MaxRecords {
+		// Keep unresolved intents and all recent source feedback. Rotation is
+		// transactional with admission, so a failed write loses no history.
+		oldest := ""
+		for id, old := range records {
+			if !terminal(old.Status) || old.Pending != nil || r.Created.Before(old.Deadline.Add(15*time.Minute)) {
+				continue
+			}
+			if oldest == "" || old.Created.Before(records[oldest].Created) || old.Created.Equal(records[oldest].Created) && id < oldest {
+				oldest = id
+			}
+		}
+		if oldest == "" {
+			return errors.New("goal record limit reached; all records are recent or unresolved")
+		}
+		delete(records, oldest)
 	}
 	records[r.ID] = clone(r)
 	if err := s.persist(records); err != nil {

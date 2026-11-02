@@ -9,6 +9,12 @@ namespace Renki.Movement
         public const double Margin = .2;
         // Leave room for the body's step/slope offset below a sampled floor.
         public const double TravelMargin = Margin + .6;
+        // Valheim players slide above38 degrees. Reserve a small normal
+        // margin for native contact smoothing; height alone is insufficient.
+        // Native float normals on rotated flat floors can exceed one by
+        // a few ulps. Keep the lower slope bound exact; tolerate only the
+        // numerical overshoot at the upper, flat-surface bound.
+        public static bool WalkableNormal(double y) => y >= .8 && y <= 1 + 1e-6;
 
         // A full grid edge may span two ordinary stair treads. Its midpoint
         // must share the rise; a half-metre floor lip is not a staircase.

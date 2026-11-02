@@ -24,6 +24,61 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "world-events": async ({ page, check, shot }) => {
+    const initial = await snapshot(page);
+    const events = {
+      randomEvent: {
+        name: "army_greydwarf",
+        message: "The forest is moving",
+        center: initial.data.bot,
+        radius: 96,
+        inside: true,
+        elapsedS: 32,
+        durationS: 120,
+        timerMayPause: true,
+      },
+      localEvent: {
+        name: "army_greydwarf",
+        message: "The forest is moving",
+        kind: "random",
+      },
+    };
+    await page.evaluate(
+      (worldEvents) =>
+        renkiPreview.stream.emit("status", {
+          ...renkiPreview.status,
+          worldEvents,
+        }),
+      events,
+    );
+    await check(
+      "Live event notice and shared map carry the same area",
+      async () => {
+        await expect(page.getByTestId("world-events")).toContainText(
+          "The forest is moving · Tas inside · 96 m radius",
+        );
+        assert.deepEqual((await snapshot(page)).data.worldEvents, events);
+      },
+    );
+    await page.locator("#map-pane").scrollIntoViewIfNeeded();
+    await shot("world-event-area");
+    await page.evaluate(() =>
+      renkiPreview.stream.emit("status", {
+        ...renkiPreview.status,
+        connected: false,
+        phase: "menu",
+      }),
+    );
+    await check(
+      "Offline atlas clears live event and reports unknown",
+      async () => {
+        await expect(page.getByTestId("world-events")).toHaveText(
+          "World events unknown",
+        );
+        assert.equal((await snapshot(page)).data.worldEvents, null);
+      },
+    );
+  },
   "escort-status": async ({ page, check, shot }) => {
     await page.evaluate(() =>
       renkiPreview.stream.emit("status", {
@@ -729,6 +784,8 @@ export const scenarios = {
         assert.equal(body.spec.reserve, 2);
         assert.deepEqual(body.spec.storage, ["fixture-chest"]);
         assert.deepEqual(body.spec.stock.targets, { Mushroom: 4 });
+        assert.deepEqual(body.spec.stock.minimum, { Mushroom: 2 });
+        assert.equal(body.spec.stock.allowHunting, false);
       },
     );
     await check(
@@ -747,8 +804,32 @@ export const scenarios = {
         assert.equal(body.definition.template, "household_food");
         assert.equal(body.definition.trigger.marker.kind, "storage");
         assert.equal(body.definition.trigger.dwellS, 30);
-        assert.equal(body.definition.repeat.maxRuns, 12);
+        assert.equal(body.definition.repeat.maxRuns, 100);
         assert.equal(body.definition.repeat.cooldownS, 300);
+      },
+    );
+    await check(
+      "Pantry hunting remains an explicit configured option",
+      async () => {
+        await page.locator("#goal-stock-food").selectOption("CookedMeat");
+        await page.locator("#goal-stock-hunting").check();
+        await page
+          .locator("#goal-stock-hunt-areas")
+          .fill("west meadow, south shore");
+        await page.locator("#goal-stock-start").click();
+        const request = await page.evaluate(() =>
+          renkiPreview.requests.findLast(
+            (r) => r.path === "/api/goals" && r.method === "POST",
+          ),
+        );
+        const body = JSON.parse(request.body);
+        assert.deepEqual(body.spec.stock.targets, { CookedMeat: 4 });
+        assert.deepEqual(body.spec.stock.minimum, { CookedMeat: 2 });
+        assert.equal(body.spec.stock.allowHunting, true);
+        assert.deepEqual(body.spec.stock.huntAreas, [
+          "west meadow",
+          "south shore",
+        ]);
       },
     );
     await shot("household-food");

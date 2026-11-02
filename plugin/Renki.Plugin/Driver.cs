@@ -61,6 +61,12 @@ namespace Renki.Plugin
         {
             OnFixedStep?.Invoke(dt);
 
+            if (Move.sqrMagnitude > .0001f && !WorldNavigation.PortalClear(player.transform.position, Move))
+            {
+                Move = Vector3.zero;
+                Run = Jump = Dodge = false;
+            }
+
             Vector3 want = Vector3.zero;
             var pitch = LookAt.HasValue && Time.time < LookUntil && LookOriginHeight.HasValue;
             if (LookAt.HasValue && Time.time < LookUntil)

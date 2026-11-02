@@ -35,6 +35,10 @@ namespace Renki.Movement
         readonly double initialEstimate;
         readonly Func<V3, double> guidance;
         readonly Func<V3, V3, V3?> probe;
+        readonly Func<V3, bool> stagingEligible;
+        readonly bool heightAware;
+        readonly bool underFloorExit;
+        Node staging;
         readonly int maxNodes;
         readonly double maxCost;
         readonly Dictionary<(int, int, int, int), double> costs = new Dictionary<(int, int, int, int), double>();
@@ -48,14 +52,25 @@ namespace Renki.Movement
         public IReadOnlyList<V3> Path { get; private set; }
         public int Expanded { get; private set; }
         public int Probes { get; private set; }
+        public V3 Target => goal;
+        // Diagnostic evidence from expanded, physically reached nodes only.
+        // These points never authorize an approach leg or indicate arrival.
+        public V3? HighestExpanded { get; private set; }
+        public V3? ClosestExpanded { get; private set; }
+        public double ClosestGap { get; private set; } = double.PositiveInfinity;
+        public int GoalFloorExpanded { get; private set; }
         public bool NodeLimitReached => Status == RouteStatus.NoRoute && Expanded >= maxNodes;
         /// <summary>A found path is only a checked leg, not arrival at the destination.</summary>
         public bool ProgressLeg { get; }
+        // Only expanded nodes, reached by checked edges, can offer staging.
+        // This is not a path to the real goal and never changes Status.
+        public IReadOnlyList<V3> StagingPath => staging == null ? null : PathTo(staging, staging.Pos);
 
         public LocalRoute(V3 start, V3 goal, Func<V3, V3, V3?> probe, double within = .25,
             bool groundCorridor = false, double maxCost = double.PositiveInfinity, int maxNodes = MaxNodes,
             double progressHorizon = FrontierDistance * 1.5, double arrivalLevel = Arrival.Level,
-            Func<V3, double> guidance = null)
+            Func<V3, double> guidance = null, Func<V3, bool> stagingEligible = null, bool heightAware = false,
+            bool underFloorExit = false)
         {
             if (maxNodes < 1 || maxNodes > MaxNodes) throw new ArgumentOutOfRangeException(nameof(maxNodes));
             if (double.IsNaN(maxCost) || maxCost <= 0) throw new ArgumentOutOfRangeException(nameof(maxCost));
@@ -67,11 +82,14 @@ namespace Renki.Movement
             this.arrivalLevel = arrivalLevel;
             this.maxNodes = maxNodes; this.maxCost = maxCost;
             this.guidance = guidance;
+            this.stagingEligible = stagingEligible;
+            this.underFloorExit = underFloorExit;
             initialEstimate = Remaining(start);
             // Keep taking checked approach legs until the destination is
             // within the local horizon. Starting a full floor/entrance search
             // from 24 m away can spend its entire bound on the lower bank.
             ProgressLeg = initialEstimate > progressHorizon;
+            this.heightAware = heightAware && !ProgressLeg && guidance == null;
             Add(new Node { Pos = start, Ground = groundCorridor ? new GroundCorridor.Cursor() : null });
         }
 
@@ -84,6 +102,15 @@ namespace Renki.Movement
                 open.Remove(node);
                 if (costs[Key(node)] < node.Cost) { i--; continue; }
                 Expanded++;
+                if (!HighestExpanded.HasValue || node.Pos.Y > HighestExpanded.Value.Y) HighestExpanded = node.Pos;
+                var gap = ArrivalGap(node.Pos);
+                if (gap < ClosestGap) { ClosestGap = gap; ClosestExpanded = node.Pos; }
+                if (Math.Abs(node.Pos.Y - goal.Y) <= arrivalLevel) GoalFloorExpanded++;
+                if (stagingEligible != null && node.Cost <= DryStaging.MaximumCost &&
+                    V3.FlatDistance(start, node.Pos) >= DryStaging.MinimumDistance &&
+                    (underFloorExit ? UnderFloorExit.Candidate(start, goal, node.Pos, node.Cost) :
+                        V3.FlatDistance(start, goal) - V3.FlatDistance(node.Pos, goal) >= DryStaging.MinimumProgress) &&
+                    (staging == null || node.Remaining < staging.Remaining) && stagingEligible(node.Pos)) staging = node;
                 if (Arrival.Reached(node.Pos, goal, within, arrivalLevel))
                 {
                     Complete(node, node.Pos);
@@ -147,11 +174,16 @@ namespace Renki.Movement
 
         void Complete(Node node, V3 at)
         {
+            Path = PathTo(node, at);
+            Status = RouteStatus.Found;
+        }
+
+        static IReadOnlyList<V3> PathTo(Node node, V3 at)
+        {
             var path = new List<V3> { at };
             for (var p = node; p != null; p = p.Parent) path.Add(p.Pos);
             path.Reverse();
-            Path = path;
-            Status = RouteStatus.Found;
+            return path;
         }
 
         void Add(Node node)
@@ -165,9 +197,24 @@ namespace Renki.Movement
 
         double Remaining(V3 at)
         {
+            if (heightAware)
+            {
+                // Distance to the arrival cylinder is a lower bound on the
+                // checked 3D path cost. Prefer the required floor without
+                // inventing a connection to it. Distant frontier legs and
+                // explicit regional guidance keep their existing estimate.
+                return ArrivalGap(at);
+            }
             var estimate = guidance != null ? guidance(at) : V3.FlatDistance(at, goal);
             if (double.IsNaN(estimate) || estimate < 0) throw new ArgumentException("invalid route guidance");
             return estimate;
+        }
+
+        double ArrivalGap(V3 at)
+        {
+            var horizontal = Math.Max(0, V3.FlatDistance(at, goal) - within);
+            var vertical = Math.Max(0, Math.Abs(at.Y - goal.Y) - arrivalLevel);
+            return Math.Sqrt(horizontal * horizontal + vertical * vertical);
         }
     }
 }

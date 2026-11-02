@@ -7,6 +7,44 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Building geometry and portal observations
+
+See [PORTALS.md](PORTALS.md) for cached building-face limits, portal link
+memory and the separate future portal travel transition. `just check plugin
+test-core BuildingMeshTests` covers doorway detours, rotated faces, floor
+separation, ramps and changed broad-phase entries. Shared protocol fixtures
+exercise known, unknown and unlinked destinations on both sides. `just check
+controller test-packages ./internal/home ./internal/memory ./internal/protocol`
+covers restart, retag/unlink, copy isolation and failed-save rollback.
+These checks do not prove a native portal crossing or safe remote arrival.
+
+The native nearby return `.checks/recovery-20261101T065742Z` reached sheltered
+home without injury. The subsequent idle pantry trial
+`.checks/food-20261101T065917Z` searched six sources but earned no collection,
+cooking or deposit; its return failed and logged out without injury. Audit
+`.checks/audit-window-9BYSr2.jsonl` showed accepted support on sliding slopes.
+Ordinary dry route samples now require a support normal of at least 0.8,
+consistent with Valheim's 38-degree player sliding threshold. Actual footing
+and bounded bank recovery retain separate measurement; level contour recovery
+may preserve dry clearance while seeking a gentler bank. Native results after
+this correction must be recorded separately from the earlier successful return.
+
+Build `e19ce26` passed full `just check ci` and committed reviews. Native return
+`.checks/recovery-20261101T071741Z` moved 0.9 m but failed and logged out without
+injury at 46.2/46.2 HP. Audit `.checks/audit-window-E2ZUAi.jsonl` shows departure
+reached a walkable planning buffer, then waited on rejected navmesh candidates
+and local planning. A water-level change to 30.122 m re-entered bank recovery
+after its original eight-second aggregate limit had expired. This does not
+prove successful home routing or pantry delivery; do not retry it unchanged.
+
+That same build observed `darkforest` linked to a remote network entity with
+unknown destination coordinates, and `sportal` unlinked. The native response is
+retained as `.checks/portal-native-20261101T0718.json`. The saved-atlas follow-up
+loads shared remembered landmarks and chest contents after controller restart;
+its read-only response is retained as `.checks/portal-offline-20261101T0720.json`.
+No traversal, remote arrival or intentional trigger-avoidance trial was
+performed from the shore position.
+
 ## Marker idle food work
 
 For one bounded marker food batch, use `just vm marker-food-check "marker name"`.
@@ -1396,6 +1434,15 @@ injury. Combined audit: `.checks/audit-window-uSjpS9.jsonl`. Avoid repeating
 that unchanged route; marginal-shore admission, remembered slope approaches
 and a safely checked departure from the existing thin buffer remain open.
 
+`just check plugin test-core BankExitTests` covers a captured shore position
+on explicitly synthetic uphill support, descending and flooded refusals,
+measured body settling, changed live clearance, sliced candidate checks and
+terminal time/distance bounds. The live bank-departure policy is distinct from
+normal route planning: it cannot supply a relaxed probe to a local search or
+navmesh validator. Numeric support/water levels accompany water refusals;
+live slope refusals also enter short-lived negative approach memory.
+Native departure and household delivery still require field receipts.
+
 `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/app`
 covers household target validation, remembered versus freshly inspected stock,
 wrong-task receipts, partial/full destinations, personal reserves, continuing
@@ -1428,3 +1475,361 @@ with a successful native return and fresh idle shelter on the correct home
 floor. The trial still fails its production proof. Injury, ownership changes,
 uncertain results and failed returns do not qualify; failed return diagnostics
 retain the native reason so routing faults are visible on the goal itself.
+
+
+### Pantry maintenance and dry bank escape integration
+
+`just check controller test-packages ./internal/goal ./internal/home` covers
+low/high refill hysteresis, recipe-specific ordinary Boar/Neck admission,
+wrong/extra target and damage limits, explicit hunting opt-in, multi-area
+search/cooldown restart behavior, injected checkpoint rejection and transactional
+goal retention. `just check vm test-food-check` mirrors exact owned hunt damage
+in the supervisor. `just check plugin test-core BankExitTests` includes a
+synthetic gradual uphill step: the same settling allowance applies at both
+ends. Native flee attempts the bounded bank departure before escape-bearing
+preflight; normal route clearance is unchanged.
+
+The first bank build's native trial `.checks/food-20261101T055009Z` failed with
+seven escape prefixes refused (water/hostiles). A newly loaded group of
+Greydwarfs and a Shaman surrounded the shore. No pantry production was earned;
+final audit recorded44HP before logout. This exposed the preflight ordering
+and gradual-slope settling comparison addressed here. Synthetic checks do not
+prove the saved native return or pantry completion; retain live outcomes and
+leave field acceptance criteria open until repeated receipts earn them.
+
+
+`just check plugin test-core RecoveryReturnTests` covers the explicitly armed
+nearby startup profile (40HP/80%, two foods/120s,8m threats,30m radius,
+60m measured travel,90s), immediate injury/water/session refusals and terminal
+budgets, while retaining default local/work-trip behavior. `just check vm
+test-recover-home` verifies forwarding and cleanup without any body puppeting.
+Native proof is still required; the saved44/53.5HP state cannot use the default
+local profile's50HP gate.
+
+
+Use `just vm bank-evidence .checks/audit-window-NAME.jsonl` for a compact local
+bank sweep: at most sixteen candidates, numeric support/water heights, rises
+and settling clearances. It does not query or steer the game. `just vm
+native-libraries` lists every installed Renki native DLL and its checksum to
+rule out duplicate copies; `just plugin library-source TYPE ASSEMBLY` retains
+a decompiled built type locally when source/runtime behavior differs. No game
+assemblies or decompiled outputs are committed.
+
+The diagnostic replay `.checks/recovery-20261101T061357Z` again logged out at
+44HP without travel after all sixteen water-policy refusals. Audit
+`.checks/audit-window-CLD7GU.jsonl` includes several ascending candidates with
+at least0.56m settling-adjusted dry clearance; their retained heights pass the
+core half-metre policy. Deployed DLL hashes match and no duplicate native DLLs
+were found. Further live diagnostics retain the execution gate, core decision
+and exact step distance rather than changing the water margin on that evidence.
+
+
+The execution-gate replay `.checks/recovery-20261101T062326Z` isolated the
+bank refusal. Audit `.checks/audit-window-dSWtzj.jsonl` reports executing/dry
+true and core refusals: every otherwise eligible uphill endpoint was about
+0.5011–0.5020m away, beyond the0.501m short-step guard. Requesting0.49m leaves
+space for those native support-hit offsets inside the unchanged physical limit.
+`just check plugin test-core BankExitTests` covers a2mm returned-hit offset,
+accepting the shorter request while still rejecting a0.502m physical step.
+This is a request-length correction, not a water or uphill-clearance waiver.
+Native return remains to be demonstrated after deployment.
+
+Build `9edf05b` passed the native nearby return in
+`.checks/recovery-20261101T062940Z`: Tas left the saved bank, travelled37.3m,
+reached the actual sheltered home floor at[-37.13,36.09,9.13], and recovered
+from44HP to52.7/52.7HP without observed injury. This earns that return check;
+it does not establish repeated outdoor pantry production.
+
+Named-area cooldowns retain at most six dispatch timestamps separately from
+the rolling sixteen native outcomes. The restart regression replaces the
+whole outcome history, then reopens the store and checks cooldown expiry.
+Refused and uncertain visits keep their cooldown; they do not prove arrival.
+
+The next outdoor trial `.checks/food-20261101T063143Z` earned a real Mushroom
+collection but no stock deposit: the ingredient filled Tas's personal reserve.
+Audit `.checks/audit-window-pEgTQ2.jsonl` isolated a return oscillation at
+30.8m support: recovery repeatedly entered and completed on the planning
+boundary without walking until its original eight-second budget expired.
+A subsequent wave set `inWater`, correctly stopping work. Bank completion
+now requires both body and footing to clear the ordinary0.8m planning margin
+plus10cm for settling; entry retains the ordinary margin. A captured boundary
+fixture checks that the state stays in recovery through that narrow band.
+No time/distance budget is renewed and no dry-step guard is relaxed.
+
+The nearby return `.checks/recovery-20261101T063927Z` refused admission
+before moving because the plugin supplied the shortest of three meal durations
+(109/406/893s). Nearby admission requires two meals lasting120s: the core
+reserve helper now selects the second longest, while work-trip admission
+still selects the shortest of three. `RecoveryReturnTests` covers this captured
+case, an insufficient second meal and invalid durations. Native admission
+refusals now emit one bounded trace with exact health, food duration, stamina,
+footing and threat clearance so diagnosis can use retained evidence directly.
+
+Return `.checks/recovery-20261101T064503Z` passed meal admission but retained
+one checked bank target despite only0.4m initial travel and then centimetre
+bobbing until the original8s limit. Audit `.checks/audit-window-AGi7Y3.jsonl`
+had no probe refusals. BankExit now continues its bearing sweep after1s
+without3cm closer approach, retaining all original aggregate bounds. Synthetic
+regressions distinguish genuine short-step progress, bobbing and expiry;
+native stall traces record the attempted sweep without dumping full frames.
+
+Food hunt checks also retain a strictly bounded two-second settlement for a
+matching confirmed death while perception still contains that exact target.
+Other creatures, stale/foreign receipts and the original expiry cannot acquire
+that exception; no action is dispatched while loot settlement is pending.
+
+The changed-policy return `.checks/recovery-20261101T073423Z` regained the
+planning buffer but did not reach home. In audit
+`.checks/audit-window-qejxWc.jsonl`, recovery completed at body31.20m /
+footing31.11m with water30m; two navmesh candidates then failed live endpoint
+support. Footing settled to31.10m while waiting. Using the same1.1m threshold
+for completion and waiting re-entry consumed the entire reserve at the boundary
+and re-entered recovery after its original wall-clock limit. Tas logged out
+without observed injury, after0.7m travel.
+
+Bank recovery now finishes at1.1m but starts while planning below0.9m, retaining
+20cm hysteresis. Ordinary travel still starts recovery below its original0.8m
+buffer. The captured positions and a0.122m wave fit the waiting band; a0.21m
+wave requires recovery again. Original aggregate8s/3m/128-probe budgets are
+unchanged and are never reset by the handoff. Native refusal details and
+`just vm bank-evidence` now distinguish time, distance, probes, exhausted
+bearings and lost live eligibility. `BankExitTests` verifies both the captured
+handoff and expiry after a planning wait. This does not prove the rejected
+route is traversable; a further supervised native result is required.
+
+Reviewed build `d5e74f6` was installed with checksum verification. The next
+supervised return `.checks/recovery-20261101T074138Z` failed without observed
+injury. Audit `.checks/audit-window-OFT5N7.jsonl` shows repeated live
+`endpoint_support` rejection of navmesh candidates while local planning was
+pending. Water later rose from30m to30.89m; bank recovery then exhausted its
+original3m aggregate distance bound (`reason: distance_limit`), rather than
+the earlier time-limit handoff. This does not earn home return or pantry
+production. Tas was logged out and the controller-only panel restarted.
+
+A read-only native image was retained at
+`.checks/camera-20261101T074237541679Z.jpg`, with capture/task metadata beside
+it. It shows Tas on the steep terrain below the raised deck, not at a portal
+or an interior doorway. The next investigation must separate missing support,
+rejected slope normals and height-band mismatches at the failed endpoint;
+current `endpoint_support` diagnostics do not distinguish them. Retain local
+search evidence if bank recovery interrupts it. Do not retry the unchanged
+return, extend recovery limits, lower walking clearances or claim the
+building model establishes a traversable route through that bank.
+
+### Support-ray diagnostics and finite route benchmark
+
+Walking support failures now retain the actual query, starting height, step
+band, total hit count, accepted-normal count, selected point and up to six
+nearest contacts with normals and collider names. Reasons distinguish
+`no_hits`, `slope`, `footing_band`, `height_band` and `saturated`. The existing
+highest-hit/closest-footing selection is unchanged; a lower floor is never
+silently substituted for a rejected upper hit. Successful probes do not
+allocate contact diagnostics. Exact-query memo hits retain the matching
+failure evidence, including across intervening queries, and refresh it at the
+next planning slice.
+
+Bank activation/refusal traces retain the unfinished local/replay search and
+its refusal examples. Navmesh and local-route failures include support-ray
+evidence. Inspect a saved audit with
+`just vm route-evidence .checks/audit-window-NAME.jsonl --limit 4`.
+The projection bounds recent records, examples and contacts; full evidence
+stays in the audit. `just vm bank-evidence` remains the numeric bank-sweep view.
+
+`just check plugin test-core SupportSelectionTests` covers steep and missing
+support, overlapping floors, the separate footing policy and exact cached
+failure evidence. `just check vm test-route-benchmark` exercises scoped
+receipts, missing/foreign receipts, stale perception, wrong-floor arrivals,
+injury, cancellation, session changes and refusal of an unsafe initial state.
+The root CI gate includes the benchmark checks.
+
+Once Tas is grounded and sheltered on the pinned home floor, run a single
+existing-marker round trip first:
+
+```sh
+just check vm route-benchmark --marker 'home storage' --keep-online
+```
+
+Then choose several existing markers in different directions, between4m and
+60m from home, and repeat up to ten total round trips. For example, after the
+routes individually pass and their current positions are checked:
+
+```sh
+just check vm route-benchmark --marker 'pantry south meadow' --marker 'pantry east meadow' --cycles 5 --keep-online
+```
+
+These are production `move_to` goals with dry/hostile checks and no generated
+body steps. Each leg needs a same-connection native success receipt, a newer
+perception frame and observed arrival within2m horizontally/vertically combined
+and75cm of the target height. Home also requires grounded shelter within3m of
+the pinned point. Marker positions and home are revalidated; the tool never
+creates or moves them. A receipt without arrival, or a safe shortage outcome,
+does not count a completed route.
+
+The benchmark requires a safe online home start and does not join or retry
+startup recovery. It stops on the first failed trip, damage or changed
+ownership. A command/cancellation/session change yields without logging out
+the new owner. Otherwise failure logs Tas out, stops the game and restores
+the independent panel. `--keep-online` applies only after success and another
+safe-home observation. The tool retains plan, per-leg receipts/maps, sampled
+travel/minimum health, audit and an available failure camera image under
+`.checks/routes-*`; `just vm trial-status` reads compact progress.
+
+Ten native returns, multiple weather/approach conditions and repeated pantry
+production remain field criteria. Synthetic supervisor success does not earn
+them. First recover the existing shore position using the instrumented
+one-shot supervisor; do not launch this benchmark from underneath the deck.
+
+The instrumented `00d8161` return
+`.checks/recovery-20261101T100938Z` failed without injury. Its retained audit
+`.checks/audit-window-hS4MYw.jsonl` identifies the direct-leg rejection as
+`slope`: a single terrain contact near[-50.65,31.56,8.77] has normal Y0.76,
+below the unchanged0.8 walking requirement. Local search was still
+`Searching` after3353 expansions/26824 probes when its16-second stage ended;
+it had reached measured support beyond the initial bank. This establishes
+why the direct hint failed and why standing still for a complete raised-floor
+solution is unhelpful; it does not prove a complete home route.
+
+Dry hostile-avoiding local searches can now offer a short staging leg after
+two seconds near the shore. Only expanded nodes reached through checked edges
+qualify: at least3m displacement,1m horizontal progress toward the real goal,
+at most12m path cost and2m current-water clearance at the destination. The
+last requirement leaves headroom beyond the observed0.89m wave variation and
+ordinary0.8m walking buffer; it is not a forecast that all waves are bounded.
+Destination water is rechecked at selection, and ordinary live support/body/
+portal/hostile checks still authorize each step. Missing support and a
+geometric goal hint cannot manufacture a staging path.
+
+At most two staging legs are admitted per Walker goal across replans. They
+are explicitly approach legs, not home arrival, successful work or a new
+bank/task budget. The original goal remains; at the leg's end the walker
+replans toward it. `just check plugin test-core DryStagingTests` uses the
+captured start with an explicitly synthetic steep face and dry contour; it
+also checks missing support, opt-in behavior and non-renewing admission.
+Native traversal remains to be earned. A benchmark retained online after
+success additionally needs95% health, with at most90s of observed safe-home
+healing before logout; a player command during that wait revokes cleanup.
+
+`just check vm recover-home DizzysHellheim --nearby --capture` additionally
+requests one read-only camera checkpoint while native recovery owns the body.
+The image/metadata stay in `.checks/`; the summary retains their paths or a
+bounded capture error. Capture failure does not grant movement or alter the
+return result, and the supervisor never changes the configured capture rate.
+This avoids relying on a manual image request after a failed native logout.
+
+Reviewed/deployed `9f993c2` demonstrated one native staging leg in
+`.checks/recovery-20261101T102531Z`, audit `.checks/audit-window-BU9uSQ.jsonl`.
+After374 expansions/2992 probes and2.02s it selected checked support at
+[-45.73,32.37,5.26]. Tas followed it about7m without injury. The subsequent
+full home search still ended `Searching` after2861 expansions/22888 probes
+and16.02s, so the overall return failed and Tas logged out. This earns checked
+staging progress, not home arrival or a repeated route. Its automatic camera
+checkpoint captured a loading overlay; checkpoint admission now waits at
+least6s after the first in-world observation, while retaining the optional,
+read-only, one-attempt policy.
+
+The remaining nearby dry search now estimates distance to the goal's arrival
+cylinder in3D. This prioritizes a supported upper-floor connection over ground
+directly below the goal; it changes queue order, not permitted edges or
+arrival rules. Distant frontier legs and explicit regional guidance retain
+their existing estimates. `just check plugin test-core HeightRouteTests`
+compares expanded nodes on synthetic stacked floors with a checked stair
+connection, rejects missing connections at the unchanged node bound, and
+verifies identical frontier travel despite an unknown distant goal height.
+
+Failed support contacts now retain unrounded positions/normals so a value
+just below0.8 is not printed as an apparently accepted0.8. Per-world building
+support-slope diagnostics retain at most eight distinct piece types, allowing
+native stair/roof collider refusals to be distinguished from terrain without
+logging every probe. Normal, support-height, body, portal and water admission
+remain unchanged.
+
+Build43ee7d8 passed full `just check ci` and committed review before the
+changed-policy return `.checks/recovery-20261101T103852Z` (audit
+`.checks/audit-window-Cb7pe0.jsonl`). Tas travelled about10.6m without
+observed injury and reached[-36.92,34.11,7.52], still below the home floor.
+A staging route was selected after1158 expansions/9264 probes. The final
+search remained `Searching` at2918 expansions/23344 probes after16.02s;
+the return failed and the supervisor stopped the game and restored the panel.
+The delayed optional camera captured usable world imagery this time.
+
+The exact-normal diagnostics exposed a separate floor-admission bug:
+rotated `wood_floor` ray hits have native normal Y1.0000001192092896.
+The exact upper bound1 rejected these flat surfaces as `slope`, including
+support at[-42.14382553100586,36.090484619140625,9.61785888671875].
+`WalkableNormal` now tolerates at most1e-6 overshoot above one; the lower0.8
+walking threshold is unchanged. Captured support-selection and entrance-hint
+regressions accept that floor while retaining refusal of the captured
+`wood_stair` face with normal Y0.44619783759117126, nonfinite values,
+larger overshoot, and values just below0.8. This is a numerical correction,
+not proof of a complete entrance route; native return validation remains open.
+
+The corrected4c8b3bf return `.checks/recovery-20261101T104459Z` (audit
+`.checks/audit-window-bQImaU.jsonl`) confirms both door floors are now sampled
+and selected at Y36.09. Tas remained below the base at[-37.04,34.11,7.57]
+with no observed injury; each of two entrance searches and the final home
+search reached its16-second stage limit. No full route was earned.
+
+Local route diagnostics now report the active search's highest and closest
+expanded support, distance to the arrival cylinder, and count of expanded
+nodes at the target floor. These describe only physically reached search
+nodes, never a new movement leg or arrival receipt. Goal-scoped probes retain
+the closest refusal per stage and sort their bounded examples by distance
+to the search target, rather than letting an unrelated final terrain probe
+hide an entrance obstruction. The existing compact route-evidence tool
+retains these fields, while bank sweeps keep their original chronological
+sixteen-candidate evidence. Movement policy and search budgets are unchanged.
+
+Instrumentedf243371 passed gate/review and its return
+`.checks/recovery-20261101T105655Z` (audit `.checks/audit-window-HtySsG.jsonl`)
+confirms the remaining obstruction is below the floor: both entrance searches
+expanded zero target-floor nodes. Their highest expanded support was about
+Y34.98; the nearest body casts hit `wood_floor` near the doors at Y34.4.
+Tas remained near[-37.07,34.1,7.58],44.4/44.4HP, without observed injury;
+the native return failed and controller-only panel was restored.
+
+A dry, hostile-avoiding search starting beneath a measured building and
+targeting a raised floor can now select an `under_floor_exit` staging leg.
+The endpoint must be outside measured overhead building geometry, at least
+3m from the start, at least0.25m higher, within12m checked path cost and no
+more than8m farther horizontally from the target than the start. It may move
+away from the entrance to escape its underside. Every edge is still checked;
+the endpoint's2m current-water clearance and overhead geometry are rechecked
+on selection. It waits at least2s and shares the existing two-leg-per-goal
+budget with shore staging; arrival, task/bank limits and physical admission
+remain unchanged. Raised-goal shore staging also avoids choosing an endpoint
+under a building. `just check plugin test-core UnderFloorExitTests` uses the
+captured start with explicitly synthetic rising ground/overhang, verifies
+checked outward travel, and rejects missing support, no observed exit,
+insufficient rise, excess retreat and renewed leg allowances.
+
+`just vm route-evidence` also projects entrance choices and native startup
+return/logout reasons, avoiding ad hoc scans of the full audit. Under-floor
+exit traversal still needs native validation.
+
+Build630dd11 passed full `just check ci`
+(`.checks/20261101T110342Z-1mBaqi.log`), committed review
+(`.checks/20261101T110631Z-OqSG2f.log`) and checksum installation. Return
+`.checks/recovery-20261101T110659Z` passed without observed injury:37.4m
+travel, sheltered arrival[-37.01,36.09,9.12],43.7/43.7HP. Audit
+`.checks/audit-window-Tj3Mql.jsonl` records complete checked routes through
+observed entrances, including676 expansions/4.18s and608 expansions/3.78s.
+Staging allowance used was zero. This proves the full return on this build,
+not native selection of the new under-floor escape or repeated reliability.
+
+The strict benchmark remains open: its pinned marker Y37.66 differs from
+measured home floor Y36.09 by1.57m, exceeding its0.75m vertical admission.
+The successful return is not a benchmark pass. Do not silently move home or
+reduce that threshold; floor-reference handling needs an explicit, scoped,
+observed reference for the legacy marker's documented eye-height allowance.
+
+Production resupply `.checks/food-20261101T111055Z` passed through two native
+tasks/receipts: stored deer-meat withdrawal and eating, carried reserve2,
+active food and sheltered health recovery. Tas stayed online at home.
+The following automatic pantry episode
+`.checks/food-20261101T111255Z` required acquisition and deposit of one
+Mushroom from `north mushrooms`. It stopped with zero tasks/receipts:
+`nearby threat prevents food resupply`. Its retained `before-map.json`
+contains six Greydwarfs and three Greylings, all targeting Tas, several by
+the doorway. No injury was observed. The supervisor stopped the game and
+restored the independent panel. No unchanged retry, enemy spawning, manual
+rescue request, pantry deposit or milestone completion is claimed.

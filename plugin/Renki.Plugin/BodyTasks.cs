@@ -34,10 +34,15 @@ namespace Renki.Plugin
         double NavigationWithin => entrance.HasValue ? .25 : arrivalWithin;
         double NavigationLevel => entrance.HasValue ? .6 : Arrival.Level;
         readonly WorldNavigation.PlanningProbe dryProbe;
+        readonly WorldNavigation.PlanningProbe bankProbe;
+        BankExit bankExit = new BankExit();
+        DryStaging dryStaging = new DryStaging();
+        bool bankMoving;
         public Walker()
         {
             hostileClearance = (from, to) => !avoidHostiles || hostiles.Clear(from, to);
             dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance);
+            bankProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance, bankExit: true);
         }
         bool dryGround;
         readonly List<Vector3> scratch = new List<Vector3>();
@@ -54,6 +59,7 @@ namespace Renki.Plugin
         bool hasGoal, checkedOnly;
         RouteSearch localRoute;
         bool preferGuidance;
+        bool localUnderFloorExit;
         WorldNavigation.PlanningProbe localProbe;
         Outcome navigationFailure;
         string localWaterBlocked;
@@ -146,6 +152,8 @@ namespace Renki.Plugin
         public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false, bool avoidHostiles = false)
         {
             checkedOnly = false;
+            bankExit = new BankExit(); bankMoving = false;
+            dryStaging = new DryStaging();
             preferGuidance = false;
             approach.Reset();
             refusals.Clear();
@@ -387,6 +395,7 @@ namespace Renki.Plugin
             }
             if (!climbObstacles) { climb.Stop(); climbWaiting = false; }
             RecordGrounded(pos);
+            if (ExitBank(pos, goal)) return true;
             if (Swim(pos, ref run)) return true;
             if (replay != null) return PlanReplay(pos);
             if (localRoute != null) return PlanLocal(pos);
@@ -414,6 +423,7 @@ namespace Renki.Plugin
                 if (!(supported is V3 at) || (at - replayNext).Length > .65)
                 {
                     if (Doorman.Waiting(pos)) { Driver.Stand(); stuck.Hold(Time.time); return true; }
+                    RememberSupportRefusal(Convert.ToV3(pos), replayNext, replayProbe.LastFailure?.Stage);
                     RejectReplay(pos, "next leg changed");
                     return true;
                 }
@@ -518,12 +528,14 @@ namespace Renki.Plugin
                             ["lookahead"] = clearance,
                             ["failure"] = dryProbe.LastFailure?.Stage,
                             ["supportHeights"] = dryProbe.LastFailure?.SupportHeights,
+                            ["supportQuery"] = dryProbe.LastFailure?.SupportQuery,
                             ["collider"] = dryProbe.LastFailure?.Collider,
                         });
                     }
                     Driver.Stand();
                     if (Doorman.Waiting(pos)) { stuck.Hold(Time.time); return true; }
                     var failure = dryProbe.LastFailure;
+                    RememberSupportRefusal(from, from + Convert.ToV3(dir.normalized) * clearance, failure?.Stage);
                     var solid = failure?.Solid;
                     if (solid != null && solid.GetComponentInParent<Door>() == null &&
                         (failure.Stage == "body_cast" || failure.Stage == "body_overlap"))
@@ -557,6 +569,118 @@ namespace Renki.Plugin
             return true;
         }
 
+        void RememberSupportRefusal(V3 from, V3 to, string stage)
+        {
+            if (stage != "support_step") return;
+            var revision = WorldNavigation.GeometryRevision;
+            refusals.Remember(from, to, Time.unscaledTime, () => WorldNavigation.GeometryRevision == revision);
+            Tracer.Emit("walker", "remembered refused slope approach", new Dictionary<string, object>
+            { ["from"] = from.ToArray(), ["to"] = to.ToArray(), ["count"] = refusals.Count });
+        }
+
+        public bool DepartDryBank(Vector3 pos, Vector3 toward)
+        {
+            dryGround = avoidHostiles = true;
+            return ExitBank(pos, toward);
+        }
+
+        bool ExitBank(Vector3 pos, Vector3 toward)
+        {
+            if (!dryGround) return false;
+            var p = Player.m_localPlayer;
+            if (p == null) return false;
+            var from = Convert.ToV3(pos);
+            bankProbe.BeginSlice();
+            var support = bankProbe.Footing(from);
+            var water = WorldNavigation.WaterLevel(from);
+            if (support.HasValue && (bankMoving ? BankExit.Recovered(from, support.Value, water, p.GetLastGroundNormal().y) :
+                !BankExit.NeedsDeparture(from, support.Value, water, localRoute != null || replay != null)))
+            {
+                if (!bankMoving) return false;
+                bankMoving = false;
+                Tracer.Emit("walker", "dry bank departure regained planning buffer", new Dictionary<string, object>
+                {
+                    ["pos"] = from.ToArray(),
+                    ["waterLevel"] = water,
+                    ["support"] = support.Value.ToArray(),
+                    ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal())
+                });
+                if (hasGoal) Repath(pos);
+                Driver.Stand(); return true;
+            }
+            if (!bankMoving && (!support.HasValue || p.InWater() || p.IsSwimming() || !p.IsOnGround())) return false;
+            Driver.Stand(); stuck.Hold(Time.time);
+            if (!bankMoving)
+            {
+                bankMoving = true;
+                Tracer.Emit("walker", "checking bounded dry bank departure", new Dictionary<string, object>
+                {
+                    ["pos"] = from.ToArray(),
+                    ["waterLevel"] = water,
+                    ["support"] = support?.ToArray(),
+                    ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal()),
+                    ["groundCollider"] = p.GetLastGroundCollider()?.name,
+                    ["planning"] = PlanningEvidence()
+                });
+            }
+            var eligible = support.HasValue && !p.InWater() && !p.IsSwimming() && p.IsOnGround() &&
+                DryTravel.Clear(from, water, BankExit.ActualMargin) && DryTravel.Clear(support.Value, water, BankExit.ActualMargin);
+            var stalls = bankExit.Stalls;
+            var step = eligible ? bankExit.Next(from, Convert.ToV3(toward), Time.unscaledTime, bankProbe.Probe) : null;
+            if (bankExit.Stalls > stalls)
+                Tracer.Emit("walker", "dry bank step stalled; checking another bearing", new Dictionary<string, object>
+                {
+                    ["pos"] = from.ToArray(),
+                    ["stalls"] = bankExit.Stalls,
+                    ["samples"] = bankExit.Samples,
+                    ["groundNormal"] = Convert.ToArray(p.GetLastGroundNormal()),
+                    ["groundCollider"] = p.GetLastGroundCollider()?.name
+                });
+            if (!eligible || bankExit.Refused)
+            {
+                var reason = !eligible ? "live_eligibility_lost" : bankExit.RefusalReason;
+                navigationFailure = Outcome.Failed(Wire.ReasonUnreachable, "bounded dry bank departure refused: " + reason);
+                Tracer.Emit("walker", "dry bank departure refused", new Dictionary<string, object>
+                { ["pos"] = from.ToArray(), ["waterLevel"] = water, ["eligible"] = eligible, ["reason"] = reason, ["samples"] = bankExit.Samples, ["failures"] = bankProbe.Failures, ["planning"] = PlanningEvidence() });
+                return true;
+            }
+            // Ordinary walking input; Run remains false. An attenuated input
+            // cannot reliably overcome native uphill friction on a checked step.
+            if (step.HasValue) Driver.Move = (Convert.ToVector3(step.Value) - pos).normalized;
+            return true;
+        }
+
+        object PlanningEvidence() => new
+        {
+            local = localRoute == null ? null : new
+            {
+                status = localRoute.Status.ToString(),
+                expanded = localRoute.Expanded,
+                probes = localRoute.Probes,
+                elapsedS = System.Math.Round(Time.unscaledTime - localStarted, 2),
+                frontier = FrontierEvidence(),
+                failures = localProbe?.Failures
+            },
+            replay = replay == null ? null : new
+            {
+                status = replay.Status.ToString(),
+                samples = replay.Samples,
+                checking = replay.Checking?.ToArray(),
+                checkingFrom = replay.CheckingFrom.ToArray(),
+                failures = replayProbe?.Failures
+            }
+        };
+
+        object FrontierEvidence() => localRoute == null ? null : new
+        {
+            target = localRoute.Target.ToArray(),
+            phase = localRoute.Phase,
+            highest = localRoute.HighestExpanded?.ToArray(),
+            closest = localRoute.ClosestExpanded?.ToArray(),
+            gap = localRoute.ClosestExpanded.HasValue ? (double?)localRoute.ClosestGap : null,
+            goalFloorExpanded = localRoute.GoalFloorExpanded
+        };
+
         void RejectReplay(Vector3 pos, string why)
         {
             if (!replayNavmesh) { WorldNavigation.Routes.Remove(replayID); skipReuse = true; }
@@ -574,6 +698,7 @@ namespace Renki.Plugin
                 ["samples"] = replay?.Samples,
                 ["failure"] = replayProbe?.LastFailure?.Stage,
                 ["supportHeights"] = replayProbe?.LastFailure?.SupportHeights,
+                ["supportQuery"] = replayProbe?.LastFailure?.SupportQuery,
                 ["collider"] = replayProbe?.LastFailure?.Collider,
                 ["ms"] = System.Math.Round(replayMs, 2),
                 ["worstFrameMs"] = System.Math.Round(replayWorstMs, 2),
@@ -681,7 +806,9 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance);
+            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance, diagnosticGoal: Convert.ToV3(target));
+            localUnderFloorExit = dryGround && avoidHostiles && dryStaging.Available &&
+                target.y - from.y > Arrival.Level && WorldNavigation.BuildingAbove(Convert.ToV3(from), target.y);
             ThreatGuidance Guidance()
             {
                 if (!dryGround || !avoidHostiles || !preferGuidance && localProbe.HostileRejected == 0) return null;
@@ -698,7 +825,11 @@ namespace Renki.Plugin
             localGuidanceMs = 0;
             localRoute = new RouteSearch(guidance => new LocalRoute(Convert.ToV3(from), Convert.ToV3(target), localProbe.Probe, NavigationWithin,
                 progressHorizon: LocalRoute.FrontierDistance + NavigationWithin, arrivalLevel: NavigationLevel,
-                guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null), Guidance, preferGuidance);
+                guidance: guidance != null ? guidance.Estimate : (System.Func<V3, double>)null,
+                stagingEligible: dryGround && avoidHostiles && dryStaging.Available
+                    ? (System.Func<V3, bool>)(at => DryTravel.Clear(at, WorldNavigation.WaterLevel(at), DryStaging.WaterMargin) &&
+                        (target.y - from.y <= Arrival.Level || !WorldNavigation.BuildingAbove(at, target.y))) : null,
+                heightAware: dryGround, underFloorExit: localUnderFloorExit), Guidance, preferGuidance);
             replay = null; replaying = replayNavmesh = false;
             localStarted = Time.unscaledTime;
             nextNavmeshCheck = localStarted + 1;
@@ -759,12 +890,21 @@ namespace Renki.Plugin
             // entrance search after only half its permitted nodes. Frame
             // work, node count and the enclosing task timeout remain bounded.
             if (localRoute.Guidance?.Active == true) preferGuidance = true;
-            if (localRoute.Status == RouteStatus.Searching && elapsed < 16 * localRoute.BudgetStages) return true;
+            IReadOnlyList<V3> stagingPath = null;
+            if (dryGround && avoidHostiles && dryStaging.Available && elapsed >= DryStaging.WaitSeconds &&
+                localRoute.Status == RouteStatus.Searching && localRoute.StagingPath is IReadOnlyList<V3> candidate &&
+                DryTravel.Clear(candidate[candidate.Count - 1], WorldNavigation.WaterLevel(candidate[candidate.Count - 1]), DryStaging.WaterMargin) &&
+                (!localUnderFloorExit || !WorldNavigation.BuildingAbove(candidate[candidate.Count - 1], localRoute.Target.Y)) &&
+                dryStaging.Take(elapsed, localUnderFloorExit && WorldNavigation.BuildingAbove(Convert.ToV3(pos), localRoute.Target.Y) ||
+                    !DryTravel.Clear(Convert.ToV3(pos), WorldNavigation.WaterLevel(Convert.ToV3(pos)), DryStaging.WaterMargin), candidate))
+                stagingPath = candidate;
+            if (stagingPath == null && localRoute.Status == RouteStatus.Searching && elapsed < 16 * localRoute.BudgetStages) return true;
             // Even an enclosed start may exhaust the local search before
             // the navmesh's asynchronous tile request has had one retry.
             if (localRoute.Status == RouteStatus.NoRoute && elapsed < 1.25f) return true;
-            var found = localRoute.Status == RouteStatus.Found;
-            Tracer.Emit("walker", found ? "local route found" : "no safe local route", new Dictionary<string, object>
+            var found = localRoute.Status == RouteStatus.Found || stagingPath != null;
+            var selectedPath = stagingPath ?? localRoute.Path;
+            Tracer.Emit("walker", stagingPath != null ? "following checked dry staging leg" : found ? "local route found" : "no safe local route", new Dictionary<string, object>
             {
                 ["from"] = Convert.ToArray(pos),
                 ["to"] = Convert.ToArray(goal),
@@ -779,8 +919,10 @@ namespace Renki.Plugin
                 ["saturated"] = localProbe.Saturated,
                 ["failure"] = !found ? localProbe.LastRefusal?.Stage : null,
                 ["supportHeights"] = !found ? localProbe.LastRefusal?.SupportHeights : null,
+                ["supportQuery"] = !found ? localProbe.LastRefusal?.SupportQuery : null,
                 ["failures"] = !found ? localProbe.Failures : null,
                 ["searchStatus"] = localRoute.Status.ToString(),
+                ["frontier"] = FrontierEvidence(),
                 ["nodeLimitReached"] = localRoute.NodeLimitReached,
                 ["guidance"] = localRoute.Guidance == null ? null : new
                 {
@@ -797,14 +939,16 @@ namespace Renki.Plugin
                 ["elapsedS"] = System.Math.Round(elapsed, 2),
                 ["ms"] = System.Math.Round(localMs, 2),
                 ["worstFrameMs"] = System.Math.Round(localWorstMs, 2),
-                ["waypoints"] = found ? localRoute.Path.Count : 0,
-                ["progressLeg"] = localRoute.ProgressLeg,
-                ["end"] = found ? localRoute.Path[localRoute.Path.Count - 1].ToArray() : null,
-                ["start"] = found ? localRoute.Path.Take(4).Select(p => p.ToArray()).ToArray() : null,
+                ["waypoints"] = found ? selectedPath.Count : 0,
+                ["progressLeg"] = localRoute.ProgressLeg || stagingPath != null,
+                ["stagingLegs"] = dryStaging.Used,
+                ["stagingKind"] = stagingPath != null ? localUnderFloorExit ? "under_floor_exit" : "shore" : null,
+                ["end"] = found ? selectedPath[selectedPath.Count - 1].ToArray() : null,
+                ["start"] = found ? selectedPath.Take(4).Select(p => p.ToArray()).ToArray() : null,
             });
             if (found)
             {
-                path.Set(localRoute.Path);
+                path.Set(selectedPath);
                 path.Reach = .15;
                 path.Level = .6;
                 OffLevel = false;

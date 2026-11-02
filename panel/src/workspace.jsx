@@ -193,13 +193,44 @@ export function Supplies() {
               </select>
             </label>
             <label>
-              Meals in storage{" "}
+              Refill to (meals in storage){" "}
               <input
                 id="goal-stock-count"
                 type="number"
                 min="1"
                 max="20"
                 defaultValue="4"
+              />
+            </label>
+            <label>
+              Refill below (meals)
+              <input
+                id="goal-stock-minimum"
+                type="number"
+                min="1"
+                max="20"
+                defaultValue="2"
+              />
+            </label>
+            <label>
+              <input id="goal-stock-hunting" type="checkbox" />
+              Hunt ordinary wild boar and Necks for missing ingredients
+            </label>
+            <label>
+              Hunting areas
+              <input
+                id="goal-stock-hunt-areas"
+                placeholder="west meadow, south shore"
+              />
+            </label>
+            <label>
+              Episodes per controller session
+              <input
+                id="goal-stock-runs"
+                type="number"
+                min="1"
+                max="100"
+                defaultValue="100"
               />
             </label>
             <label>
@@ -290,6 +321,7 @@ export function Places() {
                 <option value="stone">Stone</option>
                 <option value="flint">Flint</option>
                 <option value="berries">Berries</option>
+                <option value="hunting">Hunting</option>
                 <option value="ore">Ore</option>
               </select>
             </label>

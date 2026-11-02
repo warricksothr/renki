@@ -46,6 +46,19 @@ def food_travel_damage(status, goal, previous=None, previous_goal=None):
             return 'interact'
         return None
 
+    def hunt_task(intent, owner):
+        args = intent.get('params') or {}
+        stock = (owner.get('food') or {}).get('stock')
+        return (intent.get('template') == 'hunt_food' and bool(intent.get('run')) and bool(intent.get('taskId'))
+                and bool(intent.get('entity')) and args.get('entity') == intent['entity']
+                and args.get('style') == 'melee' and args.get('kite') is True
+                and (stock is None or stock.get('allowHunting') is True))
+
+    combat = status.get('combat') or {}
+    if (hunt_task(pending, goal) and task.get('id') == pending.get('taskId') and task.get('task') == 'attack' and task.get('status') == 'running'
+            and combat.get('id') == task['id'] and combat.get('entity') == pending['entity'] and not combat.get('defensive')
+            and combat.get('mode') in ('approach', 'closing', 'strike', 'wait', 'block', 'dodge', 'retreat')):
+        return True
     journey = status.get('journey') or {}
     if (task.get('id') == pending.get('taskId') and task.get('task') == recovery_task(pending) and task.get('status') == 'running' and
             journey.get('id') == task.get('id') and journey.get('task') == task.get('task') and journey.get('mode') in ('walk', 'defend', 'escape', 'observe', 'blocked') and
@@ -55,11 +68,12 @@ def food_travel_damage(status, goal, previous=None, previous_goal=None):
     # intent, its successful same-run outcome, and acknowledged injury count.
     old = (previous_goal or {}).get('pending') or {}
     prior_task = (previous or {}).get('task') or {}
-    return (bool(previous_goal) and previous_goal.get('id') == goal.get('id') and bool(recovery_task(old)) and
-            prior_task.get('id') == old.get('taskId') and prior_task.get('task') == recovery_task(old) and
+    return (bool(previous_goal) and previous_goal.get('id') == goal.get('id') and (bool(recovery_task(old)) or hunt_task(old, previous_goal)) and
+            prior_task.get('id') == old.get('taskId') and prior_task.get('task') == ('attack' if hunt_task(old, previous_goal) else recovery_task(old)) and
             food.get('injury') == seq and (not task or task.get('id') == pending.get('taskId')) and
             any(r.get('run') == old['run'] and r.get('taskId') == old['taskId'] and
-                r.get('template') == old['template'] and r.get('status') == 'succeeded'
+                r.get('template') == old['template'] and r.get('status') == 'succeeded' and
+                (not hunt_task(old, previous_goal) or r.get('entity') == old['entity'])
                 for r in goal.get('history', [])))
 
 
@@ -133,6 +147,9 @@ def household_definition(spec, marker):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stock-target', action='append', default=[], help='household food prefab=count; repeat for several foods')
+    parser.add_argument('--stock-minimum', action='append', default=[], help='refill below prefab=count; must cover each target')
+    parser.add_argument('--allow-hunting', action='store_true')
+    parser.add_argument('--hunt-areas', default='', help='comma-separated hunting marker names')
     parser.add_argument('--sources', default='', help='comma-separated food source marker names')
     parser.add_argument('--idle-marker', help='start a household episode after idle dwell at this storage marker')
     parser.add_argument('--require-deposit', action='store_true')
@@ -154,6 +171,14 @@ def main():
         targets[item] = int(count)
     if (targets and (not args.storage or args.escort)) or (args.idle_marker and not targets):
         parser.error('household work needs targets and explicit storage; escort is separate')
+    minimums = {}
+    for low in args.stock_minimum:
+        item, separator, count = low.partition('=')
+        if not separator or not count.isdigit() or not 1 <= int(count) <= targets.get(item, 0) or item in minimums:
+            parser.error('stock minimums require unique target prefab=count pairs between one and target')
+        minimums[item] = int(count)
+    if minimums and minimums.keys() != targets.keys(): parser.error('minimums must cover every stock target')
+    if args.hunt_areas and not args.allow_hunting: parser.error('hunting areas require --allow-hunting')
     folder = ROOT / '.checks' / ('food-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     folder.mkdir(parents=True)
     log = (folder / 'commands.log').open('a')
@@ -244,7 +269,7 @@ def main():
         if args.storage: spec['storage'] = args.storage.split(',')
         if targets:
             spec['radius'] = 200
-            spec['stock'] = dict(targets=targets, sources=[s.strip() for s in args.sources.split(',') if s.strip()])
+            spec['stock'] = dict(targets=targets, minimum=minimums, allowHunting=args.allow_hunting, huntAreas=[s.strip() for s in args.hunt_areas.split(',') if s.strip()], sources=[s.strip() for s in args.sources.split(',') if s.strip()])
         if args.idle_marker:
             candidate_name = 'household check ' + folder.name
             definition = household_definition(spec, args.idle_marker)

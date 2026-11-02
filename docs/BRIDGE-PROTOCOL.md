@@ -186,6 +186,12 @@ game eligibility, including duplicate/full slots and consumption effects.
 Missing `food` means unknown; empty arrays mean observed empty. The panel
 status API exposes the same observation.
 
+Optional `worldEvents` reports authoritative observed random-event areas and
+locally active notices. Missing means unknown; `{}` means observed no event.
+See [WORLD-EVENTS.md](WORLD-EVENTS.md) for the wire fields, paused timers,
+map freshness and separate per-creature pursuit/provenance knowledge. Event
+end observations never establish that surviving hostiles have disappeared.
+
 Optional `pvp` is the local player's current PvP setting. Player entries in
 `perception.characters` also include `pvp` when their network state is valid.
 Explicit `false` means disabled; omission means unknown.
@@ -820,6 +826,15 @@ Notes:
   its uphill route with shore recovery. Every proposed step still requires the
   full water buffer. Other movement keeps its default
   policy. Dry planning retains the existing node, time and per-frame limits.
+  A separate live bank departure can recover grounded, out-of-water feet
+  already inside that forecast buffer. It requires at least 0.3 m actual dry
+  clearance, compensates measured body/footing offset plus 0.1 m settling,
+  and accepts only uphill steps with nondecreasing water clearance. Every
+  short candidate retains support, capsule, wall and hostile checks.
+  It walks slowly without jumping or running, with eight seconds, three metres
+  travelled and 128 candidate probes per walker goal; at most four candidates
+  and one held-step recheck run per tick. Immersion, lost footing or exhausted
+  bounds refuse recovery. Regaining the full forecast buffer replans normally.
 
 - **Successful route hints:** completed point `move_to` tasks can retain
   and reuse their actual grounded trail (up to 256 points, 24 trails per game session).

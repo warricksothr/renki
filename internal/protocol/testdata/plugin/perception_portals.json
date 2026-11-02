@@ -1,0 +1,10 @@
+{
+  "v": 1, "type": "perception", "seq": 0, "t": 0,
+  "characters": [], "resources": [],
+  "structures": [
+    {"id": "1:10", "kind": "portal", "pos": [0, 35, 0], "tag": "home", "portal": {"connected": true, "targetId": "1:20", "targetPos": [500, 40, -100], "allowsAllItems": false}},
+    {"id": "1:11", "kind": "portal", "pos": [4, 35, 0], "tag": "mine", "portal": {"connected": true, "targetId": "1:30", "allowsAllItems": true}},
+    {"id": "1:12", "kind": "portal", "pos": [8, 35, 0], "tag": "mine", "portal": {"connected": false, "allowsAllItems": false}},
+    {"id": "1:13", "kind": "portal", "pos": [12, 35, 0], "tag": "legacy"}
+  ]
+}

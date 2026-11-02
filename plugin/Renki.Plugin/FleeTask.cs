@@ -66,6 +66,9 @@ namespace Renki.Plugin
                 threatPos = threat.transform.position;
             }
             var gap = V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(threatPos));
+            if (avoidHostiles && gap < args.Distance && walker.DepartDryBank(pos,
+                Convert.ToVector3(Flee.Goal(Convert.ToV3(pos), Convert.ToV3(threatPos), null, args.Distance))))
+                return walker.Refused();
             if ((!aimed || bearings?.Status == RouteStatus.Searching || Time.time >= nextAim) && !Aim(pos))
             { Driver.Stand(); return aimFailure; }
             // Far enough, unless it is on its way to safety: a hurt bot
