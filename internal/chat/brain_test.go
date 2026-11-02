@@ -1095,3 +1095,22 @@ func TestAnchorIsThePlayerTheLastOrderServed(t *testing.T) {
 		t.Fatalf("anchor %q after Nimah's order", b.Anchor())
 	}
 }
+
+func TestAVoiceEscortAnchorsOnTheEscortedPlayer(t *testing.T) {
+	v := &stubVoice{got: make(chan Request, 1), reply: Reply{Say: "I'll watch over her.",
+		Task: &Proposal{Task: "escort", Args: json.RawMessage(`{"player":"Nimah"}`)}}}
+	f := &fakeSession{allowed: []string{"stop", "follow", "escort", "say"}}
+	c := &clock{t: time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC)}
+	b := New(Options{AgentName: "Bjorn", Owners: []string{"Sothr", "Nimah"}, Voice: v,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Now: c.now}, f)
+	b.Chat(line("Sothr", "bjorn, please keep Nimah safe"))
+	<-v.got
+	// The anchor moves once the escort is sent, after the voice replies.
+	deadline := time.Now().Add(2 * time.Second)
+	for b.Anchor() != "Nimah" {
+		if time.Now().After(deadline) {
+			t.Fatalf("anchor %q, tasks %v; want the escorted player", b.Anchor(), f.tasks())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}

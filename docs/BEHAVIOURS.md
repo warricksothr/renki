@@ -216,7 +216,7 @@ on the instance's card, N counting only pickups the pack confirmed.
 ### The anchor
 
 The anchor is the player Tas's last order served: the player it was told to
-follow, or else the player who gave the order in chat, in the panel's chat
+follow or escort, or else the player who gave the order in chat, in the panel's chat
 box or through the voice. The chat brain records it when the order is sent
 (`Brain.Anchor`); a refused order does not move it. The panel's task buttons
 have no speaker, so only their `follow` and `escort` set the anchor, to the

@@ -1005,18 +1005,30 @@ func (b *Brain) propose(p *Proposal, from origin, owner bool, offered []string) 
 	if len(p.Args) > 0 {
 		args = p.Args
 	}
-	if p.Task == protocol.TaskFollow {
+	escorted := ""
+	switch p.Task {
+	case protocol.TaskFollow:
 		// Who to find again if a death cuts the follow short.
 		var fa protocol.FollowArgs
 		if json.Unmarshal(p.Args, &fa) == nil {
 			from.follow = fa.Player
+		}
+	case protocol.TaskEscort:
+		var ea protocol.EscortArgs
+		if json.Unmarshal(p.Args, &ea) == nil {
+			escorted = ea.Player
 		}
 	}
 	if _, err := b.d.Dispatch(context.Background(), session.Order{Task: p.Task, Args: args, Origin: from}); err != nil {
 		b.opts.Logger.Warn("voice proposal refused", "task", p.Task, "args", string(p.Args), "err", err)
 		return
 	}
-	b.ordered(from)
+	if escorted != "" {
+		// Tas is with the player it escorts, not the one who asked.
+		b.Follows(escorted)
+	} else {
+		b.ordered(from)
+	}
 	if b.opts.Home != nil {
 		// An order in the owner's own words is an order like any other.
 		b.opts.Home.Touch()
