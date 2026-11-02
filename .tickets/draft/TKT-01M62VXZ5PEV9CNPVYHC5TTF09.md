@@ -79,7 +79,7 @@ A `fuel` template, run from an idle trigger at home and a timer while at home:
 
 `just check controller test-packages ./internal/behaviour` with tests for: a low fire at night topped up from the pack; a fire left alone by day with no cooking and nobody cold; withdrawal stopping at the reserve; a fire out at night relit; the once-per-hour no-fuel message. `just check ci`.
 
-Live evidence is the fires section of `just vm upkeep-report` in TKT-01M6EFM4G7 (VM: two 2 h base upkeep soaks): the full goal 5.1 measure in docs/ROADMAP.md. In-scope fires are lit in at least 98 % of night samples, and in every sample where a cooking slot within 3 m holds food. No fire is seen at fuel 0. At least one matched fuel receipt per soak. Stored fuel never drops below the reserve. The bot is within 32 m of home for at least 80 % of each soak.
+Live evidence is the fires section of `just vm upkeep-report` in TKT-01M6EFM4G7 (VM: two 2 h base upkeep soaks): the full goal 5.1 measure in docs/ROADMAP.md. In-scope fires are lit in at least 98 % of night samples, and in every sample where a cooking slot within 3 m holds food. No fire is seen at fuel 0 in a night sample or a sample with food cooking over it; fires may run dry by day, so a fire relit at the start of night counts only if it is lit by the next sample. At least one matched fuel receipt per soak. Stored fuel never drops below the reserve. The bot is within 32 m of home for at least 80 % of each soak.
 
 ## Acceptance criteria
 

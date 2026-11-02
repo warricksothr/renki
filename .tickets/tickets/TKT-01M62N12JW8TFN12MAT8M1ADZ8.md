@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-11-02T16:35:32Z
+updated_at: 2026-11-02T16:39:02Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -528,3 +528,7 @@ The no-axe and no-chest refusals happen before any work: `planWood` returns "I n
 **agent:claude-code/renki-plan** at 2026-11-02T16:35:32Z
 
 Applied on 2026-11-02 by the planning pass: removed the dependencies on TKT-01M62N12HJ (loot and deliver-when-full), TKT-01M62N12G9 (owner work sites) and TKT-01M62N12DN (equip and unequip). The gather loop that goal 2.1 measures runs without them: the trial equips the axe through the existing path, and work sites matter only for goal 2.3, now owned by TKT-01M6EFHE80. Goal 2.1 no longer waits on goal 2.2's owner sessions.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:39:02Z
+
+Corrects step 4 of the "Remaining for M2 goal 2.1" note: after linking the three summary.json paths, tick criterion 4, the one that names goal 2.1, not criterion 2. Goal 2.1 also says "no swimming" rather than "no drowning", so a run that swims fails even if the bot survives.

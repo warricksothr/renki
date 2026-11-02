@@ -40,8 +40,8 @@ Goal 3.3 in docs/ROADMAP.md counts only defences against a *confirmed attacker o
 
 ### What to build
 
-- `Threats` already ranks priority 0 for a creature whose AI target is a protected player other than Tas, 1 for a creature targeting Tas or his recent attacker, and 2 for proximity only. Keep that ranking. Also return which kind won.
-- Add an optional `trigger` field to `EscortStatus`, with the values `protected_target` (priority 0), `self_hit` (priority 1) or `proximity` (priority 2). Set it whenever mode is `defend`, and add the protected player's name as `victim` for `protected_target`.
+- `Threats` already ranks priority 0 for a creature whose AI target is a protected player other than Tas, 1 for a creature whose AI target is Tas or that is `MeleeTask.RecentAttacker`, and 2 for proximity only. Only confirmed threats (priority 0 or 1) start a defence, so proximity never appears in defend mode. Keep that ranking. Also return which kind won, telling the two priority-1 cases apart.
+- Add an optional `trigger` field to `EscortStatus`, with the values `protected_target` (priority 0), `self_target` (priority 1, AI target is Tas, no hit yet) or `self_hit` (priority 1, the recent attacker). Set it whenever mode is `defend`, and add the protected player's name as `victim` for `protected_target`.
 - Make the defend `reason` text match the trigger, so a self-hit no longer reads as "targets a protected player".
 - Mirror the fields in `internal/protocol/messages.go`, and document them in docs/BRIDGE-PROTOCOL.md (state, escort) and docs/ESCORT.md ("Diagnostics and validation").
 
@@ -60,7 +60,7 @@ Goal 3.3 in docs/ROADMAP.md counts only defences against a *confirmed attacker o
 
 ## Acceptance criteria
 
-- [ ] state.escort carries trigger (protected_target, self_hit or proximity) whenever mode is defend, and victim for protected_target
+- [ ] state.escort carries trigger (protected_target, self_target or self_hit) whenever mode is defend, and victim for protected_target
 - [ ] The defend reason text matches the trigger
 - [ ] The Go protocol type, BRIDGE-PROTOCOL.md and ESCORT.md include the new fields
 - [ ] One live escort run's audit window shows trigger on each defend state
