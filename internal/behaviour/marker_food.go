@@ -109,8 +109,13 @@ func (r *markerFoodRun) check(v View, requireMarkerPosition bool) error {
 			return errors.New("nearby threat interrupts food work")
 		}
 	}
-	if r.marker != nil && (r.health.lost(sampleHealth(v)) || v.Now.Sub(r.began) > 6*time.Minute) {
-		return errors.New("food work injured or time budget exhausted")
+	if r.marker != nil {
+		now := sampleHealth(v)
+		if r.health.lost(now) || v.Now.Sub(r.began) > 6*time.Minute {
+			return errors.New("food work injured or time budget exhausted")
+		}
+		// A hit after healing past the start health still counts.
+		r.health = r.health.roll(now)
 	}
 	return nil
 }

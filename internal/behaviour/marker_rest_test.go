@@ -221,3 +221,14 @@ func TestRestDefinitionRejectsAMismatchedIdleMarker(t *testing.T) {
 		t.Fatal("unknown fields admitted")
 	}
 }
+
+func TestRestNoticesAHitAfterHealingPastItsStart(t *testing.T) {
+	r, v := restFixture(t, false)
+	v.State.HP, v.State.HPMax = 80, 100
+	if _, err := r.Next(v, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := healThenHit(t, r.Check, v); err == nil {
+		t.Fatal("a hit after healing past the start health was ignored")
+	}
+}

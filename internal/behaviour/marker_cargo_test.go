@@ -253,3 +253,13 @@ func TestCargoJourneyReturnsBeforeReportingUnmatchedCargo(t *testing.T) {
 		t.Fatal(order, err)
 	}
 }
+
+func TestCargoNoticesAHitAfterHealingPastItsStart(t *testing.T) {
+	r, v := cargoFixture(t)
+	v.State.HP, v.State.HPMax = 80, 100
+	w := v.Waypoints[0]
+	r.guard.marker, r.guard.began, r.guard.health = &w, v.Now, sampleHealth(v)
+	if err := healThenHit(t, r.Check, v); err == nil {
+		t.Fatal("a hit after healing past the start health was ignored")
+	}
+}
