@@ -40,11 +40,11 @@ Goal 3.3 in docs/ROADMAP.md: 2 of 2 escort or guard runs engage a confirmed atta
 
 `escort-check` writes, per defence episode (from `state.escort` mode `defend` and `state.combat` under the escort task ID):
 
-- the creature's entity and prefab, the protected player it targeted (when the plugin reports it) and the distance from that player when defence started;
+- the creature's entity and prefab, what confirmed it, and the distance from the protected player when defence started. Per docs/ESCORT.md, "Defense and escape", a defence starts only on an observed AI target identifying a protected player or on a recent hit against Tas himself. A **confirmed attacker of a protected player** is the first kind: record it as `trigger: protected_target` with that player, and a self-hit as `trigger: self_hit`. If the plugin does not report which kind it was, record `trigger: unknown`;
 - start, end and how it ended (target death observed, target lost, stopped, leader lost);
 - `escortStopLatencyS`: when the escort task ends after an owner's "stay out of it" or "stop" chat line, the time from the line to the end of combat, and whether any `attack` or escort-defend started in the 10 s after. Read the chat line and tasks from the audit window for the run.
 
-`summary.json` gains `defences` (a list) and `stop`, and a field `goal33` that is true only when at least one defence started within 10 m of a protected player and, if a stop was said, it ended combat within 2 s with no restart.
+`summary.json` gains `defences` (a list) and `stop`, and a field `goal33` that is true only when at least one defence with `trigger: protected_target` started within 10 m of that player and, if "stay out of it" was said, no `attack` or escort-defend started in the 10 s after. A `self_hit` or `unknown` defence never counts. The stop latency is reported for information; goal 3.3 sets no time limit on it (the 2 s limit is goal 3.2's).
 
 The owner says "stay out of it" in game. The script does not send it.
 
@@ -52,11 +52,11 @@ The owner says "stay out of it" in game. The script does not send it.
 
 - `scripts/vm/escort-check.py` and `scripts/vm/escort-check-test.py`
 - `docs/ESCORT.md` ("Diagnostics and validation")
-- Read `plugin/Renki.Plugin/EscortTask.cs` and `plugin/Renki.Core/Tasks/Escort.cs` for what `state.escort` carries; if the targeted player is not reported, record it as unknown and do not add a protocol change here.
+- Read `plugin/Renki.Plugin/EscortTask.cs` and `plugin/Renki.Core/Tasks/Escort.cs` for what `state.escort` carries; if the trigger kind is not reported, record it as unknown and do not add a protocol change here. File a follow-up for the plugin to report it, because goal 3.3 cannot pass on unknown triggers.
 
 ### Verification
 
-- `just check vm test-escort-check` with fixtures for: a defence within 10 m, one beyond, a stop with fast end, a stop followed by a restart, and no encounter.
+- `just check vm test-escort-check` with fixtures for: a protected-target defence within 10 m, one beyond, a self-hit defence within 10 m (goal33 false), an unknown trigger (goal33 false), a stop with no restart, a stop followed by a restart, and no encounter.
 - `just check ci`
 
 ## Acceptance criteria
