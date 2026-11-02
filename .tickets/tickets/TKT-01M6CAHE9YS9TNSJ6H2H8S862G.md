@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-01T19:49:16Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -104,3 +104,7 @@ Related: TKT-01M6DDBX7K (VM trials: combat setting, cleanup stop race, stale V+ 
 ### How to verify
 
 A note with the host's versions and config, compared against `just vm vplus-inspect` (read-only) and the client's startup log.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -337,3 +337,7 @@ The user added automatic nighttime sleep and daytime idle bedside waiting while 
 Milestone review (M3 grooming, 2026-11-02): this ticket serves none of M3's goals 3.1-3.5 in docs/ROADMAP.md. It is a household-return routing problem under TKT-01M6864352 (Pressure-driven work, storage and maintenance goals), whose epic is M5. Proposed for M5; the owner decides.
 
 What is left: AC 1 and 2 (route feasibility from the retained coastal threats and terrain, and bounded initially-away progress or an actionable infeasible outcome). The latest notes record indoor passes only. Files to start in: `plugin/Renki.Core/Movement/ThreatGuidance.cs`, `plugin/Renki.Core/Movement/HostileClearance.cs`, `plugin/Renki.Plugin/HostileRoute.cs`, fixture `plugin/Renki.Tests/Fixtures/coastal-return.json`. Verify: `just check plugin test-core ThreatGuidance`, `just check ci`; live, `just vm route-benchmark` or a supervised work-trip return under the VM lease (TKT-01M6EF5DTG).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

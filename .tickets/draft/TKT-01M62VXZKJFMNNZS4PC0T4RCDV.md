@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:49Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -58,3 +58,9 @@ None of goals 4.1-4.6 needs this. It was filed as "fix if it shows up" and has n
 ## Acceptance criteria
 
 - [ ] A door that opens after the settle time is still shut behind the bot
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

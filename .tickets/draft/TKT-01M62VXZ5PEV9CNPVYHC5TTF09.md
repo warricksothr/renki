@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T15:59:48Z
+updated_at: 2026-11-02T16:15:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m5
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -83,7 +83,12 @@ Live evidence is the fires section of `just vm upkeep-report` in TKT-01M6EFM4G7 
 ## Acceptance criteria
 
 - [ ] Fires in the base are kept lit when cold or at night, and when food is cooking over them
-- [ ] Furnaces are fuelled only while they have something queued
 - [ ] Fuel comes from the pack, then the chests, and never below the reserve
 - [ ] When there is no fuel, the owners are told once
 - [ ] The tests listed under Verification pass in just check controller test-packages ./internal/behaviour, and docs/BEHAVIOURS.md documents the template
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:14Z
+
+Supersedes the earlier criteria on smelters, kilns, fermenters and beehives. The 2026-11-02 planning pass removed this ticket's dependency on TKT-01M62VXZ39 (Perception: fuel, lit, queued and finished for fires and machines), so its criteria now cover fires and cooking stations only, which need nothing new from perception. Machine support (fuel or ore into smelters and kilns, output from fermenters and beehives, furnaces fuelled only while queued) waits on the owner's decision on whether the base has those machines. If it does, file it as a follow-up that depends on TKT-01M62VXZ39.

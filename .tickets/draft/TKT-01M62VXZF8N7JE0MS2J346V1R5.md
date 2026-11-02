@@ -23,7 +23,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:49Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -74,3 +74,9 @@ This is not on an M5 exit goal. It is the general form of what household food al
 - [ ] Owners set and clear stock targets from chat
 - [ ] stock_low fires when remembered stock, seen recently enough, falls below a target
 - [ ] An instance or the agent can act on stock_low
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M6, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

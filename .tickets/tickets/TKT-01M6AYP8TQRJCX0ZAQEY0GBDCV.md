@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T07:02:57Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -85,3 +85,7 @@ Saved-atlas follow-up233430e passed committed review and was deployed with Tas o
 Milestone review (M3 grooming, 2026-11-02): building collisions and portal links serve none of M3's goals 3.1-3.5. I set its parent to TKT-01M6864352 (Pressure-driven work, storage and maintenance goals), since the remaining check is base navigation. Proposed for M5, or M7 (explores and maps) if portal travel is the point; the owner decides.
 
 What is left: AC 3, ordinary native navigation refuses portal triggers even before cache discovery, untested live because the shore return blocked reaching the base floor. Files: `plugin/Renki.Core/Movement/BuildingMesh.cs`, `plugin/Renki.Core/Movement/ObstacleIndex.cs`, `plugin/Renki.Plugin/NavigationObstacles.cs`, `docs/PORTALS.md`. Verify: `just check plugin test-core BuildingMesh`, `just check plugin test-core NavigationCache`, `just check ci`; live, one route past a base portal with the VM lease (TKT-01M6EF5DTG), audit window showing no portal entry.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

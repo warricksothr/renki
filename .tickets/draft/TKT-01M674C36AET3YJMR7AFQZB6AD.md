@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T19:25:17Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -56,3 +56,7 @@ Proposed one provisional slot, bounded incremental candidate preparation near ar
 No, not for M7's exit goals. Exploration legs reuse plugin/Renki.Core/Tasks/Scouting.cs, whose candidate rejections are the measured pauses in the note above (2.0 to 7.0 s bursts). Those cost time inside a 5 min work budget but do not make an expedition fail or count coverage wrongly, and no M7 goal measures smoothness. The design in docs/NAVIGATION-LOOKAHEAD.md stays valid for movement in general.
 
 Recommendation for the owner: move this spike out of M7 (unscheduled movement backlog, or M5 if smoother home work matters there). If it stays, it is not on the M7 critical path and nothing in M7 depends on it.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

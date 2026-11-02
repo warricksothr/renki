@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T22:34:11Z
-updated_at: 2026-11-02T16:01:44Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -92,3 +92,7 @@ Case from the game on 2026-10-28, 20:34: on 'go home' from outside, the navmesh 
 No. The first M7 expedition is dry ground in a familiar biome, away from buildings, and this spike's cases are building interiors and a straight-line fallback into a lake. Since it was filed, the plugin has gained much of what it proposes: plugin/Renki.Core/Movement/LocalRoute.cs (bounded A* around obstacles the navmesh missed, with height in node identity), ObstacleIndex.cs, Doors.cs, DeepWater.cs and DryTravel.cs. Visited ground for exploration is handled by TKT-01M6EFQN91 (Report and keep the ground the bot actually walked), which reuses RouteMemory.cs rather than a grid.
 
 Recommendation for the owner: move it out of M7. Before rescheduling, check whether its three questions are already answered by the LocalRoute and Doors work; if so, close it with that evidence. It still depends on TKT-01M62BMD18K3SE1WXJ7FDN8EPT (Plugin: send perception of characters, structures and resources), in review in M2.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

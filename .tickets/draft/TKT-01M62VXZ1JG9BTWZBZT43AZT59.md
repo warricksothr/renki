@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -66,3 +66,9 @@ What exists: `gather` with `returnHome` and `marker_cargo` deliver home or to a 
 - [ ] Deliver-when-full can choose the ship's hold or a waypoint's chests instead of home
 - [ ] A route over unexplored land or through a danger zone is avoided where another will do
 - [ ] When no storage is good enough, the bot says so
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M7, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

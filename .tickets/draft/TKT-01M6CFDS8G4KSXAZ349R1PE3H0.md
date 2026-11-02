@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-01T21:14:39Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -49,3 +49,7 @@ User requested archery as a core combat skill, particularly suitable for Tas. Ex
 ### Milestone review: not an M3 goal; too big for one PR
 
 M3 grooming, 2026-11-02: archery serves none of goals 3.1-3.5 (3.2 and 3.3 are melee). Proposed: M7 or unscheduled, after the melee goals pass. Before an agent picks it up, split it into: native bow draw/release and owned ammunition with hit evidence against an explicit target; line-of-fire and protected-player checks; ranged/melee selection and repositioning; then escort and hunting integration. Start in `plugin/Renki.Plugin/MeleeTask.cs` and `plugin/Renki.Core/Tasks/Melee.cs` (weapon choice and inputs), `plugin/Renki.Plugin/Driver.cs` (inputs), and the `attack` task `style` in docs/BRIDGE-PROTOCOL.md. Live checks need the VM lease (TKT-01M6EF5DTG).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

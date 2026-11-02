@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:54:52Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-plan-m4
   name: ""
@@ -63,3 +63,9 @@ Add `version` to memory.json, store the world with the interrupted flag, and key
 - [ ] memory.json carries a schema version
 - [ ] The interrupted flag is stored per world
 - [ ] Homes, containers, landmarks, waypoints and danger key by world UID when known, and name-keyed entries migrate, covered by a test
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

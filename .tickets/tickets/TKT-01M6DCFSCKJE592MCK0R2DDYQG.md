@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -71,3 +71,7 @@ The engine judges a Delay by `v.Now`, the clock the runner decided on. Tick stil
 **agent:claude-code/renki-review** at 2026-11-02T05:48:46Z
 
 Done in the review-fixes PR: (1) gather's pursuer 15 s and wildlife 20 s waits now return Delay, with TestEngineHonoursDelaysPastTheObservationWaitLimit pinning the engine contract and the pursuer test pinning Until=+15 s. (3) The engine judges a Delay by v.Now, the clock the runner decided on. Partly: Tick still reads now separately for waitingSince, which is harmless. Still open: (2) the while/until repeat condition cancelling the run in progress. It needs a decision on intended semantics, so check docs/BEHAVIOURS.md before changing allowed().
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M4, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

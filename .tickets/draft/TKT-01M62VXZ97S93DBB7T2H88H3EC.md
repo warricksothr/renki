@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -66,3 +66,9 @@ This is a stretch for M5 and is not on an exit goal (docs/ROADMAP.md). It needs 
 
 - [ ] The bot suggests assignments from a chest's contents and a sign beside it
 - [ ] Suggestions take effect only when an owner accepts them
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

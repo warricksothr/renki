@@ -51,7 +51,7 @@ M3 and M4 overlap on purpose. M4's work is controller, CI and tooling, and it do
 
 M5 to M7 are ordered for focus, not because every ticket requires it:
 
-- M5 and M6 share chest memory and the behaviour engine, and M6's worked example needs M5's stock targets.
+- M5 and M6 share chest memory and the behaviour engine, and M6's worked example needs stock targets built on M5's chest memory.
 - M6's tools wait on the chat-trust fix TKT-01M6DCFSME, which is in M4.
 - M7 depends only on M2 and M3. Its offline work, coverage and export, can run beside M5 and M6 (see [Conflict hotspots](#conflict-hotspots)).
 
@@ -199,7 +199,7 @@ Priority inside the wave: the VM lease, the CI workflow, and the M2/M3 tickets t
 - **M3.** Goal 3.1: the lease, then the flee fix TKT-01M6EFHED7, a deploy, and then waiting for three natural low-HP episodes, which nobody can schedule. Second chain: TKT-01M6EFHEBC, then TKT-01M6EFHEG5 and TKT-01M6EFHEHM, then combat trials and two owner escort sessions.
 - **M4.** The lease and the soak supervisor TKT-01M6DDFTF6, then the 24 h run TKT-01M6EFGYV6. That run also waits on TKT-01M6DCFSHH, TKT-01M6DCFSNT, TKT-01M6DCFS8Y and TKT-01M6DDBX5T, which run in parallel. The soak window has to start by 2026-11-20.
 - **M5.** Machine add_to (TKT-01M62VXZ4D), then the fuel template (TKT-01M62VXZ5P), then the two home soaks (TKT-01M6EFM4G7). A second chain is about as long: stow and chat behaviours, then chest assignments (TKT-01M62VXZ84), then idle sorting (TKT-01M6EFKDSV). Realistically the soak window is the week of 11-30.
-- **M6.** The trust fix TKT-01M6DCFSME and the model spike TKT-01M630V80T, then the tool registry (TKT-01M62VXZAV), wake bus (TKT-01M62VXZBN), autonomy (TKT-01M62VXZCV), behaviour tools (TKT-01M62VXZE3) and live evidence (TKT-01M6EFK122). Goal 6.8 also needs M5's stock-low event (TKT-01M62VXZF8), which waits on chest memory.
+- **M6.** The trust fix TKT-01M6DCFSME and the model spike TKT-01M630V80T, then the tool registry (TKT-01M62VXZAV), wake bus (TKT-01M62VXZBN), autonomy (TKT-01M62VXZCV), behaviour tools (TKT-01M62VXZE3) and live evidence (TKT-01M6EFK122). Goal 6.8 also needs the stock-low event (TKT-01M62VXZF8, in M6), which waits on chest memory (TKT-01M62VXYWJ).
 - **M7.** M2 and M3 close, then readiness (TKT-01M6EFQNT4) and the goal spec (TKT-01M6EFQP11), then the live survey leg (TKT-01M6EFQNWT), the return (TKT-01M6EFQNYK), the goal runner (TKT-01M6EFQP43), replays (TKT-01M6EFQP5X) and three expedition passes (TKT-01M6EFQPB8). Frontier ranking and the trial supervisor run alongside.
 
 ### Conflict hotspots

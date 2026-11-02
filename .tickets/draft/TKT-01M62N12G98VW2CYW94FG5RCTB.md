@@ -14,7 +14,6 @@ milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
-  - TKT-01M62EP0PDAB02DNJAJ6WS3MYD
   - TKT-01M62BMD18K3SE1WXJ7FDN8EPT
 blocks_on: none
 references: []
@@ -22,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-11-02T15:57:27Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -66,3 +65,9 @@ The other half of the original ticket, drops summed per cell and prefab with the
 - [ ] Felling, splitting and drops near an owner mark a work site, kept per world with what and when
 - [ ] The panel shows work sites, and the voice summary can mention them
 - [ ] planWood prefers the most recent owner work site in the same world within its distance limits, and its reply names it, in a test
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: removed the dependency on TKT-01M62EP0PD (Controller: remember where things are and should be, per world), which moved to M3. Owner work sites need only the landmark memory that already exists, so M2 goal 2.3 no longer waits on M3 work.

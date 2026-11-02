@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:49Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -54,3 +54,7 @@ M3 grooming, 2026-11-02: this spike serves none of goals 3.1-3.5 and is waiting 
 **agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:34Z
 
 Correction to the previous note: TKT-01M6DCFSME's title is "Chat: fence untrusted lines in owner turns, stop naming owners". It owns roadmap goal 4.4 (only owners command it), which is what the note meant.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T23:49:16Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -152,3 +152,7 @@ Proposal: move this ticket to M3. Goal 3.4 (avoid where it was hurt) already nam
 
 - `just check controller test-packages ./internal/memory ./internal/home`
 - Live (lease TKT-01M6EF5DTG): a structure removed in view is marked missing within one perception frame; read it from `just vm audit-summary SINCE UNTIL`.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M3, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

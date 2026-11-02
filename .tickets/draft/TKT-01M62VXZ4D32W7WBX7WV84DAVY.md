@@ -25,12 +25,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:00:24Z
+updated_at: 2026-11-02T16:15:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m5
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -69,8 +69,14 @@ Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entit
 
 ## Acceptance criteria
 
-- [ ] add_to puts fuel or ore from the pack into a fire, smelter or kiln, and reports how many
-- [ ] take_from collects from cooking stations, fermenters and beehives
 - [ ] Both respect wards and a Safety switch, and fail with the reasons 6.6 names
 - [ ] An uncertain unit (no pack decrease or no fuel or queue increase) stops the task without a retry, in a core test
 - [ ] One live add_to of 2 Wood into a home fire reports 2 added and the next perception shows its fuel up by 2; audit window linked
+- [ ] add_to puts fuel from the pack into a fire and reports how many
+- [ ] take_from collects finished food from cooking stations
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:14Z
+
+Supersedes the earlier criteria on smelters, kilns, fermenters and beehives. The 2026-11-02 planning pass removed this ticket's dependency on TKT-01M62VXZ39 (Perception: fuel, lit, queued and finished for fires and machines), so its criteria now cover fires and cooking stations only, which need nothing new from perception. Machine support (fuel or ore into smelters and kilns, output from fermenters and beehives, furnaces fuelled only while queued) waits on the owner's decision on whether the base has those machines. If it does, file it as a follow-up that depends on TKT-01M62VXZ39.

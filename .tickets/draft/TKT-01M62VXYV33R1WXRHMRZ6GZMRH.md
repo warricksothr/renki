@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -65,3 +65,9 @@ docs/ROADMAP.md schedules editing behaviours from chat with M5 ("an owner clones
 - [ ] Owners can clone an instance and set one of its parameters from chat
 - [ ] A rejected edit names the field and the reason
 - [ ] Players who are not owners are refused
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

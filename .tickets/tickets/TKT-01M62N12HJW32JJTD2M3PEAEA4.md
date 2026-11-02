@@ -19,7 +19,6 @@ dependencies:
   - TKT-01M62N129K1RGB8VSJZ3SDAC7N
   - TKT-01M62N12AYHHGR5W6D9RDEQKVM
   - TKT-01M62N12C9EWXCD54WMBH08T4E
-  - TKT-01M62EP0PDAB02DNJAJ6WS3MYD
   - TKT-01M62N12G98VW2CYW94FG5RCTB
   - TKT-01M62G71QCVNG3DVW1HZ8HXA23
   - TKT-01M62VXYSN4RQV75HTA3BSD162
@@ -41,12 +40,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-11-02T15:56:26Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -150,3 +149,7 @@ What stays on this ticket is the integration and the evidence: deploy the three 
 
 - Offline: `just check controller test-packages ./internal/behaviour ./internal/chat`, then `just check ci`.
 - Live (lease TKT-01M6EF5DTG): `just vm haul-report` (from TKT-01M6DDFTDD) over each owner session. Its summary.json shows a pickup ratio of at least 0.8 and at least 3 trips.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: removed the dependency on TKT-01M62EP0PD (Controller: remember where things are and should be, per world), which moved to M3, so M2 goal 2.2 no longer waits on M3 work.

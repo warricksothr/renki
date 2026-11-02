@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T14:02:42Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -100,3 +100,7 @@ Focused just check vm test-recover-home passed (.checks/20261101T164047Z-AOpziA.
 Milestone review (M3 grooming, 2026-11-02): group peeling is not required by goals 3.1-3.5. Goal 3.2 is one ordinary Greyling; goal 3.3 is defence of an owner. Proposed: finish the in-flight PR, then move the open field ACs (3-5) to M7 (explores and maps), where groups are met away from home. The owner decides.
 
 What is left: AC 3 (second pursuer, fresh spawn, lost observation and blocked escape abort safely), AC 4 (one verified kill then reassessment) and AC 5 (live one-then-two enemy checks). Files: `plugin/Renki.Plugin/PeelTask.cs`, `plugin/Renki.Core/Tasks/PursuitGroup.cs`, `internal/goal/peel_test.go`, `internal/retreat/peel_test.go`. Verify: `just check plugin test-core PursuitGroup`, `just check controller test-packages ./internal/goal ./internal/retreat`, `just check ci`; live, `just vm combat-trial --persistent --peel` under the VM lease (TKT-01M6EF5DTG).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.

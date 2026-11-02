@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:34Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -117,3 +117,7 @@ Proposal: move this ticket to M5 (runs the base), with the food and household tr
 
 - Offline: `just check controller test-packages ./internal/food ./internal/chat`.
 - Live (lease TKT-01M6EF5DTG): with no food carried and HP below the threshold, one chat line to an owner. Read it from `just vm audit-summary SINCE UNTIL`.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.

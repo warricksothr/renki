@@ -25,7 +25,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-31T23:52:44Z
-updated_at: 2026-11-02T16:01:43Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -115,3 +115,7 @@ Final diagnostic follow-up gate passed: just check ci, .checks/20261101T005228Z-
 ### Milestone review: serves no M3 goal
 
 M3 grooming, 2026-11-02: outdoor household food delivery serves none of M3's goals 3.1-3.5 in docs/ROADMAP.md. It belongs with its parent TKT-01M6864352 (Pressure-driven work, storage and maintenance goals) in M5. Proposed for M5; the owner decides. It stays blocked on TKT-01M6A9EVRB (Resolve a multi-threat coastal return bottleneck). Live work needs the VM lease, TKT-01M6EF5DTG.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
