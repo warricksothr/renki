@@ -216,15 +216,18 @@ on the instance's card, N counting only pickups the pack confirmed.
 ### The anchor
 
 The anchor is the player Tas's last order served: the player it was told to
-follow or escort, or else the player who gave the order in chat, in the panel's chat
-box or through the voice. The chat brain records it when the order is sent
-(`Brain.Anchor`); a refused order does not move it. The panel's task buttons
-have no speaker, so only their `follow` and `escort` set the anchor, to the
-player followed; the others leave it. The anchor must still command Tas, as an
-owner or an `operator` profile; companions and guests never anchor loot, and
-an anchor who loses that grant stops anchoring it. Drops near other owners,
-outside the anchor's radius, are left alone, and with the anchor out of
-sight or dead loot does not run.
+follow or escort, or else the player who gave the order. The chat brain
+records it when it sends a body order (`Brain.Anchor`): the chat commands
+(follow, escort, stop, wait, come here, go home, pick up, use, cook, fetch),
+whether typed in game or in the panel's chat box, and a task the voice
+proposes. A refused order does not move it, and neither do the food, gather
+and waypoint commands, which start goals and walks rather than work beside
+someone. The panel's task buttons have no speaker, so only their `follow` and
+`escort` set the anchor, to the player followed; the others leave it. The
+anchor must still command Tas, as an owner or an `operator` profile;
+companions and guests never anchor loot, and an anchor who loses that grant
+stops anchoring it. Drops near other owners, outside the anchor's radius, are
+left alone, and with the anchor out of sight or dead loot does not run.
 
 Until anyone has given an order since the controller started, a single
 commander in sight stands in as the anchor. With several in sight and none

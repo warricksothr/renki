@@ -922,6 +922,7 @@ func (b *Brain) goHome(from origin) {
 		}
 		return
 	}
+	b.ordered(from)
 	b.opts.Home.Told()
 	b.say(from, "Heading home.")
 }

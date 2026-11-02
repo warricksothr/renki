@@ -525,15 +525,16 @@ func TestOnlyACarriedOutOrderEndsTheHomeShun(t *testing.T) {
 		name, text string
 		setup      func(*fakeSession, *fakeHome)
 		want       int
+		anchor     string // the loot anchor afterwards: body orders only
 	}{
-		{"status", "status", nil, 0},
-		{"refused task", "follow me", func(f *fakeSession, _ *fakeHome) { f.allowed = []string{"say"} }, 0},
-		{"missing home", "go home", nil, 0},
-		{"missing grave", "get your things", nil, 0},
-		{"stop", "stop", nil, 1},
-		{"follow", "follow me", nil, 1},
-		{"set home", "set home", nil, 1},
-		{"go home", "go home", func(_ *fakeSession, h *fakeHome) { h.home = &protocol.Vec3{} }, 1},
+		{"status", "status", nil, 0, ""},
+		{"refused task", "follow me", func(f *fakeSession, _ *fakeHome) { f.allowed = []string{"say"} }, 0, ""},
+		{"missing home", "go home", nil, 0, ""},
+		{"missing grave", "get your things", nil, 0, ""},
+		{"stop", "stop", nil, 1, "Sothr"},
+		{"follow", "follow me", nil, 1, "Sothr"},
+		{"set home", "set home", nil, 1, ""},
+		{"go home", "go home", func(_ *fakeSession, h *fakeHome) { h.home = &protocol.Vec3{} }, 1, "Sothr"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			b, f, h := homeBrain()
@@ -543,6 +544,9 @@ func TestOnlyACarriedOutOrderEndsTheHomeShun(t *testing.T) {
 			b.Chat(line("Sothr", "bjorn "+tc.text))
 			if h.told != tc.want {
 				t.Errorf("ended shun %d times, want %d", h.told, tc.want)
+			}
+			if b.Anchor() != tc.anchor {
+				t.Errorf("anchor %q, want %q", b.Anchor(), tc.anchor)
 			}
 		})
 	}
