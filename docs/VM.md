@@ -43,7 +43,9 @@ A supervised trial (`combat-trial`, `gather-trial`, `goal-trial`,
 takes one, renews it every five minutes while it runs, and releases it only
 after the supervisor has exited, which is after its own cleanup (combat off,
 stop or logout). If you took the lease yourself first, the trial leaves it
-with you.
+with you. Ctrl-C, SIGTERM and SIGHUP reach the trial as Ctrl-C, so its cleanup
+still runs under the lease. A trial killed outright, which may not have
+cleaned up, keeps the lease until it expires: check the VM, then release it.
 
 A worktree knows its lease by the random id it keeps in `.vm-lease`
 (gitignored), so set `RENKI_VM_ACTOR` or take the lease by name to have it

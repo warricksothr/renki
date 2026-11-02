@@ -132,34 +132,60 @@ def run_releases_after_cleanup(case):
     check(case.held() is None and 'released the VM lease' in out.stderr, f'released afterwards: {out}')
 
 
-def run_forwards_termination(case):
-    """SIGTERM to run reaches the command; the lease is released after its cleanup."""
-    import signal
+def run_child(case, child, *args):
+    """Start run with CHILD, a script that writes PROBE.ready once it is running."""
     import time
     probe = case.root / 'probe'
-    child = (
-        'import pathlib, signal, sys, time\n'
-        'def stop(*_):\n'
-        '    time.sleep(0.2)\n'
-        '    pathlib.Path(sys.argv[2]).write_text(str(pathlib.Path(sys.argv[1]).exists()))\n'
-        '    sys.exit(5)\n'
-        'signal.signal(signal.SIGTERM, stop)\n'
-        'pathlib.Path(sys.argv[2] + ".ready").write_text("")\n'
-        'time.sleep(30)\n'
-    )
     proc = subprocess.Popen([sys.executable, '-B', str(LEASE), 'run', '--', sys.executable, '-c', child,
-                             str(case.file), str(probe)], env=case.env(),
+                             str(case.file), str(probe), *args], env=case.env(),
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     ready = Path(str(probe) + '.ready')
     for _ in range(200):
         if ready.exists():
             break
         time.sleep(0.05)
-    proc.send_signal(signal.SIGTERM)
+    check(ready.exists(), 'the child started')
+    pid = int(ready.read_text())
+    ready.unlink()
+    return proc, probe, pid
+
+
+# Like the supervisors: cleanup only in `finally`, no signal handlers.
+SUPERVISOR = (
+    'import os, pathlib, sys, time\n'
+    'lease, probe = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n'
+    'try:\n'
+    '    pathlib.Path(str(probe) + ".ready").write_text(str(os.getpid()))\n'
+    '    time.sleep(30)\n'
+    'finally:\n'
+    '    time.sleep(0.2)\n'
+    '    probe.write_text(str(lease.exists()))\n'
+)
+
+
+def run_forwards_termination(case):
+    """SIGTERM or SIGHUP to run reaches a supervisor as Ctrl-C; its cleanup runs
+    under the lease, and the lease is released afterwards."""
+    import signal
+    for signum in (signal.SIGTERM, signal.SIGHUP):
+        proc, probe, _ = run_child(case, SUPERVISOR)
+        proc.send_signal(signum)
+        code = proc.wait(timeout=30)
+        err = proc.stderr.read()
+        check(code == 128 + signal.SIGINT, f'the supervisor ends by KeyboardInterrupt: {code} {err}')
+        check(probe.read_text() == 'True', 'the lease was held through the cleanup')
+        check(case.held() is None and 'released the VM lease' in err, f'and released afterwards: {err}')
+        probe.unlink()
+
+
+def run_keeps_the_lease_after_an_uncleaned_death(case):
+    """A command killed outright may not have cleaned up, so its lease is kept."""
+    import signal
+    proc, _, child_pid = run_child(case, SUPERVISOR)
+    os.kill(child_pid, signal.SIGKILL)
     code = proc.wait(timeout=30)
-    check(code == 5, f'run returns the command status: {code} {proc.stderr.read()}')
-    check(probe.read_text() == 'True', 'the lease was held through the cleanup')
-    check(case.held() is None, 'and released afterwards')
+    err = proc.stderr.read()
+    check(code == 128 + signal.SIGKILL and case.held() is not None and 'kept' in err, f'lease kept: {code} {err}')
 
 
 def run_releases_when_the_command_cannot_start(case):
@@ -299,7 +325,8 @@ def lost_reply(case):
 
 def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
-             run_releases_after_cleanup, run_forwards_termination, run_releases_when_the_command_cannot_start,
+             run_releases_after_cleanup, run_forwards_termination,
+             run_keeps_the_lease_after_an_uncleaned_death, run_releases_when_the_command_cannot_start,
              run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
              concurrent_guards, release_racing_guards, lost_race, lost_reply]
     for case in cases:

@@ -326,39 +326,39 @@ def run(lease, command, minutes, renew_seconds):
     held, took = lease.take(minutes=minutes, renew='extend')
     if took:
         print(f"took the VM lease for {held['actor']} until {held['expires']}", file=sys.stderr)
-    # Ctrl-C reaches the child too; wait for its cleanup instead of dying first.
-    # SIGTERM and SIGHUP (a timeout, a closed terminal) reach only this
-    # process, so they are passed on to the child, and the lease is still
-    # released only after the child's cleanup.
-    started = []
+    # Ctrl-C reaches the child too; this process waits for the child's cleanup
+    # instead of dying first. SIGTERM and SIGHUP (a timeout, a closed
+    # terminal) are passed on as SIGINT, because the supervisors clean up in
+    # `finally` on KeyboardInterrupt and have no handler for the others.
+    started, pending = [], []
 
-    def forward(signum, _frame):
-        for child in started:
-            child.send_signal(signum)
+    def forward(_signum, _frame):
+        if started:
+            started[0].send_signal(signal.SIGINT)
+        else:
+            pending.append(True)
 
-    previous = {signum: signal.signal(signum, handler) for signum, handler in
-                ((signal.SIGINT, signal.SIG_IGN), (signal.SIGTERM, forward), (signal.SIGHUP, forward))}
+    handlers = ((signal.SIGINT, signal.SIG_IGN), (signal.SIGTERM, forward), (signal.SIGHUP, forward))
+    previous = {signum: signal.signal(signum, handler) for signum, handler in handlers}
+    code = 127
     try:
-        child = subprocess.Popen(command, preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
-        started.append(child)
-        while True:
-            try:
-                code = child.wait(timeout=renew_seconds)
-                break
-            except subprocess.TimeoutExpired:
-                # Any failure to renew is a warning: the trial keeps its lease
-                # until expiry and is still waited for, never abandoned.
-                try:
-                    took = lease.take(minutes=minutes, renew='extend')[1] or took
-                except (SystemExit, Exception) as error:
-                    print(f'could not renew the VM lease: {error}', file=sys.stderr)
-    except OSError as error:
-        print(f'cannot start {command[0]}: {error}', file=sys.stderr)
-        code = 127
-    finally:
-        for signum, handler in previous.items():
-            signal.signal(signum, handler)
-        if took:
+        try:
+            child = subprocess.Popen(command, preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
+        except OSError as error:
+            print(f'cannot start {command[0]}: {error}', file=sys.stderr)
+        else:
+            started.append(child)
+            if pending:
+                child.send_signal(signal.SIGINT)
+            code, retook = wait(lease, child, minutes, renew_seconds)
+            took = took or retook
+        # Python exits with -SIGINT after KeyboardInterrupt has unwound its
+        # `finally` blocks, so that cleanup ran. Any other signal may have
+        # cut it short: the lease is kept and expires on its own.
+        if took and code < 0 and code != -signal.SIGINT:
+            print(f'the command ended by signal {-code} before it could clean up; the VM lease is kept '
+                  'until it expires, so check the VM before releasing it', file=sys.stderr)
+        elif took:
             try:
                 released = lease.release_if_self()
             except (SystemExit, Exception) as error:
@@ -366,8 +366,27 @@ def run(lease, command, minutes, renew_seconds):
             else:
                 print('released the VM lease' if released else 'the VM lease was no longer ours to release',
                       file=sys.stderr)
+    finally:
+        # Only now, so a second signal cannot cut the release short.
+        for signum, handler in previous.items():
+            signal.signal(signum, handler)
     # A command ended by a signal exits as a shell would report it.
     return 128 - code if code < 0 else code
+
+
+def wait(lease, child, minutes, renew_seconds):
+    """Wait for the child, renewing the lease. Returns (code, took a new lease)."""
+    took = False
+    while True:
+        try:
+            return child.wait(timeout=renew_seconds), took
+        except subprocess.TimeoutExpired:
+            # Any failure to renew is a warning: the trial keeps its lease
+            # until expiry and is still waited for, never abandoned.
+            try:
+                took = lease.take(minutes=minutes, renew='extend')[1] or took
+            except (SystemExit, Exception) as error:
+                print(f'could not renew the VM lease: {error}', file=sys.stderr)
 
 
 def main(argv=None):
