@@ -242,3 +242,38 @@ func TestMarkerFoodNewMealDoesNotCountAsAnInjury(t *testing.T) {
 		t.Fatal("real injury ignored after meal activation")
 	}
 }
+
+// healThenHit drives a guard from 80/100 up to 100 and back down to 85 with
+// no injury sequence, and returns the error from the hit.
+func healThenHit(t *testing.T, check func(View) error, v View) error {
+	t.Helper()
+	v.InjurySeq = nil
+	v.State.HP, v.State.HPMax = 100, 100
+	if err := check(v); err != nil {
+		t.Fatal("healing cancelled safe work", err)
+	}
+	// Food decaying lowers the maximum and clamps health with it.
+	v.State.HP, v.State.HPMax = 95, 95
+	if err := check(v); err != nil {
+		t.Fatal("a falling maximum counted as an injury", err)
+	}
+	// A meal raises the maximum; health follows it up.
+	v.State.HPMax = 110
+	v.State.Food.Active = append(v.State.Food.Active, protocol.ActiveFood{Prefab: "CookedMeat", RemainingS: 1200})
+	if err := check(v); err != nil {
+		t.Fatal("a new meal counted as an injury", err)
+	}
+	v.State.HP = 85
+	return check(v)
+}
+
+func TestMarkerFoodNoticesAHitAfterHealingPastItsStart(t *testing.T) {
+	r := foodRunner(t, "berries")
+	v := markerView("berries")
+	v.State.HP, v.State.HPMax = 80, 100
+	w := v.Waypoints[0]
+	r.marker, r.began, r.health = &w, v.Now, sampleHealth(v)
+	if err := healThenHit(t, r.Check, v); err == nil {
+		t.Fatal("a hit after healing past the start health was ignored")
+	}
+}

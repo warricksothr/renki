@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6DCFSEGQP80TT6N087B6NH1
 title: "Behaviours: stow walks avoid hostiles; marker health baseline"
 type: bug
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -18,15 +18,22 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/renki-m3-marker
+  branch: t3/marker-health-baseline
+  worktree: /home/sothr/.t3/worktrees/renki/t3-c2254fa1
+  commit: 26dd1f039e9942423eadf30ab229fec1aee78bfb
+  session: null
+  claimed_at: 2026-11-02T18:48:52Z
+  expires_at: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T15:57:05Z
+updated_at: 2026-11-02T18:55:16Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m3
+  id: agent:claude-code/renki-m3-marker
   name: ""
 extensions: {}
 ---
@@ -61,11 +68,19 @@ Fix: roll the baseline forward on each `check`, keeping the meal-refresh excepti
 ## Acceptance criteria
 
 - [x] Stow move orders avoid hostiles when the caller asks for it, covered by a test
-- [ ] Marker food and cargo detect an injury after healing past their start health
-- [ ] Tests for marker food and cargo cover heal-then-hit with InjurySeq nil; just check ci passes
+- [x] Marker food and cargo detect an injury after healing past their start health
+- [x] Tests for marker food and cargo cover heal-then-hit with InjurySeq nil; just check ci passes
+
+## Implementation plan
+
+Roll markerFoodRun's health baseline forward on each passing check, so cargo (which shares the guard) gets it too. lost() already forgives a falling maximum (min with after.maximum) and, with injury sequences, a meal raising it. Heal-then-hit tests for food and cargo with InjurySeq nil.
 
 ## Notes
 
 **agent:claude-code/renki-review** at 2026-11-02T05:48:47Z
 
 Done in the review-fixes PR: stow walks now set AvoidHostiles from dry, since the protocol requires dry for avoidHostiles. TestDryStowWalksAvoidHostiles covers both walks. Plain collect stows are not dry and still do not avoid. Making collect dry is a separate decision. Still open: marker food/cargo health baseline.
+
+**agent:claude-code/renki-m3-marker** at 2026-11-02T18:55:16Z
+
+Fixed: check() now sets r.health to the current sample after lost() passes. New tests TestMarkerFoodNoticesAHitAfterHealingPastItsStart and TestCargoNoticesAHitAfterHealingPastItsStart go 80/100 -> 100/100 -> 95/95 (food decay) -> 110 max with a new meal -> hit to 85, InjurySeq nil. Both fail on the old code ('a hit after healing past the start health was ignored') and pass now. just check ci passed (167 s). A first ci run failed only in internal/app TestSpeechMemoryAndDeterministicLocationQuestionsIncludingPanel (2 s timeout, machine loaded by parallel gates); it passed alone and is filed as draft TKT-01M6ESNXKF.
