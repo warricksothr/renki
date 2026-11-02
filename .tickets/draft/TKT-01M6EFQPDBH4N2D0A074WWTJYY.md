@@ -9,7 +9,6 @@ priority: normal
 due_on: null
 labels:
   - controller
-  - live
 assignees: []
 milestone: M7
 parent: TKT-01M66PMAV9P2Z8QMR9N90T0TH1
@@ -17,14 +16,13 @@ origin: null
 dependencies:
   - TKT-01M6EFQP437YT124TQ25299BJV
   - TKT-01M6EFQN91YGXHVP9NF32BK21W
-  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:33Z
-updated_at: 2026-11-02T16:52:52Z
+updated_at: 2026-11-02T16:55:11Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
@@ -53,4 +51,9 @@ Rollout step 5, display. On the existing map, show the active expedition: author
 - [ ] Each layer above renders from a recorded fixture, and a test shows planned, travelled and uncertain lines use distinct styles
 - [ ] Measured coverage gained since start is shown in m2 and matches the coverage endpoint for the same fixture
 - [ ] With no active expedition, the map shows none of these layers (test)
-- [ ] A map snapshot taken during a live expedition run is saved under .checks/ and linked in a note
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:55:11Z
+
+Supersedes the 2026-11-02 change that labelled this ticket live. The live map snapshot for goal 7.6 is now a criterion of TKT-01M6EFQPB8 (three consecutive expedition passes), which depends on this ticket. Taking a snapshot only reads from the VM. This ticket is offline again and does not need the VM lease.

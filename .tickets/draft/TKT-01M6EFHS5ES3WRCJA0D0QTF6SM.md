@@ -1,7 +1,7 @@
 ---
 schema: 4
 id: TKT-01M6EFHS5ES3WRCJA0D0QTF6SM
-title: "Live: a trip home detours around a zone recorded that day"
+title: "Live: a trip home detours around a remembered danger zone"
 type: task
 status: draft
 status_reason: null
@@ -40,7 +40,7 @@ The live half of goal 3.4 in docs/ROADMAP.md: one trip home detours around a dan
 
 ### Outcome
 
-On the deployed build that includes the danger detour for trips home, one supervised trip home whose straight line crosses a danger zone recorded that day takes the detour and arrives without injury. Do not injure the bot on purpose to create a zone: use a zone that a natural injury created (a combat trial, a gather trial or a work trip). If there is none that day, record that and try another day.
+On the deployed build that includes the danger detour for trips home, one supervised trip home whose straight line crosses a danger zone still scoring at least 1 takes the detour and arrives without injury. Do not injure the bot on purpose to create a zone: use a zone that a natural injury created (a combat trial, a gather trial or a work trip), on any day, as long as it still scores at least 1. If there is none, record that and try again after the next natural injury.
 
 ### Steps
 
@@ -61,5 +61,5 @@ Evidence: the audit window path and a map snapshot (`just vm map-snapshot`) show
 
 ## Acceptance criteria
 
-- [ ] One supervised trip home, on a build with the detour, crosses a zone recorded that day by a natural injury, logs danger detour and arrives without a damaged event inside the zone
+- [ ] One supervised trip home, on a build with the detour, crosses a zone created by a natural injury and still scoring at least 1, logs danger detour and arrives without a damaged event inside the zone
 - [ ] The audit window and a map snapshot are linked in a note

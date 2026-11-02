@@ -1,7 +1,7 @@
 ---
 schema: 4
 id: TKT-01M62VXZ5PEV9CNPVYHC5TTF09
-title: "Controller: fuel template: keep fires and furnaces going"
+title: "Controller: fuel template: keep fires going"
 type: task
 status: draft
 status_reason: null
@@ -85,7 +85,7 @@ Live evidence is the fires section of `just vm upkeep-report` in TKT-01M6EFM4G7 
 
 - [ ] Fires in the base are kept lit when cold or at night, and when food is cooking over them
 - [ ] Fuel comes from the pack, then the chests, and never below the reserve
-- [ ] When there is no fuel, the owners are told once
+- [ ] When there is no fuel, the owners are told once per hour per fuel type
 - [ ] The tests listed under Verification pass in just check controller test-packages ./internal/behaviour, and docs/BEHAVIOURS.md documents the template
 
 ## Notes

@@ -21,18 +21,19 @@ dependencies:
   - TKT-01M6EFQP851CG8DV29FSHZ7KMP
   - TKT-01M6EFQNWT6P9JJA3KVHFSQA2F
   - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
+  - TKT-01M6EFQPDBH4N2D0A074WWTJYY
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:33Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-02T16:55:11Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -60,3 +61,4 @@ A run where no safe frontier remains is an honest partial and breaks the streak;
 - [ ] Three consecutive `just vm expedition-trial` runs pass by the rule above; their summary.json paths are in a note
 - [ ] One run with `--stop-after 60` reaches idle within 2 s of the stop, cancels the goal and sends no further task; its summary.json path is in a note
 - [ ] Every run, passing or not, ends with combat off and the goal cancelled or terminal
+- [ ] A map snapshot from one of the passing runs, drawn with the expedition layers from TKT-01M6EFQPDB, is saved under .checks/ with just vm map-snapshot and linked in a note (goal 7.6)

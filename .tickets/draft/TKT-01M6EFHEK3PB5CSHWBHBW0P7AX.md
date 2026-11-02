@@ -34,7 +34,7 @@ extensions: {}
 
 ## Description
 
-Goal 3.4 in docs/ROADMAP.md: a replay test shows routes preferring to avoid known danger zones, and one live trip detours around a zone recorded earlier that day.
+Goal 3.4 in docs/ROADMAP.md: a replay test shows routes preferring to avoid known danger zones, and one live trip detours around a zone, created by a natural injury, that still scores at least 1.
 
 Danger zones exist and are shown on the map (TKT-01M62N25C, Controller: danger zones from where the bot was hurt, done). They only change which tree or pickable is chosen first (`home.DangerRisk`, used by `internal/behaviour/conditions.go` and `internal/goal/food_*.go`). docs/MEMORY.md says so: "Explicit site travel, delivery, return-home and native navigation do not yet route around danger". `home.DangerRisk` says it "does not certify routes".
 
