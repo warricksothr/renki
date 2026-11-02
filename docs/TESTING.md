@@ -1756,9 +1756,10 @@ retains only route-relevant fields rather than repeating saved goal histories.
 The benchmark requires a safe online home start and does not join or retry
 startup recovery. It stops on the first failed trip, damage or changed
 ownership. A command/cancellation/session change yields without logging out
-the new owner. Otherwise failure logs Tas out, stops the game and restores
-the independent panel. `--keep-online` applies only after success and another
-safe-home observation. The tool retains plan, per-leg receipts/maps, sampled
+the new owner. Being in bed or sleeping also yields, even after the sleep
+interaction has completed and the active task is empty. Failure leaves Tas
+online by default; only explicit `--allow-logout` enables logout/client cleanup.
+`--keep-online` verifies a safe home after success. The tool retains plan, per-leg receipts/maps, sampled
 travel/minimum health, audit and an available failure camera image under
 `.checks/routes-*`; `just vm trial-status` reads compact progress.
 
@@ -2105,3 +2106,26 @@ observed home-floor arrival, with 7.14m observed movement and minimum88.3HP.
 Evidence: `routes-20261101T202959970535Z` under `.checks/`.
 The four previous idle definitions were restored; Tas was left online at home,
 sheltered and uninjured.
+
+### Indoor chore routing, 2026-11-02
+
+Build `62f820a` withdrew one DeerMeat from food chest `1:73552`, then the
+ordinary idle-food behavior cooked and collected one CookedDeerMeat at
+`1:73601` with a verified direct-spawn receipt. A conditional deposit put
+one Wood into `1:73555`. These are individual stage passes, not a completed
+loop or proof that the new alternate chest-side recovery was exercised.
+
+Nimah's subsequent sleep command succeeded. The following test move wrongly
+displaced that completed resting order, then failed to leave the bed:
+`.checks/task-9yw1yxhf.json` records a 54-node search confined by the 0.4 m
+drop from measured bed support36.49048 to floor36.09048. The benchmark now
+yields on either `in_bed` or `sleeping`, independently of active-task state.
+Walking support admits a measured descent of at most0.6 m across the whole
+edge, while each upward half-edge remains limited to0.3 m. Collision,
+support-normal, water and threat checks still apply. Captured descent/reverse
+climb, capsule-offset and excessive-drop cases are covered by
+`just check plugin test-core DryTravelTests`; sleep interruption and cleanup
+ownership are covered by `just check vm test-route-benchmark`.
+
+The corrected bed exit, final home leg and repeated indoor loops still need
+live receipts. Do not count the stopped sequence as a completed benchmark.

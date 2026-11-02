@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-02T02:53:52Z
+updated_at: 2026-11-02T03:10:55Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -291,3 +291,17 @@ First food withdrawal t-2 failed before any transfer (.checks/task-ql427mlm.json
 The diagnostic move_to to live chest1:73552 with stopDistance2 succeeded in7s (.checks/20261102T024815Z-vFsEfQ.log). Withdrawal then succeeded in3s with exact CookedDeerMeat1/MushroomYellow1 moves (.checks/20261102T024859Z-k5ne4d.log); Tas ate both and recovered to68.6/68.6HP, injurySeq0 since controller reconnect. This is an explicit diagnostic positioning step, not proof that the original transfer recovered on its own.
 
 Removed the matchExisting-only condition from local stuck/unreachable chest approach recovery. All transfers may now use the existing measured alternate-side routine;12m admission, physical/reach/fire/hostile checks, finite execution, ownership/access checks and all other refusal classes remain unchanged. The captured ordinary withdrawal case and forbidden-reason/range/nonfinite boundaries are covered by just check plugin test-core TransferTests (.checks/20261102T024846Z-FKDuQA.log). just check plugin fmt passed; full just check ci passed169s (.checks/20261102T025032Z-NOuYUn.log). Requires a plugin/client installation restart before independent live proof; no normal transfer or whole indoor loop success claimed yet.
+
+**agent:codex/renki-milestones** at 2026-11-02T03:07:44Z
+
+Build62f820a is deployed. Individual indoor stages passed: ordinary DeerMeat1 withdrawal from1:73552 (.checks/task-2mzi25ux.json); idle-food cook at1:73601 with verified direct_spawn CookedDeerMeat1 (.checks/current-batch/idle-cooking-proof.json); conditional Wood1 deposit into1:73555 (.checks/task-_9qr_5rv.json). Alternate-side fallback was not observed, so these do not establish that recovery path. The explicit cooking-check wrapper refused competing body ownership and is not a pass.
+
+Nimah's sleep command succeeded at02:58:13Z. The test then mistakenly displaced the completed resting order by checking only active-task state. A coordination question remains pending; no further live movement is authorized by an inferred option. Home task evidence .checks/task-9yw1yxhf.json failed after54 local nodes: measured support36.490482330322266 to midpoint/endpoint36.090484619140625. No complete indoor loop or repeated benchmark is claimed.
+
+Bound supported descents to0.6m across the whole edge while retaining0.3m per-half-edge upward limits and all live support/collision/slope/water/threat checks. Captured bed exit/reverse ascent, synthetic reachable bed exit, offset compensation, exact descent boundary, accumulated drops and midpoint pits are covered by just check plugin test-core DryTravelTests (.checks/20261102T030636Z-Z02cui.log,14 passed). Updated old capsule-offset fixture to preserve its purpose near the new descent bound rather than retaining its obsolete rejection of a0.5m descent.
+
+The route benchmark now yields on in_bed/sleeping even with no active task, including before admission, during a trip and cleanup. just check vm test-route-benchmark passed (.checks/20261102T030636Z-EnmjHx.log). No automatic logout enabled. Fresh03:06Z observation shows Tas idle/grounded/sheltered at[-31.08,36.49,15.19],56.3/56.3HP, one active CookedDeerMeat, injurySeq0 since reconnect, no bed flags. Await routing reservation clarification while completing offline validation; corrected bed exit and repeated loops remain live checks.
+
+**agent:codex/renki-milestones** at 2026-11-02T03:10:55Z
+
+Full just check ci passed in165s (.checks/20261102T030751Z-bTNhmi.log); just check plugin fmt passed. Committing bounded bed descent and benchmark sleep-order yield; deployment and corrected live loops remain pending routing coordination.

@@ -68,6 +68,9 @@ class Benchmark:
         self.save('inspection.json', {key: inspection.get(key) for key in
                                      ('run', 'world', 'worldUid', 'connection', 'freshness', 'body')})
         body = inspection.get('body') or {}
+        if any(flag in state.get('flags', []) for flag in ('in_bed', 'sleeping')):
+            self.yielded = True
+            raise RuntimeError('Tas is in bed or sleeping; benchmark yielded')
         task_ids = [(state.get('task') or {}).get('id'), body.get('taskId')]
         if (any(task and task != self.current_task for task in task_ids)
                 or body.get('owner') == 'automation' and not self.current_task):

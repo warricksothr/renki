@@ -115,6 +115,24 @@ class Routes(unittest.TestCase):
                 self.assertEqual(trial.result['completedTrips'], 0)
                 self.assertEqual(native.tasks, 1)
 
+    def test_completed_sleep_order_revokes_movement_and_cleanup(self):
+        for flag in ('in_bed', 'sleeping'):
+            for during_trip in (False, True):
+                with self.subTest(flag=flag, during_trip=during_trip):
+                    native = Native()
+                    if during_trip:
+                        native.before_task = lambda n: n.state['flags'].append(flag)
+                    else:
+                        native.state['flags'].append(flag)
+                    trial = native.trial()
+                    with self.assertRaisesRegex(RuntimeError, 'in bed or sleeping'):
+                        trial.run(['east'], 2, 30)
+                    self.assertTrue(trial.yielded)
+                    trial.finish(True, allow_logout=True)
+                    self.assertEqual(native.tasks, 1 if during_trip else 0)
+                    self.assertFalse(any(c[:2] == ('recovery-return', 'arm') or c[:3] ==
+                                         ('panel', 'POST', '/api/act/logout') for c in native.calls))
+
     def test_owner_command_cancellation_and_reconnect_revoke_cleanup(self):
         for change in (dict(task=dict(id='owner-order')), dict(connection=3), dict(world='two'),
                        dict(home=dict(world='one', pos=[1, 37, 0]))):
