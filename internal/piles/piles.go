@@ -234,8 +234,9 @@ type Pile struct {
 	Prefab string        `json:"prefab"`
 	Cell   [2]int        `json:"cell"`
 	Pos    protocol.Vec3 `json:"pos"`
-	// Total is the stack total now, or when the cell was last all in sight
-	// if InView is false.
+	// Total is the stack total now. If InView is false it is the total
+	// when the cell was last all in sight, or, for a cell never all in
+	// sight, the last non-zero count of the part that was.
 	Total  int    `json:"total"`
 	Trend  string `json:"trend"`
 	InView bool   `json:"inView"`
@@ -285,7 +286,9 @@ func (s Snapshot) Piles(now time.Time) []Pile {
 			p.InView = fresh && i == len(s.frames)-1
 		}
 		if current < 0 {
-			// Never all in sight: report the newest partial count.
+			// Never all in sight: report the last non-zero partial count.
+			// A frame listing none of the cell's drops cannot tell picked
+			// up from out of reach, so it does not lower it.
 			for _, f := range s.frames {
 				if n := totalOf(f, k); n > 0 {
 					p.Total = n
