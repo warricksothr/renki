@@ -129,6 +129,9 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning {
 		return
 	}
+	if nativeEscort(st) && st.Escort.Mode == "escape" {
+		return
+	}
 	if r.controlledAttack(st, seen) {
 		return
 	}
@@ -222,11 +225,17 @@ func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol
 	return true
 }
 
+// Native escape is trusted only for the active matching body task.
+func nativeEscort(st *protocol.State) bool {
+	return st.Task != nil && st.Task.Task == protocol.TaskEscort && st.Task.Status == protocol.StatusRunning &&
+		st.Escort != nil && st.Escort.ID != "" && st.Escort.ID == st.Task.ID
+}
+
 // The plugin owns a bounded explicit melee encounter and its fallback flee.
 // Match the task ID so stale combat metadata cannot suppress ordinary retreat.
 func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception) bool {
 	c := st.Combat
-	if c == nil || st.Task == nil || st.Task.Task != protocol.TaskAttack || st.Task.Status != protocol.StatusRunning || c.ID == "" || c.ID != st.Task.ID {
+	if c == nil || st.Task == nil || (st.Task.Task != protocol.TaskAttack && !(nativeEscort(st) && st.Escort.Mode == "defend" && st.Escort.Entity == c.Entity)) || st.Task.Status != protocol.StatusRunning || c.ID == "" || c.ID != st.Task.ID {
 		return false
 	}
 	if c.Mode == "retreat" {
@@ -257,7 +266,8 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	defer r.mu.Unlock()
 	for _, other := range seen.Characters {
 		if other.ID == c.Entity {
-			found = other.Kind == protocol.CharacterCreature && other.Hostile && other.Prefab == "Greyling" && other.Stars == 0 && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) <= rangeLimit
+			eligible := other.Prefab == "Greyling" || nativeEscort(st) && (other.Prefab == "Boar" || other.Prefab == "Neck")
+			found = other.Kind == protocol.CharacterCreature && other.Hostile && eligible && other.Stars == 0 && other.HPFrac > 0 && st.Pos.FlatDistance(other.Pos) <= rangeLimit
 			continue
 		}
 		if other.Kind != protocol.CharacterCreature || !other.Hostile || other.HPFrac <= 0 {

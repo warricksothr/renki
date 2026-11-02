@@ -482,3 +482,49 @@ func TestConfirmedAttackerDefenseIsBoundedAndRefusalFallsBackToFlee(t *testing.T
 		t.Fatal(f.sent)
 	}
 }
+
+func TestNativeEscortCombatAndEscapeUseExactBodyIdentity(t *testing.T) {
+	for _, mode := range []string{"defend", "escape"} {
+		for _, change := range []string{"valid", "stale escort", "stopped", "wrong task", "stale combat", "wrong enemy", "unsupported phase"} {
+			t.Run(mode+"/"+change, func(t *testing.T) {
+				f := fighting()
+				f.st.Task.Task = protocol.TaskEscort
+				f.st.Escort = &protocol.EscortStatus{ID: f.st.Task.ID, Leader: "Nimah", Mode: mode, Entity: "0:7"}
+				r := New(f, func() []string { return nil }, nil, quiet, nil)
+				r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+				switch change {
+				case "stale escort":
+					f.st.Escort.ID = "old"
+				case "stopped":
+					f.st.Task = nil
+				case "wrong task":
+					f.st.Task.Task = protocol.TaskFollow
+				case "stale combat":
+					f.st.Combat.ID = "old"
+				case "wrong enemy":
+					f.st.Escort.Entity = "0:99"
+				case "unsupported phase":
+					f.st.Escort.Mode = "follow"
+				}
+				r.Tick(context.Background())
+				wantHeld := change == "valid" || mode == "escape" && (change == "stale combat" || change == "wrong enemy")
+				if (len(f.sent) == 0) != wantHeld {
+					t.Fatalf("held=%t, sent=%v", wantHeld, f.sent)
+				}
+			})
+		}
+	}
+}
+
+func TestNativeEscortNeverSuppressesAnAdditionalAttacker(t *testing.T) {
+	f := fighting()
+	f.st.Task.Task = protocol.TaskEscort
+	f.st.Escort = &protocol.EscortStatus{ID: f.st.Task.ID, Leader: "Nimah", Mode: "defend", Entity: "0:7"}
+	f.seen.Characters = append(f.seen.Characters, protocol.PerceivedCharacter{ID: "extra", Kind: protocol.CharacterCreature, Prefab: "Troll", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{2, 30, 0}})
+	r := New(f, func() []string { return nil }, nil, quiet, nil)
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+	r.Tick(context.Background())
+	if len(f.sent) != 2 || !strings.HasPrefix(f.sent[0], "flee ") {
+		t.Fatal(f.sent)
+	}
+}

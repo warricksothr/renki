@@ -829,7 +829,9 @@ export function startController() {
       "combat",
       inWorld && s.combat
         ? `combat: ${s.combat.mode}${s.combat.reason ? " · " + s.combat.reason : ""}`
-        : "",
+        : inWorld && s.escort
+          ? `escort ${s.escort.leader}: ${s.escort.mode}${s.escort.reason ? " · " + s.escort.reason : ""}`
+          : "",
     );
     world.left = active ? s.leftBehind || [] : [];
     world.home = active && s.home ? s.home.pos : null;

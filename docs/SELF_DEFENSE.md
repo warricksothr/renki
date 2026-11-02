@@ -1,5 +1,9 @@
 # Self-defense development
 
+The native companion composition and its current permission, attacker-evidence
+and safety limits are documented in [ESCORT.md](ESCORT.md). The historical
+implementation sequence below predates that composition.
+
 Targeted stump harvesting now completes from raised home through collection,
 delivery and return. Its aiming, contact checks, normal attack input and
 cancellation provide useful foundations for combat. A moving creature also

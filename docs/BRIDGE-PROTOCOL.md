@@ -509,7 +509,8 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `sleep` (planned standalone task) | body | Chat currently uses `interact` with `sleep:true` | M2 |
 | `repair_all` (planned standalone task) | body | Currently use `interact` with `repair:true` and a station entity | M2 |
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
-| `guard` | body | `around`: player or position; `radius` | M3 |
+| `escort` | body | `player`; `protect` (names, at most 128); `distance` (2–8 m, default 3.5); `collect` / `defend` (default true). Persistent native follow/collection/defense/escape; see [ESCORT.md](ESCORT.md) | M3 |
+| `guard` (planned area guard) | body | `around`: player or position; `radius` | M3 |
 | `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 

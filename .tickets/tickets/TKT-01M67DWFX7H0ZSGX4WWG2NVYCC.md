@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M67DWFX7H0ZSGX4WWG2NVYCC
 title: Validate Windows OBS freshness and persistent standby scenes
 type: task
-status: ready
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -20,10 +20,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/renki-milestones
+  branch: t3/escort-nimah
+  worktree: /home/sothr/.t3/worktrees/renki/t3-b9d91179
+  commit: 2220901608b9f4e9e503a1d56296477e35cbdd0e
+  session: null
+  claimed_at: 2026-10-31T16:00:05Z
+  expires_at: null
 archive: null
 created_at: 2026-10-30T22:11:32Z
-updated_at: 2026-10-30T23:14:43Z
+updated_at: 2026-10-31T16:17:03Z
 created_by:
   id: agent:codex/local-streaming
   name: ""
@@ -49,11 +56,7 @@ Start on the shared original Renki standby scene. Switch to gameplay only after 
 
 ## Implementation plan
 
-User explicitly authorized BLIGHT deployment and local OBS setup and will leave its console available. Install the tested merged controller/plugin while Tas stays offline, restart only the panel, and retain checksums/status evidence. Provision official pinned OBS and MediaMTX Windows releases through idempotent just recipes, with local credentials and independent interactive scheduled tasks.
-
-Implement authenticated loopback-only obs-websocket v5 adapter with fixed operations, bounded payloads/timeouts, redacted diagnostics and private local config. Keep audio/external destinations off. Configure dedicated exact-Valheim game capture and shared standby scenes. Verify actual capture freshness using an opt-in game-rendered changing nonce: only match recently reported scoped nonces in screenshots of the exact OBS capture source, require progress over distinct nonces, reject stale/mismatched scope and switch to standby on uncertainty. OBS activity/FPS alone cannot grant gameplay. Exercise game offline/online, lost capture and adapter restart without stopping encoded output; preserve body-stop independence.
-
-Validate focused protocol/freshness policy tests and Windows local capture/encoder evidence before enabling gameplay. Configure private reachable ICE and HTTPS only with measured remote playback. Document unexercised desktop transitions honestly. Run just check ci, commit and committed just check review; open and land a concrete deployment PR with evidence.
+User reported persistent standby while Tas was in-world. Read-only BLIGHT diagnostics show OBS and relay still running, RenkiCapture Ready with LastResult 1, watchdog Running, and a stale successful verification timestamp. The verifier loop's runtime exit-1 path is failure to atomically publish capture health. Make publication failure revoke Program to standby/reset freshness and retry on subsequent loop ticks instead of terminating the verifier. Add an end-to-end loop regression with a failed health write followed by recovery, and a permanently failing writer that remains contained/alive. Add bounded Task Scheduler restart settings for the capture verifier/watchdog, and expose task last-result/time in existing redacted status tooling. Keep exact-window capture, changing-frame evidence, scoped health expiry and silent local output intact. Run focused checks and just check ci, commit/review, redeploy only the adapter/tasks, and verify fresh offline status plus independent watchdog/OBS/relay continuity. Tas is safely offline at 3.2 HP following a failed unguarded recovery; no game restart for video proof until a continuous recovery guard is active. Preserve untested desktop/minimize/GPU-loss acceptance as open.
 
 ## Notes
 
@@ -66,6 +69,20 @@ Actual Windows NVENC output verified baseline H264/720p30/3Mb/s/keyint60/no B fr
 Live source-loss trial passed (.checks/20261030T230200Z-ZDWJ2O.log); adapter-kill watchdog trial passed (.checks/20261030T230206Z-f9uAVA.log); body stop returned200 while video continued; logout passed (.checks/20261030T230258Z-UlrPU4.log). Same browser MediaStream and unchanged WHEP request count2 through these checks (earlier relay provisioning created the second session). Logout evidence: menu/standby,7780 decoded frames. OBS output duration increased throughout. Tas stayed healthy; only natural food maximum decline, then logged out and game closed (.checks/20261030T230436Z-Xw5lal.log).
 
 Deployment exposed EventSource CLOSED after proxy502 during controller restart: native EventSource does not always retry. Added bounded explicit CLOSED-source recovery while preserving native transient retries; tests cover duplicate/obsolete events and shutdown. Final combined CI/review/deployment follows. AC3 deliberately remains open: RDP/lock/unlock/minimize/GPU-loss and actual forced render-freeze transitions have not been live-validated; frozen-image policy is covered by decoded-image/scoped-telemetry tests. No manual desktop interruption or user credentials requested.
+
+**agent:codex/renki-milestones** at 2026-10-31T16:09:52Z
+
+Current read-only BLIGHT diagnostics confirm RenkiCapture Ready/LastResult1 with stale successful observedAt04:58 local, while RenkiCaptureWatchdog, OBS and relay remain Running. Program is Renki Offline and output remains active. The verifier runtime fatal path is an atomic health-publication failure; a transient Windows sharing violation is plausible but the original filesystem error was not retained, so its exact cause is unconfirmed.
+
+Implemented contained publication failure: revoke gameplay, reset freshness, switch Program to standby and keep retrying. Added mock OBS loop regressions for transient and persistent write failures. Added bounded Task Scheduler failure restarts for verifier/watchdog and exposed last-run/result in redacted status. Exact-window/changing-frame/scope verification and independent OBS/relay lifecycle are retained. Focused Go and streaming checks passed. Full CI/review/deployment pending. Tas is safely logged out at3.2HP; no unguarded game restart for capture proof. AC3 desktop/GPU transition evidence remains open.
+
+**agent:codex/renki-milestones** at 2026-10-31T16:17:03Z
+
+Repair committed ate3c444d in PR130 and deployed with just check streaming windows-adapter (.checks/20261031T161240Z-hQDpkd.log). Full just check ci passed147s (.checks/20261031T160856Z-p3v3EI.log); committed just check review HEAD~2..HEAD passed with no findings (.checks/20261031T161134Z-HbjG78.log).
+
+Actual Windows proof: RenkiCapture and RenkiCaptureWatchdog now Running with new process IDs6004/11768 and fresh status, while OBS18488 and relay16200 retain their original processes. In-world verifier observedAt2026-10-31T11:14:35.0061537-05:00 reports Verified changing game frames; exact Valheim source active, Program Renki Gameplay, silent local outputActive true. Browser API content gameplay, matching world scope1:DizzysHellheim:827096491,1280x720 readyState4,8428 decoded frames, same original MediaStream and unchanged one WHEP negotiation. Screenshot visually inspected: /home/sothr/.t3/userdata/browser-artifacts/browser-screenshot-blight-raccoon-grue-ts-net-mvwlqjz6-068edd28.png.
+
+Tas healed under native recovery guard and was logged out/stopped safely at29.7HP. Browser returned to Tas is resting/standby while sameStream stayed true,10465 decoded frames and one WHEP negotiation (.checks/video-offline-after-recovery.json). OBS output duration increased from62070866ms offline after deployment to62137466ms inworld. No output/relay restart or broader capture source was needed. Original exit1 was confirmed; its precise filesystem cause remains unproven. AC3 desktop/minimize/GPU loss/encoder contention trials remain open. This repair does not establish those transitions.
 
 ## Summary
 

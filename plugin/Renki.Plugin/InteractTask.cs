@@ -29,6 +29,7 @@ namespace Renki.Plugin
         const float Repeat = 0.25f;
 
         readonly InteractArgs args;
+        readonly bool safeTravel;
         readonly Interactable target;
         readonly GameObject obj;
         readonly string name;
@@ -40,15 +41,16 @@ namespace Renki.Plugin
         float sightTraceAt;
         readonly List<string> heard = new List<string>();
 
-        public InteractTask(InteractArgs args, Interactable target)
+        public InteractTask(InteractArgs args, Interactable target, bool safeTravel = false)
         {
             this.args = args;
+            this.safeTravel = safeTravel;
             this.target = target;
             obj = ((MonoBehaviour)target).gameObject;
             name = Name(target);
             var p = Player.m_localPlayer;
             goal = obj.transform.position;
-            walker.SetGoal(p.transform.position, goal);
+            walker.SetGoal(p.transform.position, goal, dryGround: safeTravel, avoidHostiles: safeTravel);
             walker.ResetStuck(p.transform.position);
         }
 

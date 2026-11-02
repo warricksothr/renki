@@ -41,6 +41,7 @@ type PanelStatus struct {
 	InjurySeq     *uint64                `json:"injurySeq,omitempty"`
 	Food          *protocol.FoodStatus   `json:"food,omitempty"`
 	Combat        *protocol.CombatStatus `json:"combat,omitempty"`
+	Escort        *protocol.EscortStatus `json:"escort,omitempty"`
 	Stamina       float64                `json:"stamina,omitempty"`
 	StaminaMax    float64                `json:"staminaMax,omitempty"`
 	PVP           *bool                  `json:"pvp,omitempty"`
@@ -92,6 +93,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		ps.Location, ps.Flags, ps.Yaw = s.Location, s.Flags, s.Yaw
 		ps.Food = s.Food
 		ps.Combat, ps.Stamina, ps.StaminaMax = s.Combat, s.Stamina, s.StaminaMax
+		ps.Escort = s.Escort
 		ps.PVP = s.PVP
 		ps.SharePosition = s.SharePosition
 		ps.Connection = a.Session.ConnectionID()

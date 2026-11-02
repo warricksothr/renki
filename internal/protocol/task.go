@@ -26,6 +26,7 @@ const (
 	TaskStop     = "stop"
 	TaskMoveTo   = "move_to"
 	TaskFollow   = "follow"
+	TaskEscort   = "escort"
 	TaskLookAt   = "look_at"
 	TaskSay      = "say"
 	TaskEmote    = "emote"
@@ -88,6 +89,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &StopArgs{}
 	case TaskMoveTo:
 		args = &MoveToArgs{}
+	case TaskEscort:
+		args = &EscortArgs{}
 	case TaskFollow:
 		args = &FollowArgs{}
 	case TaskLookAt:
@@ -383,6 +386,34 @@ type FollowArgs struct {
 func (a *FollowArgs) validate() error {
 	if a.Player == "" {
 		return errors.New("`player` is required")
+	}
+	return nil
+}
+
+// EscortArgs keeps following through bounded collection and defense detours.
+// Protect is supplied from configured owners/operators by the controller.
+type EscortArgs struct {
+	Player   string   `json:"player"`
+	Protect  []string `json:"protect,omitempty"`
+	Distance *float64 `json:"distance,omitempty"`
+	Collect  *bool    `json:"collect,omitempty"`
+	Defend   *bool    `json:"defend,omitempty"`
+}
+
+func (a *EscortArgs) validate() error {
+	if strings.TrimSpace(a.Player) == "" || len(a.Player) > 64 {
+		return errors.New("`player` is required (up to 64 characters)")
+	}
+	if a.Distance != nil && (math.IsNaN(*a.Distance) || math.IsInf(*a.Distance, 0) || *a.Distance < 2 || *a.Distance > 8) {
+		return errors.New("`distance` must be between 2 and 8 m")
+	}
+	if len(a.Protect) > 128 {
+		return errors.New("`protect` must contain at most 128 player names")
+	}
+	for _, name := range a.Protect {
+		if strings.TrimSpace(name) == "" || len(name) > 64 {
+			return errors.New("`protect` contains an invalid player name")
+		}
 	}
 	return nil
 }

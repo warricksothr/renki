@@ -422,7 +422,7 @@ namespace Renki.Plugin
             return k;
         }
 
-        static string Id(ZNetView nview)
+        internal static string Id(ZNetView nview)
         {
             var zdo = nview != null ? nview.GetZDO() : null;
             return zdo != null ? zdo.m_uid.ToString() : "";

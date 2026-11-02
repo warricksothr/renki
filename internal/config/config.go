@@ -138,7 +138,7 @@ type LLM struct {
 // still decide which of them it offers; pickup needs AllowGather, and drop
 // AllowDrop.
 var KnownTasks = []string{
-	protocol.TaskStop, protocol.TaskMoveTo, protocol.TaskFollow,
+	protocol.TaskStop, protocol.TaskMoveTo, protocol.TaskFollow, protocol.TaskEscort,
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
 	protocol.TaskPickup, protocol.TaskDrop, protocol.TaskInteract, protocol.TaskFlee,
 	protocol.TaskEquip, protocol.TaskUnequip, protocol.TaskUseItem,

@@ -37,6 +37,10 @@ namespace Renki.Plugin
 
         BridgeClient client;
         TaskRunner runner;
+        StartupRecovery recovery;
+        readonly System.Collections.Generic.List<Character> recoveryCharacters = new System.Collections.Generic.List<Character>();
+        float recoverySince = -1;
+        internal bool Recovering => recovery != null && !recovery.Complete;
         Reporter reporter;
         readonly Perceiver perceiver = new Perceiver();
         readonly TerrainReporter terrain = new TerrainReporter();
@@ -90,6 +94,9 @@ namespace Renki.Plugin
                 "Using offering bowls (M2).").Value;
             safety.AllowRawControls = Config.Bind("Safety", "AllowRawControls", false,
                 "The debug `controls` task.").Value;
+            recovery = new StartupRecovery(Config.Bind("Safety", "RecoveryGuard", false,
+                "One-shot sheltered healing guard after login. Hold body inputs until recovered; log out if a hostile approaches or recovery is unsafe.").Value);
+            Driver.RecoveryHold = Recovering;
             Doorman.Enabled = Config.Bind("Safety", "AllowDoors", true,
                 "Open closed doors in the bot's way, and shut them behind it.").Value;
 
@@ -100,7 +107,7 @@ namespace Renki.Plugin
                 if (client != null && client.Connected) Send(t);
             };
             runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble);
-            Driver.OnFixedStep = dt => runner.FixedTick(dt);
+            Driver.OnFixedStep = dt => { if (!GuardRecovery() && Driver.Active) runner.FixedTick(dt); };
             reporter = new Reporter(this);
             TerrainReporter.Current = terrain;
             inventory = new InventoryReporter(this);
@@ -115,9 +122,40 @@ namespace Renki.Plugin
                            $"tasks allowed by config: {string.Join(", ", TaskNames.Supported.Where(safety.Permits))}");
         }
 
+        bool GuardRecovery()
+        {
+            if (!Recovering) return false;
+            var p = Player.m_localPlayer;
+            if (p == null || Phase() != Wire.PhaseInWorld) { Driver.Stand(); return true; }
+            if (loggingOut) { Driver.Stand(); return true; }
+            if (recoverySince < 0) recoverySince = Time.unscaledTime;
+            recoveryCharacters.Clear(); Character.GetCharactersInRange(p.transform.position, 12, recoveryCharacters);
+            var threat = recoveryCharacters.Any(c => c != null && c != p && !(c is Player) && !c.IsDead() &&
+                !c.IsTamed() && !(c.GetBaseAI() is AnimalAI) && BaseAI.IsEnemy(p, c));
+            var action = recovery.Decide(true, p.GetHealth(), p.GetMaxHealth(), Time.unscaledTime - recoverySince >= 2,
+                p.InShelter(), p.IsOnGround(), p.GetFoods().Count > 0, p.InWater() || p.IsSwimming(), threat);
+            if (action == RecoveryAction.Continue)
+            {
+                Driver.RecoveryHold = false;
+                Tracer.Emit("recovery", "startup healing completed");
+                return false;
+            }
+            Driver.Stand(); Driver.ClearCombat();
+            if (action == RecoveryAction.Logout)
+            {
+                Logger.LogWarning("startup recovery unsafe; logging out");
+                EndSession("startup recovery unsafe"); loggingOut = true; AutoJoinPatch.Suppress = true;
+                Game.instance?.Logout(true, true);
+            }
+            return true;
+        }
+
         void Update()
         {
             var now = Time.unscaledTime;
+            // Recovery is independent of bridge/session availability. FixedUpdate
+            // also checks it before any body task may write controls.
+            GuardRecovery();
             client.GameTime = ZNet.instance != null ? ZNet.instance.GetTimeSeconds() : 0;
             if (now >= nextHello)
             {
@@ -281,6 +319,7 @@ namespace Renki.Plugin
 
         void OnDestroy()
         {
+            Driver.RecoveryHold = false;
             harmony?.UnpatchSelf();
             client?.Dispose();
         }
