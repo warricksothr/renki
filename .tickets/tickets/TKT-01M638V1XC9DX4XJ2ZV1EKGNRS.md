@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M638V1XC9DX4XJ2ZV1EKGNRS
 title: "Follow: stuck outside a wall, the leader inside, path straight through"
 type: bug
-status: ready
+status: review
 status_reason: null
 priority: normal
 due_on: null
@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T07:26:24Z
-updated_at: 2026-11-02T15:57:05Z
+updated_at: 2026-11-02T19:04:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m3
+  id: agent:claude-code/renki-m3-follow
   name: ""
 extensions: {}
 ---
@@ -64,12 +64,19 @@ When the leader is within the follow distance plus 1.5 m and the walker has used
 ## Acceptance criteria
 
 - [x] The cause of the straight path through the wall is known and written down
-- [ ] A follower that is near the leader but cannot get closer waits, not recovers
-- [ ] A Core test with the captured house positions shows the follower waits instead of failing stuck, and resumes when the leader moves 2 m; just check ci passes
+- [x] A follower that is near the leader but cannot get closer waits, not recovers
+- [x] A Core test with the captured house positions shows the follower waits instead of failing stuck, and resumes when the leader moves 2 m; just check ci passes
 
 ## Implementation plan
 
-Resolve the raised-house exit that now blocks autonomous M2/M3 testing. On b484e00, native search preparation exhausted eight candidates, including three local plans that expanded222nodes each but never moved; audit .checks/audit-window-rud4oZ.jsonl, trial .checks/combat-trial-20261030T234338632221Z/summary.json. Tas remained at[-37.57,36.09,6.36], zero damage, final84/84HP and successful cleanup. The planner's0.75m grid stride exceeds the physical probe's0.6m step-height allowance on a45-degree stair flight, so it can skip three0.25m treads and disconnect a physically traversable staircase. Change local grid spacing to0.5m while retaining the0.6m support limit, height-aware nodes, complete current wall/body/water checks,4096-node cap and incremental per-frame budgets. Add ascent/descent regressions where the old stride refuses the first sample; keep existing real-house, multi-floor, distant-progress, enclosure and support/water checks. Run focused checks, full CI and committed review, land/deploy, then retry native house egress once on the changed build. This is a supported geometric hypothesis; actual live egress remains unproven until observed. Keep unrelated close-follow acceptance open.
+FollowTask fails `stuck` whenever Walker.Steer returns false (recoveries spent), however close the leader is. Escort runs FollowTask (safeTravel) as its follow child, so it shares the path: each failure resets escort to follow, waits 2 s, and starts a fresh FollowTask that runs the same 9 recoveries against the wall again.
+
+Approach:
+1. Renki.Core/Movement/FollowStall.cs: `NearLeaderWait`. `GiveUp(pos, leader, distance)` returns true (wait) when the flat gap is within distance + 1.5 m and records where the leader stood; false means fail stuck. `Hold(leader)` keeps the wait until the leader moves more than 2 m (RepathAfter) from that point, then clears.
+2. FollowTask: on Steer failure ask NearLeaderWait; when waiting, stand, face the leader, trace `follow wait` with reason and positions; on resume trace `follow resume`, re-path and reset the stuck count. Escort gets the fix through its FollowTask child.
+3. Tests: FollowNearWaitTests with the captured house positions (bot (-28.1,36.09,11.55), leader (-31.54,36.09,12.45), distance 3.5), resume after 2 m, still fails stuck when far.
+4. Docs: BRIDGE-PROTOCOL 7.3 follow bullet, TESTING staged live check.
+Verify: just check plugin test-core FollowNearWait, just check ci, just review. Live confirmation waits for the VM lease.
 
 ## Notes
 
@@ -155,3 +162,21 @@ Changed local grid spacing0.75m ->0.5m without loosening support, wall, body, wa
 The shared movement prerequisite landed in PR117 (33be3ba): local route spacing is 0.5 m so ordinary 45-degree stairs stay within the unchanged 0.6 m support-step bound. Native raised-house egress was observed in the subsequent scouting trial, and a matching startup return-home succeeded before attack dispatch in .checks/combat-trial-20261031T000445756934Z/summary.json.
 
 Further scouting-specific fixes are deployed through 8969d8d. The final native run completed its entire local search and return with zero damage (.checks/combat-trial-20261031T003101022705Z/summary.json). These results do not verify the remaining near-leader waiting criterion in this Follow ticket; leave it unchecked. Returning this unfinished ticket to ready and releasing our claim rather than leaving it held at handoff.
+
+**agent:claude-code/renki-m3-follow** at 2026-11-02T18:53:44Z
+
+Implemented on t3/follow-near-wait. Renki.Core NearLeaderWait decides: when the walker spends its recoveries within follow distance + 1.5 m (flat) of the leader, FollowTask stands, faces the leader and traces `follow wait` (reason, gap, pos, leader) instead of failing `stuck`. It traces `follow resume` and re-paths with a fresh stuck count once the leader moves more than 2 m (3D) from where they stood. Farther away it still fails `stuck`.
+
+Escort shared the failure path: EscortTask runs FollowTask(safeTravel) as its follow child, and on a `stuck` child it reset to follow, waited 2 s and restarted the same recoveries against the wall. It now waits through the same child, so no escort-specific change was needed.
+
+FollowNearWaitTests (4 cases) uses the captured house positions: bot (-28.1,36.09,11.55), Nimah (-31.54,36.09,12.45), distance 3.5. just check plugin test-core FollowNearWait passed (.checks/20261102T185049Z-uNjoGQ.log); just check ci passed (.checks/20261102T185052Z-0eetLz.log).
+
+AC3 is unticked only because its wording bundles the Core test and ci (both done) with the ticket's live intent: live confirmation on the VM waits for the VM lease. Not deployed. The live check is in docs/TESTING.md: bot outside the east wall, leader inside, see `follow wait` and no `stuck`, walk 2 m, see `resume`.
+
+**agent:claude-code/renki-m3-follow** at 2026-11-02T19:04:25Z
+
+Supersedes the AC3 paragraph of my previous note: AC3 as written (Core test with the captured house positions shows wait, not stuck, and resume after 2 m; just check ci passes) is met, so it is now ticked. The live check is a separate step and is still to do.
+
+Two review rounds tightened the decision. The wait now needs the leader on the bot's level (1.75 m); a leader a floor above still fails `stuck`, so escort's 2 s retry can find the stairs. The wait also ends if the bot itself is pushed more than 2 m from where it began waiting, measured from its own spot so a few centimetres of drift at the edge of the near ring do not restart the recoveries. FollowNearWaitTests has 7 cases. Final just check ci .checks/20261102T190039Z-fZ67jI.log; just check review .checks/20261102T190313Z-Un8jIp.log: no findings.
+
+Live confirmation waits for the VM lease (TKT-01M6EF5DTG). Not deployed. On the VM: Nimah inside the house, Tas outside the east wall, follow t-N at distance 3.5. Expect a `follow` `wait` trace and no `stuck`, then walk 2 m and expect `resume`. Repeat once under escort.
