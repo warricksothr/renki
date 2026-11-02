@@ -57,7 +57,9 @@ func DeliberateDrop(pos protocol.Vec3, at time.Time, owners []protocol.Vec3, bre
 // LootItems are the felling products gather_trial.py checks.
 var LootItems = []string{"Wood", "Resin", "BeechSeeds", "Feathers"}
 
-// Loot picks up drops near the player Tas is with (lootAnchor). One value
+// Loot picks up drops near the player Tas is with (lootAnchor), within a
+// reach that grows while that player stays settled in one place (Settle,
+// LootReach). One value
 // is shared by every loot instance of an engine, because the drops' history
 // outlives a run.
 type Loot struct {
@@ -67,7 +69,19 @@ type Loot struct {
 	felling map[string]protocol.Vec3 // trees, logs and stumps in the last frame
 	breaks  []Break
 	drops   map[string]lootDrop
+	settles map[settleKey]*Settle
 }
+
+// settleKey names one settle tracker: a player and the area shape an
+// instance asked for. Observe feeds every shape asked for so far.
+type settleKey struct {
+	player string
+	area   SettleArea
+}
+
+// settleForget drops a tracker whose player has been unseen this long.
+const settleForget = 10 * time.Minute
+
 type lootDrop struct {
 	seen     bool // in the last fresh frame
 	pos      protocol.Vec3
@@ -82,13 +96,37 @@ type LootParams struct {
 	MaxWeightFraction float64  `json:"maxWeightFraction,omitempty"`
 	MaxTargets        int      `json:"maxTargets,omitempty"`
 	PreemptFollow     bool     `json:"preemptFollow,omitempty"`
+	// Reach: BaseRadius until the anchor has been settled SettleDelayS,
+	// then growing to Radius over GrowS (LootReach). The settle area opens
+	// at SettleRadius and, after SettleDelayS, widens to SettleMaxRadius;
+	// SettleSlack is how far past its edge the anchor may step before it
+	// resets (Settle). Zero means the default.
+	BaseRadius      float64 `json:"baseRadius,omitempty"`
+	GrowS           float64 `json:"growS,omitempty"`
+	SettleDelayS    float64 `json:"settleDelayS,omitempty"`
+	SettleRadius    float64 `json:"settleRadius,omitempty"`
+	SettleMaxRadius float64 `json:"settleMaxRadius,omitempty"`
+	SettleSlack     float64 `json:"settleSlack,omitempty"`
 }
+
+func (p LootParams) area() SettleArea {
+	return SettleArea{Radius: p.SettleRadius, MaxRadius: p.SettleMaxRadius, Slack: p.SettleSlack,
+		Delay: time.Duration(p.SettleDelayS * float64(time.Second))}
+}
+
+// defaultSettleArea is the shape Observe tracks for every commander in
+// sight, so their settle time accrues before any instance asks.
+var defaultSettleArea = lootDefaults(LootParams{}).area()
 
 func decodeLoot(raw json.RawMessage) (LootParams, error) {
 	var p LootParams
 	if err := Decode(raw, &p); err != nil {
 		return p, err
 	}
+	return lootDefaults(p), nil
+}
+
+func lootDefaults(p LootParams) LootParams {
 	if p.Items == nil {
 		p.Items = slices.Clone(LootItems)
 	}
@@ -101,7 +139,15 @@ func decodeLoot(raw json.RawMessage) (LootParams, error) {
 	if p.MaxTargets == 0 {
 		p.MaxTargets = 16
 	}
-	return p, nil
+	for _, d := range []struct {
+		field *float64
+		value float64
+	}{{&p.BaseRadius, 8}, {&p.GrowS, 120}, {&p.SettleDelayS, 5}, {&p.SettleRadius, 6}, {&p.SettleMaxRadius, 10}, {&p.SettleSlack, 2}} {
+		if *d.field == 0 {
+			*d.field = d.value
+		}
+	}
+	return p
 }
 func (*Loot) Validate(raw json.RawMessage) error {
 	p, err := decodeLoot(raw)
@@ -121,6 +167,21 @@ func (*Loot) Validate(raw json.RawMessage) error {
 	}
 	if !finite(p.MaxWeightFraction) || p.MaxWeightFraction < .1 || p.MaxWeightFraction > .9 {
 		return errors.New("loot weight fraction must be between 0.1 and 0.9")
+	}
+	if !finite(p.BaseRadius) || p.BaseRadius <= 0 || p.BaseRadius > p.Radius {
+		return errors.New("loot base radius must be above 0 and at most its radius")
+	}
+	if !finite(p.GrowS) || p.GrowS <= 0 || p.GrowS > 600 {
+		return errors.New("loot growS must be above 0 and at most 600 s")
+	}
+	if !finite(p.SettleDelayS) || p.SettleDelayS < 0 || p.SettleDelayS > 120 {
+		return errors.New("loot settleDelayS must be 0 to 120 s")
+	}
+	if !finite(p.SettleRadius) || p.SettleRadius <= 0 || !finite(p.SettleMaxRadius) || p.SettleMaxRadius < p.SettleRadius || p.SettleMaxRadius > 20 {
+		return errors.New("loot settle radius must be above 0, and its maximum at least that and at most 20 m")
+	}
+	if !finite(p.SettleSlack) || p.SettleSlack < 0 || p.SettleSlack > 10 {
+		return errors.New("loot settleSlack must be 0 to 10 m")
 	}
 	if p.MaxTargets < 1 || p.MaxTargets > 64 {
 		return errors.New("loot needs 1–64 targets")
@@ -147,7 +208,7 @@ func (l *Loot) Observe(v View) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if v.State.World != l.world {
-		l.world, l.seq, l.felling, l.breaks, l.drops = v.State.World, 0, nil, nil, nil
+		l.world, l.seq, l.felling, l.breaks, l.drops, l.settles = v.State.World, 0, nil, nil, nil, nil
 	}
 	if l.drops != nil && v.Perception.Seq == l.seq {
 		return
@@ -170,6 +231,7 @@ func (l *Loot) Observe(v View) {
 		}
 	}
 	l.felling = felling
+	l.observeSettles(v)
 	l.breaks = slices.DeleteFunc(l.breaks, func(b Break) bool { return now.Sub(b.At) > FellingWindow })
 	owners := liveOwners(v)
 	if l.drops == nil {
@@ -205,6 +267,48 @@ func (l *Loot) Observe(v View) {
 		}
 		l.drops[r.ID] = d
 	}
+}
+
+// observeSettles feeds each live commander in sight to their trackers.
+func (l *Loot) observeSettles(v View) {
+	if l.settles == nil {
+		l.settles = map[settleKey]*Settle{}
+	}
+	for _, p := range v.Perception.Characters {
+		if p.Kind != protocol.CharacterPlayer || p.HPFrac <= 0 || !slices.Contains(v.Owners, p.Name) {
+			continue
+		}
+		if k := (settleKey{p.Name, defaultSettleArea}); l.settles[k] == nil {
+			l.settles[k] = &Settle{}
+		}
+		for k, s := range l.settles {
+			if k.player == p.Name {
+				s.Observe(p.Pos, v.Now, k.area)
+			}
+		}
+	}
+	for k, s := range l.settles {
+		if v.Now.Sub(s.Last) > settleForget {
+			delete(l.settles, k)
+		}
+	}
+}
+
+// reach is loot's radius around player under p at now. An area shape not
+// tracked yet starts being tracked, from the next frame.
+func (l *Loot) reach(player string, p LootParams, now time.Time) float64 {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	k := settleKey{player, p.area()}
+	s := l.settles[k]
+	if s == nil {
+		if l.settles == nil {
+			l.settles = map[settleKey]*Settle{}
+		}
+		s = &Settle{Last: now}
+		l.settles[k] = s
+	}
+	return LootReach(s.Settled(now), p)
 }
 
 // eligible reports whether a drop has been observed and is not ignored.
@@ -299,12 +403,13 @@ func (r *lootRun) pick(v View) *protocol.PerceivedResource {
 		return nil
 	}
 	r.anchor = anchor
+	reach := r.l.reach(anchor, r.p, v.Now)
 	var best *protocol.PerceivedResource
 	for _, d := range v.Perception.Resources {
 		if d.Kind != protocol.ResourceDrop || d.ID == "" || r.c.seen[d.ID] || !r.c.fits(v, d.Yield) || !r.l.eligible(d.ID, v.Now) {
 			continue
 		}
-		if distance(d.Pos, at) > r.p.Radius {
+		if distance(d.Pos, at) > reach {
 			continue
 		}
 		if best == nil || targetCost(v, d.Pos) < targetCost(v, best.Pos) || targetCost(v, d.Pos) == targetCost(v, best.Pos) && d.ID < best.ID {
@@ -359,7 +464,7 @@ const LootInstance = "Loot"
 // of a live owner, and queues only when an eligible drop is in reach of
 // its anchor player.
 func LootDefinition() Definition {
-	params, _ := json.Marshal(LootParams{Items: LootItems, Radius: 30, MaxWeightFraction: .8, MaxTargets: 16})
+	params, _ := json.Marshal(lootDefaults(LootParams{Items: LootItems}))
 	return Definition{Template: "loot", Params: params, Trigger: Trigger{Kind: "timer", EveryS: 2},
 		When: Conditions{Owner: &OwnerNear{Radius: 40}}, Repeat: Repeat{Mode: "trigger", CooldownS: 2}, Priority: -5, Enabled: true}
 }

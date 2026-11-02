@@ -61,7 +61,7 @@ func TestLootPicksNearestDropsNearTheOwnerAndChecksReceipts(t *testing.T) {
 	l := &Loot{}
 	stone := target("stone", protocol.ResourceDrop, "Stone", 6)
 	far := target("far", protocol.ResourceDrop, "Wood", 45) // 35 m from the owner
-	v := lootView(1, target("wood", protocol.ResourceDrop, "Wood", 5), target("resin", protocol.ResourceDrop, "Resin", 20), stone, far)
+	v := lootView(1, target("wood", protocol.ResourceDrop, "Wood", 5), target("resin", protocol.ResourceDrop, "Resin", 16), stone, far)
 	l.Observe(v)
 	if !l.Ready(json.RawMessage(`{}`), v) {
 		t.Fatal("eligible drops should make loot ready")
@@ -234,7 +234,7 @@ func TestLootJudgesADropOnceEvenAfterItLeavesSight(t *testing.T) {
 
 func TestLootValidation(t *testing.T) {
 	l := &Loot{}
-	for _, bad := range []string{`{"radius":41}`, `{"radius":-1}`, `{"items":["wood"]}`, `{"items":[]}`, `{"maxWeightFraction":0.95}`, `{"maxTargets":65}`, `{"preemptFollow":true}`, `{"site":{}}`} {
+	for _, bad := range []string{`{"radius":41}`, `{"radius":-1}`, `{"items":["wood"]}`, `{"items":[]}`, `{"maxWeightFraction":0.95}`, `{"maxTargets":65}`, `{"preemptFollow":true}`, `{"site":{}}`, `{"baseRadius":31}`, `{"radius":10,"baseRadius":12}`, `{"growS":601}`, `{"growS":-1}`, `{"settleDelayS":121}`, `{"settleRadius":12,"settleMaxRadius":11}`, `{"settleMaxRadius":21}`, `{"settleSlack":11}`} {
 		if l.Validate(json.RawMessage(bad)) == nil {
 			t.Error(bad)
 		}
