@@ -117,6 +117,31 @@ type Store struct {
 	write func([]byte) error
 }
 
+// RunID scopes native task evidence across controller restarts. It is immutable.
+func (s *Store) RunID() string { return s.runID }
+
+type IndexEntry struct {
+	ID, Kind, Status string
+	Created          time.Time
+}
+
+// Index lists lightweight selectors without cloning every policy/checkpoint.
+func (s *Store) Index() []IndexEntry {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]IndexEntry, 0, len(s.records))
+	for _, r := range s.records {
+		out = append(out, IndexEntry{r.ID, r.Kind, r.Status, r.Created})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Created.Equal(out[j].Created) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].Created.After(out[j].Created)
+	})
+	return out
+}
+
 func Open(path string) (*Store, error) {
 	s := &Store{path: path, records: map[string]Record{}}
 	var run [16]byte

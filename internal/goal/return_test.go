@@ -49,6 +49,10 @@ func TestCombatRoundTripRequiresSeparateMatchingReturnAndFreshArrival(t *testing
 	if err = r.Dispatched("return"); err != nil {
 		t.Fatal(err)
 	}
+	g, _ = h.Store.Get(id)
+	if g.Pending.Run != h.Store.RunID() || !g.Pending.At.Equal(v.Now) {
+		t.Fatal("return intent lacks dispatch scope", g.Pending)
+	}
 	fresh(&v, 10)
 	v.State.Pos = *v.Home
 	v.State.Pos[1] -= 1.6 // Native Arrival.Level accepts the same floor here.

@@ -24,6 +24,223 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "inspection-peel": async ({ page, check, shot }) => {
+    const inspector = page.locator("#inspection");
+    await inspector.getByText("Phases & guards", { exact: true }).click();
+    await check(
+      "Inspector identifies the task and keeps unexported admission unknown",
+      async () => {
+        await expect(inspector.getByTestId("inspection-owner")).toContainText(
+          "attack peel-1",
+        );
+        await expect(
+          inspector.getByTestId("inspection-native-phase"),
+        ).toContainText("lead");
+        await expect(
+          inspector
+            .getByRole("row")
+            .filter({ hasText: "Current escape corridor" }),
+        ).toContainText("unknown");
+        await expect(
+          inspector
+            .getByRole("row")
+            .filter({ hasText: "Accounted group targeting" }),
+        ).toContainText("fail");
+        await inspector
+          .getByRole("button", { name: "Fight", exact: true })
+          .click();
+        await expect(
+          inspector.getByRole("button", { name: "Fight", exact: true }),
+        ).toHaveAttribute("aria-pressed", "true");
+        await expect(
+          inspector.getByTestId("inspection-native-phase"),
+        ).toContainText("lead");
+      },
+    );
+    await inspector.evaluate((e) => e.scrollIntoView({ block: "start" }));
+    await shot("inspector-peel-unknown-guards");
+    await page.evaluate(() => {
+      const d = renkiPreview.inspection;
+      d.guards.find((g) => g.code === "single_pursuer").result = "fail";
+      d.guards.find((g) => g.code === "single_pursuer").observed = "2";
+      d.body.reason =
+        'delayed second pursuer; isolation reset <img src=x onerror="window.injection=true">';
+    });
+    await check(
+      "Delayed second pursuer resets isolation evidence",
+      async () => {
+        await expect(
+          inspector.getByRole("row").filter({ hasText: "One pursuer" }),
+        ).toContainText("fail");
+        await expect(inspector).toContainText(
+          'delayed second pursuer; isolation reset <img src=x onerror="window.injection=true">',
+        );
+        await expect(inspector.locator("img")).toHaveCount(0);
+      },
+    );
+    await page.evaluate(() => {
+      renkiPreview.inspection.freshness.ageS = 1.5;
+    });
+    await check(
+      "Pursuit expires before ordinary state; viewing phases sends no commands",
+      async () => {
+        await expect(
+          inspector.getByRole("row").filter({ hasText: "One pursuer" }),
+        ).toContainText("stale");
+        assert.equal(
+          await page.evaluate(() =>
+            renkiPreview.requests.some((r) => r.method !== "GET"),
+          ),
+          false,
+        );
+      },
+    );
+  },
+  "inspection-interruption": async ({ page, check, shot }) => {
+    const inspector = page.locator("#inspection");
+    await expect(inspector.getByTestId("inspection-owner")).toContainText(
+      "attack peel-1",
+    );
+    await page.evaluate(() => {
+      const d = renkiPreview.inspection;
+      d.body = {
+        owner: "direct_or_system",
+        task: "move_to",
+        taskId: "direct-2",
+        status: "awaiting_state",
+        relatedGoal: false,
+        stateMatch: false,
+      };
+      d.graph = null;
+      d.guards = [];
+    });
+    await check(
+      "New dispatch replaces old phase before native state catches up",
+      async () => {
+        await expect(inspector.getByTestId("inspection-owner")).toContainText(
+          "move_to direct-2",
+        );
+        await expect(
+          inspector.getByTestId("inspection-native-phase"),
+        ).toHaveCount(0);
+        await expect(inspector).toContainText(
+          "current body ownership is not established",
+        );
+      },
+    );
+    await inspector.evaluate((e) => e.scrollIntoView({ block: "start" }));
+    await shot("inspector-new-owner");
+    await page.evaluate(() => {
+      renkiPreview.inspection.freshness.ageS = 4;
+    });
+    await check("Stale observation withholds body ownership", async () => {
+      await expect(inspector.getByTestId("inspection-owner")).toHaveText(
+        "Body: Live ownership unavailable",
+      );
+      await expect(inspector.getByTestId("inspection-freshness")).toContainText(
+        "stale",
+      );
+    });
+  },
+  "inspection-pantry-offline": async ({ page, check, shot }) => {
+    await page.evaluate(() => {
+      const d = renkiPreview.inspection;
+      d.goal = {
+        id: "pantry-fixture",
+        kind: "food_resupply",
+        status: "needs_plan",
+        reason: "checking remaining storage candidates",
+        decision: "inspect the next allowed chest",
+        tasksLeft: 250,
+        attemptsLeft: 250,
+        remainingS: 90,
+        waitedS: 4,
+      };
+      d.body = { owner: "unavailable", relatedGoal: false };
+      d.freshness = { status: "offline" };
+      d.graph = {
+        id: "food-adapter-v1",
+        label: "Food host adapter",
+        active: "ready",
+        source: "Saved host checkpoint; not live stock.",
+        phases: [
+          {
+            id: "ready",
+            label: "Ready",
+            description: "Inspect candidates and acquire meals.",
+          },
+        ],
+        edges: [],
+      };
+      d.guards = [
+        {
+          code: "chest_candidates",
+          label: "Chest search ledger",
+          layer: "progress",
+          result: "recorded",
+          observed: "2 candidate chests · 1 search ledger entries · 1 receipts",
+          required:
+            "candidate-negative result does not prove every chest empty",
+          source: "goal.food checkpoint",
+        },
+      ];
+      d.evidence = [
+        {
+          kind: "outcome",
+          taskId: "probe-1",
+          run: "synthetic-ui-run",
+          at: "2026-10-30T18:59:50Z",
+          summary: "stock_probe · failed · requested item absent",
+          auditUrl: "/api/task?id=probe-1&at=2026-10-30T18%3A59%3A50Z",
+        },
+        {
+          kind: "inventory_receipt",
+          taskId: "transfer-2",
+          run: "synthetic-ui-run",
+          summary: "ready · 1 Mushroom · matched_transfer_inventory",
+        },
+      ];
+      renkiPreview.stream.emit("status", {
+        ...renkiPreview.status,
+        connected: false,
+        phase: "menu",
+      });
+    });
+    const inspector = page.locator("#inspection");
+    await inspector.getByText("Phases & guards", { exact: true }).click();
+    await inspector
+      .getByText("Retained evidence & coverage", { exact: true })
+      .click();
+    await check(
+      "Offline pantry keeps saved progress and honest receipt coverage",
+      async () => {
+        await expect(
+          inspector.getByTestId("inspection-freshness"),
+        ).toContainText("Offline");
+        await expect(inspector).toContainText("inspect the next allowed chest");
+        await expect(
+          inspector.getByRole("button", { name: "Ready · saved" }),
+        ).toBeVisible();
+        await expect(
+          inspector.getByRole("row").filter({ hasText: "Chest search ledger" }),
+        ).toContainText(
+          "2 candidate chests · 1 search ledger entries · 1 receipts",
+        );
+        await expect(inspector).toContainText("Time not recorded");
+        await expect(
+          inspector.getByRole("link", { name: "Open scoped task audit" }),
+        ).toHaveAttribute("href", /id=probe-1/);
+        assert.equal(
+          await page.evaluate(() =>
+            renkiPreview.requests.some((r) => r.method !== "GET"),
+          ),
+          false,
+        );
+      },
+    );
+    await inspector.evaluate((e) => e.scrollIntoView({ block: "start" }));
+    await shot("inspector-pantry-offline");
+  },
   "peel-status": async ({ page, check, shot }) => {
     await page.evaluate(() =>
       renkiPreview.stream.emit("status", {

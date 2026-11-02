@@ -120,6 +120,7 @@ try {
           "fixtures/mapped.json",
           "fixtures/atlas.json",
           "fixtures/camera.jpg",
+          "ui/fixtures/inspection.json",
           "../internal/panel/static/app.js",
           "../internal/panel/static/terrain.js",
           "../internal/panel/static/style.css",

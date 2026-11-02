@@ -11,6 +11,7 @@ import {
 import { Camera } from "./camera.jsx";
 import { startController } from "./controller.jsx";
 import { eventSummary } from "./world-events.js";
+import { Inspection } from "./inspection.jsx";
 
 function WorldEvents() {
   const s = useStatus();
@@ -113,6 +114,7 @@ function App() {
             <a href="#map-pane">Map</a>
             <a href="#camera">Camera</a>
             <a href="#feed-pane">Activity</a>
+            <a href="#inspection">Decisions</a>
             <a href="#supplies">Kit &amp; goals</a>
             <a href="#navigation">Places</a>
             <a href="#preferences">Preferences</a>
@@ -153,6 +155,7 @@ function App() {
           <Timeline />
           <Supplies />
         </div>
+        <Inspection />
         <div class="operations reference-workspace">
           <Places />
           <Preferences />

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "contract": "inspection-v1",
+  "at": "2026-10-30T19:00:00Z",
+  "run": "synthetic-ui-run",
+  "freshness": { "status": "fresh", "ageS": 0, "seq": 42 },
+  "body": {
+    "owner": "behaviour",
+    "instance": "goal/peel-fixture",
+    "taskId": "peel-1",
+    "task": "attack",
+    "status": "running",
+    "phase": "lead",
+    "mode": "kite",
+    "reason": "waiting for fresh group targeting",
+    "relatedGoal": true,
+    "stateMatch": true
+  },
+  "choices": [
+    { "id": "peel-fixture", "kind": "combat_trial", "status": "running" },
+    { "id": "pantry-fixture", "kind": "food_resupply", "status": "needs_plan" }
+  ],
+  "goal": {
+    "id": "peel-fixture",
+    "kind": "combat_trial",
+    "status": "running",
+    "reason": "lead one enemy to fighting ground",
+    "tasksLeft": 5,
+    "attemptsLeft": 5,
+    "remainingS": 120,
+    "waitedS": 2
+  },
+  "graph": {
+    "id": "native-peel-v1",
+    "label": "Native peel",
+    "active": "lead",
+    "source": "Synthetic UI fixture; possible transitions, not observed history.",
+    "phases": [
+      {
+        "id": "lead",
+        "label": "Lead",
+        "description": "Lead while sampling the entire group."
+      },
+      {
+        "id": "fight",
+        "label": "Fight",
+        "description": "Native melee rechecks isolation and safety."
+      },
+      {
+        "id": "escape",
+        "label": "Escape",
+        "description": "Cancel swings and use bounded escape."
+      }
+    ],
+    "edges": [
+      {
+        "from": "lead",
+        "to": "fight",
+        "guard": "native isolation and melee admission"
+      },
+      {
+        "from": "fight",
+        "to": "escape",
+        "guard": "isolation lost or native refusal"
+      }
+    ]
+  },
+  "guards": [
+    {
+      "code": "known_group",
+      "label": "Accounted group targeting",
+      "layer": "pursuit",
+      "result": "fail",
+      "observed": "1",
+      "required": "0 unknown members",
+      "source": "state.combat.peel"
+    },
+    {
+      "code": "single_pursuer",
+      "label": "One pursuer",
+      "layer": "pursuit",
+      "result": "pass",
+      "observed": "1",
+      "required": "exactly 1; necessary telemetry predicate",
+      "source": "state.combat.peel"
+    },
+    {
+      "code": "escape_validity",
+      "label": "Current escape corridor",
+      "layer": "safety",
+      "result": "unknown",
+      "observed": "Planned endpoint reported",
+      "required": "native physical recheck must still pass",
+      "source": "state.combat.peel.escape; plan only"
+    },
+    {
+      "code": "peel_preparation",
+      "label": "Food, gear and movement readiness",
+      "layer": "readiness",
+      "result": "unknown",
+      "observed": "HP 60/60 · stamina 60",
+      "required": "native phase-specific readiness",
+      "source": "full native guard not exported"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "intent",
+      "run": "synthetic-ui-run",
+      "taskId": "peel-1",
+      "at": "2026-10-30T18:59:50Z",
+      "summary": "combat · persisted intent; effect awaits reconciliation"
+    }
+  ],
+  "gaps": [
+    "Decision inputs and causal transitions are not yet archived.",
+    "Map and camera are live views, not retained synchronized evidence."
+  ]
+}

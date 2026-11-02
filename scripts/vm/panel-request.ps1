@@ -8,6 +8,9 @@ param(
     [string]$BodyBase64 = ''
 )
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell defaults to the console code page on SSH stdout and can
+# decode JSON without a charset as Latin-1. The panel's JSON is always UTF-8.
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 if (-not $ApiPath.StartsWith('/api/')) { throw 'Use an /api/ endpoint' }
 $cfg = Get-Content (Join-Path $PSScriptRoot 'controller.local.json') -Raw | ConvertFrom-Json
 if (-not $cfg.panel.listen) { throw 'The panel is off: run just vm panel-setup' }
@@ -23,4 +26,11 @@ if ($BodyBase64) {
     $request.Body = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($BodyBase64))
     $request.ContentType = 'application/json; charset=utf-8'
 }
-Invoke-RestMethod @request | ConvertTo-Json -Depth 30 -Compress
+$response = Invoke-WebRequest -UseBasicParsing @request
+$response.RawContentStream.Position = 0
+$reader = [IO.StreamReader]::new($response.RawContentStream, [Text.Encoding]::UTF8)
+try {
+    $reader.ReadToEnd() | ConvertFrom-Json | ConvertTo-Json -Depth 30 -Compress
+} finally {
+    $reader.Dispose()
+}
