@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 title: "VM: exclusive lease for deploys and live trials"
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -22,12 +22,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:48:34Z
-updated_at: 2026-11-02T16:59:47Z
+updated_at: 2026-11-02T19:17:51Z
 created_by:
   id: agent:claude-code/renki-plan
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:claude-code/renki-wave1
   name: ""
 extensions: {}
 ---

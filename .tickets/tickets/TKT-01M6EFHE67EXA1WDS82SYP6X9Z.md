@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFHE67EXA1WDS82SYP6X9Z
 title: "Controller: sum drops per cell and prefab with their trend"
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T15:55:08Z
+updated_at: 2026-11-02T19:17:51Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-wave1
   name: ""
 extensions: {}
 ---

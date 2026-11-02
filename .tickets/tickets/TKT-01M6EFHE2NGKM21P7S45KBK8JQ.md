@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFHE2NGKM21P7S45KBK8JQ
 title: "Behaviours: loot template picks up drops near the owner"
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T15:55:08Z
+updated_at: 2026-11-02T19:17:51Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m2
+  id: agent:claude-code/renki-wave1
   name: ""
 extensions: {}
 ---
