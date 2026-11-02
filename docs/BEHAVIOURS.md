@@ -267,8 +267,11 @@ is in reach after about 70.5 s settled. `baseRadius` must be at most `radius`,
 `growS` at most 600 s, `settleDelayS` at most 120 s, the settle radii at most 20 m
 with the maximum at least the opening radius, and `settleSlack` at most 10 m;
 all of them are above zero, since a zero means the default.
-An instance with a different area shape gets its own tracker from its first
-run onwards. The defaults are starting points, to be tuned with the panel
+The default shape is tracked for every commander all the time. An instance
+with a different area shape gets its own tracker from the first time it
+checks for work, and that tracker is dropped after 10 minutes without a
+check (Tas busy, or the instance gone), so it starts again from the base
+reach. The defaults are starting points, to be tuned with the panel
 view (TKT-01M6EYEMTX).
 
 ### The deliberate-drop rule
