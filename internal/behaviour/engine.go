@@ -96,7 +96,7 @@ func New(o Options) *Engine {
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}

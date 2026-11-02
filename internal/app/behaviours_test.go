@@ -93,3 +93,43 @@ func TestIdleFoodPresetUsesCurrentMarkerAndReplacesOneDefinition(t *testing.T) {
 		}
 	}
 }
+
+func TestIdleRestPresetsKeepNightAndDaySeparate(t *testing.T) {
+	a := New(config.Default(), nil, nil, nil, nil, nil)
+	marker := home.Waypoint{Name: "house", Kind: "place", At: time.Now(), Radius: 10}
+	if err := a.Memory.Store.EditWaypoint("one", "", &marker, nil); err != nil {
+		t.Fatal(err)
+	}
+	call := func(body string) int {
+		r := httptest.NewRequest("POST", "/api/behaviours", strings.NewReader(body))
+		r.Header.Set(panel.ActHeader, "1")
+		w := httptest.NewRecorder()
+		a.BehaviourHandler().ServeHTTP(w, r)
+		return w.Code
+	}
+	body := `{"action":"idle-rest","marker":{"world":"one","name":"house","kind":"place"},"enabled":true}`
+	if call(body) != 400 {
+		t.Fatal("rest mode must be explicit")
+	}
+	for _, mode := range []string{"true", "false", "true"} {
+		if got := call(strings.TrimSuffix(body, "}") + `,"sleep":` + mode + `}`); got != 200 {
+			t.Fatal(got, mode)
+		}
+	}
+	rows := a.Behaviours.List()
+	if len(rows) != 2 {
+		t.Fatal(rows)
+	}
+	for _, row := range rows {
+		d := row.Definition
+		if d.Template != "marker_rest" || d.When.Night == nil || d.Repeat.CooldownS != 300 {
+			t.Fatal(d)
+		}
+		if *d.When.Night && d.Trigger.DwellS != 15 || !*d.When.Night && d.Trigger.DwellS != 120 {
+			t.Fatal(d)
+		}
+	}
+	if call(strings.Replace(strings.TrimSuffix(body, "}")+`,"sleep":true}`, `"name":"house"`, `"name":"removed"`, 1)) != 400 {
+		t.Fatal("missing marker admitted")
+	}
+}

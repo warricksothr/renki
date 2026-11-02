@@ -84,7 +84,7 @@ func TestOneActionWaitsForNewObservationAndPreservesBody(t *testing.T) {
 	}
 }
 func TestPermissionDisconnectMenuAndPriorityActions(t *testing.T) {
-	for _, mode := range []string{"permission", "disconnect", "menu", "dead", "attack", "sleep", "flee", "melee", "unknown"} {
+	for _, mode := range []string{"permission", "disconnect", "menu", "dead", "attack", "sleep", "in bed", "flee", "melee", "unknown"} {
 		t.Run(mode, func(t *testing.T) {
 			f, k, _ := scene()
 			switch mode {
@@ -100,6 +100,8 @@ func TestPermissionDisconnectMenuAndPriorityActions(t *testing.T) {
 				f.st.Flags = []string{protocol.FlagAttacking}
 			case "sleep":
 				f.st.Flags = []string{protocol.FlagSleeping}
+			case "in bed":
+				f.st.Flags = []string{protocol.FlagInBed}
 			case "flee":
 				f.st.Task = &protocol.TaskRef{Task: protocol.TaskFlee}
 			case "melee":

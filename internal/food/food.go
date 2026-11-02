@@ -108,7 +108,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		}
 		return
 	}
-	if now.Before(k.next) || slices.Contains(st.Flags, protocol.FlagAttacking) || slices.Contains(st.Flags, protocol.FlagSleeping) ||
+	if now.Before(k.next) || slices.Contains(st.Flags, protocol.FlagAttacking) || slices.Contains(st.Flags, protocol.FlagSleeping) || slices.Contains(st.Flags, protocol.FlagInBed) ||
 		st.Task != nil && (st.Task.Task == protocol.TaskFlee || st.Task.Task == protocol.TaskAttack) {
 		return
 	}

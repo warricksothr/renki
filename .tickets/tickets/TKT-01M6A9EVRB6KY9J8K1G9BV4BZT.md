@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-02T03:52:01Z
+updated_at: 2026-11-02T04:02:24Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -317,3 +317,13 @@ Storage deposit t-7 failed in15s (.checks/task-l0muz79i.json). Every local/alter
 While idle there, injury counters revealed environmental damage despite repeatedly full HP through regeneration. Audit .checks/audit-window-mir4Co.jsonl records54 two-HP un-attributed damage events after cooking; hit type is unavailable, so smoke versus flame is not proven. Safety relocation using ordinary native move_to succeeded in7s (.checks/20261102T034610Z-KePdtk.log), ending[-31.81,36.09,12.31]. This non-dry diagnostic move is not proof of dry planner recovery. An initial invalid avoidHostiles-without-dry request was rejected before dispatch; no guard was changed. Damage stopped after relocation in the retained fresh state. Do not claim an injury-free loop.
 
 Cooking now records its checked tending position, returns there after collecting output using ordinary dry/hostile-aware native travel and the original task deadline plus12s local return bound, and only then reports full success. Cancellation stops the return; refused returns leave the real collected output as partial evidence. Cooking standing-position checks include the game's head-height smoke sphere as well as fire bounds. A prior full CI pass168s predates these extra cooking changes; the new complete gate is running. Corrected live departure, safe cooking handoff, final home and repeated routing remain unearned until actual receipts.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:02:24Z
+
+Build6e23e2d passed full CI160s (.checks/20261102T034957Z-JtkVza.log), committed review (.checks/20261102T035306Z-tUQndi.log) and VM deployment/checksum verification85s (.checks/20261102T035326Z-uNkjaH.log). Tas rejoined idle at the saved bed surface; no automatic logout was enabled.
+
+The corrected indoor sequence passed on this deployed build: direct bed-to-food withdrawal (.checks/20261102T035516Z-TK5hW0.log); supply/cooking (.checks/cooking-20261102T035627Z/summary.json); Wood1 deposit into1:73555 (.checks/task-2_9vyyri.json); original-home return (.checks/task-1_an7qt9.json). Cooking t-5 withdrew NeckTail1, earned exact direct_spawn NeckTailGrilled1 pickup/inventory proof, then moved from[-33.54,36.19,11.12] back to the checked[-32.5,36.15,11.26] tending position before success. Its native traces show eight footprint queries recovering contact at[-33.24,36.19,11.12] after a centre no_hits result. Thus the new footprint recovery and cooking return were actually exercised, not merely compiled. New-connection injury counter remained0.
+
+Then just check vm route-benchmark --marker 'home storage' --cycles3 --leg-timeout120 --home-floor-marker 'home cooking' --keep-online passed in92s. Evidence .checks/routes-20261102T035907454646Z/summary.json and audit-window-UpVrS8.jsonl: three round trips, six scoped native success receipts,18.60m sampled travel, minimum89.5HP, grounded/sheltered home-floor verification, kept online, no ownership yield or observed injury. Original home and all markers were preserved. Fresh04:00:58Z snapshot at[-36.45,36.09,6.57],88.5/88.5HP, injury{seq:0,damage:0}, idle/sheltered. Broader outdoor stair/coast routing and extended pantry reliability are not closed by this indoor pass.
+
+The user added automatic nighttime sleep and daytime idle bedside waiting while preserving manual sleep during reservation. That follow-on is tracked on TKT-01M62PRDSBCRCPH5S0TGGCMAEY (Claim a bed near home, or tell the owner there is none). Ordinary idle definitions remain temporarily paused until controlled checks finish, then restore the four saved enabled names alongside optional rest presets.

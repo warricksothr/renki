@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-01T23:55:54Z
+updated_at: 2026-11-02T04:04:27Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -65,9 +65,9 @@ Nimah, 2026-10-28: the bot should claim a bed close to home if one is available,
 
 ## Implementation plan
 
-Start with the owner's explicit sleep/claim commands. Add nullable bed ownership to live perception (unknown must not mean free), select the nearest suitable owned bed or an explicitly unclaimed nearby bed, and recognize sleep/go to sleep. Add an optional bed-only sleep flag to interact so one body task can claim/set its spawn point, wait briefly for the ownership RPC, then use the bed again to lie down. Keep all game exposure/fire/wet/enemy checks and relay refusals. Verify ownership after claiming and do not report sleep merely because the spawn point changed. Owner stop/death/reconnect cancels the task through the existing task runner, with no delayed continuation.
+The owner authorized routing reservation but explicitly requires that Tas still sleeps through nights in the house and considers waiting at his bed when no work remains. Add a named marker_rest template to the existing idle scheduler, using fresh scoped state/perception, shelter, dry grounded footing and a nearby owned bed. Prefer only beds positively reported Mine; do not take free/unknown/player beds in this slice. Require the unchanged home/marker and bounded same-floor distances. Night mode sends the existing native sleep interaction and only completes with fresh in_bed/sleeping evidence; day mode makes one ordinary dry/hostile-aware move near the owned bed and verifies grounded shelter arrival. It does not claim daytime sleep or impose a waiting task that blocks new work.
 
-Test controller selection, unknown/taken beds, command ownership and refusals, wire fixtures/validation and bounded asynchronous bed-use policy. Inspect the current beds before choosing live checks; do not reset or take someone else's bed or create a destructive death check. Run just check ci and committed just check review before landing/deploying. Automatic claiming on home/join/respawn, persistent bed status and a positive respawn-at-bed check remain a subsequent slice of this ticket; leave those acceptance criteria open.
+Use two visible editable presets at the existing home cooking marker: night mode after15s idle, daytime waiting after120s, with finite run/cooldown budgets. The marker may be left only for the selected nearby home bed under the template's guard. Existing active body orders, combat, owner commands and changed scope revoke the idle run. Prevent all idle chore triggers while sleeping/in_bed so a completed sleep order is preserved. Keep manual sleep authorized during reservation and resume ordinary idle definitions after routing checks. Add unit tests for native dispatch/evidence, day/night changes, owned/taken/unknown beds, stale/changed observations, floor mismatch, threats, marker/home changes and existing sleeping states. Keep actual shared time skip and respawn acceptance open until separately observed.
 
 ## Notes
 
@@ -120,3 +120,15 @@ Current-layout nighttime check passed at23:54Z using just vm sleep-check --inter
 Also verified the original natural wording through the authorized panel command path: Nimah "get in bed please" dispatched its own interact sleep:true t-10 to the same owned bed, immediately succeeded and retained bed attachment (.checks/audit-window-GCl57t.jsonl). This command was sent after the native escort-interruption check, while already in bed; do not describe it as a separate walking or moving-escort trial.
 
 The new helper retains compact observations, exact receipts and summary under .checks/sleep-*. It rejects daytime, other body owners, stale scoped state/perception and non-owned beds; no cleanup mutation, wake or logout follows success/refusal/failure. Nine synthetic checks cover receipt/state agreement, exact escort cancellation and takeover. just check vm test-sleep-check passed (.checks/20261101T235405Z-4mZ0r2.log). Full just check ci passed168s (.checks/20261101T235159Z-VFRmjo.log), including the final helper revision. Automatic bed claiming/no-free-bed notices and real respawn-at-bed remain unimplemented/unverified; keep the parent in progress.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:02:24Z
+
+User authorized Tas's routing reservation but requires sleep through nights at home and consideration of bed waiting with no work. Implemented marker_rest using the existing idle scheduler: separate authenticated editable presets via /api/behaviours action idle-rest, explicit sleep true/false and current marker. Night mode15s idle, day mode120s; day priority-30 below food/cargo, night0, five-minute cooldown,100-run bound per controller session. Definitions persist, attempts/dwell reset on restart.
+
+Only fresh positively Mine owned beds within12m of pinned home and1.25m of the observed floor may be selected. Home/marker/bed, dry grounded shelter, fresh independent perception/state, known game clock, threats, injury and90s total attempt bound are rechecked. Native sleep task has60s timeout; success requires its native receipt plus newer actual bed attachment beside that bed. Day waiting uses one ordinary dry/hostile-aware move near the bed and then releases body control. No holding task blocks work, no daytime sleep is fabricated, no unknown/free/player bed is claimed, and no logout added. Manual orders retain lease precedence. All idle triggers now stop queuing chores when in_bed/sleeping, preserving completed sleep commands.
+
+Focused just check controller test-packages ./internal/behaviour ./internal/app passed (.checks/20261102T035920Z-0fv0uV.log); rest tests cover native receipt/attachment versus promise, day bedside arrival, already-there no-op, marker mismatch, unknown/taken/free/wrong-floor beds, stale/scope/home/bed/mode changes, airborne/water/threat/injury/nonfinite observations and sleeping idle suppression. API tests require explicit mode and keep day/night presets separate. Full gate currently running; no automatic nighttime entry, shared time skip or actual respawn claimed yet. Existing manual nighttime/escort-interruption evidence remains earned; original automatic-claim/notice/respawn criteria remain open.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:04:27Z
+
+Full just check ci passed179s (.checks/20261102T040048Z-c59KfI.log); final focused behaviour/app/food/protocol checks passed (.checks/20261102T040310Z-vlZVhu.log), including suppression of automatic eating while in_bed before shared sleep begins. Controller-only installation and live idle-rest observations follow committed review; no nighttime automation proof yet.

@@ -41,6 +41,7 @@ func (a *App) BehaviourHandler() http.Handler {
 			Target     string            `json:"target,omitempty"`
 			Marker     *behaviour.Marker `json:"marker,omitempty"`
 			Enabled    *bool             `json:"enabled,omitempty"`
+			Sleep      *bool             `json:"sleep,omitempty"`
 		}
 		if err = behaviour.Decode(raw, &request); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -49,9 +50,13 @@ func (a *App) BehaviourHandler() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 		switch request.Action {
-		case "idle-food", "idle-cargo":
+		case "idle-food", "idle-cargo", "idle-rest":
 			if request.Marker == nil || request.Enabled == nil {
 				err = fmt.Errorf("idle food needs a marker and enabled flag")
+				break
+			}
+			if request.Action == "idle-rest" && request.Sleep == nil {
+				err = fmt.Errorf("idle rest needs an explicit sleep mode")
 				break
 			}
 			m := *request.Marker
@@ -71,6 +76,14 @@ func (a *App) BehaviourHandler() http.Handler {
 			if request.Action == "idle-cargo" {
 				name = fmt.Sprintf("idle cargo %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
 				definition = behaviour.MarkerCargoDefinition(m)
+			}
+			if request.Action == "idle-rest" {
+				prefix := "idle rest"
+				if *request.Sleep {
+					prefix = "idle sleep"
+				}
+				name = fmt.Sprintf("%s %x", prefix, sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
+				definition = behaviour.MarkerRestDefinition(m, *request.Sleep)
 			}
 			definition.Enabled = *request.Enabled
 			var raw json.RawMessage

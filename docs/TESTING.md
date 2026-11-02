@@ -639,6 +639,14 @@ actual reason retained. It never wakes Tas, logs out or cancels a newer order.
 `just check vm test-sleep-check` exercises refusal, stale/scope/ownership
 changes, exact escort cancellation and receipt/state agreement without a VM.
 
+`just check controller test-packages ./internal/behaviour ./internal/app`
+covers optional idle home-rest presets:15s nighttime sleep and120s daytime
+bedside waiting, owned-bed selection, native receipt plus attachment evidence,
+freshness/floor/home/marker/threat/injury guards, explicit API mode selection
+and preventing new idle chores from waking an attached/sleeping body. Enable
+the presets only after controlled routing checks; do not report shared
+time-skip or respawn-at-bed from a movement or sleep interaction receipt.
+
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"
 (day 51, fraction about 0.34). Perception then showed `mine:true,owned:true`;
@@ -2165,3 +2173,20 @@ Cancellation clears that return. Standing-position checks also use the game's
 head-height smoke sphere. A collected output followed by a refused return is
 retained as a partial result, not a complete safe cooking pass. The old damage
 events lack a hit type, so smoke versus flame remains unproven.
+
+Build `6e23e2d` then passed the indoor sequence: direct bed-to-food withdrawal,
+NeckTail1 supply/cooking/collection at `1:73601`, Wood1 deposit at `1:73555`
+and return to the original home. The cooking receipt includes actual
+eight-ray footprint recovery from the missing-centre fire edge and checked
+return to[-32.5,36.15,11.26] before success. Evidence:
+`.checks/cooking-20261102T035627Z/summary.json`,
+`.checks/task-2_9vyyri.json`, `.checks/task-1_an7qt9.json`.
+
+Three home-storage round trips also passed with
+`just check vm route-benchmark --marker 'home storage' --cycles 3
+--leg-timeout 120 --home-floor-marker 'home cooking' --keep-online`:
+`.checks/routes-20261102T035907454646Z/summary.json` retains six scoped native
+receipts,18.60m observed travel, minimum89.5HP and sheltered home-floor arrival.
+No observed injury; Tas stayed online. Original home/waypoint positions were
+preserved. This indoor pass does not establish outdoor stair/coast reliability
+or sustained pantry production.
