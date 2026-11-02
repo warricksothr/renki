@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T19:44:21Z
-updated_at: 2026-11-02T19:44:21Z
+updated_at: 2026-11-02T20:15:45Z
 created_by:
   id: agent:claude-code/renki-m2-loot
   name: ""
 updated_by:
-  id: agent:claude-code/renki-m2-loot
+  id: agent:claude-code/renki-wave1
   name: ""
 extensions: {}
 ---
@@ -53,3 +53,9 @@ While Tas follows an owner the body is never idle, so the engine never starts th
 
 - [ ] With preemptFollow on, loot stops a running owner follow, picks up, and starts the same follow again, in a test
 - [ ] A new owner order during the detour wins and no follow is restarted, in a test
+
+## Notes
+
+**agent:claude-code/renki-wave1** at 2026-11-02T20:15:45Z
+
+The adaptive loot reach (TKT-01M6EYEC1M, TKT-01M6EYEMRVAG415PX2A10XSXDC, TKT-01M6EYEMTXMJN0GSF2Y03CDB12) is most useful during a follow, when the anchor stops and Tas stands by. Without this ticket loot still only runs when Tas is idle, so promote this alongside them.
