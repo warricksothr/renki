@@ -246,13 +246,26 @@ func TestDriftAndStaleFramesSeeLess(t *testing.T) {
 	if n := tr.Snapshot(hello, "w").Near(start, owner, 8, nil); n.State != Unseen {
 		t.Fatalf("drifted frame = %+v", n)
 	}
+	// A full list ending 30 m from the paired position: with 5 m of drift
+	// the scan's own list may end at 25 m, and a circle around the paired
+	// position is safe only to 20 m. 7.07 + 13 = 20.07 is too far.
+	full := protocol.PerceptionConfig{Radius: 40, MaxPerKind: 1}
+	tr.Observe(hello, "w", protocol.Vec3{}, 5, full, frameOf(drop("f", "Stone", 30, 0, 1)), start.Add(time.Second/2))
+	if n := tr.Snapshot(hello, "w").Near(start.Add(time.Second/2), owner, 13, nil); n.State != Unseen {
+		t.Fatalf("full list with drift = %+v", n)
+	}
+	if n := tr.Snapshot(hello, "w").Near(start.Add(time.Second/2), owner, 12.9, nil); n.State != Absent {
+		t.Fatalf("full list with drift, inside = %+v", n)
+	}
 	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "Wood", 1, 1, 5)), start.Add(time.Second))
 	s := tr.Snapshot(hello, "w")
-	if p := s.Piles(start.Add(time.Second)); len(p) != 1 || !p[0].InView {
-		t.Fatalf("fresh piles = %+v", p)
+	if p := find(t, s, "Wood", [2]int{0, 0}); !p.InView {
+		t.Fatalf("fresh pile = %+v", p)
 	}
 	// Perception stalls: the last frame is no longer what is there now.
-	if p := s.Piles(start.Add(time.Second + Gap + time.Second)); len(p) != 1 || p[0].InView || p[0].Trend != Unknown || p[0].Total != 5 {
-		t.Fatalf("stale piles = %+v", p)
+	for _, p := range s.Piles(start.Add(time.Second + Gap + time.Second)) {
+		if p.InView || p.Trend != Unknown {
+			t.Fatalf("stale pile = %+v", p)
+		}
 	}
 }

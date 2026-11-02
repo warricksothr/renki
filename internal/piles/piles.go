@@ -106,9 +106,7 @@ func (t *Tracker) Observe(conn *protocol.Hello, world string, bot protocol.Vec3,
 	if n := len(t.frames); n > 0 && at.Before(t.frames[n-1].at) {
 		return
 	}
-	f := group(bot, seen, p, at)
-	f.reach = max(f.reach-drift, 0)
-	t.frames = append(t.frames, f)
+	t.frames = append(t.frames, group(bot, drift, seen, p, at))
 	cut := 0
 	for cut < len(t.frames) && (at.Sub(t.frames[cut].at) > Window || len(t.frames)-cut > MaxFrames) {
 		cut++
@@ -119,7 +117,7 @@ func (t *Tracker) Observe(conn *protocol.Hello, world string, bot protocol.Vec3,
 	}
 }
 
-func group(bot protocol.Vec3, seen protocol.PerceptionConfig, p *protocol.Perception, at time.Time) frame {
+func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *protocol.Perception, at time.Time) frame {
 	f := frame{at: at, bot: bot}
 	if seen.Radius > 0 && finiteF(seen.Radius) {
 		f.reach = seen.Radius
@@ -157,8 +155,15 @@ func group(bot protocol.Vec3, seen protocol.PerceptionConfig, p *protocol.Percep
 	}
 	// Perception lists only the nearest drops. A full list says nothing
 	// about ground beyond the farthest one it lists.
+	// Both bounds are measured from bot, up to drift from the scan. The
+	// radius is the scan's own, so it loses drift once. The farthest drop
+	// is measured from bot too, so the scan's list may end drift nearer,
+	// and the ground it covers loses drift twice.
+	if f.reach > 0 {
+		f.reach = max(f.reach-drift, 0)
+	}
 	if seen.MaxPerKind > 0 && drops >= seen.MaxPerKind {
-		f.reach = min(f.reach, farthest)
+		f.reach = max(min(f.reach, farthest-2*drift), 0)
 	}
 	for k, s := range sums {
 		var pos protocol.Vec3
