@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:32Z
-updated_at: 2026-11-02T16:15:34Z
+updated_at: 2026-11-02T16:49:55Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
@@ -56,3 +56,7 @@ Whether M7 needs this, or the manifest format from TKT-01M6EFQNDF is enough for 
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
 
 Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:49:55Z
+
+Corrects the 2026-11-02 "milestone cleared" note: this ticket was filed during the planning pass and left unscheduled the same day, so it never had a milestone in a commit before that. It stays unscheduled until the owner decides whether M7 needs GIS exchange.

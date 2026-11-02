@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-01T19:49:16Z
-updated_at: 2026-11-02T16:15:34Z
+updated_at: 2026-11-02T16:49:55Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -108,3 +108,7 @@ A note with the host's versions and config, compared against `just vm vplus-insp
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
 
 Applied on 2026-11-02 by the planning pass: milestone cleared, so this ticket is unscheduled. No exit goal in docs/ROADMAP.md needs it. This supersedes any earlier note that only proposed the move. The owner can schedule it at a weekly review.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:49:55Z
+
+Corrects the 2026-11-02 "milestone cleared" note: this ticket had no milestone before the planning pass either. It was briefly given one and then returned to unscheduled, so its milestone is unchanged. It stays unscheduled because no exit goal in docs/ROADMAP.md needs it.
