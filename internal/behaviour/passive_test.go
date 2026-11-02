@@ -253,3 +253,22 @@ func TestAFollowThatCannotBeSentBackStopsTheBorrowedStep(t *testing.T) {
 		t.Fatal(f.log.String())
 	}
 }
+
+func TestAPassiveRunEndsEvenWhenNeitherFollowNorStopCanBeSent(t *testing.T) {
+	f := followingNimah(t)
+	var told []string
+	f.e.o.Notify = func(_ context.Context, line string) { told = append(told, line) }
+	f.settle()
+	f.pickup()
+	f.s.SetPermit(func(task string) bool { return task != protocol.TaskFollow && task != protocol.TaskStop })
+	f.now = f.now.Add(time.Second)
+	f.see(25, f.follow.ID)
+	f.tick()
+	f.p.Quiet(50 * time.Millisecond)
+	if got := f.e.List()[0]; got.Running || f.e.loan != nil || f.e.lease != nil {
+		t.Fatal("a spent loan must end its run", got)
+	}
+	if !strings.Contains(f.log.String(), "could not stop the passive run's step") || len(told) != 1 || told[0] != "I can't follow you again, Nimah." {
+		t.Fatal(told, f.log.String())
+	}
+}

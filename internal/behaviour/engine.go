@@ -678,6 +678,11 @@ func (e *Engine) giveBack(ctx context.Context, why string) {
 	switch {
 	case err != nil:
 		e.o.Logger.Warn("could not return the follow", append(attrs, "err", err)...)
+		// The brain stays quiet about a lent follow, so say it here: the
+		// owner would otherwise think Tas is still following.
+		if e.o.Notify != nil {
+			e.o.Notify(ctx, fmt.Sprintf("I can't follow you again, %s.", l.follow.Player))
+		}
 	case t == nil:
 		e.o.Logger.Info("follow kept", attrs...)
 	default:
