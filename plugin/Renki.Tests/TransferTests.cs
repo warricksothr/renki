@@ -10,19 +10,31 @@ namespace Renki.Tests
     public sealed class TransferTests
     {
         [Theory]
-        [InlineData(true, 12, "unreachable", true)]
-        [InlineData(true, 3, "stuck", true)]
-        [InlineData(true, 12.01, "unreachable", false)]
-        [InlineData(false, 3, "stuck", false)]
-        [InlineData(true, 3, "deep_water", false)]
-        [InlineData(true, 3, "not_allowed", false)]
-        [InlineData(true, 3, "refused", false)]
-        [InlineData(true, 3, "stopped", false)]
-        [InlineData(true, double.NaN, "unreachable", false)]
-        [InlineData(true, double.PositiveInfinity, "unreachable", false)]
-        public void AlternateChestApproachesCannotBroadenOtherRefusals(bool conditional, double distance, string reason, bool allowed)
+        [InlineData(12, "unreachable", true)]
+        [InlineData(3, "stuck", true)]
+        [InlineData(12.01, "unreachable", false)]
+        [InlineData(3, "deep_water", false)]
+        [InlineData(3, "not_allowed", false)]
+        [InlineData(3, "refused", false)]
+        [InlineData(3, "stopped", false)]
+        [InlineData(double.NaN, "unreachable", false)]
+        [InlineData(double.PositiveInfinity, "unreachable", false)]
+        public void AlternateChestApproachesCannotBroadenOtherRefusals(double distance, string reason, bool allowed)
         {
-            Assert.Equal(allowed, Transfer.CanReposition(conditional, new V3(0, 0, 0), new V3(distance, 0, 0), Outcome.Failed(reason)));
+            Assert.Equal(allowed, Transfer.CanReposition(new V3(0, 0, 0), new V3(distance, 0, 0), Outcome.Failed(reason)));
+        }
+
+        [Fact]
+        public void CapturedBedToFoodChestFailureAllowsTheSameMeasuredSidesAsConditionalCargo()
+        {
+            // task-ql427mlm: ordinary withdrawal failed without moving because
+            // its goal was inside piece_chest_wood/woodchest. Item matching
+            // governs inventory, not whether a reachable chest side is tried.
+            var from = new V3(-31.08, 36.49, 15.19);
+            var chest = new V3(-34.79, 36.19, 10.07);
+            Assert.True(Transfer.CanReposition(from, chest, Outcome.Failed(Wire.ReasonUnreachable)));
+            Assert.False(Transfer.CanReposition(from, chest, null));
+            Assert.False(Transfer.CanReposition(from, chest, Outcome.Failed(Wire.ReasonRefused)));
         }
 
         [Fact]

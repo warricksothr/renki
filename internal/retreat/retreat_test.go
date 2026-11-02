@@ -566,7 +566,7 @@ func TestNativeEscortCombatAndEscapeUseExactBodyIdentity(t *testing.T) {
 					f.st.Escort.Mode = "follow"
 				}
 				r.Tick(context.Background())
-				wantHeld := change == "valid" || mode == "escape" && (change == "stale combat" || change == "wrong enemy")
+				wantHeld := change == "valid" || change == "stale combat" || change == "wrong enemy" || change == "unsupported phase"
 				if (len(f.sent) == 0) != wantHeld {
 					t.Fatalf("held=%t, sent=%v", wantHeld, f.sent)
 				}
@@ -575,15 +575,17 @@ func TestNativeEscortCombatAndEscapeUseExactBodyIdentity(t *testing.T) {
 	}
 }
 
-func TestNativeEscortNeverSuppressesAnAdditionalAttacker(t *testing.T) {
+func TestNativeEscortOwnsProtectionEvenInjuredAndOutnumbered(t *testing.T) {
 	f := fighting()
 	f.st.Task.Task = protocol.TaskEscort
+	f.st.HP = 1
+	f.st.Stamina = 0
 	f.st.Escort = &protocol.EscortStatus{ID: f.st.Task.ID, Leader: "Nimah", Mode: "defend", Entity: "0:7"}
 	f.seen.Characters = append(f.seen.Characters, protocol.PerceivedCharacter{ID: "extra", Kind: protocol.CharacterCreature, Prefab: "Troll", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{2, 30, 0}})
 	r := New(f, func() []string { return nil }, nil, quiet, nil)
 	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
 	r.Tick(context.Background())
-	if len(f.sent) != 2 || !strings.HasPrefix(f.sent[0], "flee ") {
-		t.Fatal(f.sent)
+	if len(f.sent) != 0 {
+		t.Fatal("controller replaced native protection", f.sent)
 	}
 }

@@ -113,6 +113,17 @@ assert definition['trigger']['dwellS'] == 30
 assert definition['repeat'] == dict(mode='trigger', cooldownS=300, maxRuns=1)
 print('household idle episode uses the admitted finite repeat policy')
 
+personal = food.personal_definition(dict(world='one', reserve=2), dict(world='one', name='home rest', kind='place'))
+assert personal['template'] == 'personal_food' and not personal.get('when', {}).get('night')
+assert personal['trigger']['dwellS'] == 15 and personal['repeat']['maxRuns'] == 1
+for bad in (dict(world='two'), dict(world='one', stock={}), dict(world='one', escort={})):
+    try:
+        food.personal_definition(bad, dict(world='one', name='home rest', kind='place'))
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError('personal idle trial accepted foreign or unrelated work')
+
 # Expected hunt damage belongs only to the exact native target and task.
 hunt_intent = dict(run='current', taskId='hunt', template='hunt_food', entity='boar',
                    params=dict(entity='boar', style='melee', kite=True))

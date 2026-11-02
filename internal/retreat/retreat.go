@@ -129,7 +129,9 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning {
 		return
 	}
-	if nativeEscort(st) && st.Escort.Mode == "escape" {
+	// The native escort protects its charges even when injured or outnumbered.
+	// A matching task owns its tactics; stale metadata never suppresses retreat.
+	if nativeEscort(st) {
 		return
 	}
 	if nativeTravel(st) {
@@ -191,7 +193,7 @@ func (r *Retreat) Tick(ctx context.Context) {
 // refusal falls through to ordinary flee on the next tick, without retry loops.
 func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol.Perception, threat *protocol.PerceivedCharacter) bool {
 	if threat.Prefab != "Greyling" || threat.Stars != 0 || st.Pos.FlatDistance(threat.Pos) > 6 ||
-		st.HP < 30 || st.HP < st.HPMax*.65 || st.Stamina < 35 || st.Food == nil || len(st.Food.Active) == 0 {
+		st.HP <= 0 || st.HP < st.HPMax*.65 || st.Stamina < 35 || st.Food == nil || len(st.Food.Active) == 0 {
 		return false
 	}
 	for _, other := range seen.Characters {
@@ -258,7 +260,7 @@ func (r *Retreat) controlledAttack(st *protocol.State, seen *protocol.Perception
 	}
 	healthReady := st.HP >= st.HPMax*.8
 	if c.Defensive {
-		healthReady = st.HP >= 25 && st.HP >= st.HPMax*.6
+		healthReady = st.HP > 0 && st.HP >= st.HPMax*.6
 	}
 	if !healthReady || st.Stamina < 10 {
 		return false

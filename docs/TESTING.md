@@ -7,6 +7,24 @@ controller. This page covers what only the game can show. Each check names the
 ticket it closes. Tickets in `review` are waiting on these checks, and
 `git ticket list --status review` lists them.
 
+## Client lifecycle during tests
+
+Live test tools retain the game after success, refusal, injury or failure by
+default. Keep telemetry and failure evidence available; a low HP threshold in a
+supervisor may end that test but does not authorize logging out. Use
+`--allow-logout` to explicitly permit cleanup logout/client shutdown for that
+invocation. `--keep-online` retains its narrower verified-home meaning when
+combined with opt-in shutdown; it is no longer needed to prevent default logout.
+
+`just vm combat-trial` and its harvest/gather/goal/resupply modes reuse the
+running client and preserve combat permissions. `--restart-client` explicitly
+opts into a setup restart to change trial permissions; cleanup does not restore
+combat to off. Native recovery failure separately requires
+`Safety.AutoLogout=true` (`just vm auto-logout true`, next launch). Its default
+is false even when `RecoveryGuard` is enabled. Explicit `just vm stop`, panel
+logout and required deployment restarts remain manual lifecycle actions.
+Historical evidence below describes the behavior of the build tested then.
+
 ## Native pursuit and peeling
 
 `just check plugin test-core PursuitGroup` covers temporal isolation, whole-pack
@@ -19,8 +37,8 @@ status on desktop/mobile.
 
 When a prepared, safe starting position is available, `just vm goal-trial
 --peel` starts one persistent native peel goal with a verified home-return
-requirement. Existing supervisor health, water, extra-creature and logout
-checks remain in force. Begin with one naturally found ordinary Greyling,
+requirement. Existing supervisor health, water and extra-creature
+checks remain in force; logout requires the explicit lifecycle option above. Begin with one naturally found ordinary Greyling,
 then two. Keep full audit/state/pursuit evidence and distinguish a refusal,
 observed kill, escape, loot and actual return. Current Greydwarf/mixed-group
 combat and native field passes remain unearned. Do not start this from the
@@ -594,6 +612,87 @@ waits for the other players. Taken/unknown beds must not be selected for
 claiming. Check the game's roof/fire/wet/enemy/night refusals and stop during
 a claim wait; no later use may occur. Preserve players' beds.
 
+The current escort/combat/food/hauling batch also includes `tas get in bed
+please`: an authorized request must dispatch a new sleep interaction, interrupt
+escort and reach the bed, then confirm `in_bed` or report the game's refusal.
+A conversational promise alone is not execution. Check this at night against
+the current base layout and modpack; do not treat historical success below as
+current live acceptance. Guest requests retain the usual role restrictions.
+The shared status API includes native `time.day`, `time.dayFraction` and
+`time.night` while in-world, clearing them at menu/disconnect. Use that clock
+to schedule nighttime checks; actual bed entry still requires native evidence.
+
+`just vm sleep-check` selects a currently observed bed already owned by Tas,
+within 20 m, and sends one bounded native sleep interaction. It requires a
+fresh scoped nighttime observation and an idle body before dispatch. Use
+`just vm sleep-check --interrupt-escort Nimah` to admit a finite native escort
+first and verify that the bed interaction cancels that exact task. The leader
+must be a configured owner/operator. This tests native interruption; the chat
+alias/permission regressions separately cover the owner's natural command.
+
+Evidence under `.checks/sleep-*` includes task receipts, compact observations
+and a summary. A pass requires the successful interaction receipt plus newer
+native `in_bed` state beside the selected bed; it distinguishes attachment
+from a shared time skip (`sleeping`). Daytime admission dispatches nothing,
+and native wet/fire/roof/enemy refusals remain failed positive checks with the
+actual reason retained. It never wakes Tas, logs out or cancels a newer order.
+`just check vm test-sleep-check` exercises refusal, stale/scope/ownership
+changes, exact escort cancellation and receipt/state agreement without a VM.
+
+`just check controller test-packages ./internal/behaviour ./internal/app`
+covers optional idle home-rest presets:15s nighttime sleep and120s daytime
+bedside waiting, owned-bed selection, native receipt plus attachment evidence,
+freshness/floor/home/marker/threat/injury guards, explicit API mode selection
+and preventing new idle chores from waking an attached/sleeping body. Enable
+the presets only after controlled routing checks; do not report shared
+time-skip or respawn-at-bed from a movement or sleep interaction receipt.
+
+Controller `7cb3fd4` installed with `just check vm deploy-controller` while
+the game/plugin `6e23e2d` remained running. The editable bot-created `home rest`
+place zone at[-36.45,36.09,6.57], radius14, covers both the bedroom and the
+existing cooking/storage work areas without changing home or old markers.
+Both rest presets were enabled and the four prior idle definitions restored.
+Automatic night mode passed at04:10:17Z on day142: the scheduler dispatched
+`t-2` to owned bed `1:99058`, the game returned "I'm in bed", and newer
+state2286 showed `in_bed` at[-31.08,36.55,15.19]. Later idle observations
+retained attachment with no observed injury. Evidence:
+`.checks/audit-window-qymPoj.jsonl` and
+`.checks/20261102T041058Z-Y1LwjJ.log`. This proves night entry and waiting for
+other players; shared time skip and respawn remain unobserved.
+
+The first daytime wait reached the bed area but its1.25m arrival radius
+failed against the crowded raised beds. Retained `t-1` search reached the
+actual floor node[-30.47,36.09,16.62], about1.55m from the owned bed. Daytime
+waiting initially used1.75m native arrival with observed distance at most2m and the
+same75cm floor tolerance, rather than attempting to climb into the bed frame.
+The captured reachable-node regression covers this change. Preserve nighttime
+sleep rather than waking the body merely to manufacture a daytime test.
+
+The natural daytime retest on controller `5394f13` dispatched idle-owned
+`t-2` at04:21:59Z. It reached[-31.18,36.09,13.2], about1.99m from the bed,
+but the1.75m native radius demanded a closer approach and eventually refused.
+Evidence: `.checks/audit-window-FWKt7I.jsonl` and
+`.checks/20261102T042300Z-jgx28y.log`. Align native arrival and observed
+waiting at2m horizontally, with the separate75cm vertical floor limit.
+The captured body position and a horizontal-arrival/floor-offset regression
+cover that mismatch.
+
+Controller `7bda45f` passed full `just check ci`172s, committed review and
+controller-only deployment without closing the game. The final automatic
+daytime retest PASSED: after the ordinary indoor starting move `t-1`, the
+idle scheduler dispatched `t-2` at04:29:44Z with2m arrival. Native success
+seq1170 at04:30:04Z was followed by fresh state1171 at[-32.32,36.09,13.67],
+1.96m horizontally from the owned bed and2cm below it, grounded/sheltered.
+The behaviour completed and released body control. Later fresh inspection
+confirmed idle,25/25HP and no observed injury. Both rest modes and all four
+original food/cargo definitions remained enabled. Evidence:
+`.checks/audit-window-qKuFqU.jsonl`,
+`.checks/20261102T043032Z-bFp4Va.log` and
+`.checks/20261102T043011Z-LwBh0i.log`.
+Food reserves were exhausted by this point; resupply before outdoor work.
+These rest checks do not prove automatic bed claiming, respawn or shared
+night skipping, and do not close broader M2/M3 acceptance.
+
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"
 (day 51, fraction about 0.34). Perception then showed `mine:true,owned:true`;
@@ -735,7 +834,7 @@ positive benchmark needs at least two log harvests, a positive observed Wood
 inventory delta and no observed unfinished nearby new logs. Unsafe/unavailable
 logs, lost ownership, changed world/connection, health loss and stale inventory
 abort instead of requesting owner clearance. Existing native route/threat guards
-remain active. It always logs out/stops and restores combat off.
+remain active. The client and combat permissions are retained; shutdown is opt-in.
 
 Evidence under `.checks/harvest-trial-*` retains exact resource IDs, per-task
 histories, before/after item counts, observations and audit paths. The console
@@ -759,8 +858,9 @@ Success requires instance-attributed native steps, distinct tree/log identities,
 task-matched local-hit breaks, measured inventory gains, exact deposit receipts
 and a successful return task with a matching final pose. Original products must
 remain in the pack. Missing audit proof fails the run. Cleanup stops/deletes the
-temporary behavior, logs out/stops the game, restores combat off and restarts
-the offline panel, including after partial request failures. Evidence stays in
+temporary behavior, including after partial request failures. The client and
+combat permissions stay available; `--allow-logout` permits shutdown and an
+offline panel restart. Evidence stays in
 `.checks/gather-trial-*`; the console reports compact task/log/gain/deposit/return
 results. `just check vm test-gather-trial` checks proof reconciliation;
 `just check vm test-combat-trial` also checks supervisor dispatch and cleanup.
@@ -879,11 +979,12 @@ direct encounter, not pursuit or kiting. It cannot combine with preferred ground
 or harvest options.
 
 `just vm combat-trial` performs one automated live attempt with normal controls
-and no owner staging/clearance prerequisite. It restarts Tas, temporarily enables
-combat, delegates local ground/target selection and kiting to C#, requires active
+and no owner staging/clearance prerequisite. It reuses Tas with existing combat
+permissions, delegates local ground/target selection and kiting to C#, requires active
 food/80% health/40 stamina, and records evidence under `.checks/combat-trial-*`.
-It always logs out/stops/restores combat off, then restarts only the
-controller so the web panel stays available while Tas is offline. A return-home
+It retains the client and combat permissions. `--restart-client` explicitly
+restarts with trial permissions; `--allow-logout` permits cleanup shutdown and
+restarts only the controller so the offline web panel stays available. A return-home
 task already dispatched on rejoin may finish first, with its exact destination,
 task ID, scope and injury evidence checked for at most 120 seconds. Native
 success and arrival within 3 m of home are required before trial work; other
@@ -1056,7 +1157,7 @@ food types, and observe automatic eating. Every claimed transfer requires a
 task-matched chest receipt and newer scoped inventory; memory only selects
 candidates. Damage, unsafe water, loss of ownership, world/connection changes
 and time/travel limits abort. Evidence and cleanup use the shared trial harness,
-which always logs out/stops and leaves the panel available. It is an explicit
+which retains the client by default; shutdown requires `--allow-logout`. It is an explicit
 operator preparation check, not a background supply policy.
 Long return trips walk; a final approach within 40 m may run with at least
 30 stamina. Damage and survival preemption still abort preparation.
@@ -1135,8 +1236,9 @@ receipt consumes the existing budgets without triggering the repeated-failure
 stop. Incomplete attempts remain distinct from empty search evidence, and
 ordinary failures retain their three-repeat stop. A goal success requires an exact
 native “observed Greyling death” receipt; orchestration progress alone does not
-close melee/block/dodge checks. Cleanup cancels unfinished goals, logs out and
-stops the game, restores combat off and starts the controller/panel alone.
+close melee/block/dodge checks. Cleanup cancels unfinished goals while retaining
+the client and combat permissions. `--allow-logout` permits shutdown and a
+controller/panel-only restart.
 
 Native dry home travel can use a navmesh candidate only after incremental
 physical support, water and body-clearance validation of every half-meter leg.
@@ -1217,7 +1319,8 @@ For an injured-body recovery check, `just vm task-check attack` accepts an
 explicit `defensive:true` request. Require a native-confirmed recent ordinary
 Greyling attacker and the food, armour, health and stamina reserves documented
 in BRIDGE-PROTOCOL.md. A refusal is a refusal, never death proof. Retain the
-exact task death receipt and audit, then restore combat off and stop the game.
+exact task death receipt and audit; keep the client and combat permissions for
+further diagnosis unless shutdown is explicitly requested.
 
 When planning accepts a leg that live movement refuses, retain the refused
 approach while replanning that goal. Physical body-cast/overlap refusals and
@@ -1707,9 +1810,10 @@ retains only route-relevant fields rather than repeating saved goal histories.
 The benchmark requires a safe online home start and does not join or retry
 startup recovery. It stops on the first failed trip, damage or changed
 ownership. A command/cancellation/session change yields without logging out
-the new owner. Otherwise failure logs Tas out, stops the game and restores
-the independent panel. `--keep-online` applies only after success and another
-safe-home observation. The tool retains plan, per-leg receipts/maps, sampled
+the new owner. Being in bed or sleeping also yields, even after the sleep
+interaction has completed and the active task is empty. Failure leaves Tas
+online by default; only explicit `--allow-logout` enables logout/client cleanup.
+`--keep-online` verifies a safe home after success. The tool retains plan, per-leg receipts/maps, sampled
 travel/minimum health, audit and an available failure camera image under
 `.checks/routes-*`; `just vm trial-status` reads compact progress.
 
@@ -2012,3 +2116,123 @@ controller and game restarts. Evidence `.checks/cargo-20261101T1900Z/summary.jso
 and `.checks/audit-window-ibzxah.jsonl`; full CI172s and committed review passed.
 The ordinary home-storage idle definition remains enabled with its default
 reserves. These receipts do not close broader M2/M3 route/pantry acceptance.
+
+## Valheim Plus migration, 2026-11-01
+
+The host-selected Grantapher Valheim Plus10.4.0.0 DLL was downloaded with
+`just check vm vplus-stage 10.4.0.0` and checked against the official asset
+SHA256 (`9f6070177a0c58a2edb598b78a7e444dab533d87855c5ecc476e2be244aaae6b`).
+`just check vm vplus-install 10.4.0.0` reverified the102-file,87587416-byte
+backup at `C:\renki\backups\vplus-20261101T201857721Z` and installed only that
+DLL. Renki's installed assemblies remained unchanged. The existing
+Valheim1.0.21/BepInExPack5.4.2360/BepInEx5.4.23.6 runtime was retained; the
+upstream release documents1.0.20/5.4.2351, so these observations establish
+local smoke coverage rather than broader upstream support.
+
+Two guarded joins succeeded into DizzysHellheim as Tasleroch. The server
+reported network41, matching the client; its exact game and loader builds
+were not independently observed (the public server query timed out). V+
+registered462 settings, received server configuration and reapplied patches
+with0 settings changed from the fresh client defaults. Inventory reported
+8x4 slots,300 carrying capacity and the expected tool/armour durability.
+No V+ or Renki patch-loading failure was observed. Two Unity matchmaking
+initialization errors appeared before the successful join.
+
+`just check vm cooking-check --search-home --refresh-food` passed with
+measured chest/pack receipts: withdrew CookedDeerMeat1 and RawMeat1 from live
+chest `1:73565`, then cooked the input at `1:73615` and collected CookedMeat1
+with the native output receipt. The check considered13 unique home chests
+and opened1 for the raw supply. Evidence:
+`.checks/cooking-20261101T202512Z/summary.json` and
+`.checks/modpack-2323/verified-loader.json`.
+
+Four ordinary idle definitions were paused for controlled checks. A later
+move request during the second join's recovery hold was correctly rejected
+with `not_allowed`; it is refusal coverage, not successful movement. Tas
+then recovered to89.3/89.3HP in shelter with injurySeq0 before movement was
+retried. The full `just check ci` gate passed in157s; diagnostics are retained
+in `.checks/20261101T202525Z-0rZChk.log`.
+
+The guarded native retry passed, followed by `just check vm route-benchmark
+--marker "home storage" --home-floor-marker "home cooking" --cycles 1
+--leg-timeout 45 --keep-online`. One round trip had two native receipts and
+observed home-floor arrival, with 7.14m observed movement and minimum88.3HP.
+Evidence: `routes-20261101T202959970535Z` under `.checks/`.
+The four previous idle definitions were restored; Tas was left online at home,
+sheltered and uninjured.
+
+### Indoor chore routing, 2026-11-02
+
+Build `62f820a` withdrew one DeerMeat from food chest `1:73552`, then the
+ordinary idle-food behavior cooked and collected one CookedDeerMeat at
+`1:73601` with a verified direct-spawn receipt. A conditional deposit put
+one Wood into `1:73555`. These are individual stage passes, not a completed
+loop or proof that the new alternate chest-side recovery was exercised.
+
+Nimah's subsequent sleep command succeeded. The following test move wrongly
+displaced that completed resting order, then failed to leave the bed:
+`.checks/task-9yw1yxhf.json` records a 54-node search confined by the 0.4 m
+drop from measured bed support36.49048 to floor36.09048. The benchmark now
+yields on either `in_bed` or `sleeping`, independently of active-task state.
+Walking support admits a measured descent of at most0.6 m across the whole
+edge, while each upward half-edge remains limited to0.3 m. Collision,
+support-normal, water and threat checks still apply. Captured descent/reverse
+climb, capsule-offset and excessive-drop cases are covered by
+`just check plugin test-core DryTravelTests`; sleep interruption and cleanup
+ownership are covered by `just check vm test-route-benchmark`.
+
+The corrected bed exit, final home leg and repeated indoor loops still need
+live receipts. Do not count the stopped sequence as a completed benchmark.
+
+After Tas was reserved for routing, build `e399641` passed the direct
+bed-to-food withdrawal. `.checks/task-zldsa_g_.json` records measured alternate
+chest positions and exact CookedDeerMeat1/MushroomYellow1 transfers. Cooking
+then passed with RawMeat1 withdrawn and CookedMeat1 collected at `1:73601`
+(`.checks/cooking-20261102T033906Z/summary.json`). An earlier cooking wrapper
+correctly admitted no tasks while the newly eaten meals were still restoring
+health; it is not a cooking pass.
+
+Storage task `t-7` failed at its origin, not at the chest:
+`.checks/task-l0muz79i.json` shows zero footing-ray hits at
+[-33.53336,36.19357,11.11122], despite grounded state. The saved camera shows
+the character supported at the cooking-fire opening edge. Current-footing
+measurement now checks at most eight rays within0.3m of the actual grounded
+body when its centre ray has zero hits. Side contacts require walkable normals
+and the original footing height band. Saturation refuses; existing centre-ray
+slope/height/footing refusals retain their result. Remote route nodes, future
+endpoints and midpoints cannot use the footprint fallback. A bounded native
+`using measured footprint support` trace retains the centre query, radius,
+query count and selected contact. `just check plugin test-core
+FootprintSupportTests` covers a synthetic edge departure, remote/airborne
+refusals, excessive heights/radii and saturated probes; the captured failure
+establishes the missing-centre symptom, not the synthetic adjacent geometry.
+Corrected storage and complete/repeated loops still require live proof.
+
+Later observations and audit `.checks/audit-window-mir4Co.jsonl` found repeated
+2HP environmental damage after the cooking task had completed at that edge;
+regeneration obscured it in full-health snapshots. An ordinary native move
+away succeeded (`.checks/20261102T034610Z-KePdtk.log`). This diagnostic recovery
+is not proof of the dry planner fix. Cooking now returns from output collection
+to its checked tending position before reporting success, using a dry,
+hostile-aware native move with a12s return bound and the original task deadline.
+Cancellation clears that return. Standing-position checks also use the game's
+head-height smoke sphere. A collected output followed by a refused return is
+retained as a partial result, not a complete safe cooking pass. The old damage
+events lack a hit type, so smoke versus flame remains unproven.
+
+Build `6e23e2d` then passed the indoor sequence: direct bed-to-food withdrawal,
+NeckTail1 supply/cooking/collection at `1:73601`, Wood1 deposit at `1:73555`
+and return to the original home. The cooking receipt includes actual
+eight-ray footprint recovery from the missing-centre fire edge and checked
+return to[-32.5,36.15,11.26] before success. Evidence:
+`.checks/cooking-20261102T035627Z/summary.json`,
+`.checks/task-2_9vyyri.json`, `.checks/task-1_an7qt9.json`.
+
+Three home-storage round trips also passed with
+`just check vm route-benchmark --marker 'home storage' --cycles 3
+--leg-timeout 120 --home-floor-marker 'home cooking' --keep-online`:
+`.checks/routes-20261102T035907454646Z/summary.json` retains six scoped native
+receipts,18.60m observed travel, minimum89.5HP and sheltered home-floor arrival.
+No observed injury; Tas stayed online. Original home/waypoint positions were
+preserved. This indoor pass does not establish outdoor stair/coast reliability
+or sustained pantry production.

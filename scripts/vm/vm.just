@@ -81,6 +81,40 @@ reconnect: need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/reconnect.ps1" "{{target}}:/{{dir}}/reconnect.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/reconnect.ps1"
 
+# Preview migration backup sources without reading settings or save contents to stdout.
+migration-inspect: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/migration-backup.ps1" "{{target}}:/{{dir}}/migration-backup.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/migration-backup.ps1"
+
+# Back up the mod loader, Renki settings/memory and saves; require an offline client/controller.
+migration-backup: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/migration-backup.ps1" "{{target}}:/{{dir}}/migration-backup.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/migration-backup.ps1 -Create"
+
+# Download the official pinned DLL into .checks and verify the release asset digest.
+[positional-arguments]
+vplus-stage VERSION='10.4.0.0':
+    python3 -B "{{justfile_directory()}}/scripts/vm/vplus-stage.py" "$1"
+
+# Install a staged V+ DLL while offline, requiring a completed verified backup.
+[positional-arguments]
+vplus-install VERSION='10.4.0.0': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Use an exact four-part version' >&2; exit 2; }
+    staged="{{justfile_directory()}}/.checks/valheim-plus/$1"
+    sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$staged/release.json")
+    [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || exit 2
+    {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}/staging/vplus-$1' | Out-Null"
+    scp -q -o BatchMode=yes "$staged/ValheimPlus.dll" "$staged/release.json" "{{target}}:/{{dir}}/staging/vplus-$1/"
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/vplus.ps1" "{{target}}:/{{dir}}/vplus.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/vplus.ps1 -Action Install -Version '$1' -Sha256 '$sha'"
+
+# Read versions, selected loader diagnostics and non-secret local V+ flags.
+vplus-inspect: need-target
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/vplus.ps1" "{{target}}:/{{dir}}/vplus.ps1"
+    {{ssh}} "{{ps}} -File {{dir}}/vplus.ps1"
+
 # Build, stop and install with checksum verification; leave Tas offline.
 install: need-target
     #!/usr/bin/env bash
@@ -219,17 +253,17 @@ task-check TASK ARGS='{}' TIMEOUT='60':
     python3 "{{justfile_directory()}}/scripts/vm/task-check.py" "$1" "$2" "$3"
 
 # Start one automatic normal-controls encounter if a safe Greyling is available;
-# record results and always log out/stop, restoring combat off afterward.
+# retain results and stay online. --restart-client and --allow-logout are opt-in.
 [positional-arguments]
 combat-trial *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" "$@"
 
-# Harvest one isolated full beech and newly observed nearby logs; always stop.
+# Harvest one isolated full beech and newly observed nearby logs; retain the client.
 [positional-arguments]
 harvest-trial *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-tree "$@"
 
-# Retry already fallen beech logs without felling another tree; always stop.
+# Retry already fallen beech logs without felling another tree; retain the client.
 [positional-arguments]
 harvest-logs X Y Z *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --harvest-logs "$1" "$2" "$3" "${@:4}"
@@ -369,15 +403,20 @@ map-snapshot *ARGS:
     @python3 -B "{{justfile_directory()}}/scripts/vm/map-snapshot.py" "$@"
 
 # Verify live 5 -> temporary 1 -> automatic 5 cadence, JPEG and map retrieval.
-# Requires an in-world bot and enabled normal 5s camera; always logs out/stops.
-camera-check: need-target
-    @python3 -B "{{justfile_directory()}}/scripts/vm/camera-check.py"
+# Requires an in-world bot and enabled normal 5s camera; retain the client.
+[positional-arguments]
+camera-check *ARGS: need-target
+    @python3 -B "{{justfile_directory()}}/scripts/vm/camera-check.py" "$@"
 
 # Check actual-frame cadence analysis without game or network access.
 test-camera-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/camera-check-test.py"
 
-# Test the controller gather -> gain-only storage -> return chain; always stop.
+# Failed live supervisors preserve the client unless explicitly authorized to stop it.
+test-client-lifecycle:
+    python3 -B "{{justfile_directory()}}/scripts/vm/client-lifecycle-test.py"
+
+# Test the controller gather -> gain-only storage -> return chain; retain the client.
 [positional-arguments]
 gather-trial *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/combat-trial.py" --gather-tree "$@"
@@ -393,8 +432,16 @@ escort-check +ARGS:
 test-escort-check:
     python3 -B "{{justfile_directory()}}/scripts/vm/escort-check-test.py"
 
+# Native nighttime bed entry; optionally interrupt a finite owner/operator escort.
+[positional-arguments]
+sleep-check *ARGS:
+    python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check.py" "$@"
+
+test-sleep-check:
+    python3 -B "{{justfile_directory()}}/scripts/vm/sleep-check-test.py"
+
 # One real cooking batch, optionally finding one ingredient in known home chests.
-# Always logs out/stops a bot admitted to the proof; leaves the panel available.
+# Retain the client after the proof; --allow-logout explicitly enables shutdown.
 [positional-arguments]
 cooking-check *ARGS:
     python3 -B "{{justfile_directory()}}/scripts/vm/cooking-check.py" "$@"
@@ -472,3 +519,14 @@ recovery VALUE='': need-target
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")
     {{ssh}} "{{ps}} -File {{dir}}/recovery.ps1 ${valuearg[*]}"
+
+# Independent opt-in to native recovery-failure logout; applies on next launch.
+[positional-arguments]
+auto-logout VALUE='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/recovery.ps1" "{{target}}:/{{dir}}/recovery.ps1"
+    valuearg=()
+    [ -z "$1" ] || valuearg=(-Value "$1")
+    {{ssh}} "{{ps}} -File {{dir}}/recovery.ps1 -Key AutoLogout ${valuearg[*]}"

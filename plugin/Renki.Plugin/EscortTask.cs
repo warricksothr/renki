@@ -69,9 +69,8 @@ namespace Renki.Plugin
                 var ready = EscortPolicy.Ready(p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(),
                     p.GetFoods().Count > 0, MeleeTask.Best(p) != null);
                 // Existing melee owns its ongoing stamina budget, including block/dodge.
-                if (mode == "defend" && child is MeleeTask) ready = p.GetHealth() >= 30 && p.GetHealth() >= p.GetMaxHealth() * .8 && p.GetStamina() >= 10;
                 var action = EscortPolicy.Decide(visible, gap, now - stillSince >= 2, threats,
-                    confirmed && MeleeTask.Eligible(p, threat), ready && now >= retryAt,
+                    confirmed && MeleeTask.ProtectionEligible(p, threat), ready && now >= retryAt,
                     args.Defend, args.Collect, HasSpace(p) && (mode != "collect" || collectionItem != null && p.GetInventory().CanAddItem(collectionItem, collectionAmount)), mode == "collect", now - childAt);
                 if (mode != "escape")
                 {
@@ -102,7 +101,8 @@ namespace Renki.Plugin
             {
                 var previous = mode;
                 Reset("follow", previous + ": " + (ended.Detail ?? ended.Reason ?? ended.Status));
-                if (previous == "defend" || previous == "escape") retryAt = now + 15;
+                if (previous == "defend") retryAt = now + 1;
+                else if (previous == "escape") retryAt = now + 15;
                 else if (previous == "follow") retryAt = now + 2;
                 nextCollect = now + 3;
             }
@@ -112,7 +112,7 @@ namespace Renki.Plugin
         int Threats(Player p, Player leader, out Character threat, out bool confirmed)
         {
             characters.Clear(); Character.GetCharactersInRange(p.transform.position, 30, characters);
-            threat = null; confirmed = false; var count = 0; var nearest = float.MaxValue;
+            threat = null; confirmed = false; var count = 0; var nearest = float.MaxValue; var bestPriority = int.MaxValue;
             foreach (var c in characters)
             {
                 if (c == null || c is Player || c.IsDead() || c.IsTamed() || c.m_nview == null || !c.m_nview.IsValid() || !BaseAI.IsEnemy(p, c)) continue;
@@ -126,7 +126,11 @@ namespace Renki.Plugin
                 // Unknown remote targets may justify escape, never a new fight.
                 if (!(victimKnown && distance <= 16) && !(distance <= 6 && ai != null && ai.HaveTarget())) continue;
                 count++;
-                if (distance < nearest) { nearest = distance; threat = c; confirmed = victimKnown; }
+                // Threats to charges outrank Tas's own attackers; confirmed
+                // victims outrank proximity-only evidence regardless of range.
+                var priority = victimKnown ? target is Player charge && charge != p && Protected(charge) ? 0 : 1 : 2;
+                if (priority < bestPriority || priority == bestPriority && distance < nearest)
+                { bestPriority = priority; nearest = distance; threat = c; confirmed = victimKnown; }
             }
             return count;
         }
@@ -135,8 +139,8 @@ namespace Renki.Plugin
         {
             Reset("defend", "confirmed attacker targets a protected player");
             opponent = threat; entity = Perceiver.Id(threat.m_nview);
-            try { child = new MeleeTask(id, new AttackArgs { Entity = entity }, threat.gameObject, safeAlly: SafeAlly); }
-            catch (TaskRefused no) { retryAt = Time.unscaledTime + 15; Escape(threat, no.Message); }
+            try { child = new MeleeTask(id, new AttackArgs { Entity = entity }, threat.gameObject, safeAlly: SafeAlly, protection: true); }
+            catch (TaskRefused no) { retryAt = Time.unscaledTime + 1; Reset("follow", no.Message); }
         }
 
         void Escape(Character threat, string why)

@@ -96,7 +96,7 @@ func New(o Options) *Engine {
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -594,6 +594,10 @@ func (e *Engine) Tick(ctx context.Context) {
 	hello, _, connected := e.o.Session.Handshake()
 	v := e.view()
 	now := e.o.Now()
+	// Runner deadlines and their validation must share one tick timestamp.
+	// Otherwise a stored wake can be future-dated to View.Now but already
+	// expired by this second clock read at the boundary of a normal wait.
+	v.Now = now
 	if !connected || v.State == nil || v.State.Phase != protocol.PhaseInWorld || v.State.HP <= 0 {
 		_ = e.cancel(ctx, "unavailable", false)
 		e.clearPending("unavailable")

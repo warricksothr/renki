@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/warricksothr/renki/internal/behaviour"
+	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/panel"
 )
 
@@ -41,6 +42,7 @@ func (a *App) BehaviourHandler() http.Handler {
 			Target     string            `json:"target,omitempty"`
 			Marker     *behaviour.Marker `json:"marker,omitempty"`
 			Enabled    *bool             `json:"enabled,omitempty"`
+			Sleep      *bool             `json:"sleep,omitempty"`
 		}
 		if err = behaviour.Decode(raw, &request); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -49,9 +51,13 @@ func (a *App) BehaviourHandler() http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 		switch request.Action {
-		case "idle-food", "idle-cargo":
+		case "idle-food", "idle-cargo", "idle-rest", "idle-resupply":
 			if request.Marker == nil || request.Enabled == nil {
 				err = fmt.Errorf("idle food needs a marker and enabled flag")
+				break
+			}
+			if request.Action == "idle-rest" && request.Sleep == nil {
+				err = fmt.Errorf("idle rest needs an explicit sleep mode")
 				break
 			}
 			m := *request.Marker
@@ -68,9 +74,29 @@ func (a *App) BehaviourHandler() http.Handler {
 			// The same world/name maps to one definition even when kind changes.
 			name := fmt.Sprintf("idle food %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
 			definition := behaviour.MarkerFoodDefinition(m)
+			if request.Action == "idle-resupply" {
+				h, ok := a.Memory.Store.Home(m.World)
+				if !ok {
+					err = fmt.Errorf("personal resupply needs known home in the marker world")
+					break
+				}
+				name = fmt.Sprintf("idle resupply %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
+				params, _ := json.Marshal(goal.Spec{Kind: "food_resupply", World: m.World, Center: h.Pos, Radius: 150, Reserve: 2})
+				definition = behaviour.Definition{Template: "personal_food", Params: params,
+					Trigger: behaviour.Trigger{Kind: "idle", Marker: &m, DwellS: 15},
+					Repeat:  behaviour.Repeat{Mode: "trigger", CooldownS: 300, MaxRuns: 100}, Priority: 10, Enabled: true}
+			}
 			if request.Action == "idle-cargo" {
 				name = fmt.Sprintf("idle cargo %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
 				definition = behaviour.MarkerCargoDefinition(m)
+			}
+			if request.Action == "idle-rest" {
+				prefix := "idle rest"
+				if *request.Sleep {
+					prefix = "idle sleep"
+				}
+				name = fmt.Sprintf("%s %x", prefix, sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
+				definition = behaviour.MarkerRestDefinition(m, *request.Sleep)
 			}
 			definition.Enabled = *request.Enabled
 			var raw json.RawMessage

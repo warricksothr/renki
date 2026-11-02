@@ -596,6 +596,8 @@ var grammar = map[string]command{
 	"pick that up": cmdPickup, "pick it up": cmdPickup, "pick up": cmdPickup, "pick up that": cmdPickup,
 	"grab that": cmdPickup, "grab it": cmdPickup, "get that": cmdPickup,
 	"go to bed": cmdBed, "use your bed": cmdBed, "use the bed": cmdBed,
+	"get in bed": cmdBed, "get into bed": cmdBed, "go to your bed": cmdBed,
+	"get in your bed": cmdBed, "get into your bed": cmdBed,
 	"sleep": cmdBed, "go to sleep": cmdBed, "get some sleep": cmdBed,
 	"claim the bed": cmdClaimBed, "claim a bed": cmdClaimBed, "claim that bed": cmdClaimBed,
 	"claim this bed":  cmdClaimBed,

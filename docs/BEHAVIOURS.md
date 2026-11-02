@@ -405,3 +405,40 @@ its marker must match the idle trigger. A manual trigger can run one bounded
 food batch when already at that marker. `collect` also supports `carryOnly`
 without storage destinations or a return trip; the enclosing routine owns
 what happens next.
+
+## Rest while idle at home
+
+`marker_rest` uses the same idle scheduler and current named marker. Its
+parameters are `marker` and `sleep`. It selects only a freshly observed bed
+positively owned by Tas, within12m of home and on the current floor. It never
+claims another bed. Rest requires fresh surroundings, known game time,
+grounded shelter near home, no water, no close threat and no new injury.
+The selected home, marker and bed stay pinned for the bounded90s attempt.
+
+The authenticated API supplies two separate editable presets:
+
+```json
+{"action":"idle-rest","marker":{"world":"your world","name":"home rest","kind":"place"},"sleep":true,"enabled":true}
+{"action":"idle-rest","marker":{"world":"your world","name":"home rest","kind":"place"},"sleep":false,"enabled":true}
+```
+
+Night mode waits15s of idle time, then sends the normal bed sleep interaction.
+Success needs both the native receipt and a newer `in_bed`/`sleeping`
+observation beside the selected bed. Other players still determine whether
+the night can skip, and native roof/fire/wet/enemy refusals remain visible.
+Day mode waits120s, at lower priority than food/cargo work, then makes one
+dry/hostile-aware move near the bed and releases the body. It waits nearby
+without trying an invalid daytime sleep or holding a task open. Already
+being within2m horizontally of the bed needs no movement. Native waiting approaches use
+a2m arrival radius and require a fresh sheltered floor observation within
+2m and75cm vertically, avoiding a demand to climb into crowded bed frames.
+
+Both presets have a five-minute cooldown and100-attempt controller-session
+limit; none are enabled by default. Their ordinary behaviour rows expose
+enable/disable, results and manual start through the shared panel/API. An
+active chore or human order prevents idle admission. New commands revoke
+the rest lease. The marker may be left only for the nearby owned bed under
+the rest guard. All idle triggers stop queuing chores while Tas is in bed
+or sleeping, including after the native interaction has completed. The game
+wakes him normally after sleeping; explicit new orders can interrupt rest.
+Automatic eating also waits while attached to the bed or sleeping.

@@ -29,7 +29,8 @@ def recovery_diagnostics(audit):
             frame = row.get('frame')
             if not isinstance(frame, dict) or frame.get('type') != 'trace' or frame.get('source') != 'recovery':
                 continue
-            key = {'startup return refused': 'refusal', 'startup recovery logging out': 'logout'}.get(frame.get('msg'))
+            key = {'startup return refused': 'refusal', 'startup recovery logging out': 'logout',
+                   'startup recovery aborted; staying online': 'aborted'}.get(frame.get('msg'))
             data = frame.get('data')
             if not key or not isinstance(data, dict):
                 continue
@@ -53,6 +54,7 @@ def explain_native_refusal(result, audit):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('world', help='exact known world name; native login must match')
     parser.add_argument('--capture', action='store_true', help='retain one available camera checkpoint during native recovery; never change capture settings')
     profiles = parser.add_mutually_exclusive_group()
@@ -138,7 +140,7 @@ def main():
             except subprocess.TimeoutExpired:
                 launch.kill(); launch.wait(timeout=5)
         if owns:
-            if result['outcome'] != 'passed':
+            if result['outcome'] != 'passed' and args.allow_logout:
                 for args in (('stop',), ('panel-start',)):
                     try:
                         call(*args, decode=False)

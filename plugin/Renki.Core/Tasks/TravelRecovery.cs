@@ -27,7 +27,7 @@ namespace Renki.Tasks
             double gap, double hp, double max, double stamina, double armour, bool fed, bool weapon, bool grounded) =>
             permitted && prefab == "Greyling" && level == 1 && threats == 1 && confirmed &&
             Finite(gap) && gap >= 0 && gap <= 16 && Finite(hp) && Finite(max) && Finite(stamina) && Finite(armour) &&
-            hp >= 30 && max > 0 && hp >= max * .8 && stamina >= 40 && armour >= 2 && fed && weapon && grounded;
+            hp > 0 && max > 0 && hp >= max * .8 && stamina >= 40 && armour >= 2 && fed && weapon && grounded;
 
         public TravelMode Decide(double now, bool danger, bool unsafeBody, bool routeChanged = false, bool canDefend = false)
         {

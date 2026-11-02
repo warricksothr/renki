@@ -23,7 +23,7 @@ OUTSIDE = HEALTHY | dict(hp=53, pos=[40, 30, 0], flags=['recovering'])
 
 class RecoverySupervisorTests(unittest.TestCase):
     def run_trial(self, snapshots, *, reject_arm=False, unsafe_map=False, work_trip=False, nearby=False, capture=False,
-                  audit_frames=None, join_failed=False):
+                  audit_frames=None, join_failed=False, allow_logout=True):
         calls = []
         snapshots = iter(snapshots)
 
@@ -54,7 +54,7 @@ class RecoverySupervisorTests(unittest.TestCase):
                 patch.object(recovery.subprocess, 'run', side_effect=request), \
                 patch.object(recovery.subprocess, 'Popen', return_value=launch), \
                 patch.object(recovery.time, 'monotonic', side_effect=lambda: next(clock)), \
-                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--work-trip'] if work_trip else ['--nearby'] if nearby else []) + (['--capture'] if capture else [])), \
+                patch.object(recovery.time, 'sleep'), patch('sys.argv', ['recover-home', 'one'] + (['--allow-logout'] if allow_logout else []) + (['--work-trip'] if work_trip else ['--nearby'] if nearby else []) + (['--capture'] if capture else [])), \
                 contextlib.redirect_stdout(io.StringIO()):
             code = recovery.main()
             summary = json.loads(next(Path(temp).glob('.checks/recovery-*/summary.json')).read_text())
@@ -154,6 +154,12 @@ class RecoverySupervisorTests(unittest.TestCase):
                 self.assertEqual(code, 1, result)
                 for action in (['stop'], ['panel-start'], ['recovery-return', 'clear']):
                     self.assertIn(action, calls)
+
+    def test_injured_recovery_stays_online_without_explicit_logout_permission(self):
+        code, result, calls = self.run_trial([dict(connected=False), OUTSIDE, OUTSIDE | dict(hp=52, injurySeq=1)], allow_logout=False)
+        self.assertEqual(code, 1, result)
+        self.assertNotIn(['stop'], calls)
+        self.assertIn(['recovery-return', 'clear'], calls)
 
     def test_refused_arm_does_not_stop_someone_elses_client(self):
         code, result, calls = self.run_trial([dict(connected=False)], reject_arm=True)

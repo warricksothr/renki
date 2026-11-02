@@ -79,9 +79,9 @@ are empty. `--require-fuel` additionally requires an actual cold-fire fuel
 receipt, never just a successful hot-station batch. Native traces and complete
 checkpoints are saved in `.checks/food-*`.
 
-Trials log out after unsafe, uncertain or failed outcomes. `--keep-online`
-retains Tas after success only with a fresh safe idle shelter observation near
-home and no nearby observed threats. Native plugin changes still require a
+Trials stay online after unsafe, uncertain or failed outcomes by default.
+`--allow-logout` explicitly permits cleanup shutdown. With that option,
+`--keep-online` instead retains Tas when fresh safe home evidence is verified. Native plugin changes still require a
 client restart; controller-only changes can use `just vm deploy-controller`.
 
 New food goals can also acquire missing supplies after storage is exhausted.
@@ -134,12 +134,13 @@ one, keeping the independent panel available without launching Valheim.
 outside, without disabling `RecoveryGuard`. It reads that exact world's pinned
 home from controller memory while the game is offline and arms a five-minute,
 one-shot native order. The plugin consumes the order before moving. Invalid or
-wrong-world orders log out; an absent order retains passive sheltered healing.
+wrong-world orders abort recovery (logout requires `Safety.AutoLogout=true`); an absent order retains passive sheltered healing.
 
 The default local profile requires at least 50 HP and 70% maximum health, two active foods,
 25 stamina, dry grounded feet and six metres of hostile clearance. Normal
 native dry movement avoids hostiles. Injury, water, less than eight stamina,
-close threats, cancellation, bridge/session loss or permission loss log out.
+close threats, cancellation, bridge/session loss or permission loss abort the
+return and release its input hold. They log out only with `Safety.AutoLogout=true`.
 The return permits 120 seconds, 160 metres travelled and at most 80 metres
 from home. It cannot combat, collect supplies or accept ordinary body tasks.
 An operator stop aborts it, and reconnect cannot resume it.
@@ -175,6 +176,47 @@ permission remain separate. `just vm trial-status` reads compact progress for
 food, cooking, recovery and escort evidence as well as harvesting/combat.
 
 ## Household storage targets and idle episodes
+
+### Personal supply before household work
+
+The optional `personal_food` idle routine starts the existing durable food
+goal when no active meal has at least five minutes left, or fewer than two
+ready meals remain in the pack. A full unfed25/25 health bar does not satisfy
+this need. Nourished bodies with the requested reserve create no new goal.
+Enable it through the authenticated behaviour API using a current home marker:
+
+```json
+{"action":"idle-resupply","marker":{"world":"your-world","name":"home rest","kind":"place"},"enabled":true}
+```
+
+The preset pins that world's saved home, waits15s of daytime idle and runs at
+priority10, before daytime food/cargo chores and bedside waiting. It has a
+five-minute cooldown and100 attempts per controller session. Admission needs
+fresh state, pack and perception, known daytime, awake grounded shelter,
+dry footing within12m horizontally and1.75m vertically of home, and no nearby
+threat. This includes a nearby bedroom without treating the floor underneath
+the base as home. An attached or sleeping body is left alone; a changed home
+refuses the old preset until edited. New orders cancel through the normal
+body lease. Each needed episode exposes its `episodeId` and uses the existing
+receipt, travel, cooking, recovery and uncertain-action limits. It does not
+enable logout or weaken outdoor travel admission for an unfed body.
+Daytime is an admission requirement; sunset alone does not abort a running
+food preparation action. After the bounded episode finishes, nighttime idle
+sleep can take over. An explicit sleep command still interrupts normally.
+
+`just vm food-check --idle-resupply "home rest" --keep-online` observes a
+temporary one-attempt definition through its actual idle dwell and durable
+episode; it disables only that temporary definition afterward. No forced
+movement, wake or food removal is needed when testing the naturally empty pack.
+
+### Desired pantry outcomes
+
+Household targets describe desired verified storage outcomes, not fixed task
+scripts. The same goal can use stored ingredients, collect a missing yield,
+cook and deposit, while keeping Tas supplied first. Exact supported food
+prefabs are accepted today. Aggregate categories such as "ten ready meals"
+and new recipes such as mushroom soup require additional planning and recipe
+support; setting a target does not grant an unknown crafting capability.
 
 A `food_resupply` goal can add `stock` to produce food beyond Tas's personal
 reserve. `stock.targets` maps supported ready-food prefabs to desired totals in

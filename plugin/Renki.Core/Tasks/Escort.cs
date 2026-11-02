@@ -19,15 +19,15 @@ namespace Renki.Tasks
             bool detour, double detourAge)
         {
             if (threats > 0)
-                return defend && leaderVisible && gap <= FightLeash && threats == 1 && eligible && ready
-                    ? EscortAction.Defend : EscortAction.Escape;
+                return defend && leaderVisible && gap <= FightLeash && eligible && ready
+                    ? EscortAction.Defend : leaderVisible ? EscortAction.Follow : EscortAction.Wait;
             if (!leaderVisible) return EscortAction.Wait;
             if (gap > Leash || !leaderStill || detour && detourAge >= DetourSeconds) return EscortAction.Follow;
             return collect && hasSpace && gap <= 6 ? EscortAction.Collect : EscortAction.Follow;
         }
 
         public static bool Ready(double hp, double max, double stamina, double armour, bool food, bool weapon) =>
-            hp >= 30 && max > 0 && hp >= max * .8 && stamina >= 35 && armour >= 2 && food && weapon;
+            hp > 0 && max > 0 && weapon;
 
         // Melee exemption is limited to named allies with known PvP protection.
         public static bool SafeAlly(bool protectedPlayer, bool? ownPvp, bool? otherPvp) =>

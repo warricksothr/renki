@@ -144,14 +144,24 @@ def household_definition(spec, marker):
                 repeat=dict(mode='trigger', cooldownS=300, maxRuns=1), priority=-10, enabled=True)
 
 
+def personal_definition(spec, marker):
+    if spec.get('stock') is not None or spec.get('escort') is not None or marker['world'] != spec['world']:
+        raise RuntimeError('personal idle trial requires same-world marker without household or escort work')
+    return dict(template='personal_food', params=spec,
+                trigger=dict(kind='idle', marker=marker, dwellS=15),
+                repeat=dict(mode='trigger', cooldownS=300, maxRuns=1), priority=10, enabled=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow test cleanup to log out/close the client; default stays online even on failure')
     parser.add_argument('--stock-target', action='append', default=[], help='household food prefab=count; repeat for several foods')
     parser.add_argument('--stock-minimum', action='append', default=[], help='refill below prefab=count; must cover each target')
     parser.add_argument('--allow-hunting', action='store_true')
     parser.add_argument('--hunt-areas', default='', help='comma-separated hunting marker names')
     parser.add_argument('--sources', default='', help='comma-separated food source marker names')
     parser.add_argument('--idle-marker', help='start a household episode after idle dwell at this storage marker')
+    parser.add_argument('--idle-resupply', help='start personal resupply after natural idle dwell at this home marker')
     parser.add_argument('--require-deposit', action='store_true')
     parser.add_argument('--join', action='store_true')
     parser.add_argument('--storage', default='', help='comma-separated allowed current home chest IDs; default all eligible chests')
@@ -171,6 +181,8 @@ def main():
         targets[item] = int(count)
     if (targets and (not args.storage or args.escort)) or (args.idle_marker and not targets):
         parser.error('household work needs targets and explicit storage; escort is separate')
+    if args.idle_resupply and (targets or args.idle_marker or args.escort):
+        parser.error('idle personal resupply is separate from household work and escort')
     minimums = {}
     for low in args.stock_minimum:
         item, separator, count = low.partition('=')
@@ -270,9 +282,16 @@ def main():
         if targets:
             spec['radius'] = 200
             spec['stock'] = dict(targets=targets, minimum=minimums, allowHunting=args.allow_hunting, huntAreas=[s.strip() for s in args.hunt_areas.split(',') if s.strip()], sources=[s.strip() for s in args.sources.split(',') if s.strip()])
-        if args.idle_marker:
-            candidate_name = 'household check ' + folder.name
-            definition = household_definition(spec, args.idle_marker)
+        if args.idle_marker or args.idle_resupply:
+            candidate_name = ('personal check ' if args.idle_resupply else 'household check ') + folder.name
+            if args.idle_resupply:
+                markers = [w for w in mapped.get('waypoints', []) if w.get('name') == args.idle_resupply]
+                if len(markers) != 1 or mapped.get('world') != spec['world'] or mapped.get('connection') != status.get('connection'):
+                    raise RuntimeError('personal trial needs a current unambiguous home marker')
+                marker = dict(world=spec['world'], name=markers[0]['name'], kind=markers[0]['kind'])
+                definition = personal_definition(spec, marker)
+            else:
+                definition = household_definition(spec, args.idle_marker)
             call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='save', name=candidate_name, definition=definition)))
             idle_name = candidate_name
             until = time.monotonic() + 90
@@ -286,10 +305,10 @@ def main():
                     goal = call('panel', 'GET', '/api/goals?' + urlencode(dict(id=instance['episodeId'])))
                     break
                 if instance.get('runs') or instance.get('last') == 'new order':
-                    raise RuntimeError('household idle episode did not start: ' + str(instance.get('last')))
+                    raise RuntimeError('food idle episode did not start: ' + str(instance.get('last')))
                 time.sleep(2)
             else:
-                raise RuntimeError('household idle admission deadline')
+                raise RuntimeError('food idle admission deadline')
         else:
             goal = call('panel', 'POST', '/api/goals', json.dumps(dict(action='start', spec=spec)))
         summary['goal'] = goal['id']
@@ -368,26 +387,29 @@ def main():
             try: call('panel', 'POST', '/api/behaviours', json.dumps(dict(action='disable', name=idle_name)))
             except Exception as error: summary.update(outcome='failed', reason='cannot disable household test definition: ' + str(error))
         retained = False
-        if owns_game and args.keep_online and completed_or_returned_shortage(summary, goal):
+        if owns_game and (args.keep_online or not args.allow_logout) and completed_or_returned_shortage(summary, goal):
             try:
                 final = observe()
                 mapped = call('panel', 'GET', '/api/map')
                 retained = safe_to_remain(final, mapped)
             except Exception: retained = False
-        summary['keptOnline'] = retained
+        summary['safeHomeVerified'] = retained
+        summary['keptOnline'] = owns_game and (retained or not args.allow_logout)
         if owns_game and not retained:
             if goal and goal.get('status') not in ('succeeded', 'cancelled'):
                 try: call('panel', 'POST', '/api/goals', json.dumps(dict(action='stop', id=goal['id'])))
                 except Exception as error: summary['reason'] += '; goal cleanup: ' + str(error)
-            try: call('panel', 'POST', '/api/act/logout', '{}')
-            except Exception as error: summary['reason'] += '; logout: ' + str(error)
+            if args.allow_logout:
+                try: call('panel', 'POST', '/api/act/logout', '{}')
+                except Exception as error: summary['reason'] += '; logout: ' + str(error)
             if launch and launch.poll() is None:
                 launch.terminate()
                 try: launch.wait(timeout=5)
                 except subprocess.TimeoutExpired: launch.kill(); launch.wait()
-            for arguments in [('stop',), ('panel-start',)]:
-                try: call(*arguments, decode=False)
-                except Exception as error: summary['reason'] += '; cleanup: ' + str(error)
+            if args.allow_logout:
+                for arguments in [('stop',), ('panel-start',)]:
+                    try: call(*arguments, decode=False)
+                    except Exception as error: summary['reason'] += '; cleanup: ' + str(error)
         (folder / 'summary.json').write_text(json.dumps(summary, indent=2)+'\n')
         print(json.dumps(summary), flush=True); log.close()
     return 0 if summary['outcome'] == 'succeeded' else 1

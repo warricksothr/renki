@@ -26,7 +26,7 @@ namespace Renki.Tests
 
         [Theory]
         [InlineData(30, 45, 35, 2, true, true, true)]
-        [InlineData(29.9, 40, 35, 2, true, true, false)]
+        [InlineData(25, 25, 35, 2, true, true, true)]
         [InlineData(30, 50, 35, 2, true, true, false)]
         [InlineData(30, 45, 34, 2, true, true, false)]
         [InlineData(30, 45, 35, 1, true, true, false)]
@@ -52,7 +52,7 @@ namespace Renki.Tests
             Assert.Equal(MeleeAction.Strike, policy.Decide(f, 1));
             Assert.Equal(MeleeAction.Retreat, new MeleeEncounter(0, 20).Decide(f, 1));
             double now = 2;
-            if (cause == "health") f.Hp = 24.9;
+            if (cause == "health") f.Hp = 0;
             if (cause == "fraction") f.HpMax = 51;
             if (cause == "stamina") f.Stamina = 9;
             if (cause == "distance") f.TargetDistance = 6.1;
@@ -60,6 +60,37 @@ namespace Renki.Tests
             if (cause == "time") now = 12;
             if (cause == "bystander") f.Unsafe = true;
             Assert.Equal(MeleeAction.Retreat, policy.Decide(f, now));
+        }
+
+        [Fact]
+        public void ProtectionUsesAffordableCombatInsteadOfPersonalEscapeReserves()
+        {
+            var f = Healthy(); f.Hp = 1; f.Stamina = 6;
+            var policy = new MeleeEncounter(0, 20, protection: true);
+            Assert.Equal(MeleeAction.Strike, policy.Decide(f, 1));
+            f.Stamina = 5;
+            Assert.Equal(MeleeAction.Wait, policy.Decide(f, 2));
+            f.Incoming = true; f.CanDodge = true; f.Stamina = 10;
+            Assert.Equal(MeleeAction.Dodge, policy.Decide(f, 3));
+            f.CanDodge = false; f.Stamina = 25;
+            Assert.Equal(MeleeAction.Block, policy.Decide(f, 4));
+            f.Stamina = 0;
+            Assert.Equal(MeleeAction.Wait, policy.Decide(f, 5));
+        }
+
+        [Fact]
+        public void ProtectionHoldsFireAndStillBoundsBlockedOrUnproductivePursuits()
+        {
+            var f = Healthy(); f.Unsafe = true; f.TargetDistance = 20;
+            var policy = new MeleeEncounter(0, 20, 20, protection: true);
+            Assert.Equal(MeleeAction.Wait, policy.Decide(f, 1));
+            Assert.Equal(MeleeAction.Retreat, policy.Decide(f, 12));
+            f.Unsafe = false; f.DistanceFromStart = 13;
+            Assert.Equal(MeleeAction.Retreat, new MeleeEncounter(0, 20, protection: true).Decide(f, 1));
+            Assert.True(MeleeEncounter.ProtectionEligible(false, false, true));
+            Assert.False(MeleeEncounter.ProtectionEligible(true, false, true));
+            Assert.False(MeleeEncounter.ProtectionEligible(false, true, true));
+            Assert.False(MeleeEncounter.ProtectionEligible(false, false, false));
         }
 
         [Fact]

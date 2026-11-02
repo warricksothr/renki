@@ -20,7 +20,7 @@ namespace Renki.Plugin
         internal static void ClearAggressor() { aggressor = null; }
         internal static Character RecentAttacker => aggressor != null && Time.unscaledTime - hurtAt <= 15 ? aggressor : null;
         readonly Func<Player, bool> safeAlly;
-        readonly bool defensive;
+        readonly bool defensive, protection;
         readonly Character enemy;
         readonly string entity, id, prefab;
         Vector3 start;
@@ -43,12 +43,12 @@ namespace Renki.Plugin
         internal CombatStatus Status => new CombatStatus { Id = id, Entity = entity, Mode = mode, Reason = reason, Defensive = defensive };
         internal bool ObservedDeath => death.Observed || enemy != null && enemy.IsDead();
 
-        public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null, Func<Player, bool> safeAlly = null)
+        public MeleeTask(string id, AttackArgs args, GameObject obj, CharacterDeathObservation observation = null, Func<Player, bool> safeAlly = null, bool protection = false)
         {
-            this.id = id; entity = args.Entity; this.safeAlly = safeAlly;
+            this.id = id; entity = args.Entity; this.safeAlly = safeAlly; this.protection = protection;
             enemy = obj != null ? obj.GetComponent<Character>() : null;
             var p = Player.m_localPlayer;
-            if (enemy == null || !Eligible(p, enemy) || enemy.IsDead())
+            if (enemy == null || !(protection ? ProtectionEligible(p, enemy) : Eligible(p, enemy)) || enemy.IsDead())
                 throw new TaskRefused(Wire.ReasonInvalidTarget, "melee supports one living unstarred hostile Greyling, wild Boar or Neck, never players or tamed creatures");
             prefab = enemy.m_nview.GetPrefabName();
             start = p.transform.position;
@@ -59,12 +59,12 @@ namespace Renki.Plugin
             if (defensive && (prefab != "Greyling" || distance > 6 ||
                 !MeleeEncounter.DefensiveReady(p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(),
                     p.GetFoods().Count > 0, aggressor == enemy && Time.unscaledTime - hurtAt <= 15)))
-                throw new TaskRefused(Wire.ReasonRefused, "defense requires a recent nearby Greyling attacker, food, armour, 30 HP/65% health and 35 stamina");
-            if (!defensive && !HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
+                throw new TaskRefused(Wire.ReasonRefused, "defense requires a recent nearby Greyling attacker, food, armour, 65% health and 35 stamina");
+            if (!defensive && !protection && !HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
                 throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before combat");
             weapon = Best(p);
             if (weapon == null) throw new TaskRefused(Wire.ReasonNoTool, "no usable ordinary melee weapon");
-            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance, defensive);
+            encounter = new MeleeEncounter(Time.unscaledTime, enemy.GetHealth(), distance, defensive, protection);
             if (!encounter.Engaged) mode = "closing";
             walker.ResetStuck(start);
             death = observation ?? new CharacterDeathObservation(enemy, entity);
@@ -73,6 +73,9 @@ namespace Renki.Plugin
 
         internal static bool Eligible(Player p, Character c) => c != null && c.m_nview != null && c.m_nview.IsValid() &&
             MeleeEncounter.Eligible(c.m_nview.GetPrefabName(), c.GetLevel(), c is Player, c.IsTamed(), BaseAI.IsEnemy(p, c));
+
+        internal static bool ProtectionEligible(Player p, Character c) => c != null && c.m_nview != null && c.m_nview.IsValid() &&
+            MeleeEncounter.ProtectionEligible(c is Player, c.IsTamed(), BaseAI.IsEnemy(p, c));
 
         static bool Usable(ItemDrop.ItemData item)
         {
@@ -111,7 +114,7 @@ namespace Renki.Plugin
             if (death.Observed) return Finish(Outcome.Succeeded($"observed {prefab} death"));
             var valid = enemy != null && enemy.m_nview != null && enemy.m_nview.IsValid() && enemy.gameObject.activeInHierarchy;
             if (!valid) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "target unloaded; death was not observed"));
-            if (!Eligible(p, enemy)) return Retreat(p, "target is no longer an eligible hostile");
+            if (!(protection ? ProtectionEligible(p, enemy) : Eligible(p, enemy))) return Retreat(p, "target is no longer an eligible hostile");
             if (enemy.IsDead()) return Finish(Outcome.Succeeded($"observed {prefab} death"));
 
             if (!p.GetInventory().ContainsItem(weapon) || !Usable(weapon)) weapon = Best(p);
@@ -222,6 +225,7 @@ namespace Renki.Plugin
             {
                 if (c == null || c == p || c == enemy || c.IsDead()) continue;
                 if (c is Player ally && safeAlly != null && safeAlly(ally)) continue;
+                if (protection && ProtectionEligible(p, c)) continue;
                 var distance = Vector3.Distance(p.transform.position, c.transform.position);
                 if (distance <= radius || distance <= 6 && BaseAI.IsEnemy(p, c)) return true;
             }
@@ -251,6 +255,9 @@ namespace Renki.Plugin
 
         Outcome Retreat(Player p, string why)
         {
+            // The escort re-evaluates the group and its positioning. A failed
+            // strike/route must not turn into a flight away from its charges.
+            if (protection) return Finish(Outcome.Failed(Wire.ReasonRefused, why));
             death.Dispose();
             Driver.ClearCombat(); SetMode("retreat", why); escapingAt = Time.unscaledTime;
             escape = new FleeTask(new FleeArgs { From = new Target { Entity = entity }, Distance = 25 },
@@ -265,6 +272,7 @@ namespace Renki.Plugin
             Tracer.Emit("combat", next, new Dictionary<string, object>
             {
                 ["entity"] = entity,
+                ["policy"] = protection ? "protect_charges" : defensive ? "self_defense" : "encounter",
                 ["reason"] = why,
                 ["travelFromStart"] = lastFrame?.DistanceFromStart,
                 ["targetDistance"] = lastFrame?.TargetDistance,

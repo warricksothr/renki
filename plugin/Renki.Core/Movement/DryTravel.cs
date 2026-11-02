@@ -18,8 +18,12 @@ namespace Renki.Movement
 
         // A full grid edge may span two ordinary stair treads. Its midpoint
         // must share the rise; a half-metre floor lip is not a staircase.
+        // Stepping down from furniture does not require climbing that lip.
+        // Bound the whole descent by the existing 0.6m support band, rather
+        // than allowing two half-edges to accumulate a larger drop.
         public static bool ContinuousSupport(V3 from, V3 middle, V3 to) =>
-            Math.Abs(middle.Y - from.Y) <= .3 + 1e-6 && Math.Abs(to.Y - middle.Y) <= .3 + 1e-6;
+            middle.Y - from.Y <= .3 + 1e-6 && to.Y - middle.Y <= .3 + 1e-6 &&
+            Math.Max(from.Y, middle.Y) - Math.Min(middle.Y, to.Y) <= .6 + 1e-6;
 
         // The body's capsule can stand above the surface on a slope or log.
         // Compare surface heights on all three samples. A normal stair tread

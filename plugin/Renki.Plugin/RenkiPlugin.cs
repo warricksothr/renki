@@ -35,6 +35,7 @@ namespace Renki.Plugin
         ConfigEntry<string> controllerUrl;
         ConfigEntry<string> token;
         ConfigEntry<bool> suppressTutorials;
+        ConfigEntry<bool> autoLogout;
         internal bool SuppressTutorials => suppressTutorials != null && suppressTutorials.Value;
         internal bool ObservePickups => runner != null && runner.InSession && client != null && client.Connected && !loggingOut;
         readonly SafetyConfig safety = new SafetyConfig();
@@ -103,10 +104,12 @@ namespace Renki.Plugin
                 "Using offering bowls (M2).").Value;
             safety.AllowRawControls = Config.Bind("Safety", "AllowRawControls", false,
                 "The debug `controls` task.").Value;
+            autoLogout = Config.Bind("Safety", "AutoLogout", false,
+                "Explicit opt-in: log out on failed startup recovery/return. Off: report the failure, release recovery inputs and stay online. Manual logout and deployment restarts remain available.");
             recovery = new StartupRecovery(Config.Bind("Safety", "RecoveryGuard", false,
-                "One-shot sheltered healing guard after login. Hold body inputs until recovered; log out if a hostile approaches or recovery is unsafe.").Value);
+                "One-shot sheltered healing guard after login. Hold body inputs until recovered; on unsafe recovery abort the guard. Logout requires AutoLogout.").Value);
             var returnConfig = Config.Bind("Safety", "RecoveryReturn", "",
-                "One-shot expiring same-world home return armed by just vm recover-home. Consumed before movement; critical health still logs out.");
+                "One-shot expiring same-world home return armed by just vm recover-home. Consumed before movement; failure logout requires AutoLogout.");
             if (Recovering && !string.IsNullOrWhiteSpace(returnConfig.Value))
             {
                 try { recoveryReturnOrder = JsonConvert.DeserializeObject<RecoveryReturnOrder>(returnConfig.Value); }
@@ -234,7 +237,7 @@ namespace Renki.Plugin
             Driver.Stand(); Driver.ClearCombat();
             if (action == RecoveryAction.Logout)
             {
-                LogoutRecovery("startup recovery unsafe");
+                LogoutRecovery(recovery.Reason);
             }
             return true;
         }
@@ -242,6 +245,14 @@ namespace Renki.Plugin
         void LogoutRecovery(string reason)
         {
             Driver.ClearCombat();
+            if (!autoLogout.Value)
+            {
+                recoveryWalk?.Cancel(); recoveryWalk = null; recoveryReturn = null;
+                recovery.Abort(); Driver.RecoveryHold = false;
+                Tracer.Emit("recovery", "startup recovery aborted; staying online", new Dictionary<string, object> { ["reason"] = reason, ["autoLogout"] = false });
+                Logger.LogWarning($"startup recovery aborted ({reason}); AutoLogout disabled, staying online");
+                return;
+            }
             Tracer.Emit("recovery", "startup recovery logging out", new Dictionary<string, object> { ["reason"] = reason });
             Logger.LogWarning($"startup recovery unsafe ({reason}); logging out");
             EndSession(reason); loggingOut = true; AutoJoinPatch.Suppress = true;

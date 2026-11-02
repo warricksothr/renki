@@ -47,8 +47,13 @@ namespace Renki.Tests
             var support = new V3(-29.9, 35.24, -2.01);
             var middle = new V3(-29.65, 35.08, -2.01);
             var to = new V3(-29.4, 34.9, -2.01);
-            Assert.False(DryTravel.ContinuousSupport(body, middle, to));
+            Assert.True(DryTravel.ContinuousSupport(body, middle, to));
             Assert.True(DryTravel.ContinuousSupport(body, support, middle, to));
+            // A supported descent may now span 0.6m. Near that bound the
+            // capsule offset must still be removed from the measured drop.
+            var lower = to - new V3(0, .11, 0);
+            Assert.False(DryTravel.ContinuousSupport(body, middle, lower));
+            Assert.True(DryTravel.ContinuousSupport(body, support, middle, lower));
             // Captured stair-exit footing: the capsule remains 0.32m above
             // a gentle supported slope while the body's step settles.
             Assert.True(DryTravel.ContinuousSupport(new V3(-46.5, 34.07163, 10.99),
@@ -61,6 +66,43 @@ namespace Renki.Tests
             Assert.False(DryTravel.ContinuousSupport(body, overhead, overhead, overhead));
             var below = body - new V3(0, .66, 0);
             Assert.False(DryTravel.ContinuousSupport(body, below, below, below));
+        }
+
+        [Fact]
+        public void CapturedBedExitAllowsASmallSupportedDropWithoutAdmittingTheReverseClimb()
+        {
+            // task-9yw1yxhf exhausted a 54-node bed surface because its
+            // 0.4m descent was treated like an upward floor lip.
+            var body = new V3(-31.08, 36.55, 15.19);
+            var support = new V3(-31.08, 36.490482330322266, 15.19);
+            var middle = new V3(-31.33, 36.090484619140625, 15.19);
+            var floor = new V3(-31.58, 36.090484619140625, 15.19);
+            Assert.True(DryTravel.ContinuousSupport(body, support, middle, floor));
+            Assert.False(DryTravel.ContinuousSupport(floor, middle, support));
+
+            V3 Surface(V3 at) => new V3(at.X,
+                V3.FlatDistance(at, support) < 1.4 ? support.Y : floor.Y, at.Z);
+            V3? Probe(V3 from, V3 desired)
+            {
+                var to = Surface(desired);
+                return DryTravel.ContinuousSupport(from, Surface(from), Surface((from + desired) * .5), to) ? to : (V3?)null;
+            }
+            var goal = floor + new V3(-3, 0, 0);
+            var route = new LocalRoute(body, goal, Probe, arrivalLevel: .1);
+            while (route.Status == RouteStatus.Searching) route.Advance();
+            Assert.Equal(RouteStatus.Found, route.Status);
+            Assert.InRange(route.Path[route.Path.Count - 1].Y, floor.Y - .01, floor.Y + .01);
+        }
+
+        [Fact]
+        public void SupportedDescentCannotAccumulateTwoDropsOrHideAMidpointPit()
+        {
+            var from = V3.Zero;
+            Assert.True(DryTravel.ContinuousSupport(from, new V3(.25, -.6, 0), new V3(.5, -.6, 0)));
+            Assert.False(DryTravel.ContinuousSupport(from, new V3(.25, -.3, 0), new V3(.5, -.6001, 0)));
+            Assert.False(DryTravel.ContinuousSupport(from, new V3(.25, -.6, 0), new V3(.5, -1.2, 0)));
+            Assert.False(DryTravel.ContinuousSupport(from, new V3(.25, -.9, 0), new V3(.5, -.6, 0)));
+            Assert.False(DryTravel.ContinuousSupport(from, new V3(.25, double.NaN, 0), new V3(.5, 0, 0)));
         }
 
         [Fact]

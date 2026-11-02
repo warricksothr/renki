@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Verify bounded live camera override cadence; always stop and leave panel online."""
+"""Verify bounded live camera override cadence; retain the client for diagnostics by default."""
+import argparse
 import datetime
 import json
 from pathlib import Path
@@ -49,6 +50,9 @@ def cadence(rows, lease):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--allow-logout', action='store_true', help='explicitly allow closing the client after the check')
+    args = parser.parse_args()
     out = ROOT / '.checks' / ('camera-override-live-' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '.json')
     out.parent.mkdir(exist_ok=True)
 
@@ -108,7 +112,7 @@ def main():
     finally:
         evidence['until'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         evidence['cleanup'] = {}
-        for args in (('vm', 'stop'), ('vm', 'panel-start')):
+        for args in ((('vm', 'stop'), ('vm', 'panel-start')) if args.allow_logout else ()):
             try:
                 evidence['cleanup'][' '.join(args)] = cmd(*args)
             except Exception as error:

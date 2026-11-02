@@ -239,6 +239,7 @@ const (
 	FlagSwimming   = "swimming"
 	FlagSitting    = "sitting"
 	FlagSleeping   = "sleeping"
+	FlagInBed      = "in_bed"
 	FlagAttacking  = "attacking"
 	FlagBlocking   = "blocking"
 	FlagEncumbered = "encumbered"

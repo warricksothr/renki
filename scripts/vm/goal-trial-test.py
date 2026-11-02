@@ -86,8 +86,8 @@ class Goals(unittest.TestCase):
                     self.assertEqual(trial.main(), 1)
                 stop_goals = [json.loads(c[3]) for c in commands if c[:3] == ['panel', 'POST', '/api/goals'] and json.loads(c[3])['action'] == 'stop']
                 self.assertEqual(len(stop_goals), 1 if ending == 'aborted' else 0)
-                self.assertIn(['combat', 'false'], commands)
-                self.assertEqual(commands[-2], ['panel-start'])
+                self.assertFalse(any(c[0] in ('stop', 'combat') or '/api/act/logout' in c for c in commands))
+                self.assertEqual(commands[-2], ['camera'])
 
     def test_persistent_mode_disallows_conflicting_modes(self):
         for arguments in (['--direct', '--entity', 'greyling'], ['--entity', 'greyling'], ['--harvest-tree'], ['--resupply-food'], ['--at', '0', '0', '0']):

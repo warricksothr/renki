@@ -45,12 +45,12 @@ namespace Renki.Tests
 
         [Theory]
         [InlineData(1, true, true, true, EscortAction.Defend)]
-        [InlineData(2, true, true, true, EscortAction.Escape)]
-        [InlineData(1, false, true, true, EscortAction.Escape)]
-        [InlineData(1, true, false, true, EscortAction.Escape)]
-        [InlineData(1, true, true, false, EscortAction.Escape)]
+        [InlineData(2, true, true, true, EscortAction.Defend)]
+        [InlineData(1, false, true, true, EscortAction.Follow)]
+        [InlineData(1, true, false, true, EscortAction.Follow)]
+        [InlineData(1, true, true, false, EscortAction.Follow)]
         [InlineData(0, false, false, false, EscortAction.Collect)]
-        public void DefenseRequiresOneConfirmedEligibleAttackerAndReserves(int threats, bool eligible, bool ready, bool defend, EscortAction expected)
+        public void DefenseRequiresConfirmedAttackerAndWeaponButAcceptsGroups(int threats, bool eligible, bool ready, bool defend, EscortAction expected)
         {
             Assert.Equal(expected, EscortPolicy.Decide(true, 3, true, threats, eligible, ready, defend, true, true, false, 0));
         }
@@ -67,21 +67,23 @@ namespace Renki.Tests
         }
 
         [Fact]
-        public void LosingTheLeaderCannotAuthorizeAChaseButDoesNotBlockEscape()
+        public void LosingTheLeaderCannotAuthorizeAChase()
         {
-            Assert.Equal(EscortAction.Escape, EscortPolicy.Decide(false, 3, true, 1, true, true, true, true, true, false, 0));
-            Assert.Equal(EscortAction.Escape, EscortPolicy.Decide(true, 17, true, 1, true, true, true, true, true, false, 0));
+            Assert.Equal(EscortAction.Wait, EscortPolicy.Decide(false, 3, true, 1, true, true, true, true, true, false, 0));
+            Assert.Equal(EscortAction.Follow, EscortPolicy.Decide(true, 17, true, 1, true, true, true, true, true, false, 0));
         }
 
         [Theory]
         [InlineData(40, 50, 35, 2, true, true, true)]
-        [InlineData(29, 30, 35, 2, true, true, false)]
-        [InlineData(39, 50, 35, 2, true, true, false)]
-        [InlineData(40, 50, 34, 2, true, true, false)]
-        [InlineData(40, 50, 35, 1, true, true, false)]
-        [InlineData(40, 50, 35, 2, false, true, false)]
+        [InlineData(1, 100, 0, 0, false, true, true)]
+        [InlineData(25, 25, 35, 2, true, true, true)]
+        [InlineData(0, 100, 35, 2, true, true, false)]
+        [InlineData(39, 50, 35, 2, true, true, true)]
+        [InlineData(40, 50, 34, 2, true, true, true)]
+        [InlineData(40, 50, 35, 1, true, true, true)]
+        [InlineData(40, 50, 35, 2, false, true, true)]
         [InlineData(40, 50, 35, 2, true, false, false)]
-        public void EntryPreservesHealthFoodEquipmentAndEscapeReserves(double hp, double max, double stamina, double armour, bool food, bool weapon, bool expected) =>
+        public void ProtectionRequiresALivingBodyAndWeaponWithoutPersonalSurvivalVeto(double hp, double max, double stamina, double armour, bool food, bool weapon, bool expected) =>
             Assert.Equal(expected, EscortPolicy.Ready(hp, max, stamina, armour, food, weapon));
 
         [Theory]
