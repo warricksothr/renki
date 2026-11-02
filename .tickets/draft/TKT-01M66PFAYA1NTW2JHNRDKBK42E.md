@@ -26,7 +26,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:22:24Z
-updated_at: 2026-11-02T16:59:47Z
+updated_at: 2026-11-02T17:13:21Z
 created_by:
   id: agent:codex/renki-exploration
   name: ""
@@ -72,8 +72,8 @@ Rollout steps 1 to 5 of docs/EXPLORATION.md. Step 6 (requested resources/biomes,
 
 - [ ] 7.1 Coverage kinds stay apart: offline tests show the measured-coverage query counts 0 m2 for re-confirmed, resent, minimap-only and visited-only ground, and visited ground keeps its y on raised floors (TKT-01M6EFQN74, TKT-01M6EFQN91, TKT-01M6EFQNBJ)
 - [ ] 7.2 Frontier choice is honest in replay: at least 8 recorded scenes each return ranked candidates or 'no safe frontier', and 0 identical retries happen without new evidence (just check controller test-packages ./internal/explore; TKT-01M66PMAPGXNJHB49E7WMGEBYS)
-- [ ] 7.3 First bounded expedition: just vm expedition-trial passes 3 runs in a row, radius <=150 m, combat off; each records >=2,000 m2 new measured terrain inside the circle, a succeeded return plus a later state within 3 m / 1.75 m of the pinned anchor, elapsed <=10 min, work <=5 min, travel <=600 m, no death (three summary.json; TKT-01M6EFQPB8)
-- [ ] 7.4 Stop and partial are honest: a run with --stop-after 60 is idle within 2 s with the goal cancelled and no further task; a no-frontier scene ends partial with no outbound leg (summary.json plus test name; TKT-01M6EFQPB8, TKT-01M6EFQP43)
 - [ ] 7.5 Replay matrix: all 15 scenarios in docs/EXPLORATION.md 'Rollout and evidence' are named tests ending in a different allowed choice, partial or needs_plan, with budgets never reset (just check controller test-packages ./internal/goal; TKT-01M6EFQP5X)
 - [ ] 7.8 M7 tickets tell the truth: every M7 child is done, or has a note saying what is left and is moved; both spikes are resolved or moved (git ticket list --milestone M7)
 - [ ] 7.6 Panel shows the expedition: fixture tests render boundary, anchor, coverage, trail, frontier and budget with distinct planned/travelled lines (TKT-01M6EFQPDB), and a map snapshot from one 7.3 run is linked (TKT-01M6EFQPB8)
+- [ ] 7.3 First bounded expedition: just vm expedition-trial reports goal73 true for 3 runs in a row (combat off; >=2,000 m2 new measured terrain inside a circle of radius <=150 m; a succeeded return plus a later state within 3 m / 1.75 m of the pinned anchor; elapsed <=10 min, work <=5 min, travel <=600 m; no death), with the three summary.json paths linked (TKT-01M6EFQPB8, TKT-01M6EFQP85)
+- [ ] 7.4 Stop and partial are honest: a run with --stop-after 60, an owner stop through the panel, is idle within 2 s with the goal cancelled and tasksAfterStop 0; a no-frontier scene ends partial with no outbound leg (summary.json plus test name; TKT-01M6EFQPB8, TKT-01M6EFQP43)
