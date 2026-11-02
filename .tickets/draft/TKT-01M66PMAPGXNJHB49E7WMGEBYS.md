@@ -11,7 +11,7 @@ labels:
   - controller
   - movement
 assignees: []
-milestone: null
+milestone: M7
 parent: TKT-01M66PFAYA1NTW2JHNRDKBK42E
 origin: null
 dependencies:
@@ -19,18 +19,20 @@ dependencies:
   - TKT-01M62N2557R401S3E6JECSAPN4
   - TKT-01M62VXZ0J9Q2WH4XN4E6N7F27
   - TKT-01M66QF9G576JFCQ0JBP3RWR2E
+  - TKT-01M6EFQNMW1J01MX78QAB91CZV
+  - TKT-01M6EFQNR1F93A8ZYP95G4H2CP
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:25:07Z
-updated_at: 2026-10-30T15:40:14Z
+updated_at: 2026-11-02T15:59:32Z
 created_by:
   id: agent:codex/renki-exploration
   name: ""
 updated_by:
-  id: agent:codex/renki-atlas
+  id: agent:claude-code/renki-plan-m7
   name: ""
 extensions: {}
 ---
@@ -38,6 +40,20 @@ extensions: {}
 ## Description
 
 Implement the frontier selection and failed-approach memory proposed in docs/EXPLORATION.md after M2/M3. Consume coverage with provenance, estimate information gain and outbound/return cost, account for observed terrain/danger/exclusions, and keep unknown costs explicit. Retain bounded scoped failure evidence; retry only after meaningful change or bounded cooldown/revalidation. This ticket remains draft.
+
+### Split (rollout step 2)
+This is the umbrella for two one-PR children:
+- TKT-01M6EFQNMW (Rank exploration frontiers from measured coverage): pure ranking in a new internal/explore package with recorded scenes
+- TKT-01M6EFQNR1 (Remember failed frontier approaches with bounded revalidation): failure memory and the replay scenes this ticket's third criterion names
+
+### Why it matters to M7
+Goal 7.2 (frontier choice is honest in replay) is measured here.
+
+### Files
+- internal/explore/ (new), internal/atlas/store.go, internal/memory/danger.go, internal/goal/areas.go, internal/goal/store.go
+
+### Verification
+`just check controller test-packages ./internal/explore ./internal/goal` and `just check ci`. Done when both children are done.
 
 ## Acceptance criteria
 

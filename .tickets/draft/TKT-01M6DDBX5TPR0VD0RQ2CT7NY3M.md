@@ -10,7 +10,7 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:57:55Z
-updated_at: 2026-11-02T05:57:55Z
+updated_at: 2026-11-02T15:56:50Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -49,6 +49,22 @@ Fix: wait while `v.State.Seq <= max(r.beforeSeq, result.ReceiptSeq)`, and add a 
 Personal resupply is exhausted after about 8.75 h of idling and day-mode bedside rest after about 11.7 h. After that the food gap these routines close comes back silently.
 
 Fix: give the engine a "nothing to do" outcome that does not count as a run (or admit only when work is needed), with an engine test. Also update the "100 attempts per controller session" wording in the docs.
+
+### Goal
+
+Goal 4.2 (24 h soak): the soak idle-works the bot at home, and today personal resupply stops after about 8.75 h and bedside rest after about 11.7 h. TKT-01M6EFGYV6 (the soak run) depends on this. Also check `marker_food`'s `MaxRuns: 12` (`internal/behaviour/marker_food.go:53`): with a 300 s cooldown it can run out in about an hour of no-op runs.
+
+### Files
+
+- `internal/behaviour/marker_rest.go` (:144-152 wait, :110-112 and :138-140 no-op returns), `internal/behaviour/marker_food.go`
+- `internal/goal/food_work.go` (:69-71), `internal/goal/food.go:210` (the receipt check to copy)
+- `internal/behaviour/engine.go` (`finish` and the run count)
+- `docs/BEHAVIOURS.md:395`, `docs/FOOD.md:194` ("100 attempts per controller session")
+
+### Verification
+
+- `just check controller test-packages ./internal/behaviour ./internal/goal`, with a marker-rest test that feeds a state from before the receipt, and an engine test that a no-op run does not count toward `MaxRuns`.
+- `just check ci`.
 
 ## Acceptance criteria
 

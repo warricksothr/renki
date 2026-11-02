@@ -6,14 +6,14 @@ type: epic
 status: ready
 status_reason: null
 priority: normal
-due_on: null
+due_on: "2027-01-17"
 labels:
   - controller
   - plugin
   - protocol
   - docs
 assignees: []
-milestone: null
+milestone: M7
 parent: null
 origin: null
 dependencies: []
@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T15:34:39Z
-updated_at: 2026-10-30T16:29:09Z
+updated_at: 2026-11-02T17:45:02Z
 created_by:
   id: agent:codex/renki-atlas
   name: ""
 updated_by:
-  id: agent:codex/renki-atlas
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -47,6 +47,10 @@ Sharing remains a future explicit export/import capability: prefer GeoPackage/lo
 - [x] Changed observations retain bounded history; freshness, logical expiry, quotas and physical storage maintenance are explicit and tested
 - [x] Panel distinguishes current, remembered/stale, unknown and imported evidence without claiming exploration or navigability
 - [ ] Portable mapping representation defines local coordinates, provenance, compatibility and selected shareable layers; exchange remains explicit
+
+## Definition of done
+
+- [ ] 7.7 One portable layer round-trips: a 512 x 512 m terrain/biome export from the VM atlas (just vm panel GET /api/atlas/export) previewed with just controller atlas-import-preview matches 100 % of samples (height to 0.1 m, biome, water, observed time, source), keeps negative coordinates and holes, verifies the manifest hash, refuses a 1-byte tamper, marks nothing fresh, and contains no player, waypoint or container data (TKT-01M6EFQNDF, TKT-01M6EFQNFN)
 
 ## Implementation plan
 

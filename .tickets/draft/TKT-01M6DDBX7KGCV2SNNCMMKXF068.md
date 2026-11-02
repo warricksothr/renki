@@ -12,7 +12,7 @@ labels:
   - tooling
   - safety
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -22,12 +22,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:57:55Z
-updated_at: 2026-11-02T05:57:55Z
+updated_at: 2026-11-02T15:56:50Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -55,6 +55,24 @@ Fix: require the backup to be newer than the last game or controller run (or set
 ### Related
 
 V+ server-synced settings that change transfer, pickup or fuel rules are the open first criterion on TKT-01M6CAHE (Migrate Tas to the host Valheim Plus release with defaults).
+
+### Goal
+
+Goal 4.6 (review closed). Items 1 and 2 also keep M3's trial evidence comparable.
+
+### Files
+
+- `scripts/vm/combat-trial.py` (:277-280, :425-437), `scripts/vm/combat-trial-test.py`
+- `scripts/vm/harvest_trial.py` (help text), `scripts/vm/harvest-trial-test.py`
+- `internal/panel/panel.go` (`POST /api/act/{action}` has no task ID today; add a stop that names one if needed)
+- `scripts/vm/vplus.ps1` (:14-26)
+
+### Verification
+
+- `just check vm test-combat-trial` and `just check vm test-harvest-trial` with synthetic status: a combat mismatch is refused, and a human order that arrives between the status read and the stop is not cancelled.
+- `just check controller test-packages ./internal/panel` if the panel API changes.
+- `vplus.ps1` has no offline test; add a dry-run path the trial tests can call, or describe the manual check in a note. `just vm vplus-inspect` is read-only and shows the chosen backup.
+- `just check ci`.
 
 ## Acceptance criteria
 

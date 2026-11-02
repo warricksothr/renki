@@ -11,7 +11,7 @@ labels:
   - controller
   - safety
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:48:47Z
+updated_at: 2026-11-02T15:56:49Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -50,6 +50,25 @@ Panel exposure is bounded only by its token. That is fine on loopback or Tailsca
 - Require `https` for `model.baseURL` unless the host is loopback.
 - Set server timeouts.
 - Add a small failed-login limiter.
+
+### Goal
+
+Goal 4.6 (review closed). The baseURL item is a trust fix that matters before the agent gets more tools (M6).
+
+### Files
+
+Line numbers refer to commit f1a5483; at 0b932ef the server timeouts are at `internal/app/panel.go:265-267`.
+
+- `internal/config/config.go` (`panel.listen` validation, a new `panel.allowPublic`)
+- `internal/panel/panel.go` (`login`, `logout`, `auth`, the cookie)
+- `internal/app/panel.go` (the `http.Server`)
+- `internal/settings/settings.go` and `internal/voice/voice.go` (`model.baseURL`)
+
+### Verification
+
+- `just check controller test-packages ./internal/config ./internal/panel ./internal/app ./internal/settings ./internal/voice`, with tests for a public bind refused without the opt-in, a cookie that does not contain the token, and an `http` baseURL refused unless loopback.
+- `just check panel ui-test` still logs in (the fixtures use the login flow), and `just check ci`.
+- The cookie change logs everyone out once after deploy; say so in the pull request.
 
 ## Acceptance criteria
 

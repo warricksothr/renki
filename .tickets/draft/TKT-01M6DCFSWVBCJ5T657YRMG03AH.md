@@ -11,22 +11,23 @@ labels:
   - docs
   - tooling
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFGJZKWV5XZTND3CH55E7W
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T15:57:06Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -49,8 +50,31 @@ Rewrite Status to point at docs/ROADMAP.md, which the planning PR adds, rather t
 - `plugin/justfile:29-34`: `test` calls `go build` directly instead of `just controller …`. Its temp directory is not removed when the build or tests fail, because `set -e` exits before `rm -rf`. Use a `trap`.
 - `scripts/streaming/windows.ps1`: in the `stop` and `codec` actions, the second `obs-adapter -action standby` call does not check `$LASTEXITCODE`.
 
+### Goal
+
+Goal 4.6 (review closed). This edits `plugin/justfile` and the root `package` recipe, as TKT-01M6EFGJZK (CI: fail when Renki.Plugin is skipped) does, so it waits for that one to avoid conflicts.
+
+### Files
+
+- `README.md` (diagram, prerequisites)
+- `justfile` (`package`: route the plugin build through a `just plugin` recipe)
+- `plugin/justfile` (`test`: build the controller with `just controller build` or a new recipe, and clean the temp dir with a `trap`)
+- `scripts/streaming/windows.ps1` (`stop` and `codec` actions)
+
+### Verification
+
+- `just check plugin test` passes, and a forced failure leaves no temp directory behind.
+- `just --dry-run package` shows no direct `dotnet build` call.
+- `just check streaming test` and `just check ci`.
+
 ## Acceptance criteria
 
 - [ ] README status, diagram and prerequisites match the project
 - [ ] package and plugin test go through recipes and clean up on failure
 - [ ] windows.ps1 checks every obs-adapter exit code
+
+## Notes
+
+**agent:claude-code/renki-review** at 2026-11-02T06:11:19Z
+
+The roadmap PR rewrote the README Status section to point at docs/ROADMAP.md. Still open: the diagram (panel, video, OBS), the prerequisites (npm, Playwright via just panel ui-install, Python 3) and the recipe items.

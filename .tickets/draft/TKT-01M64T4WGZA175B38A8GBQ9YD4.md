@@ -10,23 +10,27 @@ due_on: null
 labels:
   - controller
   - plugin
+  - live
 assignees: []
-milestone: null
-parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
+milestone: M5
+parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFKWGAF7P8V6W004YECKCF
+  - TKT-01M6EFKWJ63QYZ8M8BVG390CSN
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T21:48:07Z
-updated_at: 2026-10-31T05:15:07Z
+updated_at: 2026-11-02T16:28:08Z
 created_by:
   id: agent:codex/renki-resume
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -38,6 +42,30 @@ After the collection-and-delivery loop and single-target harvesting, give Tas a 
 Prefer a suitable unbroken carried tool, then an owner-designated stored tool. Repair at an accessible appropriate station when needed. If none exists, plan a known recipe against live/remembered supplies, station type/level and game progression. Gather available prerequisites with supported jobs, fetch permitted materials, and report exact shortages or an unavailable station/unlock instead of promising an action the body cannot perform. Do not loop forever on unobtainable inputs or bypass the game's recipe/unlock requirements.
 
 Craft and upgrade through game APIs with exact before/after item counts. Upgrades should use an explicit owner policy (permitted tool tier, materials, reserves and spending limits) rather than consume arbitrary shared stock because it is present. Resume the original gathering job only when the tool is ready. Owner stop, retreat, death and reconnect invalidate all remaining steps. Crafting is a follow-up to M2's supplied-tool benchmark, not a prerequisite for loose flint/stone collection.
+### Where the code stands (2026-11-02)
+
+- Harvest picks a carried tool by its actual damage type, tier and durability, and a missing or unsuitable one fails `no_tool` with the required type and tier (plugin/Renki.Core/Tasks/Harvest.cs, plugin/Renki.Plugin/HarvestTask.cs).
+- `interact` with `repair:true` repairs eligible carried gear at a crafting station with a per-click durability receipt (plugin/Renki.Plugin/RepairTask.cs, docs/BRIDGE-PROTOCOL.md). `gather` with `returnHome` uses it for an axe below 90 % before leaving home (docs/BEHAVIOURS.md).
+- Not built: naming a recipe, station or shortfall; fetching a stored tool on its own; crafting; upgrading.
+
+### Split for M5 (goal 5.8, docs/ROADMAP.md)
+
+- TKT-01M6EFKWGA (Report a missing axe's recipe, station and material shortfall): criterion 1 here.
+- TKT-01M6EFKWJ6 (Plugin: craft task at a station with exact material receipts): the native half of criterion 3.
+- What stays on this ticket, after those two: fetching an owner-designated stored tool from a home chest before crafting (criterion 2), the controller's craft decision under an explicit owner resource policy (criterion 3, the policy half), and resuming gathering with the new tool (criterion 4). Upgrading can wait for an owner policy; see the owner decisions on the M5 plan.
+
+### Files
+
+- `internal/behaviour/gather.go` (`gatherAxe`, `gatherSupplied`) and `internal/behaviour/wood.go`
+- `internal/goal/food.go`: a model for withdrawing a named item with matched receipts
+- `internal/settings/settings.go`: where a resource policy would live
+- `plugin/Renki.Plugin/RepairTask.cs`
+
+### Verification
+
+`just check controller test-packages ./internal/behaviour ./internal/goal` with tests for: a stored axe withdrawn before crafting, crafting refused when it would spend below the policy's reserve, gathering resuming with the new tool, and an owner stop cancelling the remaining steps. `just check ci`.
+
+Live, holding the VM lease (TKT-01M6EF5DTG): with no carried axe, materials in a home chest and crafting allowed by policy, `Tas, go chop wood` crafts an AxeFlint, logs exact counts and completes one `gather` trip. Link the audit window.
 
 ## Acceptance criteria
 
@@ -45,6 +73,7 @@ Craft and upgrade through game APIs with exact before/after item counts. Upgrade
 - [ ] Suitable carried or designated stored tools and repairs are preferred over crafting replacements
 - [ ] Crafting and upgrades obey game progression and an explicit resource policy
 - [ ] The gathering job resumes with a usable tool; stop and survival interruptions cancel the plan
+- [ ] One live run with no carried axe crafts an AxeFlint under the owner's policy and completes one gather trip; audit window linked
 
 ## Notes
 

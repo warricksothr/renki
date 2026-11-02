@@ -11,11 +11,13 @@ labels:
   - plugin
   - movement
   - controller
+  - live
 assignees: []
-milestone: M3
-parent: null
+milestone: M5
+parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T07:02:57Z
-updated_at: 2026-11-01T07:33:54Z
+updated_at: 2026-11-02T16:25:44Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -75,3 +77,19 @@ Offline verification exposed a separate presentation gap: the session-only landm
 **agent:codex/renki-milestones** at 2026-11-01T07:33:54Z
 
 Saved-atlas follow-up233430e passed committed review and was deployed with Tas offline. The selected DizzysHellheim viewport now returns both remembered portal records and11 mapped chest inventories after controller restart; successful native response is retained in .checks/portal-offline-20261101T0720.json. This supersedes the earlier pending offline-verification note. Native accidental-entry avoidance remains untested because the shore return still blocks reaching the base floor; its acceptance criterion stays open.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Remaining for M3: serves no M3 goal
+
+Milestone review (M3 grooming, 2026-11-02): building collisions and portal links serve none of M3's goals 3.1-3.5. I set its parent to TKT-01M6864352 (Pressure-driven work, storage and maintenance goals), since the remaining check is base navigation. Proposed for M5, or M7 (explores and maps) if portal travel is the point; the owner decides.
+
+What is left: AC 3, ordinary native navigation refuses portal triggers even before cache discovery, untested live because the shore return blocked reaching the base floor. Files: `plugin/Renki.Core/Movement/BuildingMesh.cs`, `plugin/Renki.Core/Movement/ObstacleIndex.cs`, `plugin/Renki.Plugin/NavigationObstacles.cs`, `docs/PORTALS.md`. Verify: `just check plugin test-core BuildingMesh`, `just check plugin test-core NavigationCache`, `just check ci`; live, one route past a base portal with the VM lease (TKT-01M6EF5DTG), audit window showing no portal entry.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:25:44Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal names it. No exit goal names it. Its parent is the household epic, so it sits in M5 with it. The collision cache already helps home routes, and portal links are groundwork for portal travel, which is unscheduled. The owner can unschedule it.

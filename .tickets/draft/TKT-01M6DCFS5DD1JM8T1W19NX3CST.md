@@ -10,7 +10,7 @@ due_on: null
 labels:
   - plugin
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:33Z
-updated_at: 2026-11-02T06:07:37Z
+updated_at: 2026-11-02T15:56:49Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m4
   name: ""
 extensions: {}
 ---
@@ -49,6 +49,26 @@ Four small state bugs found in plugin review. Each is a one-line or few-line fix
 ### 4. Perception truncation is silent
 
 `plugin/Renki.Plugin/Perceiver.cs:81`: when the collider buffer fills, resources become an arbitrary subset rather than the nearest ones, and only a trace every 30 s says so. Fix: add a `truncated` flag to the perception message (in the protocol doc, Go and C#), or sort by distance before trimming. Related: TKT-01M62VXZM (scans in dense bases can miss objects past 2048 colliders).
+
+### Goal
+
+Goal 4.6 (review closed). Item 2 also protects the 24 h soak (goal 4.2): a duplicate name aborts `Reporter.Update` every second.
+
+### Files
+
+Line numbers above refer to commit f1a5483 and still match at 0b932ef.
+
+- `plugin/Renki.Plugin/EscortTask.cs` (the resupply exit around :64-67), `plugin/Renki.Plugin/KiteTask.cs`, `plugin/Renki.Plugin/TravelEncounter.cs`, `plugin/Renki.Core/Tasks/TaskRunner.cs` (`Release`, for the cleanup-after-throwing-Cancel note)
+- `plugin/Renki.Plugin/Reporter.cs` (:85-87)
+- `plugin/Renki.Plugin/TransferTask.cs` (`Pending` at :29, the check at :83-84, the reply patch around :203)
+- `plugin/Renki.Plugin/Perceiver.cs` (:81), `docs/BRIDGE-PROTOCOL.md`, `internal/protocol/messages.go`, `plugin/Renki.Core/Protocol` (the perception message)
+
+### Verification
+
+- Move the decision logic for items 2 and 3 (player-list keying, the 30 s pending timeout) into Renki.Core where it can be tested, and cover it with `just check plugin test-core` plus the new test class name.
+- Item 4: `just check controller test-packages ./internal/protocol` and `just check plugin test` (the fixtures round-trip in both languages).
+- Renki.Plugin compiles: `just check plugin build` with `VALHEIM_DIR` set (it skips silently without it; see TKT-01M6EFGJZK).
+- `just check ci`.
 
 ## Acceptance criteria
 

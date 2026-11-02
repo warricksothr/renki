@@ -10,7 +10,7 @@ due_on: null
 labels:
   - controller
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M628X106RD9FFR8YBXV7K5HT
 origin: null
 dependencies:
@@ -29,13 +29,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-29T07:30:39Z
+updated_at: 2026-11-02T15:57:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m4
+  name: ""
 extensions: {}
 ---
 
@@ -54,3 +54,15 @@ Stop, go home and log out from the panel, without chat or the VM. The controller
 ## Implementation plan
 
 POST /api/act/{stop,home,logout} behind the login, needing an X-Renki-Act header; panel.Options.Act; App.PanelAct dispatches stop, calls Home.GoHome and Session.Logout, and words the errors. Buttons in the header with a result line; confirm() before logout.
+
+## Notes
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Nothing in the code. Every criterion is ticked, and the endpoint is in `internal/panel/panel.go:194` (`POST /api/act/{action}`) with `App.PanelAct` behind it. What is left is closing the ticket: the claim from the 10-29 session (agent:claude-code/renki-groom on t3/panel-controls) has ended, so the owner or a new session should move it to done and release the claim.
+
+### How to verify
+
+`just check controller test-packages ./internal/panel ./internal/app` passes at 0b932ef.

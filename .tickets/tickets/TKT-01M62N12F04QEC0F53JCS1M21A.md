@@ -10,12 +10,14 @@ due_on: null
 labels:
   - plugin
   - movement
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62N129K1RGB8VSJZ3SDAC7N
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-30T13:35:27Z
+updated_at: 2026-11-02T15:56:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-resume
+  id: agent:claude-code/renki-plan-m2
   name: ""
 extensions: {}
 ---
@@ -173,3 +175,22 @@ Latest cd08433 retry of elevated log2257601154:44 still refused before a strike:
 PR #67 (nearest physical log surfaces) merged at 1ee38e5 and installed with checksum verification. The logs-only retry at [168.02,90.96,-281.97] reached the formerly troublesome elevated trunk (now reloaded as 1:38783), selected closest_surface contact, and broke it after six local hits. Its new nearby log 821018620:58 then broke after three local hits. The previous unreachable result was not proof the log was suspended or inaccessible.
 
 The supervisor correctly aborted after a Greyling (1:41096, targetingMe) inflicted 4.58 damage. Minimum HP was 68.3; two log breaks, zero measured Wood gain. This is positive contact/break evidence, not a logs-only/full-tree collection pass or delivery proof. Evidence: .checks/harvest-trial-20261030T132814649615Z/summary.json and .checks/audit-window-DNqCSF.jsonl. Independent just check vm status and just check vm combat confirmed both processes stopped and AllowCombat=false. A bounded native combat trial now uses this newly observed ordinary Greyling; no owner staging/clearing is needed.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.1
+
+Criteria 1 (fell, split, break) and 4 (not under a falling trunk) are ticked. The 10-30 run broke two raised logs, then the supervisor stopped on Greyling damage with no Wood collected. Since then work-trip defense and encounter handling merged (PRs 140 and 143). Open:
+
+- Criterion 2, collect within a few metres unless `collect` is false. Goal 2.1 needs the collected Wood to reach the chest, so this is on the critical path. One `just vm harvest-trial` pass that reports `woodGain` above 0 earns the default case. `plugin/Renki.Tests/HarvestTests.cs` already sends a request with `collect:false`; check that a test asserts the behaviour (no sweep afterwards), not only the parse.
+- Criterion 3, `no_tool`, `inventory_full` and `target_lost`. Cover them in `HarvestTests` (offline); goal 2.4 needs only `no_tool`, which the controller refuses before dispatch (`internal/behaviour/gather.go`, `errGatherTool`).
+- On 10-31 a falling log killed the bot (docs/ROADMAP.md). If the next trial shows it again, file it as a bug under the M2 epic rather than reopening criterion 4.
+
+### Files
+
+- `plugin/Renki.Plugin/HarvestTask.cs`, `plugin/Renki.Plugin/HarvestApproach.cs`, `plugin/Renki.Core/Tasks/Harvest.cs`, `plugin/Renki.Tests/HarvestTests.cs`, `scripts/vm/harvest_trial.py`
+
+### Verification
+
+- Offline: `just check plugin test-core HarvestTests` and `just check vm test-harvest-trial`.
+- Live (lease TKT-01M6EF5DTG): `just vm harvest-trial`. Its summary.json shows outcome `succeeded` and a Wood gain.

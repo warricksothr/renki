@@ -13,26 +13,35 @@ assignees: []
 milestone: M3
 parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EFHS9DQ75VX4F9Y5P2KZ9X
+  - TKT-01M6EFHSCK5BQNP2CQNYB56BXW
+  - TKT-01M6EFHSFVSFG7ETXW2J8HXRWB
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T05:42:34Z
+updated_at: 2026-11-02T15:57:05Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
 updated_by:
-  id: agent:claude-code/renki-review
+  id: agent:claude-code/renki-plan-m3
   name: ""
 extensions: {}
 ---
 
 ## Description
 
-Durable goal records have no full lifecycle, so the store can end up refusing every new goal. That would stop household, food and combat goals until someone edits goals.json by hand.
+Durable goal records have no full lifecycle, so the store can end up refusing every new goal. That would stop household, food and combat goals until someone edits goals.json by hand. This is goal 3.5 in docs/ROADMAP.md (containment for the fights), because the combat behaviour and combat-trial `--persistent` both run through durable goals.
+
+The work is split into three child tickets, one pull request each. This ticket closes when all three are done and docs/GOALS.md is right.
+
+- TKT-01M6EFHS9D (Goals: a failed panel start leaves no ready record): item 1, third bullet, below.
+- TKT-01M6EFHSCK (Goals: evict expired and cancelled records, rotate on size): items 1 and 2, and the docs/GOALS.md sentence.
+- TKT-01M6EFHSFV (Goals: runtime updates refuse records that are no longer running): item 3.
 
 ### 1. Records that never qualify for eviction
 
@@ -50,7 +59,7 @@ At `MaxRecords` (64), `internal/goal/store.go` `Add` only evicts records that ar
 
 ### 3. An owner stop can be overwritten mid-step
 
-`runtime.go` `Next` reads the record, evaluates the policy, then calls `update` with closures that never re-check `Status` (dispatch around :356-372, success around :291, `need` around :197, `food.go:544`). A panel stop that lands mid-step can have `Pending`/`Attempts` added to the cancelled record, or be turned into `succeeded` or `needs_plan`. That breaks the docs/GOALS.md promise that cancellation is never reset.
+`runtime.go` `Next` reads the record, evaluates the policy, then calls `update` with closures that never re-check `Status` (dispatch around :350, success around :294, `need` around :198, `food.go:544`). A panel stop that lands mid-step can have `Pending`/`Attempts` added to the cancelled record, or be turned into `succeeded` or `needs_plan`. That breaks the docs/GOALS.md promise that cancellation is never reset.
 
 ### Fix
 
@@ -60,6 +69,15 @@ At `MaxRecords` (64), `internal/goal/store.go` `Add` only evicts records that ar
 - Rotate on size as well as count. Consider storing each policy source once, keyed by its hash.
 - Make every `Next`/`foodNext` update closure fail unless `Status == "running"`.
 - Update the docs/GOALS.md sentence about the limit refusing new goals, because the code does rotate.
+
+### Files
+
+- `internal/goal/store.go`, `internal/goal/runtime.go`, `internal/goal/food.go`, `internal/app/goals.go`
+- `docs/GOALS.md`
+
+### Verification
+
+Each child names its tests. Overall: `just check controller test-packages ./internal/goal ./internal/app` and `just check ci`.
 
 ## Acceptance criteria
 

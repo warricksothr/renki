@@ -11,7 +11,7 @@ labels:
   - controller
   - tooling
 assignees: []
-milestone: null
+milestone: M4
 parent: TKT-01M628X106RD9FFR8YBXV7K5HT
 origin: null
 dependencies:
@@ -29,13 +29,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-28T22:08:14Z
-updated_at: 2026-10-29T08:12:22Z
+updated_at: 2026-11-02T15:57:46Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m4
+  name: ""
 extensions: {}
 ---
 
@@ -53,3 +53,17 @@ Reading what happened after the fact means `just vm audit` on the dev box today.
 ## Implementation plan
 
 audit.ReadDay streams a file through a Filter, skipping state and perception lines before decoding; audit.TaskID names a record's task. Panel: GET /api/days, /api/timeline?day&before (newest 2000), /api/task?id&at (cut to the run by start records, then Filter{Task}). Page: day picker beside the filters into a separate history list; task id links on every line open a dialog.
+
+## Notes
+
+**agent:claude-code/renki-plan-m4** at 2026-11-02T15:57:46Z
+
+### Remaining for M4 goal 4.6
+
+Nothing in the code. Every criterion is ticked, and `GET /api/days`, `/api/timeline` and `/api/task` are in `internal/panel/panel.go:211-213`. What is left is closing the ticket and releasing the 10-29 claim.
+
+One related open item lives elsewhere: these handlers decode whole day files per request, which TKT-01M6DCFSNT (Audit: report write failures and bound the log by size) addresses for goal 4.2.
+
+### How to verify
+
+`just check controller test-packages ./internal/audit ./internal/panel` and `just check panel test`.

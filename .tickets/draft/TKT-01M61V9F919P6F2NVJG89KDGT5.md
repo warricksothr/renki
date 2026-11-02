@@ -10,8 +10,8 @@ due_on: null
 labels:
   - tooling
 assignees: []
-milestone: null
-parent: null
+milestone: M4
+parent: TKT-01M6DCF2ABDDNG3QF369NDPBT5
 origin: null
 dependencies: []
 blocks_on: none
@@ -20,13 +20,13 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-28T18:10:22Z
-updated_at: 2026-10-28T18:12:23Z
+updated_at: 2026-11-02T15:57:06Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m4
+  name: ""
 extensions: {}
 ---
 
@@ -63,6 +63,23 @@ D35 are the spec.
   so authentication has to come through the environment vuoro is launched in.
 - The workstation has no vuoro config.json in WSL yet, so a run gets one
   code reviewer on the default model.
+
+### Goal
+
+Supports goal 4.1 (the gate runs itself) on the workstation side: CI runs `just ci`, and this runs `just review` before a push. Not required for 4.1's measure.
+
+### What is left
+
+The first two criteria are done. The remaining two need the owner: vuoro presets live in the person's own vuoro config (`config.json`, not in this repository), so an agent cannot define one without the owner choosing reviewers and models.
+
+### Files
+
+- `justfile` (`review`), `AGENTS.md` ("just review" paragraph) only if the preset name should be the default
+- the workstation's vuoro `config.json` (outside the repository)
+
+### Verification
+
+- `just review -preset <name>` on a renki branch exits 0 or 1 (not 3), and a note records findings, time and cost.
 
 ## Acceptance criteria
 

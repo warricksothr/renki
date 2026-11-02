@@ -10,25 +10,27 @@ due_on: null
 labels:
   - controller
   - vm
+  - live
 assignees: []
-milestone: M3
+milestone: M5
 parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
 dependencies:
   - TKT-01M6A6Y1XQGNZV4B01QK23J26E
   - TKT-01M6A9EVRB6KY9J8K1G9BV4BZT
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-31T23:52:44Z
-updated_at: 2026-11-01T00:54:57Z
+updated_at: 2026-11-02T16:25:44Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -107,3 +109,17 @@ in-progress to blocked: Outer-trip recovery admitted healthy Tas but physical ro
 **agent:codex/renki-milestones** at 2026-11-01T00:54:57Z
 
 Final diagnostic follow-up gate passed: just check ci, .checks/20261101T005228Z-EP3pwl.log; focused guidance and plugin lint also passed. Native admission/safe refusal are verified, while outdoor deposit and repair remain explicitly unearned.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Milestone review: serves no M3 goal
+
+M3 grooming, 2026-11-02: outdoor household food delivery serves none of M3's goals 3.1-3.5 in docs/ROADMAP.md. It belongs with its parent TKT-01M6864352 (Pressure-driven work, storage and maintenance goals) in M5. Proposed for M5; the owner decides. It stays blocked on TKT-01M6A9EVRB (Resolve a multi-threat coastal return bottleneck). Live work needs the VM lease, TKT-01M6EF5DTG.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:25:44Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal names it. No exit goal names it directly. It is household food work under TKT-01M6864352 (Pressure-driven work, storage and maintenance goals), and the pantry goal 5.6 it supports is owned by TKT-01M6AT4EFW. The owner can unschedule it.

@@ -10,11 +10,13 @@ due_on: null
 labels:
   - controller
   - safety
+  - live
 assignees: []
-milestone: null
+milestone: M5
 parent: null
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -28,12 +30,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-31T19:49:36Z
-updated_at: 2026-10-31T20:48:22Z
+updated_at: 2026-11-02T16:00:07Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan-m5
   name: ""
 extensions: {}
 ---
@@ -120,3 +122,15 @@ Supersedes the earlier no-rejoin state: user explicitly reported the base clear 
 The saved outgoing request and native accepted/running receipts match leaderNimah, resupply=true and current protected commandersNimah/Sothr/jarl. Collection and defense were explicitly false for this bounded handoff check. Native escort stayed in wait while Nimah was out of sight; ten seconds of quiet safe-home observation passed, followed by a normal stop and verified idle body. This earns food-to-native-escort handoff and missing-leader wait, not following a moving player, collection or defense. Final observed67.9/67.9HP at[-34.02,36.09,5.2], sheltered, three active foods, keptOnline=true. Tas remains online and idle at home; no full escort routine was left running.
 
 Cold-fire fuel, live hunting and a complete natural-acquisition-to-readiness goal remain open. The latest map now observes additional unheated supported stations214050226:4621 and214050226:4627 around[-57,32.76,27], roughly29m southwest of home. This is a new candidate for guarded fuel testing, not evidence that supporting fire fuel is zero or that a safe route exists. Current production food cooking selects within12m at home, so this needs explicit bounded travel/native cooking validation rather than treating the remembered station as an immediately usable home cooker. Existing home stations1:70084/70085 remain heated. The trapped normal escape after a Greydwarf/Elite attack remains separately open on TKT-01M62N256 — Plugin: flee task, and retreating when health is low.
+
+**agent:claude-code/renki-plan-m5** at 2026-11-02T16:00:07Z
+
+### Remaining for M5 goal 5.6
+
+docs/ROADMAP.md M5 goal 5.6 (the pantry stays stocked) is measured over two consecutive 2 h home soaks by TKT-01M6EFM4G7 (VM: two 2 h base upkeep soaks), from goal summaries: every fresh inspection after the first completed household episode shows each target at or above its minimum, and no episode ends with an uncertain pending action. Acquisition after storage runs out is part of how the pantry refills, so this ticket feeds that goal; TKT-01M6AT4EFW (Keep the pantry stocked through idle food production) owns it.
+
+What is left here is criterion 4: the focused replay checks and a full CI pass, and recorded guarded live results for the open cases named in the last notes (cold-fire fuel, a live hunt, and one natural acquisition carried through to readiness).
+
+Files to start in: internal/goal/food_acquire.go, internal/goal/food_hunt.go, internal/goal/food_work.go, scripts/vm/food-check.py.
+
+Verify with `just check controller test-packages ./internal/goal ./internal/behaviour ./internal/food` and `just check ci`. Live with `just vm food-check --require-acquisition` (and `--require-fuel` for the cold-fire case), holding the VM lease (TKT-01M6EF5DTG); the `summary.json` must show a verified collection receipt outside storage.

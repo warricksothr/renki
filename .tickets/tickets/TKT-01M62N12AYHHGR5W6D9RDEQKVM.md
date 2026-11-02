@@ -10,12 +10,14 @@ due_on: null
 labels:
   - plugin
   - movement
+  - live
 assignees: []
 milestone: M2
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62N129K1RGB8VSJZ3SDAC7N
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,13 +31,13 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:10Z
-updated_at: 2026-10-29T04:12:05Z
+updated_at: 2026-11-02T15:56:25Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-groom
-  name: Claude Code
+  id: agent:claude-code/renki-plan-m2
+  name: ""
 extensions: {}
 ---
 
@@ -60,3 +62,23 @@ Found on 2026-10-28: the game's auto-pickup works for the bot as for a player. I
 **agent:claude-code/renki-groom** at 2026-10-29T04:12:05Z
 
 2026-10-28: in the game the bot got to 306/300 and could not move: Pickup by hand ignores carry weight (the game's auto-pickup checks it). pickup now refuses with too_heavy, body tasks fail with encumbered when the bot is stranded (over weight, no stamina), state carries a stranded flag, and status, chat, the home keeper and the panel all know about it.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:25Z
+
+### Remaining for M2 goal 2.2
+
+pickup is built and used by the collect template (`internal/behaviour/collect.go`) in live loops, and `too_heavy` and `encumbered` were added on 10-28. None of the three criteria is ticked. Goal 2.2 counts pickups, so the task's receipts must be trusted.
+
+- Criterion 1: link a pickup receipt with its count from an existing collect loop (for example `.checks/audit-window-IM0XXq.jsonl` on TKT-01M62N12H) or a fresh `just vm task pickup '{"entity":"<drop id>"}'`.
+- Criterion 2: name the tests that cover `inventory_full`, `target_lost` and `unreachable`, and add any that are missing to `plugin/Renki.Tests/PickupTrackingTests.cs`.
+- Criterion 3: show the refusal with `Safety.AllowGather` off, from a test or a live refusal.
+- Then close. TKT-01M62VXZN1 (pickup counts the same item from elsewhere) stays a separate low-priority bug.
+
+### Files
+
+- `plugin/Renki.Plugin/BodyTasks.cs`, `plugin/Renki.Plugin/PickupObservation.cs`, `plugin/Renki.Core/Movement/PickupTracking.cs`, `plugin/Renki.Tests/PickupTrackingTests.cs`
+
+### Verification
+
+- Offline: `just check plugin test-core PickupTrackingTests`.
+- Live (lease TKT-01M6EF5DTG): `just vm task pickup` on one drop, with the receipt count matching the inventory change.

@@ -11,14 +11,16 @@ labels:
   - controller
   - plugin
   - chat
+  - live
 assignees: []
-milestone: M2
+milestone: M5
 parent: TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
 origin: null
 dependencies:
   - TKT-01M62PRDRKEHTQ1WC12FQ3S11J
   - TKT-01M62BMD18K3SE1WXJ7FDN8EPT
   - TKT-01M62EP0PDAB02DNJAJ6WS3MYD
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -32,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-02T04:31:14Z
+updated_at: 2026-11-02T16:25:44Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -166,3 +168,28 @@ Final daytime bedside wait PASSED on deployed controller7bda45f. Full just check
 Starting native indoor move t-1 succeeded (.checks/task-d58t70w5.json). The actual idle scheduler dispatched t-2 at04:29:44Z with dry/hostile-aware movement and stopDistance2. Native success seq1170 at04:30:04Z preceded fresh state1171 at[-32.32,36.09,13.67], 1.96m horizontally from owned bed1:99058 and2cm below its floor reference, grounded and sheltered. The behaviour then completed, releasing body control. Exact audit .checks/audit-window-qKuFqU.jsonl; preserve temporal ordering across the controller restart, since old connection1 state sequences before reconnect were higher than the new session's sequences.
 
 Later fresh inspection .checks/20261102T043032Z-bFp4Va.log confirms idle,25/25HP, injury seq0/damage0, same bedside position. Both rest modes plus all four original food/cargo definitions remain enabled (.checks/20261102T043011Z-LwBh0i.log). Nighttime automatic bed entry had already passed on7cb3fd4; no shared time skip or respawn is claimed. Existing automatic-claim/no-bed-notice/respawn criteria stay open. The long rest exhausted active/carried food, and the cooking idle routine correctly refused without an active meal; resupply before the next outdoor test. Tas stays online and available to the scheduler/newer human commands.
+
+**agent:claude-code/renki-plan-m2** at 2026-11-02T15:56:26Z
+
+### Remaining for M2 goal 2.5
+
+Criteria 1 and 5 are ticked, and nighttime sleep and daytime bedside waiting passed on 11-02 (`.checks/audit-window-qKuFqU.jsonl`). Open: claim a free bed near home and respawn there after a death (2), tell an owner once when there is none (3), and report a game refusal (4). None of these is on an M2 goal. The bed is not part of hauling or gathering wood.
+
+Proposal: move this ticket to M3 (survives and stands with its owner). Respawning at home after a death is survival, and goal 3.1 already has the bot going home under threat. It could also go to M5 (runs the base). The owner chooses.
+
+### Files
+
+- `internal/behaviour/marker_rest.go`, `internal/chat/brain.go` (sleep commands), `plugin/Renki.Core/Tasks/BedSleep.cs`
+
+### Verification
+
+- Offline: `just check controller test-packages ./internal/behaviour` (`marker_rest_test.go`) and `just check plugin test-core BedSleepTests`.
+- Live (lease TKT-01M6EF5DTG): `just vm sleep-check`. A respawn at the claimed bed needs a death, which no bounded trial stages, so plan it with the owner.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:34Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:25:44Z
+
+Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal names it. No exit goal names it. Its open criteria, respawning at a claimed bed near home, are base work, so it sits in M5 with the other home tickets. The owner can unschedule it.

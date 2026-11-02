@@ -77,6 +77,11 @@ person promotes it. Read both before reporting that there is nothing to pick up.
 Do not promote a draft yourself. Name the ones that look startable, say what
 makes each startable, and let the person you are working with choose.
 
+The `live` label marks a ticket that needs the game client on the Windows VM.
+There is one, so live work runs one at a time: `git ticket ready --not-label
+live` is the queue that can run in parallel. docs/ROADMAP.md, "Working in
+parallel", says how tickets are handed to agents and where they conflict.
+
 `git ticket show ID` reads one ticket. It prints the newest note in full and
 replaces older ones with a line naming how many there are; `--list` and
 `--show N` on the `note` command print those.

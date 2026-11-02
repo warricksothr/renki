@@ -11,11 +11,13 @@ labels:
   - controller
   - safety
   - vm
+  - live
 assignees: []
-milestone: M3
+milestone: M5
 parent: TKT-01M6864352N8E28YCGHA19AN90
 origin: null
-dependencies: []
+dependencies:
+  - TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 blocks_on: none
 references: []
 moved_to: null
@@ -29,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-02T05:41:16Z
+updated_at: 2026-11-02T16:15:35Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/renki-milestones
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -226,3 +228,15 @@ Also separate daytime admission from ongoing execution: a new personal episode r
 All 24 outstanding PRs129–152 are merged into main88f4943; no open PRs remained after landing. Controller8653c38 and plugin6e23e2d remain deployed. Permanent automatic personal-food preset passed without a manual body task: goal34db7b46b5898b16d97ac004 inspected actual storage, withdrew3MushroomYellow, ate1 and verified2reserve; safe sheltered completion, no injury (.checks/20261102T053423Z-6rUGlo.log).
 
 Household CookedMeat2 trial .checks/food-20261102T053524Z cooked a verified batch but failed before deposit. Native home-return t-10 succeeded on frame2342; goal consumed state2341 (81cm from home) before arrival state2344 (36cm from home). This is receipt/state ordering rather than a failed route. Carry the immutable terminal native sequence through session.Task and behaviour.Result and require newer state before reconciling a pending food action. No relaxed arrival threshold or replay. Captured-frame regression and native late-receipt immutability checks pass with just check controller test-packages ./internal/session ./internal/behaviour ./internal/goal ./internal/app (.checks/20261102T054048Z-tFFyTW.log). Full gate, deployment and cooking/deposit retry follow. Broader pantry acceptance stays open; Tas remains online.
+
+**agent:claude-code/renki-plan-m3** at 2026-11-02T15:58:15Z
+
+### Remaining for M3: serves no M3 goal
+
+Milestone review (M3 grooming, 2026-11-02): pantry stocking serves none of M3's goals 3.1-3.5 in docs/ROADMAP.md. It belongs with its parent TKT-01M6864352 (Pressure-driven work, storage and maintenance goals) in M5, where the roadmap measures "no food burns" and assigned items reaching chests. Proposed for M5; the owner decides.
+
+What is left: all five ACs are open; the last note says the cooking/deposit retry and full gate follow. Files to start in: `internal/goal/food_stock.go`, `internal/goal/food_work.go`, `internal/behaviour/idle.go`, `internal/session`. Verify: `just check controller test-packages ./internal/session ./internal/behaviour ./internal/goal ./internal/app`, `just check ci`; live, `just vm food-check` / `just vm resupply-food` under the VM lease (TKT-01M6EF5DTG).
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:15:35Z
+
+Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the exit goal in docs/ROADMAP.md this ticket serves. This supersedes any earlier note that only proposed the move. The owner can move it back.
