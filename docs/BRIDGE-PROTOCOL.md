@@ -954,13 +954,14 @@ Notes:
   2× the distance, runs beyond that, and stops inside the distance. If a known
   wall blocks closing the last metre, it waits within `distance` + 1 m until
   its leader moves farther away. If the walker spends its recoveries while
-  the bot is within `distance` + 1.5 m of its leader across the ground, the
-  bot is near them but cannot get closer (outside the wall of the house they
-  stand in, say), so it does not fail with `stuck`: it stands, faces the
-  leader and traces `follow` `wait`. Once the leader has moved more than 2 m
-  from where they stood, it traces `resume` and walks again with a new path
-  and a fresh set of recoveries. Farther away, spent recoveries still fail
-  with `stuck`. `escort` follows through the same task, so it waits the same
+  the bot is within `distance` + 1.5 m of its leader across the ground and on
+  their level (1.75 m), the bot is near them but cannot get closer (outside
+  the wall of the house they stand in, say), so it does not fail with
+  `stuck`: it stands, faces the leader and traces `follow` `wait`. Once the
+  leader has moved more than 2 m from where they stood, or the bot is pushed
+  out of that range of the spot, it traces `resume` and walks again with a new path and a
+  fresh set of recoveries. Farther away, or with the leader a floor above or
+  below, spent recoveries still fail with `stuck`. `escort` follows through the same task, so it waits the same
   way rather than restarting the recoveries every 2 s.
 
 ### 7.4 Other messages

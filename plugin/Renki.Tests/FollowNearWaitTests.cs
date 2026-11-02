@@ -29,7 +29,7 @@ namespace Renki.Tests
             var wait = new NearLeaderWait();
             Assert.True(wait.GiveUp(Bot, Nimah, Distance));
             Assert.True(wait.Waiting);
-            Assert.True(wait.Hold(Nimah));
+            Assert.True(wait.Hold(Bot, Nimah));
         }
 
         [Fact]
@@ -38,15 +38,34 @@ namespace Renki.Tests
             var wait = new NearLeaderWait();
             Assert.True(wait.GiveUp(Bot, Nimah, Distance));
             // Moving about the room does not end the wait.
-            Assert.True(wait.Hold(Nimah + new V3(-1.2, 0, 1.2)));
-            Assert.True(wait.Hold(Nimah + new V3(0, 0, NearLeaderWait.Resume)));
+            Assert.True(wait.Hold(Bot, Nimah + new V3(-1.2, 0, 1.2)));
+            Assert.True(wait.Hold(Bot, Nimah + new V3(0, 0, NearLeaderWait.Resume)));
             Assert.True(wait.Waiting);
             // Two metres and a little from where the wait began, it walks again.
-            Assert.False(wait.Hold(Nimah + new V3(-2.1, 0, 0)));
+            Assert.False(wait.Hold(Bot, Nimah + new V3(-2.1, 0, 0)));
             Assert.False(wait.Waiting);
             // Climbing a storey counts as moving.
             Assert.True(wait.GiveUp(Bot, Nimah, Distance));
-            Assert.False(wait.Hold(Nimah + new V3(0, 2.5, 0)));
+            Assert.False(wait.Hold(Bot, Nimah + new V3(0, 2.5, 0)));
+        }
+
+        [Fact]
+        public void AFollowerPushedOutOfReachStopsWaiting()
+        {
+            var wait = new NearLeaderWait();
+            Assert.True(wait.GiveUp(Bot, Nimah, Distance));
+            Assert.False(wait.Hold(Bot + new V3(2, 0, 0), Nimah));
+            Assert.False(wait.Waiting);
+        }
+
+        [Fact]
+        public void ALeaderOnAnotherFloorIsNotWaitedFor()
+        {
+            // Upstairs is reached by finding the stairs, so the follow fails
+            // stuck and a fresh attempt (escort retries in 2 s) may find them.
+            var wait = new NearLeaderWait();
+            Assert.False(wait.GiveUp(Bot, Nimah + new V3(0, 2.5, 0), Distance));
+            Assert.False(wait.Waiting);
         }
 
         [Fact]
@@ -56,7 +75,7 @@ namespace Renki.Tests
             Assert.True(wait.GiveUp(Nimah + new V3(Distance + NearLeaderWait.Margin, 0, 0), Nimah, Distance));
             Assert.False(wait.GiveUp(Nimah + new V3(Distance + NearLeaderWait.Margin + .1, 0, 0), Nimah, Distance));
             Assert.False(wait.Waiting);
-            Assert.False(wait.Hold(Nimah));
+            Assert.False(wait.Hold(Nimah + new V3(1, 0, 0), Nimah));
         }
 
         [Fact]

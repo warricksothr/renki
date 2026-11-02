@@ -1532,14 +1532,14 @@ namespace Renki.Plugin
             leaderLast = lead;
             if (stall.Waiting)
             {
-                if (stall.Hold(Convert.ToV3(lead)))
+                if (stall.Hold(Convert.ToV3(pos), Convert.ToV3(lead)))
                 {
                     Driver.Stand();
                     Driver.LookAt = leader.GetHeadPoint();
                     Driver.LookUntil = Time.time + .5f;
                     return null;
                 }
-                Trace("resume", "leader moved on", gap, pos, lead);
+                Trace("resume", "leader moved on or out of reach", gap, pos, lead);
                 // Start the walk afresh: a new path and a full set of recoveries.
                 moving = false;
                 pathedTo = new Vector3(float.MaxValue, 0, 0);
