@@ -39,10 +39,11 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
-      # Renki.Tests targets net8.0.
+      # Renki.Tests targets net8.0. plugin/global.json pins SDK 8, because
+      # the runner image also carries a newer SDK whose formatter disagrees.
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 8.0.x
+          global-json-file: plugin/global.json
 
       - uses: actions/cache@v4
         with:
