@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:39:24Z
-updated_at: 2026-11-02T16:35:32Z
+updated_at: 2026-11-02T17:04:16Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -62,10 +62,10 @@ No-chop zones (places the owner wants left alone) come later, as do combat (M3) 
 ## Definition of done
 
 - [ ] 2.1 just vm gather-trial passes 3 runs in a row (fell, split, collect, deposit, return); each summary.json records a duration under 15 min, no death and no swimming
-- [ ] 2.2 Two owner sessions of 30+ min, 3+ trips each, with the owner inside the bot's perception radius for >=90% of the session: the bot picks up >=80% of drops seen within 30 m of the owner and delivers at 80% full or 60 s after the pile is gone (haul report, TKT-01M6DDFTDD)
 - [ ] 2.3 Three of three wood requests (chat or the panel's wood action) go to the most recent owner work site within 150 m of home, else the nearest safe known trees within 150 m of home, and finish 2.1's loop; at least one run starts with a recorded work site (TKT-01M6EFHE80)
 - [ ] 2.4 No axe gives a chat reason within 10 s and no further body task in one live run; no chest and chest full are covered by offline tests
 - [ ] 2.5 Every M2 child is done, or has a note saying what is left and is moved to a later milestone; none is in progress without a note in the last 3 days
+- [ ] 2.2 Two owner sessions of 30+ min, 3+ trips each, with the owner inside the bot's perception radius for >=90% of the session: the bot picks up >=80% of drops seen within 30 m of the owner, not counting deliberate owner drops, and delivers at 80% full or 60 s after the pile is gone (haul report, TKT-01M6DDFTDD)
 
 ## Implementation plan
 
