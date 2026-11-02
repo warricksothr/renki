@@ -24,12 +24,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-30T01:26:52Z
-updated_at: 2026-11-02T15:58:21Z
+updated_at: 2026-11-02T17:47:06Z
 created_by:
   id: agent:codex/renki-resume
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m3
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -60,3 +60,7 @@ Owner challenged isolated-world staging as the next priority and instead selecte
 M3 grooming, 2026-11-02: the roadmap keeps this optional, and the owner chose native encounters over isolated staging on 2026-10-30. It is the only way listed to make goals 3.1 and 3.2 schedulable on demand: today a low-HP retreat (3.1) and a suitable Greyling (3.2) depend on what the production world offers. If the 2026-11-09 weekly review shows fewer than three qualifying episodes for 3.1, the owner should decide between this ticket and counting natural episodes over a longer window.
 
 Not ready for an agent: it needs a supported local hosting/startup method chosen first (a spike), and it is larger than one pull request. Live work needs the VM lease (TKT-01M6EF5DTG). Files to start in: `scripts/vm/vm.just`, `scripts/vm/start-bot.ps1`, `scripts/vm/combat-trial.py`, `docs/VM.md`.
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:47:06Z
+
+Supersedes the "2026-11-09 weekly review" trigger in the M3 grooming note. The owner decides on this isolated world at the first review (docs/ROADMAP.md, Cadence) where too few qualifying episodes for goal 3.1 have occurred while M3's other goals are met.

@@ -50,7 +50,7 @@ The pace that matters is not PRs merged. It is *passing live trials*, because ev
 | M7 | 26 | 19 | 7 |
 | Unscheduled | 21 | 20 | 1 |
 
-**Unscheduled** holds work no goal needs: terrain shaping and construction (TKT-01M6CEA0K3), procedure authoring (TKT-01M6701PBV, TKT-01M6701ZJS), archery, hunting the owner's killer, revenge on players, group peeling, portal travel, the look-ahead and occupancy-grid spikes, GeoPackage export, the Valheim Plus migration and the late-door bug. Schedule them at a weekly review, or sooner if the owner promotes one.
+**Unscheduled** holds work no goal needs: terrain shaping and construction (TKT-01M6CEA0K3), procedure authoring (TKT-01M6701PBV, TKT-01M6701ZJS), archery, hunting the owner's killer, revenge on players, group peeling, portal travel, the look-ahead and occupancy-grid spikes, GeoPackage export, the Valheim Plus migration and the late-door bug. Schedule them at a review, or sooner if the owner promotes one.
 
 M3 and M4 overlap on purpose. M4's work is controller, CI and tooling, and it does not compete with M3 for the game client. Its *soak* needs the VM and runs after the M3 trials.
 
@@ -243,7 +243,10 @@ These block work or set a goal's numbers. They are listed in the order they bloc
 
 ## Cadence
 
-- **When a wave drains:** compare each open milestone against its goals and record the result as a note on its epic, book the VM for the live work that is next, and promote the next wave.
+A **review** happens when a wave of tickets drains or a milestone's target passes, whichever comes first. Older ticket notes that say "weekly review" mean this review.
+
+- **At each review:** compare each open milestone against its goals and record the result as a note on its epic, book the VM for the live work that is next, schedule any unscheduled ticket the owner wants, and promote the next wave.
+- **When a target passes with the milestone open:** record on its epic which goals are unmet and what blocks each, then set a new target there and in this page. Do not close a milestone on part of its goals, and do not loosen a goal to meet a date.
 - **When a milestone closes:** tick its epic, close or move its children, reset the later milestones' targets and the epics' due dates, and revisit the next milestone's proposed thresholds with the evidence now available.
 - **New work** lands in `draft`. It joins a milestone when a person promotes it.
 

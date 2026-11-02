@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-02T16:28:21Z
+updated_at: 2026-11-02T17:47:06Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -154,3 +154,7 @@ Verify: `just check controller test-packages ./internal/retreat`, `just check pl
 **agent:claude-code/renki-plan** at 2026-11-02T16:28:21Z
 
 Supersedes the goal wording in the "Remaining for M3 goal 3.1" note: goal 3.1 in docs/ROADMAP.md now counts natural low-HP episodes across all live trials from 11-03 to 11-15, scored by TKT-01M6EFHEEN, with flee dispatched within 1.5 s rather than 1 s, because the retreat check runs once a second. The rest of that note stands.
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:47:06Z
+
+Supersedes the window in the previous goal 3.1 note: goal 3.1 no longer uses a calendar window (11-03 to 11-15). It counts natural low-HP episodes across all live trials run after the flee fix TKT-01M6EFHED7 is deployed. Milestone dates are now guideline targets, not deadlines (docs/ROADMAP.md).
