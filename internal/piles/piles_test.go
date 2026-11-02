@@ -23,18 +23,26 @@ func frameOf(drops ...protocol.PerceivedResource) *protocol.Perception {
 
 func find(t *testing.T, s Snapshot, prefab string, cell [2]int) Pile {
 	t.Helper()
-	for _, p := range s.Piles() {
+	for _, p := range s.Piles(newest(s)) {
 		if p.Prefab == prefab && p.Cell == cell {
 			return p
 		}
 	}
-	t.Fatalf("no %s pile in cell %v: %+v", prefab, cell, s.Piles())
+	t.Fatalf("no %s pile in cell %v: %+v", prefab, cell, s.Piles(newest(s)))
 	return Pile{}
+}
+
+// newest is the time of the newest frame, or zero.
+func newest(s Snapshot) time.Time {
+	if len(s.frames) == 0 {
+		return time.Time{}
+	}
+	return s.frames[len(s.frames)-1].at
 }
 
 func TestGroupsDropsPerCellAndPrefab(t *testing.T) {
 	var tr Tracker
-	tr.Observe(hello, "w", protocol.Vec3{}, seen, frameOf(
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(
 		drop("a", "Wood", 1, 1, 10),
 		drop("b", "Wood", 3, 3, 5),
 		drop("c", "Stone", 2, 2, 0), // a stack of 0 is still one item
@@ -43,8 +51,8 @@ func TestGroupsDropsPerCellAndPrefab(t *testing.T) {
 		protocol.PerceivedResource{ID: "f", Kind: protocol.ResourcePickable, Prefab: "Wood", Pos: protocol.Vec3{1, 0, 1}, Stack: 99},
 	), start)
 	s := tr.Snapshot(hello, "w")
-	if got := len(s.Piles()); got != 3 {
-		t.Fatalf("piles = %d, want 3: %+v", got, s.Piles())
+	if got := len(s.Piles(start)); got != 3 {
+		t.Fatalf("piles = %d, want 3: %+v", got, s.Piles(start))
 	}
 	wood := find(t, s, "Wood", [2]int{0, 0})
 	if wood.Total != 15 || !wood.InView || wood.Pos[0] < 1 || wood.Pos[0] > 3 {
@@ -63,7 +71,7 @@ func TestTrendOverFiveMinutes(t *testing.T) {
 	at := start
 	see := func(drops ...protocol.PerceivedResource) Snapshot {
 		at = at.Add(time.Second)
-		tr.Observe(hello, "w", protocol.Vec3{}, seen, frameOf(drops...), at)
+		tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drops...), at)
 		return tr.Snapshot(hello, "w")
 	}
 	see()
@@ -88,7 +96,7 @@ func TestTrendOverFiveMinutes(t *testing.T) {
 	}
 	// Walking away: the cell is out of sight, so it is unknown, not gone.
 	at = at.Add(time.Second)
-	tr.Observe(hello, "w", protocol.Vec3{100, 0, 0}, seen, frameOf(), at)
+	tr.Observe(hello, "w", protocol.Vec3{100, 0, 0}, 0, seen, frameOf(), at)
 	if p := find(t, tr.Snapshot(hello, "w"), "Wood", [2]int{0, 0}); p.Trend != Unknown || p.InView {
 		t.Fatalf("an unseen pile is %+v", p)
 	}
@@ -96,7 +104,7 @@ func TestTrendOverFiveMinutes(t *testing.T) {
 	for range 301 {
 		see()
 	}
-	if got := see().Piles(); len(got) != 0 {
+	if got := see().Piles(at); len(got) != 0 {
 		t.Fatalf("piles outlived the window: %+v", got)
 	}
 }
@@ -104,9 +112,9 @@ func TestTrendOverFiveMinutes(t *testing.T) {
 func TestFullListHidesWhatLiesBeyondIt(t *testing.T) {
 	var tr Tracker
 	small := protocol.PerceptionConfig{Radius: 40, MaxPerKind: 2}
-	tr.Observe(hello, "w", protocol.Vec3{}, small, frameOf(drop("a", "Wood", 30, 1, 5)), start)
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, small, frameOf(drop("a", "Wood", 30, 1, 5)), start)
 	// Two drops fill the list, so ground beyond the farther one is unseen.
-	tr.Observe(hello, "w", protocol.Vec3{}, small, frameOf(drop("b", "Stone", 1, 1, 1), drop("c", "Stone", 6, 1, 1)), start.Add(time.Second))
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, small, frameOf(drop("b", "Stone", 1, 1, 1), drop("c", "Stone", 6, 1, 1)), start.Add(time.Second))
 	s := tr.Snapshot(hello, "w")
 	if p := find(t, s, "Wood", [2]int{7, 0}); p.Trend != Unknown || p.Total != 5 {
 		t.Fatalf("wood beyond a full list is %+v", p)
@@ -118,19 +126,19 @@ func TestFullListHidesWhatLiesBeyondIt(t *testing.T) {
 
 func TestScopedToConnectionAndWorld(t *testing.T) {
 	var tr Tracker
-	tr.Observe(hello, "w", protocol.Vec3{}, seen, frameOf(drop("a", "Wood", 1, 1, 5)), start)
-	if got := tr.Snapshot(hello, "other").Piles(); len(got) != 0 {
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "Wood", 1, 1, 5)), start)
+	if got := tr.Snapshot(hello, "other").Piles(start.Add(time.Second)); len(got) != 0 {
 		t.Fatalf("piles crossed worlds: %+v", got)
 	}
 	other := &protocol.Hello{}
-	if got := tr.Snapshot(other, "w").Piles(); len(got) != 0 {
+	if got := tr.Snapshot(other, "w").Piles(start.Add(time.Second)); len(got) != 0 {
 		t.Fatalf("piles crossed connections: %+v", got)
 	}
-	tr.Observe(other, "w", protocol.Vec3{}, seen, frameOf(), start.Add(time.Second))
-	if got := tr.Snapshot(other, "w").Piles(); len(got) != 0 {
+	tr.Observe(other, "w", protocol.Vec3{}, 0, seen, frameOf(), start.Add(time.Second))
+	if got := tr.Snapshot(other, "w").Piles(start.Add(time.Second)); len(got) != 0 {
 		t.Fatalf("a new connection kept old piles: %+v", got)
 	}
-	if got := tr.Snapshot(hello, "w").Piles(); len(got) != 0 {
+	if got := tr.Snapshot(hello, "w").Piles(start.Add(time.Second)); len(got) != 0 {
 		t.Fatalf("the old connection still answers: %+v", got)
 	}
 }
@@ -144,7 +152,7 @@ func TestBoundedInSize(t *testing.T) {
 	open := protocol.PerceptionConfig{Radius: 1000}
 	// A fast stream: many more frames than the cap within the window.
 	for i := range MaxFrames * 3 {
-		tr.Observe(hello, "w", protocol.Vec3{}, open, frameOf(many...), start.Add(time.Duration(i)*100*time.Millisecond))
+		tr.Observe(hello, "w", protocol.Vec3{}, 0, open, frameOf(many...), start.Add(time.Duration(i)*100*time.Millisecond))
 	}
 	tr.mu.Lock()
 	frames := len(tr.frames)
@@ -162,8 +170,8 @@ func TestBoundedInSize(t *testing.T) {
 	}
 	// The same frame twice is one observation.
 	p := frameOf(drop("a", "Wood", 1, 1, 5))
-	tr.Observe(hello, "w", protocol.Vec3{}, seen, p, start.Add(time.Hour))
-	tr.Observe(hello, "w", protocol.Vec3{}, seen, p, start.Add(time.Hour+time.Second))
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, p, start.Add(time.Hour))
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, p, start.Add(time.Hour+time.Second))
 	if got := len(tr.Snapshot(hello, "w").frames); got != 1 {
 		t.Fatalf("frames after a repeat = %d", got)
 	}
@@ -176,7 +184,7 @@ func TestNearAnOwner(t *testing.T) {
 	at := start
 	see := func(bot protocol.Vec3, drops ...protocol.PerceivedResource) Snapshot {
 		at = at.Add(time.Second)
-		tr.Observe(hello, "w", bot, seen, frameOf(drops...), at)
+		tr.Observe(hello, "w", bot, 0, seen, frameOf(drops...), at)
 		return tr.Snapshot(hello, "w")
 	}
 	if n := (Snapshot{}).Near(at, owner, 8, wood); n.State != Unseen {
@@ -223,8 +231,28 @@ func TestNearAnOwner(t *testing.T) {
 	}
 	// Without a perception radius, no ground is known to be clear.
 	var blind Tracker
-	blind.Observe(hello, "w", protocol.Vec3{}, protocol.PerceptionConfig{}, frameOf(), at)
+	blind.Observe(hello, "w", protocol.Vec3{}, 0, protocol.PerceptionConfig{}, frameOf(), at)
 	if n := blind.Snapshot(hello, "w").Near(at, owner, 8, wood); n.State != Unseen {
 		t.Fatalf("no radius = %+v", n)
+	}
+}
+
+func TestDriftAndStaleFramesSeeLess(t *testing.T) {
+	var tr Tracker
+	owner := protocol.Vec3{5, 0, 5}
+	// Owner circle 7.07 + 8 from the bot fits a 40 m reach, but not one
+	// shrunk by 30 m of possible movement since the scan.
+	tr.Observe(hello, "w", protocol.Vec3{}, 30, seen, frameOf(), start)
+	if n := tr.Snapshot(hello, "w").Near(start, owner, 8, nil); n.State != Unseen {
+		t.Fatalf("drifted frame = %+v", n)
+	}
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "Wood", 1, 1, 5)), start.Add(time.Second))
+	s := tr.Snapshot(hello, "w")
+	if p := s.Piles(start.Add(time.Second)); len(p) != 1 || !p[0].InView {
+		t.Fatalf("fresh piles = %+v", p)
+	}
+	// Perception stalls: the last frame is no longer what is there now.
+	if p := s.Piles(start.Add(time.Second + Gap + time.Second)); len(p) != 1 || p[0].InView || p[0].Trend != Unknown || p[0].Total != 5 {
+		t.Fatalf("stale piles = %+v", p)
 	}
 }

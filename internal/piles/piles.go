@@ -84,11 +84,14 @@ type Tracker struct {
 	frames []frame
 }
 
-// Observe records one perception frame seen at `at` from bot, with the
-// bounds the welcome gave perception. A frame already observed is ignored,
-// and a new connection or world starts over.
-func (t *Tracker) Observe(conn *protocol.Hello, world string, bot protocol.Vec3, seen protocol.PerceptionConfig, p *protocol.Perception, at time.Time) {
-	if conn == nil || world == "" || p == nil || at.IsZero() || !finite(bot) {
+// Observe records one perception frame seen at `at`, with the bounds the
+// welcome gave perception. Perception does not say where it was scanned
+// from, so bot is the nearest known position and drift how far from the
+// scan the bot may have been there; the reach shrinks by drift, so ground
+// the scan may not have covered is never taken as seen. A frame already
+// observed is ignored, and a new connection or world starts over.
+func (t *Tracker) Observe(conn *protocol.Hello, world string, bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *protocol.Perception, at time.Time) {
+	if conn == nil || world == "" || p == nil || at.IsZero() || !finite(bot) || !finiteF(drift) || drift < 0 {
 		return
 	}
 	t.mu.Lock()
@@ -103,7 +106,9 @@ func (t *Tracker) Observe(conn *protocol.Hello, world string, bot protocol.Vec3,
 	if n := len(t.frames); n > 0 && at.Before(t.frames[n-1].at) {
 		return
 	}
-	t.frames = append(t.frames, group(bot, seen, p, at))
+	f := group(bot, seen, p, at)
+	f.reach = max(f.reach-drift, 0)
+	t.frames = append(t.frames, f)
 	cut := 0
 	for cut < len(t.frames) && (at.Sub(t.frames[cut].at) > Window || len(t.frames)-cut > MaxFrames) {
 		cut++
@@ -205,11 +210,13 @@ type Pile struct {
 	InView bool   `json:"inView"`
 }
 
-// Piles lists every pile seen within Window, largest first.
-func (s Snapshot) Piles() []Pile {
+// Piles lists every pile seen within Window, largest first. When the newest
+// frame is more than Gap old at now, nothing is in view.
+func (s Snapshot) Piles(now time.Time) []Pile {
 	if len(s.frames) == 0 {
 		return nil
 	}
+	fresh := s.fresh(now)
 	where := map[key]protocol.Vec3{}
 	for _, f := range s.frames {
 		for _, e := range f.piles {
@@ -230,7 +237,7 @@ func (s Snapshot) Piles() []Pile {
 				baseline = n
 			}
 			current = n
-			p.InView = i == len(s.frames)-1
+			p.InView = fresh && i == len(s.frames)-1
 		}
 		if current < 0 {
 			// Never all in sight: report the newest partial count.
@@ -282,7 +289,7 @@ type Nearby struct {
 // than Gap at now, answers Unseen: that ground is not known to be clear.
 func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible func(prefab string) bool) Nearby {
 	n := len(s.frames)
-	if n == 0 || !finite(pos) || !finiteF(r) || r < 0 || now.Sub(s.frames[n-1].at) > Gap || s.frames[n-1].at.After(now) {
+	if !s.fresh(now) || !finite(pos) || !finiteF(r) || r < 0 {
 		return Nearby{State: Unseen}
 	}
 	inCircle := func(f frame) int {
@@ -310,6 +317,12 @@ func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible fun
 		since = f.at
 	}
 	return Nearby{State: Absent, Since: since}
+}
+
+// fresh reports whether the newest frame is no more than Gap old at now.
+func (s Snapshot) fresh(now time.Time) bool {
+	n := len(s.frames)
+	return n > 0 && !s.frames[n-1].at.After(now) && now.Sub(s.frames[n-1].at) <= Gap
 }
 
 // covers reports whether every drop within r of pos would be listed in f.

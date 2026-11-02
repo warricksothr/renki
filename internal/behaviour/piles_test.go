@@ -47,7 +47,7 @@ func TestViewAsksWhetherAPileIsNearAnOwner(t *testing.T) {
 	state("test", 0, 10)
 	see(10, wood)
 	wait(t, func() bool { return near().State == piles.Present })
-	if got := e.view().Piles.Piles(); len(got) != 1 || got[0].Total != 4 || got[0].Trend != piles.Rising && got[0].Trend != piles.Steady {
+	if got := e.view().Piles.Piles(time.Now()); len(got) != 1 || got[0].Total != 4 || got[0].Trend != piles.Rising && got[0].Trend != piles.Steady {
 		t.Fatalf("piles = %+v", got)
 	}
 	state("test", 0, 11)
@@ -72,7 +72,7 @@ func TestViewAsksWhetherAPileIsNearAnOwner(t *testing.T) {
 	// Another world starts with nothing known.
 	state("another", 0, 33)
 	wait(t, func() bool { return e.view().State.World == "another" })
-	if got := e.view().Piles.Piles(); len(got) != 0 {
+	if got := e.view().Piles.Piles(time.Now()); len(got) != 0 {
 		t.Fatalf("piles crossed worlds: %+v", got)
 	}
 }

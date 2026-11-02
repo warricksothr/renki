@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-02T19:25:52Z
+updated_at: 2026-11-02T19:28:29Z
 created_by:
   id: agent:claude-code/renki-plan-m2
   name: ""
@@ -75,6 +75,10 @@ The existing pickup memory (`internal/memory/pickups.go`, `internal/home/pickups
 For the deliver-when-gone timer (TKT-01M6EFHE4E, Behaviours: deliver when full): call `v.Piles.Near(v.Now, ownerPos, R, eligible)`. It answers `present` (with the eligible total), `absent` with `Since` (the start of an unbroken run of frames that saw the whole circle empty, capped at the 5-minute window), or `unknown`. Start the 60 s timer from `Since` only on `absent`; `unknown` means part of the circle is beyond perception reach (radius, or the farthest listed drop when the list is full), the newest frame is more than 5 s old, or there is no welcome radius. Owner position has to come from `v.Perception.Characters` (players by name); the tracker does not resolve owners.
 
 Pile membership in `Near` is by flat distance from the pile's stack-weighted centroid; coverage is 3D distance from the bot. Piles are keyed by the drop's `Prefab`, not `Yield.Prefab`, matching burden. Nothing is surfaced on the panel or voice yet.
+
+**agent:claude-code/renki-m2-drops** at 2026-11-02T19:28:29Z
+
+After review: perception carries no scan origin, so the engine pairs a frame only with a state at most 1 s newer and shrinks its reach by max(15 m/s, |vel|) x lag. Piles(now) now treats a newest frame older than 5 s as out of view (trend unknown). A scan origin in the perception message would remove the guesswork; that is a plugin protocol change, not done here.
 
 ## Summary
 
