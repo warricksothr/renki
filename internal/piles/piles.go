@@ -248,6 +248,11 @@ func (s Snapshot) Piles(now time.Time) []Pile {
 		return nil
 	}
 	fresh := s.fresh(now)
+	// Frames are trimmed only when a new one arrives, so a stalled stream
+	// leaves old ones behind.
+	for len(s.frames) > 0 && now.Sub(s.frames[0].at) > Window {
+		s.frames = s.frames[1:]
+	}
 	// A cell is a column. It is all in sight when the ground between the
 	// lowest and highest of its drops ever seen is, which by convexity
 	// holds when both ends are.
@@ -319,7 +324,8 @@ func (s Snapshot) Piles(now time.Time) []Pile {
 type Nearby struct {
 	// State is Present, Absent or Unseen.
 	State string `json:"state"`
-	// Total is the eligible stack total in the circle when Present.
+	// Total is the eligible stack total in sight in the circle when
+	// Present: a lower bound when part of the circle is out of reach.
 	Total int `json:"total,omitempty"`
 	// Since is, when Absent, the first frame of an unbroken run of frames
 	// that saw all of the circle with no eligible pile in it. The run is
@@ -353,11 +359,13 @@ func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible fun
 		return total
 	}
 	latest := s.frames[n-1]
-	if !covers(latest, pos, r) {
-		return Nearby{State: Unseen}
-	}
+	// A drop in sight is there whatever lies beyond the reach. Only an
+	// empty answer needs the whole circle in view.
 	if total := inCircle(latest); total > 0 {
 		return Nearby{State: Present, Total: total}
+	}
+	if !covers(latest, pos, r) {
+		return Nearby{State: Unseen}
 	}
 	since := latest.at
 	for i := n - 2; i >= 0; i-- {

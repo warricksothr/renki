@@ -290,7 +290,7 @@ func TestNearIsASphereAndAMissingCapIsThePlugins(t *testing.T) {
 	var capped Tracker
 	many := []protocol.PerceivedResource{}
 	for i := range 24 {
-		many = append(many, drop("d", "Stone", 1+float64(i)/10, 1, 1))
+		many = append(many, drop("d", "Stone", -3-float64(i)/10, 1, 1)) // outside the circle
 	}
 	capped.Observe(hello, "w", protocol.Vec3{}, 0, protocol.PerceptionConfig{Radius: 40}, frameOf(many...), start)
 	if n := capped.Snapshot(hello, "w").Near(start, owner, 8, nil); n.State != Unseen {
@@ -318,5 +318,20 @@ func TestACellIsAColumn(t *testing.T) {
 	tr.Observe(hello, "w", protocol.Vec3{0, -15, 0}, 0, seen, frameOf(drop("a", "Wood", 1, 1, 1)), start.Add(time.Second))
 	if p := find(t, tr.Snapshot(hello, "w"), "Wood", [2]int{0, 0}); p.Trend != Unknown || p.InView {
 		t.Fatalf("a column partly out of reach = %+v", p)
+	}
+}
+
+func TestPresentAtTheEdgeAndForgottenAfterAStall(t *testing.T) {
+	var tr Tracker
+	owner := protocol.Vec3{35, 0, 0}
+	// The owner's circle runs past the 40 m reach, but a drop in it is seen.
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "Wood", 33, 0, 2)), start)
+	s := tr.Snapshot(hello, "w")
+	if n := s.Near(start, owner, 8, nil); n.State != Present || n.Total != 2 {
+		t.Fatalf("a drop at the edge = %+v", n)
+	}
+	// Perception stops for longer than the window: nothing is listed.
+	if p := s.Piles(start.Add(Window + time.Second)); len(p) != 0 {
+		t.Fatalf("piles after a stall = %+v", p)
 	}
 }
