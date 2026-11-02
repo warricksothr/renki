@@ -39,7 +39,7 @@ After the logout request at 2026-10-29T23:10:25Z, the control session ended and 
 
 ### Goal
 
-Goal 4.6, through the panel epic TKT-01M628X106 (Web control panel to watch and steer the bot): its second criterion is that the panel shows the bot's state live, and after a logout it shows stale state as current. It also matters to the soak (goal 4.2), which reads panel status once a minute.
+Goal 4.6, through the panel epic TKT-01M628X106 (Web control panel to watch and steer the bot): its second criterion is that the panel shows the bot's state live. Today, after a logout, it shows stale state as current. It also matters to the soak (goal 4.2), which reads panel status once a minute.
 
 At 0b932ef `RenkiPlugin.Update` sends state while `runner.InSession || loggingOut` (`plugin/Renki.Plugin/RenkiPlugin.cs:296`), which may already cover part of this. Check what the panel shows after a logout before changing anything.
 

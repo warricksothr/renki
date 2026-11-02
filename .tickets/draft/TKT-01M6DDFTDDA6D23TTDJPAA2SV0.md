@@ -39,7 +39,7 @@ M2's first scene, where the owner chops and the bot hauls, needs a human playing
 
 A `just vm haul-report` recipe, with an offline `test-haul-report` in `just ci` like the other trial checks. It reads an audit window (start and end, or the last N minutes) and reports:
 
-- **Dropped:** items that appeared within 30 m of an owner (perception drops and owner-attributed events), by prefab.
+- **Dropped:** items that appeared within 30 m of an owner (perception drops and owner-attributed events), by prefab. Drops that the loot template's deliberate-drop rule ignores (TKT-01M6EFHE2N, a pure function: within 2 m of an owner with no tree, log or stump breaking within 10 m in the last 10 s) are counted separately as **Deliberate** and left out of the ratio. Reuse that function, or a port tested against the same cases, so the two cannot drift.
 - **Picked up:** of those drops, what the bot picked up, from pickup receipts.
 - **Pickup ratio:** per prefab and in total.
 - **Trips:** home trips, with each deposit's matched receipt counts, the trigger (fill fraction or the pile being gone, with the idle seconds) and the time back at the site.
@@ -61,7 +61,7 @@ Without a number, "the bot keeps hauling" stays a judgement call. Goal 2.2 needs
 
 ### Verification
 
-- `just check vm test-haul-report` against a fixture audit with known drops, pickups and two trips, then `just check ci`.
+- `just check vm test-haul-report` against a fixture audit with known drops, pickups, one deliberate owner drop (excluded from the ratio) and two trips, then `just check ci`.
 - On any retained audit window: `just vm haul-report SINCE UNTIL` writes summary.json with the fields above.
 
 ## Acceptance criteria

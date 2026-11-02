@@ -53,7 +53,7 @@ Follow scripts/vm/combat-trial.py `--persistent` (goal-trial) and scripts/vm/rou
 
 - [ ] `just vm expedition-trial` refuses to start without a live identified world, with combat on, or away from the anchor, and never enables combat
 - [ ] summary.json has the fields above, and `pass` follows the rule above (tested)
-- [ ] `--stop-after SECONDS` sends a chat stop and records the time to the first idle state
+- [ ] `--stop-after SECONDS` sends an owner stop through the panel (`POST /api/act/stop`, the same TaskStop a chat stop sends) and records the time to the first idle state
 - [ ] Cleanup always cancels the goal, leaves combat off and leaves the panel available, including after an exception (tested)
 - [ ] `just vm test-expedition-trial` covers pass, partial, death, timeout, stop and refused preflight from recorded fake responses, and runs in `just ci`
 - [ ] docs/TESTING.md lists the recipe and its pass rule
