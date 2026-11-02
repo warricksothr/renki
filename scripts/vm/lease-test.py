@@ -140,7 +140,7 @@ def run_child(case, child, *args):
     probe = case.root / 'probe'
     proc = subprocess.Popen([sys.executable, '-B', str(LEASE), 'run', '--', sys.executable, '-c', child,
                              str(case.file), str(probe), *args], env=case.env(),
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, process_group=0)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=os.setpgrp)
     ready = Path(str(probe) + '.ready')
     for _ in range(200):
         if ready.exists():

@@ -79,7 +79,7 @@ class SSHTransport:
             # cannot kill a renewal or the release that follows the cleanup.
             return subprocess.run(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', self.target, command],
                                   capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
-                                  process_group=0)
+                                  preexec_fn=os.setpgrp)
         except subprocess.TimeoutExpired:
             raise SystemExit(f'the VM lease {action} timed out after 90 s') from None
 
@@ -374,7 +374,7 @@ def run(lease, command, minutes, renew_seconds):
             try:
                 # Out of the terminal's foreground group, a read from the
                 # terminal would stop the child (SIGTTIN); no supervisor reads it.
-                child = subprocess.Popen(command, process_group=0, stdin=subprocess.DEVNULL)
+                child = subprocess.Popen(command, preexec_fn=os.setpgrp, stdin=subprocess.DEVNULL)
             except OSError as error:
                 say(f'cannot start {command[0]}: {error}')
             else:
