@@ -50,7 +50,7 @@ func TestIdlePersonalResupplyPresetPinsHomeAndHasChorePriority(t *testing.T) {
 		d := rows[0].Definition
 		var spec goal.Spec
 		if err := json.Unmarshal(d.Params, &spec); err != nil || spec.World != "one" || spec.Reserve != 2 || spec.Stock != nil || spec.Radius != 150 ||
-			d.Template != "personal_food" || d.Enabled != enabled || d.Priority <= 0 || d.When.Night == nil || *d.When.Night || d.Trigger.DwellS != 15 || d.Repeat.CooldownS != 300 {
+			d.Template != "personal_food" || d.Enabled != enabled || d.Priority <= 0 || d.When.Night != nil || d.Trigger.DwellS != 15 || d.Repeat.CooldownS != 300 {
 			t.Fatal(d, spec, err)
 		}
 	}

@@ -594,6 +594,10 @@ func (e *Engine) Tick(ctx context.Context) {
 	hello, _, connected := e.o.Session.Handshake()
 	v := e.view()
 	now := e.o.Now()
+	// Runner deadlines and their validation must share one tick timestamp.
+	// Otherwise a stored wake can be future-dated to View.Now but already
+	// expired by this second clock read at the boundary of a normal wait.
+	v.Now = now
 	if !connected || v.State == nil || v.State.Phase != protocol.PhaseInWorld || v.State.HP <= 0 {
 		_ = e.cancel(ctx, "unavailable", false)
 		e.clearPending("unavailable")

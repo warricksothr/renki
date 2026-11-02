@@ -146,3 +146,18 @@ func TestPersonalFoodCancellationRetainsUncertainNativeAction(t *testing.T) {
 		t.Fatal("uncertain action was replayed")
 	}
 }
+
+func TestPersonalFoodSunsetDoesNotCancelAnAlreadyDispatchedEpisode(t *testing.T) {
+	_, r, v := personalFixture(t)
+	if _, err := r.Next(v, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Dispatched("food-before-sunset"); err != nil {
+		t.Fatal(err)
+	}
+	v.State.Time.Night = true
+	v.Idle = false
+	if err := r.Check(v); err != nil {
+		t.Fatal("sunset interrupted the native food action", err)
+	}
+}

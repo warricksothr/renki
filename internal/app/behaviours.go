@@ -82,10 +82,9 @@ func (a *App) BehaviourHandler() http.Handler {
 				}
 				name = fmt.Sprintf("idle resupply %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))
 				params, _ := json.Marshal(goal.Spec{Kind: "food_resupply", World: m.World, Center: h.Pos, Radius: 150, Reserve: 2})
-				night := false
 				definition = behaviour.Definition{Template: "personal_food", Params: params,
-					Trigger: behaviour.Trigger{Kind: "idle", Marker: &m, DwellS: 15}, When: behaviour.Conditions{Night: &night},
-					Repeat: behaviour.Repeat{Mode: "trigger", CooldownS: 300, MaxRuns: 100}, Priority: 10, Enabled: true}
+					Trigger: behaviour.Trigger{Kind: "idle", Marker: &m, DwellS: 15},
+					Repeat:  behaviour.Repeat{Mode: "trigger", CooldownS: 300, MaxRuns: 100}, Priority: 10, Enabled: true}
 			}
 			if request.Action == "idle-cargo" {
 				name = fmt.Sprintf("idle cargo %x", sha256.Sum256([]byte(m.World+"\x00"+m.Name)))

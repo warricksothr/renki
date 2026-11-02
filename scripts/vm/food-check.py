@@ -148,7 +148,7 @@ def personal_definition(spec, marker):
     if spec.get('stock') is not None or spec.get('escort') is not None or marker['world'] != spec['world']:
         raise RuntimeError('personal idle trial requires same-world marker without household or escort work')
     return dict(template='personal_food', params=spec,
-                trigger=dict(kind='idle', marker=marker, dwellS=15), when=dict(night=False),
+                trigger=dict(kind='idle', marker=marker, dwellS=15),
                 repeat=dict(mode='trigger', cooldownS=300, maxRuns=1), priority=10, enabled=True)
 
 

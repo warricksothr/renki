@@ -200,6 +200,9 @@ refuses the old preset until edited. New orders cancel through the normal
 body lease. Each needed episode exposes its `episodeId` and uses the existing
 receipt, travel, cooking, recovery and uncertain-action limits. It does not
 enable logout or weaken outdoor travel admission for an unfed body.
+Daytime is an admission requirement; sunset alone does not abort a running
+food preparation action. After the bounded episode finishes, nighttime idle
+sleep can take over. An explicit sleep command still interrupts normally.
 
 `just vm food-check --idle-resupply "home rest" --keep-online` observes a
 temporary one-attempt definition through its actual idle dwell and durable

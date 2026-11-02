@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T05:43:19Z
-updated_at: 2026-11-02T05:20:18Z
+updated_at: 2026-11-02T05:25:51Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -212,3 +212,11 @@ Implemented personal_food as another mode of the existing FoodWork durable-episo
 Focused just check controller test-packages ./internal/goal ./internal/app ./internal/behaviour passed (.checks/20261102T051838Z-ZbT8YP.log), including captured bedroom empty-pack return/storage progression, proactive reserve/meal-expiry pressure, satisfied no-op, sleep/stale/home/floor/threat/busy admission and uncertain cancellation. Extended just vm food-check with --idle-resupply MARKER to verify natural idle dispatch and its episodeId; its temporary definition is disabled afterward. just check vm test-food-check passed (.checks/20261102T051846Z-aYAcoz.log). Full gate is running.
 
 User also proposed editable desired resource outcomes. Existing stock.targets/minimum already express per-item pantry outcomes with real chest receipts and personal supply precedence. Documented this foundation alongside the prerequisite. Aggregate categories such as ten ready meals and unsupported recipes such as mushroom soup need additional planner/recipe support and are not claimed by this change. Live automatic bootstrap and consecutive full acquisition/cook/deposit/rest loops remain unearned.
+
+**agent:codex/renki-milestones** at 2026-11-02T05:25:51Z
+
+Controller0347b4f passed full just check ci177s (.checks/20261102T051903Z-sIS8ie.log), committed review (.checks/20261102T052204Z-YEQdKS.log), and controller-only deployment (.checks/20261102T052219Z-5zhXpw.log). The automatic idle trial .checks/food-20261102T052233Z created goal68f1539ea4bf9570e7d03738, returned from the bedroom, checked the real food chest, normally withdrew1Blueberries and ate it with matching receipts. Tas remained sheltered/online, no injury,28.5/33HP with a fresh active meal. This proves the automatic trigger and real storage/eat path, but not full reserve completion.
+
+The episode failed at a recovery wait with "invalid or expired bounded wait". Engine.Tick used a clock sample from view construction for the runner, then a later sample for deadline validation; a persisted wake between those samples was future to the runner and expired to the engine. Align View.Now with the tick's validation timestamp. A deterministic advancing-clock regression reproduces a stored wake boundary and requires normal completion on the next tick; wait/deadline budgets are unchanged.
+
+Also separate daytime admission from ongoing execution: a new personal episode requires awake daytime shelter, but sunset alone must not cancel an already dispatched native food/cooking action. Remove the preset's continuing night condition, retain admission guard and sleeping/owner-command precedence, and add a sunset-during-owned-action regression. Full revalidation and another automatic live episode follow. The first goal's failed result and exact receipts remain retained; no automatic replay of its actions or logout occurred.
