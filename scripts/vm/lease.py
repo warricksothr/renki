@@ -20,6 +20,7 @@ the repository root (gitignored). Expiry is measured on the VM's clock.
 """
 import argparse
 import base64
+import contextlib
 import datetime
 import fcntl
 import hashlib
@@ -170,6 +171,31 @@ class Lease:
         self.transport = transport
         self.local_path = Path(local_path)
 
+    @contextlib.contextmanager
+    def local_lock(self):
+        """One writer of .vm-lease at a time in this worktree: concurrent
+        `just vm` calls from one trial must not lose or misread its id."""
+        with open(str(self.local_path) + '.lock', 'a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            yield
+
+    def record(self, value):
+        """Replace .vm-lease atomically, so a reader never sees it half written."""
+        text = json.dumps(value) + '\n' if value is not None else None
+        current = self.local_path.read_text() if self.local_path.exists() else None
+        if text == current:
+            return
+        if text is None:
+            self.local_path.unlink(missing_ok=True)
+            return
+        tmp = Path(str(self.local_path) + f'.{os.getpid()}.tmp')
+        tmp.write_text(text)
+        os.replace(tmp, self.local_path)
+
+    def forget(self):
+        with self.local_lock():
+            self.record(None)
+
     def local(self):
         try:
             value = json.loads(self.local_path.read_text())
@@ -184,7 +210,10 @@ class Lease:
 
     def read(self):
         now, sha, data = self.transport.read()
-        state, lease = classify(data, now, self.local().get('id'))
+        # Under the lock, so a taker's provisional id is never mistaken for ours.
+        with self.local_lock():
+            mine = self.local().get('id')
+        state, lease = classify(data, now, mine)
         return now, sha, state, lease
 
     def refusal(self, state, lease, now):
@@ -217,18 +246,14 @@ class Lease:
                            worktree=str(ROOT), branch=branch(), started=iso(now), expires=iso(expires))
             data = (json.dumps(new, indent=2) + '\n').encode()
             # Record the id before the swap: if the swap lands but its reply is
-            # lost, this worktree still recognises the lease as its own.
-            previous = self.local_path.read_text() if self.local_path.exists() else None
-            self.local_path.write_text(json.dumps(dict(id=new['id'], actor=new['actor'])) + '\n')
-            if self.transport.write(sha, data):
-                return new, state != 'self'
-            # Roll back only our own record: a concurrent taker in this
-            # worktree may have won and written its id since.
-            if self.local().get('id') == new['id']:
-                if previous is None:
-                    self.local_path.unlink(missing_ok=True)
-                else:
-                    self.local_path.write_text(previous)
+            # lost, this worktree still recognises the lease as its own. The
+            # local lock keeps a concurrent taker here from interleaving.
+            with self.local_lock():
+                previous = self.local() or None
+                self.record(dict(id=new['id'], actor=new['actor']))
+                if self.transport.write(sha, data):
+                    return new, state != 'self'
+                self.record(previous)
         raise Refused('the VM lease kept changing while it was being taken; try again')
 
     def release(self, force=False):
@@ -238,10 +263,10 @@ class Lease:
             if state in ('other', 'malformed') and not force:
                 raise Refused(self.refusal(state, lease, now) + '; it is not yours to release')
             if state == 'free':
-                self.local_path.unlink(missing_ok=True)
+                self.forget()
                 return 'the VM lease is free'
             if self.transport.write(sha, None):
-                self.local_path.unlink(missing_ok=True)
+                self.forget()
                 if state == 'malformed':
                     return 'removed an unreadable VM lease'
                 if state == 'expired':
@@ -257,7 +282,7 @@ class Lease:
             if state != 'self':
                 return False
             if self.transport.write(sha, None):
-                self.local_path.unlink(missing_ok=True)
+                self.forget()
                 return True
         return False
 

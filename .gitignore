@@ -30,3 +30,4 @@ __pycache__/
 
 # The VM lease id of this worktree (scripts/vm/lease.py)
 /.vm-lease
+/.vm-lease.*

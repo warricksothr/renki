@@ -186,6 +186,17 @@ def run_survives_a_failed_renewal(case):
     check('could not renew' in out.stderr, f'the failed renewal is reported: {out.stderr}')
 
 
+def concurrent_guards(case):
+    """Concurrent guards in one worktree all pass and agree on one recorded lease."""
+    procs = [subprocess.Popen([sys.executable, '-B', str(LEASE), 'guard'], env=case.env(),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(8)]
+    results = [(p.wait(timeout=60), p.stderr.read()) for p in procs]
+    check(all(code == 0 for code, _ in results), f'every guard passes: {results}')
+    local = json.loads((case.root / 'a.vm-lease').read_text())
+    check(local['id'] == case.held()['id'], 'the recorded id is the lease on the VM')
+    check(case.lease('guard', worktree='b').returncode == 1, 'and another worktree is refused')
+
+
 def module():
     sys.path.insert(0, str(LEASE.parent))
     import importlib
@@ -237,7 +248,7 @@ def main():
     cases = [other_holder, expired, held_by_self, malformed, forced_release,
              run_releases_after_cleanup, run_releases_when_the_command_cannot_start,
              run_releases_a_lease_retaken_mid_run, run_keeps_a_taken_lease, run_renews, run_survives_a_failed_renewal,
-             lost_race, lost_reply]
+             concurrent_guards, lost_race, lost_reply]
     for case in cases:
         with tempfile.TemporaryDirectory() as root:
             case(Case(root))
