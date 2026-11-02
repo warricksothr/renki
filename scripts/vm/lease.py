@@ -326,29 +326,33 @@ def run(lease, command, minutes, renew_seconds):
     held, took = lease.take(minutes=minutes, renew='extend')
     if took:
         print(f"took the VM lease for {held['actor']} until {held['expires']}", file=sys.stderr)
-    # Ctrl-C reaches the child too; this process waits for the child's cleanup
-    # instead of dying first. SIGTERM and SIGHUP (a timeout, a closed
-    # terminal) are passed on as SIGINT, because the supervisors clean up in
-    # `finally` on KeyboardInterrupt and have no handler for the others.
-    started, pending = [], []
+    # The child runs in its own process group, so a Ctrl-C, a closed
+    # terminal or a `timeout` reaches only this process, which passes the
+    # first of them on as SIGINT: the supervisors clean up in `finally` on
+    # KeyboardInterrupt and have no handler for SIGTERM or SIGHUP. Later
+    # signals are not passed on, so nothing interrupts that cleanup.
+    started, received = [], []
 
-    def forward(_signum, _frame):
-        if started:
-            started[0].send_signal(signal.SIGINT)
+    def forward(signum, _frame):
+        received.append(signum)
+        if len(received) == 1:
+            if started:
+                started[0].send_signal(signal.SIGINT)
         else:
-            pending.append(True)
+            print('the command is cleaning up; further signals are not passed on (kill it to abort, '
+                  'and the VM lease is kept)', file=sys.stderr)
 
-    handlers = ((signal.SIGINT, signal.SIG_IGN), (signal.SIGTERM, forward), (signal.SIGHUP, forward))
+    handlers = ((signal.SIGINT, forward), (signal.SIGTERM, forward), (signal.SIGHUP, forward))
     previous = {signum: signal.signal(signum, handler) for signum, handler in handlers}
     code = 127
     try:
         try:
-            child = subprocess.Popen(command, preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
+            child = subprocess.Popen(command, process_group=0)
         except OSError as error:
             print(f'cannot start {command[0]}: {error}', file=sys.stderr)
         else:
             started.append(child)
-            if pending:
+            if received:
                 child.send_signal(signal.SIGINT)
             code, retook = wait(lease, child, minutes, renew_seconds)
             took = took or retook

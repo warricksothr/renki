@@ -43,8 +43,9 @@ A supervised trial (`combat-trial`, `gather-trial`, `goal-trial`,
 takes one, renews it every five minutes while it runs, and releases it only
 after the supervisor has exited, which is after its own cleanup (combat off,
 stop or logout). If you took the lease yourself first, the trial leaves it
-with you. Ctrl-C, SIGTERM and SIGHUP reach the trial as Ctrl-C, so its cleanup
-still runs under the lease. A trial killed outright, which may not have
+with you. The trial runs in its own process group: the first Ctrl-C, SIGTERM or
+SIGHUP (a closed terminal, a `timeout`) reaches it as Ctrl-C, later ones are
+not passed on, so its cleanup still runs under the lease. A trial killed outright, which may not have
 cleaned up, keeps the lease until it expires: check the VM, then release it.
 
 A worktree knows its lease by the random id it keeps in `.vm-lease`

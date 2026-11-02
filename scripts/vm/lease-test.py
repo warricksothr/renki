@@ -3,10 +3,12 @@
 import datetime
 import json
 import os
+import signal
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 
 LEASE = Path(__file__).with_name('lease.py')
 NOW = '2026-11-02T12:00:00Z'
@@ -133,12 +135,12 @@ def run_releases_after_cleanup(case):
 
 
 def run_child(case, child, *args):
-    """Start run with CHILD, a script that writes PROBE.ready once it is running."""
-    import time
+    """Start run, in a process group of its own as a shell job would be, with
+    CHILD, a script that writes its pid to PROBE.ready once it is running."""
     probe = case.root / 'probe'
     proc = subprocess.Popen([sys.executable, '-B', str(LEASE), 'run', '--', sys.executable, '-c', child,
                              str(case.file), str(probe), *args], env=case.env(),
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, process_group=0)
     ready = Path(str(probe) + '.ready')
     for _ in range(200):
         if ready.exists():
@@ -166,10 +168,13 @@ SUPERVISOR = (
 def run_forwards_termination(case):
     """SIGTERM or SIGHUP to run reaches a supervisor as Ctrl-C; its cleanup runs
     under the lease, and the lease is released afterwards."""
-    import signal
-    for signum in (signal.SIGTERM, signal.SIGHUP):
+    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         proc, probe, _ = run_child(case, SUPERVISOR)
-        proc.send_signal(signum)
+        # The whole group, as a terminal or `timeout` signals it, twice: only
+        # the first reaches the supervisor, so its cleanup is not cut short.
+        os.killpg(proc.pid, signum)
+        time.sleep(0.05)
+        os.killpg(proc.pid, signum)
         code = proc.wait(timeout=30)
         err = proc.stderr.read()
         check(code == 128 + signal.SIGINT, f'the supervisor ends by KeyboardInterrupt: {code} {err}')
@@ -180,7 +185,6 @@ def run_forwards_termination(case):
 
 def run_keeps_the_lease_after_an_uncleaned_death(case):
     """A command killed outright may not have cleaned up, so its lease is kept."""
-    import signal
     proc, _, child_pid = run_child(case, SUPERVISOR)
     os.kill(child_pid, signal.SIGKILL)
     code = proc.wait(timeout=30)
