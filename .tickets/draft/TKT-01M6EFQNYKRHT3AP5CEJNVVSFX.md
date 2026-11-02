@@ -34,7 +34,7 @@ extensions: {}
 
 ## Description
 
-Rollout step 3, return. A controller step that decides when to turn back and proves arrival. Turn back while the remaining time and travel still cover the measured return (from TKT-01M6EFQN91 (Report and keep the ground the bot actually walked)'s trail lengths) plus a margin. Dispatch move_to to the pinned anchor. Arrival proof matches the combat goal's return in internal/goal/return.go: a succeeded receipt, then a state observed after the receipt within 3 m horizontally and 1.75 m vertically of the anchor (native `Arrival.Level` in plugin/Renki.Core/Movement/Arrival.cs).
+Rollout step 3, return. A controller step that decides when to turn back and proves arrival. Turn back while the remaining time and travel still cover the measured return (from TKT-01M6EFQN91 (Report and keep the ground the bot actually walked)'s odometers, TKT-01M6EFQN91) plus a margin. Dispatch move_to to the pinned anchor. Arrival proof matches the combat goal's return in internal/goal/return.go: a succeeded receipt, then a state observed after the receipt within 3 m horizontally and 1.75 m vertically of the anchor (native `Arrival.Level` in plugin/Renki.Core/Movement/Arrival.cs).
 
 If the return fails, try one alternative: the visited trail reversed, leaving out segments that descended more than a step, because an outbound drop does not prove reverse travel. Then stop with needs_plan and a diagnostic. If return becomes unsafe, native retreat wins and the goal keeps a partial diagnostic.
 

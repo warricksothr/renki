@@ -58,6 +58,6 @@ This is the goal that goal 7.3's trials run.
 
 - [ ] Success requires measured coverage since start at or above the spec's m2 and arrival proof; tests show movement success alone, map knowledge alone, or a re-confirmed stale area cannot succeed
 - [ ] Returning short of the m2 ends `partial` with the measured figure; no safe frontier ends without an outbound leg within one decision (tests)
-- [ ] The host enforces elapsed, work, travel (sum of measured trail lengths, failed approaches included), attempt and failure budgets across all legs, and policy state cannot change them (test)
+- [ ] The host enforces elapsed, work, travel (sum of the walked-ground odometers (TKT-01M6EFQN91), failed approaches included), attempt and failure budgets across all legs, and policy state cannot change them (test)
 - [ ] A state snapshot older than the host's freshness limit blocks another outbound leg (test)
 - [ ] An owner stop cancels the goal and its pending retry; another body order cancels the continuation (tests)

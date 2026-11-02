@@ -58,4 +58,5 @@ Goal 7.2 is measured on this package's replay scenes, and every expedition leg i
 - [ ] Unknown ground costs more than measured ground, and a candidate whose return cost cannot be bounded is excluded rather than costed as zero (test)
 - [ ] Candidates in water, on grade above the configured limit, inside danger zones or inside excluded zones are excluded, one test each
 - [ ] A scene where all ground inside the circle is already measured returns `no safe frontier` with a reason
+- [ ] internal/explore/testdata holds at least 8 recorded scenes, each with a test that it returns ranked candidates or `no safe frontier` (goal 7.2)
 - [ ] Ranking a 250 m radius scene takes under 50 ms in a Go benchmark or timed test
