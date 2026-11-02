@@ -297,3 +297,26 @@ func TestNearIsASphereAndAMissingCapIsThePlugins(t *testing.T) {
 		t.Fatalf("a list at the plugin's cap = %+v", n)
 	}
 }
+
+func TestNearCountsDropsNotCentres(t *testing.T) {
+	var tr Tracker
+	owner := protocol.Vec3{5, 0, 5}
+	// One cell, x 12 to 16: a single wood 7.5 m from the owner and nine
+	// more 10.9 m off pull the centre out of an 8 m circle.
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "Wood", 12.5, 5, 1), drop("b", "Wood", 15.9, 5, 9)), start)
+	if n := tr.Snapshot(hello, "w").Near(start, owner, 8, nil); n.State != Present || n.Total != 1 {
+		t.Fatalf("a drop inside the circle = %+v", n)
+	}
+}
+
+func TestACellIsAColumn(t *testing.T) {
+	var tr Tracker
+	// From the origin, wood on the ground and wood 30 m up in the
+	// same cell. Then the bot steps back: the ground drop stays in reach
+	// but the high one does not, so the cell is out of sight, not falling.
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(drop("a", "Wood", 1, 1, 1), protocol.PerceivedResource{ID: "b", Kind: protocol.ResourceDrop, Prefab: "Wood", Pos: protocol.Vec3{1, 30, 1}, Stack: 4}), start)
+	tr.Observe(hello, "w", protocol.Vec3{0, -15, 0}, 0, seen, frameOf(drop("a", "Wood", 1, 1, 1)), start.Add(time.Second))
+	if p := find(t, tr.Snapshot(hello, "w"), "Wood", [2]int{0, 0}); p.Trend != Unknown || p.InView {
+		t.Fatalf("a column partly out of reach = %+v", p)
+	}
+}

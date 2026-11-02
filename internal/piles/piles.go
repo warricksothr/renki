@@ -27,6 +27,9 @@ const (
 	// maxPerKind drops (24 by default), so only a misbehaving plugin
 	// reaches it, and a frame cut short sees nothing as gone.
 	MaxPilesPerFrame = 128
+	// MaxDropsPerFrame bounds the drops one frame keeps. A frame with more
+	// keeps none past it and sees nothing as gone.
+	MaxDropsPerFrame = 256
 	// Gap is the longest pause between two frames that still counts as
 	// watching without a break.
 	Gap = 5 * time.Second
@@ -67,6 +70,14 @@ type entry struct {
 	key
 	pos   protocol.Vec3
 	total int
+	// members are the drops summed, so a question about a point is
+	// answered by the drops, not by where the pile's centre falls.
+	members []member
+}
+
+type member struct {
+	pos   protocol.Vec3
+	stack int
 }
 
 type frame struct {
@@ -128,6 +139,7 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 	type sum struct {
 		weighted protocol.Vec3
 		total    int
+		members  []member
 	}
 	sums := map[key]*sum{}
 	drops, farthest := 0, 0.0
@@ -136,6 +148,9 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 			continue
 		}
 		drops++
+		if drops > MaxDropsPerFrame {
+			break
+		}
 		if r.Prefab == "" || len(r.Prefab) > 100 || !finite(r.Pos) {
 			continue
 		}
@@ -155,6 +170,7 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 			s.weighted[i] += r.Pos[i] * float64(n)
 		}
 		s.total += n
+		s.members = append(s.members, member{r.Pos, n})
 	}
 	// Perception lists only the nearest drops. A full list says nothing
 	// about ground beyond the farthest one it lists.
@@ -177,7 +193,7 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 		for i := range pos {
 			pos[i] = s.weighted[i] / float64(s.total)
 		}
-		f.piles = append(f.piles, entry{key: k, pos: pos, total: s.total})
+		f.piles = append(f.piles, entry{key: k, pos: pos, total: s.total, members: s.members})
 	}
 	sort.Slice(f.piles, func(i, j int) bool {
 		a, b := f.piles[i], f.piles[j]
@@ -186,6 +202,9 @@ func group(bot protocol.Vec3, drift float64, seen protocol.PerceptionConfig, p *
 		}
 		return less(a.key, b.key)
 	})
+	if drops > MaxDropsPerFrame {
+		f.reach = 0
+	}
 	if len(f.piles) > MaxPilesPerFrame {
 		f.piles = f.piles[:MaxPilesPerFrame]
 		f.reach = 0
@@ -229,19 +248,32 @@ func (s Snapshot) Piles(now time.Time) []Pile {
 		return nil
 	}
 	fresh := s.fresh(now)
+	// A cell is a column. It is all in sight when the ground between the
+	// lowest and highest of its drops ever seen is, which by convexity
+	// holds when both ends are.
 	where := map[key]protocol.Vec3{}
+	low, high := map[key]float64{}, map[key]float64{}
 	for _, f := range s.frames {
 		for _, e := range f.piles {
 			where[e.key] = e.pos
+			for _, m := range e.members {
+				if y, ok := low[e.key]; !ok || m.pos[1] < y {
+					low[e.key] = m.pos[1]
+				}
+				if y, ok := high[e.key]; !ok || m.pos[1] > y {
+					high[e.key] = m.pos[1]
+				}
+			}
 		}
 	}
 	out := make([]Pile, 0, len(where))
 	for k, pos := range where {
 		p := Pile{Prefab: k.Prefab, Cell: [2]int{k.X, k.Z}, Pos: pos, Trend: Unknown}
-		centre := protocol.Vec3{(float64(k.X) + .5) * Cell, pos[1], (float64(k.Z) + .5) * Cell}
+		x, z := (float64(k.X)+.5)*Cell, (float64(k.Z)+.5)*Cell
+		bottom, top := protocol.Vec3{x, low[k], z}, protocol.Vec3{x, high[k], z}
 		baseline, current := -1, -1
 		for i, f := range s.frames {
-			if !covers(f, centre, halfDiagonal) {
+			if !covers(f, bottom, halfDiagonal) || !covers(f, top, halfDiagonal) {
 				continue
 			}
 			n := totalOf(f, k)
@@ -309,8 +341,13 @@ func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible fun
 	inCircle := func(f frame) int {
 		total := 0
 		for _, e := range f.piles {
-			if (eligible == nil || eligible(e.Prefab)) && distance(e.pos, pos) <= r {
-				total += e.total
+			if eligible != nil && !eligible(e.Prefab) {
+				continue
+			}
+			for _, m := range e.members {
+				if distance(m.pos, pos) <= r {
+					total += m.stack
+				}
 			}
 		}
 		return total
