@@ -229,6 +229,10 @@ func (o *OBS) SourceLossTrial(ctx context.Context) (err error) {
 	if err := o.VerifySource(calls); err != nil {
 		return err
 	}
+	// Nothing has changed yet, so an interrupt here needs no restore.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	set := func(ctx context.Context, window string) error {
 		return o.Call(ctx, "SetInputSettings", map[string]any{"inputName": Source, "overlay": true, "inputSettings": map[string]any{"window": window}}, nil)
 	}

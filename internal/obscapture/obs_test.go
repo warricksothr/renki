@@ -233,8 +233,9 @@ func TestSourceLossTrialFailsWhenRestoreFails(t *testing.T) {
 		}
 		return false, nil
 	})
-	if err := o.SourceLossTrial(context.Background()); err == nil {
-		t.Fatal("Trial passed with the capture on a nonexistent window")
+	err := o.SourceLossTrial(context.Background())
+	if err == nil || err.Error() != "Capture window not restored" {
+		t.Fatalf("Refused restore reported %v", err)
 	}
 }
 
@@ -273,5 +274,25 @@ func TestConfigureRepairsExistingSourceSettings(t *testing.T) {
 	}
 	if state.window() != Window || state.settings["priority"] != float64(0) {
 		t.Fatalf("Source left with %v", state.settings)
+	}
+}
+
+func TestSourceLossTrialInterruptedBeforeLossChangesNothing(t *testing.T) {
+	state := newCaptureState(Window)
+	ctx, cancel := context.WithCancel(context.Background())
+	o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+		if kind == "GetInputSettings" {
+			cancel()
+		}
+		if handled, ok, response := state.input(kind, data); handled {
+			return ok, response
+		}
+		return false, nil
+	})
+	if err := o.SourceLossTrial(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Interrupted trial reported %v", err)
+	}
+	if len(state.sets) != 0 {
+		t.Fatalf("Interrupted trial changed the source: %v", state.sets)
 	}
 }
