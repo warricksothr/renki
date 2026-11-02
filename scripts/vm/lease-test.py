@@ -152,14 +152,26 @@ def run_child(case, child, *args):
     return proc, probe, pid
 
 
-# Like the supervisors: cleanup only in `finally`, no signal handlers.
+# Like the supervisors: cleanup only in `finally`, no signal handlers, and a
+# `just vm` call in flight (the grandchild), which must be interrupted too.
+GRANDCHILD = (
+    'import pathlib, sys, time\n'
+    'try:\n'
+    '    pathlib.Path(sys.argv[1] + ".grandchild").write_text("running")\n'
+    '    time.sleep(30)\n'
+    'except KeyboardInterrupt:\n'
+    '    pathlib.Path(sys.argv[1] + ".grandchild").write_text("interrupted")\n'
+)
 SUPERVISOR = (
-    'import os, pathlib, sys, time\n'
+    'import os, pathlib, subprocess, sys, time\n'
     'lease, probe = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])\n'
+    'grandchild = subprocess.Popen([sys.executable, "-c", sys.argv[3], str(probe)])\n'
+    'while not pathlib.Path(str(probe) + ".grandchild").exists(): time.sleep(0.01)\n'
     'try:\n'
     '    pathlib.Path(str(probe) + ".ready").write_text(str(os.getpid()))\n'
     '    time.sleep(30)\n'
     'finally:\n'
+    '    grandchild.wait()\n'
     '    time.sleep(0.2)\n'
     '    probe.write_text(str(lease.exists()))\n'
 )
@@ -169,7 +181,7 @@ def run_forwards_termination(case):
     """SIGTERM or SIGHUP to run reaches a supervisor as Ctrl-C; its cleanup runs
     under the lease, and the lease is released afterwards."""
     for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
-        proc, probe, _ = run_child(case, SUPERVISOR)
+        proc, probe, _ = run_child(case, SUPERVISOR, GRANDCHILD)
         # The whole group, as a terminal or `timeout` signals it, twice: only
         # the first reaches the supervisor, so its cleanup is not cut short.
         os.killpg(proc.pid, signum)
@@ -180,7 +192,10 @@ def run_forwards_termination(case):
         check(code == 128 + signal.SIGINT, f'the supervisor ends by KeyboardInterrupt: {code} {err}')
         check(probe.read_text() == 'True', 'the lease was held through the cleanup')
         check(case.held() is None and 'released the VM lease' in err, f'and released afterwards: {err}')
+        grandchild = Path(str(probe) + '.grandchild')
+        check(grandchild.read_text() == 'interrupted', 'the supervisor\'s own calls were interrupted too')
         probe.unlink()
+        grandchild.unlink()
 
 
 def run_interrupted_while_taking(case):
@@ -204,8 +219,8 @@ def run_interrupted_while_taking(case):
 
 def run_keeps_the_lease_after_an_uncleaned_death(case):
     """A command killed outright may not have cleaned up, so its lease is kept."""
-    proc, _, child_pid = run_child(case, SUPERVISOR)
-    os.kill(child_pid, signal.SIGKILL)
+    proc, _, child_pid = run_child(case, SUPERVISOR, GRANDCHILD)
+    os.killpg(child_pid, signal.SIGKILL)  # the trial and its calls, killed outright
     code = proc.wait(timeout=30)
     err = proc.stderr.read()
     check(code == 128 + signal.SIGKILL and case.held() is not None and 'kept' in err, f'lease kept: {code} {err}')

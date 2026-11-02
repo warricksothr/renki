@@ -341,16 +341,24 @@ def run(lease, command, minutes, renew_seconds):
     stop or logout) before it exits; the lease is released only after that."""
     # The child runs in its own process group, so a Ctrl-C, a closed
     # terminal or a `timeout` reaches only this process, which passes the
-    # first of them on as SIGINT: the supervisors clean up in `finally` on
+    # first of them on as SIGINT to the child's group: the supervisors clean up in `finally` on
     # KeyboardInterrupt and have no handler for SIGTERM or SIGHUP. Later
     # signals are not passed on, so nothing interrupts that cleanup.
     started, received = [], []
+
+    def interrupt(child):
+        """SIGINT to the child's whole group, as a terminal would send it, so
+        the `just vm` calls it has in flight stop with it."""
+        try:
+            os.killpg(child.pid, signal.SIGINT)
+        except ProcessLookupError:
+            pass
 
     def forward(signum, _frame):
         received.append(signum)
         if len(received) == 1:
             if started:
-                started[0].send_signal(signal.SIGINT)
+                interrupt(started[0])
         elif started:
             say('the command is cleaning up; further signals are not passed on (kill it to abort, '
                 'and the VM lease is kept)')
@@ -382,7 +390,7 @@ def run(lease, command, minutes, renew_seconds):
                 mask = signal.pthread_sigmask(signal.SIG_BLOCK, [signum for signum, _ in handlers])
                 started.append(child)
                 if received:
-                    child.send_signal(signal.SIGINT)
+                    interrupt(child)
                 signal.pthread_sigmask(signal.SIG_SETMASK, mask)
                 code, retook = wait(lease, child, minutes, renew_seconds)
                 took = took or retook
