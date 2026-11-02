@@ -74,8 +74,11 @@ class SSHTransport:
         encoded = base64.b64encode((preamble + self.script).encode('utf-16-le')).decode()
         command = 'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ' + encoded
         try:
+            # Its own process group, so a signal meant for a trial run holds
+            # cannot kill a renewal or the release that follows the cleanup.
             return subprocess.run(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', self.target, command],
-                                  capture_output=True, text=True, timeout=90)
+                                  capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
+                                  process_group=0)
         except subprocess.TimeoutExpired:
             raise SystemExit(f'the VM lease {action} timed out after 90 s') from None
 
@@ -347,13 +350,18 @@ def run(lease, command, minutes, renew_seconds):
     code = 127
     try:
         try:
-            child = subprocess.Popen(command, process_group=0)
+            # Out of the terminal's foreground group, a read from the
+            # terminal would stop the child (SIGTTIN); no supervisor reads it.
+            child = subprocess.Popen(command, process_group=0, stdin=subprocess.DEVNULL)
         except OSError as error:
             print(f'cannot start {command[0]}: {error}', file=sys.stderr)
         else:
+            # Blocked here, so a signal arriving now is passed on exactly once.
+            mask = signal.pthread_sigmask(signal.SIG_BLOCK, [signum for signum, _ in handlers])
             started.append(child)
             if received:
                 child.send_signal(signal.SIGINT)
+            signal.pthread_sigmask(signal.SIG_SETMASK, mask)
             code, retook = wait(lease, child, minutes, renew_seconds)
             took = took or retook
         # Python exits with -SIGINT after KeyboardInterrupt has unwound its
