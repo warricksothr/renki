@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:32Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-02T17:38:39Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -61,3 +61,12 @@ The explore goal counts actual travel (goal 7.3's travel bound, including failed
 - [ ] The controller stores visited segments per world key with task id, source and time; a trail on a raised floor keeps its y and is not reported as ground below it (test)
 - [ ] Retention is bounded by count and age, documented in docs/ATLAS.md, and a test shows the oldest segments are evicted first
 - [ ] A task's odometer counts every walker update, including a backtrack that RouteTrail prunes, a leg that overflows and airborne frames; a test path with a backtrack and an overflow reports the full distance within 1 %, and a survey (kite-walker) leg and a re-goaled move_to both report a nonzero odometer
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:38:39Z
+
+Open review point (vuoro, 2026-11-02), to settle in this ticket's plan:
+- Say whether the odometer measures horizontal or 3D distance. Horizontal is closer to "travel", and 3D would add jump arcs and drops.
+- Set a minimum step or deadband, so physics jitter on a standing or blocked body does not build up over a 10 min run while slow progress still counts. Add a criterion with a jittering, stationary body whose odometer stays near 0.
+- Consider also reporting a session odometer that only grows in `state`, which TKT-01M6EFQP85 may need so that flee and lost legs count toward goal 7.3's travel bound.

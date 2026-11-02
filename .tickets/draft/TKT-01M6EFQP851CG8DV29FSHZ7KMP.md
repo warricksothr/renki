@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:33Z
-updated_at: 2026-11-02T17:37:04Z
+updated_at: 2026-11-02T17:38:39Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
@@ -58,3 +58,9 @@ Follow scripts/vm/combat-trial.py `--persistent` (goal-trial) and scripts/vm/rou
 - [ ] Cleanup always cancels the goal, leaves combat off and leaves the panel available, including after an exception (tested)
 - [ ] `just vm test-expedition-trial` covers pass, partial, death, timeout, stop and refused preflight from recorded fake responses, and runs in `just ci`
 - [ ] docs/TESTING.md lists the recipe and its pass rule
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:38:39Z
+
+Open review point (vuoro, 2026-11-02), to settle in this ticket's plan. Taking `travel_m` only from the goal record's odometer sum misses movement that never comes back as a goal leg's result: a native retreat's flee during a survey leg, a leg whose result was lost and is re-observed rather than replayed, and tasks sent while the goal is suspended. Each of these lets `goal73` pass a run that walked more than 600 m. Suggested fix: the plugin keeps a session odometer that only grows and reports it in `state`, and the supervisor takes the difference between the start and end of the run, either as `travel_m` or to fail the run when it exceeds the record's sum. Add a fake-response test where a flee or a lost leg makes the state odometer exceed the record's sum, and check `goal73` is false. This needs the session odometer added to TKT-01M6EFQN91.
