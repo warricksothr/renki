@@ -9,7 +9,7 @@ s = dict(connected=True, phase='in_world', hp=40, hpMax=40, pos=[0, 30, 0], worl
          flags=['in_shelter'], home=dict(world='one', pos=[0, 30, 0]))
 m = dict(world='one', connection=2, perception=dict(characters=[]))
 assert food.safe_to_remain(s, m)
-for patch in (dict(hp=20), dict(task=dict(id='new-owner')), dict(flags=[]), dict(pos=[9, 30, 0]), dict(connected=False), dict(home={})):
+for patch in (dict(hp=20), dict(task=dict(id='new-owner')), dict(flags=[]), dict(pos=[9, 30, 0]), dict(pos=[0, 26, 0]), dict(connected=False), dict(home={})):
     assert not food.safe_to_remain(s | patch, m)
 for patch in (dict(connection=3), dict(world='other'), dict(perception=None), dict(perception={}),
               dict(perception=dict(characters=[dict(hpFrac=1, hostile=True, pos=[4, 30, 0])]))):
@@ -23,6 +23,18 @@ assert food.goal_owned_task(dict(task=dict(id='owned-next')), advanced)
 assert not food.goal_owned_task(dict(task=dict(id='new-owner')), advanced)
 assert not food.goal_owned_task(sampled, dict(pending=dict(taskId='owned-next'), history=[]))
 assert not food.goal_owned_task(sampled, dict(history=[dict(taskId='owned-previous', status='running')]))
+
+shortage = 'household source markers exhausted or unsafe; wait for regrowth or revise sources'
+summary = dict(outcome='failed', status='needs_plan', reason=shortage)
+returned = dict(status='needs_plan', reason=shortage, history=[dict(template='food_return', status='succeeded')])
+assert food.completed_or_returned_shortage(summary, returned)
+assert summary['outcome'] == 'failed'
+for patch in (dict(status='running'), dict(reason='injury'), dict(pending=dict(taskId='return')),
+              dict(history=[]), dict(history=[dict(template='food_return', status='failed')]),
+              dict(history=[dict(template='search_food', status='succeeded')])):
+    assert not food.completed_or_returned_shortage(summary, returned | patch)
+assert not food.completed_or_returned_shortage(summary | dict(reason='VM request failed'), returned)
+assert not food.completed_or_returned_shortage(summary, None)
 print('food supervision, injury/scope and safe-online cleanup passed')
 
 intent = dict(run='current', taskId='escort-task')

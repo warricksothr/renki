@@ -85,6 +85,14 @@ def report(folder, now=None):
             food = goal['food']
             result['goal']['food'] = {k: food[k] for k in ('phase', 'reserve', 'batches') if k in food}
             result['goal']['food']['receipts'] = len(food.get('receipts', []))
+            if food.get('stock'):
+                result['goal']['food']['stock'] = {k: food['stock'][k] for k in
+                    ('targets', 'known', 'shortage', 'decision', 'delivering') if k in food['stock']}
+                result['goal']['food']['attemptedSites'] = (food.get('acquisition') or {}).get('visits', [])
+                result['goal']['food']['collections'] = [dict(task=r.get('taskId'), item=r.get('item'), count=r.get('count'))
+                    for r in food.get('receipts', []) if r.get('action') == 'collect']
+                result['goal']['food']['deposits'] = [dict(task=r.get('taskId'), chest=r.get('entity'), item=r.get('item'), count=r.get('count'))
+                    for r in food.get('receipts', []) if r.get('action') == 'stock_deposit']
         if goal.get('postCombat'):
             result['goal']['postCombat'] = goal['postCombat']
         if goal.get('proof'):

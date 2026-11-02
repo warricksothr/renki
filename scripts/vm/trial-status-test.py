@@ -42,6 +42,25 @@ class Progress(unittest.TestCase):
             (folder / 'goal.json').write_text(json.dumps(dict(goal, status='needs_plan')))
             self.assertEqual(progress.report(folder, now)['goal']['maxObservedRangeM'], 70)
 
+    def test_household_attempts_are_distinct_from_collection_and_delivery_proof(self):
+        with tempfile.TemporaryDirectory() as name:
+            folder = Path(name)
+            food = dict(stock=dict(targets=dict(Mushroom=4), known=dict(Mushroom=1),
+                                  shortage=dict(Mushroom=3), decision='return', delivering=True,
+                                  pinned=['large marker snapshot']),
+                        acquisition=dict(visits=['empty-site', 'next-site']),
+                        receipts=[dict(action='eat', item='Mushroom', count=1),
+                                  dict(action='collect', taskId='pick', item='Mushroom', count=2),
+                                  dict(action='stock_deposit', taskId='store', entity='chest', item='Mushroom', count=1)])
+            (folder / 'goal.json').write_text(json.dumps(dict(status='needs_plan', food=food)))
+            report = progress.report(folder)['goal']
+            self.assertEqual(report['status'], 'needs_plan')
+            self.assertEqual(report['food']['attemptedSites'], ['empty-site', 'next-site'])
+            self.assertEqual(report['food']['collections'], [dict(task='pick', item='Mushroom', count=2)])
+            self.assertEqual(report['food']['deposits'], [dict(task='store', chest='chest', item='Mushroom', count=1)])
+            self.assertEqual(report['food']['stock']['shortage'], dict(Mushroom=3))
+            self.assertNotIn('pinned', report['food']['stock'])
+
     def test_goal_progress_shows_attempted_bearings_without_policy_or_perception(self):
         with tempfile.TemporaryDirectory() as name:
             folder = Path(name)

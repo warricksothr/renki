@@ -200,9 +200,13 @@ Pressure decisions favour existing surplus deposits, usable home ingredients,
 then safe nearby sources. Collection can continue across multiple yields;
 fulfilled cargo, low free slots,70% carry weight, raw ingredients needing home
 cooking, distance or danger pressure commit the episode to delivery. It keeps
-that return phase until arriving on the original home floor. Unrelated cargo
-that prevents further work reports a capacity problem. Sources are visited at
-most once per episode; depleted/unsafe areas do not restart their budgets.
+that return phase until arriving on the original home floor.
+Once household work has started, returning takes precedence over remote personal resupply or passive
+healing when carried reserves fall short, active nourishment drops below five
+minutes, or health needs recovery. Pending collection gains are accounted for
+first; improved food or capacity during the return does not cancel delivery.
+Unrelated cargo that prevents further work reports a capacity problem. Sources
+are visited at most once per episode; depleted/unsafe areas do not restart their budgets.
 The existing ten-minute deadline,256 tasks,12 collections, six visits and four
 cooking batches remain hard bounds. Long explicit source visits/returns permit
 180s within that deadline. Missing fuel, stations or sources request a new plan.

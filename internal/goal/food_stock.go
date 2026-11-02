@@ -165,6 +165,10 @@ func (r *runner) stockReturn(g Record, v behaviour.View, known, shortage map[str
 	return r.foodDispatch(g, v, "food_return", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 180})
 }
 
+func stockLoaded(v behaviour.View) bool {
+	return v.Inventory.Free() < 3 || v.State.WeightMax <= 0 || v.State.Weight >= v.State.WeightMax*.7
+}
+
 func (r *runner) stockNext(g Record, v behaviour.View) (*session.Order, error) {
 	f, s := g.Food, g.Food.Stock
 	if !f.SearchPinned {
@@ -243,7 +247,7 @@ func (r *runner) stockNext(g Record, v behaviour.View) (*session.Order, error) {
 		}
 		return r.need("household destinations have no confirmed room for carried food")
 	}
-	loaded := v.Inventory.Free() < 3 || v.State.WeightMax <= 0 || v.State.Weight >= v.State.WeightMax*.7
+	loaded := stockLoaded(v)
 	enough := true
 	cargo := 0
 	raw := false
@@ -259,7 +263,7 @@ func (r *runner) stockNext(g Record, v behaviour.View) (*session.Order, error) {
 		}
 	}
 	risk := home.DangerRisk(v.Danger, v.State.Pos)
-	if !atHome && (s.Delivering || enough || loaded || raw || !nourished(v.State) || risk >= .5 && cargo > 0 || cargo > 0 && distance(v.State.Pos, g.Center) > 90) {
+	if !atHome && (s.Delivering || enough || loaded || raw || risk >= .5 && cargo > 0 || cargo > 0 && distance(v.State.Pos, g.Center) > 90) {
 		return r.stockReturn(g, v, known, shortage, "committed delivery: cargo, capacity, food, route distance or danger pressure")
 	}
 	// Home cooking uses existing native ownership, fire and output receipts.
