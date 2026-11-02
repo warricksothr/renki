@@ -144,6 +144,18 @@ namespace Renki.Tasks
             }
 
             // A wrapper cannot grant a capability withheld by either safety layer.
+            if (args is MoveToArgs recovery && recovery.RecoverThreats &&
+                (!allowed.Contains(TaskNames.Flee) || !safety.Permits(TaskNames.Flee)))
+            {
+                Reply(req, Wire.StatusRejected, Wire.ReasonNotAllowed, "travel recovery requires flee permission");
+                return;
+            }
+            if (args is MoveToArgs journey && journey.DefendThreats &&
+                (!allowed.Contains(TaskNames.Attack) || !safety.Permits(TaskNames.Attack)))
+            {
+                Reply(req, Wire.StatusRejected, Wire.ReasonNotAllowed, "travel defense requires attack permission");
+                return;
+            }
             if (args is InteractArgs cooking && cooking.Cook != null &&
                 (!allowed.Contains(TaskNames.Pickup) || !safety.Permits(TaskNames.Pickup)))
             {

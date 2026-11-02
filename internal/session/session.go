@@ -125,6 +125,8 @@ type Session struct {
 	state          *protocol.State
 	stateAt        time.Time
 	injurySeq      uint64
+	injuryDamage   float64
+	injuryUnknown  bool
 	playerChatSeq  uint64
 	seen           *protocol.Perception
 	seenAt         time.Time
@@ -198,6 +200,7 @@ func (s *Session) Connected(c *bridge.Conn) {
 	s.conn, s.state, s.seen, s.carried, s.allowed = c, nil, nil, nil, allowed
 	s.seenAt, s.seenWorld = time.Time{}, ""
 	s.injurySeq = 0
+	s.injuryDamage, s.injuryUnknown = 0, false
 	s.playerChatSeq = 0
 	s.terrain, s.terrainSeq = nil, 0
 	s.terrainScope = nil

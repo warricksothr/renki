@@ -16,6 +16,35 @@ for patch in (dict(connection=3), dict(world='other'), dict(perception=None), di
     assert not food.safe_to_remain(s, m | patch)
 assert food.safe(s | dict(hp=39), s)
 assert food.safe(s | dict(connection=3), s)
+
+trip = dict(id='goal', kind='food_resupply', status='running', world='one',
+            food=dict(injury=0, travelBudget=dict(injury=0, damage=0, hp=40)),
+            pending=dict(run='current', taskId='travel', template='food_return',
+                         params=dict(dry=True, avoidHostiles=True, recoverThreats=True)))
+walking = s | dict(injurySeq=0, injury=dict(seq=0, damage=0, complete=True),
+                   journey=dict(id='travel', mode='defend', attempts=1),
+                   task=dict(id='travel', task='move_to', status='running'))
+hurt = walking | dict(hp=35, injurySeq=111, injury=dict(seq=111, damage=5, complete=True))
+assert food.safe(hurt, walking, trip) is None
+assert food.safe(hurt | dict(injurySeq=900, injury=dict(seq=900, damage=10, complete=True)), walking, trip) is None
+for patch in (dict(injury=dict(seq=111, damage=11, complete=True)), dict(injurySeq=-1), dict(injurySeq=None), dict(hp=29),
+              dict(injury=dict(seq=111, damage=5, complete=False)), dict(injury={}),
+              dict(task=dict(id='human', task='move_to', status='running')),
+              dict(task=dict(id='travel', task='interact', status='running')), dict(connection=3), dict(world='other')):
+    assert food.safe(hurt | patch, walking, trip)
+for patch in (dict(status='needs_plan'), dict(world='other'), dict(kind='combat_cycle'),
+              dict(food={}), dict(pending={}), dict(pending=trip['pending'] | dict(run='')),
+              dict(pending=trip['pending'] | dict(params=dict(dry=True, avoidHostiles=True)))):
+    assert food.safe(hurt, walking, trip | patch)
+finished = trip | dict(status='succeeded', pending=None, food=trip['food'] | dict(injury=111),
+                       history=[dict(run='current', taskId='travel', template='food_return', status='succeeded')])
+resting = hurt | dict(task=None)
+assert food.safe(resting, walking, finished, trip) is None
+for patch in (dict(history=[]), dict(history=[dict(run='old', taskId='travel', template='food_return', status='succeeded')]),
+              dict(food=trip['food']), dict(id='other-goal')):
+    assert food.safe(resting, walking, finished | patch, trip)
+assert food.safe(resting | dict(task=dict(id='human', task='follow')), walking, finished, trip)
+assert food.safe(resting, walking, finished)  # No previous owned intent.
 sampled = dict(task=dict(id='owned-previous'))
 advanced = dict(pending=dict(taskId='owned-next'), history=[dict(taskId='owned-previous', status='succeeded')])
 assert food.goal_owned_task(sampled, advanced)

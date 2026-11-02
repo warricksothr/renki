@@ -175,6 +175,14 @@ namespace Renki.Protocol
         [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;
     }
 
+    public sealed class JourneyStatus
+    {
+        [JsonProperty("id")] public string Id;
+        [JsonProperty("mode")] public string Mode;
+        [JsonProperty("attempts")] public int Attempts;
+        [JsonProperty("reason", NullValueHandling = NullValueHandling.Ignore)] public string Reason;
+    }
+
     public sealed class EscortStatus
     {
         [JsonProperty("id")] public string Id;
@@ -201,6 +209,7 @@ namespace Renki.Protocol
         [JsonProperty("pvp", NullValueHandling = NullValueHandling.Ignore)] public bool? Pvp;
         [JsonProperty("food", NullValueHandling = NullValueHandling.Ignore)] public FoodStatus Food;
         [JsonProperty("combat", NullValueHandling = NullValueHandling.Ignore)] public CombatStatus Combat;
+        [JsonProperty("journey", NullValueHandling = NullValueHandling.Ignore)] public JourneyStatus Journey;
         [JsonProperty("escort", NullValueHandling = NullValueHandling.Ignore)] public EscortStatus Escort;
         [JsonProperty("stamina")] public double Stamina;
         [JsonProperty("staminaMax")] public double StaminaMax;

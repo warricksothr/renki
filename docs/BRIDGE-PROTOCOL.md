@@ -742,14 +742,26 @@ Notes:
   Escape targets 35 m from its selected threat and checks all loaded hostile
   corridors as well as physical support and obstacles. Resumption replans
   from the actual position; the enclosing deadline is unchanged. This grants
-  no combat permission. A refused route may observe changed local water,
+  no combat permission. Optional `defendThreats:true` additionally requires
+  `recoverThreats` and attack permission at both safety layers. It can defend
+  against one confirmed unstarred Greyling within16m with fed/equipped reserves,
+  at least2 armour,40 stamina,30HP/80% health and no second hostile within30m.
+  Existing melee checks apply. Defense is limited to12s within the same30s
+  recovery attempt; interrupted/refused defense withdraws without resetting it.
+  Exact observed death then five quiet seconds permit destination replanning.
+  `state.journey` exposes the matching task ID, mode, attempts and reason so
+  controller retreat does not compete with the native body owner.
+  A refused route may observe changed local water,
   threat or indexed-geometry conditions for up to 30 s before retrying, with
   at least five quiet seconds and the same lifetime attempt budget. Unchanged
   conditions do not trigger another search. Dry shore hints require checked
   half-metre steps; a geometric shore target cannot bypass live clearance.
-  Household travel opts in when Tas has active food;
-  bootstrap without food retains ordinary travel. Close threats during
-  stationary work and actual injury retain their existing controller guards.
+  Household and personal food travel opt in when Tas has active food;
+  bootstrap without food retains ordinary travel. Food goals allow at most10HP
+  cumulative observed travel damage, with30HP/65% health and initial-health
+  floors; the baseline is never renewed by another travel task. Unknown damage
+  invalidates that allowance. Completed exact receipts are reconciled before
+  a threat/injury decision. Stationary injury still ends further work.
   `journey` traces report mode, reason, attempt count and threat identity.
   See [WORK-TRIP-ENCOUNTERS.md](WORK-TRIP-ENCOUNTERS.md) for staged planning,
   known limits and the remaining field benchmark.

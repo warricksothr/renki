@@ -372,7 +372,11 @@ func (e *Engine) view() View {
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
-	v.InjurySeq = e.o.Session.InjurySequence()
+	v.Injury = e.o.Session.InjuryStatus()
+	if v.Injury != nil {
+		n := v.Injury.Sequence
+		v.InjurySeq = &n
+	}
 	if e.o.Danger != nil && v.State != nil {
 		v.Danger = e.o.Danger(v.State.World, v.Now)
 	}

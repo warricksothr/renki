@@ -1,12 +1,54 @@
 package session
 
 import (
+	"math"
 	"testing"
 	"time"
 
 	"github.com/warricksothr/renki/internal/bridge"
 	"github.com/warricksothr/renki/internal/protocol"
 )
+
+func TestInjuryTotalsUseActualAmountsNotWireSpacingOrHealedHealth(t *testing.T) {
+	s := New(&listener{}, nil)
+	c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+	s.Connected(c)
+	s.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 10, T: 10}, Phase: protocol.PhaseInWorld, World: "one", HP: 50})
+	s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 111, T: 10.1}, Event: protocol.EventDamaged, Amount: 4})
+	s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 111, T: 10.1}, Event: protocol.EventDamaged, Amount: 4})
+	s.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 800, T: 11}, Phase: protocol.PhaseInWorld, World: "one", HP: 50})
+	s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 900, T: 11.1}, Event: protocol.EventDamaged, Amount: 7})
+	got := s.InjuryStatus()
+	if got == nil || !got.Complete || got.Sequence != 900 || got.Damage != 11 {
+		t.Fatal(got)
+	}
+	s.Connected(&bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}})
+	if s.InjuryStatus() != nil {
+		t.Fatal("old injury allowance crossed reconnect")
+	}
+}
+
+func TestUnknownDamageOrDeathPermanentlyInvalidatesConnectionDamageAllowance(t *testing.T) {
+	for _, amount := range []float64{0, -1, math.NaN(), math.Inf(1)} {
+		s := New(&listener{}, nil)
+		c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+		s.Connected(c)
+		s.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 1, T: 1}, Phase: protocol.PhaseInWorld, World: "one", HP: 50})
+		s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 2, T: 1.1}, Event: protocol.EventDamaged, Amount: amount})
+		s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 3, T: 1.2}, Event: protocol.EventDamaged, Amount: 1})
+		if got := s.InjuryStatus(); got == nil || got.Complete || got.Damage != 1 {
+			t.Fatal(got)
+		}
+	}
+	s := New(&listener{}, nil)
+	c := &bridge.Conn{Hello: &protocol.Hello{}, Welcome: &protocol.Welcome{}}
+	s.Connected(c)
+	s.Message(c, &protocol.State{Envelope: protocol.Envelope{Seq: 1, T: 1}, Phase: protocol.PhaseInWorld, World: "one", HP: 0})
+	s.Message(c, &protocol.Event{Envelope: protocol.Envelope{Seq: 2, T: 1.1}, Event: protocol.EventDied})
+	if got := s.InjuryStatus(); got == nil || got.Complete {
+		t.Fatal(got)
+	}
+}
 
 type injuryListener struct {
 	events   int

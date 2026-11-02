@@ -21,6 +21,23 @@ type InjuryListener interface {
 	Injury(*protocol.Event, InjuryObservation)
 }
 
+// InjuryStatus counts accepted damage independently of healing and wire spacing.
+// An unknown amount or death makes the allowance unusable for this connection.
+type InjuryStatus struct {
+	Sequence uint64  `json:"seq"`
+	Damage   float64 `json:"damage"`
+	Complete bool    `json:"complete"`
+}
+
+func (s *Session) InjuryStatus() *InjuryStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.conn == nil || s.state == nil || s.state.Phase != protocol.PhaseInWorld {
+		return nil
+	}
+	return &InjuryStatus{Sequence: s.injurySeq, Damage: s.injuryDamage, Complete: !s.injuryUnknown}
+}
+
 // InjurySequence is a connection-scoped marker of accepted injury events.
 // Zero is known no injury; nil means no current in-world body observation.
 func (s *Session) InjurySequence() *uint64 {
@@ -48,5 +65,10 @@ func (s *Session) ObserveInjury(c *bridge.Conn, e *protocol.Event, now time.Time
 		pos = *e.Pos
 	}
 	s.injurySeq = e.Seq
+	if e.Event == protocol.EventDied || math.IsNaN(e.Amount) || math.IsInf(e.Amount, 0) || e.Amount <= 0 || math.IsInf(s.injuryDamage+e.Amount, 0) {
+		s.injuryUnknown = true
+	} else {
+		s.injuryDamage += e.Amount
+	}
 	return InjuryObservation{World: st.World, Pos: pos, At: now}, true
 }

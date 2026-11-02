@@ -3,6 +3,7 @@ package behaviour
 import (
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
 	"math"
 	"slices"
 	"time"
@@ -17,6 +18,7 @@ type View struct {
 	State        *protocol.State
 	Inventory    *protocol.Inventory
 	InjurySeq    *uint64
+	Injury       *session.InjuryStatus
 	Perception   *protocol.Perception
 	Walls        []protocol.Wall
 	Containers   []*protocol.Container

@@ -42,6 +42,7 @@ type FoodProgress struct {
 	BeforeRemaining  float64              `json:"beforeRemaining,omitempty"`
 	Item             string               `json:"item,omitempty"`
 	Injury           *uint64              `json:"injury,omitempty"`
+	TravelBudget     *FoodTravelBudget    `json:"travelBudget,omitempty"`
 	Batches          int                  `json:"batches"`
 }
 type FoodChest struct {
@@ -63,6 +64,13 @@ type FoodReceipt struct {
 	Evidence string `json:"evidence"`
 }
 
+// One lifetime allowance for the goal, never renewed by a new travel task.
+type FoodTravelBudget struct {
+	Injury uint64  `json:"injury"`
+	Damage float64 `json:"damage"`
+	HP     float64 `json:"hp"`
+}
+
 func validateFood(g Record) error {
 	f := g.Food
 	if f == nil || f.Reserve < 1 || f.Reserve > 3 || f.Batches < 0 || f.Batches > 4 || len(f.Chests) > 64 || len(f.Storage) > 64 || len(f.Tried) > 256 || len(f.Receipts) > 256 || g.ReturnHome || g.PostCombat != nil || len(g.Searches) > 0 {
@@ -70,6 +78,9 @@ func validateFood(g Record) error {
 	}
 	if !slices.Contains([]string{"home", "ready", "raw", "wood", "cook", "recover", "complete"}, f.Phase) {
 		return errors.New("invalid food phase")
+	}
+	if b := f.TravelBudget; b != nil && (!finite(b.HP) || b.HP < 30 || !finite(b.Damage) || b.Damage < 0 || f.Injury == nil || *f.Injury < b.Injury) {
+		return errors.New("invalid food travel damage budget")
 	}
 	if err := validateStock(g); err != nil {
 		return err
@@ -173,17 +184,6 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	if err := stockScope(g, v); err != nil {
 		return r.need(err.Error())
 	}
-	if !finite(s.HP) || !finite(s.HPMax) || s.HPMax <= 0 || s.HP < math.Max(20, s.HPMax*.4) || s.Stranded() || s.Encumbered() || slices.Contains(s.Flags, protocol.FlagSwimming) || s.Location != nil && s.Location.InWater {
-		return r.need("unsafe food resupply health, footing or capacity")
-	}
-	if f.Injury != nil && (v.InjurySeq == nil || *f.Injury != *v.InjurySeq) {
-		return r.need("injury during food resupply")
-	}
-	for _, c := range v.Perception.Characters {
-		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, s.Pos) < 15 {
-			return r.need("nearby threat prevents food resupply")
-		}
-	}
 	if v.Home == nil || distance(*v.Home, g.Center) > .1 || distance(s.Pos, g.Center) > g.Radius {
 		return r.need("food resupply needs its original home and travel scope")
 	}
@@ -203,7 +203,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		f = g.Food
 	}
 	if g.Pending != nil {
-		if last == nil || last.TaskID == "" || last.TaskID != g.Pending.TaskID {
+		if g.Pending.Run != r.t.Store.runID || last == nil || last.TaskID == "" || last.TaskID != g.Pending.TaskID {
 			return r.need("uncertain food action; native receipt missing or mismatched")
 		}
 		if v.State.Seq <= f.BeforeSeq {
@@ -215,8 +215,30 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 			}
 			return r.need(err.Error())
 		}
+		// Reconcile the action first. Only a verified owned travel result can
+		// acknowledge bounded encounter damage for subsequent stationary work.
+		if r.travelIntent(g) && foodTravelDamage(g, v) && v.InjurySeq != nil {
+			if err := r.t.Store.update(g.ID, func(g *Record) error {
+				n := *v.InjurySeq
+				g.Food.Injury = &n
+				return nil
+			}); err != nil {
+				return nil, err
+			}
+		}
 		g, _ = r.t.Store.Get(g.ID)
 		f = g.Food
+	}
+	if !finite(s.HP) || !finite(s.HPMax) || s.HPMax <= 0 || s.HP < math.Max(20, s.HPMax*.4) || s.Stranded() || s.Encumbered() || slices.Contains(s.Flags, protocol.FlagSwimming) || s.Location != nil && s.Location.InWater {
+		return r.need("unsafe food resupply health, footing or capacity")
+	}
+	if f.Injury != nil && (v.InjurySeq == nil || *f.Injury != *v.InjurySeq) {
+		return r.need("injury during food resupply outside owned travel budget")
+	}
+	for _, c := range v.Perception.Characters {
+		if c.HPFrac > 0 && (c.Hostile || c.TargetingMe) && distance(c.Pos, s.Pos) < 15 {
+			return r.need("nearby threat prevents food resupply")
+		}
 	}
 	if f.Stock != nil && f.Stock.ReturnAfterCooking {
 		if !foodAtHome(s.Pos, g.Center) || s.Pos.FlatDistance(g.Center) > .75 {
@@ -283,7 +305,7 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 	}
 	if f.Phase == "home" {
 		if !foodAtHome(s.Pos, g.Center) {
-			return r.foodDispatch(g, v, "home", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true}, TimeoutS: 180})
+			return r.foodDispatch(g, v, "home", "", "", &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: g.Home}, Dry: true, AvoidHostiles: true}, TimeoutS: 180})
 		}
 		if err := r.pinFoodSearch(g, v); err != nil {
 			return r.need(err.Error())
@@ -469,8 +491,10 @@ func foodStation(v behaviour.View) (string, bool) {
 }
 
 func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity string, o *session.Order, prepare ...func(*Record)) (*session.Order, error) {
-	if args, ok := o.Args.(*protocol.MoveToArgs); ok && g.Food.Stock != nil {
-		args.RecoverThreats = args.Dry && args.AvoidHostiles && v.State != nil && v.State.Food != nil && len(v.State.Food.Active) > 0
+	if args, ok := o.Args.(*protocol.MoveToArgs); ok {
+		args.RecoverThreats = args.Dry && args.AvoidHostiles && v.State != nil && v.State.Food != nil && len(v.State.Food.Active) > 0 &&
+			(r.t.Allowed == nil || r.t.Allowed(protocol.TaskFlee))
+		args.DefendThreats = args.RecoverThreats && r.t.Allowed != nil && r.t.Allowed(protocol.TaskAttack)
 	}
 	if g.TaskCount >= g.MaxTasks {
 		return r.need("food native-task budget exhausted")
@@ -497,6 +521,11 @@ func (r *runner) foodDispatch(g Record, v behaviour.View, action, item, entity s
 		g.Food.BeforeCount = v.Inventory.Count(item)
 		g.Food.BeforeRemaining = remaining(v.State, item)
 		g.Food.Item = item
+		if a, ok := o.Args.(*protocol.MoveToArgs); ok && a.RecoverThreats && g.Food.TravelBudget == nil &&
+			v.InjurySeq != nil && v.Injury != nil && v.Injury.Complete && v.Injury.Sequence == *v.InjurySeq &&
+			finite(v.Injury.Damage) && v.Injury.Damage >= 0 && v.State.HP >= 30 && g.Food.Injury != nil && *g.Food.Injury == *v.InjurySeq {
+			g.Food.TravelBudget = &FoodTravelBudget{Injury: *v.InjurySeq, Damage: v.Injury.Damage, HP: v.State.HP}
+		}
 		g.Pending = &Intent{Run: r.t.Store.runID, At: v.Now, Template: action, Params: raw, Entity: entity, Fingerprint: fmt.Sprintf("%s:%s:%s:%d", action, entity, item, v.Inventory.Seq)}
 		if slices.Contains([]string{"ready", "raw", "wood"}, action) {
 			g.Food.Tried = append(g.Food.Tried, g.Food.Phase+":"+entity+":"+item)

@@ -165,6 +165,13 @@ type CombatStatus struct {
 	Reason    string `json:"reason,omitempty"`
 }
 
+type JourneyStatus struct {
+	ID       string `json:"id"`
+	Mode     string `json:"mode"`
+	Attempts int    `json:"attempts"`
+	Reason   string `json:"reason,omitempty"`
+}
+
 // State is the bot's own body, streamed at stateHz (6.1).
 type State struct {
 	CaptureProof  *CaptureProof `json:"captureProof,omitempty"`
@@ -182,6 +189,7 @@ type State struct {
 	PVP        *bool             `json:"pvp,omitempty"`
 	Food       *FoodStatus       `json:"food,omitempty"`
 	Combat     *CombatStatus     `json:"combat,omitempty"`
+	Journey    *JourneyStatus    `json:"journey,omitempty"`
 	Escort     *EscortStatus     `json:"escort,omitempty"`
 	Stamina    float64           `json:"stamina"`
 	StaminaMax float64           `json:"staminaMax"`

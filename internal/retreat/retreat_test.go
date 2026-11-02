@@ -58,6 +58,44 @@ func fighting() *fake {
 	return f
 }
 
+func TestNativeWorkTravelKeepsTheBodyThroughItsBoundedEncounter(t *testing.T) {
+	for _, mode := range []string{"walk", "defend", "escape", "observe", "blocked", "refused", "stale", "finished", "other_task", "exhausted", "unfed", "unsafe"} {
+		t.Run(mode, func(t *testing.T) {
+			f := fighting()
+			f.st.Combat = nil
+			f.st.Task.Task = protocol.TaskMoveTo
+			f.st.Food = &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Mushroom", RemainingS: 300}}}
+			f.st.Journey = &protocol.JourneyStatus{ID: f.st.Task.ID, Mode: mode, Attempts: 1}
+			switch mode {
+			case "stale":
+				f.st.Journey.ID = "previous-task"
+			case "finished":
+				f.st.Journey.Mode = "escape"
+				f.st.Task.Status = protocol.StatusSucceeded
+			case "other_task":
+				f.st.Journey.Mode = "escape"
+				f.st.Task.Task = protocol.TaskInteract
+			case "exhausted":
+				f.st.Journey.Mode = "escape"
+				f.st.Journey.Attempts = 4
+			case "unfed":
+				f.st.Journey.Mode = "escape"
+				f.st.Food = nil
+			case "unsafe":
+				f.st.Journey.Mode = "escape"
+				f.st.HP = 19
+			}
+			r := New(f, func() []string { return nil }, nil, quiet, nil)
+			r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+			r.Tick(context.Background())
+			valid := slices.Contains([]string{"walk", "defend", "escape", "observe", "blocked"}, mode)
+			if valid && len(f.sent) != 0 || !valid && len(f.sent) == 0 {
+				t.Fatal("native ownership was ignored or stale metadata suppressed retreat", mode, f.sent)
+			}
+		})
+	}
+}
+
 func TestHealthyExplicitMeleeIsNotCancelledOnEveryConfirmedHit(t *testing.T) {
 	f := fighting()
 	r := New(f, func() []string { return nil }, nil, quiet, nil)

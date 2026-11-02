@@ -362,12 +362,16 @@ type MoveToArgs struct {
 	Dry            bool     `json:"dry,omitempty"`
 	AvoidHostiles  bool     `json:"avoidHostiles,omitempty"`
 	RecoverThreats bool     `json:"recoverThreats,omitempty"`
+	DefendThreats  bool     `json:"defendThreats,omitempty"`
 	To             Target   `json:"to"`
 	StopDistance   *float64 `json:"stopDistance,omitempty"`
 	Run            *bool    `json:"run,omitempty"`
 }
 
 func (a *MoveToArgs) validate() error {
+	if a.DefendThreats && !a.RecoverThreats {
+		return errors.New("defendThreats requires recoverThreats")
+	}
 	if a.RecoverThreats && (!a.Dry || !a.AvoidHostiles) {
 		return errors.New("recoverThreats requires dry hostile-avoiding travel")
 	}
