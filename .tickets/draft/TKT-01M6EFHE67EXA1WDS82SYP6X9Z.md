@@ -53,6 +53,6 @@ Split out of TKT-01M62N12G9 (Controller: notice where owners work, and the drops
 
 ## Acceptance criteria
 
-- [ ] Drops within 30 m are grouped per 4 m cell and prefab with a stack total and a 5-minute trend, in a test
+- [ ] Drops within the bot's perception radius are grouped per 4 m cell and prefab with a stack total and a 5-minute trend, in a test
 - [ ] The grouping is scoped to world and connection and bounded in size, in a test
-- [ ] The behaviour View can ask whether an eligible pile is near an owner and since when not
+- [ ] The behaviour View can ask whether an eligible pile is near an owner and since when not, and answers unknown rather than gone for ground outside the perception radius, in a test

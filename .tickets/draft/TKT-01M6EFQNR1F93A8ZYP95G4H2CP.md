@@ -16,7 +16,6 @@ parent: TKT-01M66PMAPGXNJHB49E7WMGEBYS
 origin: null
 dependencies:
   - TKT-01M6EFQNMW1J01MX78QAB91CZV
-  - TKT-01M6EFQNBJCQP8BGKX658XVNBS
   - TKT-01M62MZN7QMTJ3ST0KRZH15DXZ
   - TKT-01M62N2557R401S3E6JECSAPN4
 blocks_on: none
@@ -25,12 +24,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:32Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-02T17:27:14Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:claude-code/renki-plan
   name: ""
 extensions: {}
 ---
@@ -59,3 +58,9 @@ Goal 7.2 requires zero identical retries without new evidence, and goal 7.5's re
 - [ ] Repeated observation ticks with unchanged evidence do not re-enable a failed approach (test)
 - [ ] Memory is bounded per goal and per world and a test shows the oldest entry evicted first
 - [ ] Replay scenes cover no safe frontier, shared-map-only knowledge, stale coverage, an alternative approach and bounded memory
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T17:27:14Z
+
+Applied on 2026-11-02 by the planning pass: removed the dependency on TKT-01M6EFQNBJ (minimap explored cells), which is live. This ticket needs map knowledge only for its "shared-map-only knowledge" replay scene, so build that scene from a recorded fixture in the shape TKT-01M6EFQNBJ will report. M7's offline frontier and goal-runner chain then no longer waits on a VM slot.
