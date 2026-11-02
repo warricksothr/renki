@@ -243,10 +243,13 @@ namespace Renki.Tasks
             if (body == null) return;
             elapsed += dt;
             Outcome o;
+            // A timed-out or throwing task is still live and must be cancelled;
+            // one that returned an outcome has already stopped itself.
+            var cancel = false;
             if (current.TimeoutS > 0 && elapsed > current.TimeoutS)
             {
-                body.Cancel();
                 o = Outcome.Failed(Wire.ReasonTimeout, $"{current.TimeoutS:0.#} s elapsed");
+                cancel = true;
             }
             else
             {
@@ -259,14 +262,21 @@ namespace Renki.Tasks
                     // A throw escaping here would skip SetControls on every
                     // later step and leave the game holding the last inputs.
                     o = Outcome.Failed(Wire.ReasonInternal, Fault(e));
-                    try { body.Cancel(); } catch (Exception) { }
+                    cancel = true;
                 }
                 if (o == null) return;
             }
             var finished = current;
-            current = null;
-            body = null;
-            host.Idle();
+            if (cancel)
+            {
+                Release();
+            }
+            else
+            {
+                current = null;
+                body = null;
+                Idle();
+            }
             Reply(finished, o.Status, o.Reason, o.Detail, o.Entity);
         }
 
@@ -275,10 +285,7 @@ namespace Renki.Tasks
         {
             if (body == null) return;
             var finished = current;
-            body.Cancel();
-            current = null;
-            body = null;
-            host.Idle();
+            Release();
             Reply(finished, Wire.StatusFailed, Wire.ReasonDied, null);
         }
 
@@ -286,15 +293,30 @@ namespace Renki.Tasks
         {
             if (body == null)
             {
-                host.Idle();
+                Idle();
                 return;
             }
             var cancelled = current;
-            body.Cancel();
+            Release();
+            if (reportIt) Reply(cancelled, Wire.StatusCancelled, reason, detail);
+        }
+
+        /// <summary>Drops the body task, cancels it and idles the host. The state
+        /// is cleared first and a throw from Cancel or Idle is contained, so a
+        /// faulty task can never leave the runner holding it or the game
+        /// holding its last inputs.</summary>
+        void Release()
+        {
+            var dropped = body;
             current = null;
             body = null;
-            host.Idle();
-            if (reportIt) Reply(cancelled, Wire.StatusCancelled, reason, detail);
+            try { dropped?.Cancel(); } catch (Exception) { }
+            Idle();
+        }
+
+        void Idle()
+        {
+            try { host.Idle(); } catch (Exception) { }
         }
 
         /// <summary>A bounded description of an unexpected exception.</summary>

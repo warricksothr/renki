@@ -24,7 +24,13 @@ namespace Renki.Tests
             return Next;
         }
 
-        public void Cancel() => Cancelled = true;
+        public Exception CancelThrows;
+
+        public void Cancel()
+        {
+            Cancelled = true;
+            if (CancelThrows != null) throw CancelThrows;
+        }
     }
 
     sealed class FakeHost : ITaskHost
@@ -131,6 +137,28 @@ namespace Renki.Tests
             Assert.Equal("t-1:rejected/internal t-2:accepted t-2:failed/internal", Log());
             Assert.True(reports.All(r => r.Detail == null || r.Detail.Length <= 200));
             Assert.Null(runner.Current);
+        }
+
+        [Fact]
+        public void ThrowingCancelStillReleasesOnTimeoutSupersedeAndDeath()
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("t-1", "move_to", "{\"to\":[1,2,3]}", timeout: 1));
+            host.Bodies[0].CancelThrows = new InvalidOperationException("cancel");
+            for (var i = 0; i < 60; i++) runner.FixedTick(0.02);
+            Assert.Null(runner.Current);
+            Assert.EndsWith("t-1:failed/timeout", Log());
+
+            runner.Handle(Req("t-2", "follow", "{\"player\":\"Sothr\"}"));
+            host.Bodies[1].CancelThrows = new InvalidOperationException("cancel");
+            runner.Handle(Req("t-3", "follow", "{\"player\":\"Sothr\"}"));
+            Assert.Equal("t-3", runner.Current.Id);
+            Assert.EndsWith("t-2:cancelled/superseded t-3:accepted t-3:running", Log());
+
+            host.Bodies[2].CancelThrows = new InvalidOperationException("cancel");
+            runner.Died();
+            Assert.Null(runner.Current);
+            Assert.EndsWith("t-3:failed/died", Log());
         }
 
         [Fact]
