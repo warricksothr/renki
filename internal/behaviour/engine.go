@@ -27,6 +27,7 @@ type Options struct {
 	Store      *settings.Store
 	Templates  map[string]Template
 	Owners     func() []string
+	Anchor     func() string
 	Home       func() (protocol.Vec3, bool)
 	Containers func(world string) []home.RememberedContainer
 	Landmarks  func(world string) []home.Landmark
@@ -97,6 +98,9 @@ func New(o Options) *Engine {
 	}
 	if o.Owners == nil {
 		o.Owners = func() []string { return nil }
+	}
+	if o.Anchor == nil {
+		o.Anchor = func() string { return "" }
 	}
 	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
 	for name, t := range o.Templates {
@@ -379,7 +383,7 @@ func (e *Engine) view() View {
 		perception = nil
 		perceptionAt = time.Time{}
 	}
-	v := View{Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners()}
+	v := View{Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners(), Anchor: e.o.Anchor()}
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
@@ -817,7 +821,11 @@ func (e *Engine) Tick(ctx context.Context) {
 				}
 			}
 		}
-		e.finish(true, "completed", v)
+		detail := "completed"
+		if s, ok := i.runner.(Summary); ok {
+			detail = s.Summary()
+		}
+		e.finish(true, detail, v)
 		return
 	}
 	if order.Task == protocol.TaskStop || order.TimeoutS <= 0 || order.TimeoutS > 300 {
