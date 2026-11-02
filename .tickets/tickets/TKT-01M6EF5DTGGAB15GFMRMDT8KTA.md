@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EF5DTGGAB15GFMRMDT8KTA
 title: "VM: exclusive lease for deploys and live trials"
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T15:48:34Z
-updated_at: 2026-11-02T19:29:43Z
+updated_at: 2026-11-02T21:17:55Z
 created_by:
   id: agent:claude-code/renki-plan
   name: ""
@@ -101,3 +101,14 @@ Live, only the read path was exercised: `just vm lease-status` against the real 
 4. Optional trial check: in A with no lease, start any supervised trial (e.g. `just vm marker-check`); during it, B's `just vm lease-status` names A's actor; after it finishes, the lease is free again.
 
 Unverified on Windows until then: the Write action's exclusive lock (`[IO.File]::Open(..., 'None')`) and `[IO.File]::Replace` with `[NullString]::Value`.
+
+**agent:claude-code/renki-m2-lease** at 2026-11-02T21:17:54Z
+
+`just review` took eighteen rounds before it came back clean. The fixes hardened `lease.py run` and the local id record:
+- renewal errors only produce a warning;
+- a command that fails to start, or a signal that arrives during the take, gives the lease back;
+- SIGINT, SIGTERM, SIGHUP and SIGQUIT go to the trial's own process group once, as SIGINT;
+- a trial killed by any other signal keeps the lease until it expires;
+- `.vm-lease` is locked, replaced atomically and carries a generation counter.
+
+lease.ps1 Read hashes the bytes it returns, opens the file with delete sharing, treats a file deleted mid-read as absent, and formats the VM clock in the invariant culture. Write fails loudly if the delete fails. All of this is covered offline by `just vm test-lease` (18 cases), except the Windows-only parts: the lock, File.Replace and delete-pending access. The owner's live check in the previous note covers those. Criterion 1 stays unticked until it has been run.
