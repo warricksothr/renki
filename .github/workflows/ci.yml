@@ -45,7 +45,7 @@ jobs:
         with:
           global-json-file: plugin/global.json
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('plugin/**/*.csproj', 'plugin/nuget.config') }}
@@ -73,7 +73,7 @@ jobs:
 
       # The Chromium revision panel/package-lock.json pins, and its OS
       # libraries, for the panel UI suite in `just panel ci`.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('panel/package-lock.json') }}
@@ -87,7 +87,7 @@ jobs:
 
       # The UI suite's screenshots and JSON diagnostics, for a failed run.
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: panel-ui
           path: .checks/panel-ui
