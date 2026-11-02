@@ -7,8 +7,8 @@ The engine validates the definition and the template's parameters before
 saving. Invalid definitions found on disk are logged and skipped.
 
 The `move_to` template takes the same parameters as the body task and has a
-60-second timeout. Bounded `collect`, `gather`, `stow` and `combat` templates
-use the same engine, permissions and body ownership rules described below.
+60-second timeout. Bounded `collect`, `gather`, `stow`, `combat` and `loot`
+templates use the same engine, permissions and body ownership rules described below.
 
 ## Control API
 
@@ -100,13 +100,13 @@ would cancel the new order, even before the streamed state catches up.
 Reconnects, death, logout and world changes also invalidate ownership.
 
 The first engine waits for an idle body. It never borrows control from an
-active follow, so jobs cannot take Tas beyond a leader's leash. Supporting
-loot detours during following remains part of hauling-template work.
+active follow, so jobs cannot take Tas beyond a leader's leash. Loot detours
+during a follow wait on the owners' agreement (see [Loot near owners](#loot-near-owners)).
 Templates in Go implement bounded steps; instance JSON contains no script,
 loops or variables. Each trigger, start, step, finish, failure and interruption
 is logged with its instance name. Template steps retain session capability
 and allowed-task checks, plus the plugin's normal safety rules. No behaviour
-is installed or enabled by default.
+is installed or enabled by default, except the built-in `Loot` instance.
 
 Run `just check controller test-packages ./internal/behaviour ./internal/session ./internal/app ./internal/panel`
 for focused engine, ownership and API checks. `just check ci` also runs them
@@ -189,6 +189,70 @@ still take incidental items along a route. Automatic owner-drop inference,
 work-site discovery, leader detours/resumption, resource exploration, tool
 swings and chat shortcuts remain separate work. This template is suitable
 for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
+
+## Loot near owners
+
+The `loot` template picks up drops near a live owner while Tas is idle:
+
+```json
+{"items":["Wood","Resin","BeechSeeds","Feathers"],"radius":30,
+ "maxWeightFraction":0.8,"maxTargets":16}
+```
+
+Every field is optional; these are the defaults. `items` are exact prefabs
+(no `wood` or `*` groups). `radius`, at most 40 m, is measured from any owner
+who is alive and in fresh perception. Each run takes the nearest eligible
+drop, sends `pickup`, and waits for a newer inventory frame that holds more of
+that item before choosing the next. A success without that gain fails the
+run. A drop someone else took (`invalid_target` or `target_lost`) is skipped.
+It shares `collect`'s capacity check: whole free slots and the larger of live
+and pack weight, against `maxWeightFraction` (0.1–0.9) of carry capacity.
+A run ends after `maxTargets` (1–64) pickups or when nothing is eligible. It
+carries what it picked up; delivering it is separate work.
+
+### The deliberate-drop rule
+
+An owner who puts something down means to leave it. A drop is deliberate when,
+the first time perception shows it:
+
+1. a live owner is within 2 m of it, and
+2. no tree, log or stump broke within 10 m of it from 10 seconds before
+   until 2 seconds after. The 2 seconds cover a split log whose wood is seen
+   a frame before the log goes.
+
+Loot ignores a deliberate drop for 5 minutes from that first sighting, then
+treats it like any other. A *break* is a tree, log or stump that was in one
+fresh perception frame and is missing from the next, placed where it was last
+seen. Felling and splitting therefore excuse the wood they produce, even when
+it lands at the owner's feet. The rule is `DeliberateDrop` in
+`internal/behaviour/loot.go`, a pure function of the drop's position and
+time, owner positions and breaks, so that the haul report (TKT-01M6DDFTDD)
+can score pickups by the same rule.
+
+Apart from that 2-second lag, a drop is judged once. Its verdict survives a missed frame or Tas walking out
+of range, and is forgotten only after the drop has been out of sight for
+5 minutes. Limits: a drop already lying near an owner when Tas first sees it
+counts as deliberate if nothing broke near it. A tree that
+simply leaves perception range as Tas walks counts as a break. A drop not yet
+judged is never picked up.
+
+### The built-in instance
+
+On its first start the controller saves an instance named `Loot`: this
+template with the defaults above, a 2-second timer, `when.owner.radius` 40,
+`repeat` `trigger` with a 2-second cooldown, priority -5 (above idle chores,
+below gathering and every owner order), enabled. The timer queues a run only
+when Tas is idle and an eligible drop is in reach, so an empty check leaves
+no log line. Edit, clone, stop and disable it like any other instance.
+Disabling is the off switch and survives restarts; deleting it brings it back
+with the defaults on the next start.
+
+`preemptFollow` is reserved: while following, Tas is never idle, so loot
+waits. Pausing a follow to pick up and then restarting the same follow needs
+the owners' agreement (TKT-01M62VXYQB), and the template rejects `true` until
+then.
+
+Focused checks: `just check controller test-packages ./internal/behaviour`.
 
 ## Bounded beech gathering
 

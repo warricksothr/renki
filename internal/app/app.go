@@ -271,6 +271,8 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go a.discoverWaypoints(ctx)
 	go a.Presence.Run(ctx)
 	go func() { defer close(playersDone); a.Players.Run(ctx) }()
+	// The built-in loot instance is created on first start; it logs a failure.
+	_ = a.Behaviours.InstallLoot("builtin")
 	go a.Behaviours.Run(ctx)
 	go func() { defer close(memoryDone); a.Memory.Run(ctx) }()
 	go func() { defer close(dangerDone); a.Danger.Run(ctx) }()
