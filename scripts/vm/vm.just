@@ -24,7 +24,8 @@ need-target:
 # Every recipe that changes the VM, the game or the bot depends on `guard` or
 # runs through `lease.py run`: it refuses while another worktree holds the VM
 # lease, and takes the lease when it is free. Reading needs no lease, and
-# neither do the emergency stops, `stop` and `panel POST /api/act/stop`. See
+# neither do the emergency stops, `stop` and `panel POST /api/act/stop`, when
+# a person runs them; inside a supervised run they guard too. See
 # docs/VM.md, "The VM lease", and scripts/vm/lease.py.
 
 # Who holds the VM lease and until when, without changing it.
@@ -86,10 +87,13 @@ start MINUTES="5": need-target guard
     exit 1
 
 # Log the bot out, close the game and stop the controller. This is the
-# emergency stop, so it needs no lease and works whoever holds it.
+# emergency stop, so a person needs no lease for it. Inside a supervised run
+# (RENKI_VM_LEASE_RUN, set by `lease.py run`) it still guards, so a trial's
+# cleanup that lost its lease cannot stop the new holder's session.
 stop: need-target
     #!/usr/bin/env bash
     set -euo pipefail
+    [ -z "${RENKI_VM_LEASE_RUN:-}" ] || {{lease}} guard
     {{ssh}} "Start-ScheduledTask -TaskName RenkiStop"
     for _ in $(seq 1 30); do
         if ! {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 1 }" >/dev/null 2>&1; then
@@ -248,8 +252,9 @@ panel METHOD PATH BODY='': need-target
     endpoint=$2
     [[ "$method" = GET || "$method" = POST ]] || { echo 'METHOD must be GET or POST' >&2; exit 2; }
     [[ "$endpoint" =~ ^/api/[a-zA-Z0-9_/?=\&.%:-]+$ ]] || { echo 'Use an /api/ path without shell metacharacters' >&2; exit 2; }
-    # POST /api/act/stop is the panel's emergency stop and, like `stop`, needs no lease.
-    [ "$method" = GET ] || [ "$endpoint" = /api/act/stop ] || {{lease}} guard
+    # POST /api/act/stop is the panel's emergency stop and, like `stop`, needs
+    # no lease outside a supervised run.
+    [ "$method" = GET ] || { [ "$endpoint" = /api/act/stop ] && [ -z "${RENKI_VM_LEASE_RUN:-}" ]; } || {{lease}} guard
     encoded=$(printf '%s' "${3:-}" | base64 -w0)
     bodyarg=()
     [ -z "$encoded" ] || bodyarg=(-BodyBase64 "$encoded")

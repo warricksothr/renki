@@ -382,7 +382,11 @@ def run(lease, command, minutes, renew_seconds):
             try:
                 # Out of the terminal's foreground group, a read from the
                 # terminal would stop the child (SIGTTIN); no supervisor reads it.
-                child = subprocess.Popen(command, preexec_fn=os.setpgrp, stdin=subprocess.DEVNULL)
+                # RENKI_VM_LEASE_RUN tells the emergency stops, which a person runs
+                # unguarded, to guard inside a supervised run: a cleanup that
+                # lost its lease must not stop the new holder's session.
+                child = subprocess.Popen(command, preexec_fn=os.setpgrp, stdin=subprocess.DEVNULL,
+                                         env={**os.environ, 'RENKI_VM_LEASE_RUN': '1'})
             except OSError as error:
                 say(f'cannot start {command[0]}: {error}')
             else:

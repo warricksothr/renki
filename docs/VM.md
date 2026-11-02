@@ -37,8 +37,10 @@ hour, so a deploy does not outlive its lease.
 Reading needs no lease: `status`, `logs`, `audit`, `audit-window`,
 `observe`, `inspect`, `map-snapshot`, `camera`, `panel GET`, and the setters
 without a value. Neither do the two emergency stops, `just vm stop` and
-`just vm panel POST /api/act/stop`: they work whoever holds the lease, and
-they do not take it.
+`just vm panel POST /api/act/stop`: run by a person, they work whoever holds
+the lease, and they do not take it. Inside a supervised trial, which sets
+`RENKI_VM_LEASE_RUN`, they guard like any other recipe, so a trial's cleanup
+that lost its lease cannot stop the next holder's session.
 
 A supervised trial (`combat-trial`, `gather-trial`, `goal-trial`,
 `escort-check`, `route-benchmark` and the rest) that starts without a lease

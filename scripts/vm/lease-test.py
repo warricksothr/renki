@@ -121,7 +121,7 @@ def run_releases_after_cleanup(case):
         'import json, os, pathlib, sys\n'
         'lease = pathlib.Path(sys.argv[1])\n'
         'try:\n'
-        '    seen = dict(during=lease.exists())\n'
+        '    seen = dict(during=lease.exists(), supervised=os.environ.get("RENKI_VM_LEASE_RUN"))\n'
         '    sys.exit(3)\n'
         'finally:\n'
         '    seen["cleanup"] = lease.exists()\n'
@@ -130,7 +130,8 @@ def run_releases_after_cleanup(case):
     out = case.lease('run', '--', sys.executable, '-c', child, str(case.file), str(probe))
     check(out.returncode == 3, f"run returns the command's status: {out}")
     seen = json.loads(probe.read_text())
-    check(seen == dict(during=True, cleanup=True), f'held during the command and its cleanup: {seen}')
+    check(seen == dict(during=True, supervised='1', cleanup=True),
+          f'held during the command and its cleanup, which knows it is supervised: {seen}')
     check(case.held() is None and 'released the VM lease' in out.stderr, f'released afterwards: {out}')
 
 
