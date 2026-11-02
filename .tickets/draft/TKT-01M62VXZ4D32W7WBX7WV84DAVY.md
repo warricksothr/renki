@@ -65,7 +65,7 @@ Fires are what goal 5.1 measures, and they need nothing new from perception. Sme
 
 `just check plugin test-core CookingTests` plus new core tests for the generalised receipt (a full fire stops, a missing fuel increase stops without retrying, each unit is counted). `just check controller test-packages ./internal/protocol`. `just check ci`.
 
-Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entity":"<home fire id>","item":"Wood","count":2}'` at home reports 2 added, and the next perception shows the fire's fuel up by 2. Link the audit window.
+Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entity":"<home fire id>","item":"Wood","count":2}'` into a fire with room for 2 reports 2 added, and the next perception shows the fire's fuel up by at least 1.9 (fuel burns between samples). Link the audit window.
 
 ## Acceptance criteria
 

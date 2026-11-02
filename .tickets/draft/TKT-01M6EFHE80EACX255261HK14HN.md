@@ -60,7 +60,7 @@ Goals 2.3 and 2.4 in docs/ROADMAP.md need evidence that "go chop wood" picks a s
 ## Acceptance criteria
 
 - [ ] POST /api/behaviours with action wood calls StartWood and returns its reply, behind the act header, with a test
-- [ ] A just vm recipe runs the owner request path and its summary.json records site, site source, distance from home, reply and duration
+- [ ] A just vm recipe runs the owner request path and its summary.json records site, site source, distance from home, reply and duration, and its pass rule fails any run whose site is more than 150 m from home (goal 2.3)
 - [ ] A no-axe mode records the refusal text, its delay and `bodyTasksAfterRefusal` (body tasks sent between the request and the supervisor's own withdraw; goal 2.4 needs 0), and always restores the axe
 - [ ] Offline supervisor tests run in just ci
 - [ ] docs/TESTING.md describes the recipe
