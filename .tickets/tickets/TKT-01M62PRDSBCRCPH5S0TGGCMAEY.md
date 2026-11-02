@@ -32,7 +32,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-02T04:24:13Z
+updated_at: 2026-11-02T04:31:14Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -158,3 +158,11 @@ Spacing controller5394f13 passed final full just check ci174s (.checks/20261102T
 Daytime retest exposed another earned failure: after native move t-1 to the previously verified indoor tending position succeeded (.checks/task-fkhnzqob.json), the scheduler itself started idle rest t-2 at04:21:59Z. Tas reached[-31.18,36.09,13.2], horizontal1.99m from bed1:99058, grounded/sheltered with25/25HP and injury0. The controller already accepted this as a valid waiting distance, but native arrival still required1.75m, causing repeated approach searches and eventual unreachable. Evidence .checks/audit-window-FWKt7I.jsonl and .checks/20261102T042300Z-jgx28y.log. Do not report this as a live pass.
 
 Align native and controller daytime arrival at2m horizontally with a separate75cm floor band. Preserve the narrower floor requirement, native dry/hostile checks and sleep attachment requirements. Added regression for the actual reached body position, plus native-horizontal arrival with a modest same-floor height difference. Focused behaviour/app checks passed (.checks/20261102T042347Z-V7p0xO.log); full gate rerunning for the new code. Final deployed automatic daytime pass remains pending. No wake or logout follows refusal.
+
+**agent:codex/renki-milestones** at 2026-11-02T04:31:14Z
+
+Final daytime bedside wait PASSED on deployed controller7bda45f. Full just check ci passed172s (.checks/20261102T042356Z-fFHoFi.log), committed review passed5s (.checks/20261102T042655Z-hp9nEB.log), and just check vm deploy-controller passed4s (.checks/20261102T042709Z-cNcOGy.log). No game/plugin restart, logout or wake was sent.
+
+Starting native indoor move t-1 succeeded (.checks/task-d58t70w5.json). The actual idle scheduler dispatched t-2 at04:29:44Z with dry/hostile-aware movement and stopDistance2. Native success seq1170 at04:30:04Z preceded fresh state1171 at[-32.32,36.09,13.67], 1.96m horizontally from owned bed1:99058 and2cm below its floor reference, grounded and sheltered. The behaviour then completed, releasing body control. Exact audit .checks/audit-window-qKuFqU.jsonl; preserve temporal ordering across the controller restart, since old connection1 state sequences before reconnect were higher than the new session's sequences.
+
+Later fresh inspection .checks/20261102T043032Z-bFp4Va.log confirms idle,25/25HP, injury seq0/damage0, same bedside position. Both rest modes plus all four original food/cargo definitions remain enabled (.checks/20261102T043011Z-LwBh0i.log). Nighttime automatic bed entry had already passed on7cb3fd4; no shared time skip or respawn is claimed. Existing automatic-claim/no-bed-notice/respawn criteria stay open. The long rest exhausted active/carried food, and the cooking idle routine correctly refused without an active meal; resupply before the next outdoor test. Tas stays online and available to the scheduler/newer human commands.

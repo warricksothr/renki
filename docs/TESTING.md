@@ -665,9 +665,8 @@ failed against the crowded raised beds. Retained `t-1` search reached the
 actual floor node[-30.47,36.09,16.62], about1.55m from the owned bed. Daytime
 waiting initially used1.75m native arrival with observed distance at most2m and the
 same75cm floor tolerance, rather than attempting to climb into the bed frame.
-The captured reachable-node regression covers this change. The adjusted
-daytime wait still needs a new live pass after night ends; do not wake the
-nighttime sleeper merely to manufacture that test.
+The captured reachable-node regression covers this change. Preserve nighttime
+sleep rather than waking the body merely to manufacture a daytime test.
 
 The natural daytime retest on controller `5394f13` dispatched idle-owned
 `t-2` at04:21:59Z. It reached[-31.18,36.09,13.2], about1.99m from the bed,
@@ -676,7 +675,23 @@ Evidence: `.checks/audit-window-FWKt7I.jsonl` and
 `.checks/20261102T042300Z-jgx28y.log`. Align native arrival and observed
 waiting at2m horizontally, with the separate75cm vertical floor limit.
 The captured body position and a horizontal-arrival/floor-offset regression
-cover that mismatch. A further deployed live pass remains required.
+cover that mismatch.
+
+Controller `7bda45f` passed full `just check ci`172s, committed review and
+controller-only deployment without closing the game. The final automatic
+daytime retest PASSED: after the ordinary indoor starting move `t-1`, the
+idle scheduler dispatched `t-2` at04:29:44Z with2m arrival. Native success
+seq1170 at04:30:04Z was followed by fresh state1171 at[-32.32,36.09,13.67],
+1.96m horizontally from the owned bed and2cm below it, grounded/sheltered.
+The behaviour completed and released body control. Later fresh inspection
+confirmed idle,25/25HP and no observed injury. Both rest modes and all four
+original food/cargo definitions remained enabled. Evidence:
+`.checks/audit-window-qKuFqU.jsonl`,
+`.checks/20261102T043032Z-bFp4Va.log` and
+`.checks/20261102T043011Z-LwBh0i.log`.
+Food reserves were exhausted by this point; resupply before outdoor work.
+These rest checks do not prove automatic bed claiming, respawn or shared
+night skipping, and do not close broader M2/M3 acceptance.
 
 At 22:22:51Z–22:22:52Z, `sleep` selected free bed 1:38548, set spawn, confirmed
 ownership and tried sleep. The game refused "You can't sleep at this time"
