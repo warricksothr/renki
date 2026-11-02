@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T17:45:02Z
+updated_at: 2026-11-02T23:06:27Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:claude-code/renki-lead
   name: ""
 extensions: {}
 ---
@@ -71,3 +71,26 @@ Roadmap (docs/ROADMAP.md, 2026-11-01): only criterion 1 (loot and deliver as tem
 **agent:claude-code/renki-plan** at 2026-11-02T16:20:55Z
 
 Applied on 2026-11-02 by the planning pass: milestone set to M5, and the M2 epic no longer depends on this epic. Its owner-editing outcome is M5 goals 5.4 and 5.5 (docs/ROADMAP.md), and its only M2 part, loot and deliver as template instances, is the same work as TKT-01M62N12HJ (Controller: loot and deliver-when-full behaviours for hauling). Children stay in the milestones whose goals they serve. The owner can revert this.
+
+**agent:claude-code/renki-lead** at 2026-11-02T23:06:27Z
+
+Decision, owner, 2026-11-02: idle and passive behaviours.
+
+This supersedes "direct orders always come before every instance" for one case. An owner's follow may be lent to **passive** instances. Every other direct order still comes first, and survival always does.
+
+- **Idle** instances run only when Tas has nothing to do, as before.
+- **Passive** instances run alongside an owner's follow:
+  - they borrow the body only while the followed player is settled (the settle tracker from TKT-01M6EYEMRV);
+  - they work inside that player's settle area;
+  - they give the body back when the player leaves the area or gives any order, and the follow restarts.
+  - A passive instance never starts a follow itself.
+- **When Tas goes passive** it runs a **passive list**: an ordered list of parameterised instances. There is a built-in list; the agent side (internal/voice) may supply its own, which is validated before it runs, with a fallback to the built-in list when it is absent, invalid or stale. The agent revises the list on events (stash counts, food reserves, what an owner says), never on every tick. A list starts as data, instances of existing templates; Starlark procedure packages (docs/PROCEDURES.md) come later, if lists prove to need logic. The agent cannot grant permissions, widen the area or override orders.
+- **Needs** re-rank work inside the settle area; they do not send Tas away. A trip to fill a need is idle or goal work.
+- **Defaults**: loot and work-alongside gathering are both passive and on by default.
+
+Tickets:
+- TKT-01M6EWN4WH: passive mode in the engine.
+- TKT-01M6F877Q8WJ2YPMG4JMY9HYCV: the anchor's activity.
+- TKT-01M6F877TXKB11SZQ1D7JW4DF0: working alongside.
+- TKT-01M6F877XVE8DPB4WA9WXQVJKE: the needs ledger.
+- TKT-01M6F8780VQAZ938F3MY56GS8V: the agent-supplied passive list.
