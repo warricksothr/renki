@@ -90,6 +90,11 @@ def held_by_self(case):
 
 def malformed(case):
     """An unreadable lease file blocks everyone until the owner clears it."""
+    # Ids are compared plainly, so a hand-edited non-ASCII id is just someone else's.
+    (case.root / 'a.vm-lease').write_text(json.dumps(dict(id='x', actor='agent:x/one')))
+    case.file.write_text(json.dumps(dict(id='\u00e9', actor='agent:y/two', expires='2099-01-01T00:00:00Z')))
+    out = case.lease('guard')
+    check(out.returncode == 1 and 'agent:y/two' in out.stderr and 'Traceback' not in out.stderr, f'{out}')
     for content in (b'', b'{not json', b'[]', b'{"id": "x", "actor": "y", "expires": "soon"}', b'\xff\xfe'):
         case.file.write_bytes(content)
         out = case.lease('guard')

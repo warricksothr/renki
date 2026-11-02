@@ -154,7 +154,7 @@ def classify(data, now, my_id):
         return 'malformed', None
     if expires <= now:
         return 'expired', lease
-    if my_id and secrets.compare_digest(lease['id'], my_id):
+    if my_id and lease['id'] == my_id:
         return 'self', lease
     return 'other', lease
 
@@ -213,10 +213,19 @@ class Lease:
                 or f'{user}@{socket.gethostname()}')
 
     def read(self):
-        now, sha, data = self.transport.read()
-        # Under the lock, so a taker's provisional id is never mistaken for ours.
-        with self.local_lock():
-            mine = self.local().get('id')
+        # The local id is read under the lock before and after the VM, and the
+        # read repeats if it changed: a take records its id before its swap and
+        # a release forgets it only after, so an unchanged id means no swap from
+        # this worktree landed in between, and a taker's provisional id is never
+        # mistaken for ours.
+        while True:
+            with self.local_lock():
+                before = self.local().get('id')
+            now, sha, data = self.transport.read()
+            with self.local_lock():
+                mine = self.local().get('id')
+            if mine == before:
+                break
         state, lease = classify(data, now, mine)
         return now, sha, state, lease, mine
 
