@@ -168,10 +168,20 @@ func TestBoundedInSize(t *testing.T) {
 	if last.reach != 0 {
 		t.Fatal("a frame cut short claimed to see all its ground")
 	}
+	// Fewer drops than MaxDropsPerFrame but more piles than
+	// MaxPilesPerFrame: the cut frame still sees nothing as gone.
+	wide := protocol.PerceptionConfig{Radius: 1000, MaxPerKind: 1000}
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, wide, frameOf(many[:200]...), start.Add(time.Hour))
+	tr.mu.Lock()
+	cut := tr.frames[len(tr.frames)-1]
+	tr.mu.Unlock()
+	if len(cut.piles) != MaxPilesPerFrame || cut.reach != 0 {
+		t.Fatalf("a frame cut at the pile cap kept %d piles and reach %v", len(cut.piles), cut.reach)
+	}
 	// The same frame twice is one observation.
 	p := frameOf(drop("a", "Wood", 1, 1, 5))
-	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, p, start.Add(time.Hour))
-	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, p, start.Add(time.Hour+time.Second))
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, p, start.Add(2*time.Hour))
+	tr.Observe(hello, "w", protocol.Vec3{}, 0, seen, p, start.Add(2*time.Hour+time.Second))
 	if got := len(tr.Snapshot(hello, "w").frames); got != 1 {
 		t.Fatalf("frames after a repeat = %d", got)
 	}
@@ -209,6 +219,15 @@ func TestNearAnOwner(t *testing.T) {
 	// A stale frame proves nothing about now.
 	if n := s.Near(at.Add(Gap+time.Second), owner, 8, wood); n.State != Unseen {
 		t.Fatalf("stale = %+v", n)
+	}
+	// Since never reaches back further than Window from now.
+	var long Tracker
+	for i := range 301 {
+		long.Observe(hello, "w", protocol.Vec3{}, 0, seen, frameOf(), start.Add(time.Duration(i)*time.Second))
+	}
+	later := start.Add(304 * time.Second)
+	if n := long.Snapshot(hello, "w").Near(later, owner, 8, wood); n.State != Absent || later.Sub(n.Since) > Window {
+		t.Fatalf("since beyond the window = %+v", n)
 	}
 	// The bot walks off: part of the circle lies beyond its sight. That is
 	// unknown, never gone, even though the frame lists no drops at all.

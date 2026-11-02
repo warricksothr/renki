@@ -248,11 +248,7 @@ func (s Snapshot) Piles(now time.Time) []Pile {
 		return nil
 	}
 	fresh := s.fresh(now)
-	// Frames are trimmed only when a new one arrives, so a stalled stream
-	// leaves old ones behind.
-	for len(s.frames) > 0 && now.Sub(s.frames[0].at) > Window {
-		s.frames = s.frames[1:]
-	}
+	s = s.within(now)
 	// A cell is a column. It is all in sight when the ground between the
 	// lowest and highest of its drops ever seen is, which by convexity
 	// holds when both ends are.
@@ -340,6 +336,7 @@ type Nearby struct {
 // the circle outside what the newest frame reports, or a newest frame older
 // than Gap at now, answers Unseen: that ground is not known to be clear.
 func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible func(prefab string) bool) Nearby {
+	s = s.within(now)
 	n := len(s.frames)
 	if !s.fresh(now) || !finite(pos) || !finiteF(r) || r < 0 {
 		return Nearby{State: Unseen}
@@ -376,6 +373,15 @@ func (s Snapshot) Near(now time.Time, pos protocol.Vec3, r float64, eligible fun
 		since = f.at
 	}
 	return Nearby{State: Absent, Since: since}
+}
+
+// within drops frames older than Window at now. Frames are trimmed only
+// when a new one arrives, so a stalled stream leaves old ones behind.
+func (s Snapshot) within(now time.Time) Snapshot {
+	for len(s.frames) > 0 && now.Sub(s.frames[0].at) > Window {
+		s.frames = s.frames[1:]
+	}
+	return s
 }
 
 // fresh reports whether the newest frame is no more than Gap old at now.
