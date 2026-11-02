@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T00:51:54Z
-updated_at: 2026-11-01T23:52:37Z
+updated_at: 2026-11-02T02:53:52Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
@@ -279,3 +279,15 @@ Focused just check vm test-route-benchmark passed including legacy reference, ad
 Current-batch berry route .checks/routes-20261101T234215761121Z reached the outward marker (t-2 receipt, position[-1.02,33.1,-19.34]) but first return t-3 failed after trying both observed doorway floors. It retained Tas online near[-40.01,33.72,9.69], beneath the raised floor. Recorded-route/navmesh candidates were rejected for hostile_corridor and slope; local entrance searches reached no goal-floor nodes. Captured support_step examples include actual support33.7365, midpoint34.0905, endpoint34.0931 at the western stair toe, a0.354m half-edge discontinuity against the0.3m rule. Other hits include steep stair faces and terrain; this does not justify broadly lowering slope/water/clearance guards.
 
 An ordinary native bed interaction from that same area subsequently found the entrance and reached upstairs[-32.54,36.09,17.91] before reporting the real native refusal "You are wet" (.checks/task-x7kbeky_.json). Thus a physical entrance route exists, but current strict dry planning has not proved it. Preserve this as a failed hauling prerequisite, not a successful round trip or proof that the house is unreachable. Next investigation should use the captured stair-toe support/geometry and route sampling alignment to distinguish missed intermediate support from a genuinely oversized step; do not repeat the same unchanged benchmark or relax terrain slope admission indiscriminately. No automatic or cleanup logout was requested.
+
+**agent:codex/renki-milestones** at 2026-11-02T02:48:20Z
+
+User approved indoor bed -> food chest -> cooking station -> storage -> home loops. First fresh control read failed because both HTTP endpoints were unavailable despite live game/controller processes. A controller-only reconnect restored telemetry without restarting Valheim. Tas was idle upstairs near his bed,0.1/25HP, no carried/active food and no close observed attacker; no logout requested. Investigate low health separately; post-reconnect injurySeq0 does not establish what happened before reconnect.
+
+First food withdrawal t-2 failed before any transfer (.checks/task-ql427mlm.json): native local search targets the chest center, sees its collider and finds no route. Transfer.CanReposition currently admits only matchExisting conditional deposits, excluding ordinary withdraw/deposit despite the same geometry. Extend this bounded local stuck/unreachable recovery to all transfers. Preserve12m range, actual measured support/reach/body/fire checks, dry/threat-aware approach execution,4-walk/60s bounds, permissions, wards, in-use/ownership RPCs and exact item receipts. Do not recover water/permission/access/stopped refusals. Add the captured bed-to-chest case plus rejection regressions, focused/full checks, commit/review and deployment, then repeat the actual transfer and base routes. A separate native move_to with a2m entity arrival radius may recover food now and isolate the center-target failure; keep the failed transfer as evidence.
+
+**agent:codex/renki-milestones** at 2026-11-02T02:53:52Z
+
+The diagnostic move_to to live chest1:73552 with stopDistance2 succeeded in7s (.checks/20261102T024815Z-vFsEfQ.log). Withdrawal then succeeded in3s with exact CookedDeerMeat1/MushroomYellow1 moves (.checks/20261102T024859Z-k5ne4d.log); Tas ate both and recovered to68.6/68.6HP, injurySeq0 since controller reconnect. This is an explicit diagnostic positioning step, not proof that the original transfer recovered on its own.
+
+Removed the matchExisting-only condition from local stuck/unreachable chest approach recovery. All transfers may now use the existing measured alternate-side routine;12m admission, physical/reach/fire/hostile checks, finite execution, ownership/access checks and all other refusal classes remain unchanged. The captured ordinary withdrawal case and forbidden-reason/range/nonfinite boundaries are covered by just check plugin test-core TransferTests (.checks/20261102T024846Z-FKDuQA.log). just check plugin fmt passed; full just check ci passed169s (.checks/20261102T025032Z-NOuYUn.log). Requires a plugin/client installation restart before independent live proof; no normal transfer or whole indoor loop success claimed yet.

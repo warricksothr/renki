@@ -62,9 +62,9 @@ namespace Renki.Plugin
                         failed = walker.Refused() ?? Outcome.Failed(Wire.ReasonStuck, "cannot reach the chest");
                     if (failed != null)
                     {
-                        // A solid chest center is a poor standing goal. Conditional
-                        // cargo work may instead reach one measured interaction side.
-                        if (!Transfer.CanReposition(args.MatchExisting, Convert.ToV3(pos), Convert.ToV3(chest.transform.position), failed)) return Finish(failed);
+                        // A solid chest center is a poor standing goal for any
+                        // transfer. Try a measured interaction side instead.
+                        if (!Transfer.CanReposition(Convert.ToV3(pos), Convert.ToV3(chest.transform.position), failed)) return Finish(failed);
                         approach = new InteractionApproach("transfer", "chest interaction", args.Container, chest.gameObject,
                             (me, feet) => UseReach.From(me, chest.gameObject, 2.5f, feet) &&
                                 EffectArea.IsPointInsideArea(feet + Vector3.up * .5f, EffectArea.Type.Burning, .4f) == null);

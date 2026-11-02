@@ -566,6 +566,12 @@ Notes:
   it. Missing matches return `refused` after the read-only contents snapshot.
   This is an atomic destination check under normal ownership, not authority
   from remembered contents. It also uses dry, hostile-avoiding travel.
+  Both ordinary and conditional transfers may recover a local `unreachable`
+  or `stuck` approach by measuring another supported interaction side within
+  12 m. The shared approach routine checks body clearance, sight and reach,
+  then uses bounded dry, hostile-avoiding movement. Water, access, permission
+  and cancellation refusals do not trigger another approach; inventory matching
+  and the normal ownership/access checks still govern the transfer itself.
 - `move_to` and `pickup` arrive within `stopDistance` across the ground and
   within 1.75 m up or down, so a bot under a raised floor has not reached a
   point on it. When the navmesh reaches only part of the way, the walker's
