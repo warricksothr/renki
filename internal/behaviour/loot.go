@@ -15,12 +15,14 @@ import (
 
 // The deliberate-drop rule. A drop first seen within DeliberateReach of a
 // live owner, with no tree, log or stump breaking within FellingReach of it
-// in the FellingWindow before, was put down on purpose. Loot leaves it for
-// DeliberateIgnore. The haul report (TKT-01M6DDFTDD) is to reuse this rule.
+// from FellingWindow before to FellingLag after, was put down on purpose.
+// The lag covers a split log whose wood is seen a frame before the log goes.
+// Loot leaves a deliberate drop for DeliberateIgnore. The haul report (TKT-01M6DDFTDD) is to reuse this rule.
 const (
 	DeliberateReach  = 2.0
 	FellingReach     = 10.0
 	FellingWindow    = 10 * time.Second
+	FellingLag       = 2 * time.Second
 	DeliberateIgnore = 5 * time.Minute
 )
 
@@ -32,7 +34,7 @@ type Break struct {
 
 // DeliberateDrop applies the deliberate-drop rule to a drop first seen at
 // pos and time at, given live owner positions and the breaks seen so far.
-// A break counts when it is at most FellingWindow before at, never after.
+// A break counts from FellingWindow before at until FellingLag after it.
 func DeliberateDrop(pos protocol.Vec3, at time.Time, owners []protocol.Vec3, breaks []Break) bool {
 	byOwner := false
 	for _, o := range owners {
@@ -45,7 +47,7 @@ func DeliberateDrop(pos protocol.Vec3, at time.Time, owners []protocol.Vec3, bre
 		return false
 	}
 	for _, b := range breaks {
-		if !b.At.After(at) && at.Sub(b.At) <= FellingWindow && distance(pos, b.Pos) <= FellingReach {
+		if !b.At.After(at.Add(FellingLag)) && at.Sub(b.At) <= FellingWindow && distance(pos, b.Pos) <= FellingReach {
 			return false
 		}
 	}
@@ -67,6 +69,9 @@ type Loot struct {
 }
 type lootDrop struct {
 	seen     bool // in the last fresh frame
+	pos      protocol.Vec3
+	first    time.Time
+	owners   []protocol.Vec3 // live owners at the first sighting
 	lastSeen time.Time
 	ignore   time.Time
 }
@@ -179,6 +184,11 @@ func (l *Loot) Observe(v View) {
 			continue
 		}
 		d.seen = drops[id]
+		// Within FellingLag of its first sighting, a later break can still
+		// show that a drop came from felling.
+		if !d.ignore.IsZero() && now.Sub(d.first) <= FellingLag && !DeliberateDrop(d.pos, d.first, d.owners, l.breaks) {
+			d.ignore = time.Time{}
+		}
 		l.drops[id] = d
 	}
 	for _, r := range v.Perception.Resources {
@@ -188,7 +198,7 @@ func (l *Loot) Observe(v View) {
 		if _, ok := l.drops[r.ID]; ok {
 			continue
 		}
-		d := lootDrop{seen: true, lastSeen: now}
+		d := lootDrop{seen: true, pos: r.Pos, first: now, owners: owners, lastSeen: now}
 		if DeliberateDrop(r.Pos, now, owners, l.breaks) {
 			d.ignore = now.Add(DeliberateIgnore)
 		}

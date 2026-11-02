@@ -27,7 +27,8 @@ func TestDeliberateDropRule(t *testing.T) {
 		{"a tree fell nearby 10 s ago", owner, []Break{{Pos: protocol.Vec3{0, 0, 9}, At: at.Add(-FellingWindow)}}, false},
 		{"the break was 11 s ago", owner, []Break{{Pos: protocol.Vec3{8, 0, 0}, At: at.Add(-11 * time.Second)}}, true},
 		{"the break was 11 m away", owner, []Break{{Pos: protocol.Vec3{11, 0, 0}, At: at}}, true},
-		{"the break came after the drop", owner, []Break{{Pos: protocol.Vec3{1, 0, 0}, At: at.Add(time.Second)}}, true},
+		{"the log went a frame after its wood appeared", owner, []Break{{Pos: protocol.Vec3{1, 0, 0}, At: at.Add(FellingLag)}}, false},
+		{"the break came well after the drop", owner, []Break{{Pos: protocol.Vec3{1, 0, 0}, At: at.Add(FellingLag + time.Second)}}, true},
 	} {
 		if got := DeliberateDrop(drop, at, c.owners, c.breaks); got != c.want {
 			t.Errorf("%s: got %v", c.name, got)
@@ -175,6 +176,34 @@ func TestLootTakesDropsFromFellingAtTheOwnersFeet(t *testing.T) {
 	o := nextTask(t, lootRunner(t, l, LootParams{}), v, nil, protocol.TaskPickup)
 	if o.Args.(*protocol.PickupArgs).Entity != "split" || l.eligible("later", v.Now) {
 		t.Fatal(o.Args)
+	}
+}
+
+func TestLootExcusesWoodSeenAFrameBeforeItsLogBreaks(t *testing.T) {
+	l := &Loot{}
+	log := protocol.PerceivedResource{ID: "log", Kind: protocol.ResourceLog, Pos: protocol.Vec3{14, 0, 0}}
+	split := target("split", protocol.ResourceDrop, "Wood", 11)
+	l.Observe(lootView(1, log))
+	v := lootView(2, log, split)
+	l.Observe(v)
+	if l.Ready(json.RawMessage(`{}`), v) {
+		t.Fatal("with the log still there, the drop looks deliberate")
+	}
+	v = lootView(3, split)
+	v.Now = v.Now.Add(time.Second)
+	l.Observe(v)
+	if !l.Ready(json.RawMessage(`{}`), v) {
+		t.Fatal("the log breaking just after excuses its wood")
+	}
+	// A break after the lag does not excuse a deliberate drop.
+	l = &Loot{}
+	l.Observe(lootView(1, log))
+	l.Observe(lootView(2, log, split))
+	v = lootView(3, split)
+	v.Now = v.Now.Add(FellingLag + time.Second)
+	l.Observe(v)
+	if l.Ready(json.RawMessage(`{}`), v) {
+		t.Fatal("a late break excused a deliberate drop")
 	}
 }
 

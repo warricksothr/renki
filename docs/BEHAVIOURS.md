@@ -216,7 +216,9 @@ An owner who puts something down means to leave it. A drop is deliberate when,
 the first time perception shows it:
 
 1. a live owner is within 2 m of it, and
-2. no tree, log or stump broke within 10 m of it in the previous 10 seconds.
+2. no tree, log or stump broke within 10 m of it from 10 seconds before
+   until 2 seconds after. The 2 seconds cover a split log whose wood is seen
+   a frame before the log goes.
 
 Loot ignores a deliberate drop for 5 minutes from that first sighting, then
 treats it like any other. A *break* is a tree, log or stump that was in one
@@ -227,7 +229,7 @@ it lands at the owner's feet. The rule is `DeliberateDrop` in
 time, owner positions and breaks, so that the haul report (TKT-01M6DDFTDD)
 can score pickups by the same rule.
 
-A drop is judged once. Its verdict survives a missed frame or Tas walking out
+Apart from that 2-second lag, a drop is judged once. Its verdict survives a missed frame or Tas walking out
 of range, and is forgotten only after the drop has been out of sight for
 5 minutes. Limits: a drop already lying near an owner when Tas first sees it
 counts as deliberate if nothing broke near it. A tree that
