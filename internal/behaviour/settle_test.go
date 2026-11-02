@@ -167,4 +167,14 @@ func TestLootTracksEachAreaShapeAnInstanceAsksFor(t *testing.T) {
 	if d, w := l.reach("Nimah", lootDefaults(LootParams{}), v.Now), l.reach("Nimah", wide, v.Now); d <= w || w <= 8 {
 		t.Fatal(d, w)
 	}
+	// A shape nobody asks for any more is dropped; the default stays.
+	v.Now = v.Now.Add(settleForget - time.Second)
+	v.Perception.Seq++
+	l.Observe(v)
+	v.Now = v.Now.Add(2 * time.Second)
+	v.Perception.Seq++
+	l.Observe(v)
+	if len(l.settles) != 1 || l.settles[settleKey{"Nimah", defaultSettleArea}] == nil || len(l.asked) != 0 {
+		t.Fatal(l.settles, l.asked)
+	}
 }

@@ -70,6 +70,7 @@ type Loot struct {
 	breaks  []Break
 	drops   map[string]lootDrop
 	settles map[settleKey]*Settle
+	asked   map[settleKey]time.Time // when an instance last asked for a non-default shape
 }
 
 // settleKey names one settle tracker: a player and the area shape an
@@ -79,7 +80,8 @@ type settleKey struct {
 	area   SettleArea
 }
 
-// settleForget drops a tracker whose player has been unseen this long.
+// settleForget drops a tracker whose player has been unseen this long, or
+// whose non-default shape no instance has asked for this long.
 const settleForget = 10 * time.Minute
 
 type lootDrop struct {
@@ -216,7 +218,7 @@ func (l *Loot) Observe(v View) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if v.State.World != l.world {
-		l.world, l.seq, l.felling, l.breaks, l.drops, l.settles = v.State.World, 0, nil, nil, nil, nil
+		l.world, l.seq, l.felling, l.breaks, l.drops, l.settles, l.asked = v.State.World, 0, nil, nil, nil, nil, nil
 	}
 	if l.drops != nil && v.Perception.Seq == l.seq {
 		return
@@ -296,8 +298,9 @@ func (l *Loot) observeSettles(v View) {
 		}
 	}
 	for k, s := range l.settles {
-		if v.Now.Sub(s.Last) > settleForget {
+		if v.Now.Sub(s.Last) > settleForget || k.area != defaultSettleArea && v.Now.Sub(l.asked[k]) > settleForget {
 			delete(l.settles, k)
+			delete(l.asked, k)
 		}
 	}
 }
@@ -308,6 +311,12 @@ func (l *Loot) reach(player string, p LootParams, now time.Time) float64 {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	k := settleKey{player, p.area()}
+	if k.area != defaultSettleArea {
+		if l.asked == nil {
+			l.asked = map[settleKey]time.Time{}
+		}
+		l.asked[k] = now
+	}
 	s := l.settles[k]
 	if s == nil {
 		if l.settles == nil {
