@@ -291,3 +291,21 @@ func TestMarkerFoodAddsUpSmallLossesAgainstThePeak(t *testing.T) {
 	}
 	t.Fatal("0.5 HP lost in 0.1 steps was never noticed")
 }
+
+func TestMarkerFoodKeepsThePeakWhenTheMaximumRisesWithoutAMeal(t *testing.T) {
+	r := foodRunner(t, "berries")
+	v := markerView("berries")
+	seq := uint64(5)
+	v.InjurySeq = &seq
+	v.State.HP, v.State.HPMax = 100, 100
+	w := v.Waypoints[0]
+	r.marker, r.began, r.health = &w, v.Now, sampleHealth(v)
+	v.State.HP, v.State.HPMax = 99.86, 100.5
+	if err := r.Check(v); err != nil {
+		t.Fatal("a drop inside the tolerance stopped work", err)
+	}
+	v.State.HP = 99.75
+	if r.Check(v) == nil {
+		t.Fatal("a rising maximum with no meal reset the peak")
+	}
+}

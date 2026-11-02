@@ -30,16 +30,27 @@ func (before healthSample) lost(after healthSample) bool {
 		// A meal can first clamp HP to its decayed maximum and then raise
 		// the maximum again between observations. Accepted injury events
 		// distinguish that from a real hit during the same food refresh.
-		if after.maximum > before.maximum {
-			for name, remaining := range after.food {
-				old, known := before.food[name]
-				if !known || remaining > old+1 {
-					return false
-				}
-			}
+		if before.mealRefresh(after) {
+			return false
 		}
 	}
 	return after.hp < math.Min(before.hp, after.maximum)-.15
+}
+
+// mealRefresh says whether the maximum rose with a new or refreshed meal.
+// lost() forgives a drop in health on such a sample only when an injury
+// sequence vouches that no hit came with it.
+func (before healthSample) mealRefresh(after healthSample) bool {
+	if after.maximum <= before.maximum {
+		return false
+	}
+	for name, remaining := range after.food {
+		old, known := before.food[name]
+		if !known || remaining > old+1 {
+			return true
+		}
+	}
+	return false
 }
 
 // roll returns the baseline for the next check after a check that passed. The
@@ -48,7 +59,7 @@ func (before healthSample) lost(after healthSample) bool {
 // time. It falls only with the maximum, as food decays. A meal refresh that
 // lost() forgave under an injury sequence becomes the baseline as it is.
 func (before healthSample) roll(after healthSample) healthSample {
-	if after.injury != nil && after.maximum > before.maximum {
+	if before.injury != nil && after.injury != nil && before.mealRefresh(after) {
 		return after
 	}
 	after.hp = math.Max(after.hp, math.Min(before.hp, after.maximum))

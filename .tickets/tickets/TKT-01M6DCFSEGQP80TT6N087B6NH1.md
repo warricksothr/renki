@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T18:55:16Z
+updated_at: 2026-11-02T19:04:43Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -73,7 +73,7 @@ Fix: roll the baseline forward on each `check`, keeping the meal-refresh excepti
 
 ## Implementation plan
 
-Roll markerFoodRun's health baseline forward on each passing check, so cargo (which shares the guard) gets it too. lost() already forgives a falling maximum (min with after.maximum) and, with injury sequences, a meal raising it. Heal-then-hit tests for food and cargo with InjurySeq nil.
+Give the marker guards a baseline that ratchets up: healthSample.roll() keeps the peak health, clamped to the current maximum, and takes a sample as is only when lost() forgave it as a meal refresh under an injury sequence (shared mealRefresh helper). markerFoodRun.check (also cargo's guard) and markerRestRun.Check call it after each passing check. Tests: heal-then-hit for food, cargo and rest with InjurySeq nil; small losses add up against the peak; a rising maximum without a meal keeps the peak.
 
 ## Notes
 
