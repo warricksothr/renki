@@ -11,7 +11,6 @@ labels:
   - vm
   - tooling
   - safety
-  - live
 assignees: []
 milestone: M2
 parent: null
@@ -23,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:48:34Z
-updated_at: 2026-11-02T15:48:34Z
+updated_at: 2026-11-02T16:59:47Z
 created_by:
   id: agent:claude-code/renki-plan
   name: ""
@@ -66,3 +65,9 @@ Offline tests for the guard (held by another actor, expired, held by self, malfo
 - [ ] Trial supervisors release only after their cleanup
 - [ ] Offline guard tests run in just ci
 - [ ] docs/VM.md, docs/TESTING.md and AGENTS.md say how to take and release the lease
+
+## Notes
+
+**agent:claude-code/renki-plan** at 2026-11-02T16:59:47Z
+
+Not labelled live, although its last check runs on the VM. This ticket creates the lease, so it cannot wait for one, and it has to show in `git ticket ready --not-label live`, the parallel queue, because every live ticket depends on it. Agree its one live check with the owner, so that no other session is using the VM at the time.
