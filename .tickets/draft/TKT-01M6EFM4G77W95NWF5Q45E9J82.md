@@ -58,13 +58,13 @@ M5's base-upkeep goals (docs/ROADMAP.md, M5 goals 5.1, 5.2, 5.3 and 5.6) are mea
 
 ### Verification
 
-Offline: the soak's self-test (wired into `just ci` by TKT-01M6DDFTF6) gains cases for a missing upkeep instance and for folding a failing report section into the verdict. `just check ci`.
+Offline: the soak's self-test (wired into `just ci` by TKT-01M6DDFTF6) gains cases for a missing upkeep instance, for folding a failing report section into the verdict, and for an inconclusive section that stops a pass. `just check ci`.
 
-Live: `just vm soak 2 --upkeep` twice in a row, holding the VM lease (TKT-01M6EF5DTG). Each `summary.json` shows the soak verdict `pass` and the report sections for fires, cooking, assignments and pantry `pass`. Link both paths in a note here and on the goal tickets.
+Live: `just vm soak 2 --upkeep` twice in a row, holding the VM lease (TKT-01M6EF5DTG). Each `summary.json` shows the soak verdict `pass` and the report sections for coverage, fires, fuel reserve, cooking, assignments and pantry `pass`; an `inconclusive` section is not a pass. Link both paths in a note here and on the goal tickets.
 
 ## Acceptance criteria
 
 - [ ] just vm soak HOURS --upkeep fails with the instance's name when a required upkeep instance is missing or disabled, and never creates or enables one
-- [ ] The soak's summary.json carries the upkeep report's section verdicts and fails when any section fails
-- [ ] The soak self-test in just ci covers a missing instance and a failing report section
+- [ ] The soak's summary.json carries the upkeep report's section verdicts, fails when any section fails, and is not a pass when any section is inconclusive
+- [ ] The soak self-test in just ci covers a missing instance, a failing report section and an inconclusive one
 - [ ] Two consecutive just vm soak 2 --upkeep runs pass, with both summary.json paths linked here and on TKT-01M62VXZ2F

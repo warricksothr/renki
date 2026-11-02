@@ -67,7 +67,7 @@ Each section has its own verdict (`pass`, `fail`, `inconclusive`) against thresh
 
 ## Acceptance criteria
 
-- [ ] just vm upkeep-report writes .checks/upkeep-<ts>/summary.json with coverage, fires, cooking, assignments, pantry and incidents sections, each with a pass, fail or inconclusive verdict
+- [ ] just vm upkeep-report writes .checks/upkeep-<ts>/summary.json with coverage, fires, fuel reserve, cooking, assignments, pantry and incidents sections, each with a pass, fail or inconclusive verdict
 - [ ] A window with Tas within 32 m of home for less than 80 % of it, or a structure seen in less than 80 % of those samples, is inconclusive, never pass
 - [ ] just vm test-upkeep-report runs in just ci against fixture windows: a fire out at night, a fire relit at dusk, a fire still dry after dusk, fuel below the reserve, pack above keep, a late or repeated full-chest line, a burnt slot, a misplaced assigned item, Tas away from home, and a clean pass
 - [ ] docs/TESTING.md says how to run the report and read each section
