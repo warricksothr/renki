@@ -130,6 +130,14 @@ func TestUntilConditionReachedMidRunLetsTheRunFinish(t *testing.T) {
 // progress: it restarts (and so stows) rather than waiting forever as
 // pending, even when the owner presses Start again while it waits.
 func TestPreemptedRunRestartsAfterItsUntilGoalIsReached(t *testing.T) {
+	for _, pressStart := range []bool{false, true} {
+		t.Run(map[bool]string{false: "on its own", true: "after Start"}[pressStart], func(t *testing.T) {
+			preemptAfterUntilGoal(t, pressStart)
+		})
+	}
+}
+func preemptAfterUntilGoal(t *testing.T, pressStart bool) {
+	t.Helper()
 	f := setup(t)
 	f.p.Send(&protocol.Inventory{Size: [2]int{8, 4}, Items: []protocol.InventoryItem{{Prefab: "Flint", Stack: 20}}})
 	wait(t, func() bool { return f.s.Inventory() != nil })
@@ -164,7 +172,9 @@ func TestPreemptedRunRestartsAfterItsUntilGoalIsReached(t *testing.T) {
 	})
 	f.tick()
 	next := f.p.NextTask()
-	f.act(t, "collect", "start")
+	if pressStart {
+		f.act(t, "collect", "start")
+	}
 	f.done(t, next, protocol.StatusSucceeded, "")
 	f.tick()
 	f.tick()

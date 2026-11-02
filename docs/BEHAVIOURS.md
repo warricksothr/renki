@@ -78,9 +78,10 @@ Repeat `mode` is `once`, `trigger`, `while` or `until`. The latter two need
 runs while that condition holds or until it holds. The repeat condition only
 decides whether another run starts: a run in progress is stopped by `enabled`
 and `when`, never by its repeat condition, so a collect whose `until` goal is
-reached mid-trip still stows and counts as a success. A run preempted by
-higher-priority work restarts from its first step afterwards on the same
-terms. `cooldownS` applies
+reached mid-trip still stows and counts as a success. A manual, timer or
+event run preempted by higher-priority work restarts from its first step
+afterwards on the same terms; idle work is dropped and waits for its next
+dwell. `cooldownS` applies
 between runs (at least one second); optional `maxRuns` bounds completed
 attempts. Failures do not loop automatically. Timer intervals, cooldowns,
 run limits and counters are controller-session runtime state; saved

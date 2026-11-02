@@ -20,7 +20,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T05:42:34Z
-updated_at: 2026-11-02T18:58:08Z
+updated_at: 2026-11-02T19:07:00Z
 created_by:
   id: agent:claude-code/renki-review
   name: ""
@@ -87,6 +87,10 @@ allowed() is split: canStart() (enabled, when, once/maxRuns, repeat condition) g
 **agent:claude-code/renki-m4-repeat** at 2026-11-02T18:58:08Z
 
 Follow-up from just review: a run preempted after its until goal was reached was requeued and then judged as a new start, so it stayed pending forever and never stowed. instance.interrupted now marks a requeued, preempted run; candidate() judges it with stillAllowed() (via mayRun) instead of canStart(). Every other place that sets or clears pending resets the flag. Pinned by TestPreemptedRunResumesAfterItsUntilGoalIsReached.
+
+**agent:claude-code/renki-m4-repeat** at 2026-11-02T19:07:00Z
+
+Supersedes the test name in the previous note: the preemption case is TestPreemptedRunRestartsAfterItsUntilGoalIsReached, with subtests for a restart on its own and after the owner presses Start. Preempted runs restart from their first step, as they did before; for collect that means another trip before the stow. Idle-triggered runs are still dropped when preempted (unchanged), and BEHAVIOURS.md now says so.
 
 ## Summary
 
