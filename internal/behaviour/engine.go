@@ -626,14 +626,13 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 	i := e.instances[e.active]
 	// Sending the follow back replaces the running step. If it could not be
 	// sent, the handle is still valid and the step is stopped as usual.
-	lent := e.loan != nil
-	e.giveBack(ctx, why)
+	spent := e.giveBack(ctx, why)
 	if e.lease.Valid() && i.task != nil {
 		select {
 		case <-i.task.Done():
 		default:
 			if _, err := e.lease.Dispatch(ctx, session.Order{Task: protocol.TaskStop, TimeoutS: 5}); err != nil && !errors.Is(err, session.ErrBodyBusy) && !errors.Is(err, session.ErrNotConnected) {
-				if !lent {
+				if !spent {
 					return err
 				}
 				// The loan is spent, so a retry could not give the follow
@@ -662,20 +661,26 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 
 // giveBack ends a loan: while the run's handle is still valid, the same
 // follow is sent again. An owner order, a death, a reconnect or a world
-// change revoked the handle, and then the follow stays ended.
-func (e *Engine) giveBack(ctx context.Context, why string) {
+// change revoked the handle, and then the follow stays ended. It reports
+// whether it spent a follow the run had replaced, sent back or not; then
+// nothing can be retried.
+func (e *Engine) giveBack(ctx context.Context, why string) (spent bool) {
 	l := e.loan
 	if l == nil {
-		return
+		return false
 	}
 	e.loan = nil
 	attrs := []any{"instance", e.active, "follow", l.follow.TaskID, "player", l.follow.Player, "reason", why}
 	if !e.lease.Valid() {
 		e.o.Logger.Info("follow not returned", attrs...)
-		return
+		return true
 	}
 	t, err := e.lease.Return(ctx)
 	switch {
+	case errors.Is(err, session.ErrBodyBusy) || errors.Is(err, session.ErrNotConnected):
+		// An order or the connection won the race with Return.
+		e.o.Logger.Info("follow not returned", append(attrs, "err", err)...)
+		return true
 	case err != nil:
 		e.o.Logger.Warn("could not return the follow", append(attrs, "err", err)...)
 		// The brain stays quiet about a lent follow, so say it here: the
@@ -683,10 +688,14 @@ func (e *Engine) giveBack(ctx context.Context, why string) {
 		if e.o.Notify != nil {
 			e.o.Notify(ctx, fmt.Sprintf("I can't follow you again, %s.", l.follow.Player))
 		}
+		return true
 	case t == nil:
-		e.o.Logger.Info("follow kept", attrs...)
+		// Still running, or it ended on its own before the run's first step.
+		e.o.Logger.Info("follow not replaced", attrs...)
+		return false
 	default:
 		e.o.Logger.Info("follow returned", append(attrs, "id", t.ID)...)
+		return true
 	}
 }
 

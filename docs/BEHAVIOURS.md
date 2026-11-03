@@ -197,7 +197,7 @@ its latest run borrowed a follow: the follow's task ID and the player
 followed. With `running`, the current run is passive. The audit log's
 `behaviour started` record carries `passive: true`, `follow` and `player`.
 The end of a loan logs one of three records: `follow returned` (with the new
-task `id`), `follow kept` (nothing replaced the follow, so nothing is sent) or `follow not returned` (an
+task `id`), `follow not replaced` (the run's step never replaced it, because it was still running or had ended on its own, so nothing is sent) or `follow not returned` (an
 order or the world intervened).
 
 ## Bounded collection and stowing
