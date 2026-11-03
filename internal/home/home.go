@@ -134,7 +134,7 @@ func (k *Keeper) Current() (world string, h Home, ok bool) {
 	if world == "" {
 		return "", Home{}, false
 	}
-	h, ok = k.store.Home(world)
+	h, ok = k.store.WorkHome(world)
 	return world, h, ok
 }
 
@@ -163,7 +163,7 @@ func (k *Keeper) where() (*protocol.State, Home, bool) {
 	if st == nil || st.Phase != protocol.PhaseInWorld {
 		return nil, Home{}, false
 	}
-	h, ok := k.store.Home(k.World())
+	h, ok := k.store.WorkHome(k.World())
 	return st, h, ok
 }
 
@@ -183,7 +183,7 @@ func (k *Keeper) GoHome(ctx context.Context, origin any, why string) (*session.T
 	if world == "" {
 		return nil, ErrNoWorld
 	}
-	h, ok := k.store.Home(world)
+	h, ok := k.store.WorkHome(world)
 	if !ok {
 		return nil, ErrNoHome
 	}
@@ -304,7 +304,7 @@ func (k *Keeper) died(st *protocol.State) {
 	if err := k.store.AddGrave(w, Grave{Pos: pos, At: k.now()}); err != nil {
 		k.log.Warn("could not remember the grave", "err", err)
 	}
-	if h, ok := k.store.Home(w); ok && flat(pos, h.Pos) <= DiedNearHome {
+	if h, ok := k.store.WorkHome(w); ok && flat(pos, h.Pos) <= DiedNearHome {
 		if err := k.store.Shun(w); err != nil {
 			k.log.Warn("could not save the shun", "err", err)
 		}

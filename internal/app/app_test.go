@@ -18,6 +18,7 @@ import (
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
 )
 
 // TestAppendixExchange runs the M1 exchange from the appendix of
@@ -130,7 +131,7 @@ func TestControlAPI(t *testing.T) {
 	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, Character: "Tasleroch"})
 	waitFor(t, func() bool {
 		_, st := call("GET", "/control/status", "sekrit")
-		return st.Phase == protocol.PhaseInWorld
+		return st.Phase == protocol.PhaseInWorld && st.Character == "Tasleroch"
 	})
 	if code, st := call("POST", "/control/logout", "sekrit"); code != http.StatusAccepted || !st.Connected || st.Character != "Tasleroch" {
 		t.Errorf("logout: %d %+v", code, st)
@@ -151,35 +152,55 @@ func waitFor(t *testing.T, cond func() bool) {
 	}
 }
 
-func TestDamageFromRemoteHostileTriggersRetreatThroughBridge(t *testing.T) {
-	cfg := config.Default()
-	cfg.AllowedTasks = append(cfg.AllowedTasks, protocol.TaskFlee)
-	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error, 1)
-	go func() { done <- a.Serve(ctx, ln) }()
-	t.Cleanup(func() { cancel(); <-done })
-	p := bridgetest.Connect(t, "ws://"+ln.Addr().String()+"/ws/", append(bridgetest.Capabilities, protocol.TaskFlee))
-	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 5.4, HPMax: 25})
-	p.Send(&protocol.Perception{Characters: []protocol.PerceivedCharacter{
-		{ID: "1:2", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{3, 0, 0}, HPFrac: 1, Hostile: true},
-	}})
-	p.Send(&protocol.Event{Event: protocol.EventDamaged, By: "1:2", Amount: 5})
-	msg := p.Next()
-	task, ok := msg.(*protocol.TaskRequest)
-	if !ok || task.Task != protocol.TaskFlee {
-		t.Fatalf("wanted flee, got %+v", msg)
-	}
-	var args protocol.FleeArgs
-	if err := json.Unmarshal(task.Args, &args); err != nil {
-		t.Fatal(err)
-	}
-	if args.From.Entity != "1:2" {
-		t.Fatalf("wrong attacker: %+v", args)
+func TestKnownThreatTriggersRetreatThroughBridge(t *testing.T) {
+	for _, mode := range []string{"remote damage", "known pursuit", "pending manual flee"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg := config.Default()
+			cfg.AllowedTasks = append(cfg.AllowedTasks, protocol.TaskFlee)
+			a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
+			ln, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			done := make(chan error, 1)
+			go func() { done <- a.Serve(ctx, ln) }()
+			t.Cleanup(func() { cancel(); <-done })
+			p := bridgetest.Connect(t, "ws://"+ln.Addr().String()+"/ws/", append(bridgetest.Capabilities, protocol.TaskFlee))
+			p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25, HPMax: 25})
+			waitFor(t, func() bool { return a.Session.State() != nil })
+			if mode == "pending manual flee" {
+				if _, err := a.Session.Dispatch(ctx, session.Order{Task: protocol.TaskFlee, Args: &protocol.FleeArgs{From: protocol.Target{Entity: "1:2"}}}); err != nil {
+					t.Fatal(err)
+				}
+				if task := p.NextTask(); task.Task != protocol.TaskFlee {
+					t.Fatal(task)
+				}
+			}
+			p.Send(&protocol.Perception{Characters: []protocol.PerceivedCharacter{
+				{ID: "1:2", Kind: protocol.CharacterCreature, Prefab: "Greyling", Pos: protocol.Vec3{3, 0, 0}, HPFrac: 1, Hostile: true, TargetingMe: mode != "remote damage"},
+			}})
+			if mode == "remote damage" {
+				p.Send(&protocol.Event{Event: protocol.EventDamaged, By: "1:2", Amount: 5})
+			}
+			if mode == "pending manual flee" {
+				p.Quiet(600 * time.Millisecond)
+				return
+			}
+			msg := p.Next()
+			task, ok := msg.(*protocol.TaskRequest)
+			if !ok || task.Task != protocol.TaskFlee {
+				t.Fatalf("wanted flee, got %+v", msg)
+			}
+			var args protocol.FleeArgs
+			if err := json.Unmarshal(task.Args, &args); err != nil {
+				t.Fatal(err)
+			}
+			if args.From.Entity != "1:2" {
+				t.Fatalf("wrong attacker: %+v", args)
+			}
+
+		})
 	}
 }
 

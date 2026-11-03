@@ -287,12 +287,18 @@ namespace Renki.Tasks
         }
 
         /// <summary>The bot died: the body task fails with <c>died</c>.</summary>
-        public void Died()
+        public void Died() => FailBody(Wire.ReasonDied, null);
+
+        /// <summary>A final physical input guard refused movement. End the
+        /// owning task before it can tick stuck recovery on a later step.</summary>
+        public void RefuseMovement(string detail) => FailBody(Wire.ReasonUnreachable, detail);
+
+        void FailBody(string reason, string detail)
         {
             if (body == null) return;
             var finished = current;
             Release();
-            Reply(finished, Wire.StatusFailed, Wire.ReasonDied, null);
+            Reply(finished, Wire.StatusFailed, reason, detail);
         }
 
         void CancelBody(string reason, string detail, bool reportIt)

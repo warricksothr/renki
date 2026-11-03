@@ -284,7 +284,8 @@ namespace Renki.Plugin
                 var wasSpawn = bed != null && SpawnsAt(bed);
                 var wasMine = bed != null && bed.IsMine();
                 var wasAttached = p.IsAttached();
-                var ok = target.Interact(p, hold, args.Alt);
+                var ok = target is Door door ? Doorman.Interact(door, p, hold, args.Alt)
+                    : target.Interact(p, hold, args.Alt);
                 // A bed answers false whatever it did: what changed says.
                 // Claimed, it is now the bot's spawn point (read from the
                 // profile, set at once, where the owner the bed records

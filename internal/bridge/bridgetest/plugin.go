@@ -51,6 +51,11 @@ func Connect(t testing.TB, url string, capabilities []string) *Plugin {
 
 // ConnectWithToken is Connect with a token in hello.
 func ConnectWithToken(t testing.TB, url, token string, capabilities []string) *Plugin {
+	return ConnectWithFeatures(t, url, token, capabilities, nil)
+}
+
+// ConnectWithFeatures advertises optional versioned native contracts.
+func ConnectWithFeatures(t testing.TB, url, token string, capabilities, features []string) *Plugin {
 	t.Helper()
 	if capabilities == nil {
 		capabilities = Capabilities
@@ -65,7 +70,7 @@ func ConnectWithToken(t testing.TB, url, token string, capabilities []string) *P
 	t.Cleanup(func() { ws.CloseNow() })
 	go p.read()
 	p.Send(&protocol.Hello{Token: token, Plugin: "test", Game: "0.221.12", Phase: protocol.PhaseInWorld,
-		Character: "Bjorn", World: "Midgard", Capabilities: capabilities})
+		Character: "Bjorn", World: "Midgard", Capabilities: capabilities, Features: features})
 	w, ok := p.Next().(*protocol.Welcome)
 	if !ok {
 		t.Fatal("no welcome")

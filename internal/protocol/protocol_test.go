@@ -167,6 +167,7 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskMoveTo, `{"to":[1,2,3]}`, &MoveToArgs{To: Target{Pos: &pos}}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true}, nil},
+		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true,"wade":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true, Wade: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true,"recoverThreats":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true, RecoverThreats: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true,"recoverThreats":true,"defendThreats":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true, RecoverThreats: true, DefendThreats: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"defendThreats":true}`, nil, ErrBadArgs},
@@ -338,5 +339,35 @@ func TestTargetWithBothIsAnError(t *testing.T) {
 	p := Vec3{}
 	if _, err := json.Marshal(Target{Pos: &p, Entity: "0:1"}); err == nil {
 		t.Fatal("want an error for a target that is both a position and an entity")
+	}
+}
+
+func TestScopedMovementRejectsUnsafeOptions(t *testing.T) {
+	valid := `{"to":[-15,40,0],"dry":true,"avoidHostiles":true,"scope":{"center":[-25,40,0],"radius":60,"travelM":50,"durationS":40}}`
+	for _, change := range []struct{ old, next string }{
+		{`"dry":true`, `"dry":false`}, {`"avoidHostiles":true`, `"avoidHostiles":false`},
+		{`"to":[-15,40,0]`, `"to":"0:1"`}, {`"to":[-15,40,0]`, `"to":[80,40,0]`},
+		{`"radius":60`, `"radius":251`}, {`"travelM":50`, `"travelM":0`}, {`"durationS":40`, `"durationS":91`},
+		{`"dry":true`, `"dry":true,"recoverThreats":true`},
+		{`"dry":true`, `"dry":true,"wade":true`},
+		{`"dry":true`, `"dry":true,"stopDistance":100`}, {`"dry":true`, `"dry":true,"stopDistance":0`},
+	} {
+		if _, err := (&TaskRequest{Task: TaskMoveTo, Args: json.RawMessage(strings.Replace(valid, change.old, change.next, 1))}).DecodeArgs(); err == nil {
+			t.Fatal("accepted unsafe scope", change)
+		}
+	}
+}
+
+func TestWadingRejectsUnvalidatedMovement(t *testing.T) {
+	for _, args := range []string{
+		`{"to":[1,2,3],"wade":true}`,
+		`{"to":[1,2,3],"dry":true,"wade":true}`,
+		`{"to":"1:2","dry":true,"avoidHostiles":true,"wade":true}`,
+		`{"to":[1,2,3],"dry":true,"avoidHostiles":true,"wade":true,"recoverThreats":true}`,
+		`{"to":[1,2,3],"dry":true,"avoidHostiles":true,"wade":"yes"}`,
+	} {
+		if _, err := (&TaskRequest{Task: TaskMoveTo, Args: json.RawMessage(args)}).DecodeArgs(); err == nil {
+			t.Fatalf("accepted %s", args)
+		}
 	}
 }

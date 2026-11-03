@@ -677,3 +677,50 @@ the rest guard. All idle triggers stop queuing chores while Tas is in bed
 or sleeping, including after the native interaction has completed. The game
 wakes him normally after sleeping; explicit new orders can interrupt rest.
 Automatic eating also waits while attached to the bed or sleeping.
+
+## Searching chests
+
+`Tas, look for wood in a nearby chest` starts a read-only `search_chests`
+run. `Tas, search nearby chests for fine wood within 60m` changes its radius;
+`Tas, search chests 1:2, 1:3 for wood within 40m` pins an explicit list.
+Only configured owners can start it. The request needs a fresh idle body and
+cannot replace pending retreat or another behavior. Say stop to cancel.
+
+For a saved manual definition use:
+
+```json
+{
+  "template": "search_chests",
+  "params": {
+    "world": "your world", "item": "Wood", "radius": 60,
+    "maxChests": 16, "durationS": 180, "travelM": 300
+  },
+  "trigger": {"kind": "manual"},
+  "repeat": {"mode": "once"},
+  "enabled": false
+}
+```
+
+An optional `chests` array restricts the candidates to entity IDs. Optional
+`center` pins coordinates; otherwise the fresh starting position is pinned.
+Radius is 10–100 m (default 25), maxChests 1–32 (default 16), durationS
+10–300 s (default 180), travelM 10–1000 m (default 300). Standard event
+triggers also work, for example `{"kind":"event","event":"idle_at_home"}`
+with repeat `{"mode":"trigger","cooldownS":300}`. Manual runs never
+resume after restart. Deliberately enable recurring definitions through the
+normal behavior controls.
+
+Remembered chest locations guide discovery, but remembered contents cannot
+prove an item present or absent. Every counted chest needs a new matching
+native `inspect_container` receipt. Item names match prefabs ignoring case,
+spaces, underscores and hyphens; `food` selects consumables. Search reports
+checked chests, matches/counts/locations, and unchecked/inaccessible candidates.
+It never claims undiscovered storage is empty. Chat reports counters and the
+first match; behavior status retains all findings and failures.
+
+The run is bounded by a fixed radius, actual native travel, time and candidate
+count. It requires dry grounded footing, at least 15 HP and 40% max health,
+and stops for injury, threats, stale data or changed world/owner orders. A
+missing native travel receipt stops further inspections. It leaves all items
+in their chests; withdrawal is a separate request. Native inspection requires
+`inspect_container_v1` and task permission in both plugin and controller.

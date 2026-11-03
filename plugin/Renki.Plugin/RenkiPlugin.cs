@@ -131,6 +131,7 @@ namespace Renki.Plugin
             runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble,
                 fault: (where, e) => Logger.LogError($"task runner contained an exception in {where}: {e}"));
             Driver.OnFixedStep = dt => { if (!GuardRecovery(true, dt) && Driver.Active) runner.FixedTick(dt); };
+            Driver.OnMovementRefused = runner.RefuseMovement;
             reporter = new Reporter(this);
             TerrainReporter.Current = terrain;
             inventory = new InventoryReporter(this);
@@ -429,7 +430,7 @@ namespace Renki.Plugin
             Character = Game.instance?.GetPlayerProfile()?.GetName() ?? "",
             World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "",
             Capabilities = runner.Capabilities.ToList(),
-            Features = new List<string> { "deposit_match_existing_v1" },
+            Features = new List<string> { "deposit_match_existing_v1", "bounded_move_v1", "supported_wading_v1", "inspect_container_v1" },
         };
 
         void OnDestroy()

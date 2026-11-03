@@ -16,12 +16,14 @@ import (
 
 const MaxWaypoints = 128
 
-var WaypointKinds = []string{"place", "storage", "cooking", "wood", "stone", "flint", "berries", "hunting", "ore"}
+var WaypointKinds = []string{"place", "rest", "storage", "cooking", "wood", "stone", "flint", "berries", "hunting", "ore"}
 var ErrWaypointConflict = errors.New("the waypoint changed; reload it before editing")
 var ErrNoWaypoint = errors.New("no waypoint with that name in this world")
 
 // Waypoint is an owner-editable named point, or a circular zone when Radius > 0.
 type Waypoint struct {
+	Base     string        `json:"base,omitempty"`
+	Entity   string        `json:"entity,omitempty"`
 	Name     string        `json:"name"`
 	Kind     string        `json:"kind"`
 	Pos      protocol.Vec3 `json:"pos"`

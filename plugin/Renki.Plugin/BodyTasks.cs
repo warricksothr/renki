@@ -38,13 +38,14 @@ namespace Renki.Plugin
         BankExit bankExit = new BankExit();
         DryStaging dryStaging = new DryStaging();
         bool bankMoving;
-        public Walker()
+        public Walker(System.Func<V3, V3, bool> boundary = null)
         {
-            hostileClearance = (from, to) => !avoidHostiles || hostiles.Clear(from, to);
+            hostileClearance = (from, to) => (boundary == null || boundary(from, to)) && (!avoidHostiles || hostiles.Clear(from, to));
             dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance);
             bankProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance, bankExit: true);
         }
         bool dryGround;
+        double wadeDepth;
         readonly List<Vector3> scratch = new List<Vector3>();
         readonly RouteTrail trail = new RouteTrail();
         readonly NavmeshCandidates navmeshCandidates = new NavmeshCandidates();
@@ -149,8 +150,15 @@ namespace Renki.Plugin
             ApproachRecovery.SafePath(Convert.ToV3(from), candidate, scratch.Select(Convert.ToV3).ToArray(),
                 (a, b) => DeepWater.Crossing(a, b, Ground, WaterLevel) != null);
 
-        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false, bool avoidHostiles = false)
+        public void SetGoal(Vector3 from, Vector3 to, double within = .5, bool reuseRoutes = false, bool dryGround = false, bool avoidHostiles = false, bool wade = false)
         {
+            var player = Player.m_localPlayer;
+            wadeDepth = wade && player != null ? Wading.DepthLimit(player.m_swimDepth) : 0;
+            if (wade && (!dryGround || !avoidHostiles || wadeDepth <= 0))
+                throw new TaskRefused(Wire.ReasonNotAllowed, "checked wading needs supported hostile-avoiding travel and a known swimming threshold");
+            dryProbe.WadeDepth = wadeDepth;
+            if (wade) Tracer.Emit("walker", "checked wading enabled", new Dictionary<string, object>
+            { ["maxDepth"] = wadeDepth, ["swimDepth"] = player.m_swimDepth, ["settlingReserve"] = Wading.Settling });
             checkedOnly = false;
             bankExit = new BankExit(); bankMoving = false;
             dryStaging = new DryStaging();
@@ -229,7 +237,7 @@ namespace Renki.Plugin
                 entrancePieces.Clear();
                 Piece.GetAllPiecesInRadius(goal, 12, entrancePieces);
                 var floors = new List<V3>();
-                var probe = new WorldNavigation.PlanningProbe(dry: true, refusals: refusals, corridor: hostileClearance);
+                var probe = new WorldNavigation.PlanningProbe(dry: true, refusals: refusals, corridor: hostileClearance, wadeDepth: wadeDepth);
                 probe.BeginSlice();
                 foreach (var piece in entrancePieces)
                 {
@@ -259,7 +267,7 @@ namespace Renki.Plugin
             if (reuseRoutes && !forceLocal && !skipReuse && approach.Target == null &&
                 WorldNavigation.Routes.Find(Convert.ToV3(from), Convert.ToV3(target)) is RouteHint hint)
             {
-                replayProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance);
+                replayProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance, wadeDepth: wadeDepth);
                 replay = new RouteValidation(Convert.ToV3(from), Convert.ToV3(target), hint, replayProbe.Probe, NavigationWithin, NavigationLevel);
                 replayID = hint.ID;
                 replayMs = replayWorstMs = 0;
@@ -584,9 +592,38 @@ namespace Renki.Plugin
             return ExitBank(pos, toward);
         }
 
+        public Outcome WadingRefusal(Vector3 pos) => wadeDepth > 0 && !WadingReady(pos) ? navigationFailure : null;
+
+        bool WadingReady(Vector3 pos)
+        {
+            var p = Player.m_localPlayer;
+            var from = Convert.ToV3(pos);
+            dryProbe.BeginSlice();
+            var footing = dryProbe.Footing(from);
+            var water = WorldNavigation.WaterLevel(from);
+            var depth = p != null ? System.Math.Min(wadeDepth, Wading.DepthLimit(p.m_swimDepth)) : 0;
+            if (p != null && depth >= wadeDepth && Wading.Supported(from, footing, water, depth,
+                p.IsOnGround(), p.IsSwimming())) return true;
+            var reason = p == null ? "no_player" : p.IsSwimming() ? "swimming" : !p.IsOnGround() ? "ground_contact"
+                : !footing.HasValue ? "unsupported_footing" : depth < wadeDepth ? "swim_threshold_changed"
+                : !DryTravel.PreferFooting(from.Y, footing.Value.Y, null) ? "footing_offset" : "water_depth";
+            navigationFailure = Outcome.Failed(reason == "swimming" || reason == "water_depth" ? Wire.ReasonDeepWater : Wire.ReasonUnreachable,
+                "checked wading stopped: " + reason);
+            Tracer.Emit("walker", "checked wading refused", new Dictionary<string, object>
+            {
+                ["pos"] = from.ToArray(),
+                ["support"] = footing?.ToArray(),
+                ["waterLevel"] = water,
+                ["maxDepth"] = depth,
+                ["grounded"] = p?.IsOnGround(),
+                ["swimming"] = p?.IsSwimming()
+            });
+            return false;
+        }
+
         bool ExitBank(Vector3 pos, Vector3 toward)
         {
-            if (!dryGround) return false;
+            if (!dryGround || wadeDepth > 0) return false;
             var p = Player.m_localPlayer;
             if (p == null) return false;
             var from = Convert.ToV3(pos);
@@ -783,7 +820,7 @@ namespace Renki.Plugin
                 });
             }
             if (!found) return false;
-            var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, refusals: refusals, corridor: hostileClearance);
+            var probe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, refusals: refusals, corridor: hostileClearance, wadeDepth: wadeDepth);
             var candidate = navmeshCandidates.Try(Convert.ToV3(from), Convert.ToV3(target),
                 scratch.Select(Convert.ToV3).ToArray(), probe.Probe, NavigationWithin, NavigationLevel);
             if (candidate == null) return false;
@@ -806,7 +843,7 @@ namespace Renki.Plugin
         {
             localWaterBlocked = Blocked;
             Blocked = null;
-            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance, diagnosticGoal: Convert.ToV3(target));
+            localProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: dryGround, refusals: refusals, corridor: hostileClearance, diagnosticGoal: Convert.ToV3(target), wadeDepth: wadeDepth);
             localUnderFloorExit = dryGround && avoidHostiles && dryStaging.Available &&
                 target.y - from.y > Arrival.Level && WorldNavigation.BuildingAbove(Convert.ToV3(from), target.y);
             ThreatGuidance Guidance()
@@ -817,7 +854,9 @@ namespace Renki.Plugin
                 var result = threats != null && threats.Count > 0 ? new ThreatGuidance(Convert.ToV3(from), Convert.ToV3(target), threats, at =>
                 {
                     var height = Ground(at.X, at.Z);
-                    return double.IsNaN(height) || height >= WorldNavigation.WaterLevel(at) + DryTravel.Margin;
+                    return double.IsNaN(height) || (wadeDepth > 0
+                        ? Wading.Clear(new V3(at.X, height, at.Z), WorldNavigation.WaterLevel(at), wadeDepth)
+                        : height >= WorldNavigation.WaterLevel(at) + DryTravel.Margin);
                 }, deferred: true) : null;
                 watch.Stop(); localGuidanceMs = watch.Elapsed.TotalMilliseconds;
                 return result;
@@ -990,6 +1029,7 @@ namespace Renki.Plugin
         /// since the line it swam out on may cross back.</summary>
         bool Swim(Vector3 pos, ref bool run)
         {
+            if (wadeDepth > 0) return false;
             var p = Player.m_localPlayer;
             var wet = p != null && p.IsSwimming();
             // A thin planning buffer is not actual immersion. While still
@@ -1170,7 +1210,8 @@ namespace Renki.Plugin
     {
         readonly MoveToArgs args;
         readonly GameObject entity;
-        readonly Walker walker = new Walker();
+        readonly Walker walker;
+        readonly BoundedTravel survey;
         readonly TravelEncounter encounter;
         Vector3 goal;
 
@@ -1181,13 +1222,24 @@ namespace Renki.Plugin
             this.entity = entity;
             if (args.RecoverThreats) encounter = new TravelEncounter(id, args.DefendThreats);
             var p = Player.m_localPlayer;
-            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
+            if (args.Scope != null) survey = new BoundedTravel(args.Scope, Convert.ToV3(p.transform.position), Time.unscaledTime);
+            walker = new Walker(survey == null ? (System.Func<V3, V3, bool>)null : survey.Clear);
+            walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles, wade: args.Wade);
             walker.ResetStuck(p.transform.position);
         }
 
         public Outcome Tick(double dt)
         {
+            var p = Player.m_localPlayer;
+            var at = p != null ? Convert.ToV3(p.transform.position) : V3.Zero;
+            var refusal = survey?.Observe(at, Time.unscaledTime);
+            if (refusal != null)
+            {
+                Driver.Stand();
+                return Outcome.Failed(Wire.ReasonUnreachable, survey.Receipt(at, refusal));
+            }
             var ended = Step(dt);
+            if (ended != null && survey != null) ended.Detail = survey.Receipt(at, ended.Detail);
             if (ended != null) encounter?.Cancel();
             return ended;
         }
@@ -1202,16 +1254,17 @@ namespace Renki.Plugin
                 if ((entity.transform.position - goal).sqrMagnitude > 4)
                 {
                     goal = entity.transform.position;
-                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
+                    walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles, wade: args.Wade);
                 }
             }
             var pos = p.transform.position;
+            if (walker.WadingRefusal(pos) is Outcome wadingRefusal) { Driver.Stand(); return wadingRefusal; }
             if (encounter != null)
             {
                 if (encounter.Tick(p, dt, out var recoveryFailure)) return recoveryFailure;
                 if (encounter.Resumed)
                 {
-                    walker.SetGoal(pos, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
+                    walker.SetGoal(pos, goal, args.StopDistance, reuseRoutes: false, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles, wade: args.Wade);
                     walker.ResetStuck(pos);
                 }
             }

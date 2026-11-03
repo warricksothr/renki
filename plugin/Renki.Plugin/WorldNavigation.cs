@@ -189,6 +189,7 @@ namespace Renki.Plugin
             readonly Func<V3, V3, bool> corridor;
             readonly bool diagnostics;
             readonly bool dry;
+            internal double WadeDepth { get; set; }
             readonly bool bankExit;
             readonly V3? diagnosticGoal;
             bool footprintTraced;
@@ -221,8 +222,9 @@ namespace Renki.Plugin
             public int BoundsRejected, PhysicsCasts, Saturated, HostileRejected;
             public int SupportHits => support.Hits + footing.Hits;
             public int SupportQueries => support.Misses + footing.Misses;
-            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null, bool bankExit = false, V3? diagnosticGoal = null)
+            public PlanningProbe(bool diagnostics = false, bool dry = false, bool executing = false, RouteRefusals refusals = null, Func<V3, V3, bool> corridor = null, bool bankExit = false, V3? diagnosticGoal = null, double wadeDepth = 0)
             {
+                WadeDepth = wadeDepth;
                 physical = (from, desired) => WorldNavigation.Probe(from, desired, this);
                 this.refusals = refusals; this.corridor = corridor;
                 this.diagnostics = diagnostics;
@@ -238,7 +240,7 @@ namespace Renki.Plugin
                 });
                 footing = new SupportMemo((at, y) =>
                 {
-                    var result = Support(at, y, out var full, out var evidence, footing: true, diagnostics: diagnostics);
+                    var result = Support(at, y, out var full, out var evidence, footing: true, walking: dry && WadeDepth > 0, diagnostics: diagnostics);
                     if (full) Saturated++;
                     if (diagnostics && result.HasValue && evidence != null && !footprintTraced)
                     {
@@ -296,13 +298,20 @@ namespace Renki.Plugin
             internal bool RecentlyBlocked(V3 from, V3 to) => refusals != null && refusals.Blocks(from, to, Time.unscaledTime);
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
             internal V3? Footing(V3 at) => footing.Sample(at, at.Y, Time.unscaledTime, slice);
-            internal bool WaterSafe(V3 at, double water) => dry
-                ? DryTravel.Clear(at, WaterLevel(at), DryTravel.TravelMargin) : at.Y >= water - .5;
+            internal object FootingEvidence => footing.LastEvidence;
+            internal bool WaterSafe(V3 at, double water)
+            {
+                if (!dry) return at.Y >= water - .5;
+                return WadeDepth > 0 ? Wading.Clear(at, WaterLevel(at), WadeDepth)
+                    : DryTravel.Clear(at, WaterLevel(at), DryTravel.TravelMargin);
+            }
             internal bool WaterSafe(V3 from, V3 middle, V3 to, double water)
             {
-                if (!bankExit && WaterSafe(to, water) && WaterSafe(middle, water)) return true;
+                if (WadeDepth <= 0 && !bankExit && WaterSafe(to, water) && WaterSafe(middle, water)) return true;
                 var start = footing.Sample(from, from.Y, Time.unscaledTime, slice);
                 var levels = new[] { WaterLevel(from), WaterLevel(middle), WaterLevel(to) };
+                if (WadeDepth > 0 && start.HasValue && Wading.Edge(from, start.Value, middle, to,
+                    levels[0], levels[1], levels[2], WadeDepth)) return true;
                 var bankClear = bankExit && start.HasValue &&
                     BankExit.Clear(from, start.Value, middle, to, levels[0], levels[1], levels[2]);
                 var clear = Executing && dry && bankClear;

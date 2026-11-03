@@ -44,6 +44,8 @@ namespace Renki.Plugin
         /// <summary>Runs first in every controlled physics step: the task runner's tick.</summary>
         public static System.Action<float> OnFixedStep;
 
+        internal static System.Action<string> OnMovementRefused;
+
         /// <summary>Degrees per second the bot turns at.</summary>
         public const float TurnRate = 540f;
 
@@ -63,8 +65,8 @@ namespace Renki.Plugin
 
             if (Move.sqrMagnitude > .0001f && !WorldNavigation.PortalClear(player.transform.position, Move))
             {
-                Move = Vector3.zero;
-                Run = Jump = Dodge = false;
+                Stand();
+                OnMovementRefused?.Invoke("ordinary movement refused a portal trigger; task stopped before stuck recovery");
             }
 
             Vector3 want = Vector3.zero;

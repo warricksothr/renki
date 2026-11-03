@@ -1,0 +1,179 @@
+[
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 30
+      }
+    },
+    "valid": true
+  },
+  {
+    "args": {},
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2"
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": " ",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 30
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": 5,
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 30
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 30
+      },
+      "items": [
+        {
+          "prefab": "Wood",
+          "count": 1
+        }
+      ]
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 9,
+        "travelM": 50,
+        "durationS": 30
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 251,
+        "travelM": 50,
+        "durationS": 30
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 0,
+        "durationS": 30
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 91
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          null,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 30
+      }
+    },
+    "valid": false
+  },
+  {
+    "args": {
+      "container": "1:2",
+      "scope": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 25,
+        "travelM": 50,
+        "durationS": 30,
+        "typo": true
+      }
+    },
+    "valid": false
+  }
+]

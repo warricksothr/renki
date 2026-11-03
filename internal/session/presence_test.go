@@ -43,3 +43,28 @@ func TestScopedReplyCannotCrossWorldChangeDuringArgumentEncoding(t *testing.T) {
 	}
 	p.Quiet(20 * time.Millisecond)
 }
+
+func TestSafetyDecisionCannotOverrideNewerStopDuringArgumentEncoding(t *testing.T) {
+	s, _, p := setup(t, []string{"say"}, []string{"say"})
+	revision := s.ControlRevision()
+	args := scopedReply{change: func() { s.mu.Lock(); s.orders++; s.mu.Unlock() }}
+	if _, err := s.DispatchAtRevision(context.Background(), Order{Task: "say", Args: args}, revision); !errors.Is(err, ErrBodyBusy) {
+		t.Fatal(err)
+	}
+	p.Quiet(20 * time.Millisecond)
+}
+
+func TestObservedSafetyDecisionCannotCrossWorldDuringEncoding(t *testing.T) {
+	s, _, p := setup(t, []string{"say"}, []string{"say"})
+	p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "one", HP: 25})
+	waitFor(t, func() bool { return s.State() != nil })
+	hello, _, _ := s.Handshake()
+	conn := currentConn(t, s)
+	args := scopedReply{change: func() {
+		s.Message(conn, &protocol.State{Envelope: protocol.Envelope{Seq: 100}, Phase: protocol.PhaseInWorld, World: "two", HP: 25})
+	}}
+	if _, err := s.DispatchObserved(context.Background(), Order{Task: "say", Args: args}, hello, "one", s.ControlRevision()); !errors.Is(err, ErrBodyBusy) {
+		t.Fatal(err)
+	}
+	p.Quiet(20 * time.Millisecond)
+}

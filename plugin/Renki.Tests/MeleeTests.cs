@@ -38,6 +38,19 @@ namespace Renki.Tests
         }
 
         [Theory]
+        [InlineData(true, true, 35, 2, true, true)]
+        [InlineData(false, true, 35, 2, true, false)]
+        [InlineData(true, false, 35, 2, true, false)]
+        [InlineData(true, true, 34, 2, true, false)]
+        [InlineData(true, true, 35, 1, true, false)]
+        [InlineData(true, true, 35, 2, false, false)]
+        public void BeforeFirstHitDefenseNeedsKnownPursuitAndAllPreparation(bool known, bool targeting, double stamina, double armour, bool fed, bool allowed)
+        {
+            Assert.Equal(allowed, MeleeEncounter.DefensiveReady(30, 45, stamina, armour, fed, false, known, targeting));
+            Assert.False(MeleeEncounter.DefensiveReady(29, 45, stamina, armour, fed, false, known, targeting));
+        }
+
+        [Theory]
         [InlineData("health")]
         [InlineData("fraction")]
         [InlineData("stamina")]

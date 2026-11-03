@@ -1,152 +1,275 @@
 # Handoff
 
-The state of the work at the last handoff, and what the next agent needs
-that the tickets and the roadmap don't already say. Replace this page at
-each handoff rather than appending to it.
+2026-11-03, agent:codex/home-survey-delivery, branch t3/map-home-location.
+Delivery: [PR #176](https://github.com/warricksothr/renki/pull/176).
+The owner authorized filing, grooming, promotion and delivery while away.
+No merge or CI monitoring was requested.
 
-Handoff of 2026-11-03, from `agent:claude-code/passive-deploy`. That session
-worked with the owner (Nimah in game) on the VM lease, loot reach and passive
-mode.
+## Current runtime: emergency offline during Greyling pursuit
 
-## Read first
+This supersedes every online/healthy/sheltered snapshot below. At about
+16:12Z Tas was at [150.65,70.48,-33.81], 15.8/25 HP, no active/carried food,
+with automatic flee t-20 running. Two Greylings were known to be targeting
+Tas, roughly 5–9 m away:2494842417:2243 and1:100792. InjurySeq8679.
+Tas was explicitly emergency-stopped to prevent another death while fixing
+protection. The independent panel was restarted without the game. Do not
+blindly rejoin this saved pursuit. Menu HP0 is not evidence of death; no new
+`died` event was observed in this window. Evidence:
+`.checks/new-home-defense-current.json`, `.checks/audit-window-VVadhq.jsonl`.
 
-1. AGENTS.md: the rules for `just`, `just ci`, `just review` and tickets.
-2. docs/ROADMAP.md: the milestones and "Working in parallel".
-3. docs/BEHAVIOURS.md: idle and passive modes, the loan, Loot's settle area
-   and reach. This is where the current work is.
-4. docs/TESTING.md and docs/VM.md before any check or live work, including
-   "The VM lease".
+Runtime installed for the next launch: **2e8c6d1**. Full just check ci passed170s
+(.checks/20261103T163500Z-YLtrJQ.log), committed just check review passed8s
+with no findings (.checks/20261103T163822Z-KdkkbC.log), and just check vm
+install passed16s with controller/Core/plugin checksum verification
+(.checks/20261103T163834Z-MJnAw1.log). The independent panel was restarted;
+the game was not started. Later ticket/handoff changes need no runtime restart.
+Delivery adds door cleanup, read-only chest search and proactive/blocked-escape
+protection. Runtime allowlist now includes inspect_container, preserving all18
+existing permissions. Readback confirms Tas offline and Loot still disabled:
+.checks/new-home-delivered-observation.json, new-home-delivered-settings.json
+and new-home-delivered-behaviours.json under .checks/. Keep Loot disabled. No free Tas bed,
+completed live survey, native chest search, double-door closure or survival
+acceptance has been earned. Sleeping remains unassigned. Grave recovery and
+safe return to the new home remain unresolved.
 
-## Where things stand
+The protection watcher now reacts at healthy HP to fresh known targeting
+within15m, before damage. Prepared isolated ordinary Greylings may use the
+existing native defense; otherwise flee. Native flee uses checked bearings
+and fails `blocked` after4s with less than1m flat progress near a threat,
+regardless of replans. One different destination retry or new-attacker
+re-aim is allowed in a two-attempt/10s episode. Newer owner orders and native
+escort/travel/combat/manual flee ownership are preserved. Missing remote AI
+targets still need an actual-hit fallback; this is not complete enemy intent
+inference. Native pre-contact/survival validation remains outstanding.
 
-Main is at b5cc019, and **that build is deployed**, with Tas (Tasleroch) in
-the world. No pull requests are open.
+`Tas, look for wood in a nearby chest` and configurable/listed variants now
+start bounded read-only search. See BEHAVIOURS.md. It counts only fresh native
+correlated inspection snapshots, leaves inventory untouched and reports
+unchecked/unknown storage. Default25m can be changed up to100m. The installed
+controller's persisted allowlist now includes `inspect_container`.
 
-What this stretch landed, in order:
+Done/released implementation tickets: TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before
+the first hit), TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked
+escape and re-aim on a new attacker); both have all offline criteria earned. TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
+(Search nearby or listed chests for requested items) and the door ticket below
+are review/released, with their native criteria still unchecked. Checked regressions include the
+captured raised-base start with explicitly synthetic obstruction, known
+pursuit, freshness, owner-stop/world races, bounded retry, newest attacker,
+correlated chest contents and native travel accounting.
 
-| PR | What it did |
-|---|---|
-| #168, #169 | The loot anchor and the piles view; wave 1 work. |
-| #170 | VM lease. `stop` and the panel's stop are exempt so a person can always stop the bot; inside `lease.py run` they still guard. |
-| #171 | Loot's adaptive reach (TKT-01M6EYEMRV): a settle tracker per player; the reach grows from 8 m to 30 m while the anchor stays in a small area. |
-| #172 | Tickets only: the idle/passive decision on epic TKT-01M62VXYQB, plus the drafts listed under "Next". |
-| #173 | Passive mode (TKT-01M6EWN4WH). Instances are `idle` or `passive`; Loot is passive and on. While a followed owner is settled, the engine lends the follow to a passive run and restarts the same follow after. A death during the run resumes the follow after the respawn. |
-| #174 | Perception skew. A scan sent just after the latest state frame is stamped ahead of it, and behaviours and goals refused it. That made passive Loot get cut off ("condition changed") several times a second. A scan may now lead state by up to 1 s (`behaviour.PerceptionBeside`). |
+## Historical runtime evidence
 
-## The live check in progress
+## Earlier runtime: remote portal death, respawn at the old base
 
-TKT-01M6EWN4WH, "Behaviours: passive mode lends an owner's follow to passive
-instances", is done offline. Its acceptance criterion 6, the live check, is
-still unticked. Its newest note has what the owner saw on a892cfa:
-- several passive runs worked;
-- the churn that #174 fixes.
+This supersedes every healthy-remote-platform or inside-new-house snapshot below.
+Greydwarf1629975892:102 hit at15:54:52.701Z,15:54:54.821Z and15:55:04.879Z.
+Automatic flee t-2 began within0.28s of the first hit and failed unreachable;
+flee t-5 followed, then Tas **died** at15:55:04.915Z near
+[413.36,31.65,-1177.66]. No direct probe interrupted either retreat. Tas was left
+idle on the exposed platform while delivery checks ran; the successful portal
+refusal probe did not establish shelter or survival.
 
-Rerun it on b5cc019 with the owner, under the lease:
+Respawn at15:55:22.962Z was at the old base[-31.08,36.55,15.19]. Automatic
+strict-dry return t-7 failed unreachable at15:55:44.553Z. Latest retained fresh
+observation15:56:28Z: idle25/25HP near[-46.32,33.79,10.13], grounded in Meadows,
+no active/carried food, empty inventory and no equipped gear. Local perception
+had no characters. Loot remains disabled. Game remains online. Grave recovery,
+new-home return, a free Tas bed and live survey acceptance are unfinished.
+Evidence: `.checks/audit-window-M3BtxI.jsonl`,
+`.checks/new-home-resume-runtime.json`, `.checks/new-home-resume-map.json`.
 
-1. Owner says "follow", stops near a tree, fells it. After about 5 s settled,
-   Tas picks up the drops and falls back in when the owner walks off.
-2. The owner drops a stack at their feet. Tas leaves it alone (the anchor
-   rule from #169).
-3. The owner walks away mid-pickup. The run ends ("followed player moved
-   on") and the follow restarts.
-4. Any owner order mid-pickup wins, and no follow is restarted.
+The owner also requested cleanup of adjacent/double doors Tas opened. Focused
+bug TKT-01M6H243JB6S4MBXVKZD89WQKG (Close doors Tas opened after passing through
+the doorway) adds shared explicit/walker opening registration, per-leaf doorway
+passage and bounded observed-closure confirmation. Native validation follows.
 
-Read the result from the controller log. Filter `C:/renki/logs/controller.log`
-for `behaviour started|follow returned|interrupted|finished|pickup`; each
-loan logs `passive=true follow=<id>`. Then tick criterion 6, or note what
-failed.
+## Later runtime update: fed, then automatic Loot entered a portal
 
-TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials) is in
-`review` for the same reason. Criterion 1 needs its live A/B refusal check;
-the ticket's notes give the steps, with `/api/act/home` as the refused
-POST.
+This update supersedes the inside-house/0.5HP snapshot below. The owner provided
+food: an auto-picked Raspberry at15:33:47Z was consumed as t-36, restoring health.
+Existing passive timer **Loot** then left the house to collect Wood t-37 near
+Nimah, followed by Resin t-38. At15:36:24 the final input guard refused
+portal_cast near[-187,30.97,-459.99], but the task kept running. It tried Jump at
+15:36:27 and Strafe at15:36:30, shifted closer and teleported through darkforest
+at15:36:32. Audit `.checks/audit-window-FfbfFj.jsonl`. This was an automatic Loot
+run, not a survey or a new explicit owner relocation order.
 
-## Next
+Loot is now **disabled persistently** through the normal behavior API
+(`.checks/new-home-loot-paused.json`) to prevent further automatic excursions.
+Do not re-enable it before reviewing this incident and checking current owner
+intent. Historical post-probe changed-build check was grounded/idle on structure at
+[414.42,31.65,-1176.15], BlackForest,940m from unchanged saved home,25/25HP,
+no active/carried food and no observed local hostiles. InjurySeq is0 in the
+restarted client; historical storage damage remains in its retained audit. A direct three-second
+normal movement attempt to the portal center stayed put and timed out, with
+portal_cast refusal (`.checks/task-o4knlg4c.json`). Do not bypass that guard.
+Remote portal1:161078 tag darkforest reports connected target1:161081 at
+[-188.09,30.97,-459.47], but controlled traversal/return is not implemented.
+The earlier new-home arrival remains earned; Tas is no longer inside that house.
 
-All of these are drafts. Only the owner promotes one, so name them and let the
-owner choose.
+TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard
+refuses movement) owns the correction: a final driver guard refusal stands and
+fails the current body task in the same step, rather than letting its later
+stuck recovery jump/strafe into the portal. Lifecycle tests cover single receipt,
+no later ticks, contained cancellation and future independent orders. Native
+build/gate/review/deployment and a short blocked-portal probe follow. It does
+not implement controlled portal traversal or authorize a return bypass.
 
-- **TKT-01M6FT1ZVW (Follow: go through the portal the leader just used).**
-  High priority, filed in this session after the owner hit it live. The owner
-  asked for it ("can we look into following through portals?"), but has not yet
-  said to build it. The ticket has the approach. It needs a scoped exception to
-  the portal guard, which is owned by TKT-01M6AYP8 (Cache building collisions
-  and remember portal links). That ticket is `in-progress` and claimed by
-  `agent:codex/renki-milestones`, so expect conflicts in WorldNavigation.cs and
-  Driver.cs.
-- **TKT-01M6F877TX (Behaviours: passive gather works alongside the
-  anchor).** High priority. The owner's stated goal: when they harvest, Tas
-  harvests too. It depends on TKT-01M6F877Q8 (Behaviours: infer the anchor's
-  activity from changes around them). It also needs a fix for the known
-  re-lend churn (below), because it will be the second passive instance.
-- **TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
-  decisions).** There is no panel card for passive runs yet. The data is
-  already in `/api/behaviours`: `PassiveRun{Follow, Player}`.
-- **M5, later:**
-  - TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what the
-    base lacks);
-  - TKT-01M6F8780V (Agent: supply the passive list, with validation and
-    built-in fallback). The owner's design: the agent side (`internal/voice`)
-    supplies bundles of passive routines, ranked by what the base needs, and
-    the engine falls back to its built-in list.
+## Earlier home arrival and storage attack
 
-The owner's design for passive mode is recorded on epic TKT-01M62VXYQB. In
-short:
-- *idle* work runs only when Tas has nothing to do;
-- *passive* work runs alongside following, only while the owner is settled;
-- passive work yields when the owner leaves the area or gives any order;
-- gathering and looting are passive and on by default.
+Tas reached the owner-saved new home through normal native movement, and is
+alive **inside the house**, not at the old home or the shoreline. Latest retained
+observation `.checks/new-home-final-observation.json`: position
+[-203.58,32.97,-466.37],1.34m from saved home[-204.39,32.97,-467.43], world
+DizzysHellheim, UID827096491, grounded/sheltered on structure support, idle,
+**0.5/25HP**, injurySeq7002, no active or carried food. Inventory contains the
+equipped rag tunic and one Wood. `.checks/new-home-final-map.json` confirms
+house entrance1:14767 **closed**. Keep Tas protected; do not resume an exposed
+survey or supply search at this health. The game remains online. Release the VM
+lease before handing back; acquire/renew it before any further live work.
 
-## Known gaps that stand
+Three house beds1:14717,1:14716,1:14968 and storage-upstairs bed941891633:6688
+all report owned:true, none mine. **No free bed was observed; no bed was claimed
+and spawn was not changed.** The house chest1:15016 at[-202.58,32.97,-460.24]
+contains4DeerMeat,7RawMeat and1NeckTail, with no ready meal in its snapshot.
+Observed heated cooking stations941891633:5001/4997 are back in the storage
+building near[-169,31,-472], where Tas was attacked. Other checked chests held
+armor, wood, resin, stone, flint, seeds or were empty; this is not proof that all
+base chests lack meals. The owner subsequently confirmed giving food, as recorded in the update above.
+A free Tas bed is still unconfirmed. Do not invent its location or clear another bed.
 
-- **Zero-health frame.** If a frame reports zero HP and no death follows, a
-  follow lent at that moment is not restarted and the owner is not told. The
-  game is not known to send such a frame. See docs/BEHAVIOURS.md.
-- **Re-lend churn.** A higher-priority passive instance that preempts a passive
-  run restarts the follow, which is then lent again straight away. This is
-  harmless with Loot as the only passive instance. Fix it with the
-  gather-alongside ticket.
-- **Custom settle shapes.** A custom settle shape is forgotten after 10 minutes
-  without being asked for, including while its instance is busy. Its reach then
-  starts over.
-- **Strict perception checks elsewhere.** marker_food, marker_rest and
-  goal/food still use `math.Abs(State.T - Perception.T) <= 3`. This is
-  tolerant and not the bug #174 fixed. They could adopt
-  `behaviour.PerceptionBeside` for one rule.
-- **Unknown goal instances.** At every start the controller warns about nine
-  saved `goal/<hash>` instances: "invalid instance … unknown goal". They are
-  skipped. Nobody has looked at where they come from. Ask the owner before
-  deleting saved settings.
-- **Flaky app tests.** `internal/app` tests sometimes time out under load
-  (TKT-01M6ESNXKF). Rerun before chasing them.
+## Delivered local familiarization
 
-## Waiting on the owner
+Implemented in0152cb0 and controller follow-ups, documented in EXPLORATION.md.
+The panel's Places & storage → Base area & familiarization saves per-world named
+bases with separate sleeping/storage/return bindings. `Tas, familiarize yourself
+with home` (also this area/the area/survey home) starts the selected saved base;
+`survey status`, stop/newer body orders and panel controls are implemented.
+Radius10–250m, total time2–20min and total travel50–4000m are configurable.
+A 50–80m base span is not treated as a measured radius.
 
-- Promoting the drafts above, and whether to build portal following now.
-- The live check above, which needs the owner in game.
-- The 32 stale `in-progress` claims from the 10-29 to 10-31 sessions are still
-  there (earlier handoff, decision 2). Don't take one over without the owner's
-  word.
+Selected new home remains centered on the owner's saved home, radius60m,
+600s and800m, return home. Normal waypoint creation and CAS base save added
+**new home storage west**, actual supported/accessible approach
+[-169.13,30.97,-467.75], radius5m. It is bound as storage; sleeping is still
+unassigned. Saved base version2026-11-03T15:27:44.0249485Z is retained in
+`.checks/new-home-storage-role-saved.json`. Old owner home storage, other markers
+and the saved home were preserved. The one storage approach does not claim the
+entire building's chest stock or access has been mapped.
 
-## Rules that are easy to miss
+The durable survey pins scope/role versions, uses bounded dry hostile-avoiding
+native legs, records actual 3D travel/trails and post-receipt supported arrival,
+reserves return budgets and stops on unsafe/changed/uncertain work. It separates
+4m measured/new/refreshed/unknown/stale terrain from visited ground and observed
+objects. Scoped place refresh protects owner edits, pinned roles, suppression
+and other bases. It opens no chest and claims no bed. Partial results retain
+gaps; loaded terrain is not complete room/floor/container inspection.
 
-- **The VM lease.** `just vm lease ACTOR [MIN]` before anything mutating, and
-  `just vm release` when done. `just vm lease-status` shows the holder.
-  Mutating recipes refuse without it. Reading (status, logs, read-only panel
-  requests) needs none. A deploy renews the lease.
-- **Deploying.** `just check vm deploy` builds and installs the plugin and
-  controller, then starts Tas. A worktree needs the gitignored `vm.local` and
-  `plugin/game.local.props`. Copy them from another worktree without reading
-  or printing them; without the props file the plugin build can't find the
-  Valheim assemblies. `just vm stop` then `just vm panel-start` takes Tas
-  offline but leaves the panel up.
-- **Secrets.** Never print or ask for the panel token, the CPA key, the server
-  password, or the contents of any `*.local.*` file.
-- **On the VM**, don't kill `renki-ctl` (port 18765). Write
-  `controller.local.json` as ASCII with no BOM.
-- **Tickets.** Name yourself with `--actor agent:tool/session` on every write.
-  `git ticket create --json` can fail to parse even when the ticket was made.
-  List before retrying, or you get a duplicate.
-- **Merges.** Check that a merge reached main with
-  `git merge-base --is-ancestor <head> origin/main`. Stacked PRs don't
-  retarget themselves; see the earlier handoff in git history.
+**No survey goal has been admitted or run.** Native coverage/waypoint-refresh,
+pinned return and sleeping/storage round-trip criteria remain unearned.
+Health/food/threat readiness and actual sleeping access are unresolved. Food and
+other household routines retain their older local constraints around return/
+home; selecting a large base does not teach portals or migrate every routine.
+Temporary here anchors and per-run overrides remain deferred.
+
+## Shallow-water change and actual return
+
+The owner watched a southbound strict-dry bank refusal and requested walkable
+shallow water. Commits98481da,3eb180f and8f662f6 add explicit coordinate
+`move_to` wade:true with dry:true and avoidHostiles:true, feature-gated on
+supported_wading_v1. This is distinct from strict dry household/survey travel.
+The native character swim threshold, game offset and reserve bound supported
+wading to at most0.8m. Current actual body/footing may use the0.15m settling
+reserve; future midpoint/endpoints must recover it. Walking normals, support,
+short continuous steps, obstacles, portals and hostile checks remain enforced.
+Swimming/missing footing/excess depth refuse without a swimming fallback.
+
+GetLastGroundNormal returns a transient contact accumulator which the game
+clears; actual footing now uses a fresh walkable-normal ray. Captured-bank,
+normal and wave tests retain synthetic future geometry explicitly as such.
+The exact sub-millimetre wave boundary is an offline regression, not a claim
+that the same wave was reproduced after deployment.
+
+After normal old-house resupply/equipment/cooking,3eb180f walked roughly350m
+closer without injury, then stopped57m short on the wave margin
+(`.checks/task-h56xv1tf.json`). Idle shoreline drift later deepened immersion
+from0.6m to swimming1.6m; ordinary native shore recovery regained the eastern
+bank (`.checks/task-tck__bjm.json`). A grounded refusal does not anchor the body
+against subsequent physics drift.
+
+Corrected8f662f6 earned supported shallow progress near[-172.35,29.43,-420.78],
+reported0.6m water, grounded,25HP, injurySeq0
+(`.checks/task-xqzomqku.json`, `.checks/new-home-east-approach-current.json`).
+Other checked staging/low-floor receipts are `.checks/task-vpnco5bq.json`,
+`.checks/task-s3yjuwha.json` and `.checks/task-z7wbqshh.json`. A dry-ground actual
+ray below normal0.8 was refused (`.checks/task-wv7c53_4.json`). Strict dry bank
+recovery separately refused the storage floor's buffer; checked wading crossed
+that supported low floor. Do not credit ordinary swimming recovery or final
+ordinary home arrival to the checked-wading contract.
+
+Storage entrance interaction required both gate halves and fresh open-state
+verification; a use receipt alone was insufficient. Ordinary movement also
+repeatedly alternated stuck local planning with a usable navmesh while stationary
+(`.checks/task-rz3mrike.json`). Checked home movement later refused hostile
+corridors and stair support probes (`.checks/task-e306cp1b.json`). Native ordinary
+move_to t-31 finally reached the actual saved home floor
+(`.checks/task-3wi2_zkp.json`); t-32 closed the entrance and a fresh scan confirmed
+it. After inspecting the house chest, t-34 returned to the interior home point
+(`.checks/task-kzu6dojq.json`). These earn one-way arrival, not survey round trips.
+
+## Storage attack: keep the operator's mistakes in the record
+
+The operator left opened storage gates open during a food search. Greydwarf
+2600298615:830 entered and dealt11.75 at15:28:09.117Z and12.78 at15:28:11.282Z,
+leaving0.5HP. This was ordinary chest work, not a survey or shallow-water leg.
+Exact retained window: `.checks/audit-window-OzbhE9.jsonl`.
+
+Automatic flee t-25 began at15:28:09.826Z. A direct task-check chest probe t-27
+replaced the running flee at15:28:11.609Z, **after both hits**. Automatic retreat
+resumed as t-28 within0.22s and cancelled the probe, then failed dry-bank
+distance_limit at15:28:21.345Z near[-184.9,30.97,-469.7] on the bridge. The
+probe interruption did not cause those prior hits, but stale operator readiness
+must not silently override recovery. No survival acceptance is claimed.
+
+## Tickets and verification
+
+Done/released: TKT-01M6FVN1XGRBWA75WJWFMYV2V9 (Base areas: separate sleeping,
+storage and return places), TKT-01M6FV695N00A10NRMECFMSAHA (Waypoints: refresh
+bot places around a selected area), TKT-01M6GXWKM2SC3K27C1JE98Z0AV (Travel:
+allow checked shallow-water wading without swimming).
+
+TKT-01M6FV6E40SBSMJEHT227XKRK2 (Home survey: familiarize with an area and update
+its places) remains review/released with native criteria5/7 unticked. Existing
+bed TKT-01M62PRDSBCRCPH5S0TGGCMAEY (Claim a bed near home, or tell the owner
+there is none) and flee TKT-01M62N256MPAJ6YJC11XJS09RS (Plugin: flee task, and
+retreating when health is low) have evidence notes; their other-agent claims
+were preserved.
+
+Future drafts: TKT-01M6GYMV97NYP025K9D4C0FRS7 (Routes: save waypoint chains
+with durable execution progress), TKT-01M6GYMVB10AP9WBAW7Y176PQC (Movement:
+observe ground paths and prefer useful path segments), and
+TKT-01M6H0S6Y5WFCW5P59CCY4HWK2 (Keep live task probes from interrupting
+automatic retreat). No generic durable ordered itinerary/cursor/resume exists.
+The atlas has terrain/biome/water, not ground-paint path observations. Future
+path preference must be configurable/directionally useful and preserve physical,
+water and hostile constraints. Do not promote these future drafts implicitly.
+
+For8f662f6: focused WadingTests passed
+`.checks/20261103T150631Z-qgBi60.log`; just check fmt passed
+`.checks/20261103T150751Z-LBnkRM.log`; full just check ci passed164s in
+`.checks/20261103T150803Z-vJctm7.log`; committed just check review passed with
+no findings in `.checks/20261103T151057Z-sfEh4J.log`; full just check vm deploy
+passed77s with checksum verification in `.checks/20261103T151204Z-FYkdau.log`.
+Forcc5f323: focused TaskRunnerTests passed6s in
+`.checks/20261103T154448Z-NGaaHC.log`; just check fmt passed7s in
+`.checks/20261103T154528Z-UM9pVX.log`; full just check ci passed167s in
+`.checks/20261103T154547Z-hCXJML.log`; committed just check review passed7s with
+no findings in `.checks/20261103T154846Z-pX0e2G.log`; full just check vm deploy
+passed91s with checksum verification in `.checks/20261103T154925Z-Y54sUK.log`.
+Final documentation/ticket gate and committed review follow this handoff edit.
+
+Before further live work read fresh body/health/food/door/bed ownership and check
+for newer owner orders. Do not replace active automatic retreat with a probe.
+Acquire the VM lease before live work. Current emergency-offline state takes precedence over historical online lifecycle notes.
+Never guess an approach floor or claim another player's bed. Live acceptance
+needs fed/recovered Tas, a free bed and verified separated-building approaches.

@@ -1,5 +1,5 @@
-// Package retreat gets the bot out of fights: after a confirmed hostile hit,
-// or on low health with a hostile creature after it, it flees toward safety and
+// Package retreat protects the bot from known pursuit or a confirmed hostile hit.
+// It uses bounded native defense when prepared, otherwise flees toward safety and
 // says so (docs/BRIDGE-PROTOCOL.md 7.2, flee).
 package retreat
 
@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	// Low is the share of health below which the bot gets away.
+	// Low is retained as the shared low-health threshold; known pursuit now
+	// triggers protection at any health.
 	Low = 0.4
 	// Near is how close a hostile creature that has picked the bot must be
 	// to count as a threat.
@@ -59,10 +60,78 @@ type Retreat struct {
 	log    *slog.Logger
 	now    func() time.Time
 
-	defended map[string]time.Time
-	last     time.Time
-	mu       sync.Mutex
-	hurt     map[string]injury
+	defended                 map[string]time.Time
+	last                     time.Time
+	mu                       sync.Mutex
+	hurt                     map[string]injury
+	escape                   *escapeEpisode
+	defense                  *defenseAttempt
+	scope                    *protocol.Hello
+	scopeWorld               string
+	lifecycle, lifecycleSeen uint64
+}
+
+type defenseAttempt struct {
+	scope    *protocol.Hello
+	task     *session.Task
+	world    string
+	entity   string
+	revision uint64
+	at       time.Time
+}
+
+type escapeEpisode struct {
+	scope         *protocol.Hello
+	task          *session.Task
+	threat, world string
+	started       time.Time
+	attempts      int
+	revision      uint64
+}
+
+func (r *Retreat) revision() uint64 {
+	if s, ok := r.s.(interface{ ControlRevision() uint64 }); ok {
+		return s.ControlRevision()
+	}
+	return 0
+}
+
+func (r *Retreat) dispatch(ctx context.Context, o session.Order, revision uint64) (*session.Task, error) {
+	if s, ok := r.s.(interface {
+		DispatchObserved(context.Context, session.Order, *protocol.Hello, string, uint64) (*session.Task, error)
+	}); ok {
+		return s.DispatchObserved(ctx, o, r.scope, r.scopeWorld, revision)
+	}
+	if s, ok := r.s.(interface {
+		DispatchAtRevision(context.Context, session.Order, uint64) (*session.Task, error)
+	}); ok {
+		return s.DispatchAtRevision(ctx, o, revision)
+	}
+	return r.s.Dispatch(ctx, o)
+}
+
+// Real sessions expose arrival timestamps and the perception's world. Never
+// turn a stalled stream or a previous world's creatures into a new body order.
+func (r *Retreat) observations() (*protocol.State, *protocol.Perception) {
+	r.scope, r.scopeWorld = nil, ""
+	st, seen := r.s.State(), r.s.Perception()
+	if s, ok := r.s.(interface {
+		StateObservation() (*protocol.State, time.Time)
+		PerceptionObservation() (*protocol.Hello, string, *protocol.Perception, time.Time)
+	}); ok {
+		var at time.Time
+		st, at = s.StateObservation()
+		hello, world, perception, perceivedAt := s.PerceptionObservation()
+		now := r.now()
+		if st == nil || hello == nil || world != st.World || at.IsZero() || perceivedAt.IsZero() ||
+			now.Sub(at) < 0 || now.Sub(at) > 3*time.Second || now.Sub(perceivedAt) < 0 || now.Sub(perceivedAt) > 3*time.Second ||
+			perception == nil || math.Abs(st.T-perception.T) > 3 {
+			return nil, nil
+		}
+		seen = perception
+		r.scope, r.scopeWorld = hello, world
+	}
+	return st, seen
 }
 
 type injury struct {
@@ -79,6 +148,7 @@ func (r *Retreat) Event(e *protocol.Event) {
 	if e.Event == protocol.EventDied || e.Event == protocol.EventRespawned {
 		r.hurt = nil
 		r.defended = nil
+		r.lifecycle++
 		return
 	}
 	if e.Event != protocol.EventDamaged || e.By == "" || e.Amount <= 0 {
@@ -104,9 +174,9 @@ func New(s Session, owners func() []string, home func() (protocol.Vec3, bool), l
 	return &Retreat{s: s, owners: owners, home: home, log: log, now: now}
 }
 
-// Run calls Tick every second until ctx ends.
+// Run checks pursuit four times a second until ctx ends.
 func (r *Retreat) Run(ctx context.Context) {
-	t := time.NewTicker(time.Second)
+	t := time.NewTicker(250 * time.Millisecond)
 	defer t.Stop()
 	for {
 		select {
@@ -118,16 +188,56 @@ func (r *Retreat) Run(ctx context.Context) {
 	}
 }
 
-// Tick reacts to a confirmed hostile attacker at any health. An AI target
-// alone still requires low health. A fresh hit can bypass the retry cooldown,
-// but never replaces an active flee with another one.
+// Tick reacts before contact to known targeting, or to a recent actual hit.
+// Only a controller-owned escape can be retried or re-aimed, once per episode.
 func (r *Retreat) Tick(ctx context.Context) {
-	st, seen := r.s.State(), r.s.Perception()
+	revision := r.revision()
+	st, seen := r.observations()
+	r.mu.Lock()
+	lifecycle := r.lifecycle
+	r.mu.Unlock()
+	if lifecycle != r.lifecycleSeen {
+		r.escape, r.defense = nil, nil
+		r.last = time.Time{}
+		r.lifecycleSeen = lifecycle
+	}
 	if st == nil || seen == nil || st.Phase != protocol.PhaseInWorld || st.HP <= 0 || st.HPMax <= 0 {
 		return
 	}
-	if st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning {
-		return
+	if s, ok := r.s.(interface {
+		InspectionSnapshot() session.InspectionSnapshot
+	}); ok {
+		body := s.InspectionSnapshot().Task
+		if body != nil && body.Name == protocol.TaskFlee && !protocol.Final(body.Status) &&
+			(r.escape == nil || r.escape.task.ID != body.ID) {
+			return
+		}
+	}
+	if r.escape != nil && (r.escape.world != st.World || r.escape.revision != revision || r.escape.scope != r.scope) {
+		if r.escape.world != st.World || r.escape.scope != r.scope {
+			r.last = time.Time{}
+		}
+		r.escape = nil
+		return // A newer owner order cancels delayed recovery.
+	}
+	if d := r.defense; d != nil {
+		status, _, _ := d.task.Status()
+		pendingSafe := st.HP >= st.HPMax*.6 && st.Stamina >= 10
+		for _, other := range seen.Characters {
+			r.mu.Lock()
+			hit, hurt := r.hurt[other.ID]
+			r.mu.Unlock()
+			hurt = hurt && hit.world == st.World && r.now().Before(hit.until)
+			if other.ID != d.entity && other.Kind == protocol.CharacterCreature && other.Hostile && other.HPFrac > 0 &&
+				st.Pos.FlatDistance(other.Pos) <= Near && (other.TargetingMe || hurt || st.Pos.FlatDistance(other.Pos) <= 6) {
+				pendingSafe = false
+			}
+		}
+		if pendingSafe && d.scope == r.scope && d.world == st.World && d.revision == revision && !protocol.Final(status) &&
+			r.now().Sub(d.at) < 3*time.Second && (st.Task == nil || st.Task.ID == d.task.ID) {
+			return
+		}
+		r.defense = nil
 	}
 	// The native escort protects its charges even when injured or outnumbered.
 	// A matching task owns its tactics; stale metadata never suppresses retreat.
@@ -140,18 +250,41 @@ func (r *Retreat) Tick(ctx context.Context) {
 	if r.controlledAttack(st, seen) {
 		return
 	}
-	threat := r.threat(st, seen, st.HP/st.HPMax >= Low)
+	threat := r.threat(st, seen)
 	if threat == nil {
 		return
 	}
 	r.mu.Lock()
 	hit, hurt := r.hurt[threat.ID]
 	r.mu.Unlock()
-	if hurt && hit.world == st.World && r.now().Before(hit.until) && r.defend(ctx, st, seen, threat) {
-		return
-	}
-	if r.now().Sub(r.last) < Again && (!hurt || !hit.at.After(r.last)) {
-		return
+	hurt = hurt && hit.world == st.World && r.now().Before(hit.until)
+	alternate := false
+	episode := r.escape
+	activeFlee := st.Task != nil && st.Task.Task == protocol.TaskFlee && st.Task.Status == protocol.StatusRunning
+	if episode != nil && (r.now().Sub(episode.started) < Again || activeFlee) {
+		status, reason, _ := episode.task.Status()
+		owned := st.Task == nil || st.Task.ID == episode.task.ID
+		if !owned {
+			return
+		}
+		newAttacker := hurt && threat.ID != episode.threat && hit.at.After(r.last)
+		newHit := hurt && hit.at.After(r.last) && !activeFlee && protocol.Final(status)
+		blocked := status == protocol.StatusFailed && slices.Contains([]string{protocol.ReasonBlocked, protocol.ReasonUnreachable, protocol.ReasonStuck}, reason)
+		if episode.attempts >= 2 || (!newAttacker && !newHit && !blocked) {
+			return
+		}
+		alternate = blocked && !newAttacker
+	} else {
+		if activeFlee {
+			return
+		} // Never replace an unrelated/manual flee.
+		if r.defend(ctx, st, seen, threat, revision) {
+			return
+		}
+		if r.now().Sub(r.last) < Again && (!hurt || !hit.at.After(r.last)) {
+			return
+		}
+		episode = nil
 	}
 	toward, to := r.safety(st.Pos, threat.Pos, seen)
 	switch {
@@ -177,11 +310,34 @@ func (r *Retreat) Tick(ctx context.Context) {
 		args.Toward = &toward
 		line = "Too much for me. Heading home."
 	}
+	if alternate {
+		// A tangent destination differs from the failed straight/home goal.
+		// Native dry/hostile/physical checks still authorize every step.
+		dx, dz := st.Pos[0]-threat.Pos[0], st.Pos[2]-threat.Pos[2]
+		length := math.Hypot(dx, dz)
+		if length < .5 {
+			dx, dz, length = 1, 0, 1
+		}
+		target := protocol.Vec3{st.Pos[0] - dz/length*Distance, st.Pos[1], st.Pos[2] + dx/length*Distance}
+		args.Toward = &protocol.Target{Pos: &target}
+		line = "Escape blocked. Trying a different direction."
+	}
 	r.last = r.now()
-	if _, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskFlee, Args: args, TimeoutS: For}); err != nil {
+	task, err := r.dispatch(ctx, session.Order{Task: protocol.TaskFlee, Args: args, TimeoutS: For}, revision)
+	if err != nil {
 		r.log.Warn("could not flee", "err", err)
 		return
 	}
+	if episode == nil {
+		episode = &escapeEpisode{scope: r.scope, world: st.World, started: r.now()}
+	}
+	episode.task, episode.threat, episode.revision = task, threat.ID, revision+1
+	// Test doubles need not implement control revisions.
+	if _, ok := r.s.(interface{ ControlRevision() uint64 }); !ok {
+		episode.revision = 0
+	}
+	episode.attempts++
+	r.escape = episode
 	r.log.Info("fleeing", "from", threat.ID, "prefab", threat.Prefab, "hp", st.HP, "toward", to)
 	if _, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}}); err != nil {
 		r.log.Warn("could not say so", "err", err)
@@ -191,7 +347,7 @@ func (r *Retreat) Tick(ctx context.Context) {
 // Try one native-confirmed defensive encounter before another open-ended chase.
 // Native AllowCombat, armour and local safety checks remain authoritative. A
 // refusal falls through to ordinary flee on the next tick, without retry loops.
-func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol.Perception, threat *protocol.PerceivedCharacter) bool {
+func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol.Perception, threat *protocol.PerceivedCharacter, revision uint64) bool {
 	if threat.Prefab != "Greyling" || threat.Stars != 0 || st.Pos.FlatDistance(threat.Pos) > 6 ||
 		st.HP <= 0 || st.HP < st.HPMax*.65 || st.Stamina < 35 || st.Food == nil || len(st.Food.Active) == 0 {
 		return false
@@ -221,12 +377,17 @@ func (r *Retreat) defend(ctx context.Context, st *protocol.State, seen *protocol
 	}
 	r.defended[threat.ID] = r.now().Add(time.Minute)
 	r.mu.Unlock()
-	_, err := r.s.Dispatch(ctx, session.Order{Task: protocol.TaskAttack, Args: &protocol.AttackArgs{Entity: threat.ID, Style: "melee", Defensive: true}, TimeoutS: 85})
+	task, err := r.dispatch(ctx, session.Order{Task: protocol.TaskAttack, Args: &protocol.AttackArgs{Entity: threat.ID, Style: "melee", Defensive: true}, TimeoutS: 85}, revision)
 	if err != nil {
 		r.log.Warn("could not start defensive encounter", "err", err)
 		return false
 	}
-	r.log.Info("defending against confirmed attacker", "entity", threat.ID, "hp", st.HP)
+	nextRevision := revision + 1
+	if _, ok := r.s.(interface{ ControlRevision() uint64 }); !ok {
+		nextRevision = 0
+	}
+	r.defense = &defenseAttempt{scope: r.scope, task: task, world: st.World, entity: threat.ID, revision: nextRevision, at: r.now()}
+	r.log.Info("defending against hostile pursuit", "entity", threat.ID, "hp", st.HP)
 	return true
 }
 
@@ -321,7 +482,7 @@ func PastThreat(pos, threat, place protocol.Vec3) bool {
 
 // threat is the nearest hostile within Near that targets or recently hurt
 // the bot. Neither an unrelated hostile nor an old attack causes a retreat.
-func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception, damagedOnly bool) *protocol.PerceivedCharacter {
+func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception) *protocol.PerceivedCharacter {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for id, hit := range r.hurt {
@@ -330,19 +491,19 @@ func (r *Retreat) threat(st *protocol.State, seen *protocol.Perception, damagedO
 		}
 	}
 	var (
-		best *protocol.PerceivedCharacter
-		dist = Near
+		best     *protocol.PerceivedCharacter
+		dist     = Near
+		bestHurt bool
+		newest   time.Time
 	)
 	for i, c := range seen.Characters {
-		_, hurt := r.hurt[c.ID]
-		if c.Kind != protocol.CharacterCreature || !c.Hostile || c.HPFrac <= 0 || (!c.TargetingMe && !hurt) {
+		hit, hurt := r.hurt[c.ID]
+		if c.Kind != protocol.CharacterCreature || !c.Hostile || c.HPFrac <= 0 || (!(c.TargetingMe && (c.TargetingKnown == nil || *c.TargetingKnown)) && !hurt) {
 			continue
 		}
-		if damagedOnly && !hurt {
-			continue
-		}
-		if d := st.Pos.FlatDistance(c.Pos); d <= dist {
-			best, dist = &seen.Characters[i], d
+
+		if d := st.Pos.FlatDistance(c.Pos); d <= Near && (best == nil || hurt && (!bestHurt || hit.at.After(newest)) || hurt == bestHurt && (!hurt || hit.at.Equal(newest)) && d <= dist) {
+			best, dist, bestHurt, newest = &seen.Characters[i], d, hurt, hit.at
 		}
 	}
 	return best

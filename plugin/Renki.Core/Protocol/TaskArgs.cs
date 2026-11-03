@@ -9,7 +9,7 @@ namespace Renki.Protocol
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", Escort = "escort", LookAt = "look_at",
             Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
-            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw";
+            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw", InspectContainer = "inspect_container";
 
         /// <summary>The slots unequip empties: "hands" is both.</summary>
         public static readonly string[] Slots =
@@ -20,7 +20,7 @@ namespace Renki.Protocol
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
         public const string Harvest = "harvest", UseItem = "use_item", Attack = "attack";
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, Harvest, UseItem, Attack };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, InspectContainer, Harvest, UseItem, Attack };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -62,6 +62,8 @@ namespace Renki.Protocol
 
     public sealed class MoveToArgs : EncounterArgs
     {
+        public bool Wade;
+        public Renki.Movement.TravelScope Scope;
         public bool Dry;
         public bool AvoidHostiles;
         public Target To;
@@ -207,6 +209,12 @@ namespace Renki.Protocol
         public bool MatchExisting;
     }
 
+    public sealed class InspectContainerArgs
+    {
+        public string Container;
+        public Renki.Movement.TravelScope Scope;
+    }
+
     public static class TaskArgs
     {
         /// <summary>The typed arguments for a task, checked as the Go side
@@ -219,6 +227,23 @@ namespace Renki.Protocol
             {
                 case TaskNames.Stop:
                     return new object();
+                case TaskNames.InspectContainer:
+                    {
+                        foreach (var property in a.Properties())
+                            if (property.Name != "container" && property.Name != "scope")
+                                throw new BadArgsException("inspection takes only container and scope");
+                        var container = Str(a, "container");
+                        if (string.IsNullOrWhiteSpace(container) || !(a["scope"] is JObject bounds))
+                            throw new BadArgsException("inspection requires container and scope");
+                        foreach (var property in bounds.Properties())
+                            if (property.Name != "center" && property.Name != "radius" && property.Name != "travelM" && property.Name != "durationS")
+                                throw new BadArgsException("unknown inspection scope field");
+                        var center = Target.Parse(bounds["center"], "center").Pos;
+                        if (!center.HasValue) throw new BadArgsException("scope center must be coordinates");
+                        var limits = new Renki.Movement.TravelScope { Center = center.Value, Radius = Number(bounds, "radius", 0), TravelM = Number(bounds, "travelM", 0), DurationS = Number(bounds, "durationS", 0) };
+                        if (!limits.Valid) throw new BadArgsException("invalid inspection scope");
+                        return new InspectContainerArgs { Container = container, Scope = limits };
+                    }
                 case TaskNames.Deposit:
                 case TaskNames.Withdraw:
                     {
@@ -245,6 +270,22 @@ namespace Renki.Protocol
                         return new TransferArgs { Container = container, Items = parsed.ToArray(), MatchExisting = matchExisting };
                     }
                 case TaskNames.MoveTo:
+                    var wade = Bool(a, "wade", false);
+                    if (wade && (!Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false) || a["scope"] != null && a["scope"].Type != JTokenType.Null || Bool(a, "recoverThreats", false) || !Target.Parse(a["to"], "to").Pos.HasValue))
+                        throw new BadArgsException("wading requires unscoped supported hostile-avoiding coordinate travel without combat recovery");
+                    Renki.Movement.TravelScope scope = null;
+                    if (a["scope"] != null && a["scope"].Type != JTokenType.Null)
+                    {
+                        if (!(a["scope"] is JObject bounds)) throw new BadArgsException("scope must be an object");
+                        var center = Target.Parse(bounds["center"], "center").Pos;
+                        if (!center.HasValue) throw new BadArgsException("scope center must be coordinates");
+                        scope = new Renki.Movement.TravelScope { Center = center.Value, Radius = Number(bounds, "radius", 0), TravelM = Number(bounds, "travelM", 0), DurationS = Number(bounds, "durationS", 0) };
+                        var target = Target.Parse(a["to"], "to");
+                        var stop = Number(a, "stopDistance", 1.5);
+                        if (double.IsNaN(stop) || double.IsInfinity(stop) || stop < 0.25 || stop > 1.5) throw new BadArgsException("scoped stopDistance must be 0.25–1.5 m");
+                        if (!scope.Valid || !target.Pos.HasValue || !scope.Contains(target.Pos.Value) || !Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false) || Bool(a, "recoverThreats", false))
+                            throw new BadArgsException("invalid scoped dry movement");
+                    }
                     if (Bool(a, "defendThreats", false) && !Bool(a, "recoverThreats", false))
                         throw new BadArgsException("defendThreats requires recoverThreats");
                     if (Bool(a, "recoverThreats", false) && (!Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false)))
@@ -253,6 +294,8 @@ namespace Renki.Protocol
                         throw new BadArgsException("avoidHostiles requires dry travel");
                     return new MoveToArgs
                     {
+                        Scope = scope,
+                        Wade = wade,
                         To = Target.Parse(a["to"], "to"),
                         StopDistance = Number(a, "stopDistance", 1.5),
                         Run = Bool(a, "run", false),

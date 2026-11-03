@@ -129,6 +129,8 @@ window.fetch=async(path,options={})=>{
  case '/api/status': return respond(preview.status);
  case '/api/inspection': return respond(preview.inspection);
  case '/api/behaviours': return respond([]);
+ case '/api/bases': return respond({world:preview.status.world,active:'camp',bases:[{name:'camp',center:preview.status.pos||[0,40,0],radius:90,durationS:600,travelM:800,return:'home',storage:[],at:'2026-11-03T00:00:00Z'}],surveys:[]});
+ case '/api/waypoints': return respond({world:preview.status.world,waypoints:preview.mapped.waypoints||[]});
  case '/api/map': return respond(preview.mapped);
  case '/api/atlas/worlds': return respond(preview.worlds);
  case '/api/atlas/map': return respond(preview.atlas);

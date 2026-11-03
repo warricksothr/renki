@@ -19,6 +19,16 @@ zones have a dashed outline. Editing or renaming one makes it owner-managed;
 future discovery does not overwrite it. Deleting a purpose suppresses its
 automatic recreation in that world. You can still add it manually.
 
+Moving home does not relocate these places: discovery currently fills missing
+purposes and keeps existing markers, including automatic ones at an old base.
+Use the panel or the owner commands below to move a known marker explicitly.
+For a new base, configure **Base area & familiarization** and request
+`Tas, familiarize yourself with home`. The [bounded local survey](EXPLORATION.md#local-home-familiarization)
+learns multiple scoped places and protects owner edits, pinned roles, other-base
+markers and deletion suppression. Its terrain and route report keeps gaps
+visible; it does not open chests or assign beds. `rest` is a waypoint purpose
+for sleeping/rest approaches.
+
 **What's nearby?** lists up to 24 current or last-seen objects within the
 zone (15 m around a point). Chests use the same remembered contents as Tas
 and the hover view, with when they were checked. Unknown and observed-empty

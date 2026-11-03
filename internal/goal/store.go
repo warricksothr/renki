@@ -76,6 +76,7 @@ type PostCombat struct {
 	Receipt  *Outcome  `json:"receipt,omitempty"`
 }
 type Record struct {
+	Survey          *SurveyProgress `json:"survey,omitempty"`
 	Peel            bool            `json:"peel,omitempty"`
 	Food            *FoodProgress   `json:"food,omitempty"`
 	Observation     *Observation    `json:"observation,omitempty"`
@@ -332,9 +333,15 @@ func (s *Store) saveFile(b []byte) error {
 	return replaceFile(f.Name(), s.path)
 }
 func terminal(status string) bool {
-	return status == "succeeded" || status == "cancelled" || status == "needs_plan"
+	return status == "succeeded" || status == "partial" || status == "cancelled" || status == "needs_plan"
 }
 func validateRecord(r Record) error {
+	if r.Kind == "familiarize" {
+		return validateSurvey(r)
+	}
+	if r.Survey != nil {
+		return errors.New("survey checkpoint requires familiarization kind")
+	}
 	if r.Peel && r.Kind != "combat_trial" {
 		return errors.New("peel is only available for combat trials")
 	}
@@ -439,6 +446,12 @@ func (s *Store) Summaries() []Record {
 	for i := range out {
 		out[i].Policy = ""
 		out[i].State = nil
+		if s := out[i].Survey; s != nil {
+			s.Breadcrumbs = nil
+			for j := range s.Legs {
+				s.Legs[j].Trail = nil
+			}
+		}
 		if f := out[i].Food; f != nil {
 			f.CandidateCount = len(f.Chests)
 			f.AttemptCount = len(f.Tried)

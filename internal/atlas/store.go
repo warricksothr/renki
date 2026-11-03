@@ -77,8 +77,8 @@ func Open(path string, p Policy) (*Store, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 1 {
-		return fail(fmt.Errorf("atlas schema %d is newer than supported schema 1", version))
+	if version > 2 {
+		return fail(fmt.Errorf("atlas schema %d is newer than supported schema 2", version))
 	}
 	if err = db.QueryRow("PRAGMA page_size").Scan(&pageSize); err != nil {
 		return fail(err)
@@ -106,6 +106,24 @@ func Open(path string, p Policy) (*Store, error) {
 		}
 		if err != nil {
 			return fail(err)
+		}
+		version = 1
+	}
+	if version == 1 {
+		tx, e := db.Begin()
+		if e != nil {
+			return fail(e)
+		}
+		_, e = tx.Exec(`ALTER TABLE samples ADD COLUMN first_received INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE samples ADD COLUMN first_source TEXT NOT NULL DEFAULT '';
+UPDATE samples SET first_received=received,first_source=source;
+PRAGMA user_version=2;`)
+		if e != nil {
+			tx.Rollback()
+			return fail(e)
+		}
+		if e = tx.Commit(); e != nil {
+			return fail(e)
 		}
 	}
 	if err = s.Maintain(context.Background(), time.Now()); err != nil {
@@ -207,7 +225,7 @@ func (s *Store) Ingest(ctx context.Context, b session.TerrainObservation) error 
 					return err
 				}
 			}
-			_, err = tx.ExecContext(ctx, `INSERT INTO samples VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(world,x,z) DO UPDATE SET h=excluded.h,biome=excluded.biome,water=excluded.water,hash=excluded.hash,observed=excluded.observed,received=excluded.received,source=excluded.source,stream=excluded.stream,tick=excluded.tick`, key, x, z, *tile.Heights[i], *tile.Biomes[i], tile.WaterLevel, hash, observed, b.ReceivedAt.UnixMilli(), b.Scope.Source, b.Scope.Stream, *tick)
+			_, err = tx.ExecContext(ctx, `INSERT INTO samples VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(world,x,z) DO UPDATE SET h=excluded.h,biome=excluded.biome,water=excluded.water,hash=excluded.hash,observed=excluded.observed,received=excluded.received,source=excluded.source,stream=excluded.stream,tick=excluded.tick`, key, x, z, *tile.Heights[i], *tile.Biomes[i], tile.WaterLevel, hash, observed, b.ReceivedAt.UnixMilli(), b.Scope.Source, b.Scope.Stream, *tick, b.ReceivedAt.UnixMilli(), b.Scope.Source)
 			if err != nil {
 				return err
 			}

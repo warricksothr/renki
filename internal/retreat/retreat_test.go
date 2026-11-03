@@ -261,20 +261,14 @@ func scene(hp float64) *fake {
 	}
 }
 
-func TestRetreatOnLowHealthWithAThreat(t *testing.T) {
+func TestRetreatBeforeContactAtHealthyHealthWithAThreat(t *testing.T) {
 	c := &clock{time.Unix(1000, 0)}
 	home := protocol.Vec3{-40, 31, 0}
 	f := scene(20)
 	r := New(f, func() []string { return []string{"Sothr"} }, func() (protocol.Vec3, bool) { return home, true }, quiet, c.now)
 	ctx := context.Background()
 
-	r.Tick(ctx)
-	if len(f.sent) != 0 {
-		t.Fatalf("healthy enough, yet: %v", f.sent)
-	}
-	// Low: from the Greyling that has picked it, not the nearer neck that
-	// is not hostile nor the one that has not; home is clear of it.
-	f.st.HP = 9
+	// Healthy but unprepared: retreat before the targeting Greyling hits.
 	r.Tick(ctx)
 	want := []string{"flee 0:7 25 toward [-40 31 0]", "say: Too much for me. Heading home."}
 	if !slices.Equal(f.sent, want) {
@@ -346,7 +340,7 @@ func TestFirstConfirmedHitRetreatsBeforeLowHealth(t *testing.T) {
 	c := &clock{time.Unix(1000, 0)}
 	f := scene(20.4)
 	f.st.World = "DizzysHellheim"
-	f.seen.Characters[0].TargetingMe = false
+	f.seen.Characters[1].TargetingMe = false
 	r := New(f, func() []string { return nil }, nil, quiet, c.now)
 	r.Tick(context.Background())
 	if len(f.sent) != 0 {
@@ -354,6 +348,7 @@ func TestFirstConfirmedHitRetreatsBeforeLowHealth(t *testing.T) {
 	}
 	// The real harvesting incident had remote damage without targetingMe.
 	// Prefer that actual attacker over a closer AI that merely targets Tas.
+	f.seen.Characters[1].TargetingMe = true
 	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:9", Amount: 4.6})
 	r.Tick(context.Background())
 	if len(f.sent) != 2 || !strings.HasPrefix(f.sent[0], "flee 0:9 ") {
@@ -373,6 +368,7 @@ func TestFirstConfirmedHitRetreatsBeforeLowHealth(t *testing.T) {
 		t.Fatalf("replaced a running escape: %v", f.sent)
 	}
 	f.st.Task = nil
+	r.escape.task = session.Finished(protocol.TaskFlee, nil, protocol.StatusSucceeded, "")
 	r.Tick(context.Background())
 	if len(f.sent) != 4 {
 		t.Fatalf("fresh hit waited through cooldown: %v", f.sent)
@@ -525,16 +521,18 @@ func TestConfirmedAttackerDefenseIsBoundedAndRefusalFallsBackToFlee(t *testing.T
 	f.st.Food = &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Raspberry"}}}
 	c := &clock{t: time.Now()}
 	r := New(f, func() []string { return nil }, nil, quiet, c.now)
-	r.Tick(context.Background())
-	if len(f.sent) != 0 {
-		t.Fatal("unconfirmed defense", f.sent)
-	}
-	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+	// Known pursuit, no damage: prepared Tas asks native defense first.
 	r.Tick(context.Background())
 	if len(f.sent) != 1 || f.sent[0] != "attack 0:7 defensive=true" {
 		t.Fatal(f.sent)
 	}
+	// A pending native request owns the body before state catches up.
+	r.Tick(context.Background())
+	if len(f.sent) != 1 {
+		t.Fatal("pending defense replaced", f.sent)
+	}
 	// A rejected native request leaves no active attack; do not repeatedly try it.
+	r.defense.task = session.Finished(protocol.TaskAttack, nil, protocol.StatusRejected, protocol.ReasonRefused)
 	c.t = c.t.Add(time.Second)
 	r.Tick(context.Background())
 	if len(f.sent) != 3 || !strings.HasPrefix(f.sent[1], "flee 0:7") {
@@ -587,5 +585,189 @@ func TestNativeEscortOwnsProtectionEvenInjuredAndOutnumbered(t *testing.T) {
 	r.Tick(context.Background())
 	if len(f.sent) != 0 {
 		t.Fatal("controller replaced native protection", f.sent)
+	}
+}
+
+func TestOwnedBlockedFleeRetriesOnceInAnotherDirection(t *testing.T) {
+	f := scene(25)
+	c := &clock{time.Unix(1000, 0)}
+	r := New(f, func() []string { return nil }, nil, quiet, c.now)
+	r.Tick(context.Background())
+	first := f.sent[0]
+	r.escape.task = session.Finished(protocol.TaskFlee, nil, protocol.StatusFailed, protocol.ReasonBlocked)
+	f.st.Task = &protocol.TaskRef{ID: r.escape.task.ID, Task: protocol.TaskFlee, Status: protocol.StatusRunning} // receipt can beat state
+	c.t = c.t.Add(4 * time.Second)
+	r.Tick(context.Background())
+	if len(f.sent) != 4 || f.sent[2] == first || !strings.Contains(f.sent[2], "toward [") {
+		t.Fatal(f.sent)
+	}
+	r.escape.task = session.Finished(protocol.TaskFlee, nil, protocol.StatusFailed, protocol.ReasonBlocked)
+	c.t = c.t.Add(time.Second)
+	r.Tick(context.Background())
+	if len(f.sent) != 4 {
+		t.Fatal("unbounded retry", f.sent)
+	}
+}
+
+func TestNewAttackerReaimsOnlyOurEscapeOnce(t *testing.T) {
+	for _, manual := range []bool{false, true} {
+		f := scene(25)
+		c := &clock{time.Unix(1000, 0)}
+		r := New(f, func() []string { return nil }, nil, quiet, c.now)
+		r.Tick(context.Background())
+		id := r.escape.task.ID
+		if manual {
+			id = "owner-flee"
+		}
+		f.st.Task = &protocol.TaskRef{ID: id, Task: protocol.TaskFlee, Status: protocol.StatusRunning}
+		c.t = c.t.Add(time.Second)
+		r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:9", Amount: 2})
+		r.Tick(context.Background())
+		if manual {
+			if len(f.sent) != 2 {
+				t.Fatal(f.sent)
+			}
+			continue
+		}
+		if len(f.sent) != 4 || !strings.HasPrefix(f.sent[2], "flee 0:9") {
+			t.Fatal(f.sent)
+		}
+		c.t = c.t.Add(time.Second)
+		r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 2})
+		r.Tick(context.Background())
+		if len(f.sent) != 4 {
+			t.Fatal("unbounded reaim", f.sent)
+		}
+	}
+}
+
+type observedFake struct {
+	*fake
+	now                     time.Time
+	stateAge, perceptionAge time.Duration
+	world                   string
+	revision                uint64
+	hello                   *protocol.Hello
+}
+
+func (f *observedFake) StateObservation() (*protocol.State, time.Time) {
+	return f.st, f.now.Add(-f.stateAge)
+}
+func (f *observedFake) PerceptionObservation() (*protocol.Hello, string, *protocol.Perception, time.Time) {
+	if f.hello == nil {
+		f.hello = &protocol.Hello{}
+	}
+	return f.hello, f.world, f.seen, f.now.Add(-f.perceptionAge)
+}
+func (f *observedFake) ControlRevision() uint64 { return f.revision }
+func (f *observedFake) Dispatch(ctx context.Context, o session.Order) (*session.Task, error) {
+	if !protocol.Instant(o.Task) {
+		f.revision++
+	}
+	return f.fake.Dispatch(ctx, o)
+}
+func TestFreshnessAndOwnerStopInvalidateDelayedRecovery(t *testing.T) {
+	for _, mode := range []string{"fresh", "state", "perception", "world", "owner stop", "known false"} {
+		t.Run(mode, func(t *testing.T) {
+			now := time.Unix(1000, 0)
+			f := &observedFake{fake: scene(25), now: now, world: "one"}
+			f.st.World = "one"
+			switch mode {
+			case "state":
+				f.stateAge = 4 * time.Second
+			case "perception":
+				f.perceptionAge = 4 * time.Second
+			case "world":
+				f.world = "two"
+			case "known false":
+				b := false
+				f.seen.Characters[1].TargetingKnown = &b
+			}
+			r := New(f, func() []string { return nil }, nil, quiet, func() time.Time { return now })
+			r.Tick(context.Background())
+			if mode == "fresh" || mode == "owner stop" {
+				if len(f.sent) != 2 {
+					t.Fatal(f.sent)
+				}
+			} else if len(f.sent) != 0 {
+				t.Fatal(f.sent)
+			}
+			if mode == "owner stop" {
+				r.escape.task = session.Finished(protocol.TaskFlee, nil, protocol.StatusFailed, protocol.ReasonBlocked)
+				f.revision++
+				r.Tick(context.Background())
+				if len(f.sent) != 2 {
+					t.Fatal("retry replaced stop", f.sent)
+				}
+			}
+		})
+	}
+}
+
+func TestNewConfirmedAttackerWinsOverCloserPreviousAttacker(t *testing.T) {
+	f := scene(25)
+	c := &clock{time.Unix(1000, 0)}
+	r := New(f, func() []string { return nil }, nil, quiet, c.now)
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:7", Amount: 1})
+	r.Tick(context.Background())
+	f.st.Task = &protocol.TaskRef{ID: r.escape.task.ID, Task: protocol.TaskFlee, Status: protocol.StatusRunning}
+	c.t = c.t.Add(time.Second)
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "0:9", Amount: 1})
+	r.Tick(context.Background())
+	if len(f.sent) != 4 || !strings.HasPrefix(f.sent[2], "flee 0:9") {
+		t.Fatal(f.sent)
+	}
+}
+
+func TestPendingDefenseCannotHideNewNearbyAttacker(t *testing.T) {
+	f := fighting()
+	f.st.Task = nil
+	f.st.Combat = nil
+	f.st.HP, f.st.HPMax = 34, 45
+	f.st.Food = &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Raspberry"}}}
+	c := &clock{time.Unix(1000, 0)}
+	r := New(f, func() []string { return nil }, nil, quiet, c.now)
+	r.Tick(context.Background())
+	if len(f.sent) != 1 {
+		t.Fatal(f.sent)
+	}
+	c.t = c.t.Add(250 * time.Millisecond)
+	f.seen.Characters = append(f.seen.Characters, protocol.PerceivedCharacter{ID: "other", Kind: protocol.CharacterCreature, Prefab: "Greyling", Hostile: true, HPFrac: 1, Pos: protocol.Vec3{12, 30, 0}})
+	r.Event(&protocol.Event{Event: protocol.EventDamaged, By: "other", Amount: 1})
+	r.Tick(context.Background())
+	if len(f.sent) != 3 || !strings.HasPrefix(f.sent[1], "flee other") {
+		t.Fatal(f.sent)
+	}
+}
+
+func TestRespawnDoesNotInheritAnOldEscapeEpisodeOrCooldown(t *testing.T) {
+	f := scene(25)
+	c := &clock{time.Unix(1000, 0)}
+	r := New(f, func() []string { return nil }, nil, quiet, c.now)
+	r.Tick(context.Background())
+	r.Event(&protocol.Event{Event: protocol.EventDied})
+	r.Event(&protocol.Event{Event: protocol.EventRespawned})
+	c.t = c.t.Add(time.Second)
+	r.Tick(context.Background())
+	if len(f.sent) != 4 {
+		t.Fatal("old escape masked new pursuit after respawn", f.sent)
+	}
+}
+
+func TestReconnectDiscardsOldEscapeButAllowsFreshPursuitProtection(t *testing.T) {
+	now := time.Unix(1000, 0)
+	f := &observedFake{fake: scene(25), now: now, world: "one"}
+	f.st.World = "one"
+	r := New(f, func() []string { return nil }, nil, quiet, func() time.Time { return now })
+	r.Tick(context.Background())
+	r.escape.task = session.Finished(protocol.TaskFlee, nil, protocol.StatusFailed, protocol.ReasonBlocked)
+	f.hello = &protocol.Hello{}
+	r.Tick(context.Background())
+	if len(f.sent) != 2 {
+		t.Fatal("old failed task retried across reconnect", f.sent)
+	}
+	r.Tick(context.Background())
+	if len(f.sent) != 4 {
+		t.Fatal("old cooldown masked fresh pursuit", f.sent)
 	}
 }
