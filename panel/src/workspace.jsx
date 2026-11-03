@@ -32,6 +32,9 @@ export function MapWorkspace() {
         <button data-layer="resources" aria-pressed="false">
           Resources
         </button>
+        <button data-layer="loot" aria-pressed="true">
+          Loot reach
+        </button>
         <button data-layer="obstacles" aria-pressed="true">
           Log boundaries
         </button>
@@ -79,6 +82,7 @@ export function MapWorkspace() {
         <span class="memory">Faint = last seen</span>
         <span>Amber = log boundary and body clearance</span>
       </div>
+      <div id="loot-card"></div>
       <details class="map-key">
         <summary>Map key</summary>
         <ul class="legend">

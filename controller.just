@@ -14,7 +14,8 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 buildvcs := `if [ "$(git rev-parse --git-dir 2>/dev/null)" != "$(git rev-parse --git-common-dir 2>/dev/null)" ]; then echo "-buildvcs=false"; fi`
 
 version := `git describe --tags --always --dirty 2>/dev/null || echo devel`
-ldflags := "-s -w -X main.version=" + version
+source := `git rev-parse HEAD`
+ldflags := "-s -w -X main.version=" + version + " -X main.sourceCommit=" + source
 
 # List the controller's recipes.
 default:
@@ -113,3 +114,8 @@ benchmark-atlas:
 # Keep Go embedding and standalone previews reproducible from frontend sources.
 panel-assets:
     just --justfile "{{justfile_directory()}}/justfile" panel build
+
+# Describe the actual staged artifacts, supported schemas/tasks, and source ancestry.
+[positional-arguments]
+deployment-manifest DIR:
+    go run {{buildvcs}} ./cmd/deploymanifest -dir "$1" -version "{{version}}" -actor "${RENKI_VM_ACTOR:-}"

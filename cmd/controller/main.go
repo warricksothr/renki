@@ -19,6 +19,7 @@ import (
 	"github.com/warricksothr/renki/internal/audit"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/deployment"
 	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/settings"
@@ -26,12 +27,16 @@ import (
 
 // version is stamped at build time with -ldflags "-X main.version=...".
 var version = "devel"
+var sourceCommit = ""
 
 func main() {
 	os.Exit(run())
 }
 
 func run() int {
+	preflight := flag.String("deployment-preflight", "", "check a staged deployment manifest without starting or changing data")
+	installed := flag.String("deployment-installed", "deployment.json", "installed deployment receipt")
+	runtime := flag.String("deployment-runtime", "", "read-only runtime snapshot")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	configPath := flag.String("config", "", "the configuration file (JSON); defaults apply to anything it leaves out")
 	listen := flag.String("listen", "", "override the configured listen address")
@@ -40,6 +45,15 @@ func run() int {
 
 	if *showVersion {
 		fmt.Println("renki controller", version)
+		return 0
+	}
+
+	if *preflight != "" {
+		if err := deployment.Check(*preflight, *installed, *runtime, *configPath, sourceCommit, version); err != nil {
+			fmt.Fprintln(os.Stderr, "deployment refused:", err)
+			return 2
+		}
+		fmt.Println("deployment preflight passed; no runtime or durable data changed")
 		return 0
 	}
 

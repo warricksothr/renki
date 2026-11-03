@@ -49,7 +49,7 @@ fmt: (route "fmt")
 clean: (route "clean")
 
 # Everything CI runs: each component's ci, then the ticket store.
-ci: (route "ci") streaming::test tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-client-lifecycle vm::test-gather-trial vm::test-escort-check vm::test-sleep-check vm::test-cooking-check vm::test-food-check vm::test-recover-home vm::test-marker-food-check vm::test-route-benchmark vm::test-lease
+ci: (route "ci") streaming::test tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-client-lifecycle vm::test-gather-trial vm::test-escort-check vm::test-sleep-check vm::test-cooking-check vm::test-food-check vm::test-recover-home vm::test-marker-food-check vm::test-route-benchmark vm::test-lease vm::test-deployment
 
 # Retain full output in .checks/; print a summary or the last 80 failure lines.
 # For example: just check ci, just check controller test-packages ./internal/home.
@@ -84,6 +84,7 @@ package:
     cp scripts/vm/*.ps1 scripts/vm/bot.example.psd1 controller.example.json "$out/"
     cp docs/TESTING.md docs/VM.md docs/PANEL.md docs/WAYPOINTS.md docs/GOALS.md docs/PLAYERS.md docs/EXPLORATION.md docs/ATLAS.md docs/ESCORT.md docs/COOKING.md docs/FOOD.md docs/PORTALS.md "$out/"
     (cd "$out" && sha256sum controller.exe plugin/Renki.Core.dll plugin/Renki.Plugin.dll > SHA256SUMS)
+    just --justfile "{{justfile()}}" controller deployment-manifest "$out"
     # The key the VM authorises for this machine's tooling (setup-remote.ps1).
     for k in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do [ -f "$k" ] && { cp "$k" "$out/renki-agent.pub"; break; }; done
     echo "packaged $out ($(git describe --tags --always --dirty 2>/dev/null || echo devel)):"

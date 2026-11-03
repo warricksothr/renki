@@ -287,6 +287,23 @@ work-site discovery, leader detours/resumption, resource exploration, tool
 swings and chat shortcuts remain separate work. This template is suitable
 for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
 
+## Inferred anchor activity
+
+Every ordered fresh perception frame feeds a pure activity tracker. A tree, log
+or stump disappearing within 12 m of the live authorized anchor suggests
+`felling`; a vanished rock/ore target suggests `mining`; a vanished pickable
+suggests `picking`. The snapshot includes the player, target ID, prefab, position,
+observation time and age, and expires after 30 s. Simultaneous mixed evidence
+chooses the nearest change, then kind and ID for a stable tie break.
+
+The tracker establishes a new baseline after session/world/anchor changes,
+stale or gapped scans, and bot jumps. It skips changes near the scan edge or when
+the relevant resource kind is capped. The current protocol cannot prove every
+scan complete or identify who caused a disappearance, so this is inferred nearby
+work, not proof of the player's action. It is available as `View.Activity` to
+templates and `activity` on behaviour status, including the passive list. It
+does not dispatch work or enable passive gathering.
+
 ## Loot near owners
 
 The `loot` template picks up drops near the player Tas is with, its
@@ -337,6 +354,29 @@ Until anyone has given an order since the controller started, a single
 commander in sight stands in as the anchor. With several in sight and none
 chosen, loot waits rather than guess. The deliberate-drop rule below still
 looks at every live owner, since any of them can put something down.
+
+### Panel diagnostics
+
+The **Loot reach** map layer and Loot card read `/api/behaviours`. Select a Loot
+instance when several exist. The card shows enablement, anchor, settle duration,
+current/maximum reach, inferred nearby work, and every effective parameter beside
+its default. Disabled instances still offer a policy preview; viewing it never
+enables them or sends a pickup.
+
+The map outlines the anchor with a square, its settle area with a dashed amber
+circle, and its adaptive reach around the player's current position with a solid
+green circle. Filled green drops are eligible, amber crosses are deliberate drops,
+and hollow blue drops are out of reach. Other exclusions (item selection, missing
+inventory/yield, capacity, run limits and prior attempts) appear in the card's
+drop decisions. Pickup selection uses the same decision function as diagnostics;
+instance conditions, body admission and native safety still govern execution.
+
+Diagnostics carry connection, world/UID, sequence and observation timestamps.
+The panel clears live overlays on offline, scope changes or five seconds without
+a fresh frame, even if requests or the event stream stall. Polling an unchanged
+frame cannot renew it. Saved-atlas views never display a live Loot overlay. The
+`loot-reach` UI scenario checks these on desktop and mobile; the owner-in-game
+reach-over-time observation remains a separate live check.
 
 ### Reach
 

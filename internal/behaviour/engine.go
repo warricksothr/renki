@@ -58,6 +58,7 @@ type Engine struct {
 	full, night, atHome bool
 	drops               map[string]bool
 	piles               pileWatch
+	activity            ActivityTracker
 }
 
 // loan is an owner's follow lent to the active passive run.
@@ -105,7 +106,9 @@ type Status struct {
 	StorageNeeded *StorageNeed `json:"storageNeeded,omitempty"`
 	// Passive is set when the latest run borrowed an owner's follow; with
 	// Running, the current one does.
-	Passive *PassiveRun `json:"passive,omitempty"`
+	Passive  *PassiveRun `json:"passive,omitempty"`
+	Activity *Activity   `json:"activity,omitempty"`
+	Loot     *LootStatus `json:"loot,omitempty"`
 }
 type Origin struct {
 	Instance string
@@ -168,6 +171,7 @@ func (e *Engine) makeInstance(d Definition) *instance {
 func (e *Engine) List() []Status {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	v := e.view()
 	out := make([]Status, 0, len(e.instances))
 	for name, i := range e.instances {
 		var storage *StorageNeed
@@ -181,7 +185,11 @@ func (e *Engine) List() []Status {
 		if provider, ok := i.runner.(Episode); ok {
 			episode = provider.EpisodeID()
 		}
-		out = append(out, Status{EpisodeID: episode, Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage, Passive: i.passive})
+		var loot *LootStatus
+		if l, ok := e.o.Templates[i.definition.Template].(*Loot); ok {
+			loot = l.Inspect(i.definition.Params, v, i.runner)
+		}
+		out = append(out, Status{Activity: v.Activity, Loot: loot, EpisodeID: episode, Name: name, Definition: i.definition, Runs: i.completed, Pending: i.pending, Running: e.active == name, Last: i.last, StorageNeeded: storage, Passive: i.passive})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	// Neither callers nor templates can mutate the engine's definitions.
@@ -406,7 +414,13 @@ func (e *Engine) view() View {
 		perception = nil
 		perceptionAt = time.Time{}
 	}
-	v := View{Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners(), Anchor: e.o.Anchor()}
+	v := View{Connection: e.o.Session.ConnectionID(), Features: features, StateAt: stateAt, PerceptionAt: perceptionAt, Now: e.o.Now(), State: state, Inventory: e.o.Session.Inventory(), Perception: perception, Containers: e.o.Session.Containers(), Owners: e.o.Owners(), Anchor: e.o.Anchor()}
+	if state != nil {
+		v.WorldUID = state.WorldUID
+	}
+	if _, welcome, ok := e.o.Session.Handshake(); ok && welcome != nil {
+		v.PerceptionBounds = welcome.Perception
+	}
 	if state != nil {
 		_, v.Walls = e.o.Session.MapObjects(state.World, e.o.Session.ConnectionID())
 	}
@@ -456,6 +470,7 @@ func (e *Engine) view() View {
 	if e.loan != nil {
 		v.Anchor = e.loan.follow.Player
 	}
+	v.Activity = e.activity.Observe(v)
 	return v
 }
 

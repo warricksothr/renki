@@ -148,50 +148,61 @@ vplus-inspect: need-target
     scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/vplus.ps1" "{{target}}:/{{dir}}/vplus.ps1"
     {{ssh}} "{{ps}} -File {{dir}}/vplus.ps1"
 
-# Build, stop and install with checksum verification; leave Tas offline.
+# Stage and check before stopping anything, then install; leave the game offline.
 install: need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     just --justfile "{{justfile()}}" package
+    stage="{{dir}}/staging/deploy-$(date -u +%Y%m%dT%H%M%SZ)-$RANDOM"
+    {{ssh}} "New-Item -ItemType Directory -Force -Path '$stage' | Out-Null"
+    scp -q -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/$stage/"
+    {{ssh}} "{{ps}} -File '$stage/deployment.ps1' -Root '{{dir}}' -Stage '$stage'"
+    {{lease}} guard
     if {{ssh}} "if (Get-Process valheim -ErrorAction SilentlyContinue) { exit 10 }" >/dev/null; then
         echo "the game is not running"
     else
         probe_status=$?
-        if [ "$probe_status" -ne 10 ]; then
-            echo "cannot inspect the VM (SSH exit $probe_status); installation stopped before copying or stopping anything" >&2
-            exit "$probe_status"
-        fi
-        # Guard again: packaging takes a while, and the nested stop, being an
-        # emergency stop, would not refuse if the lease changed hands meanwhile.
-        {{lease}} guard
+        [ "$probe_status" -eq 10 ] || exit "$probe_status"
         just --justfile "{{justfile()}}" vm stop
     fi
-    # Controller-only panel sessions also lock controller.exe on Windows.
     just --justfile "{{justfile()}}" vm panel-stop
-    {{ssh}} "New-Item -ItemType Directory -Force -Path '{{dir}}' | Out-Null"
-    for transfer_attempt in 1 2 3; do
-        if scp -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/{{dir}}/"; then
-            break
-        fi
-        [ "$transfer_attempt" -lt 3 ] || exit 1
-        echo "Package copy failed; releasing controller locks before retry $((transfer_attempt + 1))/3"
-        just --justfile "{{justfile()}}" vm panel-stop
-        sleep 2
-    done
-    {{ssh}} "{{ps}} -File {{dir}}/install.ps1"
+    {{lease}} guard
+    {{ssh}} "{{ps}} -File '$stage/install.ps1' -Root '{{dir}}' -Stage '$stage'"
 
-# Install the package, then start and wait for Tas to join.
+# Offline entry-point ordering checks; Go compatibility/data checks run in controller tests.
+test-deployment:
+    python3 -B "{{justfile_directory()}}/scripts/vm/deployment-test.py"
+
+# Verify both real refusal paths with a staged manifest; retain the running panel/game-offline state.
+deployment-refusal: need-target guard
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just --justfile "{{justfile()}}" package
+    stage="{{dir}}/staging/refusal-$(date -u +%Y%m%dT%H%M%SZ)-$RANDOM"
+    {{ssh}} "New-Item -ItemType Directory -Force -Path '$stage' | Out-Null"
+    scp -q -o BatchMode=yes -r "{{justfile_directory()}}/dist/renki-vm/." "{{target}}:/$stage/"
+    {{lease}} guard
+    {{ssh}} "{{ps}} -File '$stage/deployment-refusal.ps1' -Root '{{dir}}' -Stage '$stage'"
+
+# Explicitly opt into starting the game after a compatible installation.
 deploy: install
     just --justfile "{{justfile()}}" vm start
 
-# Deploy a controller-only change; preserve the running/offline game state.
+# Stage and validate before releasing controller locks; preserve offline state.
 deploy-controller: need-target guard
     #!/usr/bin/env bash
     set -euo pipefail
     just --justfile "{{justfile()}}" controller build-windows
-    scp -q -o BatchMode=yes "{{justfile_directory()}}/dist/controller.exe" "{{target}}:/{{dir}}/controller.next.exe"
-    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/deploy-controller.ps1" "{{target}}:/{{dir}}/deploy-controller.ps1"
-    {{ssh}} "{{ps}} -File {{dir}}/deploy-controller.ps1"
+    candidate="{{justfile_directory()}}/dist/controller-deployment"
+    mkdir -p "$candidate"
+    cp "{{justfile_directory()}}/dist/controller.exe" "$candidate/controller.exe"
+    just --justfile "{{justfile()}}" controller deployment-manifest "$candidate"
+    cp "{{justfile_directory()}}/scripts/vm/deployment.ps1" "{{justfile_directory()}}/scripts/vm/deploy-controller.ps1" "$candidate/"
+    stage="{{dir}}/staging/controller-$(date -u +%Y%m%dT%H%M%SZ)-$RANDOM"
+    {{ssh}} "New-Item -ItemType Directory -Force -Path '$stage' | Out-Null"
+    scp -q -o BatchMode=yes -r "$candidate/." "{{target}}:/$stage/"
+    {{lease}} guard
+    {{ssh}} "{{ps}} -File '$stage/deploy-controller.ps1' -Root '{{dir}}' -Stage '$stage'"
 
 # Takes renki-audit flags after the day count: `just vm audit 1 -task t-6`,
 # `just vm audit 2 -last 30m -state 1s`. DAYS counts today as 1.

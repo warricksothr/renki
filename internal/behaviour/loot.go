@@ -66,6 +66,8 @@ var LootItems = []string{"Wood", "Resin", "BeechSeeds", "Feathers"}
 type Loot struct {
 	mu      sync.Mutex
 	world   string
+	conn    uint64
+	uid     string
 	seq     uint64
 	felling map[string]protocol.Vec3 // trees, logs and stumps in the last frame
 	breaks  []Break
@@ -214,10 +216,11 @@ func (l *Loot) Observe(v View) {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if v.State.World != l.world {
+	if v.State.World != l.world || v.Connection != l.conn || v.WorldUID != l.uid {
+		l.conn, l.uid = v.Connection, v.WorldUID
 		l.world, l.seq, l.felling, l.breaks, l.drops, l.settles, l.asked = v.State.World, 0, nil, nil, nil, nil, nil
 	}
-	if l.drops != nil && v.Perception.Seq == l.seq {
+	if l.drops != nil && v.Perception.Seq <= l.seq {
 		return
 	}
 	l.seq = v.Perception.Seq
@@ -447,10 +450,7 @@ func (r *lootRun) pick(v View) *protocol.PerceivedResource {
 	reach := r.l.reach(anchor, r.p, v.Now)
 	var best *protocol.PerceivedResource
 	for _, d := range v.Perception.Resources {
-		if d.Kind != protocol.ResourceDrop || d.ID == "" || r.c.seen[d.ID] || !r.c.fits(v, d.Yield) || !r.l.eligible(d.ID, v.Now) {
-			continue
-		}
-		if distance(d.Pos, at) > reach {
+		if r.decision(v, d, at, reach) != "eligible" {
 			continue
 		}
 		if best == nil || targetCost(v, d.Pos) < targetCost(v, best.Pos) || targetCost(v, d.Pos) == targetCost(v, best.Pos) && d.ID < best.ID {
