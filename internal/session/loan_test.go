@@ -116,6 +116,28 @@ func TestAnOwnerOrderDuringALoanRevokesItAndNothingReturns(t *testing.T) {
 	}
 }
 
+func TestADeathThatBeatsReturnStillHandsBackTheFollow(t *testing.T) {
+	s, _, next, follow, send := following(t)
+	ctx := context.Background()
+	hello, _, _ := s.Handshake()
+	lease, err := s.TryLoanFrom(hello, "test", follow.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = lease.Dispatch(ctx, Order{Task: protocol.TaskPickup, Args: &protocol.PickupArgs{Entity: "wood"}, TimeoutS: 10}); err != nil {
+		t.Fatal(err)
+	}
+	next()
+	send(&protocol.State{Envelope: protocol.Envelope{Seq: 99}, Phase: protocol.PhaseDead, World: "test", HP: 0})
+	waitFor(t, func() bool { return !lease.Valid() })
+	if _, err := lease.Return(ctx); !errors.Is(err, ErrBodyBusy) {
+		t.Fatal(err)
+	}
+	if got, ok := lease.DiedOnLoan(); !ok || got != follow {
+		t.Fatal("a Return that lost to the death must not hide it", got, ok)
+	}
+}
+
 func TestADeathDuringALoanHandsBackTheFollowForAResume(t *testing.T) {
 	for _, c := range []struct {
 		name     string

@@ -238,7 +238,7 @@ func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
 
 // ResumeAfterDeathWhileDead is ResumeAfterDeath for a resume learned of
 // after the death rather than as it happened: it leaves f only while the
-// bot is still dead and the respawn not yet handled, and reports whether
+// bot is dead or Tick has not yet handled its respawn, and reports whether
 // it did. Left later, f would fire on some later death instead. Tick
 // handles the respawn under the same lock, so it either sees f or this
 // sees the bot back in the world.
@@ -248,7 +248,8 @@ func (k *Keeper) ResumeAfterDeathWhileDead(f func(context.Context) bool) bool {
 	st := k.s.State()
 	// Dead, or at no health a frame before the dead phase.
 	dying := st != nil && (st.Phase == protocol.PhaseDead || st.Phase == protocol.PhaseInWorld && st.HPMax > 0 && st.HP <= 0)
-	if !dying || k.respawned {
+	// k.dead and k.respawned say Tick has yet to act on this respawn.
+	if !dying && !k.dead && !k.respawned {
 		return false
 	}
 	k.resume = f

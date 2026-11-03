@@ -155,7 +155,9 @@ func (a *Automation) DiedOnLoan() (*Task, bool) {
 		return nil, false
 	}
 	a.s.mu.Lock()
-	died := a.loan.died && !a.loan.returned
+	// died is set only while this handle held the body, so a follow sent
+	// back first never counts; one whose Return lost the race does.
+	died := a.loan.died
 	a.s.mu.Unlock()
 	if !died || !a.loan.task.Lent() {
 		return nil, false

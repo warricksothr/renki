@@ -605,7 +605,12 @@ func TestALateResumeIsLeftOnlyWhileTheBotIsDead(t *testing.T) {
 	if !k.ResumeAfterDeathWhileDead(resume) {
 		t.Fatal("dead: the resume is left")
 	}
+	// Back in the world, but before Tick has handled the respawn: still in
+	// time, and it fires on this respawn.
 	back(f, nil)
+	if !k.ResumeAfterDeathWhileDead(resume) {
+		t.Fatal("the respawn is not handled yet: the resume is left")
+	}
 	k.Tick(ctx)
 	if resumed != 1 {
 		t.Fatal("resumed", resumed)
