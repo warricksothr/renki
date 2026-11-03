@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
 title: Search nearby or listed chests for requested items
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/home-survey-delivery
-  branch: t3/map-home-location
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b02dd361
-  commit: cc5f323f40b598ada0f105f7458156e2fa92f495
-  session: null
-  claimed_at: 2026-11-03T16:01:48Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-03T16:01:47Z
-updated_at: 2026-11-03T16:26:59Z
+updated_at: 2026-11-03T16:40:45Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -68,3 +61,11 @@ Focused Go/native protocol, engine, stale/correlated contents, travel accounting
 **agent:codex/home-survey-delivery** at 2026-11-03T16:26:59Z
 
 Interrupted searches retain their partial findings and unchecked count in behavior status, including newer owner stop/retreat; no stale continuation or stop is sent to the new owner. A bridge integration regression checks inspection, reporting without withdrawal, and partial-result retention on interruption. Shared inspection fixtures also reject unknown nested scope fields on both Go and C#.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:40:45Z
+
+Code landed in2e8c6d1. Full just check ci passed170s (.checks/20261103T163500Z-YLtrJQ.log); committed just check review passed8s with no findings (.checks/20261103T163822Z-KdkkbC.log). just check vm install passed16s with installed controller/Core/plugin checksum verification (.checks/20261103T163834Z-MJnAw1.log). just vm panel-start restored the independent panel without starting the game. Read-only delivered observation confirms offline; Loot remains disabled. The normal settings API added inspect_container while preserving all18 existing task permissions; readback confirmed it. Evidence .checks/new-home-delivered-observation.json, .checks/new-home-delivered-settings.json and .checks/new-home-delivered-behaviours.json. Native survival, double doors, chest inventories, survey/return and bed ownership remain unearned. No game rejoin or dangerous probe was attempted.
+
+## Summary
+
+Implemented, tested, reviewed and installed bounded read-only chest inspection/search with radius/list/chat entry, fresh correlated counts, measured travel and retained partial results. inspect_container is enabled in the existing runtime allowlist. Native searches and before/after unchanged-inventory evidence remain unearned; AC4 stays unchecked while Tas is emergency-offline during an actual pursuit.

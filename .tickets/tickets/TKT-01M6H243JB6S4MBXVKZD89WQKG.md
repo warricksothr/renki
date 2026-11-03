@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6H243JB6S4MBXVKZD89WQKG
 title: Close doors Tas opened after passing through the doorway
 type: bug
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/home-survey-delivery
-  branch: t3/map-home-location
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b02dd361
-  commit: cc5f323f40b598ada0f105f7458156e2fa92f495
-  session: null
-  claimed_at: 2026-11-03T15:58:23Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-03T15:58:23Z
-updated_at: 2026-11-03T16:22:41Z
+updated_at: 2026-11-03T16:40:46Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -65,3 +58,11 @@ Implemented shared registration for explicit and walker opening, per-leaf doorwa
 **agent:codex/home-survey-delivery** at 2026-11-03T16:22:41Z
 
 Added the double-door edge case where opening begins exactly on the doorway plane: cleanup recognizes clearing either side while still in reach. The existing per-leaf closure/replication budget remains unchanged. Combined offline DoorPassage regressions passed in .checks/20261103T161946Z-AGIa9e.log. Native double-door passage/verified closure remains unearned; Tas is emergency-offline during pursuit, so no exposed probe was attempted.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:40:45Z
+
+Code landed in2e8c6d1. Full just check ci passed170s (.checks/20261103T163500Z-YLtrJQ.log); committed just check review passed8s with no findings (.checks/20261103T163822Z-KdkkbC.log). just check vm install passed16s with installed controller/Core/plugin checksum verification (.checks/20261103T163834Z-MJnAw1.log). just vm panel-start restored the independent panel without starting the game. Read-only delivered observation confirms offline; Loot remains disabled. The normal settings API added inspect_container while preserving all18 existing task permissions; readback confirmed it. Evidence .checks/new-home-delivered-observation.json, .checks/new-home-delivered-settings.json and .checks/new-home-delivered-behaviours.json. Native survival, double doors, chest inventories, survey/return and bed ownership remain unearned. No game rejoin or dangerous probe was attempted.
+
+## Summary
+
+Implemented, tested, reviewed and installed per-leaf explicit/walker door cleanup, double-hinge/starting-plane passage and bounded observed closure. AC4 remains unchecked pending native double-door opening/passage/closure proof. Tas is emergency-offline during an actual pursuit, so no exposed probe was run.

@@ -17,9 +17,17 @@ blindly rejoin this saved pursuit. Menu HP0 is not evidence of death; no new
 `died` event was observed in this window. Evidence:
 `.checks/new-home-defense-current.json`, `.checks/audit-window-VVadhq.jsonl`.
 
-Runtime before this delivery was cc5f323. The delivery adds door cleanup,
-read-only chest search and proactive/blocked-escape protection; installation
-and checks are recorded in the tickets. Keep Loot disabled. No free Tas bed,
+Runtime installed for the next launch: **2e8c6d1**. Full just check ci passed170s
+(.checks/20261103T163500Z-YLtrJQ.log), committed just check review passed8s
+with no findings (.checks/20261103T163822Z-KdkkbC.log), and just check vm
+install passed16s with controller/Core/plugin checksum verification
+(.checks/20261103T163834Z-MJnAw1.log). The independent panel was restarted;
+the game was not started. Later ticket/handoff changes need no runtime restart.
+Delivery adds door cleanup, read-only chest search and proactive/blocked-escape
+protection. Runtime allowlist now includes inspect_container, preserving all18
+existing permissions. Readback confirms Tas offline and Loot still disabled:
+.checks/new-home-delivered-observation.json, new-home-delivered-settings.json
+and new-home-delivered-behaviours.json under .checks/. Keep Loot disabled. No free Tas bed,
 completed live survey, native chest search, double-door closure or survival
 acceptance has been earned. Sleeping remains unassigned. Grave recovery and
 safe return to the new home remain unresolved.
@@ -38,13 +46,13 @@ inference. Native pre-contact/survival validation remains outstanding.
 start bounded read-only search. See BEHAVIOURS.md. It counts only fresh native
 correlated inspection snapshots, leaves inventory untouched and reports
 unchecked/unknown storage. Default25m can be changed up to100m. The installed
-controller's persisted allowlist must include `inspect_container` before use.
+controller's persisted allowlist now includes `inspect_container`.
 
-New tickets: TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before
+Done/released implementation tickets: TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before
 the first hit), TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked
-escape and re-aim on a new attacker), and TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
-(Search nearby or listed chests for requested items). The door ticket below
-retains its separate native acceptance. Checked regressions include the
+escape and re-aim on a new attacker); both have all offline criteria earned. TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
+(Search nearby or listed chests for requested items) and the door ticket below
+are review/released, with their native criteria still unchecked. Checked regressions include the
 captured raised-base start with explicitly synthetic obstruction, known
 pursuit, freshness, owner-stop/world races, bounded retry, newest attacker,
 correlated chest contents and native travel accounting.

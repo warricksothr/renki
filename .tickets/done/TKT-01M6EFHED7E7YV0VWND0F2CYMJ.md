@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EFHED7E7YV0VWND0F2CYMJ
 title: "Flee: fail fast on a blocked escape and re-aim on a new attacker"
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/home-survey-delivery
-  branch: t3/map-home-location
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b02dd361
-  commit: 671e8d6a2e8b275a497a77165277fdfa3bec3fd4
-  session: null
-  claimed_at: 2026-11-03T16:14:08Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-02T15:55:08Z
-updated_at: 2026-11-03T16:22:40Z
+updated_at: 2026-11-03T16:40:45Z
 created_by:
   id: agent:claude-code/renki-plan-m3
   name: ""
@@ -76,7 +69,7 @@ The live proof is goal 3.1's raised-base run, owned by TKT-01M62N256M.
 - [x] The captured 2026-10-31 raised-base positions are a regression test that either finds a checked escape or fails fast with that reason
 - [x] After a blocked flee the controller makes at most one more flee attempt per threat, with a different target; a test covers the bound
 - [x] A hit from a different creature during a running flee re-aims the flee from that creature; a test covers it
-- [ ] just check ci passes
+- [x] just check ci passes
 
 ## Implementation plan
 
@@ -89,3 +82,11 @@ Add a native physical-progress window that spans replans and fails within four s
 Implemented native FleeProgress independent of replans: less than 1m flat displacement over 4s with threat within 15m fails blocked and traces actual position/threat/goal/gap. Ordinary flee now uses existing bounded checked bearings. Controller tracks its own task receipt and owner revision, permits one alternate tangent destination after blocked/unreachable/stuck, and can re-aim once from a genuinely new confirmed attacker. Newest damage takes priority over a closer older attacker. Two-attempt episode bound, native ownership and owner-stop/world dispatch races are covered. No remembered verified door/floor exit is available in the current retreat API; fallback is checked tangent guidance rather than guessed geometry.
 
 Captured raised-base start [-33.9,36.09,6.68] and goal [-20.85,36.09,-2.57] are retained in FleeProgressTests with synthetic obstruction/jitter clearly labeled. just check plugin test-core Flee and focused controller regressions passed; later combined checks .checks/20261103T161946Z-AGIa9e.log and .checks/20261103T162143Z-4MDyZq.log. Full gate/review follow. Raised-base survival remains owned by the parent flee ticket, unearned.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:40:45Z
+
+Code landed in2e8c6d1. Full just check ci passed170s (.checks/20261103T163500Z-YLtrJQ.log); committed just check review passed8s with no findings (.checks/20261103T163822Z-KdkkbC.log). just check vm install passed16s with installed controller/Core/plugin checksum verification (.checks/20261103T163834Z-MJnAw1.log). just vm panel-start restored the independent panel without starting the game. Read-only delivered observation confirms offline; Loot remains disabled. The normal settings API added inspect_container while preserving all18 existing task permissions; readback confirmed it. Evidence .checks/new-home-delivered-observation.json, .checks/new-home-delivered-settings.json and .checks/new-home-delivered-behaviours.json. Native survival, double doors, chest inventories, survey/return and bed ownership remain unearned. No game rejoin or dangerous probe was attempted.
+
+## Summary
+
+Implemented and installed physical-progress blocked escape detection with distinct reason/trace, checked ordinary flee bearings, one different-target retry and bounded new-attacker re-aim. Captured raised-base coordinates have an explicitly synthetic-obstruction regression. Native raised-base survival remains unearned on the overall flee ticket; offline criteria are complete.

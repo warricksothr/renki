@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6H30FZE2PQC71JBDVG9CSTF
 title: React to hostile pursuit before the first hit
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/home-survey-delivery
-  branch: t3/map-home-location
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b02dd361
-  commit: 671e8d6a2e8b275a497a77165277fdfa3bec3fd4
-  session: null
-  claimed_at: 2026-11-03T16:14:07Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-03T16:13:53Z
-updated_at: 2026-11-03T16:34:55Z
+updated_at: 2026-11-03T16:40:44Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -47,7 +40,7 @@ Healthy Tas currently ignores a known hostile target until it deals damage. The 
 
 - [x] Fresh known targeting triggers protection at healthy HP before damage; existing native defense readiness and permissions remain authoritative.
 - [x] Stale or unrelated hostile observations do not start protection; active native work and successful escape ownership are preserved.
-- [ ] Focused regression checks, full CI and committed review pass; live pre-contact and survival evidence remain distinct.
+- [x] Focused regression checks, full CI and committed review pass; live pre-contact and survival evidence remain distinct.
 
 ## Implementation plan
 
@@ -74,3 +67,11 @@ The full gate previously exposed TestControlAPI racing its updated character fra
 **agent:codex/home-survey-delivery** at 2026-11-03T16:34:55Z
 
 Native review found and corrected the remaining damage-only entry gate in MeleeTask: DefensiveReady now accepts either a recent actual hit or a locally owned AI currently targeting Tas. Unknown/remote AI targeting alone cannot grant entry. Species/range, health, food, armour, stamina, weapon, bystander and combat permissions retain their existing checks. New native policy cases cover true/false/unknown targeting and withheld preparation before the first hit. just check plugin build passed10s in .checks/20261103T163419Z-yGICn2.log. A full gate that overlapped this edit saw mismatched old/new Core/plugin signatures and is not passing evidence; the serial native rebuild passed and final gate follows. No live encounter was staged from the known emergency pursuit.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:40:44Z
+
+Code landed in2e8c6d1. Full just check ci passed170s (.checks/20261103T163500Z-YLtrJQ.log); committed just check review passed8s with no findings (.checks/20261103T163822Z-KdkkbC.log). just check vm install passed16s with installed controller/Core/plugin checksum verification (.checks/20261103T163834Z-MJnAw1.log). just vm panel-start restored the independent panel without starting the game. Read-only delivered observation confirms offline; Loot remains disabled. The normal settings API added inspect_container while preserving all18 existing task permissions; readback confirmed it. Evidence .checks/new-home-delivered-observation.json, .checks/new-home-delivered-settings.json and .checks/new-home-delivered-behaviours.json. Native survival, double doors, chest inventories, survey/return and bed ownership remain unearned. No game rejoin or dangerous probe was attempted.
+
+## Summary
+
+Implemented and installed pre-contact protection: healthy Tas reacts to fresh known hostile targeting before damage, using prepared native defense for one ordinary Greyling or retreat. Native entry now accepts locally owned AI targeting as well as recent actual hits, retaining preparation/permission checks. Freshness, owner/world/reconnect/respawn races and pending manual/native ownership are covered. Native encounter survival remains a separate unchecked field requirement on the overall flee work.
