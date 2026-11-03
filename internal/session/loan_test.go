@@ -111,6 +111,40 @@ func TestAnOwnerOrderDuringALoanRevokesItAndNothingReturns(t *testing.T) {
 	if _, err := lease.Return(ctx); !errors.Is(err, ErrBodyBusy) {
 		t.Fatal("a revoked loan must not send the follow again", err)
 	}
+	if _, ok := lease.DiedOnLoan(); ok {
+		t.Fatal("an owner order is no death")
+	}
+}
+
+func TestADeathDuringALoanHandsBackTheFollowForAResume(t *testing.T) {
+	for _, c := range []struct {
+		name     string
+		stepSent bool
+	}{{"after the step replaced the follow", true}, {"before any step", false}} {
+		t.Run(c.name, func(t *testing.T) {
+			s, _, next, follow, send := following(t)
+			ctx := context.Background()
+			hello, _, _ := s.Handshake()
+			lease, err := s.TryLoanFrom(hello, "test", follow.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if c.stepSent {
+				if _, err = lease.Dispatch(ctx, Order{Task: protocol.TaskPickup, Args: &protocol.PickupArgs{Entity: "wood"}, TimeoutS: 10}); err != nil {
+					t.Fatal(err)
+				}
+				next()
+			}
+			send(&protocol.State{Envelope: protocol.Envelope{Seq: 99}, Phase: protocol.PhaseDead, World: "test", HP: 0})
+			waitFor(t, func() bool { return !lease.Valid() })
+			got, ok := lease.DiedOnLoan()
+			// Before any step the follow itself ends with the death, and
+			// its own listener leaves the resume.
+			if ok != c.stepSent || ok && got != follow {
+				t.Fatal(got, ok)
+			}
+		})
+	}
 }
 
 func TestALoanThatSentNothingLeavesTheFollowRunning(t *testing.T) {

@@ -529,6 +529,18 @@ func (b *Brain) empty(o origin, g *protocol.PerceivedStructure) {
 	}
 }
 
+// ResumeLentFollow leaves a resume for an owner's follow that a passive
+// behaviour had borrowed when Tas died (behaviour.Options.ResumeFollow).
+// The follow itself ended superseded and said nothing, so TaskDone never
+// left one for it.
+func (b *Brain) ResumeLentFollow(t *session.Task) {
+	o, ok := t.Origin.(origin)
+	if !ok || b.opts.Home == nil {
+		return
+	}
+	b.leaveResume(t, o)
+}
+
 // leaveResume tells the home keeper what a death cut short: a follow
 // starts again for the same player, if they are still about (if not, the
 // follow fails with target_lost and the bot goes home on that). Anything

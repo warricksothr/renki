@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T19:44:21Z
-updated_at: 2026-11-03T00:23:02Z
+updated_at: 2026-11-03T00:32:21Z
 created_by:
   id: agent:claude-code/renki-m2-loot
   name: ""
 updated_by:
-  id: agent:claude-code/renki-passive
+  id: agent:claude-code/renki-lead
   name: ""
 extensions: {}
 ---
@@ -127,6 +127,10 @@ Corrects two commands in the previous note. The deploy in step 1 is `just vm dep
 **agent:claude-code/renki-passive** at 2026-11-03T00:08:08Z
 
 This corrects the design note: the audit record `follow kept` is now called `follow not replaced`. The records are `follow returned`, `follow not replaced`, `follow not returned` and `could not return the follow`. The last one also tells the followed player through Notify.
+
+**agent:claude-code/renki-lead** at 2026-11-03T00:32:21Z
+
+Supersedes the death trade-off in the earlier notes and the PR's first description. A death during a passive run now hands the lent follow to the chat brain. The session marks the loan `died` when a death revokes the handle, `Automation.DiedOnLoan` returns the replaced follow, the engine's giveBack passes it to `Options.ResumeFollow`, and that calls `Brain.ResumeLentFollow` → `leaveResume`. After the respawn Tas resumes the follow, as after a death during a plain follow. Covered by a session test (after a step, and not before any step) and an engine test. TKT-01M6FCYSS5 is archived as done here.
 
 ## Summary
 

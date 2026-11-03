@@ -304,6 +304,9 @@ func (s *Session) Message(c *bridge.Conn, m protocol.Message) {
 				s.screenshot = nil
 			}
 			if m.Phase != protocol.PhaseInWorld || m.HP <= 0 {
+				if a := s.automation; a != nil && a.loan != nil && (m.Phase == protocol.PhaseDead || m.Phase == protocol.PhaseInWorld && m.HP <= 0) {
+					a.loan.died = true
+				}
 				s.automation = nil
 			}
 			if m.Phase != protocol.PhaseInWorld {

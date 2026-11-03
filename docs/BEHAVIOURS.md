@@ -179,9 +179,12 @@ step leaves the follow running and sends nothing.
   again, and the log records `follow not returned`.
 - **Survival first.** Retreat's flee and defence are direct orders and win
   the same way. They end a lent follow as they end a plain one: the follow is
-  not restarted. Death, logout, a reconnect or a world change also revoke
-  the handle, so no follow is restarted. The chat brain's resume after a
-  death covers only a follow that was running when Tas died.
+  not restarted. Logout, a reconnect or a world change also revoke
+  the handle, so no follow is restarted. A death revokes it too, but the
+  lent follow is then handed to the chat brain (`Options.ResumeFollow`,
+  `Brain.ResumeLentFollow`). That leaves the same resume after the respawn
+  as for a follow that was running when Tas died, so Tas comes back to
+  following once it has respawned, if the home rules say resume.
 
 A lent follow (`Task.Lent`) ends `cancelled`/`superseded`, which the chat
 brain answers as it does every superseded task. It says nothing, does not

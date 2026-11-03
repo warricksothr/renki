@@ -37,6 +37,10 @@ type Options struct {
 	Logger     *slog.Logger
 	Now        func() time.Time
 	Notify     func(context.Context, string)
+	// ResumeFollow is told of an owner's follow a passive run had borrowed
+	// when Tas died before it went back, so the follow can be resumed after
+	// the respawn as one that was running at the death would be.
+	ResumeFollow func(*session.Task)
 }
 type Engine struct {
 	mu                  sync.Mutex
@@ -673,14 +677,14 @@ func (e *Engine) giveBack(ctx context.Context, why string) (spent bool) {
 	e.loan = nil
 	attrs := []any{"instance", e.active, "follow", l.follow.TaskID, "player", l.follow.Player, "reason", why}
 	if !e.lease.Valid() {
-		e.o.Logger.Info("follow not returned", attrs...)
+		e.o.Logger.Info("follow not returned", e.resumeAfterDeath(attrs)...)
 		return true
 	}
 	t, err := e.lease.Return(ctx)
 	switch {
 	case errors.Is(err, session.ErrBodyBusy) || errors.Is(err, session.ErrNotConnected):
-		// An order or the connection won the race with Return.
-		e.o.Logger.Info("follow not returned", append(attrs, "err", err)...)
+		// An order, a death or the connection won the race with Return.
+		e.o.Logger.Info("follow not returned", append(e.resumeAfterDeath(attrs), "err", err)...)
 		return true
 	case err == nil && t == nil || errors.Is(err, session.ErrNoLoan):
 		// Still running, or it ended on its own before the run's first
@@ -701,6 +705,17 @@ func (e *Engine) giveBack(ctx context.Context, why string) (spent bool) {
 		e.o.Logger.Info("follow returned", append(attrs, "id", t.ID)...)
 		return true
 	}
+}
+
+// resumeAfterDeath passes on a lent follow a death cut short, and says so
+// in the log attributes.
+func (e *Engine) resumeAfterDeath(attrs []any) []any {
+	t, ok := e.lease.DiedOnLoan()
+	if !ok || e.o.ResumeFollow == nil {
+		return attrs
+	}
+	e.o.ResumeFollow(t)
+	return append(attrs, "resume", "after respawn")
 }
 
 func (e *Engine) finish(ctx context.Context, success bool, detail string, v View) {

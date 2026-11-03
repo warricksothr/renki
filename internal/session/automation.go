@@ -20,6 +20,7 @@ type Automation struct {
 type loan struct {
 	task     *Task
 	returned bool
+	died     bool // a death revoked the handle, under the session's lock
 }
 
 // Follow is an owner's follow the body is running.
@@ -142,6 +143,24 @@ func (s *Session) TryLoanFrom(hello *protocol.Hello, world, followID string) (*A
 	a := &Automation{s: s, loan: &loan{task: t}}
 	s.automation = a
 	return a, nil
+}
+
+// DiedOnLoan is the follow this handle borrowed and replaced, when a death
+// revoked the handle before the follow went back. The follow ended
+// superseded and its listener stayed quiet, so whoever resumes a follow a
+// death cut short must be told of this one too. It reports false when the
+// follow was never replaced: then the follow itself ended with the death.
+func (a *Automation) DiedOnLoan() (*Task, bool) {
+	if a == nil || a.loan == nil {
+		return nil, false
+	}
+	a.s.mu.Lock()
+	died := a.loan.died && !a.loan.returned
+	a.s.mu.Unlock()
+	if !died || !a.loan.task.Lent() {
+		return nil, false
+	}
+	return a.loan.task, true
 }
 
 // Lent is the follow this handle borrowed, or false for an ordinary one.

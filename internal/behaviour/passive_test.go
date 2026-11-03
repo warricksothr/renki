@@ -167,6 +167,29 @@ func TestAnOwnerOrderDuringAPassiveRunWinsAndNothingRestarts(t *testing.T) {
 	}
 }
 
+func TestADeathDuringAPassiveRunLeavesTheLentFollowForAResume(t *testing.T) {
+	f := followingNimah(t)
+	resumed := make(chan *session.Task, 1)
+	f.e.o.ResumeFollow = func(t *session.Task) { resumed <- t }
+	f.settle()
+	req := f.pickup()
+	f.p.Send(&protocol.State{Phase: protocol.PhaseDead, World: "test", HP: 0, HPMax: 25, WeightMax: 300})
+	f.done(t, req, protocol.StatusFailed, protocol.ReasonDied)
+	f.tick()
+	select {
+	case got := <-resumed:
+		if got != f.follow {
+			t.Fatal("resumed the wrong follow", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the lent follow was not passed on for a resume", f.log.String())
+	}
+	f.p.Quiet(50 * time.Millisecond)
+	if !strings.Contains(f.log.String(), "after respawn") {
+		t.Fatal(f.log.String())
+	}
+}
+
 func TestAnIdleInstanceNeverBorrowsAFollow(t *testing.T) {
 	f := followingNimah(t)
 	d := LootDefinition()
