@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6EWN4WH7R17QC51VKH4NDYW
 title: "Behaviours: passive mode lends an owner's follow to passive instances"
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/renki-passive
-  branch: t3/passive-mode-loot-follow
-  worktree: /home/sothr/.t3/worktrees/renki/t3-cba95dcf
-  commit: 104b36283b22a3609c5aace97ac6069d8cc7ae98
-  session: null
-  claimed_at: 2026-11-02T23:08:11Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-02T19:44:21Z
-updated_at: 2026-11-03T00:08:08Z
+updated_at: 2026-11-03T00:23:02Z
 created_by:
   id: agent:claude-code/renki-m2-loot
   name: ""
@@ -79,28 +72,22 @@ While Tas follows an owner the body is never idle, so the engine never starts an
 
 ## Implementation plan
 
+As built. This replaces the first plan.
+
 ### Session (internal/session)
-- `Session.OwnerFollow()` reports the running owner follow: a non-final `follow` the session sent outside automation, the only non-instant task in flight, and the state's current task. It returns its task ID and player.
-- `TryLoanFrom(hello, world, followID)` reserves the body like `TryAutomationFor`, but accepts exactly that running follow. Its first dispatch marks the follow `Lent()`. The follow then ends `superseded`.
-- `Automation.Return(ctx)` sends the same follow again, with the original args, timeout and Origin, through the still-valid handle. It records owner provenance on the new task and releases the handle. It does not bump ControlRevision. An owner order, death, reconnect or world change already invalidates the handle, so in those cases nothing returns.
+- `Session.OwnerFollow()` reports the running owner follow: a non-final `follow` sent outside automation (or given back), the state's current task, and the only body task in flight.
+- `TryLoanFrom(hello, world, followID)` reserves the body for exactly that follow. The handle's first body task marks the follow `Lent()`, but only while the follow is still running, and clears the mark if the send fails.
+- `Automation.Return(ctx)` sends the same follow again (args, timeout, Origin) through the handle, only when it ended superseded or is still running. It records owner provenance and spends the handle after a successful send. It does not bump ControlRevision. When nothing was replaced it sends nothing, returns nil, and leaves the handle valid.
 
 ### Engine (internal/behaviour)
-- `Definition.Mode`: "" or "idle" (the default) or "passive". Passive needs a template that implements `Passive` (loot does) and a timer, event or manual trigger. Remove loot's `preemptFollow`; it was never saveable.
-- `Passive.Settled(params, player, now) (since, ok)`: loot answers from its own settle tracker for that instance's area shape, so settle tracking stays in one place.
-- `View.Following` is the owner follow (if the body runs one). While it is set, triggers queue only passive instances whose player is settled. `candidate` then picks only passive instances, and Tick borrows with `TryLoanFrom`. The engine keeps `e.loan` (follow task, player, area since). During the loan, `View.Anchor` is the followed player.
-- Each tick of a loan checks the settle area. If it reset or the player was lost, the run is cancelled with "followed player moved on". `cancel` and `finish` give the follow back with `Return` while the handle is valid, instead of sending stop.
-- `Status.Passive` holds the running loan's follow (task and player) for the card. The logs "behaviour started" and "follow returned" carry `passive`, `follow` and `player` for the audit.
-- The built-in Loot becomes `mode: passive`. InstallLoot upgrades a saved Loot that is still the unedited old built-in default, and keeps its enabled flag.
+- `Definition.Mode` is idle (the default) or passive. Passive needs a `Passive` template (loot). `preemptFollow` is removed.
+- `Passive.Settled` comes from loot's tracker for the instance's area shape. `View.Following` and the anchor are the followed player.
+- While following, only passive instances whose player is settled queue or run, and the engine borrows with TryLoanFrom. On each tick of a loan it checks the settle area, and a reset cancels the run with "followed player moved on".
+- `cancel` and `finish` call `giveBack` first. It sends the follow back, or logs `follow not replaced`, `follow not returned` or `could not return the follow`; the last one also notifies the player. `cancel` then stops the step if the handle is still valid. A stop error is swallowed only when the loan was really spent.
+- `Status.Passive` and the audit attributes show the borrowed follow. InstallLoot upgrades an unedited old built-in.
 
 ### Brain
-- `TaskDone` ignores a lent follow (`t.Lent()`): no speech, no home, no resume. The anchor is untouched, because the return is sent by the session, not through `ordered`.
-
-### Panel and docs
-- The instance card shows "Passive · borrowing <player>'s follow".
-- docs/BEHAVIOURS.md: modes, the passive list, the yield rules, retreat.
-
-### Tests
-Engine tests with the fake plugin, session tests for loan and return, and a brain test.
+- There is no special case. A lent follow ends cancelled/superseded, which the brain already answers with silence, and the anchor is untouched. A lent follow that failed on its own is handled as a real end, including the death resume.
 
 ## Notes
 
@@ -140,3 +127,7 @@ Corrects two commands in the previous note. The deploy in step 1 is `just vm dep
 **agent:claude-code/renki-passive** at 2026-11-03T00:08:08Z
 
 This corrects the design note: the audit record `follow kept` is now called `follow not replaced`. The records are `follow returned`, `follow not replaced`, `follow not returned` and `could not return the follow`. The last one also tells the followed player through Notify.
+
+## Summary
+
+Done in the PR from branch t3/passive-mode. Instances have an idle or passive mode. The built-in Loot is passive and on, and an unedited old built-in is upgraded. While an owner's follow runs and the followed player is settled, the engine lends the follow to the first ready passive instance (Session.TryLoanFrom). When the run ends it sends the same follow again (Automation.Return) without counting as an owner order. The run ends, and the follow restarts, when the player leaves their settle area. An owner order revokes the loan, and nothing restarts. Retreat counts as such an order. Tests cover lending and return, a walking leader, leaving the area, an owner order, an idle instance, the brain's silence and anchor, and the failure paths. docs/BEHAVIOURS.md has a new "Idle and passive" section. Criterion 6, the live check, is not done: the steps are in the notes. The panel has no general instance card; the data is `passive` on /api/behaviours.
