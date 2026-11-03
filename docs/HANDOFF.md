@@ -1,275 +1,148 @@
 # Handoff
 
-2026-11-03, agent:codex/home-survey-delivery, branch t3/map-home-location.
-Delivery: [PR #176](https://github.com/warricksothr/renki/pull/176).
-The owner authorized filing, grooming, promotion and delivery while away.
-No merge or CI monitoring was requested.
+The state of the work at the last handoff, and what the next agent needs
+that the tickets and the roadmap do not already say. Replace this page at
+each handoff rather than appending to it.
 
-## Current runtime: emergency offline during Greyling pursuit
+Handoff of 2026-11-03, from `agent:codex/portal-deploy`. The owner selected
+TKT-01M6FT1ZVW, **Follow: go through the portal the leader just used**, from
+the previous handoff's drafts.
 
-This supersedes every online/healthy/sheltered snapshot below. At about
-16:12Z Tas was at [150.65,70.48,-33.81], 15.8/25 HP, no active/carried food,
-with automatic flee t-20 running. Two Greylings were known to be targeting
-Tas, roughly 5–9 m away:2494842417:2243 and1:100792. InjurySeq8679.
-Tas was explicitly emergency-stopped to prevent another death while fixing
-protection. The independent panel was restarted without the game. Do not
-blindly rejoin this saved pursuit. Menu HP0 is not evidence of death; no new
-`died` event was observed in this window. Evidence:
-`.checks/new-home-defense-current.json`, `.checks/audit-window-VVadhq.jsonl`.
+## Read first
 
-Runtime installed for the next launch: **2e8c6d1**. Full just check ci passed170s
-(.checks/20261103T163500Z-YLtrJQ.log), committed just check review passed8s
-with no findings (.checks/20261103T163822Z-KdkkbC.log), and just check vm
-install passed16s with controller/Core/plugin checksum verification
-(.checks/20261103T163834Z-MJnAw1.log). The independent panel was restarted;
-the game was not started. Later ticket/handoff changes need no runtime restart.
-Delivery adds door cleanup, read-only chest search and proactive/blocked-escape
-protection. Runtime allowlist now includes inspect_container, preserving all18
-existing permissions. Readback confirms Tas offline and Loot still disabled:
-.checks/new-home-delivered-observation.json, new-home-delivered-settings.json
-and new-home-delivered-behaviours.json under .checks/. Keep Loot disabled. No free Tas bed,
-completed live survey, native chest search, double-door closure or survival
-acceptance has been earned. Sleeping remains unassigned. Grave recovery and
-safe return to the new home remain unresolved.
+1. AGENTS.md, for recipes, tickets and committed review.
+2. docs/ROADMAP.md, especially working in parallel and the conflict hotspots.
+3. docs/PORTALS.md, for portal following and the remaining general travel work.
+4. docs/BEHAVIOURS.md, docs/TESTING.md and docs/VM.md before live work.
 
-The protection watcher now reacts at healthy HP to fresh known targeting
-within15m, before damage. Prepared isolated ordinary Greylings may use the
-existing native defense; otherwise flee. Native flee uses checked bearings
-and fails `blocked` after4s with less than1m flat progress near a threat,
-regardless of replans. One different destination retry or new-attacker
-re-aim is allowed in a two-attempt/10s episode. Newer owner orders and native
-escort/travel/combat/manual flee ownership are preserved. Missing remote AI
-targets still need an actual-hit fallback; this is not complete enemy intent
-inference. Native pre-contact/survival validation remains outstanding.
+## Current change
 
-`Tas, look for wood in a nearby chest` and configurable/listed variants now
-start bounded read-only search. See BEHAVIOURS.md. It counts only fresh native
-correlated inspection snapshots, leaves inventory untouched and reports
-unchecked/unknown storage. Default25m can be changed up to100m. The installed
-controller's persisted allowlist now includes `inspect_container`.
+Branch `t3/continue-renki-bot` combines portal following with the newer runtime
+baseline from [PR #176](https://github.com/warricksothr/renki/pull/176), head
+dd0042f (runtime 2e8c6d1). Portal delivery is
+[PR #177](https://github.com/warricksothr/renki/pull/177). The ticket carries its
+plan and remaining live evidence. Neither PR has been merged in this session.
 
-Done/released implementation tickets: TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before
-the first hit), TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked
-escape and re-aim on a new attacker); both have all offline criteria earned. TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
-(Search nearby or listed chests for requested items) and the door ticket below
-are review/released, with their native criteria still unchecked. Checked regressions include the
-captured raised-base start with explicitly synthetic obstruction, known
-pursuit, freshness, owner-stop/world races, bounded retry, newest attacker,
-correlated chest contents and native travel accounting.
+- The plugin remembers a nearby player's connected portal for 8 s, including
+  while a passive pickup owns the body. A disappearance or remote position
+  jump can start a crossing. A returned follow can use that recent evidence
+  instead of being rejected because its leader is already gone.
+- A crossing admits only the observed source and its unchanged destination.
+  Planning admission is scoped to the walker call; input admission resets on
+  each physics step and on standing/cancellation. Every other portal stays
+  blocked. The collision-cache ticket TKT-01M6AYP8 (Cache building collisions
+  and remember portal links) retains its older claim; this change only adds
+  the scoped exception to its guards.
+- Valheim's trigger and teleport logic remain authoritative. Native cargo
+  refusal is `portal_cargo`; other transition failures are `portal_failed`.
+  Both explain the failure and ask the owner to return, without dispatching
+  the usual lost-follow trip home.
+- The transition bounds approach, trigger refusal, teleport and arrival
+  separately. Arrival drops local geometry and resets follow movement.
+- Offline coverage includes pure transition/departure policy, shared protocol
+  fixtures, the prompt return of a passive loan after the owner disappears,
+  and the chat explanation without going home. Native behavior is unproven.
 
-## Historical runtime evidence
+## Runtime recovery and deployment
 
-## Earlier runtime: remote portal death, respawn at the old base
+The first deploy of 77a527c installed successfully but the controller exited:
+`atlas schema 2 is newer than supported schema 1`. Saved settings also included
+`inspect_container`. The actual VM baseline was newer unmerged PR #176, rather
+than b5cc019 as the original handoff assumed. The deploy wait was interrupted
+and `just vm stop` stopped the game. No atlas or settings were deleted, reset or
+downgraded. Do not retry 77a527c on its own against this runtime.
 
-This supersedes every healthy-remote-platform or inside-new-house snapshot below.
-Greydwarf1629975892:102 hit at15:54:52.701Z,15:54:54.821Z and15:55:04.879Z.
-Automatic flee t-2 began within0.28s of the first hit and failed unreachable;
-flee t-5 followed, then Tas **died** at15:55:04.915Z near
-[413.36,31.65,-1177.66]. No direct probe interrupted either retreat. Tas was left
-idle on the exposed platform while delivery checks ran; the successful portal
-refusal probe did not establish shelter or survival.
+The newer handoff records why Tas had been offline: at about 16:12Z, position
+[150.65,70.48,-33.81], 15.8/25 HP, no active/carried food and two targeting
+Greylings, then emergency stop. These are historical observations, not a fresh
+health/location claim after the failed deploy's brief startup. Grave recovery,
+a safe return to the new home, and a free Tas bed remain unresolved. Menu HP0
+is not proof of death. Saved new home is [-204.39,32.97,-467.43], with a
+60 m base radius and storage approach [-169.13,30.97,-467.75]. Sleeping remains
+unassigned; no bed was claimed. Keep **Loot disabled** as PR #176 left it: earlier Loot
+entered a portal during stuck recovery and stranded Tas. PR #176's final guard
+now fails the body task immediately on refusal; retain that fix with the scoped
+portal-follow exception. Do not blindly rejoin the saved pursuit.
 
-Respawn at15:55:22.962Z was at the old base[-31.08,36.55,15.19]. Automatic
-strict-dry return t-7 failed unreachable at15:55:44.553Z. Latest retained fresh
-observation15:56:28Z: idle25/25HP near[-46.32,33.79,10.13], grounded in Meadows,
-no active/carried food, empty inventory and no equipped gear. Local perception
-had no characters. Loot remains disabled. Game remains online. Grave recovery,
-new-home return, a free Tas bed and live survey acceptance are unfinished.
-Evidence: `.checks/audit-window-M3BtxI.jsonl`,
-`.checks/new-home-resume-runtime.json`, `.checks/new-home-resume-map.json`.
+The deployment now integrates PR #176's atlas schema 2, base surveys, checked
+wading, door cleanup, read-only chest search and proactive/blocked-escape
+protection. The combined build **871d818** was installed with
+`just check vm install`; controller, Core and plugin checksums all verified.
+`just vm panel-start` brought up the controller and panel without starting the
+game. `/api/status` reports version 871d818 and disconnected; VM status confirms
+Valheim is stopped and the controller is running. `/api/behaviours` confirms
+Loot is disabled and not running. Atlas/schema and saved settings load without
+the previous startup failure. The deployment lease was released after these
+checks. A safe supervised rejoin with the owner must precede field work.
 
-The owner also requested cleanup of adjacent/double doors Tas opened. Focused
-bug TKT-01M6H243JB6S4MBXVKZD89WQKG (Close doors Tas opened after passing through
-the doorway) adds shared explicit/walker opening registration, per-leaf doorway
-passage and bounded observed-closure confirmation. Native validation follows.
+The combined `just check ci` gate passed (.checks/20261103T174505Z-yWlgGw.log),
+and `just check review origin/t3/map-home-location...HEAD` passed with no findings
+(.checks/20261103T174809Z-9FClCx.log). Successful installation is retained in
+.checks/20261103T174828Z-CbVn1x.log. The earlier survey timing failure and
+unchanged focused rerun are recorded on the portal ticket.
 
-## Later runtime update: fed, then automatic Loot entered a portal
+For portal following, once Nimah can supervise a safe start:
 
-This update supersedes the inside-house/0.5HP snapshot below. The owner provided
-food: an auto-picked Raspberry at15:33:47Z was consumed as t-36, restoring health.
-Existing passive timer **Loot** then left the house to collect Wood t-37 near
-Nimah, followed by Resin t-38. At15:36:24 the final input guard refused
-portal_cast near[-187,30.97,-459.99], but the task kept running. It tried Jump at
-15:36:27 and Strafe at15:36:30, shifted closer and teleported through darkforest
-at15:36:32. Audit `.checks/audit-window-FfbfFj.jsonl`. This was an automatic Loot
-run, not a survey or a new explicit owner relocation order.
+1. Take `just vm lease agent:tool/session` and start the installed combined build.
+2. Ask Tas to follow. Walk through a connected portal, wait on the far side
+   for Tas to arrive and resume following, then do the same trip back.
+3. After agreeing to re-enable passive Loot for the test, check a departure
+   while Tas is picking up felling drops. The returned follow must take the
+   source portal. Do not re-enable Loot simply to prepare an offline deploy.
+4. Verify cargo refusal, stop/order takeover during approach and refusal of
+   other portals. Retain `portal departure`, `portal arrived`, `portal failed`
+   and task outcomes; tick the live criterion only after the pair trip passes.
+5. Release the VM lease after cleanup. The game does not need to run for the
+   next offline implementation batch.
 
-Loot is now **disabled persistently** through the normal behavior API
-(`.checks/new-home-loot-paused.json`) to prevent further automatic excursions.
-Do not re-enable it before reviewing this incident and checking current owner
-intent. Historical post-probe changed-build check was grounded/idle on structure at
-[414.42,31.65,-1176.15], BlackForest,940m from unchanged saved home,25/25HP,
-no active/carried food and no observed local hostiles. InjurySeq is0 in the
-restarted client; historical storage damage remains in its retained audit. A direct three-second
-normal movement attempt to the portal center stayed put and timed out, with
-portal_cast refusal (`.checks/task-o4knlg4c.json`). Do not bypass that guard.
-Remote portal1:161078 tag darkforest reports connected target1:161081 at
-[-188.09,30.97,-459.47], but controlled traversal/return is not implemented.
-The earlier new-home arrival remains earned; Tas is no longer inside that house.
+The previous live checks also remain:
 
-TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard
-refuses movement) owns the correction: a final driver guard refusal stands and
-fails the current body task in the same step, rather than letting its later
-stuck recovery jump/strafe into the portal. Lifecycle tests cover single receipt,
-no later ticks, contained cancellation and future independent orders. Native
-build/gate/review/deployment and a short blocked-portal probe follow. It does
-not implement controlled portal traversal or authorize a return bypass.
+- TKT-01M6EWN4WH (Behaviours: passive mode lends an owner's follow to passive
+  instances), criterion 6: on b5cc019 or later, follow a settled owner felling
+  a tree, collect drops and fall back in; leave an owner-dropped stack alone;
+  yield when they walk away mid-pickup; any new owner order wins. Earlier runs
+  on a892cfa worked but churned until #174; the full rerun is still missing.
+- TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials), criterion
+  1: the live A/B refusal check from its notes, with `/api/act/home` as the
+  refused POST. It remains in review under its existing claim.
 
-## Earlier home arrival and storage attack
+## Drafts still awaiting the owner
 
-Tas reached the owner-saved new home through normal native movement, and is
-alive **inside the house**, not at the old home or the shoreline. Latest retained
-observation `.checks/new-home-final-observation.json`: position
-[-203.58,32.97,-466.37],1.34m from saved home[-204.39,32.97,-467.43], world
-DizzysHellheim, UID827096491, grounded/sheltered on structure support, idle,
-**0.5/25HP**, injurySeq7002, no active or carried food. Inventory contains the
-equipped rag tunic and one Wood. `.checks/new-home-final-map.json` confirms
-house entrance1:14767 **closed**. Keep Tas protected; do not resume an exposed
-survey or supply search at this health. The game remains online. Release the VM
-lease before handing back; acquire/renew it before any further live work.
+Do not promote these without selection:
 
-Three house beds1:14717,1:14716,1:14968 and storage-upstairs bed941891633:6688
-all report owned:true, none mine. **No free bed was observed; no bed was claimed
-and spawn was not changed.** The house chest1:15016 at[-202.58,32.97,-460.24]
-contains4DeerMeat,7RawMeat and1NeckTail, with no ready meal in its snapshot.
-Observed heated cooking stations941891633:5001/4997 are back in the storage
-building near[-169,31,-472], where Tas was attacked. Other checked chests held
-armor, wood, resin, stone, flint, seeds or were empty; this is not proof that all
-base chests lack meals. The owner subsequently confirmed giving food, as recorded in the update above.
-A free Tas bed is still unconfirmed. Do not invent its location or clear another bed.
+- TKT-01M6H80F6B (VM: detect runtime drift before installing older builds),
+  filed after the deployment mismatch in this session. It stays in draft.
 
-## Delivered local familiarization
+- TKT-01M6F877Q8 (Behaviours: infer the anchor's activity from changes around
+  them), then TKT-01M6F877TX (Behaviours: passive gather works alongside the
+  anchor). Gathering must fix the known re-lend churn before becoming the
+  second passive instance.
+- TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
+  decisions). Passive-run data is already in `/api/behaviours`.
+- Later: TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what
+  the base lacks) and TKT-01M6F8780V (Agent: supply the passive list, with
+  validation and built-in fallback).
 
-Implemented in0152cb0 and controller follow-ups, documented in EXPLORATION.md.
-The panel's Places & storage → Base area & familiarization saves per-world named
-bases with separate sleeping/storage/return bindings. `Tas, familiarize yourself
-with home` (also this area/the area/survey home) starts the selected saved base;
-`survey status`, stop/newer body orders and panel controls are implemented.
-Radius10–250m, total time2–20min and total travel50–4000m are configurable.
-A 50–80m base span is not treated as a measured radius.
+The owner's idle/passive decision is on epic TKT-01M62VXYQB (Behaviours:
+templates and instances the bot runs on its own): idle work needs an idle
+body; passive work can borrow a settled owner's follow and yields to movement
+or any owner order. Loot and future gathering are passive and on by default in code; the
+current runtime Loot setting is deliberately disabled and must be preserved.
 
-Selected new home remains centered on the owner's saved home, radius60m,
-600s and800m, return home. Normal waypoint creation and CAS base save added
-**new home storage west**, actual supported/accessible approach
-[-169.13,30.97,-467.75], radius5m. It is bound as storage; sleeping is still
-unassigned. Saved base version2026-11-03T15:27:44.0249485Z is retained in
-`.checks/new-home-storage-role-saved.json`. Old owner home storage, other markers
-and the saved home were preserved. The one storage approach does not claim the
-entire building's chest stock or access has been mapped.
+## Known gaps and local setup
 
-The durable survey pins scope/role versions, uses bounded dry hostile-avoiding
-native legs, records actual 3D travel/trails and post-receipt supported arrival,
-reserves return budgets and stops on unsafe/changed/uncertain work. It separates
-4m measured/new/refreshed/unknown/stale terrain from visited ground and observed
-objects. Scoped place refresh protects owner edits, pinned roles, suppression
-and other bases. It opens no chest and claims no bed. Partial results retain
-gaps; loaded terrain is not complete room/floor/container inspection.
-
-**No survey goal has been admitted or run.** Native coverage/waypoint-refresh,
-pinned return and sleeping/storage round-trip criteria remain unearned.
-Health/food/threat readiness and actual sleeping access are unresolved. Food and
-other household routines retain their older local constraints around return/
-home; selecting a large base does not teach portals or migrate every routine.
-Temporary here anchors and per-run overrides remain deferred.
-
-## Shallow-water change and actual return
-
-The owner watched a southbound strict-dry bank refusal and requested walkable
-shallow water. Commits98481da,3eb180f and8f662f6 add explicit coordinate
-`move_to` wade:true with dry:true and avoidHostiles:true, feature-gated on
-supported_wading_v1. This is distinct from strict dry household/survey travel.
-The native character swim threshold, game offset and reserve bound supported
-wading to at most0.8m. Current actual body/footing may use the0.15m settling
-reserve; future midpoint/endpoints must recover it. Walking normals, support,
-short continuous steps, obstacles, portals and hostile checks remain enforced.
-Swimming/missing footing/excess depth refuse without a swimming fallback.
-
-GetLastGroundNormal returns a transient contact accumulator which the game
-clears; actual footing now uses a fresh walkable-normal ray. Captured-bank,
-normal and wave tests retain synthetic future geometry explicitly as such.
-The exact sub-millimetre wave boundary is an offline regression, not a claim
-that the same wave was reproduced after deployment.
-
-After normal old-house resupply/equipment/cooking,3eb180f walked roughly350m
-closer without injury, then stopped57m short on the wave margin
-(`.checks/task-h56xv1tf.json`). Idle shoreline drift later deepened immersion
-from0.6m to swimming1.6m; ordinary native shore recovery regained the eastern
-bank (`.checks/task-tck__bjm.json`). A grounded refusal does not anchor the body
-against subsequent physics drift.
-
-Corrected8f662f6 earned supported shallow progress near[-172.35,29.43,-420.78],
-reported0.6m water, grounded,25HP, injurySeq0
-(`.checks/task-xqzomqku.json`, `.checks/new-home-east-approach-current.json`).
-Other checked staging/low-floor receipts are `.checks/task-vpnco5bq.json`,
-`.checks/task-s3yjuwha.json` and `.checks/task-z7wbqshh.json`. A dry-ground actual
-ray below normal0.8 was refused (`.checks/task-wv7c53_4.json`). Strict dry bank
-recovery separately refused the storage floor's buffer; checked wading crossed
-that supported low floor. Do not credit ordinary swimming recovery or final
-ordinary home arrival to the checked-wading contract.
-
-Storage entrance interaction required both gate halves and fresh open-state
-verification; a use receipt alone was insufficient. Ordinary movement also
-repeatedly alternated stuck local planning with a usable navmesh while stationary
-(`.checks/task-rz3mrike.json`). Checked home movement later refused hostile
-corridors and stair support probes (`.checks/task-e306cp1b.json`). Native ordinary
-move_to t-31 finally reached the actual saved home floor
-(`.checks/task-3wi2_zkp.json`); t-32 closed the entrance and a fresh scan confirmed
-it. After inspecting the house chest, t-34 returned to the interior home point
-(`.checks/task-kzu6dojq.json`). These earn one-way arrival, not survey round trips.
-
-## Storage attack: keep the operator's mistakes in the record
-
-The operator left opened storage gates open during a food search. Greydwarf
-2600298615:830 entered and dealt11.75 at15:28:09.117Z and12.78 at15:28:11.282Z,
-leaving0.5HP. This was ordinary chest work, not a survey or shallow-water leg.
-Exact retained window: `.checks/audit-window-OzbhE9.jsonl`.
-
-Automatic flee t-25 began at15:28:09.826Z. A direct task-check chest probe t-27
-replaced the running flee at15:28:11.609Z, **after both hits**. Automatic retreat
-resumed as t-28 within0.22s and cancelled the probe, then failed dry-bank
-distance_limit at15:28:21.345Z near[-184.9,30.97,-469.7] on the bridge. The
-probe interruption did not cause those prior hits, but stale operator readiness
-must not silently override recovery. No survival acceptance is claimed.
-
-## Tickets and verification
-
-Done/released: TKT-01M6FVN1XGRBWA75WJWFMYV2V9 (Base areas: separate sleeping,
-storage and return places), TKT-01M6FV695N00A10NRMECFMSAHA (Waypoints: refresh
-bot places around a selected area), TKT-01M6GXWKM2SC3K27C1JE98Z0AV (Travel:
-allow checked shallow-water wading without swimming).
-
-TKT-01M6FV6E40SBSMJEHT227XKRK2 (Home survey: familiarize with an area and update
-its places) remains review/released with native criteria5/7 unticked. Existing
-bed TKT-01M62PRDSBCRCPH5S0TGGCMAEY (Claim a bed near home, or tell the owner
-there is none) and flee TKT-01M62N256MPAJ6YJC11XJS09RS (Plugin: flee task, and
-retreating when health is low) have evidence notes; their other-agent claims
-were preserved.
-
-Future drafts: TKT-01M6GYMV97NYP025K9D4C0FRS7 (Routes: save waypoint chains
-with durable execution progress), TKT-01M6GYMVB10AP9WBAW7Y176PQC (Movement:
-observe ground paths and prefer useful path segments), and
-TKT-01M6H0S6Y5WFCW5P59CCY4HWK2 (Keep live task probes from interrupting
-automatic retreat). No generic durable ordered itinerary/cursor/resume exists.
-The atlas has terrain/biome/water, not ground-paint path observations. Future
-path preference must be configurable/directionally useful and preserve physical,
-water and hostile constraints. Do not promote these future drafts implicitly.
-
-For8f662f6: focused WadingTests passed
-`.checks/20261103T150631Z-qgBi60.log`; just check fmt passed
-`.checks/20261103T150751Z-LBnkRM.log`; full just check ci passed164s in
-`.checks/20261103T150803Z-vJctm7.log`; committed just check review passed with
-no findings in `.checks/20261103T151057Z-sfEh4J.log`; full just check vm deploy
-passed77s with checksum verification in `.checks/20261103T151204Z-FYkdau.log`.
-Forcc5f323: focused TaskRunnerTests passed6s in
-`.checks/20261103T154448Z-NGaaHC.log`; just check fmt passed7s in
-`.checks/20261103T154528Z-UM9pVX.log`; full just check ci passed167s in
-`.checks/20261103T154547Z-hCXJML.log`; committed just check review passed7s with
-no findings in `.checks/20261103T154846Z-pX0e2G.log`; full just check vm deploy
-passed91s with checksum verification in `.checks/20261103T154925Z-Y54sUK.log`.
-Final documentation/ticket gate and committed review follow this handoff edit.
-
-Before further live work read fresh body/health/food/door/bed ownership and check
-for newer owner orders. Do not replace active automatic retreat with a probe.
-Acquire the VM lease before live work. Current emergency-offline state takes precedence over historical online lifecycle notes.
-Never guess an approach floor or claim another player's bed. Live acceptance
-needs fed/recovered Tas, a free bed and verified separated-building approaches.
+- The 32 old in-progress claims remain. Do not take them over without the
+  owner's word.
+- A zero-health frame without a following death can lose a lent follow.
+- Custom settle shapes are forgotten after ten minutes without being asked
+  for, even while busy. The existing perception checks outside behaviours
+  still use a tolerant absolute three-second difference.
+- Nine saved `goal/<hash>` instances warn as unknown on controller start.
+  Ask the owner before deleting settings.
+- App tests have known timing/race flakes (TKT-01M6ESNXKF and
+  TKT-01M6EWJ9). Read retained diagnostics before a focused rerun.
+- This worktree's ignored `vm.local` and `plugin/game.local.props` were copied
+  from existing worktrees without exposing their contents. Never print local
+  configuration, panel tokens, CPA keys or server passwords.
+- Do not kill `renki-ctl` on the VM. Write `controller.local.json` as ASCII
+  without a BOM. Use the lease for mutations; read-only inspection needs none.

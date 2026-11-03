@@ -19,6 +19,9 @@ namespace Renki.Plugin
         // Opt-in recovery must hold inputs even before the bridge welcomes us.
         internal static bool RecoveryHold;
 
+        // A crossing grants its exact trigger for one controlled physics step.
+        internal static FollowPortalPassage PortalPassage;
+
         /// <summary>The world-space direction to move in; zero stands still.</summary>
         public static Vector3 Move;
 
@@ -51,6 +54,7 @@ namespace Renki.Plugin
 
         public static void Stand()
         {
+            PortalPassage = null;
             Move = Vector3.zero;
             Run = false;
             Jump = false;
@@ -61,6 +65,7 @@ namespace Renki.Plugin
 
         internal static void Step(Player player, float dt)
         {
+            PortalPassage = null;
             OnFixedStep?.Invoke(dt);
 
             if (Move.sqrMagnitude > .0001f && !WorldNavigation.PortalClear(player.transform.position, Move))

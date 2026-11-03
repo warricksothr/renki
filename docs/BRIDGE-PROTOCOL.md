@@ -390,6 +390,8 @@ target cannot be substituted by another receipt entity.
 | `inventory_full`, `missing_materials` | — |
 | `too_heavy` | Taking it would carry the bot past `weightMax`. |
 | `encumbered` | Over `weightMax` with no stamina left: the game will not let the bot move until it carries less. |
+| `portal_cargo` | Native item rules prevent following the leader through their portal. The bot waits for the owner instead of going home. |
+| `portal_failed` | The selected link changed, entry was refused, teleport timed out, or the leader was not found after arrival. `detail` identifies the phase; the bot waits for the owner. |
 | `refused` | The game would not do it: `interact` on a bed someone else owns, or with no roof over it. `detail` is what the game said, in its own words. |
 | `superseded` | A newer body task replaced it. |
 | `stopped` | `stop`, the dead-man rule, or a logout. |

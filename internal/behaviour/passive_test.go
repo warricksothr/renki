@@ -146,6 +146,28 @@ func TestLeavingTheSettleAreaEndsThePassiveRunAndRestartsTheFollow(t *testing.T)
 	}
 }
 
+func TestLeaderDisappearingDuringPickupReturnsTheFollowWithoutWaitingForSettleGap(t *testing.T) {
+	f := followingNimah(t)
+	f.settle()
+	req := f.pickup()
+	f.p.Report(f.follow.ID, protocol.StatusCancelled, protocol.ReasonSuperseded)
+	wait(t, func() bool { return f.follow.Lent() && isDone(f.follow) })
+	f.now = f.now.Add(time.Second)
+	seq := f.s.Perception().Seq
+	f.p.Send(&protocol.Perception{Characters: []protocol.PerceivedCharacter{}})
+	f.p.Send(&protocol.State{Phase: protocol.PhaseInWorld, World: "test", HP: 25, HPMax: 25, WeightMax: 300,
+		Task: &protocol.TaskRef{ID: req.ID, Status: protocol.StatusRunning}})
+	wait(t, func() bool {
+		v := f.e.view()
+		return v.Perception != nil && v.Perception.Seq > seq && freshPerception(v) && len(v.Perception.Characters) == 0
+	})
+	f.tick()
+	f.returned()
+	if got := f.e.List()[0]; got.Running {
+		t.Fatal("passive pickup kept the body after its anchor disappeared", got)
+	}
+}
+
 func TestAnOwnerOrderDuringAPassiveRunWinsAndNothingRestarts(t *testing.T) {
 	f := followingNimah(t)
 	f.settle()

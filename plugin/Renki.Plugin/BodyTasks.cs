@@ -1528,8 +1528,9 @@ namespace Renki.Plugin
         readonly FollowArgs args;
         readonly bool safeTravel;
         readonly FollowPace pace = new FollowPace();
-        readonly NearLeaderWait stall = new NearLeaderWait();
+        NearLeaderWait stall = new NearLeaderWait();
         readonly Walker walker = new Walker();
+        FollowPortalPassage portal;
         Vector3 pathedTo;
         float lastSeen;
         bool moving;
@@ -1555,6 +1556,24 @@ namespace Renki.Plugin
             var p = Player.m_localPlayer;
             if (p == null) return Outcome.Failed(Wire.ReasonStopped, "no player");
             var leader = Players.Find(args.Player);
+            if (portal == null && (leader == null || !leader.IsDead()) && Players.Departure(args.Player, leader) is FollowPortalLink departure)
+                portal = new FollowPortalPassage(departure);
+            // Also observe a native trip already underway, without admitting
+            // any trigger. It uses the same bounded teleport/arrival policy.
+            if (portal == null && p.IsTeleporting()) portal = new FollowPortalPassage(null);
+            if (portal != null)
+            {
+                var ended = portal.Tick(p, leader);
+                if (ended != null || !portal.Done) return ended;
+                portal = null;
+                moving = false;
+                stall = new NearLeaderWait();
+                leaderLast = Vector3.zero;
+                leaderSpeed = 0;
+                lastGait = Unset;
+                pathedTo = new Vector3(float.MaxValue, 0, 0);
+                lastSeen = Time.time;
+            }
             if (leader == null || leader.IsDead())
             {
                 if (lastGait != Lost)
@@ -1668,10 +1687,10 @@ namespace Renki.Plugin
                 ["leader"] = Convert.ToArray(lead),
             });
 
-        public void Cancel() => Driver.Stand();
+        public void Cancel() { portal?.Cancel(); Driver.Stand(); }
     }
 
-    static class Players
+    static partial class Players
     {
         /// <summary>A player in range by name (case-insensitive), or by the
         /// id the chat stream reports.</summary>

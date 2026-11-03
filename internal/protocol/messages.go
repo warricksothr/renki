@@ -611,5 +611,7 @@ const (
 	ReasonStopped          = "stopped"
 	ReasonDied             = "died"
 	ReasonRefused          = "refused"
+	ReasonPortalCargo      = "portal_cargo"
+	ReasonPortalFailed     = "portal_failed"
 	ReasonInternal         = "internal"
 )

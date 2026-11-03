@@ -43,7 +43,39 @@ body task with `unreachable`, cancels its inputs and prevents later stuck
 jump/strafe recovery from pushing into the same trigger. This does not authorize
 portal entry or implement a deliberate return transition.
 
-## Controlled travel next
+## Following a leader through a portal
+
+An ordinary `follow` can copy a leader's portal departure. The plugin observes
+players even while passive work owns the body. If a leader disappears within
+2 m of one connected portal, or their position jumps more than 32 m from it,
+the follow walks into that source's trigger. The observation expires after
+8 s, so a follow returned promptly after a passive pickup can use it. Missing
+or ambiguous portal evidence retains the ordinary lost-player behavior.
+
+Only the observed source and its unchanged native destination are admitted.
+The allowance lasts for the active crossing's physics step, including cached
+obstacle checks, planning probes and the final input guard. Other portals
+remain blocked. Cancellation, replacement, failure and teleport revoke it.
+Walls, support, dry-ground and native cargo/server restrictions still apply.
+The bot enters the trigger normally; it does not call teleport directly or
+edit tags. The native target record must be ready before entering.
+
+Approach is limited to 45 s, refusal inside the trigger to 4 s, teleport to
+60 s and looking for the leader after arrival to 15 s. The ordinary five-second
+lost-player timer does not run during the transition. Arrival clears local
+geometry and restarts following with a fresh path. `portal_cargo` explains
+that the cargo cannot cross; other crossing failures use `portal_failed`.
+Both ask the owner to return and avoid the failed-follow trip home.
+
+Use `just check plugin test-core PortalFollowTests` for departure expiry,
+remote position jumps, exact-link admission, cargo refusal, phase limits,
+cancellation and return-trip policy. Controller tests cover the prompt return
+of a follow after its passive anchor disappears, and owner-facing failure
+messages without a trip home. A supervised portal-pair crossing and return
+with Nimah remains required live evidence; offline policy tests do not prove
+native trigger entry or arrival.
+
+## General controlled travel next
 
 Portal travel should be a distinct transition in a goal's route: walk to an
 approach point, revalidate the exact source/destination link and native item
@@ -51,8 +83,8 @@ and server restrictions, deliberately enter, observe teleport completion and
 the real arrival location, then resume walking with fresh local geometry.
 Unknown destination, changed link, prohibited cargo, unavailable exit, failed
 arrival and cancellation need separate outcomes. A remembered portal alone
-does not authorize that transition. Automatic portal traversal and remote
-arrival/return safety are not implemented by the observation work.
+does not authorize that transition. General portal route planning and remote
+arrival/return safety are not implemented by leader-following.
 
 Use `just check plugin test-core BuildingMeshTests` for synthetic openings,
 rotated faces, ramps and floor separation. Shared portal wire fixtures run in

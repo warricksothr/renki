@@ -319,6 +319,27 @@ func TestFailedTaskIsExplainedToWhoAsked(t *testing.T) {
 	}
 }
 
+func TestPortalFollowFailuresAreExplainedWithoutGoingHome(t *testing.T) {
+	for _, reason := range []string{protocol.ReasonPortalCargo, protocol.ReasonPortalFailed} {
+		t.Run(reason, func(t *testing.T) {
+			b, f, h := homeBrain()
+			h.home = &protocol.Vec3{}
+			b.Chat(line("Sothr", "bjorn follow me"))
+			b.TaskDone(doneTask(f.sent()[0], protocol.StatusFailed, reason))
+			got := f.said()
+			if len(got) != 2 || !strings.Contains(got[1], "portal") || !strings.Contains(got[1], "come back") {
+				t.Fatalf("said %q", got)
+			}
+			if reason == protocol.ReasonPortalCargo && !strings.Contains(got[1], "cargo") {
+				t.Errorf("cargo refusal not explained: %q", got[1])
+			}
+			if len(h.trips) != 0 {
+				t.Errorf("went home: %v", h.trips)
+			}
+		})
+	}
+}
+
 func TestShoutIsAnsweredByShoutEvenWhenStuck(t *testing.T) {
 	b, f, _ := newBrain(nil)
 	c := line("Sothr", "bjorn follow me")

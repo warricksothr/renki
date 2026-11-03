@@ -33,6 +33,7 @@ namespace Renki.Protocol
             ReasonNoTool = "no_tool", ReasonInventoryFull = "inventory_full", ReasonTooHeavy = "too_heavy",
             ReasonEncumbered = "encumbered", ReasonMissingMaterials = "missing_materials", ReasonSuperseded = "superseded",
             ReasonStopped = "stopped", ReasonDied = "died", ReasonRefused = "refused",
+            ReasonPortalCargo = "portal_cargo", ReasonPortalFailed = "portal_failed",
             ReasonInternal = "internal";
 
         public const string EventDamaged = "damaged", EventDied = "died", EventRespawned = "respawned",

@@ -1154,6 +1154,10 @@ func explain(task, reason, player string) string {
 		return "That's more than I can carry."
 	case protocol.ReasonEncumbered:
 		return "I'm carrying too much to move. I need to put something down."
+	case protocol.ReasonPortalCargo:
+		return "I can't take my cargo through the portal. Can you come back for me?"
+	case protocol.ReasonPortalFailed:
+		return "I couldn't follow you through the portal. Can you come back for me?"
 	case protocol.ReasonTargetLost:
 		return fmt.Sprintf("I lost track of you, %s.", player)
 	case protocol.ReasonStuck:

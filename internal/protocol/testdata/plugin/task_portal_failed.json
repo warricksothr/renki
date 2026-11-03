@@ -1,0 +1,2 @@
+{ "v": 1, "type": "task", "seq": 814, "t": 18238.2,
+  "re": "t-19", "status": "failed", "reason": "portal_failed", "detail": "leader not found after portal arrival" }
