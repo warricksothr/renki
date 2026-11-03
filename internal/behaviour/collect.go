@@ -82,12 +82,16 @@ const perceptionLead = 1.0
 
 // freshPerception reports whether the perception is recent enough to act on
 // beside the state: at most 5 s older, or perceptionLead newer.
-func freshPerception(v View) bool {
+func freshPerception(v View) bool { return PerceptionBeside(v, 5) }
+
+// PerceptionBeside reports whether v's perception was sent beside its state:
+// at most maxAge seconds before it, or perceptionLead after it.
+func PerceptionBeside(v View, maxAge float64) bool {
 	if v.State == nil || v.Perception == nil {
 		return false
 	}
 	age := v.State.T - v.Perception.T
-	return age >= -perceptionLead && age <= 5
+	return age >= -perceptionLead && age <= maxAge
 }
 
 type collectRun struct {

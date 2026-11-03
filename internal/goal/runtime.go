@@ -416,7 +416,7 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 }
 func combatContext(g Record, v behaviour.View) (map[string]any, json.RawMessage, string) {
 	ctx := map[string]any{"ready": v.State.HPMax > 0 && v.State.HP/v.State.HPMax >= 0.8 && v.State.Stamina >= 40, "target": false, "changed": false, "discovery": false, "params": nil}
-	if v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 3*time.Second || v.Perception == nil || v.State.T-v.Perception.T < 0 || v.State.T-v.Perception.T > 3 {
+	if v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 3*time.Second || !behaviour.PerceptionBeside(v, 3) {
 		return ctx, nil, ""
 	}
 	targets := append([]protocol.PerceivedCharacter(nil), v.Perception.Characters...)

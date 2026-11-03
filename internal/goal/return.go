@@ -72,7 +72,7 @@ func (r *runner) afterCombat(g Record, v behaviour.View) (*session.Order, error)
 		return r.need("post-combat footing or carry weight prevents safe return")
 	}
 	if v.Perception == nil || !v.PerceptionAt.After(g.Proof.At) || v.PerceptionAt.After(v.Now) || v.Now.Sub(v.PerceptionAt) > 3*time.Second ||
-		v.State.T < v.Perception.T || v.State.T-v.Perception.T > 3 {
+		!behaviour.PerceptionBeside(v, 3) {
 		return r.returnWait(g, v, "waiting for fresh post-combat surroundings")
 	}
 	for _, c := range v.Perception.Characters {

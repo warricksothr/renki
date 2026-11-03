@@ -437,3 +437,16 @@ func TestDeadlineBoundsNativeTimeoutAndPolicyCannotChangeScope(t *testing.T) {
 		t.Fatal(g)
 	}
 }
+
+func TestCombatSeesATargetInAScanSentJustAfterTheLatestState(t *testing.T) {
+	host, _, v, id := fixture(t)
+	g, _ := host.Store.Get(id)
+	v.Perception.T = v.State.T + .15
+	if ctx, _, _ := combatContext(g, v); ctx["target"] != true {
+		t.Fatal("a scan 0.15 s ahead of the state should show the greyling", ctx)
+	}
+	v.Perception.T = v.State.T + 2
+	if ctx, _, _ := combatContext(g, v); ctx["target"] != false {
+		t.Fatal("a scan 2 s ahead means state stopped arriving", ctx)
+	}
+}
