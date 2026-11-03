@@ -99,9 +99,11 @@ body task is sent. A stale run cannot send another step or a stop that
 would cancel the new order, even before the streamed state catches up.
 Reconnects, death, logout and world changes also invalidate ownership.
 
-The first engine waits for an idle body. It never borrows control from an
-active follow, so jobs cannot take Tas beyond a leader's leash. Loot detours
-during a follow wait on the owners' agreement (see [Loot near owners](#loot-near-owners)).
+The engine waits for an idle body, with one exception: an owner's follow can
+be lent to a *passive* instance while the followed player stays in one place
+(see [Idle and passive](#idle-and-passive)). Every other running task, and a
+follow while its leader walks, keeps the body, so jobs cannot take Tas beyond
+a leader's leash.
 Templates in Go implement bounded steps; instance JSON contains no script,
 loops or variables. Each trigger, start, step, finish, failure and interruption
 is logged with its instance name. Template steps retain session capability
@@ -116,6 +118,101 @@ separate live tests.
 Fresh remembered chest contents can also satisfy stock conditions after a
 controller restart. Live observations take precedence over a remembered
 copy of the same chest. See [MEMORY.md](MEMORY.md) for persistence and ages.
+
+## Idle and passive
+
+Every instance has a `mode`: `idle` (the default, also written by leaving
+`mode` out) or `passive`.
+
+- **Idle** instances run only when Tas has no task, as described above.
+- **Passive** instances also run alongside an owner's follow. They still run
+  when Tas is idle, like idle ones.
+
+Only a template whose work stays around one player can be passive; today
+that is `loot`. Validation refuses `passive` for any other template and for
+idle (marker) triggers. A passive instance never starts a follow itself.
+
+### Lending a follow
+
+A follow is *an owner's* when it was sent outside the engine (chat, the
+panel's follow button, the voice) and it is the body's only running task.
+While Tas runs one, the engine does not queue idle instances, and checks the
+passive ones in priority order, name order breaking ties: the *passive
+list*. The built-in list is the `Loot` instance alone.
+Work-alongside gathering joins it in its own ticket.
+
+A passive instance borrows the follow when all of these hold:
+
+- the followed player has stayed in their settle area (see [Reach](#reach))
+  for at least the instance's `settleDelayS`, by the instance's own settle
+  tracker, so the settle time is tracked in one place, the loot tracker;
+- its trigger fired and it is ready (loot: an eligible drop is in reach of
+  that player);
+- its `when` conditions and repeat policy allow a run.
+
+The engine then takes the body with `Session.TryLoanFrom`, which accepts
+exactly that running follow. The run's first step replaces the follow, which
+ends `superseded` and reports `Lent()`. A loan is not an owner order:
+`ControlRevision` does not change, so queued work is kept. During the run the
+anchor is the followed player, so loot works only around them, inside its
+reach.
+
+### Giving it back
+
+When the run ends, the engine sends the same follow again through the same
+handle (`Automation.Return`): same player, arguments, timeout and origin. It
+does so whether the run succeeded, failed, timed out or was cut short. If
+the follow cannot be sent, because `follow` is no longer allowed for example,
+the run's step is stopped, as it is for any interrupted run, and Tas tells
+the followed player it cannot follow them again. The
+new follow is the owner's again and can be lent again. A run that sent no
+step leaves the follow running and sends nothing.
+
+### Yielding
+
+- **The player moves on.** When the followed player leaves their settle
+  area, by stepping beyond its edge plus the slack or going 30 s unseen, the
+  run ends at once (`followed player moved on`) and the follow restarts.
+  Tas falls in behind them.
+- **An owner order wins.** Any new body order during the run (chat, panel,
+  voice, home) revokes the handle, as it revokes every run. Nothing is sent
+  again, and the log records `follow not returned`.
+- **Survival first.** Retreat's flee and defence are direct orders and win
+  the same way. They end a lent follow as they end a plain one: the follow is
+  not restarted. Logout, a reconnect or a world change also revoke
+  the handle, so no follow is restarted. A death revokes it too, but the
+  lent follow is then handed to the chat brain (`Options.ResumeFollow`,
+  `Brain.ResumeLentFollow`). That leaves the same resume after the respawn
+  as for a follow that was running when Tas died, so Tas comes back to
+  following once it has respawned, if the home rules say resume. The
+  engine learns of the death a tick late, so the home keeper takes that
+  resume only until it has handled the respawn
+  (`Keeper.ResumeAfterDeathWhileDead`). A zero-health frame that the dead
+  phase never follows also ends the loan, but then no respawn comes and
+  the follow is not restarted. The game is not known to send one.
+
+A lent follow (`Task.Lent`) ends `cancelled`/`superseded`, which the chat
+brain answers as it does every superseded task. It says nothing, does not
+send Tas home and keeps its anchor, and the follow restarts. A follow that
+ended on its own before the run's first step went out is not marked lent and
+is not sent again. A lent follow that failed before the step replaced it,
+a death for example, is handled as any follow's failure is.
+
+### Visibility
+
+`GET /api/behaviours` gives each instance `passive: {follow, player}` when
+its latest run borrowed a follow: the follow's task ID and the player
+followed. With `running`, the current run is passive. The audit log's
+`behaviour started` record carries `passive: true`, `follow` and `player`.
+The end of a loan logs one of four records:
+
+- `follow returned`, with the new task `id`;
+- `follow not replaced`: nothing is sent, because the follow is still
+  running or it ended on its own (failed or timed out) before or while the
+  run's step went out;
+- `follow not returned`: an order, a death or the world intervened;
+- `could not return the follow`, a warning: sending it failed, the step is
+  stopped, and Tas tells the player it cannot follow them again.
 
 ## Bounded collection and stowing
 
@@ -193,7 +290,8 @@ for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
 ## Loot near owners
 
 The `loot` template picks up drops near the player Tas is with, its
-*anchor*, while Tas is idle:
+*anchor*, while Tas is idle or, if the instance is passive, while it follows
+a settled owner (see [Idle and passive](#idle-and-passive)):
 
 ```json
 {"items":["Wood","Resin","BeechSeeds","Feathers"],"radius":30,
@@ -306,16 +404,18 @@ judged is never picked up.
 On its first start the controller saves an instance named `Loot`: this
 template with the defaults above (it saves `items`, `radius`, `maxWeightFraction` and `maxTargets`, and leaves the reach fields to their defaults), a 2-second timer, `when.owner.radius` 40,
 `repeat` `trigger` with a 2-second cooldown, priority -5 (above idle chores,
-below gathering and every owner order), enabled. The timer queues a run only
-when Tas is idle and an eligible drop is in reach, so an empty check leaves
-no log line. Edit, clone, stop and disable it like any other instance.
-Disabling is the off switch and survives restarts; deleting it brings it back
-with the defaults on the next start.
+below gathering and every owner order), `mode` `passive`, enabled. The timer
+queues a run only when an eligible drop is in reach, and Tas is idle or
+following a settled owner, so an empty check leaves no log line. Edit, clone,
+stop and disable it like any other instance. Disabling is the off switch and
+survives restarts. Deleting it brings it back with the defaults on the next
+start. A saved `Loot` that is still the earlier idle built-in, on or off,
+becomes passive on the next start and keeps its on/off setting. One an owner
+edited stays as it is. Set `mode` to `idle` to keep loot out of follows.
 
-`preemptFollow` is reserved: while following, Tas is never idle, so loot
-waits. Pausing a follow to pick up and then restarting the same follow needs
-the owners' agreement (TKT-01M62VXYQB), and the template rejects `true` until
-then.
+The old `preemptFollow` parameter is gone. The mode replaces it, and a
+definition that still names it fails validation as an unknown field. No
+saved instance can hold it, because validation always refused it.
 
 Focused checks: `just check controller test-packages ./internal/behaviour`.
 

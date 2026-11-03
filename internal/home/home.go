@@ -78,6 +78,9 @@ type Keeper struct {
 	// resume picks up what a death cut short, for AfterDeathResume. The
 	// chat brain sets it, since it knows what that was and for whom.
 	resume func(context.Context) bool
+	// late marks a resume left by ResumeAfterDeathWhileDead, after the
+	// death rather than as it happened.
+	late bool
 	// diedAt is where the bot last died.
 	diedAt *protocol.Vec3
 }
@@ -232,8 +235,28 @@ func (k *Keeper) ReturnOn(reason string) bool {
 // say resume: f starts it again and reports whether it did. Nil clears it.
 func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
 	k.mu.Lock()
-	k.resume = f
+	k.resume, k.late = f, false
 	k.mu.Unlock()
+}
+
+// ResumeAfterDeathWhileDead is ResumeAfterDeath for a resume learned of
+// after the death rather than as it happened: it leaves f only while the
+// bot is dead or Tick has not yet handled its respawn, and reports whether
+// it did. Left later, f would fire on some later death instead. Tick
+// handles the respawn under the same lock, so it either sees f or this
+// sees the bot back in the world.
+func (k *Keeper) ResumeAfterDeathWhileDead(f func(context.Context) bool) bool {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	st := k.s.State()
+	// Dead, or at no health a frame before the dead phase.
+	dying := st != nil && (st.Phase == protocol.PhaseDead || st.Phase == protocol.PhaseInWorld && st.HPMax > 0 && st.HP <= 0)
+	// k.dead and k.respawned say Tick has yet to act on this respawn.
+	if !dying && !k.dead && !k.respawned {
+		return false
+	}
+	k.resume, k.late = f, true
+	return true
 }
 
 // Ordered drops whatever a death left pending: the resume, and the
@@ -340,6 +363,12 @@ func (k *Keeper) Tick(ctx context.Context) {
 			k.resume = nil
 		}
 		k.ordered = false
+	case st.Phase == protocol.PhaseInWorld && st.HP > 0 && !k.respawned && k.late:
+		// A late resume was left at no health. Alive again with no death
+		// seen (the dead phase never followed), it is stale, and would fire
+		// on some later death. A resume left as the death happened may
+		// arrive before the death's state, so it is kept.
+		k.resume, k.late = nil, false
 	}
 	k.mu.Unlock()
 	if st.Phase != protocol.PhaseInWorld {

@@ -36,6 +36,9 @@ type View struct {
 	Piles    piles.Snapshot
 	Features []string
 	Idle     bool
+	// Following is the owner's follow the body is running, or nil. While
+	// it is set, or while a passive run borrows it, Anchor is its player.
+	Following *session.Follow
 }
 
 func (c Conditions) Match(v View) bool {

@@ -24,7 +24,29 @@ type Definition struct {
 	Repeat   Repeat          `json:"repeat"`
 	Priority int             `json:"priority"`
 	Enabled  bool            `json:"enabled"`
+	// Mode is ModeIdle (the default, also written "") or ModePassive.
+	Mode string `json:"mode,omitempty"`
 }
+
+// Instance modes. An idle instance runs only when Tas has no task. A
+// passive one also runs alongside an owner's follow: while the followed
+// player stays settled, the engine lends it the body and sends the same
+// follow again when the run ends (docs/BEHAVIOURS.md, "Idle and passive").
+const (
+	ModeIdle    = "idle"
+	ModePassive = "passive"
+)
+
+// Passive is a template whose instances may be passive: its work stays
+// around one player. Settled reports when that player's current settle
+// area opened, and whether they have stayed in it long enough under
+// params for an owner's follow of them to be lent. It must never dispatch.
+type Passive interface {
+	Settled(params json.RawMessage, player string, now time.Time) (since time.Time, ok bool)
+}
+
+func (d Definition) passive() bool { return d.Mode == ModePassive }
+
 type Trigger struct {
 	Kind   string  `json:"kind"` // manual, event, timer, idle
 	Event  string  `json:"event,omitempty"`
@@ -213,6 +235,18 @@ func validate(d Definition, templates map[string]Template) error {
 	}
 	if err := t.Validate(d.Params); err != nil {
 		return fmt.Errorf("%s parameters: %w", d.Template, err)
+	}
+	switch d.Mode {
+	case "", ModeIdle:
+	case ModePassive:
+		if _, ok := t.(Passive); !ok {
+			return fmt.Errorf("%s cannot be passive: only work around a followed player can borrow a follow", d.Template)
+		}
+		if d.Trigger.Kind == "idle" {
+			return errors.New("marker work cannot be passive")
+		}
+	default:
+		return errors.New("mode must be idle or passive")
 	}
 	if d.Trigger.Kind != "idle" && (d.Trigger.Marker != nil || d.Trigger.DwellS != 0) {
 		return errors.New("marker and dwell belong to idle triggers")

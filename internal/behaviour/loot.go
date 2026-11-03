@@ -1,6 +1,7 @@
 package behaviour
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -97,7 +98,6 @@ type LootParams struct {
 	Radius            float64  `json:"radius,omitempty"`
 	MaxWeightFraction float64  `json:"maxWeightFraction,omitempty"`
 	MaxTargets        int      `json:"maxTargets,omitempty"`
-	PreemptFollow     bool     `json:"preemptFollow,omitempty"`
 	// Reach: BaseRadius until the anchor has been settled SettleDelayS,
 	// then growing to Radius over GrowS (LootReach). The settle area opens
 	// at SettleRadius and, after SettleDelayS, widens to SettleMaxRadius;
@@ -195,9 +195,6 @@ func (*Loot) Validate(raw json.RawMessage) error {
 	}
 	if p.MaxTargets < 1 || p.MaxTargets > 64 {
 		return errors.New("loot needs 1–64 targets")
-	}
-	if p.PreemptFollow {
-		return errors.New("loot cannot pause a follow yet: that waits on the owners' agreement (TKT-01M62VXYQB)")
 	}
 	return nil
 }
@@ -310,7 +307,27 @@ func (l *Loot) observeSettles(v View) {
 func (l *Loot) reach(player string, p LootParams, now time.Time) float64 {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	k := settleKey{player, p.area()}
+	return LootReach(l.tracker(player, p.area(), now).Settled(now), p)
+}
+
+// Settled implements Passive with the tracker for the instance's area
+// shape: the player has stayed settleDelayS in their current area.
+func (l *Loot) Settled(raw json.RawMessage, player string, now time.Time) (time.Time, bool) {
+	p, err := decodeLoot(raw)
+	if err != nil {
+		return time.Time{}, false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	s := l.tracker(player, p.area(), now)
+	settled := s.Settled(now)
+	return s.Since, settled > 0 && settled >= p.area().Delay
+}
+
+// tracker is player's settle tracker for area, holding l.mu. A shape not
+// tracked yet starts being tracked, from the next frame.
+func (l *Loot) tracker(player string, area SettleArea, now time.Time) *Settle {
+	k := settleKey{player, area}
 	if k.area != defaultSettleArea {
 		if l.asked == nil {
 			l.asked = map[settleKey]time.Time{}
@@ -325,7 +342,7 @@ func (l *Loot) reach(player string, p LootParams, now time.Time) float64 {
 		s = &Settle{Last: now}
 		l.settles[k] = s
 	}
-	return LootReach(s.Settled(now), p)
+	return s
 }
 
 // eligible reports whether a drop has been observed and is not ignored.
@@ -336,9 +353,10 @@ func (l *Loot) eligible(id string, now time.Time) bool {
 	return ok && d.seen && !now.Before(d.ignore)
 }
 
-// Ready lets an idle loot instance queue only when it has work.
+// Ready lets a loot instance queue only when it has work, and only while
+// Tas is idle or following (the engine lends a follow to passive ones).
 func (l *Loot) Ready(raw json.RawMessage, v View) bool {
-	if !v.Idle {
+	if !v.Idle && v.Following == nil {
 		return false
 	}
 	r, err := l.Start(raw)
@@ -346,6 +364,12 @@ func (l *Loot) Ready(raw json.RawMessage, v View) bool {
 		return false
 	}
 	return r.(*lootRun).pick(v) != nil
+}
+
+func sameDefinition(a, b Definition) bool {
+	x, errA := json.Marshal(a)
+	y, errB := json.Marshal(b)
+	return errA == nil && errB == nil && bytes.Equal(x, y)
 }
 
 func liveOwners(v View) []protocol.Vec3 {
@@ -476,11 +500,20 @@ func (r *lootRun) Next(v View, result *Result) (*session.Order, error) {
 // LootInstance is the built-in loot instance's name.
 const LootInstance = "Loot"
 
-// LootDefinition is the built-in loot instance: on, below owner orders and
-// gathering, above idle chores. It runs only while Tas is idle within 40 m
-// of a live owner, and queues only when an eligible drop is in reach of
-// its anchor player.
+// LootDefinition is the built-in loot instance: on and passive, below
+// owner orders and gathering, above idle chores. It runs while Tas is idle
+// within 40 m of a live owner, or borrows an owner's follow while the
+// followed player is settled, and queues only when an eligible drop is in
+// reach of its anchor player.
 func LootDefinition() Definition {
+	d := idleLootDefinition()
+	d.Mode = ModePassive
+	return d
+}
+
+// idleLootDefinition is the built-in instance as installed before it was
+// passive, which InstallLoot upgrades.
+func idleLootDefinition() Definition {
 	// The reach fields stay unset, so they follow the defaults and an owner
 	// who edits only radius is not held to a saved base.
 	params, _ := json.Marshal(LootParams{Items: LootItems, Radius: 30, MaxWeightFraction: .8, MaxTargets: 16})
@@ -490,11 +523,25 @@ func LootDefinition() Definition {
 
 // InstallLoot creates the built-in loot instance when no instance of that
 // name is saved, including an invalid one. Disable is the off switch;
-// deleting the instance brings it back on the next start.
+// deleting the instance brings it back on the next start. A saved Loot
+// that is still the old idle built-in, on or off, becomes passive; one an
+// owner edited stays as they left it.
 func (e *Engine) InstallLoot(by string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if _, ok := e.instances[LootInstance]; ok {
+	if i, ok := e.instances[LootInstance]; ok {
+		old := idleLootDefinition()
+		old.Enabled = i.definition.Enabled
+		if !sameDefinition(i.definition, old) {
+			return nil
+		}
+		d := LootDefinition()
+		d.Enabled = i.definition.Enabled
+		if err := e.put(context.Background(), LootInstance, d, by); err != nil {
+			e.o.Logger.Warn("could not make the built-in loot instance passive", "err", err)
+			return err
+		}
+		e.o.Logger.Info("built-in behaviour made passive", "instance", LootInstance)
 		return nil
 	}
 	if _, ok := e.o.Store.Instances()[LootInstance]; ok {

@@ -93,6 +93,9 @@ type Home interface {
 	// ResumeAfterDeath leaves what to start again after a respawn, when
 	// the rules say resume; nil clears it.
 	ResumeAfterDeath(func(context.Context) bool)
+	// ResumeAfterDeathWhileDead leaves it only while the bot is still
+	// dead and its respawn not yet handled, and reports whether it did.
+	ResumeAfterDeathWhileDead(func(context.Context) bool) bool
 	// Ordered drops whatever a death left pending, the resume and the
 	// trip after the respawn: a newer order wins.
 	Ordered()
@@ -409,6 +412,11 @@ func (b *Brain) TaskDone(t *session.Task) {
 	if !ok {
 		return
 	}
+	// A follow lent to a passive behaviour (t.Lent) ends cancelled and
+	// superseded, which says nothing, sends nobody home and leaves the
+	// anchor: the behaviour sends the same follow again when it is done.
+	// A lent follow that failed before it was replaced (a death) is a real
+	// end, handled below like any other.
 	status, reason, detail := t.Status()
 	if status == protocol.StatusSucceeded && t.Name == protocol.TaskPickup {
 		// The plugin says "the other N" when some of the stack stayed behind:
@@ -524,6 +532,22 @@ func (b *Brain) empty(o origin, g *protocol.PerceivedStructure) {
 	}
 }
 
+// ResumeLentFollow leaves a resume for an owner's follow that a passive
+// behaviour had borrowed when Tas died (behaviour.Options.ResumeFollow).
+// The follow itself ended superseded and said nothing, so TaskDone never
+// left one for it.
+func (b *Brain) ResumeLentFollow(t *session.Task) {
+	o, ok := t.Origin.(origin)
+	if !ok || b.opts.Home == nil || t.Name != protocol.TaskFollow || o.follow == "" {
+		return
+	}
+	// The engine learns of the death a tick or more after it, and may be
+	// late: past the respawn, a resume left now would fire on a later death.
+	if !b.opts.Home.ResumeAfterDeathWhileDead(b.followAgain(o)) {
+		b.opts.Logger.Info("lent follow not resumed: Tas was back before the loan ended", "player", o.follow)
+	}
+}
+
 // leaveResume tells the home keeper what a death cut short: a follow
 // starts again for the same player, if they are still about (if not, the
 // follow fails with target_lost and the bot goes home on that). Anything
@@ -533,7 +557,12 @@ func (b *Brain) leaveResume(t *session.Task, o origin) {
 		b.opts.Home.ResumeAfterDeath(nil)
 		return
 	}
-	b.opts.Home.ResumeAfterDeath(func(ctx context.Context) bool {
+	b.opts.Home.ResumeAfterDeath(b.followAgain(o))
+}
+
+// followAgain starts o's follow again after a respawn.
+func (b *Brain) followAgain(o origin) func(context.Context) bool {
+	return func(ctx context.Context) bool {
 		order := session.Order{Task: protocol.TaskFollow, Origin: o,
 			Args: &protocol.FollowArgs{Player: o.follow, Run: protocol.RunAuto}}
 		if _, err := b.d.Dispatch(ctx, order); err != nil {
@@ -542,7 +571,7 @@ func (b *Brain) leaveResume(t *session.Task, o origin) {
 		}
 		b.say(o, fmt.Sprintf("I'm back. Coming to find you, %s.", o.follow))
 		return true
-	})
+	}
 }
 
 // returnHome sends the bot home after a body task failed, when the home
