@@ -224,8 +224,10 @@ namespace Renki.Plugin
             e.Queued = key; dirty.Add(key);
         }
 
-        public bool Blocked(V3 from, V3 to) => Index.Blocked(from, to, current) ||
+        public bool Blocked(V3 from, V3 to) => Index.Blocked(from, to, Blocking) ||
             buildingIndex.Any(from, to, buildingBlocked);
+
+        bool Blocking(int id) => Current(id) && (!entries[id].IsPortal || !FollowPortalPassage.MayEnter(entries[id].Collider));
 
         bool BuildingBlocked(int id, V3 from, V3 to) => Current(id) && entries[id].Building != null && entries[id].Building.Blocks(from, to);
 

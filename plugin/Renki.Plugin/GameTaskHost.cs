@@ -121,7 +121,7 @@ namespace Renki.Plugin
                     // loaded range later. Ordinary follow still requires sight.
                     return new EscortTask(req.Id, escort);
                 case FollowArgs f:
-                    if (Players.Find(f.Player) == null)
+                    if (Players.Find(f.Player) == null && Players.Departure(f.Player, null) == null)
                         throw new TaskRefused(Wire.ReasonInvalidTarget, $"no player \"{f.Player}\" in range");
                     return new FollowTask(f);
             }

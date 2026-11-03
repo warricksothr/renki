@@ -37,6 +37,7 @@ namespace Renki.Plugin
             Floating.GetLiquidLevel(Convert.ToVector3(at)));
         internal static void Reset()
         {
+            Driver.PortalPassage = null;
             Walls = Array.Empty<Wall>(); obstacles.Clear(); Routes.Clear(); focus = null; world = null; nextPortalRefusalTrace = 0;
             Doorman.Reset();
             Array.Clear(supportHits, 0, supportHits.Length);
@@ -85,18 +86,18 @@ namespace Renki.Plugin
             var casts = Physics.CapsuleCastNonAlloc(origin + Vector3.up * .45f, origin + Vector3.up * 1.4f,
                 Radius, delta.normalized, portalCasts, delta.magnitude, TriggerMask, QueryTriggerInteraction.Collide);
             if (casts == portalCasts.Length) return Refuse("cast_saturated");
-            for (var i = 0; i < casts; i++) if (NavigationObstacles.IsPortal(portalCasts[i].collider)) return Refuse("portal_cast", portalCasts[i].collider);
+            for (var i = 0; i < casts; i++) if (NavigationObstacles.IsPortal(portalCasts[i].collider) && !FollowPortalPassage.MayEnter(portalCasts[i].collider)) return Refuse("portal_cast", portalCasts[i].collider);
             var at = origin + delta;
             var hits = Physics.OverlapCapsuleNonAlloc(at + Vector3.up * .45f, at + Vector3.up * 1.4f,
                 Radius, portalOverlaps, TriggerMask, QueryTriggerInteraction.Collide);
             if (hits == portalOverlaps.Length) return Refuse("overlap_saturated");
-            for (var i = 0; i < hits; i++) if (NavigationObstacles.IsPortal(portalOverlaps[i])) return Refuse("portal_overlap", portalOverlaps[i]);
+            for (var i = 0; i < hits; i++) if (NavigationObstacles.IsPortal(portalOverlaps[i]) && !FollowPortalPassage.MayEnter(portalOverlaps[i])) return Refuse("portal_overlap", portalOverlaps[i]);
             return true;
         }
         internal static void Update(Player p)
         {
             var current = ZNet.instance != null ? ZNet.instance.GetWorldName() : "";
-            if (world != current) { Reset(); world = current; }
+            if (world != current) { Reset(); Players.Forget(); world = current; }
             var pos = p.transform.position;
             obstacles.Update(pos, focus ?? pos, Time.unscaledTime);
         }
@@ -373,7 +374,7 @@ namespace Renki.Plugin
                 // Portal triggers transport the player without an interact
                 // action. Ordinary walking must avoid them even before the
                 // geometry cache has discovered or rebuilt the trigger.
-                if (NavigationObstacles.IsPortal(c)) return plan.Refuse("portal_trigger_cast", dest, c);
+                if (NavigationObstacles.IsPortal(c) && !FollowPortalPassage.MayEnter(c)) return plan.Refuse("portal_trigger_cast", dest, c);
                 if (!c.isTrigger && c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_cast", dest, c);
             }
             plan.PhysicsCasts++;
@@ -383,7 +384,7 @@ namespace Renki.Plugin
             for (var i = 0; i < lowHits; i++)
             {
                 var c = overlaps[i];
-                if (NavigationObstacles.IsPortal(c)) return plan.Refuse("portal_trigger_overlap", dest, c);
+                if (NavigationObstacles.IsPortal(c) && !FollowPortalPassage.MayEnter(c)) return plan.Refuse("portal_trigger_overlap", dest, c);
                 if (!c.isTrigger && c.GetComponentInParent<TreeLog>() != null && !obstacles.LeavingLog(c, from, dest)) return plan.Refuse("log_body_overlap", dest, c);
             }
             plan.PhysicsCasts++;

@@ -312,6 +312,7 @@ namespace Renki.Plugin
             if (runner.InSession && Player.m_localPlayer != null && !Player.m_localPlayer.IsDead())
             {
                 WorldNavigation.Update(Player.m_localPlayer);
+                Players.Observe();
             }
             if (runner.InSession) Doorman.Tick(Player.m_localPlayer);
             // Publish the current world before any terrain patch, including
@@ -404,6 +405,7 @@ namespace Renki.Plugin
             sharePosition = null;
             runner.EndSession(why);
             WorldNavigation.Reset();
+            Players.Forget();
             Driver.Active = false;
             Driver.Stand();
             Driver.LookAt = null;
