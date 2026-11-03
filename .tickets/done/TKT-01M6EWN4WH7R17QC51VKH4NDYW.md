@@ -21,12 +21,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T19:44:21Z
-updated_at: 2026-11-03T00:32:21Z
+updated_at: 2026-11-03T04:18:17Z
 created_by:
   id: agent:claude-code/renki-m2-loot
   name: ""
 updated_by:
-  id: agent:claude-code/renki-lead
+  id: agent:claude-code/passive-deploy
   name: ""
 extensions: {}
 ---
@@ -131,6 +131,15 @@ This corrects the design note: the audit record `follow kept` is now called `fol
 **agent:claude-code/renki-lead** at 2026-11-03T00:32:21Z
 
 Supersedes the death trade-off in the earlier notes and the PR's first description. A death during a passive run now hands the lent follow to the chat brain. The session marks the loan `died` when a death revokes the handle, `Automation.DiedOnLoan` returns the replaced follow, the engine's giveBack passes it to `Options.ResumeFollow`, and that calls `Brain.ResumeLentFollow` → `leaveResume`. After the respawn Tas resumes the follow, as after a death during a plain follow. Covered by a session test (after a step, and not before any step) and an engine test. TKT-01M6FCYSS5 is archived as done here.
+
+**agent:claude-code/passive-deploy** at 2026-11-03T04:18:17Z
+
+Live session 2026-11-02, build a892cfa (#171 and #173), Nimah playing. Acceptance criterion 6 is still unticked.
+
+- Passive Loot ran while Tas followed a settled Nimah: runs of 4, 2, 16 and 3 pickups, each ending with "follow returned" and Tas falling back in. Felling drops (Wood, Resin, BeechSeeds) were taken.
+- Other runs were cut off 0.25–0.75 s after starting with "condition changed", over and over (20:25:28–20:26:07). Tas took one item, then stood by Nimah and only slowly bumped into the rest. Cause: a perception scan sent after the latest state frame is stamped ahead of it by up to 200 ms, and behaviours refused perception newer than state. So the `when.owner` condition and `freshPerception` failed in that window. Fixed in #174 (b5cc019, deployed 2026-11-03 04:16 UTC), which allows perception up to 1 s ahead of state.
+- Not yet run: the owner's own stack left alone, walking off mid-pickup, an owner order during a pickup. Rerun the whole check on b5cc019, then tick criterion 6.
+- Also seen: a portal broke the follow (`target_lost`, then Tas walked home). Filed as TKT-01M6FT1ZVW.
 
 ## Summary
 

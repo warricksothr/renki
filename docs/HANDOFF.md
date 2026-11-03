@@ -4,100 +4,149 @@ The state of the work at the last handoff, and what the next agent needs
 that the tickets and the roadmap don't already say. Replace this page at
 each handoff rather than appending to it.
 
-Handoff of 2026-11-02, from the planning sessions (`agent:claude-code/renki-plan`
-and its `-mN` sub-agents).
+Handoff of 2026-11-03, from `agent:claude-code/passive-deploy`. That session
+worked with the owner (Nimah in game) on the VM lease, loot reach and passive
+mode.
 
 ## Read first
 
 1. AGENTS.md: the rules for `just`, `just ci`, `just review` and tickets.
-2. docs/ROADMAP.md: the milestones, their SMART exit goals, and "Working in
-   parallel", which says how tickets are handed out and where they conflict.
-3. docs/TESTING.md and docs/VM.md before any check or live work.
+2. docs/ROADMAP.md: the milestones and "Working in parallel".
+3. docs/BEHAVIOURS.md: idle and passive modes, the loan, Loot's settle area
+   and reach. This is where the current work is.
+4. docs/TESTING.md and docs/VM.md before any check or live work, including
+   "The VM lease".
 
-## What landed
+## Where things stand
 
-- **#155** filed the 2026-11-01 code review as tickets under TKT-01M6DCF2AB
-  (Code review 2026-11-01: robustness, trust and gate gaps).
-- **#156** fixed the review's urgent defects: plugin task exceptions are
-  contained and logged, Delays stay off the ErrWait clock, the OBS connection
-  leak, gather waits and stow safety.
-- **#157** wrote docs/ROADMAP.md (M2 to M7 with SMART goals) and groomed every
-  milestone into one-PR tickets with files, verification and the `live` label.
+Main is at b5cc019, and **that build is deployed**, with Tas (Tasleroch) in
+the world. No pull requests are open.
 
-The three went up as a stack, and #156 and #157 merged into their stacked
-bases after #155 had already landed. Neither reached main. The pull request
-that adds this page carries both onto main, with main's pantry follow-up
-(#154) merged in. If you are reading this on main, that is done.
+What this stretch landed, in order:
 
-**Not deployed.** #156 changes the plugin and the controller, and no session
-has deployed it. The last ticket note (TKT-01M6AT4E, Keep the pantry stocked
-through idle food production, 2026-11-02 05:52) records controller 75db0ae and
-plugin 6e23e2d on the VM. Deploy only under the rules for live work below.
+| PR | What it did |
+|---|---|
+| #168, #169 | The loot anchor and the piles view; wave 1 work. |
+| #170 | VM lease. `stop` and the panel's stop are exempt so a person can always stop the bot; inside `lease.py run` they still guard. |
+| #171 | Loot's adaptive reach (TKT-01M6EYEMRV): a settle tracker per player; the reach grows from 8 m to 30 m while the anchor stays in a small area. |
+| #172 | Tickets only: the idle/passive decision on epic TKT-01M62VXYQB, plus the drafts listed under "Next". |
+| #173 | Passive mode (TKT-01M6EWN4WH). Instances are `idle` or `passive`; Loot is passive and on. While a followed owner is settled, the engine lends the follow to a passive run and restarts the same follow after. A death during the run resumes the follow after the respawn. |
+| #174 | Perception skew. A scan sent just after the latest state frame is stamped ahead of it, and behaviours and goals refused it. That made passive Loot get cut off ("condition changed") several times a second. A scan may now lead state by up to 1 s (`behaviour.PerceptionBeside`). |
 
-## The queue
+## The live check in progress
 
-`git ticket ready` holds three tickets, all offline, so all three can run at
-once. #156 already fixed part of two of them; its notes on each say what it
-did. What is left:
+TKT-01M6EWN4WH, "Behaviours: passive mode lends an owner's follow to passive
+instances", is done offline. Its acceptance criterion 6, the live check, is
+still unticked. Its newest note has what the owner saw on a892cfa:
+- several passive runs worked;
+- the churn that #174 fixes.
 
-| Ticket | Milestone | What is left |
-|---|---|---|
-| TKT-01M6DCFSRN (OBS adapter: leaked connection per poll, unchecked source restore) | M4 | The source-loss trial restores the window with its own context and fails if the restore fails; `configure` repairs an existing capture source. |
-| TKT-01M6DCFSEG (Behaviours: stow walks avoid hostiles; marker health baseline) | M3 | Marker food and cargo detect an injury after healing past their start health, with heal-then-hit tests. |
-| TKT-01M638V1XC (Follow: stuck outside a wall, the leader inside, path straight through) | M3 | All of it. Read its 14 notes first, because the movement work it waited on landed in PR 117. |
+Rerun it on b5cc019 with the owner, under the lease:
 
-Everything else is in `draft`, about 130 tickets. The roadmap's wave 1 lists the
-ones to promote first, starting with TKT-01M6EF5DTG (VM: exclusive lease for
-deploys and live trials). Only the owner promotes a draft. Name the ones you
-think are startable, say why, and let the owner choose.
+1. Owner says "follow", stops near a tree, fells it. After about 5 s settled,
+   Tas picks up the drops and falls back in when the owner walks off.
+2. The owner drops a stack at their feet. Tas leaves it alone (the anchor
+   rule from #169).
+3. The owner walks away mid-pickup. The run ends ("followed player moved
+   on") and the follow restarts.
+4. Any owner order mid-pickup wins, and no follow is restarted.
+
+Read the result from the controller log. Filter `C:/renki/logs/controller.log`
+for `behaviour started|follow returned|interrupted|finished|pickup`; each
+loan logs `passive=true follow=<id>`. Then tick criterion 6, or note what
+failed.
+
+TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials) is in
+`review` for the same reason. Criterion 1 needs its live A/B refusal check;
+the ticket's notes give the steps, with `/api/act/home` as the refused
+POST.
+
+## Next
+
+All of these are drafts. Only the owner promotes one, so name them and let the
+owner choose.
+
+- **TKT-01M6FT1ZVW (Follow: go through the portal the leader just used).**
+  High priority, filed in this session after the owner hit it live. The owner
+  asked for it ("can we look into following through portals?"), but has not yet
+  said to build it. The ticket has the approach. It needs a scoped exception to
+  the portal guard, which is owned by TKT-01M6AYP8 (Cache building collisions
+  and remember portal links). That ticket is `in-progress` and claimed by
+  `agent:codex/renki-milestones`, so expect conflicts in WorldNavigation.cs and
+  Driver.cs.
+- **TKT-01M6F877TX (Behaviours: passive gather works alongside the
+  anchor).** High priority. The owner's stated goal: when they harvest, Tas
+  harvests too. It depends on TKT-01M6F877Q8 (Behaviours: infer the anchor's
+  activity from changes around them). It also needs a fix for the known
+  re-lend churn (below), because it will be the second passive instance.
+- **TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
+  decisions).** There is no panel card for passive runs yet. The data is
+  already in `/api/behaviours`: `PassiveRun{Follow, Player}`.
+- **M5, later:**
+  - TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what the
+    base lacks);
+  - TKT-01M6F8780V (Agent: supply the passive list, with validation and
+    built-in fallback). The owner's design: the agent side (`internal/voice`)
+    supplies bundles of passive routines, ranked by what the base needs, and
+    the engine falls back to its built-in list.
+
+The owner's design for passive mode is recorded on epic TKT-01M62VXYQB. In
+short:
+- *idle* work runs only when Tas has nothing to do;
+- *passive* work runs alongside following, only while the owner is settled;
+- passive work yields when the owner leaves the area or gives any order;
+- gathering and looting are passive and on by default.
+
+## Known gaps that stand
+
+- **Zero-health frame.** If a frame reports zero HP and no death follows, a
+  follow lent at that moment is not restarted and the owner is not told. The
+  game is not known to send such a frame. See docs/BEHAVIOURS.md.
+- **Re-lend churn.** A higher-priority passive instance that preempts a passive
+  run restarts the follow, which is then lent again straight away. This is
+  harmless with Loot as the only passive instance. Fix it with the
+  gather-alongside ticket.
+- **Custom settle shapes.** A custom settle shape is forgotten after 10 minutes
+  without being asked for, including while its instance is busy. Its reach then
+  starts over.
+- **Strict perception checks elsewhere.** marker_food, marker_rest and
+  goal/food still use `math.Abs(State.T - Perception.T) <= 3`. This is
+  tolerant and not the bug #174 fixed. They could adopt
+  `behaviour.PerceptionBeside` for one rule.
+- **Unknown goal instances.** At every start the controller warns about nine
+  saved `goal/<hash>` instances: "invalid instance … unknown goal". They are
+  skipped. Nobody has looked at where they come from. Ask the owner before
+  deleting saved settings.
+- **Flaky app tests.** `internal/app` tests sometimes time out under load
+  (TKT-01M6ESNXKF). Rerun before chasing them.
 
 ## Waiting on the owner
 
-The roadmap's "Decisions for the owner" lists ten. The first two block
-everything else:
-
-1. **Promote wave 1**, the VM lease first.
-2. **Release the stale claims.** 32 `in-progress` tickets and 2 in `review`
-   carry claims from the 10-29 to 10-31 sessions (`agent:codex/renki-milestones`,
-   `agent:claude-code/renki-groom`, `agent:codex/renki-resume`). No session is
-   working them. Don't take one over without the owner's word. TKT-01M628X134
-   and TKT-01M628X14M are done and only need closing.
-
-The goals marked (proposed) in the roadmap are proposals until the owner
-confirms them. Don't treat them as settled.
-
-## Dates
-
-The milestone targets in the roadmap, and the epics' due dates, are guideline
-targets: the time-bound part of each SMART goal, not estimates. Don't add
-effort estimates or dated deadlines to tickets. A review happens when a wave
-drains or a target passes. A missed target gets a new target, never a looser goal.
+- Promoting the drafts above, and whether to build portal following now.
+- The live check above, which needs the owner in game.
+- The 32 stale `in-progress` claims from the 10-29 to 10-31 sessions are still
+  there (earlier handoff, decision 2). Don't take one over without the owner's
+  word.
 
 ## Rules that are easy to miss
 
-- **Stacked pull requests.** GitHub retargets a child PR to main only if
-  merging its base deletes the base branch. Here it didn't, which is how #156
-  and #157 missed main. After a base merges, retarget the next PR to main
-  (`gh pr edit N --base main`) before merging it, or merge the stack top down
-  into one branch and land that.
-- **Live work** (label `live`) needs the one Windows VM. It runs one ticket at a
-  time and, once TKT-01M6EF5DTG lands, only under its lease. Until then the
-  owner decides who uses the VM. Reading from the VM (audit windows, report
-  recipes, read-only panel requests) needs no lease.
+- **The VM lease.** `just vm lease ACTOR [MIN]` before anything mutating, and
+  `just vm release` when done. `just vm lease-status` shows the holder.
+  Mutating recipes refuse without it. Reading (status, logs, read-only panel
+  requests) needs none. A deploy renews the lease.
+- **Deploying.** `just check vm deploy` builds and installs the plugin and
+  controller, then starts Tas. A worktree needs the gitignored `vm.local` and
+  `plugin/game.local.props`. Copy them from another worktree without reading
+  or printing them; without the props file the plugin build can't find the
+  Valheim assemblies. `just vm stop` then `just vm panel-start` takes Tas
+  offline but leaves the panel up.
 - **Secrets.** Never print or ask for the panel token, the CPA key, the server
   password, or the contents of any `*.local.*` file.
 - **On the VM**, don't kill `renki-ctl` (port 18765). Write
   `controller.local.json` as ASCII with no BOM.
 - **Tickets.** Name yourself with `--actor agent:tool/session` on every write.
-  `.checks/` logs are local to the machine that ran them, so put the result
-  in the ticket note, not just the path.
-
-## Points that stand
-
-The #157 review left two points standing, argued in its PR description:
-
-- **No calendar floor for reviews.** A stalled wave has no time-based review;
-  only a passing target forces one. This is deliberate, as the owner asked for
-  no time-based scheduling.
-- **Two fallback notes** on TKT-01M656NE4C (the isolated combat world for goal
-  3.1). The second supersedes the first, and notes can only be appended.
+  `git ticket create --json` can fail to parse even when the ticket was made.
+  List before retrying, or you get a duplicate.
+- **Merges.** Check that a merge reached main with
+  `git merge-base --is-ancestor <head> origin/main`. Stacked PRs don't
+  retarget themselves; see the earlier handoff in git history.
