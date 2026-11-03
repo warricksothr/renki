@@ -31,8 +31,18 @@ safe wading and swimming. TKT-01M6GXWKM2SC3K27C1JE98Z0AV (Travel: allow checked
 shallow-water wading without swimming) owns the explicit `move_to` option
 `wade:true`, alongside `dry:true` and `avoidHostiles:true`. It preserves strict
 dry household/survey behavior. See BRIDGE-PROTOCOL.md and TESTING.md for mode,
-threshold reserves and validation. Deployment/live retry outcomes follow below
-when earned.
+threshold reserves and validation. Build98481da passed the full gate (214s), committed review and checksum-verified
+full deployment (`.checks/20261103T145310Z-e3iTza.log`). Tas rejoined grounded in
+0.3m of water at[-46.95,29.74,-120.57], full54.4HP with two active foods.
+The first wading return t-1 walked about12m south and reached dry ground near
+[-52.96,30.64,-130.23] without observed injury, then falsely refused its live
+normal check (`.checks/task-vgfo67v1.json`). Installed Character source shows
+GetLastGroundNormal returns the transient m_groundContactNormal accumulator,
+which UpdateGroundContact clears to zero; it is not a retained support normal.
+The correction validates the actual footing ray's walkable normal and preserves
+the original slope limit; body contact flags remain required. A regression uses
+the recorded body/footing with explicitly synthetic ray normals. Corrected
+build/deployment/native outcomes remain to be recorded.
 
 The owner also asked about atlas-generated chains and following player paths.
 Current tooling has named waypoints, live-validated route trails and survey
@@ -41,8 +51,10 @@ atlas has elevation/biome/water at4m; ground-paint path surfaces are not capture
 A one-off retained-terrain candidate calculation is in
 `.checks/new-home-atlas-route.json`: it leaves unknown/stale/deep samples out and
 found only a partial connection. That is planning evidence, not proof of route
-clearance or impossibility. Future itinerary and path-surface work has not been
-implemented or enabled by this continuation.
+clearance or impossibility. Future work is filed as drafts: TKT-01M6GYMV97NYP025K9D4C0FRS7 (Routes: save waypoint chains
+with durable execution progress) and TKT-01M6GYMVB10AP9WBAW7Y176PQC (Movement: observe ground
+paths and prefer useful path segments). Neither is implemented or enabled by
+this continuation. They require separate route-host/surface observation work.
 
 ## Home familiarization
 

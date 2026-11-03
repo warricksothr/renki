@@ -240,7 +240,7 @@ namespace Renki.Plugin
                 });
                 footing = new SupportMemo((at, y) =>
                 {
-                    var result = Support(at, y, out var full, out var evidence, footing: true, diagnostics: diagnostics);
+                    var result = Support(at, y, out var full, out var evidence, footing: true, walking: dry && WadeDepth > 0, diagnostics: diagnostics);
                     if (full) Saturated++;
                     if (diagnostics && result.HasValue && evidence != null && !footprintTraced)
                     {
@@ -298,6 +298,7 @@ namespace Renki.Plugin
             internal bool RecentlyBlocked(V3 from, V3 to) => refusals != null && refusals.Blocks(from, to, Time.unscaledTime);
             internal V3? Sample(V3 at, double y) => support.Sample(at, y, Time.unscaledTime, slice);
             internal V3? Footing(V3 at) => footing.Sample(at, at.Y, Time.unscaledTime, slice);
+            internal object FootingEvidence => footing.LastEvidence;
             internal bool WaterSafe(V3 at, double water)
             {
                 if (!dry) return at.Y >= water - .5;

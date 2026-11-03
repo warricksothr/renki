@@ -603,8 +603,12 @@ namespace Renki.Plugin
             var water = WorldNavigation.WaterLevel(from);
             var depth = p != null ? System.Math.Min(wadeDepth, Wading.DepthLimit(p.m_swimDepth)) : 0;
             if (p != null && depth >= wadeDepth && Wading.Supported(from, footing, water, depth,
-                p.IsOnGround(), p.IsSwimming(), p.GetLastGroundNormal().y)) return true;
-            navigationFailure = Outcome.Failed(Wire.ReasonDeepWater, "checked wading stopped: swimming, unsupported footing or excessive live water depth");
+                p.IsOnGround(), p.IsSwimming())) return true;
+            var reason = p == null ? "no_player" : p.IsSwimming() ? "swimming" : !p.IsOnGround() ? "ground_contact"
+                : !footing.HasValue ? "unsupported_footing" : depth < wadeDepth ? "swim_threshold_changed"
+                : !DryTravel.PreferFooting(from.Y, footing.Value.Y, null) ? "footing_offset" : "water_depth";
+            navigationFailure = Outcome.Failed(reason == "swimming" || reason == "water_depth" ? Wire.ReasonDeepWater : Wire.ReasonUnreachable,
+                "checked wading stopped: " + reason);
             Tracer.Emit("walker", "checked wading refused", new Dictionary<string, object>
             {
                 ["pos"] = from.ToArray(),

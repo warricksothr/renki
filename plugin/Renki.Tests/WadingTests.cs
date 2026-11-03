@@ -33,7 +33,7 @@ namespace Renki.Tests
             var footing = new V3(-47.33, 30.9, -117.88);
             var next = footing + new V3(0, -.1, -.5);
             Assert.False(BankExit.Recovered(body, footing, 30));
-            Assert.True(Wading.Supported(body, footing, 30, .8, true, false, 1));
+            Assert.True(Wading.Supported(body, footing, 30, .8, true, false));
             Assert.True(Wading.Edge(body, footing, (footing + next) * .5, next, 30, 30, 30, .8));
         }
 
@@ -53,13 +53,30 @@ namespace Renki.Tests
         public void ActualSwimmingMissingSupportSlopesAndFootingOffsetsCannotMove()
         {
             var a = new V3(0, 29.5, 0);
-            Assert.True(Wading.Supported(a, a, 30, .8, true, false, 1));
-            Assert.False(Wading.Supported(a, a, 30, .8, true, true, 1));
-            Assert.False(Wading.Supported(a, a, 30, .8, false, false, 1));
-            Assert.False(Wading.Supported(a, null, 30, .8, true, false, 1));
-            Assert.False(Wading.Supported(a, a, 30, .8, true, false, .79));
-            Assert.False(Wading.Supported(a, a + new V3(0, -.7, 0), 30, .8, true, false, 1));
+            Assert.True(Wading.Supported(a, a, 30, .8, true, false));
+            Assert.False(Wading.Supported(a, a, 30, .8, true, true));
+            Assert.False(Wading.Supported(a, a, 30, .8, false, false));
+            Assert.False(Wading.Supported(a, null, 30, .8, true, false));
+            var slope = new SupportSelection(a.Y, .6, true, true);
+            slope.Consider(a, .79);
+            Assert.False(Wading.Supported(a, slope.Point, 30, .8, true, false));
+            Assert.False(Wading.Supported(a, a + new V3(0, -.7, 0), 30, .8, true, false));
             Assert.False(Wading.Edge(a, a, a + new V3(.25, .4, 0), a + new V3(.5, .5, 0), 30, 30, 30, .8));
+        }
+
+        [Fact]
+        public void LiveFootingUsesMeasuredNormalRatherThanClearedContactAccumulator()
+        {
+            // Native t-1 body/footing. The installed Character API returns
+            // m_groundContactNormal, which UpdateGroundContact clears to zero.
+            var body = new V3(-52.96, 30.64, -130.23);
+            var ray = new SupportSelection(body.Y, .6, true, true);
+            ray.Consider(new V3(body.X, 30.62, body.Z), 1);
+            Assert.False(DryTravel.WalkableNormal(0));
+            Assert.True(Wading.Supported(body, ray.Point, 30, .8, true, false));
+            var steep = new SupportSelection(body.Y, .6, true, true);
+            steep.Consider(new V3(body.X, 30.62, body.Z), .62);
+            Assert.False(Wading.Supported(body, steep.Point, 30, .8, true, false));
         }
 
         [Theory]

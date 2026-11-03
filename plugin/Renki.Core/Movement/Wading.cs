@@ -16,9 +16,12 @@ namespace Renki.Movement
             depth > 0 && depth <= MaxDepth && !double.IsNaN(water) && !double.IsInfinity(water) &&
             !double.IsNaN(at.Y) && !double.IsInfinity(at.Y) && at.Y >= water - depth + Settling;
 
+        // The native query supplies footing only after verifying a walking
+        // support normal. Character's transient contact accumulator is not
+        // reliable proof: the game clears it during its own physics update.
         public static bool Supported(V3 body, V3? footing, double water, double depth,
-            bool grounded, bool swimming, double normalY) =>
-            grounded && !swimming && footing.HasValue && DryTravel.WalkableNormal(normalY) &&
+            bool grounded, bool swimming) =>
+            grounded && !swimming && footing.HasValue &&
             DryTravel.PreferFooting(body.Y, footing.Value.Y, null) &&
             Clear(body, water, depth) && Clear(footing.Value, water, depth);
 

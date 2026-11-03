@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T14:44:23Z
-updated_at: 2026-11-03T14:44:44Z
+updated_at: 2026-11-03T14:58:20Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -50,12 +50,28 @@ Validate with core boundary and captured-bank regressions, wire argument agreeme
 
 ## Acceptance criteria
 
-- [ ] Explicit wading mode validates identically in Go and C# and preserves strict dry scoped movement.
-- [ ] Planning and live execution admit supported shallow steps using current liquid height and native swimming threshold reserves.
-- [ ] Missing support, discontinuous footing, excessive depth, swimming, unsafe slopes, obstacles, portals and hostile corridors remain refused.
-- [ ] Focused regressions, the full gate and committed review pass.
+- [x] Explicit wading mode validates identically in Go and C# and preserves strict dry scoped movement.
+- [x] Planning and live execution admit supported shallow steps using current liquid height and native swimming threshold reserves.
+- [x] Missing support, discontinuous footing, excessive depth, swimming, unsafe slopes, obstacles, portals and hostile corridors remain refused.
+- [x] Focused regressions, the full gate and committed review pass.
 - [ ] Changed native southbound travel has retained receipts and health/support/water evidence, or an exact remaining refusal is recorded.
 
 ## Implementation plan
 
 Add explicit move_to wade:true, requiring supported dry/hostile-avoiding coordinate travel and disallowing scoped familiarization or combat recovery. Advertise a native feature and refuse dispatch to older plugins. Derive a maximum 0.8 m supported wading allowance from the local character swim depth minus the game's 0.4 m swim offset and a further 0.3 m reserve. Account for settling and validate current liquid heights at supported endpoints, midpoints, short prefixes and actual body footing. Wading bypasses strict dry bank/shore recovery only while grounded, not swimming and inside its measured limit; it never dispatches swimming input. Apply the same mode to local/navmesh/reused-route probes and reset it on every goal. Preserve default dry semantics and survey admission. Add captured-bank, depth/wave, support and protocol regressions, then build/gate/commit/review/deploy and supervise one changed native return. Record partial travel and any unavailable bed separately.
+
+## Notes
+
+**agent:codex/home-survey-delivery** at 2026-11-03T14:54:06Z
+
+Implemented in 98481da. Explicit move_to wade:true is feature-gated (supported_wading_v1) and requires dry/hostile-avoiding coordinates, without scoped survey or combat recovery. The mode uses native character swim depth minus the game offset and reserves, at most0.8m; actual planning clearance reserves another0.15m. All support/normal/step, hostile, obstacle and portal checks remain in the shared physical pipeline. Planning, navmesh validation, reuse and immediate execution use the same depth policy. Each physics step checks actual footing/grounded/swimming state before arrival or input. A reduced native allowance refuses rather than retaining an unsafe plan. Strict dry behavior is unchanged.
+
+WadingTests passed14 cases in .checks/20261103T144805Z-8YnGJo.log. Captured bank body/footing establish the original refusal; the following step in that test is explicitly synthetic. Focused Go argument/feature tests passed in .checks/20261103T144805Z-QpLMzF.log, including supported-plugin dispatch and old-plugin refusal. Existing dry/bank/scope tests passed. Complete just check ci passed214s in .checks/20261103T144842Z-BgQg2G.log:60/60 panel scenarios, controller race tests, real plugin DLL and full core/interop/tooling. Committed just check review passed with no findings in .checks/20261103T145224Z-VPCyxU.log. PR #176 contains the change.
+
+Full deployment is loading the new plugin. Live shallow movement, new-home arrival and bed assignment are not earned by these offline checks.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T14:58:20Z
+
+Build98481da deployed successfully, then native t-1 on the new controller run walked about12m from grounded 0.3m-deep water onto dry ground without observed injury. It stopped at[-52.96,30.64,-130.23], supported at30.62, with grounded=true and swimming=false. Evidence .checks/task-vgfo67v1.json and .checks/new-home-wading-1.json. This is partial shallow movement, not new-home arrival.
+
+The aggregate refusal can only have come from the character-contact normal in that recorded state. Installed Character source confirms GetLastGroundNormal returns m_groundContactNormal, not m_lastGroundNormal; UpdateGroundContact clears the former. Replaced that transient input with a fresh footing query using walking=true, preserving the same0.8 normal limit at the actual measured surface. Core Supported accepts only already validated footing; missing/steep ray results remain null. Added a captured-body/footing regression with synthetic flat versus steep ray normals, and precise runtime refusal reasons/support evidence. just check plugin test-core 'WadingTests|FullyQualifiedName~SupportSelectionTests' passed in .checks/20261103T145621Z-A7s4wD.log. Full gate for the correction is running. Do not count the first partial pass as validation of the corrected guard.
