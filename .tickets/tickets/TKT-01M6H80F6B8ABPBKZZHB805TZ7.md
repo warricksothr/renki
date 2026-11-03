@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T17:41:15Z
-updated_at: 2026-11-03T18:09:32Z
+updated_at: 2026-11-03T18:10:30Z
 created_by:
   id: agent:codex/portal-deploy
   name: ""
@@ -78,3 +78,11 @@ Focused compatibility/data tests passed for full/controller packages, unsupporte
 **agent:codex/portal-deploy** at 2026-11-03T18:09:32Z
 
 The complete just check ci gate passed (225 s), retained in .checks/20261103T180530Z-ShHgUG.log. This covers the final activity/diagnostics source, panel unit/UI suites, controller race tests/native builds, plugin/interop and deployment entry-point checks. Committing the batch before committed review; production remains unchanged and the game offline.
+
+**agent:codex/portal-deploy** at 2026-11-03T18:10:30Z
+
+### Native read-only compatibility passed; refusal verifier corrected
+
+The complete gate passed and implementation commit 3b56dff passed just check review origin/t3/continue-renki-bot...HEAD with no findings (.checks/20261103T180933Z-kXEjwI.log). Took the VM lease as agent:codex/portal-deploy and ran just check vm deployment-refusal. The compatible candidate passed native read-only preflight against the real configuration, saved permissions and atlas. The verification harness then failed hashing the live SQLite file because Get-FileHash does not share its handle with the controller's writer. Evidence: .checks/20261103T180946Z-LNPIK6.log. The incompatible-manifest installer calls had not run yet; criterion 3 stays unchecked.
+
+Corrected the verifier to hash through a FileAccess.Read handle with FileShare.ReadWrite/Delete. This does not request file writes or stop the controller. Re-run after validation/commit. The game remained offline; no binaries or production configuration/data were replaced. The staged candidate is 3b56dff and production remains 871d818.

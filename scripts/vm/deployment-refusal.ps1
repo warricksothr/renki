@@ -22,11 +22,20 @@ if ($s.ControllerConfig -and (Test-Path $s.ControllerConfig)) {
     if ($cfg.dataDir) { $data = $cfg.dataDir }
 }
 if (-not [IO.Path]::IsPathRooted($data)) { $data = Join-Path $Root $data }
+# SQLite keeps a writable handle open. Share it with that handle without
+# requesting write access ourselves; Get-FileHash's sharing mode refuses it.
+function Read-SharedHash([string]$file) {
+    $sharing = [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete
+    $stream = [IO.File]::Open($file, [IO.FileMode]::Open, [IO.FileAccess]::Read, $sharing)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+    finally { $stream.Dispose(); $sha.Dispose() }
+}
 function Read-ProtectedHashes {
     $hashes = @{}
     $protected = @((Join-Path $Root 'deployment.json'), $s.ControllerConfig)
     $protected += @(Get-ChildItem $data -File -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
-    foreach ($file in $protected) { if ($file -and (Test-Path $file)) { $hashes[$file] = (Get-FileHash -Algorithm SHA256 $file).Hash } }
+    foreach ($file in $protected) { if ($file -and (Test-Path $file)) { $hashes[$file] = (Read-SharedHash $file) } }
     return $hashes
 }
 $hashes = Read-ProtectedHashes

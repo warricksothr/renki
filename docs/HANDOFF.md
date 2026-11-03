@@ -60,9 +60,14 @@ The full `just check ci` gate passed (225 s), retained in
 .checks/20261103T180530Z-ShHgUG.log. Focused Go/race checks and the desktop/mobile
 `loot-reach` UI scenario passed.
 The UI scenario also verifies distinct canvas colors, layer toggling, expiry of
-an unchanged frame and no non-GET requests. Committed review and native game-offline refusal verification follow the first
-implementation commit. The activity ticket is done and released; the panel
-ticket is in review and released with its in-game criterion unchecked.
+an unchanged frame and no non-GET requests. Committed review of implementation commit 3b56dff passed with no findings
+(.checks/20261103T180933Z-kXEjwI.log). The activity ticket is done and released;
+the panel ticket is in review and released with its in-game criterion unchecked.
+The first native compatible preflight passed against the real config/atlas,
+then the refusal verifier hit Get-FileHash sharing a SQLite file held open by
+the controller (.checks/20261103T180946Z-LNPIK6.log). The verifier now hashes using
+a read-only handle shared with SQLite's writer; rerun before claiming refusal
+success. No runtime replacement or process stop occurred.
 
 ## Installed runtime and required offline state
 
