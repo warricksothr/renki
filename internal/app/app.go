@@ -98,7 +98,11 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	var gatherWood func(context.Context, string) (string, error)
 	var resupplyFood func(context.Context, string) (string, error)
 	var baseCommand func(context.Context, string, string, *protocol.Vec3) (string, bool, error)
+	var searchChests func(context.Context, string, chat.ChestSearchRequest) (string, error)
 	brain := chat.New(chat.Options{
+		SearchChests: func(ctx context.Context, by string, p chat.ChestSearchRequest) (string, error) {
+			return searchChests(ctx, by, p)
+		},
 		BaseCommand: func(ctx context.Context, by, text string, pos *protocol.Vec3) (string, bool, error) {
 			return baseCommand(ctx, by, text, pos)
 		},
@@ -178,6 +182,9 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		},
 		Logger: log.With("part", "behaviour")})
 	gatherWood = a.Behaviours.StartWood
+	searchChests = func(ctx context.Context, by string, p chat.ChestSearchRequest) (string, error) {
+		return a.Behaviours.StartChestSearch(ctx, by, behaviour.SearchChestsParams{Item: p.Item, Radius: p.Radius, Chests: p.Chests})
+	}
 	baseCommand = a.baseChat
 	a.escortSupply = make(chan escortSupplyRequest, 8)
 	resupplyFood = func(ctx context.Context, by string) (string, error) { return a.startFood(ctx, by, nil) }

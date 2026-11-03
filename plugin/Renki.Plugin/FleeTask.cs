@@ -28,6 +28,7 @@ namespace Renki.Plugin
         readonly GameObject toward;
         readonly Vector3? towardPos;
         readonly Walker walker = new Walker();
+        readonly FleeProgress progress = new FleeProgress();
         readonly bool avoidHostiles;
         readonly HostileRoute hostiles = new HostileRoute();
         readonly WorldNavigation.PlanningProbe bearingProbe;
@@ -66,6 +67,13 @@ namespace Renki.Plugin
                 threatPos = threat.transform.position;
             }
             var gap = V3.FlatDistance(Convert.ToV3(pos), Convert.ToV3(threatPos));
+            if (progress.Blocked(Convert.ToV3(pos), gap, Time.unscaledTime))
+            {
+                Driver.Stand();
+                Tracer.Emit("flee", "blocked escape", new Dictionary<string, object>
+                { ["pos"] = Convert.ToArray(pos), ["threat"] = Convert.ToArray(threatPos), ["goal"] = Convert.ToArray(goal), ["gap"] = gap });
+                return Outcome.Failed(Wire.ReasonBlocked, "less than 1 m physical progress in 4 s with a threat within 15 m");
+            }
             if (avoidHostiles && gap < args.Distance && walker.DepartDryBank(pos,
                 Convert.ToVector3(Flee.Goal(Convert.ToV3(pos), Convert.ToV3(threatPos), null, args.Distance))))
                 return walker.Refused();

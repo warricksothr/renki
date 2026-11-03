@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-03T16:00:45Z
+updated_at: 2026-11-03T16:27:38Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -186,3 +186,9 @@ Earlier ordinary native arrival at new home and the saved/bound new home storage
 **agent:codex/home-survey-delivery** at 2026-11-03T16:00:45Z
 
 Supersedes the healthy remote-platform snapshot in the preceding note. On deployed cc5f323, Greydwarf 1629975892:102 hit at 15:54:52.701Z (11.99 damage), 15:54:54.821Z (12.28) and 15:55:04.879Z (11.44). Automatic flee t-2 started within 0.28s of the first hit, failed unreachable at 15:54:55.186Z; replacement flee t-5 remained active until death at 15:55:04.915Z near [413.36,31.65,-1177.66]. No direct probe interrupted these retreats. Respawn at 15:55:22.962Z was at the old base [-31.08,36.55,15.19], followed by automatic strict-dry return t-7, which failed unreachable at 15:55:44.553Z. Latest resumed observation at 15:56:28Z: idle 25/25HP near [-46.32,33.79,10.13], no active/carried food, empty pack and no equipped gear; fresh local perception had no characters. Loot remains disabled. Exact retained events/states/inventory: .checks/audit-window-M3BtxI.jsonl; fresh state/map .checks/new-home-resume-runtime.json and .checks/new-home-resume-map.json. This is a death/failed escape, not a safe portal arrival or return, and does not earn survey, bed or survival acceptance.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:27:38Z
+
+Current emergency supersedes prior healthy/online snapshots. Fresh observation at about16:12Z showed Tas at[150.65,70.48,-33.81],15.8/25HP, no food, stamina34.9, injurySeq8679, with flee t-20 running and two known targeting Greylings5–9m away (2494842417:2243 and1:100792). The operator explicitly ran just vm stop to prevent another death, then just vm panel-start to restore the independent panel without rejoining. No new died event was observed; menu HP0 is not a death receipt. Evidence .checks/new-home-defense-current.json, .checks/audit-window-VVadhq.jsonl, and read-only offline verification .checks/new-home-offline-verification.json.
+
+TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before the first hit) implements fresh known targeting protection before damage. TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked escape and re-aim on a new attacker) adds physical progress, checked ordinary escape bearings, one different-destination retry and new-attacker re-aim with owner-order/episode bounds. Regression checks are passing; full gate/review/install follow. No native survival acceptance is earned, and this ticket's existing claim is preserved. Do not blindly rejoin the saved pursuit or interrupt active recovery with a probe.

@@ -153,6 +153,9 @@ type Runner interface {
 // panel shows on the behaviour's card.
 type Summary interface{ Summary() string }
 
+// InterruptedSummary preserves partial findings when a run ends early.
+type InterruptedSummary interface{ InterruptedSummary() string }
+
 // Observer sees the engine's view every tick, running or not, so a
 // template can keep history that outlives a run. It must never dispatch.
 type Observer interface{ Observe(View) }

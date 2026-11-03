@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T15:58:23Z
-updated_at: 2026-11-03T16:03:42Z
+updated_at: 2026-11-03T16:22:41Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -61,3 +61,7 @@ Add a pure per-leaf passage/settlement lifecycle used by the native Doorman, reg
 **agent:codex/home-survey-delivery** at 2026-11-03T16:03:42Z
 
 Implemented shared registration for explicit and walker opening, per-leaf doorway-plane passage, idle cleanup, observed closure and at most two close requests separated by 3s. Already-open, denied, hold-use and disabled registrations are excluded; different floors/out-of-reach and unclosable leaves do not trigger closure. just check plugin test-core DoorPassageTests passed (.checks/20261103T155934Z-yfwTM9.log), just check fmt passed and full just check ci passed162s (.checks/20261103T160045Z-9rgBXg.log). Native double-door evidence is still pending; no native closure acceptance claimed.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:22:41Z
+
+Added the double-door edge case where opening begins exactly on the doorway plane: cleanup recognizes clearing either side while still in reach. The existing per-leaf closure/replication budget remains unchanged. Combined offline DoorPassage regressions passed in .checks/20261103T161946Z-AGIa9e.log. Native double-door passage/verified closure remains unearned; Tas is emergency-offline during pursuit, so no exposed probe was attempted.

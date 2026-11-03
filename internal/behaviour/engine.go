@@ -125,7 +125,7 @@ func New(o Options) *Engine {
 	if o.Anchor == nil {
 		o.Anchor = func() string { return "" }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -649,6 +649,9 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 			}
 		}
 	}
+	if partial, ok := i.runner.(InterruptedSummary); ok {
+		why += "; " + partial.InterruptedSummary()
+	}
 	e.o.Logger.Info("behaviour interrupted", "instance", e.active, "reason", why)
 	e.ended(i, why)
 	i.pending = requeue
@@ -724,6 +727,9 @@ func (e *Engine) resumeAfterDeath(attrs []any) []any {
 
 func (e *Engine) finish(ctx context.Context, success bool, detail string, v View) {
 	i := e.instances[e.active]
+	if partial, ok := i.runner.(InterruptedSummary); ok && !success {
+		detail += "; " + partial.InterruptedSummary()
+	}
 	e.giveBack(ctx, detail)
 	e.ended(i, detail)
 	i.completed++

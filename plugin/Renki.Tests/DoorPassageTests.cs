@@ -19,6 +19,18 @@ namespace Renki.Tests
         }
 
         [Fact]
+        public void OpeningFromTheDoubleDoorPlaneClosesAfterClearingEitherSide()
+        {
+            foreach (var direction in new[] { -1, 1 })
+            {
+                var hinge = new V3(2, 0, 0);
+                var passage = new DoorPassage(V3.Zero, hinge, North, 0);
+                Assert.Equal(DoorCleanup.Wait, passage.Observe(new V3(0, 0, direction * .5), hinge, North, true, true, 4));
+                Assert.Equal(DoorCleanup.Close, passage.Observe(new V3(0, 0, direction * 1.6), hinge, North, true, true, 4));
+            }
+        }
+
+        [Fact]
         public void BothGateHingesCloseAfterPassageEvenWhenTheNextTaskStopsNearby()
         {
             foreach (var hinge in new[] { new V3(-2, 1, 0), new V3(2, 1, 0) })

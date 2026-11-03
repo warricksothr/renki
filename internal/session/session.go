@@ -39,8 +39,9 @@ type Listener interface {
 
 // Order is a task the caller wants run.
 type Order struct {
-	scopeHello *protocol.Hello
-	scopeWorld string
+	scopeHello    *protocol.Hello
+	scopeWorld    string
+	scopeRevision *uint64
 	// giveBack marks a lent follow sent back by Automation.Return: the
 	// task is recorded as the owner's, and the handle ends with it.
 	giveBack bool
@@ -700,8 +701,27 @@ func (s *Session) DispatchFor(ctx context.Context, o Order, hello *protocol.Hell
 
 // orderScopeMatches holds s.mu.
 func (s *Session) orderScopeMatches(o Order, conn *bridge.Conn) bool {
+	if o.scopeRevision != nil && *o.scopeRevision != s.orders {
+		return false
+	}
 	if o.scopeHello == nil {
 		return true
 	}
 	return conn != nil && conn.Hello == o.scopeHello && s.state != nil && s.state.World == o.scopeWorld && s.state.Phase == protocol.PhaseInWorld && s.state.HP > 0 && time.Since(s.stateAt) >= 0 && time.Since(s.stateAt) <= 3*time.Second
+}
+
+// DispatchAtRevision refuses a delayed safety decision after a newer body order.
+// The revision is checked again after argument encoding under the session lock.
+func (s *Session) DispatchAtRevision(ctx context.Context, o Order, revision uint64) (*Task, error) {
+	o.scopeRevision = &revision
+	return s.Dispatch(ctx, o)
+}
+
+// DispatchObserved pins a safety decision to both observations and owner order.
+func (s *Session) DispatchObserved(ctx context.Context, o Order, hello *protocol.Hello, world string, revision uint64) (*Task, error) {
+	if hello == nil || world == "" {
+		return nil, ErrBodyBusy
+	}
+	o.scopeHello, o.scopeWorld, o.scopeRevision = hello, world, &revision
+	return s.Dispatch(ctx, o)
 }

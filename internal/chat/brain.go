@@ -135,6 +135,7 @@ type Options struct {
 	// GatherWood starts the controller's bounded owner-requested wood cycle.
 	GatherWood   func(context.Context, string) (string, error)
 	ResupplyFood func(context.Context, string) (string, error)
+	SearchChests func(context.Context, string, ChestSearchRequest) (string, error)
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -362,6 +363,9 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	text := b.strip(c.Text)
 	cmd, ok := parse(text)
 	if !ok {
+		if b.chestSearchCommand(c, from, owner) {
+			return
+		}
 		if b.foodCommand(text, c, from, owner) {
 			return
 		}

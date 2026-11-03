@@ -55,6 +55,7 @@ type Hello struct {
 }
 
 const FeatureSupportedWading = "supported_wading_v1"
+const FeatureInspectContainer = "inspect_container_v1"
 
 const FeatureMatchingDeposit = "deposit_match_existing_v1"
 
@@ -599,6 +600,7 @@ const (
 	ReasonUnreachable      = "unreachable"
 	ReasonDeepWater        = "deep_water"
 	ReasonStuck            = "stuck"
+	ReasonBlocked          = "blocked"
 	ReasonTimeout          = "timeout"
 	ReasonNoTool           = "no_tool"
 	ReasonInventoryFull    = "inventory_full"

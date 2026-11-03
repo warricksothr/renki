@@ -111,6 +111,22 @@ namespace Renki.Tests
                 Codec.Decode("{\"v\":1,\"type\":\"teleport\",\"id\":\"x-1\",\"seq\":1,\"t\":0}", Sender.Controller));
             Assert.Equal("x-1", e.FrameId);
         }
+
+        [Fact]
+        public void InspectionArgumentsMatchSharedContract()
+        {
+            var cases = JArray.Parse(File.ReadAllText(Path.Combine(Root, "inspection-args.json")));
+            foreach (var c in cases)
+            {
+                var request = new TaskRequest { Task = TaskNames.InspectContainer, Args = (JObject)c["args"] };
+                if ((bool)c["valid"]) Assert.IsType<InspectContainerArgs>(TaskArgs.Parse(request));
+                else Assert.Throws<BadArgsException>(() => TaskArgs.Parse(request));
+            }
+            var safety = new Renki.Tasks.SafetyConfig { AllowGather = false };
+            Assert.True(safety.Permits(TaskNames.InspectContainer));
+            safety.AllowMovement = false;
+            Assert.False(safety.Permits(TaskNames.InspectContainer));
+        }
     }
 
     public class TaskArgsTests

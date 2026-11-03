@@ -538,6 +538,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `escort` | body | `player`; `protect` (names, at most 128); `distance` (2–8 m, default 3.5); `collect` / `defend` (default true). Persistent native follow/collection/defense/escape; see [ESCORT.md](ESCORT.md) | M3 |
 | `guard` (planned area guard) | body | `around`: player or position; `radius` | M3 |
+| `inspect_container` | body | `container`: chest entity; required `scope` with `center`, `radius`, `travelM`, `durationS` | read-only storage |
 | `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 
@@ -682,6 +683,19 @@ Notes:
   `invalid_target`. Both need `allowMovement`: they move nothing, but the
   gear is the body's. The voice is offered `equip` with the gear the bot
   carries to choose from, and `unequip` with the slots.
+- `inspect_container` requests ordinary chest ownership/access, approaches
+  on checked dry ground, verifies interaction reach/sight and publishes fresh
+  contents without moving any stacks. Tombstones are not inspection targets.
+  It requires `allowMovement`, task permission and feature
+  `inspect_container_v1`. Arguments accept only `container` and required
+  `scope`: coordinates `center`, radius 10–250 m, travel 1–500 m and duration
+  1–90 s. Both the body and chest must be inside the scope. Detours and
+  alternate approaches share the parent time/travel accounting. A fresh
+  container frame has `task` set to the request ID and `direction` set to
+  `inspect_container`, including an empty chest. Final native outcomes use
+  `inspection:{"travel":...,"final":[...],"trail":[...],"detail":...}`.
+  Cancellation/driver refusal may lack that receipt; callers must stop
+  rather than replenish travel from partial controller observations.
 - `flee` runs from `from` until it is `distance` away across the ground, and
   succeeds then, or when an entity it ran from is gone or dead. With
   `toward` (the owner, or home) it runs there instead, however far, unless
@@ -690,7 +704,11 @@ Notes:
   threat still close runs on straight away. Otherwise it runs
   straight away, to 5 m past `distance`. It re-aims every 0.5 s as the threat moves, always runs,
   and fails `stuck`, `deep_water` or `encumbered` as `move_to` does. It
-  needs only `allowMovement`: running away is never the unsafe choice.
+  needs only `allowMovement`. Ordinary flee uses the seven bounded checked
+  escape bearings and retains dry-ground, hostile and physical constraints.
+  Less than 1 m flat displacement over 4 s with a threat within 15 m fails
+  `blocked`, with a trace naming position, threat, goal and gap. Replanning
+  does not reset that physical-progress window.
 - `harvest` operates on one loaded tree, log, stump or mineable rock. It
   chooses the greatest resource damage among usable carried melee tools that
   meet `minTool`, requires at least 80% health and a work site clear of
@@ -733,12 +751,14 @@ Notes:
   Choosing whether to start a fight remains the controller/owner's job.
   Explicit `defensive:true` requires an exact entity without kite discovery.
   Native damage callbacks must confirm that this ordinary Greyling hit the
-  current body in the last 15 s. Entry requires positive HP and 65% health,
+  current body in the last 15 s, or its locally owned AI must currently
+  target Tas. Entry requires positive HP and 65% health,
   35 stamina, active food and at least 2 armour. Defense stays within 6 m of
   its start and target for at most 12 s; below 25 HP or 60% health it escapes.
   The normal bystander, structure, dry-ground and stamina checks still apply.
   The controller may try one such defense per attacker per minute after a
-  confirmed hit; a native refusal falls back to flee on its next tick. Nearby
+  confirmed hit or locally owned AI currently targeting Tas; a native refusal
+  falls back to flee on its next tick. Nearby
   characters/structures prevent that automatic attempt.
   It cannot start an expedition, chase a distant attacker or lower ordinary
   combat thresholds. State.combat marks this mode with `defensive:true`.
@@ -1067,24 +1087,31 @@ chat event
   from `state.phase` rather than the `died` and `respawned` events, so a
   lost event does not lose them. The plugin reports `dead` from the death
   until the respawn wait ends, about 10 s.
-- **Getting away.** A currently perceived hostile creature that damaged the
-  bot in the last 30 s and remains within 15 m triggers retreat at any health.
-  With only an AI target (`targetingMe`), health must be below 40%.
-  The controller sends `flee`
-  from the nearest such creature, 25 m, toward the nearest owner in sight
-  within 60 m, else home if it is within 150 m and the creature not within
-  15 m of it, else
-  straight away (also when the owner or home lies past the creature, as the
-  plugin judges it), and says which ("Falling back to you, Sothr", "Heading
-  home", "Getting away from the greyling"). At an owner's side or home
-  already, it runs straight away while the threat remains close. Damage
-  evidence expires, is scoped to this world, and is cleared on death or
-  respawn; only a still-perceived hostile creature counts. AI targets are
-  not replicated to other clients, so a missing `targetingMe` flag does
-  not imply that the bot is safe. Each flee has 60 s. It does not start another while a flee
-  runs. Repeated decisions wait 10 s, but a fresh confirmed hit after a
-  completed escape can bypass that delay. It needs `flee` in
-  `allowedTasks`.
+- **Getting away.** Fresh known hostile targeting within 15 m triggers
+  protection at any health, before a first hit. A still-perceived hostile
+  attacker that damaged Tas in the last 30 s also counts when remote AI
+  targeting is unavailable. Confirmed attackers take priority over targeting
+  alone; the newest attacker takes priority over earlier damage. Dead,
+  unrelated, stale and other-world observations do not trigger protection.
+  The watcher checks every 250 ms; stream freshness is bounded to 3 s.
+  A prepared single ordinary Greyling within 6 m can use native defensive
+  melee (65% HP, 35 stamina, an active meal and clear local space); native
+  combat permission, equipment and safety checks remain authoritative.
+  Refusal falls back to retreat without repeating defense against that enemy
+  for a minute. A pending defense owns the body while its state arrives.
+  Otherwise Tas flees 25 m toward a visible owner within 60 m, else home
+  within 150 m if clear of the threat, else away. At an owner/home with a
+  threat still close, he keeps moving. Each flee has a 60 s deadline.
+  A controller-owned blocked/unreachable/stuck escape gets one alternate
+  tangent destination; a hit from a different attacker can re-aim an owned
+  running flee. At most two attempts are made in a 10 s episode. Matching
+  native escort/travel/combat and unrelated/manual flee retain ownership.
+  Newer body orders invalidate delayed retries atomically at dispatch;
+  connection/world changes invalidate the observed decision too. A completed
+  escape normally waits 10 s; a fresh hit can bypass the delay within the
+  episode bound. Missing remote `targetingMe` does not prove safety. Damage
+  evidence expires after 30 s and clears on death/respawn. Flee requires
+  `allowedTasks`; proactive defense does not grant combat permission.
 - **Carrying too much.** When the state says `encumbered`, the controller
   drops the least valuable, heaviest things first, just enough to be back
   under `weightMax`: common raw materials (wood, stone, flint, resin,

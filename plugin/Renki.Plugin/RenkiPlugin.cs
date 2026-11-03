@@ -430,7 +430,7 @@ namespace Renki.Plugin
             Character = Game.instance?.GetPlayerProfile()?.GetName() ?? "",
             World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "",
             Capabilities = runner.Capabilities.ToList(),
-            Features = new List<string> { "deposit_match_existing_v1", "bounded_move_v1", "supported_wading_v1" },
+            Features = new List<string> { "deposit_match_existing_v1", "bounded_move_v1", "supported_wading_v1", "inspect_container_v1" },
         };
 
         void OnDestroy()

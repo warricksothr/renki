@@ -23,24 +23,25 @@ func (*TaskRequest) MessageType() string { return TypeTask }
 
 // Task names (7.2): M1's, and what M2 has added so far.
 const (
-	TaskStop     = "stop"
-	TaskMoveTo   = "move_to"
-	TaskFollow   = "follow"
-	TaskEscort   = "escort"
-	TaskLookAt   = "look_at"
-	TaskSay      = "say"
-	TaskEmote    = "emote"
-	TaskPickup   = "pickup"
-	TaskDrop     = "drop"
-	TaskInteract = "interact"
-	TaskFlee     = "flee"
-	TaskEquip    = "equip"
-	TaskUnequip  = "unequip"
-	TaskDeposit  = "deposit"
-	TaskWithdraw = "withdraw"
-	TaskHarvest  = "harvest"
-	TaskAttack   = "attack"
-	TaskUseItem  = "use_item"
+	TaskStop             = "stop"
+	TaskMoveTo           = "move_to"
+	TaskFollow           = "follow"
+	TaskEscort           = "escort"
+	TaskLookAt           = "look_at"
+	TaskSay              = "say"
+	TaskEmote            = "emote"
+	TaskPickup           = "pickup"
+	TaskDrop             = "drop"
+	TaskInteract         = "interact"
+	TaskFlee             = "flee"
+	TaskEquip            = "equip"
+	TaskUnequip          = "unequip"
+	TaskDeposit          = "deposit"
+	TaskWithdraw         = "withdraw"
+	TaskInspectContainer = "inspect_container"
+	TaskHarvest          = "harvest"
+	TaskAttack           = "attack"
+	TaskUseItem          = "use_item"
 )
 
 // Slots are the equipment slots `unequip` empties; "hands" is both.
@@ -115,6 +116,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &UnequipArgs{}
 	case TaskDeposit, TaskWithdraw:
 		args = &TransferArgs{}
+	case TaskInspectContainer:
+		args = &InspectContainerArgs{}
 	case TaskHarvest:
 		args = &HarvestArgs{}
 	case TaskAttack:
@@ -174,6 +177,51 @@ type TransferArgs struct {
 	Container     string         `json:"container"`
 	Items         []TransferItem `json:"items"`
 	MatchExisting bool           `json:"matchExisting,omitempty"`
+}
+
+// InspectContainerArgs requests current contents without transferring items.
+// Scope bounds native walking and alternate interaction approaches.
+type InspectContainerArgs struct {
+	Container string     `json:"container"`
+	Scope     *MoveScope `json:"scope"`
+}
+
+func (a *InspectContainerArgs) UnmarshalJSON(raw []byte) error {
+	type plain InspectContainerArgs
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if err := d.Decode((*plain)(a)); err != nil {
+		return err
+	}
+	var fields struct {
+		Scope struct {
+			Center json.RawMessage `json:"center"`
+		} `json:"scope"`
+	}
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return err
+	}
+	var coordinates []json.RawMessage
+	if err := json.Unmarshal(fields.Scope.Center, &coordinates); err != nil || len(coordinates) != 3 {
+		return errors.New("scope center must have three numeric coordinates")
+	}
+	for _, coordinate := range coordinates {
+		var n float64
+		if bytes.Equal(coordinate, []byte("null")) {
+			return errors.New("scope center cannot contain null")
+		}
+		if err := json.Unmarshal(coordinate, &n); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *InspectContainerArgs) validate() error {
+	if strings.TrimSpace(a.Container) == "" || a.Scope == nil {
+		return errors.New("inspection requires container and scope")
+	}
+	return a.Scope.Validate()
 }
 
 func (a *TransferArgs) validate() error {

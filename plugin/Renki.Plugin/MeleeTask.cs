@@ -58,8 +58,9 @@ namespace Renki.Plugin
             defensive = args.Defensive;
             if (defensive && (prefab != "Greyling" || distance > 6 ||
                 !MeleeEncounter.DefensiveReady(p.GetHealth(), p.GetMaxHealth(), p.GetStamina(), p.GetBodyArmor(),
-                    p.GetFoods().Count > 0, aggressor == enemy && Time.unscaledTime - hurtAt <= 15)))
-                throw new TaskRefused(Wire.ReasonRefused, "defense requires a recent nearby Greyling attacker, food, armour, 65% health and 35 stamina");
+                    p.GetFoods().Count > 0, aggressor == enemy && Time.unscaledTime - hurtAt <= 15,
+                    enemy.m_nview.IsOwner(), enemy.GetBaseAI()?.GetTargetCreature() == p)))
+                throw new TaskRefused(Wire.ReasonRefused, "defense requires a recent attacker or confirmed targeting Greyling, food, armour, 65% health and 35 stamina");
             if (!defensive && !protection && !HarvestHealth.Ready(p.GetHealth(), p.GetMaxHealth()))
                 throw new TaskRefused(Wire.ReasonRefused, "recover to at least 80% health before combat");
             weapon = Best(p);

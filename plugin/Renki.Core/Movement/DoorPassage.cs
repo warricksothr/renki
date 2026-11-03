@@ -54,7 +54,7 @@ namespace Renki.Movement
             // Close after clearing the actual doorway, including an off-centre
             // double gate. Proximity to either hinge alone is not passage.
             var side = Side(pos, door, normal);
-            var crossed = Math.Abs(startingSide) > .1 && startingSide * side < 0 &&
+            var crossed = (Math.Abs(startingSide) <= .1 || startingSide * side < 0) &&
                 Math.Abs(side) >= ClearPlane && away <= DoorRules.StuckReach;
             if (!level || !(crossed || (through ? DoorRules.Past(pos, door) : away > LeftAt)))
                 return away > AbandonReach ? DoorCleanup.Abandoned : DoorCleanup.Wait;

@@ -2,12 +2,56 @@
 
 2026-11-03, agent:codex/home-survey-delivery, branch t3/map-home-location.
 Delivery: [PR #176](https://github.com/warricksothr/renki/pull/176).
-Runtime code deployed: **cc5f323** (includes8f662f6 shallow-water correction). Later documentation commits do not require
-another game restart. The owner explicitly authorized filing, grooming,
-promotion and implementation while away; the earlier planning-only hold ended.
+The owner authorized filing, grooming, promotion and delivery while away.
 No merge or CI monitoring was requested.
 
-## Current runtime: remote portal death, respawn at the old base
+## Current runtime: emergency offline during Greyling pursuit
+
+This supersedes every online/healthy/sheltered snapshot below. At about
+16:12Z Tas was at [150.65,70.48,-33.81], 15.8/25 HP, no active/carried food,
+with automatic flee t-20 running. Two Greylings were known to be targeting
+Tas, roughly 5–9 m away:2494842417:2243 and1:100792. InjurySeq8679.
+Tas was explicitly emergency-stopped to prevent another death while fixing
+protection. The independent panel was restarted without the game. Do not
+blindly rejoin this saved pursuit. Menu HP0 is not evidence of death; no new
+`died` event was observed in this window. Evidence:
+`.checks/new-home-defense-current.json`, `.checks/audit-window-VVadhq.jsonl`.
+
+Runtime before this delivery was cc5f323. The delivery adds door cleanup,
+read-only chest search and proactive/blocked-escape protection; installation
+and checks are recorded in the tickets. Keep Loot disabled. No free Tas bed,
+completed live survey, native chest search, double-door closure or survival
+acceptance has been earned. Sleeping remains unassigned. Grave recovery and
+safe return to the new home remain unresolved.
+
+The protection watcher now reacts at healthy HP to fresh known targeting
+within15m, before damage. Prepared isolated ordinary Greylings may use the
+existing native defense; otherwise flee. Native flee uses checked bearings
+and fails `blocked` after4s with less than1m flat progress near a threat,
+regardless of replans. One different destination retry or new-attacker
+re-aim is allowed in a two-attempt/10s episode. Newer owner orders and native
+escort/travel/combat/manual flee ownership are preserved. Missing remote AI
+targets still need an actual-hit fallback; this is not complete enemy intent
+inference. Native pre-contact/survival validation remains outstanding.
+
+`Tas, look for wood in a nearby chest` and configurable/listed variants now
+start bounded read-only search. See BEHAVIOURS.md. It counts only fresh native
+correlated inspection snapshots, leaves inventory untouched and reports
+unchecked/unknown storage. Default25m can be changed up to100m. The installed
+controller's persisted allowlist must include `inspect_container` before use.
+
+New tickets: TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before
+the first hit), TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked
+escape and re-aim on a new attacker), and TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
+(Search nearby or listed chests for requested items). The door ticket below
+retains its separate native acceptance. Checked regressions include the
+captured raised-base start with explicitly synthetic obstruction, known
+pursuit, freshness, owner-stop/world races, bounded retry, newest attacker,
+correlated chest contents and native travel accounting.
+
+## Historical runtime evidence
+
+## Earlier runtime: remote portal death, respawn at the old base
 
 This supersedes every healthy-remote-platform or inside-new-house snapshot below.
 Greydwarf1629975892:102 hit at15:54:52.701Z,15:54:54.821Z and15:55:04.879Z.
@@ -218,6 +262,6 @@ Final documentation/ticket gate and committed review follow this handoff edit.
 
 Before further live work read fresh body/health/food/door/bed ownership and check
 for newer owner orders. Do not replace active automatic retreat with a probe.
-Acquire the VM lease and retain the default online lifecycle; an explicit emergency stop remains available during actual danger.
+Acquire the VM lease before live work. Current emergency-offline state takes precedence over historical online lifecycle notes.
 Never guess an approach floor or claim another player's bed. Live acceptance
 needs fed/recovered Tas, a free bed and verified separated-building approaches.

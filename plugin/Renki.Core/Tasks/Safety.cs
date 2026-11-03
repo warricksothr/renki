@@ -35,6 +35,7 @@ namespace Renki.Tasks
                 case "escort":
                 // It walks there; what it may use is InteractRule's call.
                 case "interact":
+                case "inspect_container":
                 // Running away is never the unsafe choice, so it needs no
                 // AllowCombat.
                 case "flee":

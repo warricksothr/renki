@@ -39,7 +39,7 @@ namespace Renki.Movement
             if (now - began >= scope.DurationS) return "survey leg time limit";
             return null;
         }
-        public string Receipt(V3 at, string detail = null) => "survey:" + JsonConvert.SerializeObject(new
+        public string Receipt(V3 at, string detail = null, string kind = "survey") => kind + ":" + JsonConvert.SerializeObject(new
         { travel = Travel, final = at.ToArray(), trail = trail.ToArray(), detail });
     }
 }
