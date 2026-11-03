@@ -18,12 +18,13 @@ namespace Renki.Plugin
         readonly Func<Player, Vector3, bool> ready;
         readonly string source, label;
         readonly string id;
+        readonly Renki.Movement.TravelScope scope;
         MoveToTask walk;
         float began = -1, walkAt, angle;
         int seed, walks, measured, bodyRejected, reachRejected;
 
-        internal InteractionApproach(string source, string label, string id, GameObject target, Func<Player, Vector3, bool> ready)
-        { this.source = source; this.label = label; this.id = id; this.target = target; this.ready = ready; }
+        internal InteractionApproach(string source, string label, string id, GameObject target, Func<Player, Vector3, bool> ready, Renki.Movement.TravelScope scope = null)
+        { this.source = source; this.label = label; this.id = id; this.target = target; this.ready = ready; this.scope = scope; }
 
         Outcome Failed(string reason)
         {
@@ -75,13 +76,14 @@ namespace Renki.Plugin
             {
                 if (hit.normal.y < .65f || hit.collider.transform.IsChildOf(target.transform)) continue;
                 var feet = hit.point + Vector3.up * .03f;
+                if (scope != null && !scope.Contains(Convert.ToV3(feet))) continue;
                 if (feet.y <= WorldNavigation.WaterLevel(Convert.ToV3(feet)) + .05 || Vector3.Distance(feet, me.transform.position) > 12) continue;
                 measured++;
                 var blocked = Physics.OverlapCapsuleNonAlloc(feet + Vector3.up * .45f, feet + Vector3.up * 1.4f,
                     .4f, bodies, GroundMask, QueryTriggerInteraction.Ignore);
                 if (blocked != 0) { bodyRejected++; continue; }
                 if (!ready(me, feet)) { reachRejected++; continue; }
-                walk = new MoveToTask(new MoveToArgs { To = new Target { Pos = Convert.ToV3(feet) }, StopDistance = .15, Dry = true, AvoidHostiles = true }, feet, null);
+                walk = new MoveToTask(new MoveToArgs { To = new Target { Pos = Convert.ToV3(feet) }, StopDistance = scope == null ? .15 : .25, Dry = true, AvoidHostiles = true, Scope = scope }, feet, null);
                 walkAt = Time.unscaledTime; walks++;
                 Tracer.Emit(source, "approaching verified interaction position", new Dictionary<string, object>
                 { ["id"] = id, ["attempt"] = walks, ["seed"] = index, ["to"] = Convert.ToArray(feet) });

@@ -20,12 +20,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-02T15:58:32Z
-updated_at: 2026-11-02T15:58:44Z
+updated_at: 2026-11-03T06:53:17Z
 created_by:
   id: agent:claude-code/renki-plan-m7
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan-m7
+  id: agent:codex/home-survey-delivery
   name: ""
 extensions: {}
 ---
@@ -64,3 +64,9 @@ Goal 7.3 measures new m2 inside the authorized area, and the explore goal's succ
 - [ ] Samples from another world key, epoch or source are not counted; a radius above 250 m or a non-finite centre is rejected
 - [ ] `GET /api/atlas/coverage?world=&x=&z=&r=&since=` returns count, m2 (count x 16), the circle and `since`, and refuses unauthenticated requests (test)
 - [ ] docs/ATLAS.md describes measured terrain coverage, its sensor radius and the eviction limit
+
+## Notes
+
+**agent:codex/home-survey-delivery** at 2026-11-03T06:53:17Z
+
+Home survey TKT-01M6FV6E40 (Home survey: familiarize with an area and update its places) now implements the shared schema-2 first-receipt/source migration and internal atlas.SurveyCoverage query. See internal/atlas/coverage.go and coverage_test.go, plus docs/ATLAS.md. It counts canonical 4 m samples inside a bounded circle, with measured/new/refreshed/unknown/stale and observer provenance, including negative coordinates, shared borders and migration checks. Reuse this implementation when grooming this ticket; do not add another version-2 migration. The general GET /api/atlas/coverage endpoint from this ticket is not implemented, and this draft remains unpromoted. No existing M7 milestones or unrelated claims were changed.

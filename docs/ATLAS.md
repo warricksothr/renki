@@ -69,7 +69,15 @@ half for the main database and half for WAL/frame/maintenance overhead, with
 checkpoints after batches and proactive eviction under pressure. Thus actual
 sample capacity may be below `maxSamples`. An existing file too large for a
 newly reduced disk budget is refused rather than silently exceeding that limit.
-Schema version 1 is migrated transactionally; unknown future versions are refused.
+Schema version 2 adds immutable first-receipt time and observer per canonical
+sample; version 1 is migrated transactionally using its retained receipt/source.
+Unknown future versions are refused. Survey coverage counts only this observer
+in the selected world circle, with measured/new/refreshed/unknown/stale counts.
+New requires first receipt and a fresh actual measurement during the run;
+confirmations and resends do not create new coverage. Eviction removes this
+provenance too, so a reinserted cell can count as new within the retained atlas.
+This is not lifetime exploration history.
+
 Use SQLite backup tooling for live backups, or stop the controller before copying
 its database files.
 

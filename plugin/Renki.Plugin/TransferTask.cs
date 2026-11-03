@@ -17,8 +17,10 @@ namespace Renki.Plugin
         readonly TaskRequest request;
         readonly TransferArgs args;
         readonly Container chest;
-        readonly bool withdraw;
-        readonly Walker walker = new Walker();
+        readonly bool withdraw, inspect;
+        readonly Walker walker;
+        readonly TravelScope scope;
+        readonly BoundedTravel budget;
         InteractionApproach approach;
         float requestedAt = -1;
         bool? granted;
@@ -28,14 +30,18 @@ namespace Renki.Plugin
         // keys let unloaded/destroyed chests and their tasks be collected.
         internal static readonly ConditionalWeakTable<Container, TransferTask> Pending = new ConditionalWeakTable<Container, TransferTask>();
 
-        public TransferTask(TaskRequest request, TransferArgs args, Container chest)
+        public TransferTask(TaskRequest request, TransferArgs args, Container chest, TravelScope scope = null)
         {
             this.request = request;
             this.args = args;
             this.chest = chest;
+            this.scope = scope;
             withdraw = request.Task == TaskNames.Withdraw;
+            inspect = request.Task == TaskNames.InspectContainer;
+            if (scope != null) budget = new BoundedTravel(scope, Convert.ToV3(Player.m_localPlayer.transform.position), Time.unscaledTime);
+            walker = new Walker(budget == null ? (Func<V3, V3, bool>)null : budget.Clear);
             walker.SetGoal(Player.m_localPlayer.transform.position, chest.transform.position,
-                dryGround: args.MatchExisting, avoidHostiles: args.MatchExisting);
+                dryGround: args.MatchExisting || inspect, avoidHostiles: args.MatchExisting || inspect);
             walker.ResetStuck(Player.m_localPlayer.transform.position);
         }
 
@@ -45,6 +51,8 @@ namespace Renki.Plugin
             if (p == null || p.IsDead()) return Finish(Outcome.Failed(Wire.ReasonStopped, "not in the world"));
             if (chest == null || chest.m_nview == null || !chest.m_nview.IsValid()) return Finish(Outcome.Failed(Wire.ReasonTargetLost, "the chest is gone"));
             var pos = p.transform.position;
+            var refusal = budget?.Observe(Convert.ToV3(pos), Time.unscaledTime);
+            if (refusal != null) return Finish(Outcome.Failed(Wire.ReasonUnreachable, refusal.Replace("survey", "inspection")));
             if (!UseReach.Near(p, chest.gameObject, 2.5f))
             {
                 if (requestedAt >= 0) return Finish(Outcome.Failed(Wire.ReasonUnreachable, "moved out of reach of the chest"));
@@ -67,7 +75,7 @@ namespace Renki.Plugin
                         if (!Transfer.CanReposition(Convert.ToV3(pos), Convert.ToV3(chest.transform.position), failed)) return Finish(failed);
                         approach = new InteractionApproach("transfer", "chest interaction", args.Container, chest.gameObject,
                             (me, feet) => UseReach.From(me, chest.gameObject, 2.5f, feet) &&
-                                EffectArea.IsPointInsideArea(feet + Vector3.up * .5f, EffectArea.Type.Burning, .4f) == null);
+                                EffectArea.IsPointInsideArea(feet + Vector3.up * .5f, EffectArea.Type.Burning, .4f) == null, scope);
                         Driver.Stand();
                     }
                     return null;
@@ -99,6 +107,10 @@ namespace Renki.Plugin
                 opened = true;
                 Report();
             }
+            // Inspection ends before selecting a source, running transfer
+            // policy or moving a single stack. The correlated snapshot above
+            // is the evidence, including for an empty chest.
+            if (inspect) return Finish(Outcome.Succeeded("inspected chest; nothing moved"));
             var pack = p.GetInventory();
             var source = withdraw ? chest.GetInventory() : pack;
             var destination = withdraw ? pack : chest.GetInventory();
@@ -169,14 +181,20 @@ namespace Renki.Plugin
                 Pos = Convert.ToArray(chest.transform.position),
                 Size = inv.Size,
                 Items = inv.Items,
-                Task = result != null ? request.Id : null,
-                Direction = result != null ? request.Task : null,
+                Task = inspect || result != null ? request.Id : null,
+                Direction = inspect || result != null ? request.Task : null,
                 Moved = result?.Moved.Count > 0 ? result.Moved : null,
                 Remaining = result?.Remaining.Count > 0 ? result.Remaining : null,
             });
         }
 
-        Outcome Finish(Outcome result) { Cancel(); return result; }
+        Outcome Finish(Outcome result)
+        {
+            if (inspect && budget != null && Player.m_localPlayer != null)
+                result.Detail = budget.Receipt(Convert.ToV3(Player.m_localPlayer.transform.position), result.Detail, "inspection");
+            Cancel();
+            return result;
+        }
 
         public void Cancel()
         {

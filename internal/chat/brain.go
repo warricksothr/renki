@@ -127,13 +127,15 @@ type Options struct {
 	// Home keeps the bot's home. Nil means it has none.
 	Home Home
 	// Places is the same per-world waypoint memory used by the map.
-	Places *home.Store
+	Places      *home.Store
+	BaseCommand func(context.Context, string, string, *protocol.Vec3) (string, bool, error)
 	// PlayerQuery answers read-only location questions from the panel. Game
 	// questions use the presence worker's scoped, throttled reply queue.
 	PlayerQuery func(speaker, text string) (string, bool)
 	// GatherWood starts the controller's bounded owner-requested wood cycle.
 	GatherWood   func(context.Context, string) (string, error)
 	ResupplyFood func(context.Context, string) (string, error)
+	SearchChests func(context.Context, string, ChestSearchRequest) (string, error)
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -361,6 +363,9 @@ func (b *Brain) Chat(c *protocol.Chat) {
 	text := b.strip(c.Text)
 	cmd, ok := parse(text)
 	if !ok {
+		if b.chestSearchCommand(c, from, owner) {
+			return
+		}
 		if b.foodCommand(text, c, from, owner) {
 			return
 		}
@@ -368,6 +373,9 @@ func (b *Brain) Chat(c *protocol.Chat) {
 			return
 		}
 		if b.waypointCommand(text, c, from, owner) {
+			return
+		}
+		if b.baseCommand(text, c, from, owner) {
 			return
 		}
 		b.opts.Logger.Debug("not a command", "from", c.From.Name, "voice", b.voice() != nil)

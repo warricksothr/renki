@@ -273,7 +273,14 @@ individual native failures and cancels an unfinished goal during cleanup.
 
 After M2 and M3, [exploration goals](EXPLORATION.md) will extend this host with
 coverage/frontier evidence, expedition preparation, bounded travel/survey and
-return routines. The proposal is tracked as draft work; `combat_trial` and
-`food_resupply` are the implemented goal kinds. Map knowledge, observed coverage, visited ground
+return routines. General expeditions remain draft work. The implemented `familiarize` local
+profile is configured through **Base area & familiarization** and started with
+`Tas, familiarize yourself with home` or `POST /api/bases` (action `start`). It
+shares the host, cancellation and persistence but uses a deterministic bounded
+local survey policy; `partial` is a terminal result with explicit gaps. See the
+[implemented local profile](EXPLORATION.md#local-home-familiarization) for limits
+and evidence. `combat_trial` and `food_resupply` remain supported.
+
+Map knowledge, observed coverage, visited ground
 and revalidated routes are distinct evidence, and discovery plus verified return
 will be required for the initial bounded land expedition.

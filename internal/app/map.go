@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/warricksothr/renki/internal/atlas"
+	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"sort"
@@ -9,6 +10,8 @@ import (
 )
 
 type MapSnapshot struct {
+	Base        *home.Base                 `json:"base,omitempty"`
+	SurveyLegs  []goal.SurveyLeg           `json:"surveyLegs,omitempty"`
 	WorldEvents *protocol.WorldEventStatus `json:"worldEvents,omitempty"`
 	WorldUID    string                     `json:"worldUid,omitempty"`
 	WorldKey    string                     `json:"worldKey,omitempty"`
@@ -35,6 +38,15 @@ func (a *App) MapSnapshot() any {
 	out.Perception, out.Walls = a.Session.MapObjects(world, conn)
 	out.WorldEvents = a.Session.WorldEvents(world, conn, time.Now())
 	if world != "" {
+		out.Base = a.Memory.Store.ActiveBase(world)
+		if out.Base != nil {
+			for _, g := range a.Goals.List() {
+				if g.Survey != nil && g.World == world && g.Survey.Pinned.Base.Name == out.Base.Name && g.Survey.WorldKey == out.WorldKey {
+					out.SurveyLegs = g.Survey.Legs
+					break
+				}
+			}
+		}
 		out.Danger = a.Memory.Store.DangerZones(world, time.Now())
 		out.Waypoints = a.Memory.Store.Waypoints(world)
 		out.Landmarks = a.Landmarks.Store.Landmarks(world)

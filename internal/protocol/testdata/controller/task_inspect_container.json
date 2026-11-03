@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "type": "task",
+  "id": "inspect-1",
+  "seq": 1,
+  "t": 0,
+  "task": "inspect_container",
+  "args": {
+    "container": "1:2",
+    "scope": {
+      "center": [
+        0,
+        0,
+        0
+      ],
+      "radius": 25,
+      "travelM": 50,
+      "durationS": 30
+    }
+  },
+  "timeoutS": 30
+}

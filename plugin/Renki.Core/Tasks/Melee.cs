@@ -37,8 +37,9 @@ namespace Renki.Tasks
         // Protection uses observed hostile intent at the host, not a species or star budget.
         public static bool ProtectionEligible(bool player, bool tamed, bool hostile) => !player && !tamed && hostile;
 
-        public static bool DefensiveReady(double hp, double max, double stamina, double armour, bool fed, bool confirmed) =>
-            confirmed && fed && armour >= 2 && hp > 0 && max > 0 && hp >= max * .65 && stamina >= 35;
+        public static bool DefensiveReady(double hp, double max, double stamina, double armour, bool fed, bool confirmed,
+            bool targetingKnown = false, bool targetingMe = false) =>
+            (confirmed || targetingKnown && targetingMe) && fed && armour >= 2 && hp > 0 && max > 0 && hp >= max * .65 && stamina >= 35;
 
         public static bool DefensiveHealth(double hp, double max) => max > 0 && hp > 0 && hp >= max * .6;
 

@@ -778,6 +778,51 @@ export const scenarios = {
     await expect(page.locator("#place-name")).toBeFocused();
     await shot("places");
   },
+  "base-survey": async ({ page, check, shot }) => {
+    await page.locator("#places summary").click();
+    const card = page.locator("#base-survey");
+    await card.locator("summary").click();
+    await check(
+      "Survey uses the saved selected base with explicit limits",
+      async () => {
+        await expect(card).toContainText(
+          "Survey uses saved base camp · radius 90 m",
+        );
+        await card.getByLabel("Base to edit").selectOption("camp");
+        await card.getByLabel("Survey radius (m)").fill("100");
+        await expect(card).toContainText("Radius 100 m means 200 m across");
+        await expect(card).toContainText(
+          "Survey uses saved base camp · radius 90 m",
+        );
+        await expect(card.getByLabel("Storage places")).toHaveAttribute(
+          "multiple",
+          "",
+        );
+      },
+    );
+    await check(
+      "Starting sends an explicit authenticated action without draft overrides",
+      async () => {
+        await card
+          .getByRole("button", { name: "Familiarize with camp", exact: true })
+          .click();
+        await expect(card.getByRole("status")).toContainText(
+          "Read-only preview",
+        );
+        const request = await page.evaluate(() =>
+          renkiPreview.requests.findLast(
+            (r) => r.path === "/api/bases" && r.method === "POST",
+          ),
+        );
+        const body = JSON.parse(request.body);
+        assert.equal(request.headers["X-Renki-Act"], "1");
+        assert.equal(body.action, "start");
+        assert.equal(body.base, undefined);
+        assert.ok(body.world);
+      },
+    );
+    await shot("base-survey-saved-scope");
+  },
   "marker-idle-food": async ({ page, check, shot }) => {
     await page.locator("#places summary").click();
     await page.locator("#place-list").selectOption("home storage");

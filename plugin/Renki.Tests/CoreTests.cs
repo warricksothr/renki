@@ -166,6 +166,51 @@ namespace Renki.Tests
             Assert.EndsWith("t-3:failed/died", Log());
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void FinalMovementRefusalCannotTickStuckRecoveryOrReportTwice(bool throwingCancel)
+        {
+            runner.Welcome(TaskNames.M1);
+            runner.Handle(Req("portal-approach", "move_to", "{\"to\":[1,2,3]}"));
+            runner.FixedTick(.02);
+            var body = host.Bodies[0];
+            if (throwingCancel) body.CancelThrows = new InvalidOperationException("cancel");
+            var idles = host.Idles;
+
+            runner.RefuseMovement("portal trigger refused");
+            runner.RefuseMovement("repeated guard observation");
+            // The captured pickup kept ticking for eight seconds after its
+            // first guard refusal, then tried jump/strafe and teleported.
+            for (var i = 0; i < 500; i++) runner.FixedTick(.02);
+
+            Assert.True(body.Cancelled);
+            Assert.Equal(1, body.Ticks);
+            Assert.Null(runner.Current);
+            Assert.Equal(idles + 1, host.Idles);
+            Assert.Equal("portal-approach:accepted portal-approach:running portal-approach:failed/unreachable", Log());
+            Assert.Equal("portal trigger refused", reports.Last().Detail);
+            Assert.Equal(throwingCancel ? 1 : 0, faults.Count);
+            Assert.True(runner.InSession);
+
+            // Refusal ends this body task, without poisoning later orders.
+            runner.Handle(Req("next", "move_to", "{\"to\":[4,5,6]}"));
+            runner.FixedTick(.02);
+            Assert.Equal("next", runner.Current.Id);
+            Assert.Equal(1, host.Bodies[1].Ticks);
+        }
+
+        [Fact]
+        public void MovementRefusalWithoutBodyCreatesNoReceipt()
+        {
+            runner.Welcome(TaskNames.M1);
+            var idles = host.Idles;
+            runner.RefuseMovement("portal trigger refused");
+            Assert.Empty(reports);
+            Assert.Equal(idles, host.Idles);
+            Assert.True(runner.InSession);
+        }
+
         [Fact]
         public void NewBodyTaskSupersedes()
         {

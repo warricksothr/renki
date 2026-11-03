@@ -34,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-02T17:49:45Z
+updated_at: 2026-11-03T16:27:38Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:codex/home-survey-delivery
   name: ""
 extensions: {}
 ---
@@ -162,3 +162,33 @@ Supersedes the window in the previous goal 3.1 note: goal 3.1 no longer uses a c
 **agent:claude-code/renki-plan** at 2026-11-02T17:49:45Z
 
 Also supersedes "every live trial this week" in the earlier "Remaining for M3 goal 3.1" note: run the retreat-evidence report over every live trial since the flee fix TKT-01M6EFHED7 was deployed, with no calendar window.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:13:01Z
+
+Incident observed during TKT-01M6FV6E40 (Home survey: familiarize with an area and update its places) deployment/admission validation.
+
+Later live state supersedes the earlier water-position handoff. The audit records Greydwarf damage at 07:04:51.507Z (13.27) and 07:04:53.536Z (13.56) at [-167.59,28.74,-454.4]. Existing retreat dispatched plain flee t-1 within 0.2 s, toward saved home; it failed died at 07:04:53.561Z. Tas respawned at 07:05:11.674Z at [-31.08,36.55,15.19]. Existing after-death home handling then dispatched dry move_to t-4 toward [-204.39,32.97,-467.43]; it failed unreachable at 07:05:33.739Z after support/local-route refusals. No familiarize goal was created or dispatched. This was a two-hit low-supply water encounter, not a four-second blocked-flee proof or a survey-leg failure. Full evidence: .checks/audit-window-NgxmRf.jsonl; bounded report: .checks/20261103T071106Z-WhOy9o.log. No survival acceptance is earned. Record this under the existing flee/survival work; no claim takeover or implicit combat/supply permissions were made.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:34:57Z
+
+New-home continuation, without taking this ticket's claim: the operator opened storage entrance gates for access and left them open while searching chests for food. Greydwarf2600298615:830 entered and dealt11.75 at15:28:09.117Z and12.78 at15:28:11.282Z, leaving0.5/25HP. Native audit .checks/audit-window-OzbhE9.jsonl retains the exact window. Automatic flee t-25 was dispatched at15:28:09.826Z. A subsequent direct task-check chest probe t-27 replaced that already running flee at15:28:11.609Z, after both hits. Automatic retreat resumed as t-28 at15:28:11.822Z, cancelled t-27, then failed dry-bank distance_limit at15:28:21.345Z near[-184.9,30.97,-469.7]. This is not a death or a wading-task injury. The direct probe's0.22s interruption and leaving gates open are operator/tooling problems to preserve honestly, not evidence that retreat itself caused either hit.
+
+Checked home travel refused hostile corridors and stair support (.checks/task-e306cp1b.json). Ordinary native t-31 then reached saved home; t-34 returned to its interior point. Final grounded/sheltered state[-203.58,32.97,-466.37],0.5HP, no food, idle, house entrance1:14767 confirmed closed. .checks/new-home-final-observation.json and .checks/new-home-final-map.json. Do not send another exposed trial at this health. No survival acceptance is claimed; retain the existing assignee/claim.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:52:42Z
+
+Later runtime supersedes the earlier sheltered-house0.5HP snapshot. The owner supplied a Raspberry at15:33:47Z; automatic use_item t-36 restored health. Existing passive timer Loot left the house for Wood t-37, then chased Resin t-38. It remained active after repeated final portal guard refusals, escalated Jump/Strafe and entered darkforest at15:36:32Z. Audit .checks/audit-window-FfbfFj.jsonl. This was not a survey or an explicit relocation order. Loot was disabled persistently through the behavior API, preserving its definition.
+
+TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard refuses movement) is now fixed/deployed in cc5f323, with focused lifecycle/full gate/review passing and an actual native same-step unreachable receipt at the first guard refusal (.checks/task-gcwg1_fw.json). Post-settling state .checks/new-home-portal-fix-after.json is grounded/idle on structure at[414.42,31.65,-1176.15],25/25HP, no food, injurySeq0 in the restarted client. The earlier storage hits are historical; no new injury occurred in this probe. No portal entry allowance was introduced. The observed linked return portal is1:161078 ->1:161081 near home, but controlled traversal/return remains draft TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals).
+
+Earlier ordinary native arrival at new home and the saved/bound new home storage west approach remain earned. Tas is currently940m away on the remote portal platform. All four observed beds near the new base were owned, none mine; no bed was claimed. No survey goal was admitted, no full mapping or checked round trip was earned, and native survey criteria5/7 remain unticked. Preserve other agents' claims. Current blockers are return capability, meal readiness and a free Tas bed/verified sleeping approach. Do not re-enable Loot or reverse newer owner orders without checking live state and intent.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:00:45Z
+
+Supersedes the healthy remote-platform snapshot in the preceding note. On deployed cc5f323, Greydwarf 1629975892:102 hit at 15:54:52.701Z (11.99 damage), 15:54:54.821Z (12.28) and 15:55:04.879Z (11.44). Automatic flee t-2 started within 0.28s of the first hit, failed unreachable at 15:54:55.186Z; replacement flee t-5 remained active until death at 15:55:04.915Z near [413.36,31.65,-1177.66]. No direct probe interrupted these retreats. Respawn at 15:55:22.962Z was at the old base [-31.08,36.55,15.19], followed by automatic strict-dry return t-7, which failed unreachable at 15:55:44.553Z. Latest resumed observation at 15:56:28Z: idle 25/25HP near [-46.32,33.79,10.13], no active/carried food, empty pack and no equipped gear; fresh local perception had no characters. Loot remains disabled. Exact retained events/states/inventory: .checks/audit-window-M3BtxI.jsonl; fresh state/map .checks/new-home-resume-runtime.json and .checks/new-home-resume-map.json. This is a death/failed escape, not a safe portal arrival or return, and does not earn survey, bed or survival acceptance.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:27:38Z
+
+Current emergency supersedes prior healthy/online snapshots. Fresh observation at about16:12Z showed Tas at[150.65,70.48,-33.81],15.8/25HP, no food, stamina34.9, injurySeq8679, with flee t-20 running and two known targeting Greylings5–9m away (2494842417:2243 and1:100792). The operator explicitly ran just vm stop to prevent another death, then just vm panel-start to restore the independent panel without rejoining. No new died event was observed; menu HP0 is not a death receipt. Evidence .checks/new-home-defense-current.json, .checks/audit-window-VVadhq.jsonl, and read-only offline verification .checks/new-home-offline-verification.json.
+
+TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before the first hit) implements fresh known targeting protection before damage. TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked escape and re-aim on a new attacker) adds physical progress, checked ordinary escape bearings, one different-destination retry and new-attacker re-aim with owner-order/episode bounds. Regression checks are passing; full gate/review/install follow. No native survival acceptance is earned, and this ticket's existing claim is preserved. Do not blindly rejoin the saved pursuit or interrupt active recovery with a probe.

@@ -38,7 +38,10 @@ edits its tag. Ordinary walking avoids these triggers through cached bounds
 and live capsule casts/overlaps, including before cache discovery. Other
 trigger volumes are not treated as solid building parts. A final native input
 guard also checks ordinary navmesh following and direct body-task movement,
-which may bypass the dry route planner.
+which may bypass the dry route planner. A final guard refusal ends the owning
+body task with `unreachable`, cancels its inputs and prevents later stuck
+jump/strafe recovery from pushing into the same trigger. This does not authorize
+portal entry or implement a deliberate return transition.
 
 ## Following a leader through a portal
 

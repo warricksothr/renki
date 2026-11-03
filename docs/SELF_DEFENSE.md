@@ -13,8 +13,10 @@ cancellation provide useful foundations for combat. A moving creature also
 requires facing, blocking, stamina management and a decision to disengage.
 
 The first explicit bounded melee task is implemented. Its staged game check
-is pending; combat remains disabled by default. Automatic self-defense and
-owner guarding below are subsequent work.
+is pending; combat remains disabled by default. The controller now requests
+bounded single-Greyling self-defense or retreat on fresh known pursuit before
+a hit; see BRIDGE-PROTOCOL.md, Getting away. This requires existing combat
+permissions and preparation. Owner guarding below remains subsequent work.
 
 ## Current attack task
 
@@ -68,9 +70,10 @@ attack/dodge queues. An already-started swing or roll follows normal animation.
 
 The panel shows stamina and combat mode/reason. Use `just vm combat` to read
 the plugin gate; changing it requires a game restart. An owner must separately
-allow attack in controller settings. Local target acquisition runs only inside
-an explicitly requested native goal. Automatic self-defense, job resumption,
-ranged combat and owner guarding remain future work.
+allow attack in controller settings. Local target search runs only inside
+an explicitly requested native goal. Automatic defense selects a known
+pursuer rather than searching for fights. Job resumption, ranged combat and
+owner guarding remain future work.
 
 ## What is already available
 
@@ -83,10 +86,11 @@ ranged combat and owner guarding remain future work.
 - AllowCombat defaults off. Explicit melee has matching Go/C# protocol
   arguments, plugin implementation and controller dispatch support.
 
-Two existing behaviors matter for the design. Retreat now flees on a confirmed
-hit at any health, so an independent attack loop would be canceled repeatedly.
-The explicit melee integration now coordinates matching active encounters;
-automatic fight selection still needs the shared policy described below.
+The shared retreat watcher now chooses between existing native defensive
+melee and escape on known targeting at any health, with confirmed-hit fallback.
+Matching native encounters retain ownership; a separate attack loop must not
+cancel them. The later design sections are historical planning beyond this
+bounded policy.
 Also, the game can report wildlife such as Deer as hostile. Hostility alone
 must never start autonomous combat.
 

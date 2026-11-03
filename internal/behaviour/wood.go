@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -180,6 +181,17 @@ func planWood(v View, last *GatherParams, hints []home.RememberedContainer, land
 		p.Site.Pos = hint.Pos
 	}
 	positions := map[string]protocol.Vec3{}
+	storage := []home.Waypoint{}
+	if v.Base != nil {
+		places, err := home.ResolveBase(*v.Base, v.Waypoints, v.Home)
+		if err != nil {
+			return fail(err.Error())
+		}
+		storage = places.Storage
+		if len(storage) == 0 {
+			return fail("bind at least one storage place to this base before gathering")
+		}
+	}
 	for _, c := range hints {
 		positions[c.Entity] = c.Pos
 	}
@@ -192,7 +204,17 @@ func planWood(v View, last *GatherParams, hints []home.RememberedContainer, land
 		}
 	}
 	for id, pos := range positions {
-		if id != "" && distance(pos, *v.Home) <= 10 {
+		near := distance(pos, *v.Home) <= 10
+		if v.Base != nil {
+			near = false
+			for _, place := range storage {
+				if pos.FlatDistance(place.Pos) <= max(6, place.Radius) && math.Abs(pos[1]-place.Pos[1]) <= 3 {
+					near = true
+					break
+				}
+			}
+		}
+		if id != "" && near {
 			p.To = append(p.To, id)
 		}
 	}

@@ -22,12 +22,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T04:18:10Z
-updated_at: 2026-11-03T17:31:52Z
+updated_at: 2026-11-03T17:45:06Z
 created_by:
   id: agent:claude-code/passive-deploy
   name: ""
 updated_by:
-  id: agent:codex/portal-follow
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -87,6 +87,20 @@ A controller regression confirms that a leader disappearing during passive picku
 ### Remaining game checks
 
 Criterion 5 remains unchecked. Nothing was deployed in this session; read-only VM status found Valheim stopped, controller running and the lease free. With Nimah available, take just vm lease agent:tool/session and use just check vm deploy after review/merge. Follow through one connected portal pair and back; repeat the departure during passive pickup; verify native non-teleportable cargo is explained with no trip home; verify a stop/new order during approach wins and other portals remain refused. Retain audit/log events portal departure, portal arrived, portal failed and follow task outcomes. Release the lease after cleanup. docs/HANDOFF.md carries the session steps and prior passive-loot/lease checks still owed.
+
+**agent:codex/portal-deploy** at 2026-11-03T17:40:34Z
+
+### Deployment baseline correction, 2026-11-03
+
+The owner authorized deployment and choosing the next batch. Initial just check vm deploy installed 77a527c with verified checksums, but the controller exited with atlas schema 2 newer than supported schema 1. Its saved allowlist also contained inspect_container. The atlas/settings were preserved, the local startup wait was interrupted, and just vm stop stopped Valheim. The failed deploy log is .checks/20261103T173701Z-bcB6T6.log.
+
+Investigation found a newer, already-installed but unmerged runtime in PR #176 (Add home surveys, chest search and proactive self-defense), branch t3/map-home-location, head dd0042f, installed runtime 2e8c6d1. Its handoff records an emergency offline state during Greyling pursuit and persisted Loot disabled, contradicting the older origin/main handoff. The brief failed startup supplies no new verified health or location evidence. Do not claim a new death or healthy join.
+
+Integrating that prerequisite baseline into portal following preserves schema 2, inspection permissions, surveys, checked wading, door cleanup, proactive protection and the immediate terminal final-portal-guard refusal. PR #177 will be stacked on PR #176 so its review remains scoped to portal following. Resolve the handoff around the newer runtime state, run focused checks and full just check ci, commit and just check review, then use just check vm install and just vm panel-start. Verify the panel/atlas load with the game offline and Loot still disabled. A safe owner-supervised rejoin is needed before portal field checks or enabling Loot. No atlas downgrade, settings reset or blind field trial is authorized by the failed deploy.
+
+**agent:codex/portal-deploy** at 2026-11-03T17:45:06Z
+
+The combined gate first hit TestSurveyEngineStartStopAndOwnerTakeover/running_stop: survey never dispatched because its synthetic state aged past 3 s under race-test load. Retained diagnostic: .checks/20261103T174115Z-vGFXNY.log. The focused race rerun passed without source changes: just check controller test-packages ./internal/app -race -run TestSurveyEngineStartStopAndOwnerTakeover -count=1 (.checks/20261103T174447Z-02QJrI.log). Rerunning the complete gate before delivery; no production freshness threshold was relaxed.
 
 ## Summary
 

@@ -31,12 +31,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-01T07:02:57Z
-updated_at: 2026-11-02T16:25:44Z
+updated_at: 2026-11-03T15:54:57Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:codex/home-survey-delivery
   name: ""
 extensions: {}
 ---
@@ -93,3 +93,13 @@ Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the ex
 **agent:claude-code/renki-plan** at 2026-11-02T16:25:44Z
 
 Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal names it. No exit goal names it. Its parent is the household epic, so it sits in M5 with it. The collision cache already helps home routes, and portal links are groundwork for portal travel, which is unscheduled. The owner can unschedule it.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:46:13Z
+
+New native evidence on2026-11-03, without taking this claim: automatic timer Loot t-38 pursued Resin from[-179.22,30.97,-469.33] toward[-160.67,28.75,-455.32]. Final movement guard refused portal_cast at15:36:24.061Z near[-187,30.97,-459.99] and held position, but the body task continued. Stuck Jump at15:36:27 and Strafe at15:36:30 later shifted the body to[-187.43,31.05,-459.73]; it teleported through darkforest at15:36:32 to[414.46,32.64,-1175.96]. Exact audit .checks/audit-window-FfbfFj.jsonl. Do not call this intentional portal travel, a survey transition, or a total absence of guard checks: the guard logged repeated refusals before stuck escalation.
+
+TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard refuses movement) adds terminal same-step body failure/cancellation on final input refusal. It preserves PortalClear geometry and introduces no portal allowance. Core TaskRunner regressions pass; full gate is running. Automatic Loot was disabled through the behavior API, preserving its definition. Owner-provided Raspberry healed Tas after the earlier0.5HP storage attack. Tas is currently grounded on the remote portal platform, not inside the new-home house; direct movement into the known linked return portal correctly stays put under portal_cast. Controlled traversal remains TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals), still draft. Native changed guard/deployment evidence will follow on the new bug ticket. Preserve the existing claim here.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:54:57Z
+
+Follow-up to the previous native portal incident note: cc5f323 now deploys terminal same-step body failure on the final input guard refusal. Core lifecycle/full just check ci/committed just check review passed; checksum-verified full deployment passed91s. Native .checks/task-gcwg1_fw.json recorded first portal_cast at15:51:42.0975404Z, then the single unreachable receipt at15:51:42.0981151Z in that physics step. The body approached from[413.58,31.65,-1175.97], settled outside the portal at[414.42,31.65,-1176.15], and remained idle without later jump/strafe or teleport. This is measured approach plus settling, not zero displacement. Changed native evidence completes TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard refuses movement). Existing Loot remains persistently disabled; controlled return is still unsupported. Tas is healthy25/25HP on the remote platform, rather than at the earlier new-home arrival point. Preserve this ticket's existing claim.

@@ -60,16 +60,33 @@ func resting(s *protocol.State) bool {
 	return s != nil && (slices.Contains(s.Flags, protocol.FlagInBed) || slices.Contains(s.Flags, protocol.FlagSleeping))
 }
 func (r *markerRestRun) TravelFromIdleMarker() bool { return true }
+func restPlace(v View) (protocol.Vec3, error) {
+	if v.Base != nil {
+		p, err := home.ResolveBase(*v.Base, v.Waypoints, v.Home)
+		if err != nil {
+			return protocol.Vec3{}, err
+		}
+		if p.Sleeping == nil {
+			return protocol.Vec3{}, errors.New("bind a sleeping place to the selected base")
+		}
+		return p.Sleeping.Pos, nil
+	}
+	if v.Home == nil {
+		return protocol.Vec3{}, errors.New("rest needs known home")
+	}
+	return *v.Home, nil
+}
 func (r *markerRestRun) Check(v View) error {
 	if !idleFresh(v) || v.Perception == nil || v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 ||
 		v.Now.Sub(v.PerceptionAt) > 3*time.Second || math.Abs(v.State.T-v.Perception.T) > 3 {
 		return errors.New("rest needs fresh state and surroundings")
 	}
 	s := v.State
-	if v.Home == nil {
-		return errors.New("rest needs known home")
+	anchor, err := restPlace(v)
+	if err != nil {
+		return err
 	}
-	for _, pos := range []protocol.Vec3{s.Pos, *v.Home} {
+	for _, pos := range []protocol.Vec3{s.Pos, anchor} {
 		for _, n := range pos {
 			if !finite(n) {
 				return errors.New("rest needs finite home and position")
@@ -77,8 +94,8 @@ func (r *markerRestRun) Check(v View) error {
 		}
 	}
 	w, ok := r.p.Marker.resolve(v)
-	if !ok || r.marker != nil && w != *r.marker || r.home != nil && *v.Home != *r.home ||
-		distance(s.Pos, *v.Home) > 20 || !slices.Contains(s.Flags, protocol.FlagInShelter) ||
+	if !ok || r.marker != nil && w != *r.marker || r.home != nil && anchor != *r.home ||
+		distance(s.Pos, anchor) > 20 || !slices.Contains(s.Flags, protocol.FlagInShelter) ||
 		!resting(s) && !slices.Contains(s.Flags, protocol.FlagGrounded) ||
 		s.Location != nil && s.Location.InWater || slices.Contains(s.Flags, protocol.FlagSwimming) {
 		return errors.New("rest needs unchanged home context and dry sheltered footing")
@@ -124,7 +141,7 @@ func (r *markerRestRun) Next(v View, result *Result) (*session.Order, error) {
 	}
 	if r.marker == nil {
 		w, _ := r.p.Marker.resolve(v)
-		h := *v.Home
+		h, _ := restPlace(v)
 		r.marker, r.home, r.began, r.health = &w, &h, v.Now, sampleHealth(v)
 		for _, b := range v.Perception.Structures {
 			if b.ID != "" && b.Kind == protocol.StructureBed && b.Mine && distance(b.Pos, h) <= 12 &&

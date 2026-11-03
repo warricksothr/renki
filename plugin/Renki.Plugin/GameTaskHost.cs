@@ -36,6 +36,17 @@ namespace Renki.Plugin
                     return new MeleeTask(req.Id, attack, FindEntity(attack.Entity));
                 case HarvestArgs harvest:
                     return new HarvestTask(harvest, FindEntity(harvest.Entity));
+                case InspectContainerArgs inspection:
+                    {
+                        var obj = FindEntity(inspection.Container);
+                        var chest = obj != null ? obj.GetComponent<Container>() : null;
+                        if (chest == null || obj.GetComponent<TombStone>() != null)
+                            throw new TaskRefused(Wire.ReasonInvalidTarget, "no storage chest at that entity");
+                        if (!inspection.Scope.Contains(Convert.ToV3(Player.m_localPlayer.transform.position)) ||
+                            !inspection.Scope.Contains(Convert.ToV3(chest.transform.position)))
+                            throw new TaskRefused(Wire.ReasonUnreachable, "chest or body outside inspection scope");
+                        return new TransferTask(req, new TransferArgs { Container = inspection.Container, Items = Array.Empty<TransferItem>() }, chest, inspection.Scope);
+                    }
                 case TransferArgs transfer:
                     {
                         var obj = FindEntity(transfer.Container);
@@ -114,7 +125,7 @@ namespace Renki.Plugin
                             if (fl.Toward.Pos.HasValue) safePos = Convert.ToVector3(fl.Toward.Pos.Value);
                             else if ((safe = FindEntity(fl.Toward.Entity)) != null) safePos = safe.transform.position;
                         }
-                        return new FleeTask(fl, threatPos, threat, safePos, safe);
+                        return new FleeTask(fl, threatPos, threat, safePos, safe, avoidHostiles: true);
                     }
                 case EscortArgs escort:
                     // Escort is a standing order: its leader may join or enter

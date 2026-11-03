@@ -4,7 +4,7 @@ The state of the work at the last handoff, and what the next agent needs
 that the tickets and the roadmap do not already say. Replace this page at
 each handoff rather than appending to it.
 
-Handoff of 2026-11-03, from `agent:codex/portal-follow`. The owner selected
+Handoff of 2026-11-03, from `agent:codex/portal-deploy`. The owner selected
 TKT-01M6FT1ZVW, **Follow: go through the portal the leader just used**, from
 the previous handoff's drafts.
 
@@ -17,9 +17,11 @@ the previous handoff's drafts.
 
 ## Current change
 
-Branch `t3/continue-renki-bot` implements portal following. The ticket carries
-its plan, checks and remaining live evidence. Its code is ready for review;
-it has **not been deployed** in this session.
+Branch `t3/continue-renki-bot` combines portal following with the newer runtime
+baseline from [PR #176](https://github.com/warricksothr/renki/pull/176), head
+dd0042f (runtime 2e8c6d1). Portal delivery is
+[PR #177](https://github.com/warricksothr/renki/pull/177). The ticket carries its
+plan and remaining live evidence. Neither PR has been merged in this session.
 
 - The plugin remembers a nearby player's connected portal for 8 s, including
   while a passive pickup owns the body. A disappearance or remote position
@@ -41,27 +43,47 @@ it has **not been deployed** in this session.
   fixtures, the prompt return of a passive loan after the owner disappears,
   and the chat explanation without going home. Native behavior is unproven.
 
-## Deployed state and next live session
+## Runtime recovery and deployment
 
-Main at the start was 0411381 (#175, the previous handoff). The last deployed
-build remains b5cc019 (#174, perception skew), with passive Loot enabled.
-Read-only VM status in this session found the controller running, Valheim
-stopped, the bot disconnected, and the lease free. No lease was taken and
-nothing was started, stopped or deployed.
+The first deploy of 77a527c installed successfully but the controller exited:
+`atlas schema 2 is newer than supported schema 1`. Saved settings also included
+`inspect_container`. The actual VM baseline was newer unmerged PR #176, rather
+than b5cc019 as the original handoff assumed. The deploy wait was interrupted
+and `just vm stop` stopped the game. No atlas or settings were deleted, reset or
+downgraded. Do not retry 77a527c on its own against this runtime.
 
-For portal following, after review/merge, with Nimah available:
+The newer handoff records why Tas had been offline: at about 16:12Z, position
+[150.65,70.48,-33.81], 15.8/25 HP, no active/carried food and two targeting
+Greylings, then emergency stop. These are historical observations, not a fresh
+health/location claim after the failed deploy's brief startup. Grave recovery,
+a safe return to the new home, and a free Tas bed remain unresolved. Menu HP0
+is not proof of death. Saved new home is [-204.39,32.97,-467.43], with a
+60 m base radius and storage approach [-169.13,30.97,-467.75]. Sleeping remains
+unassigned; no bed was claimed. Keep **Loot disabled** as PR #176 left it: earlier Loot
+entered a portal during stuck recovery and stranded Tas. PR #176's final guard
+now fails the body task immediately on refusal; retain that fix with the scoped
+portal-follow exception. Do not blindly rejoin the saved pursuit.
 
-1. Take `just vm lease agent:tool/session`, then `just check vm deploy`.
+The deployment now integrates PR #176's atlas schema 2, base surveys, checked
+wading, door cleanup, read-only chest search and proactive/blocked-escape
+protection. Install the combined build with `just check vm install`, then
+`just vm panel-start` so schema/settings compatibility can be checked without
+starting the game. Record the actual verified version and final status in the
+portal ticket. A safe supervised rejoin with the owner must precede field work.
+
+For portal following, once Nimah can supervise a safe start:
+
+1. Take `just vm lease agent:tool/session` and start the installed combined build.
 2. Ask Tas to follow. Walk through a connected portal, wait on the far side
    for Tas to arrive and resume following, then do the same trip back.
-3. Check a departure while Tas is picking up felling drops on a passive loan.
-   The returned follow must still take the source portal.
-4. With cargo that native portal rules refuse, confirm Tas explains the cargo
-   refusal and stays rather than walking home. Stop/order takeover during an
-   approach must win, with no leftover trigger allowance.
-5. Retain controller audit/log evidence for `portal departure`, `portal arrived`
-   and `portal failed`, plus follow task outcomes. Tick the live criterion
-   only after the pair crossing and return pass. Release the lease afterward.
+3. After agreeing to re-enable passive Loot for the test, check a departure
+   while Tas is picking up felling drops. The returned follow must take the
+   source portal. Do not re-enable Loot simply to prepare an offline deploy.
+4. Verify cargo refusal, stop/order takeover during approach and refusal of
+   other portals. Retain `portal departure`, `portal arrived`, `portal failed`
+   and task outcomes; tick the live criterion only after the pair trip passes.
+5. Release the VM lease after cleanup. The game does not need to run for the
+   next offline implementation batch.
 
 The previous live checks also remain:
 
@@ -78,6 +100,9 @@ The previous live checks also remain:
 
 Do not promote these without selection:
 
+- TKT-01M6H80F6B (VM: detect runtime drift before installing older builds),
+  filed after the deployment mismatch in this session. It stays in draft.
+
 - TKT-01M6F877Q8 (Behaviours: infer the anchor's activity from changes around
   them), then TKT-01M6F877TX (Behaviours: passive gather works alongside the
   anchor). Gathering must fix the known re-lend churn before becoming the
@@ -91,7 +116,8 @@ Do not promote these without selection:
 The owner's idle/passive decision is on epic TKT-01M62VXYQB (Behaviours:
 templates and instances the bot runs on its own): idle work needs an idle
 body; passive work can borrow a settled owner's follow and yields to movement
-or any owner order. Loot and future gathering are passive and on by default.
+or any owner order. Loot and future gathering are passive and on by default in code; the
+current runtime Loot setting is deliberately disabled and must be preserved.
 
 ## Known gaps and local setup
 
