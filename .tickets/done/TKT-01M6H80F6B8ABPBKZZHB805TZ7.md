@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6H80F6B8ABPBKZZHB805TZ7
 title: "VM: detect runtime drift before installing older builds"
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -21,17 +21,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/portal-deploy
-  branch: t3/continue-renki-bot
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
-  commit: a1480895946fd2f90c22d6d255e9febd33149ba2
-  session: null
-  claimed_at: 2026-11-03T17:53:44Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-03T17:41:15Z
-updated_at: 2026-11-03T18:10:30Z
+updated_at: 2026-11-03T18:14:57Z
 created_by:
   id: agent:codex/portal-deploy
   name: ""
@@ -59,7 +52,7 @@ Evidence: portal ticket TKT-01M6FT1ZVW (Follow: go through the portal the leader
 
 - [x] Full and controller-only install refuse an incompatible durable schema or newer runtime drift before replacing or stopping the installed controller, in offline tests.
 - [x] The deployment manifest records source/version, checksums, actor and prior runtime state without credentials; settings, atlas and explicit offline state are preserved.
-- [ ] A lease-guarded live refusal check leaves the existing compatible runtime and production data unchanged.
+- [x] A lease-guarded live refusal check leaves the existing compatible runtime and production data unchanged.
 
 ## Implementation plan
 
@@ -86,3 +79,17 @@ The complete just check ci gate passed (225 s), retained in .checks/20261103T180
 The complete gate passed and implementation commit 3b56dff passed just check review origin/t3/continue-renki-bot...HEAD with no findings (.checks/20261103T180933Z-kXEjwI.log). Took the VM lease as agent:codex/portal-deploy and ran just check vm deployment-refusal. The compatible candidate passed native read-only preflight against the real configuration, saved permissions and atlas. The verification harness then failed hashing the live SQLite file because Get-FileHash does not share its handle with the controller's writer. Evidence: .checks/20261103T180946Z-LNPIK6.log. The incompatible-manifest installer calls had not run yet; criterion 3 stays unchecked.
 
 Corrected the verifier to hash through a FileAccess.Read handle with FileShare.ReadWrite/Delete. This does not request file writes or stop the controller. Re-run after validation/commit. The game remained offline; no binaries or production configuration/data were replaced. The staged candidate is 3b56dff and production remains 871d818.
+
+**agent:codex/portal-deploy** at 2026-11-03T18:14:57Z
+
+### Native offline compatibility and both refusal paths verified
+
+After the shared-read correction, just check ci passed again (180 s; .checks/20261103T181030Z-mkQMwC.log). Candidate bc64ae9 passed just check review origin/t3/continue-renki-bot...HEAD with no findings (.checks/20261103T181344Z-riCsUg.log). Under the VM lease held by agent:codex/portal-deploy, just check vm deployment-refusal passed in 11 s (.checks/20261103T181353Z-vMP7sd.log).
+
+The unmodified candidate manifest passed native read-only compatibility against the installed configuration, saved permissions and atlas. After removing the installed source from that staging manifest only, both install.ps1 and deploy-controller.ps1 refused with runtime drift before process stop or binary replacement. The verifier retained the running controller PID and unchanged installed artifact/config/data hashes across both refusals. The game stayed offline. Final just vm status confirmed controller PID 39640, Valheim not running and bot disconnected. The VM lease was released after verification.
+
+This earns criterion 3 without starting Valheim. Production remains 871d818; this new batch was not installed and no data was reset/downgraded. The initial sharing failure note remains as historical evidence; this note supersedes its pending-refusal result. The independent VM lease ticket and its A/B field criterion were not changed.
+
+## Summary
+
+Implemented committed manifest/ancestry, checksum, schema and permission preflight before both install paths stop or replace runtime. Full CI and committed review passed; lease-guarded native compatible inspection and both refusal paths passed with controller PID/data hashes preserved and game offline. Production remains 871d818.

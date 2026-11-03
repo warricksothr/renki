@@ -19,8 +19,8 @@ this batch is implemented. Do not start Valheim for these implementation checks.
 - PR #177, `t3/continue-renki-bot`, head a148089, is stacked on #176 and adds
   portal following. The installed runtime from this branch is **871d818**;
   a148089 adds deployment records only.
-- The next batch is on `t3/renki-runtime-loot-batch`, based on a148089. Its PR
-  should be stacked on `t3/continue-renki-bot`. No PR was merged in this session.
+- The next batch is on `t3/renki-runtime-loot-batch`, based on a148089. Its delivery
+  base is `t3/continue-renki-bot` (#177). No PR was merged in this session.
 
 ## Current implementation batch
 
@@ -56,18 +56,25 @@ this batch is implemented. Do not start Valheim for these implementation checks.
   same frame cannot renew it. Disabled Loot stays disabled. The owner-in-game
   reach-over-time criterion remains unearned.
 
-The full `just check ci` gate passed (225 s), retained in
-.checks/20261103T180530Z-ShHgUG.log. Focused Go/race checks and the desktop/mobile
+The full `just check ci` gate passed on the implementation (225 s) and again
+after the native verification correction (180 s), most recently retained in
+.checks/20261103T181030Z-mkQMwC.log. Focused Go/race checks and the desktop/mobile
 `loot-reach` UI scenario passed.
 The UI scenario also verifies distinct canvas colors, layer toggling, expiry of
-an unchanged frame and no non-GET requests. Committed review of implementation commit 3b56dff passed with no findings
-(.checks/20261103T180933Z-kXEjwI.log). The activity ticket is done and released;
-the panel ticket is in review and released with its in-game criterion unchecked.
-The first native compatible preflight passed against the real config/atlas,
-then the refusal verifier hit Get-FileHash sharing a SQLite file held open by
-the controller (.checks/20261103T180946Z-LNPIK6.log). The verifier now hashes using
-a read-only handle shared with SQLite's writer; rerun before claiming refusal
-success. No runtime replacement or process stop occurred.
+an unchanged frame and no non-GET requests. Committed review of candidate bc64ae9 passed with no findings
+(.checks/20261103T181344Z-riCsUg.log). Activity and preflight tickets are done and
+released; the panel ticket is in review and released with its in-game criterion
+unchecked.
+
+`just check vm deployment-refusal` passed in 11 s under the VM lease
+(.checks/20261103T181353Z-vMP7sd.log). The compatible candidate read the real
+config/settings/atlas successfully. With only staging ancestry then altered,
+both actual installers refused before stopping/replacing anything, retaining
+controller PID 39640 and installed/config/data hashes. Final VM status confirms
+Valheim stopped, controller running and bot disconnected. Lease released. The
+first verifier run had hit Get-FileHash sharing SQLite's open writer; its retained
+failure was corrected with a read-only shared handle before the passing rerun.
+No production build, configuration or Loot setting was changed.
 
 ## Installed runtime and required offline state
 
