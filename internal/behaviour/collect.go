@@ -72,8 +72,22 @@ func (t Collect) Start(raw json.RawMessage) (Runner, error) {
 	}
 	return &collectRun{p: p, seen: map[string]bool{}}, nil
 }
+
+// perceptionLead is how far a perception frame may be stamped ahead of the
+// latest state frame. The plugin stamps each frame with the game time it is
+// sent at, state at 5 Hz and perception at 1 Hz, so a scan sent after the
+// latest state is newer than it until the next state arrives. Further ahead
+// than this, state has stopped arriving and is the stale one.
+const perceptionLead = 1.0
+
+// freshPerception reports whether the perception is recent enough to act on
+// beside the state: at most 5 s older, or perceptionLead newer.
 func freshPerception(v View) bool {
-	return v.State != nil && v.Perception != nil && v.State.T-v.Perception.T >= 0 && v.State.T-v.Perception.T <= 5
+	if v.State == nil || v.Perception == nil {
+		return false
+	}
+	age := v.State.T - v.Perception.T
+	return age >= -perceptionLead && age <= 5
 }
 
 type collectRun struct {
