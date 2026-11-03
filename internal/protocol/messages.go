@@ -54,6 +54,8 @@ type Hello struct {
 	Features     []string `json:"features,omitempty"`
 }
 
+const FeatureSupportedWading = "supported_wading_v1"
+
 const FeatureMatchingDeposit = "deposit_match_existing_v1"
 
 func (*Hello) MessageType() string { return TypeHello }

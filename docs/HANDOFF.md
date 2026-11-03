@@ -7,6 +7,43 @@ configurable familiarization. Their later instruction explicitly authorized
 filing, grooming, promotion and completion while away, superseding the earlier
 planning-only hold.
 
+## Continuation: old-house return and shallow water
+
+The owner returned Tas to the old house and explicitly requested self-navigation
+to the saved new home and a new bed. The initial 14:35 UTC observation showed
+sheltered Tas 504 m from home, empty inventory, 25 HP and no meals. Under the VM
+lease, normal withdrawals supplied three yellow mushrooms, two neck tails, two
+wood and one rag tunic. Tas equipped the tunic, ate automatically and cooked both
+tails with native output receipts. Travel began at full meal-adjusted health,
+with two mushrooms and one cooked tail in reserve. InjurySeq remained 16702.
+
+A direct dry/hostile-avoiding return from the cooking position refused without
+movement. A checked intermediate walk to the previously observed exterior
+landing succeeded (t-65, `.checks/task-jolb8tsa.json`). The next native return
+(t-66) made southbound progress, then refused bounded dry bank departure near
+[-47.33,30.95,-117.88], reference water30, observed footing approximately30.9.
+Evidence `.checks/task-mbs1nked.json` and `.checks/new-home-bank.json`. It did not
+reach the new home and no new bed has been claimed. The latest pre-change
+observation was grounded near[-47.4,30.64,-118.57], full56.3HP, no new injury.
+
+The owner watched the shallow-ground refusal and requested a distinction between
+safe wading and swimming. TKT-01M6GXWKM2SC3K27C1JE98Z0AV (Travel: allow checked
+shallow-water wading without swimming) owns the explicit `move_to` option
+`wade:true`, alongside `dry:true` and `avoidHostiles:true`. It preserves strict
+dry household/survey behavior. See BRIDGE-PROTOCOL.md and TESTING.md for mode,
+threshold reserves and validation. Deployment/live retry outcomes follow below
+when earned.
+
+The owner also asked about atlas-generated chains and following player paths.
+Current tooling has named waypoints, live-validated route trails and survey
+checkpoints, but no general durable ordered itinerary/cursor/resume tool. The
+atlas has elevation/biome/water at4m; ground-paint path surfaces are not captured.
+A one-off retained-terrain candidate calculation is in
+`.checks/new-home-atlas-route.json`: it leaves unknown/stale/deep samples out and
+found only a partial connection. That is planning evidence, not proof of route
+clearance or impossibility. Future itinerary and path-surface work has not been
+implemented or enabled by this continuation.
+
 ## Home familiarization
 
 Implemented a local `familiarize` profile in the existing durable goal host,

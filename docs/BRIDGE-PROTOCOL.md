@@ -1288,3 +1288,23 @@ A reconnect drops pending images. The receiver validates JPEG dimensions and
 world/connection scope. Audit persistence and panel event streams strip `jpeg`,
 retaining metadata only. Authenticated media retrieval lives outside timeline
 responses, avoiding base64 images in routine diagnostic context.
+
+### Checked shallow-water travel
+
+`move_to` can opt into `wade:true` alongside `dry:true` and
+`avoidHostiles:true`, using coordinate destinations. This retains supported
+physical planning while admitting shallow water. It requires the hello feature
+`supported_wading_v1`; controllers refuse older plugins. Scoped familiarization
+and combat recovery cannot combine with wading. Omitted/false retains strict dry
+behavior, including its bank and shore checks.
+
+The native walker derives a depth limit from the current character's swim-depth
+setting: the game's 0.4 m swim offset, a further 0.3 m reserve and a maximum
+0.8 m allowance. Another 0.15 m is reserved for settling. Planning validates the
+actual start footing, midpoint, endpoint and short execution prefix against
+current local liquid heights. Supported steps, slope, body clearance, portal
+exclusion and hostile checks still apply. Grounded water contact can continue;
+swimming, missing footing, excessive depth or a reduced native allowance stops
+without switching to swimming recovery. A wading route is revalidated under the
+current mode whenever reused. This does not enable wading in the survey or
+existing household routines automatically.

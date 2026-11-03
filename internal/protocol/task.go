@@ -368,6 +368,7 @@ func (a *HarvestArgs) validate() error {
 // MoveToArgs are the arguments to `move_to`. A nil pointer means the
 // plugin's default: 1.5 m, and walking.
 type MoveToArgs struct {
+	Wade           bool       `json:"wade,omitempty"`
 	Scope          *MoveScope `json:"scope,omitempty"`
 	Dry            bool       `json:"dry,omitempty"`
 	AvoidHostiles  bool       `json:"avoidHostiles,omitempty"`
@@ -379,6 +380,9 @@ type MoveToArgs struct {
 }
 
 func (a *MoveToArgs) validate() error {
+	if a.Wade && (!a.Dry || !a.AvoidHostiles || a.Scope != nil || a.RecoverThreats || a.To.Pos == nil || a.To.Entity != "") {
+		return errors.New("wading requires unscoped supported hostile-avoiding coordinate travel without combat recovery")
+	}
 	if a.Scope != nil {
 		if !a.Dry || !a.AvoidHostiles || a.RecoverThreats || a.To.Pos == nil || a.To.Entity != "" {
 			return errors.New("scoped movement requires dry hostile-avoiding coordinates without combat recovery")

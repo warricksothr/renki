@@ -39,6 +39,7 @@ namespace Renki.Tests
         [InlineData("dry", false)]
         [InlineData("avoidHostiles", false)]
         [InlineData("recoverThreats", true)]
+        [InlineData("wade", true)]
         [InlineData("to", "0:1")]
         [InlineData("stopDistance", 100)]
         [InlineData("stopDistance", 0)]

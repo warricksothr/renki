@@ -62,6 +62,7 @@ namespace Renki.Protocol
 
     public sealed class MoveToArgs : EncounterArgs
     {
+        public bool Wade;
         public Renki.Movement.TravelScope Scope;
         public bool Dry;
         public bool AvoidHostiles;
@@ -246,6 +247,9 @@ namespace Renki.Protocol
                         return new TransferArgs { Container = container, Items = parsed.ToArray(), MatchExisting = matchExisting };
                     }
                 case TaskNames.MoveTo:
+                    var wade = Bool(a, "wade", false);
+                    if (wade && (!Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false) || a["scope"] != null && a["scope"].Type != JTokenType.Null || Bool(a, "recoverThreats", false) || !Target.Parse(a["to"], "to").Pos.HasValue))
+                        throw new BadArgsException("wading requires unscoped supported hostile-avoiding coordinate travel without combat recovery");
                     Renki.Movement.TravelScope scope = null;
                     if (a["scope"] != null && a["scope"].Type != JTokenType.Null)
                     {
@@ -268,6 +272,7 @@ namespace Renki.Protocol
                     return new MoveToArgs
                     {
                         Scope = scope,
+                        Wade = wade,
                         To = Target.Parse(a["to"], "to"),
                         StopDistance = Number(a, "stopDistance", 1.5),
                         Run = Bool(a, "run", false),

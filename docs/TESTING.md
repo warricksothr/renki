@@ -2256,3 +2256,23 @@ receipts,18.60m observed travel, minimum89.5HP and sheltered home-floor arrival.
 No observed injury; Tas stayed online. Original home/waypoint positions were
 preserved. This indoor pass does not establish outdoor stair/coast reliability
 or sustained pantry production.
+
+### Checked shallow-water travel, 2026-11-03
+
+TKT-01M6GXWKM2SC3K27C1JE98Z0AV (Travel: allow checked shallow-water wading without
+swimming) adds an explicit movement policy. `just check plugin test-core
+WadingTests` covers the captured bank position with synthetic next-step support,
+shallow/over-depth steps, rising liquid at each edge sample, missing/offset
+footing, airborne/swimming states and unsafe slopes. The capture proves the
+original conservative refusal, not the synthetic route. Existing strict dry,
+bank, scope and collision tests remain applicable. `just check controller
+test-packages ./internal/protocol ./internal/session` verifies argument and
+feature gating; shared wire fixtures run on both sides.
+
+After deployment and live readiness checks, use `just vm task-check move_to`
+with a finite timeout and arguments `to`, `dry:true`, `avoidHostiles:true`,
+`wade:true`. Retain native traces, actual supported/immersed state, health and
+arrival evidence. Do not infer successful wading from a route on dry ground,
+rename a partial walk as new-home arrival, or deliberately force swimming to
+exercise a refusal. Saved itineraries and path-surface preference remain future
+features; the atlas currently captures height/biome/water, not ground paint.

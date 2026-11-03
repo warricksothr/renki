@@ -560,6 +560,9 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	if args, ok := decoded.(*protocol.TransferArgs); ok && args.MatchExisting && !slices.Contains(conn.Hello.Features, protocol.FeatureMatchingDeposit) {
 		return nil, errors.New("plugin does not support conditional matching deposits")
 	}
+	if args, ok := decoded.(*protocol.MoveToArgs); ok && args.Wade && !slices.Contains(conn.Hello.Features, protocol.FeatureSupportedWading) {
+		return nil, errors.New("plugin does not support checked shallow-water wading")
+	}
 	resolved := false
 	if args, ok := decoded.(*protocol.MoveToArgs); ok && resolve != nil && args.To.Entity != "" && !strings.Contains(args.To.Entity, ":") {
 		if world == "" || phase != protocol.PhaseInWorld {

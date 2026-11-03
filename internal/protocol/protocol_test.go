@@ -167,6 +167,7 @@ func TestDecodeArgs(t *testing.T) {
 		{TaskMoveTo, `{"to":[1,2,3]}`, &MoveToArgs{To: Target{Pos: &pos}}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true}, nil},
+		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true,"wade":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true, Wade: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true,"recoverThreats":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true, RecoverThreats: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"dry":true,"avoidHostiles":true,"recoverThreats":true,"defendThreats":true}`, &MoveToArgs{To: Target{Pos: &pos}, Dry: true, AvoidHostiles: true, RecoverThreats: true, DefendThreats: true}, nil},
 		{TaskMoveTo, `{"to":[1,2,3],"defendThreats":true}`, nil, ErrBadArgs},
@@ -348,10 +349,25 @@ func TestScopedMovementRejectsUnsafeOptions(t *testing.T) {
 		{`"to":[-15,40,0]`, `"to":"0:1"`}, {`"to":[-15,40,0]`, `"to":[80,40,0]`},
 		{`"radius":60`, `"radius":251`}, {`"travelM":50`, `"travelM":0`}, {`"durationS":40`, `"durationS":91`},
 		{`"dry":true`, `"dry":true,"recoverThreats":true`},
+		{`"dry":true`, `"dry":true,"wade":true`},
 		{`"dry":true`, `"dry":true,"stopDistance":100`}, {`"dry":true`, `"dry":true,"stopDistance":0`},
 	} {
 		if _, err := (&TaskRequest{Task: TaskMoveTo, Args: json.RawMessage(strings.Replace(valid, change.old, change.next, 1))}).DecodeArgs(); err == nil {
 			t.Fatal("accepted unsafe scope", change)
+		}
+	}
+}
+
+func TestWadingRejectsUnvalidatedMovement(t *testing.T) {
+	for _, args := range []string{
+		`{"to":[1,2,3],"wade":true}`,
+		`{"to":[1,2,3],"dry":true,"wade":true}`,
+		`{"to":"1:2","dry":true,"avoidHostiles":true,"wade":true}`,
+		`{"to":[1,2,3],"dry":true,"avoidHostiles":true,"wade":true,"recoverThreats":true}`,
+		`{"to":[1,2,3],"dry":true,"avoidHostiles":true,"wade":"yes"}`,
+	} {
+		if _, err := (&TaskRequest{Task: TaskMoveTo, Args: json.RawMessage(args)}).DecodeArgs(); err == nil {
+			t.Fatalf("accepted %s", args)
 		}
 	}
 }
