@@ -184,7 +184,12 @@ step leaves the follow running and sends nothing.
   lent follow is then handed to the chat brain (`Options.ResumeFollow`,
   `Brain.ResumeLentFollow`). That leaves the same resume after the respawn
   as for a follow that was running when Tas died, so Tas comes back to
-  following once it has respawned, if the home rules say resume.
+  following once it has respawned, if the home rules say resume. The
+  engine learns of the death a tick late, so the home keeper takes that
+  resume only until it has handled the respawn
+  (`Keeper.ResumeAfterDeathWhileDead`). A zero-health frame that the dead
+  phase never follows also ends the loan, but then no respawn comes and
+  the follow is not restarted. The game is not known to send one.
 
 A lent follow (`Task.Lent`) ends `cancelled`/`superseded`, which the chat
 brain answers as it does every superseded task. It says nothing, does not
