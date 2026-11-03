@@ -21,6 +21,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// SchemaVersion is the latest durable atlas schema this build can read.
+const SchemaVersion = 2
+
 type Policy struct {
 	StaleDays   int   `json:"staleDays"`
 	KeepDays    int   `json:"keepDays"`
@@ -77,8 +80,8 @@ func Open(path string, p Policy) (*Store, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 2 {
-		return fail(fmt.Errorf("atlas schema %d is newer than supported schema 2", version))
+	if version > SchemaVersion {
+		return fail(fmt.Errorf("atlas schema %d is newer than supported schema %d", version, SchemaVersion))
 	}
 	if err = db.QueryRow("PRAGMA page_size").Scan(&pageSize); err != nil {
 		return fail(err)

@@ -1,148 +1,163 @@
 # Handoff
 
-The state of the work at the last handoff, and what the next agent needs
-that the tickets and the roadmap do not already say. Replace this page at
-each handoff rather than appending to it.
+Replace this page at each handoff; tickets retain decisions and evidence.
+Handoff of 2026-11-03 from `agent:codex/portal-deploy`.
 
-Handoff of 2026-11-03, from `agent:codex/portal-deploy`. The owner selected
-TKT-01M6FT1ZVW, **Follow: go through the portal the leader just used**, from
-the previous handoff's drafts.
+Read AGENTS.md, docs/ROADMAP.md, docs/BEHAVIOURS.md, docs/PORTALS.md,
+docs/TESTING.md and docs/VM.md before resuming live work.
 
-## Read first
+## Owner decisions and branch stack
 
-1. AGENTS.md, for recipes, tickets and committed review.
-2. docs/ROADMAP.md, especially working in parallel and the conflict hotspots.
-3. docs/PORTALS.md, for portal following and the remaining general travel work.
-4. docs/BEHAVIOURS.md, docs/TESTING.md and docs/VM.md before live work.
+The owner selected portal following, authorized its deployment, then selected
+all three next drafts: deployment preflight, anchor activity tracking and Loot
+panel visibility. The owner explicitly chose **keep the game offline** while
+this batch is implemented. Do not start Valheim for these implementation checks.
 
-## Current change
+- PR #176, `t3/map-home-location`, head dd0042f, holds the newer installed
+  prerequisite: atlas schema 2, home surveys, checked wading, chest inspection,
+  door cleanup and proactive/blocked-escape protection.
+- PR #177, `t3/continue-renki-bot`, head a148089, is stacked on #176 and adds
+  portal following. The installed runtime from this branch is **871d818**;
+  a148089 adds deployment records only.
+- The next batch is on `t3/renki-runtime-loot-batch`, based on a148089. Its delivery
+  base is `t3/continue-renki-bot` (#177). No PR was merged in this session.
 
-Branch `t3/continue-renki-bot` combines portal following with the newer runtime
-baseline from [PR #176](https://github.com/warricksothr/renki/pull/176), head
-dd0042f (runtime 2e8c6d1). Portal delivery is
-[PR #177](https://github.com/warricksothr/renki/pull/177). The ticket carries its
-plan and remaining live evidence. Neither PR has been merged in this session.
+## Current implementation batch
 
-- The plugin remembers a nearby player's connected portal for 8 s, including
-  while a passive pickup owns the body. A disappearance or remote position
-  jump can start a crossing. A returned follow can use that recent evidence
-  instead of being rejected because its leader is already gone.
-- A crossing admits only the observed source and its unchanged destination.
-  Planning admission is scoped to the walker call; input admission resets on
-  each physics step and on standing/cancellation. Every other portal stays
-  blocked. The collision-cache ticket TKT-01M6AYP8 (Cache building collisions
-  and remember portal links) retains its older claim; this change only adds
-  the scoped exception to its guards.
-- Valheim's trigger and teleport logic remain authoritative. Native cargo
-  refusal is `portal_cargo`; other transition failures are `portal_failed`.
-  Both explain the failure and ask the owner to return, without dispatching
-  the usual lost-follow trip home.
-- The transition bounds approach, trigger refusal, teleport and arrival
-  separately. Arrival drops local geometry and resets follow movement.
-- Offline coverage includes pure transition/departure policy, shared protocol
-  fixtures, the prompt return of a passive loan after the owner disappears,
-  and the chat explanation without going home. Native behavior is unproven.
+- TKT-01M6H80F6B (VM: detect runtime drift before installing older builds):
+  both install paths stage and preflight before stopping/replacing the current
+  runtime. The manifest records committed source/branch/ancestry, supported atlas
+  schema/tasks, checksums and actor. The staged controller reads config, saved
+  task permissions and SQLite schema without startup/migration/writable stores.
+  Unknown/newer/unmerged builds, changed checksums and incompatible data refuse.
+  An identifiable clean legacy ancestor can be adopted. Dirty/uncommitted source
+  is refused. Successful installs retain a receipt with verified hashes and prior
+  game/controller state. Installation keeps the game offline; only deploy/start
+  explicitly starts it. `just check vm deployment-refusal` exercises compatible
+  read-only inspection and both actual refusal entry points while retaining the
+  running panel, controller PID and installed/config/data hashes. Run only with
+  the game already offline, under the VM lease, on a committed reviewed candidate.
+- TKT-01M6F877Q8 (Behaviours: infer the anchor's activity from changes around
+  them): a pure tracker infers felling/mining/picking from vanished resources
+  within 12 m of a live authorized anchor, carries prefab/ID/position/time/age,
+  and expires after 30 s. Mixed evidence chooses nearest, then kind and ID.
+  Duplicate/old/stale/gapped frames, changed scope, jumps, capped kinds and scan
+  edges cannot invent new activity. `View.Activity` and behaviour status expose
+  it without enabling gathering or dispatching tasks. These are inferences;
+  current perception cannot identify the actor or prove every scan complete.
+- TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
+  decisions): `/api/behaviours` carries per-instance scoped, timestamped Loot
+  diagnostics. Selection and diagnostics share the decision function. A read-only
+  card shows enablement, anchor/settle/reach, recent inferred work, all effective
+  parameters/defaults and drop reasons. The map's Loot reach layer shows the
+  anchor, settle/reach circles, eligible filled drops, deliberate crosses and
+  hollow out-of-reach drops. Select an instance if several exist. Offline,
+  stale, changed-scope and saved-atlas views clear the live overlay; polling the
+  same frame cannot renew it. Disabled Loot stays disabled. The owner-in-game
+  reach-over-time criterion remains unearned.
 
-## Runtime recovery and deployment
+The full `just check ci` gate passed on the implementation (225 s) and again
+after the native verification correction (180 s), most recently retained in
+.checks/20261103T181030Z-mkQMwC.log. Focused Go/race checks and the desktop/mobile
+`loot-reach` UI scenario passed.
+The UI scenario also verifies distinct canvas colors, layer toggling, expiry of
+an unchanged frame and no non-GET requests. Committed review of candidate bc64ae9 passed with no findings
+(.checks/20261103T181344Z-riCsUg.log). Activity and preflight tickets are done and
+released; the panel ticket is in review and released with its in-game criterion
+unchecked.
 
-The first deploy of 77a527c installed successfully but the controller exited:
-`atlas schema 2 is newer than supported schema 1`. Saved settings also included
-`inspect_container`. The actual VM baseline was newer unmerged PR #176, rather
-than b5cc019 as the original handoff assumed. The deploy wait was interrupted
-and `just vm stop` stopped the game. No atlas or settings were deleted, reset or
-downgraded. Do not retry 77a527c on its own against this runtime.
+`just check vm deployment-refusal` passed in 11 s under the VM lease
+(.checks/20261103T181353Z-vMP7sd.log). The compatible candidate read the real
+config/settings/atlas successfully. With only staging ancestry then altered,
+both actual installers refused before stopping/replacing anything, retaining
+controller PID 39640 and installed/config/data hashes. Final VM status confirms
+Valheim stopped, controller running and bot disconnected. Lease released. The
+first verifier run had hit Get-FileHash sharing SQLite's open writer; its retained
+failure was corrected with a read-only shared handle before the passing rerun.
+No production build, configuration or Loot setting was changed.
 
-The newer handoff records why Tas had been offline: at about 16:12Z, position
+## Installed runtime and required offline state
+
+The initial portal-only deployment of 77a527c installed with verified checksums
+but its controller exited: `atlas schema 2 is newer than supported schema 1`.
+Saved settings also included `inspect_container`. The actual baseline was
+unmerged PR #176 (runtime 2e8c6d1), newer than the older main handoff suggested.
+The failed deploy's local wait was interrupted, then `just vm stop` stopped the
+game. No atlas/settings were deleted, reset or downgraded. Never deploy 77a527c
+alone against this runtime.
+
+Combined build **871d818** installed successfully with `just check vm install`
+(.checks/20261103T174828Z-CbVn1x.log). Controller/Core/plugin checksums verified.
+`just vm panel-start` started only the controller/panel. `/api/status` reported
+871d818 and disconnected; VM status confirmed Valheim stopped and controller
+PID 39640 running. `/api/behaviours` confirmed **Loot disabled and not running**.
+The combined CI gate and committed review passed. Deployment lease released.
+The new implementation batch has not been installed in production.
+
+PR #176's historical emergency stop was around 16:12Z: position
 [150.65,70.48,-33.81], 15.8/25 HP, no active/carried food and two targeting
-Greylings, then emergency stop. These are historical observations, not a fresh
-health/location claim after the failed deploy's brief startup. Grave recovery,
-a safe return to the new home, and a free Tas bed remain unresolved. Menu HP0
-is not proof of death. Saved new home is [-204.39,32.97,-467.43], with a
-60 m base radius and storage approach [-169.13,30.97,-467.75]. Sleeping remains
-unassigned; no bed was claimed. Keep **Loot disabled** as PR #176 left it: earlier Loot
-entered a portal during stuck recovery and stranded Tas. PR #176's final guard
-now fails the body task immediately on refusal; retain that fix with the scoped
-portal-follow exception. Do not blindly rejoin the saved pursuit.
+Greylings. This is not a fresh health/location claim after the brief failed
+startup. Grave recovery and a safe return remain unresolved; menu HP0 is not
+proof of death. Saved home is [-204.39,32.97,-467.43], base radius 60 m, storage
+approach [-169.13,30.97,-467.75]. Sleeping is unassigned; no free Tas bed was
+confirmed or claimed. Keep Loot disabled: it previously entered a portal during
+stuck recovery and stranded Tas. Retain #176's final guard that immediately
+fails a body task when portal input is refused.
 
-The deployment now integrates PR #176's atlas schema 2, base surveys, checked
-wading, door cleanup, read-only chest search and proactive/blocked-escape
-protection. The combined build **871d818** was installed with
-`just check vm install`; controller, Core and plugin checksums all verified.
-`just vm panel-start` brought up the controller and panel without starting the
-game. `/api/status` reports version 871d818 and disconnected; VM status confirms
-Valheim is stopped and the controller is running. `/api/behaviours` confirms
-Loot is disabled and not running. Atlas/schema and saved settings load without
-the previous startup failure. The deployment lease was released after these
-checks. A safe supervised rejoin with the owner must precede field work.
+## Portal following and remaining native checks
 
-The combined `just check ci` gate passed (.checks/20261103T174505Z-yWlgGw.log),
-and `just check review origin/t3/map-home-location...HEAD` passed with no findings
-(.checks/20261103T174809Z-9FClCx.log). Successful installation is retained in
-.checks/20261103T174828Z-CbVn1x.log. The earlier survey timing failure and
-unchanged focused rerun are recorded on the portal ticket.
+TKT-01M6FT1ZVW (Follow: go through the portal the leader just used) stays in
+review, released, with live criterion 5 unchecked. The plugin remembers nearby
+leader/source observations for 8 s, even during passive pickup. Disappearance or
+remote position jumps can start a bounded native crossing; returned follows
+accept that evidence. Only the observed source and unchanged destination are
+admitted, scoped to route planning and the active input step. Cancellation,
+standing, failure and teleport revoke the allowance; other portals stay blocked.
+Valheim's cargo/teleport rules remain authoritative. Cargo and crossing failures
+explain why Tas stopped without silently walking home. Arrival clears geometry
+and resumes follow. Offline policy/protocol/chat coverage does not prove entry
+into a native portal or actual arrival.
 
-For portal following, once Nimah can supervise a safe start:
+After the owner stages a safe supervised rejoin:
 
-1. Take `just vm lease agent:tool/session` and start the installed combined build.
-2. Ask Tas to follow. Walk through a connected portal, wait on the far side
-   for Tas to arrive and resume following, then do the same trip back.
-3. After agreeing to re-enable passive Loot for the test, check a departure
-   while Tas is picking up felling drops. The returned follow must take the
-   source portal. Do not re-enable Loot simply to prepare an offline deploy.
-4. Verify cargo refusal, stop/order takeover during approach and refusal of
-   other portals. Retain `portal departure`, `portal arrived`, `portal failed`
-   and task outcomes; tick the live criterion only after the pair trip passes.
-5. Release the VM lease after cleanup. The game does not need to run for the
-   next offline implementation batch.
+1. Take `just vm lease agent:tool/session`; start a reviewed installed build.
+2. Follow Nimah through a connected portal pair and back; retain departure,
+   arrival/failure and task outcomes. Tick criterion 5 only after the pair passes.
+3. Agree with the owner before enabling passive Loot. Check departure during a
+   felling-drop pickup, native cargo refusal, stop/new-order takeover, and refusal
+   of other portals. Do not enable Loot for an offline deploy.
+4. Record Loot's anchor, settle and growing/reset reach while the owner stands,
+   fells and leaves. Record the real reach over time for the panel ticket.
+5. Release the VM lease after cleanup.
 
-The previous live checks also remain:
+Also still owed:
 
 - TKT-01M6EWN4WH (Behaviours: passive mode lends an owner's follow to passive
-  instances), criterion 6: on b5cc019 or later, follow a settled owner felling
-  a tree, collect drops and fall back in; leave an owner-dropped stack alone;
-  yield when they walk away mid-pickup; any new owner order wins. Earlier runs
-  on a892cfa worked but churned until #174; the full rerun is still missing.
-- TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials), criterion
-  1: the live A/B refusal check from its notes, with `/api/act/home` as the
-  refused POST. It remains in review under its existing claim.
+  instances), criterion 6: collect felling drops and fall back in; leave an
+  owner-dropped stack; yield to movement mid-pickup and any new order. Earlier
+  a892cfa checks worked but churned before #174; the full rerun is missing.
+- TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials), criterion 1:
+  A/B refusal check with `/api/act/home` as the refused POST. Existing claim stays.
 
-## Drafts still awaiting the owner
+## Next drafts and known gaps
 
-Do not promote these without selection:
+Only the three selected drafts were promoted. Passive gathering
+TKT-01M6F877TX (Behaviours: passive gather works alongside the anchor) still needs
+the owner's selection and deliberate policy work: existing gathering is
+beech-only, excludes players within 32 m of standing trees while passive reach
+is 30 m, and must fix re-lend churn. It is not an enable switch. Later work is
+TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what the base lacks)
+and TKT-01M6F8780V (Agent: supply the passive list, with validation and built-in
+fallback). Do not promote these yourself.
 
-- TKT-01M6H80F6B (VM: detect runtime drift before installing older builds),
-  filed after the deployment mismatch in this session. It stays in draft.
-
-- TKT-01M6F877Q8 (Behaviours: infer the anchor's activity from changes around
-  them), then TKT-01M6F877TX (Behaviours: passive gather works alongside the
-  anchor). Gathering must fix the known re-lend churn before becoming the
-  second passive instance.
-- TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
-  decisions). Passive-run data is already in `/api/behaviours`.
-- Later: TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what
-  the base lacks) and TKT-01M6F8780V (Agent: supply the passive list, with
-  validation and built-in fallback).
-
-The owner's idle/passive decision is on epic TKT-01M62VXYQB (Behaviours:
-templates and instances the bot runs on its own): idle work needs an idle
-body; passive work can borrow a settled owner's follow and yields to movement
-or any owner order. Loot and future gathering are passive and on by default in code; the
-current runtime Loot setting is deliberately disabled and must be preserved.
-
-## Known gaps and local setup
-
-- The 32 old in-progress claims remain. Do not take them over without the
-  owner's word.
-- A zero-health frame without a following death can lose a lent follow.
-- Custom settle shapes are forgotten after ten minutes without being asked
-  for, even while busy. The existing perception checks outside behaviours
-  still use a tolerant absolute three-second difference.
-- Nine saved `goal/<hash>` instances warn as unknown on controller start.
-  Ask the owner before deleting settings.
-- App tests have known timing/race flakes (TKT-01M6ESNXKF and
-  TKT-01M6EWJ9). Read retained diagnostics before a focused rerun.
-- This worktree's ignored `vm.local` and `plugin/game.local.props` were copied
-  from existing worktrees without exposing their contents. Never print local
-  configuration, panel tokens, CPA keys or server passwords.
-- Do not kill `renki-ctl` on the VM. Write `controller.local.json` as ASCII
-  without a BOM. Use the lease for mutations; read-only inspection needs none.
+- The 32 older in-progress claims remain; do not take them over without the owner.
+- A zero-health frame without a subsequent death can lose a lent follow.
+- Non-default settle shapes are forgotten after ten minutes without being asked
+  for, even while busy. Other perception checks still have older tolerances.
+- Nine saved `goal/<hash>` instances warn as unknown; ask before deleting them.
+- App timing/race flakes: TKT-01M6ESNXKF and TKT-01M6EWJ9. Read retained diagnostics
+  before a focused rerun; do not relax production freshness to make tests pass.
+- Ignored `vm.local` and `plugin/game.local.props` are configured. Never print
+  their contents, panel/CPA tokens, provider keys or server passwords.
+- Do not kill `renki-ctl` on the VM. Use the lease for mutations; read-only
+  inspection needs none. Write local JSON without a BOM.

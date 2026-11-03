@@ -24,6 +24,152 @@ const camera = async (page, phase, label = phase) => {
   else await expect(page.locator("#camera-image")).toHaveCount(0);
 };
 export const scenarios = {
+  "loot-reach": async ({ page, check, shot }) => {
+    await page.evaluate(() => {
+      const s = renkiPreview.status,
+        at = s.pos || [0, 30, 0],
+        stamp = new Date().toISOString();
+      const pos = (x) => [at[0] + x, at[1], at[2]];
+      const params = {
+        items: ["Wood", "Resin"],
+        radius: 30,
+        baseRadius: 8,
+        growS: 120,
+        settleDelayS: 5,
+        settleRadius: 6,
+        settleMaxRadius: 10,
+        settleSlack: 2,
+        maxWeightFraction: 0.8,
+        maxTargets: 16,
+      };
+      renkiPreview.behaviours = [
+        {
+          name: "Loot",
+          definition: { template: "loot", enabled: false },
+          running: false,
+          activity: {
+            player: "Nimah",
+            kind: "felling",
+            prefab: "Beech1",
+            ageS: 2,
+          },
+          loot: {
+            connection: s.connection,
+            world: s.world,
+            worldUid: s.worldUid,
+            at: stamp,
+            frameAt: stamp,
+            seq: 55,
+            fresh: true,
+            anchor: { name: "Nimah", pos: at },
+            settle: { centre: at, radius: 6, settledS: 80, ready: true },
+            reach: 21.75,
+            params,
+            defaults: params,
+            drops: [
+              { id: "take", prefab: "Wood", pos: pos(8), decision: "eligible" },
+              {
+                id: "leave",
+                prefab: "Resin",
+                pos: pos(-7),
+                decision: "deliberate",
+              },
+              {
+                id: "far",
+                prefab: "Wood",
+                pos: pos(25),
+                decision: "out_of_reach",
+              },
+            ],
+          },
+        },
+      ];
+      window.renkiFixtureAdvance(2100);
+    });
+    const card = page.getByRole("article", { name: "Loot behaviour" });
+    await check(
+      "Disabled Loot explains the anchor, settle duration, reach and defaults",
+      async () => {
+        await expect(card).toContainText("Disabled");
+        await expect(card.getByTestId("loot-reach")).toContainText(
+          "Nimah · Settled 80 s · Reach 21.8 / 30 m",
+        );
+        await expect(card).toContainText("Inferred nearby work: felling");
+        await card
+          .getByText("Loot parameters and defaults", { exact: true })
+          .click();
+        await expect(card).toContainText("Initial reach (m)8 default 8");
+      },
+    );
+    await check(
+      "Map renders the settle/reach circles and three distinct drop decisions",
+      async () => {
+        await card.getByText("Drop decisions (3)", { exact: true }).click();
+        await expect(card.locator(".loot-drops")).toContainText(
+          "Wood · Eligible",
+        );
+        await expect(card.locator(".loot-drops")).toContainText(
+          "Resin · Deliberate drop",
+        );
+        await expect(card.locator(".loot-drops")).toContainText(
+          "Wood · Out of reach",
+        );
+        const map = await snapshot(page);
+        assert.equal(map.data.loot.reach, 21.75);
+        assert.equal(map.data.loot.settle.radius, 6);
+        assert.deepEqual(
+          map.data.loot.drops.map((d) => d.decision),
+          ["eligible", "deliberate", "out_of_reach"],
+        );
+        const colors = await page.locator("#map").evaluate((canvas) => {
+          const counts = [0, 0, 0],
+            rgb = [
+              [114, 231, 172],
+              [255, 200, 121],
+              [178, 191, 218],
+            ],
+            pixels = canvas
+              .getContext("2d")
+              .getImageData(0, 0, canvas.width, canvas.height).data;
+          for (let i = 0; i < pixels.length; i += 4)
+            rgb.forEach((c, j) => {
+              if (c.every((v, k) => pixels[i + k] === v)) counts[j]++;
+            });
+          return counts;
+        });
+        assert.ok(
+          colors.every((n) => n > 0),
+          `Expected each decision color on canvas: ${colors}`,
+        );
+      },
+    );
+    await page.locator("#map-pane").scrollIntoViewIfNeeded();
+    await shot("loot-reach-disabled-candidates");
+    await check(
+      "Layer toggle hides overlay and unchanged frames expire without actions",
+      async () => {
+        const layer = page.getByRole("button", {
+          name: "Loot reach",
+          exact: true,
+        });
+        await layer.click();
+        assert.equal((await snapshot(page)).data.loot, null);
+        await layer.click();
+        assert.ok((await snapshot(page)).data.loot);
+        await page.evaluate(() => window.renkiFixtureAdvance(6000));
+        await expect(card.getByTestId("loot-unavailable")).toBeVisible();
+        assert.equal((await snapshot(page)).data.loot, null);
+        await page.waitForTimeout(2200);
+        assert.equal((await snapshot(page)).data.loot, null);
+        assert.equal(
+          await page.evaluate(() =>
+            renkiPreview.requests.some((r) => r.method !== "GET"),
+          ),
+          false,
+        );
+      },
+    );
+  },
   "inspection-peel": async ({ page, check, shot }) => {
     const inspector = page.locator("#inspection");
     await inspector.getByText("Phases & guards", { exact: true }).click();

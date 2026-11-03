@@ -38,6 +38,16 @@ is false even when `RecoveryGuard` is enabled. Explicit `just vm stop`, panel
 logout and required deployment restarts remain manual lifecycle actions.
 Historical evidence below describes the behavior of the build tested then.
 
+## Deployment refusal with the game offline
+
+`just check vm deployment-refusal`, under the VM lease, needs the panel running
+and Valheim already stopped. It checks the compatible staged candidate read-only,
+then exercises full/controller-only refusal using a non-descendant staging
+manifest. It must retain the same controller PID, game-offline state and
+installed/config/data hashes. It never starts the game or installs a build. See
+docs/VM.md, "Deployment preflight". This can earn deployment refusal evidence
+while native portal and Loot reach checks still wait for the owner in game.
+
 ## Native pursuit and peeling
 
 `just check plugin test-core PursuitGroup` covers temporal isolation, whole-pack

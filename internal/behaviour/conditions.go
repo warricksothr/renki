@@ -13,17 +13,21 @@ import (
 // View contains immutable protocol snapshots, scoped to the current session
 // and world. A missing observation fails a condition that needs it.
 type View struct {
-	StateAt      time.Time
-	PerceptionAt time.Time
-	Now          time.Time
-	State        *protocol.State
-	Inventory    *protocol.Inventory
-	InjurySeq    *uint64
-	Injury       *session.InjuryStatus
-	Perception   *protocol.Perception
-	Walls        []protocol.Wall
-	Containers   []*protocol.Container
-	Owners       []string
+	Connection       uint64
+	WorldUID         string
+	PerceptionBounds protocol.PerceptionConfig
+	Activity         *Activity
+	StateAt          time.Time
+	PerceptionAt     time.Time
+	Now              time.Time
+	State            *protocol.State
+	Inventory        *protocol.Inventory
+	InjurySeq        *uint64
+	Injury           *session.InjuryStatus
+	Perception       *protocol.Perception
+	Walls            []protocol.Wall
+	Containers       []*protocol.Container
+	Owners           []string
 	// Anchor is the player Tas is with: the one it follows, or else the
 	// last player who gave it an order. Empty until someone does.
 	Anchor    string

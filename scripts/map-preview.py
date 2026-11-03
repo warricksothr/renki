@@ -128,7 +128,7 @@ window.fetch=async(path,options={})=>{
  case '/api/video': return respond({enabled:preview.videoState!=='disabled',content:['gameplay','stalled','no-source'].includes(preview.videoState)?'gameplay':'standby',reason:preview.videoState==='disabled'?'Video is not configured':'Waiting for verified game capture',scope:preview.status.connection+':'+preview.status.world+':'+(preview.status.worldUid||'')});
  case '/api/status': return respond(preview.status);
  case '/api/inspection': return respond(preview.inspection);
- case '/api/behaviours': return respond([]);
+ case '/api/behaviours': return respond(preview.behaviours || []);
  case '/api/bases': return respond({world:preview.status.world,active:'camp',bases:[{name:'camp',center:preview.status.pos||[0,40,0],radius:90,durationS:600,travelM:800,return:'home',storage:[],at:'2026-11-03T00:00:00Z'}],surveys:[]});
  case '/api/waypoints': return respond({world:preview.status.world,waypoints:preview.mapped.waypoints||[]});
  case '/api/map': return respond(preview.mapped);

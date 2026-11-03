@@ -1,6 +1,8 @@
 import { render as renderComponent } from "preact";
 import { TimelineRecord } from "./timeline.jsx";
-import { publishStatus } from "./status.js";
+import { LootCard } from "./loot.jsx";
+import { lootForMap, dropStyles } from "./loot.js";
+import { publishStatus, scope as statusScope } from "./status.js";
 import { subscribeEvents } from "./events.js";
 import { areaEvent, eventDetails } from "./world-events.js";
 
@@ -48,6 +50,7 @@ export function startController() {
     danger: true,
     resources: false,
     obstacles: true,
+    loot: true,
   };
   for (const b of document.querySelectorAll("[data-layer]"))
     b.addEventListener("click", () => {
@@ -706,6 +709,7 @@ export function startController() {
 
   function onStatus(s) {
     publishStatus(s);
+    updateLootStatus(s);
     if ($("places").open && Date.now() - idleFoodRefreshAt >= 5000)
       refreshIdleFood();
     const inWorld = s.connected && s.phase === "in_world";
@@ -867,6 +871,159 @@ export function startController() {
         : "Home unknown",
     );
     draw();
+  }
+
+  // ---- read-only Loot diagnostics ----
+  let lootRows = [],
+    selectedLoot = "Loot",
+    lootReceivedAt = 0,
+    lootLastAttempt = -Infinity,
+    lootStatus = null,
+    lootError = "",
+    lootGeneration = 0,
+    lootAbort = null;
+  function chosenLoot() {
+    return lootRows.find((r) => r.name === selectedLoot);
+  }
+  function currentLoot() {
+    return selectedAtlas || !mapOnline || lootError
+      ? null
+      : lootForMap(chosenLoot(), lootStatus, lootReceivedAt);
+  }
+  function renderLootCard() {
+    renderComponent(
+      <LootCard
+        rows={lootRows}
+        selected={selectedLoot}
+        onSelect={(name) => {
+          selectedLoot = name;
+          renderLootCard();
+          draw();
+        }}
+        overlay={
+          lootError
+            ? null
+            : lootForMap(chosenLoot(), lootStatus, lootReceivedAt)
+        }
+        error={lootError}
+      />,
+      $("loot-card"),
+    );
+  }
+  function updateLootStatus(status) {
+    if (statusScope(status) !== statusScope(lootStatus)) {
+      lootGeneration++;
+      lootAbort?.abort();
+      lootAbort = null;
+      lootRows = [];
+      lootReceivedAt = 0;
+      lootLastAttempt = -Infinity;
+    }
+    lootStatus = status;
+    renderLootCard();
+    refreshLoot();
+  }
+  async function refreshLoot() {
+    if (lootAbort || Date.now() - lootLastAttempt < 2000) return;
+    const generation = lootGeneration,
+      controller = new AbortController();
+    lootAbort = controller;
+    lootLastAttempt = Date.now();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    try {
+      const response = await fetch("/api/behaviours", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!response.ok) throw Error("Loot diagnostics unavailable");
+      const rows = await response.json();
+      if (generation !== lootGeneration) return;
+      lootRows = rows
+        .filter((r) => r.definition?.template === "loot")
+        .map((row) => {
+          const previous = lootRows.find((r) => r.name === row.name);
+          const key = (r) =>
+            r?.loot &&
+            [
+              r.loot.connection,
+              r.loot.world,
+              r.loot.worldUid,
+              r.loot.seq,
+              r.loot.frameAt,
+            ].join(":");
+          return {
+            ...row,
+            receivedAt:
+              key(row) === key(previous) ? previous.receivedAt : Date.now(),
+          };
+        });
+      if (!chosenLoot()) selectedLoot = lootRows[0]?.name || "Loot";
+      lootReceivedAt = Date.now();
+      lootError = "";
+    } catch {
+      if (generation === lootGeneration)
+        lootError =
+          "Loot diagnostics unavailable · waiting for a fresh observation";
+    } finally {
+      clearTimeout(timeout);
+      if (generation === lootGeneration) {
+        lootAbort = null;
+        renderLootCard();
+        draw();
+      }
+    }
+  }
+  // Expire the overlay even if the event stream or behaviour request stalls.
+  setInterval(() => {
+    renderLootCard();
+    draw();
+    refreshLoot();
+  }, 1000);
+
+  function drawLoot(sx, sy) {
+    const d = layers.loot ? currentLoot() : null;
+    if (!d) return;
+    ctx.save();
+    const circle = (pos, radius, color, dashed) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash(dashed ? [6, 4] : []);
+      ctx.beginPath();
+      ctx.arc(sx(pos[0]), sy(pos[2]), radius * view.scale, 0, 2 * Math.PI);
+      ctx.stroke();
+    };
+    if (d.settle) circle(d.settle.centre, d.settle.radius, "#ffce80", true);
+    circle(d.anchor.pos, d.reach, "#72e7ac", false);
+    ctx.setLineDash([]);
+    for (const drop of d.drops) {
+      const style = dropStyles[drop.decision] || {
+        color: "#a5abb3",
+        shape: "hollow",
+      };
+      const x = sx(drop.pos[0]),
+        y = sy(drop.pos[2]);
+      ctx.strokeStyle = style.color;
+      ctx.fillStyle = style.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (style.shape === "cross") {
+        ctx.moveTo(x - 4, y - 4);
+        ctx.lineTo(x + 4, y + 4);
+        ctx.moveTo(x - 4, y + 4);
+        ctx.lineTo(x + 4, y - 4);
+      } else {
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        if (style.shape === "filled") ctx.fill();
+      }
+      ctx.stroke();
+    }
+    const x = sx(d.anchor.pos[0]),
+      y = sy(d.anchor.pos[2]);
+    ctx.strokeStyle = "#72e7ac";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 7, y - 7, 14, 14);
+    label(`${d.anchor.name} · loot anchor`, x + 10, y - 10);
+    ctx.restore();
   }
 
   // ---- map ----
@@ -1172,6 +1329,7 @@ export function startController() {
         20,
       );
     }
+    drawLoot(sx, sy);
     ctx.fillStyle = "#d3dfdf";
     ctx.font = "12px system-ui";
     ctx.fillText("N ↑", w - 36, 24);
@@ -2266,6 +2424,7 @@ export function startController() {
       interrupted: async () => {
         chip("link", "reconnecting…", "off");
         publishStatus(null);
+        updateLootStatus(null);
         inventoryScope = "";
         inventoryVersion++;
         inventory = null;
@@ -2968,6 +3127,7 @@ export function startController() {
             characters: world.characters,
             structures: world.structures,
             resources: world.resources,
+            loot: layers.loot ? currentLoot() : null,
             logObstacles: world.logObstacles,
             walls: world.walls,
             containers: [...world.containers.values()],
