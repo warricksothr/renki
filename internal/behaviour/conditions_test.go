@@ -22,7 +22,16 @@ func TestConditionsUseWeightFlagsOwnersAndRecentChestContents(t *testing.T) {
 	if !c.Match(view) {
 		t.Fatal("valid observations refused")
 	}
-	for _, change := range []string{"items", "slots", "weight", "encumbered", "stranded", "night", "owner", "old owner", "world", "raised floor", "old stock", "future stock", "unknown stock"} {
+	// The plugin sends a scan between state frames, so the latest scan is
+	// often stamped a little after the latest state; the owner is still seen.
+	ahead := view
+	scan := *view.Perception
+	scan.T = 100.15
+	ahead.Perception = &scan
+	if !c.Match(ahead) {
+		t.Fatal("a scan sent just after the latest state refused")
+	}
+	for _, change := range []string{"items", "slots", "weight", "encumbered", "stranded", "night", "owner", "old owner", "owner seen after state stopped", "world", "raised floor", "old stock", "future stock", "unknown stock"} {
 		t.Run(change, func(t *testing.T) {
 			v := view
 			state := *view.State
@@ -46,6 +55,10 @@ func TestConditionsUseWeightFlagsOwnersAndRecentChestContents(t *testing.T) {
 			case "old owner":
 				p := *view.Perception
 				p.T = 90
+				v.Perception = &p
+			case "owner seen after state stopped":
+				p := *view.Perception
+				p.T = 101.5
 				v.Perception = &p
 			case "world":
 				state.World = "other"

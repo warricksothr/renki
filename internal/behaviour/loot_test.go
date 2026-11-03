@@ -359,3 +359,18 @@ func TestLootSummaryNamesItsAnchorAndCountsConfirmedPickups(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestLootActsOnAScanSentJustAfterTheLatestState(t *testing.T) {
+	l := &Loot{}
+	v := lootView(1, target("wood", protocol.ResourceDrop, "Wood", 5))
+	v.Perception.T = v.State.T + .15
+	l.Observe(v)
+	if !l.Ready(json.RawMessage(`{}`), v) {
+		t.Fatal("a scan 0.15 s ahead of the state should count")
+	}
+	nextTask(t, lootRunner(t, l, LootParams{}), v, nil, protocol.TaskPickup)
+	v.Perception.T = v.State.T + 2
+	if l.Ready(json.RawMessage(`{}`), v) {
+		t.Fatal("a scan 2 s ahead means state stopped arriving")
+	}
+}

@@ -505,7 +505,7 @@ func (e *Engine) triggers(v View, now time.Time) {
 		events["idle_at_home"] = true
 	}
 	e.atHome = atHome
-	if v.Perception != nil && v.State.T-v.Perception.T >= 0 && v.State.T-v.Perception.T <= 5 {
+	if freshPerception(v) {
 		drops := map[string]bool{}
 		for _, r := range v.Perception.Resources {
 			if r.Kind == protocol.ResourceDrop {

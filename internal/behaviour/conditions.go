@@ -79,7 +79,7 @@ func (c Conditions) Match(v View) bool {
 	}
 	if c.Owner != nil {
 		found := false
-		if v.Perception != nil && s.T-v.Perception.T >= 0 && s.T-v.Perception.T <= 5 {
+		if freshPerception(v) {
 			for _, p := range v.Perception.Characters {
 				if p.Kind == protocol.CharacterPlayer && p.HPFrac > 0 && slices.Contains(v.Owners, p.Name) && (c.Owner.Name == "" || c.Owner.Name == p.Name) && distance(s.Pos, p.Pos) <= c.Owner.Radius {
 					found = true
