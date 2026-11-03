@@ -196,9 +196,15 @@ a death for example, is handled as any follow's failure is.
 its latest run borrowed a follow: the follow's task ID and the player
 followed. With `running`, the current run is passive. The audit log's
 `behaviour started` record carries `passive: true`, `follow` and `player`.
-The end of a loan logs one of three records: `follow returned` (with the new
-task `id`), `follow not replaced` (the run's step never replaced it, because it was still running or had ended on its own, so nothing is sent) or `follow not returned` (an
-order or the world intervened).
+The end of a loan logs one of four records:
+
+- `follow returned`, with the new task `id`;
+- `follow not replaced`: nothing is sent, because the follow is still
+  running or it ended on its own (failed or timed out) before or while the
+  run's step went out;
+- `follow not returned`: an order, a death or the world intervened;
+- `could not return the follow`, a warning: sending it failed, the step is
+  stopped, and Tas tells the player it cannot follow them again.
 
 ## Bounded collection and stowing
 
