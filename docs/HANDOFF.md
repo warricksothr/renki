@@ -2,10 +2,34 @@
 
 2026-11-03, agent:codex/home-survey-delivery, branch t3/map-home-location.
 Delivery: [PR #176](https://github.com/warricksothr/renki/pull/176).
-Runtime code deployed: **8f662f6**. Later documentation commits do not require
+Runtime code deployed: **cc5f323** (includes8f662f6 shallow-water correction). Later documentation commits do not require
 another game restart. The owner explicitly authorized filing, grooming,
 promotion and implementation while away; the earlier planning-only hold ended.
 No merge or CI monitoring was requested.
+
+## Current runtime: remote portal death, respawn at the old base
+
+This supersedes every healthy-remote-platform or inside-new-house snapshot below.
+Greydwarf1629975892:102 hit at15:54:52.701Z,15:54:54.821Z and15:55:04.879Z.
+Automatic flee t-2 began within0.28s of the first hit and failed unreachable;
+flee t-5 followed, then Tas **died** at15:55:04.915Z near
+[413.36,31.65,-1177.66]. No direct probe interrupted either retreat. Tas was left
+idle on the exposed platform while delivery checks ran; the successful portal
+refusal probe did not establish shelter or survival.
+
+Respawn at15:55:22.962Z was at the old base[-31.08,36.55,15.19]. Automatic
+strict-dry return t-7 failed unreachable at15:55:44.553Z. Latest retained fresh
+observation15:56:28Z: idle25/25HP near[-46.32,33.79,10.13], grounded in Meadows,
+no active/carried food, empty inventory and no equipped gear. Local perception
+had no characters. Loot remains disabled. Game remains online. Grave recovery,
+new-home return, a free Tas bed and live survey acceptance are unfinished.
+Evidence: `.checks/audit-window-M3BtxI.jsonl`,
+`.checks/new-home-resume-runtime.json`, `.checks/new-home-resume-map.json`.
+
+The owner also requested cleanup of adjacent/double doors Tas opened. Focused
+bug TKT-01M6H243JB6S4MBXVKZD89WQKG (Close doors Tas opened after passing through
+the doorway) adds shared explicit/walker opening registration, per-leaf doorway
+passage and bounded observed-closure confirmation. Native validation follows.
 
 ## Later runtime update: fed, then automatic Loot entered a portal
 
@@ -21,9 +45,10 @@ run, not a survey or a new explicit owner relocation order.
 Loot is now **disabled persistently** through the normal behavior API
 (`.checks/new-home-loot-paused.json`) to prevent further automatic excursions.
 Do not re-enable it before reviewing this incident and checking current owner
-intent. Latest staging is grounded on structure near[414.45,31.65,-1175.96],
-BlackForest,940m from unchanged saved home, no observed local hostiles. Raspberry
-was the only meal; reobserve its remaining time and health. A direct three-second
+intent. Historical post-probe changed-build check was grounded/idle on structure at
+[414.42,31.65,-1176.15], BlackForest,940m from unchanged saved home,25/25HP,
+no active/carried food and no observed local hostiles. InjurySeq is0 in the
+restarted client; historical storage damage remains in its retained audit. A direct three-second
 normal movement attempt to the portal center stayed put and timed out, with
 portal_cast refusal (`.checks/task-o4knlg4c.json`). Do not bypass that guard.
 Remote portal1:161078 tag darkforest reports connected target1:161081 at
@@ -183,10 +208,16 @@ For8f662f6: focused WadingTests passed
 `.checks/20261103T150803Z-vJctm7.log`; committed just check review passed with
 no findings in `.checks/20261103T151057Z-sfEh4J.log`; full just check vm deploy
 passed77s with checksum verification in `.checks/20261103T151204Z-FYkdau.log`.
+Forcc5f323: focused TaskRunnerTests passed6s in
+`.checks/20261103T154448Z-NGaaHC.log`; just check fmt passed7s in
+`.checks/20261103T154528Z-UM9pVX.log`; full just check ci passed167s in
+`.checks/20261103T154547Z-hCXJML.log`; committed just check review passed7s with
+no findings in `.checks/20261103T154846Z-pX0e2G.log`; full just check vm deploy
+passed91s with checksum verification in `.checks/20261103T154925Z-Y54sUK.log`.
 Final documentation/ticket gate and committed review follow this handoff edit.
 
 Before further live work read fresh body/health/food/door/bed ownership and check
 for newer owner orders. Do not replace active automatic retreat with a probe.
-Acquire the VM lease and leave the game online unless the owner requests otherwise.
+Acquire the VM lease and retain the default online lifecycle; an explicit emergency stop remains available during actual danger.
 Never guess an approach floor or claim another player's bed. Live acceptance
 needs fed/recovered Tas, a free bed and verified separated-building approaches.

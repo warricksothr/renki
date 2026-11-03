@@ -519,7 +519,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | Task | Kind | Args | Milestone |
 |---|---|---|---|
 | `stop` | body | — | M1 |
-| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false); `avoidHostiles` (bool, requires dry) | M1 |
+| `move_to` | body | `to`: `[x,y,z]` or entity id; `stopDistance` (default 1.5); `run` (bool); `dry` (bool, default false); `avoidHostiles` (bool, requires dry); `wade` (bool, requires dry/avoidHostiles coordinate travel; see supported wading below) | M1 |
 | `follow` | body | `player` (name or id); `distance` (default 3.5); `run`: `"auto"` matches the leader | M1 |
 | `look_at` | instant | `to`: position or entity | M1 |
 | `say` | instant | `text`; `channel`: `normal`, `shout` or `whisper`; `to` (whisper target) | M1 |

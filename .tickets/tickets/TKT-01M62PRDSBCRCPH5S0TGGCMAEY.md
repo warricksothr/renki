@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-03T15:34:57Z
+updated_at: 2026-11-03T16:00:45Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -199,3 +199,15 @@ Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit g
 Continuation evidence for the owner-requested relocation, without taking this ticket claim. Tas reached the owner-saved new home using normal native movement (t-31 and t-34; .checks/task-3wi2_zkp.json, .checks/task-kzu6dojq.json). Latest .checks/new-home-final-observation.json is grounded/sheltered at[-203.58,32.97,-466.37],1.34m from home. Fresh .checks/new-home-final-map.json sees beds1:14717,1:14716,1:14968 in the house and941891633:6688 upstairs at storage, all owned:true and none mine. No free bed was observed and no ownership or spawn was changed. The owner is told a free bed is still needed; never clear another player's bed to satisfy this request.
 
 Tas is critically injured0.5/25HP following the separate storage Greydwarf encounter, out of food, with house entrance1:14767 confirmed closed. House chest1:15016 contains raw meat only; ready food and full native survey readiness remain unresolved. See docs/HANDOFF.md and the wading ticket for the current state. Preserve the existing claim on this ticket.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:52:41Z
+
+Later runtime supersedes the earlier sheltered-house0.5HP snapshot. The owner supplied a Raspberry at15:33:47Z; automatic use_item t-36 restored health. Existing passive timer Loot left the house for Wood t-37, then chased Resin t-38. It remained active after repeated final portal guard refusals, escalated Jump/Strafe and entered darkforest at15:36:32Z. Audit .checks/audit-window-FfbfFj.jsonl. This was not a survey or an explicit relocation order. Loot was disabled persistently through the behavior API, preserving its definition.
+
+TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard refuses movement) is now fixed/deployed in cc5f323, with focused lifecycle/full gate/review passing and an actual native same-step unreachable receipt at the first guard refusal (.checks/task-gcwg1_fw.json). Post-settling state .checks/new-home-portal-fix-after.json is grounded/idle on structure at[414.42,31.65,-1176.15],25/25HP, no food, injurySeq0 in the restarted client. The earlier storage hits are historical; no new injury occurred in this probe. No portal entry allowance was introduced. The observed linked return portal is1:161078 ->1:161081 near home, but controlled traversal/return remains draft TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals).
+
+Earlier ordinary native arrival at new home and the saved/bound new home storage west approach remain earned. Tas is currently940m away on the remote portal platform. All four observed beds near the new base were owned, none mine; no bed was claimed. No survey goal was admitted, no full mapping or checked round trip was earned, and native survey criteria5/7 remain unticked. Preserve other agents' claims. Current blockers are return capability, meal readiness and a free Tas bed/verified sleeping approach. Do not re-enable Loot or reverse newer owner orders without checking live state and intent.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T16:00:45Z
+
+Supersedes the healthy remote-platform snapshot in the preceding note. On deployed cc5f323, Greydwarf 1629975892:102 hit at 15:54:52.701Z (11.99 damage), 15:54:54.821Z (12.28) and 15:55:04.879Z (11.44). Automatic flee t-2 started within 0.28s of the first hit, failed unreachable at 15:54:55.186Z; replacement flee t-5 remained active until death at 15:55:04.915Z near [413.36,31.65,-1177.66]. No direct probe interrupted these retreats. Respawn at 15:55:22.962Z was at the old base [-31.08,36.55,15.19], followed by automatic strict-dry return t-7, which failed unreachable at 15:55:44.553Z. Latest resumed observation at 15:56:28Z: idle 25/25HP near [-46.32,33.79,10.13], no active/carried food, empty pack and no equipped gear; fresh local perception had no characters. Loot remains disabled. Exact retained events/states/inventory: .checks/audit-window-M3BtxI.jsonl; fresh state/map .checks/new-home-resume-runtime.json and .checks/new-home-resume-map.json. This is a death/failed escape, not a safe portal arrival or return, and does not earn survey, bed or survival acceptance.

@@ -23,7 +23,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T14:44:23Z
-updated_at: 2026-11-03T15:34:57Z
+updated_at: 2026-11-03T15:52:42Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -88,6 +88,14 @@ A later ordinary food search inside storage was attacked by a Greydwarf after th
 Ordinary native move_to t-31 subsequently reached the actual saved home floor (.checks/task-3wi2_zkp.json); final inside-house return t-34 succeeded (.checks/task-kzu6dojq.json). The checked home attempt had refused hostile corridors and stair support probes (.checks/task-e306cp1b.json), so arrival is not credited to checked wading alone. Latest observation .checks/new-home-final-observation.json is runtime8f662f6,[-203.58,32.97,-466.37],1.34m from saved home, grounded/sheltered,0.5/25HP, injurySeq7002, no food, idle. .checks/new-home-final-map.json confirms entrance1:14767 closed. Three house beds and one storage bed are owned, none mine/free; no bed was claimed. House chest1:15016 has4DeerMeat,7RawMeat,1NeckTail and no ready meal in its snapshot. Cooking stations remain at the exposed storage building. Leave Tas protected; do not force another exposed search at this health.
 
 Saved the actual supported/accessible storage approach[-169.13,30.97,-467.75] as new home storage west (5m radius), and CAS-bound it to new home storage. Return, home, old owner markers and unassigned sleeping are preserved. Saved base version15:27:44.0249485Z is in .checks/new-home-storage-role-saved.json. Full local survey still has no admitted run: food/health/threat readiness and a free Tas bed remain pending; native coverage/return and separated-building round trips are unearned.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:52:42Z
+
+Later runtime supersedes the earlier sheltered-house0.5HP snapshot. The owner supplied a Raspberry at15:33:47Z; automatic use_item t-36 restored health. Existing passive timer Loot left the house for Wood t-37, then chased Resin t-38. It remained active after repeated final portal guard refusals, escalated Jump/Strafe and entered darkforest at15:36:32Z. Audit .checks/audit-window-FfbfFj.jsonl. This was not a survey or an explicit relocation order. Loot was disabled persistently through the behavior API, preserving its definition.
+
+TKT-01M6H1A2XPHCAR4F016AE4F8K0 (End the body task when the final portal guard refuses movement) is now fixed/deployed in cc5f323, with focused lifecycle/full gate/review passing and an actual native same-step unreachable receipt at the first guard refusal (.checks/task-gcwg1_fw.json). Post-settling state .checks/new-home-portal-fix-after.json is grounded/idle on structure at[414.42,31.65,-1176.15],25/25HP, no food, injurySeq0 in the restarted client. The earlier storage hits are historical; no new injury occurred in this probe. No portal entry allowance was introduced. The observed linked return portal is1:161078 ->1:161081 near home, but controlled traversal/return remains draft TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals).
+
+Earlier ordinary native arrival at new home and the saved/bound new home storage west approach remain earned. Tas is currently940m away on the remote portal platform. All four observed beds near the new base were owned, none mine; no bed was claimed. No survey goal was admitted, no full mapping or checked round trip was earned, and native survey criteria5/7 remain unticked. Preserve other agents' claims. Current blockers are return capability, meal readiness and a free Tas bed/verified sleeping approach. Do not re-enable Loot or reverse newer owner orders without checking live state and intent.
 
 ## Summary
 
