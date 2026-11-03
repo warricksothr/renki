@@ -589,6 +589,41 @@ func TestAnOrderAfterTheDeathWins(t *testing.T) {
 	}
 }
 
+func TestALateResumeIsLeftOnlyWhileTheBotIsDead(t *testing.T) {
+	k, f, _ := keeper(t, Memory())
+	ctx := context.Background()
+	change(k, func(r *config.HomeRules) { r.AfterDeath = config.AfterDeathResume })
+	f.set(&protocol.Hello{}, inWorld(protocol.Vec3{0, 0, 0}, nil))
+	k.Tick(ctx)
+	resumed := 0
+	resume := func(context.Context) bool { resumed++; return true }
+	if k.ResumeAfterDeathWhileDead(resume) {
+		t.Fatal("alive: nothing to resume")
+	}
+	dead(f)
+	k.Tick(ctx)
+	if !k.ResumeAfterDeathWhileDead(resume) {
+		t.Fatal("dead: the resume is left")
+	}
+	back(f, nil)
+	k.Tick(ctx)
+	if resumed != 1 {
+		t.Fatal("resumed", resumed)
+	}
+	// Back in the world, a late resume is refused rather than left for
+	// the next death.
+	if k.ResumeAfterDeathWhileDead(resume) {
+		t.Fatal("a resume left after the respawn")
+	}
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if resumed != 1 {
+		t.Fatal("a stale resume fired on a later death", resumed)
+	}
+}
+
 func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
 	k, f, _ := keeper(t, Memory())
 	ctx := context.Background()

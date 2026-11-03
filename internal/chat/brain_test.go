@@ -462,6 +462,7 @@ type fakeHome struct {
 	left     []home.Cache
 	graves   []home.Grave
 	told     int
+	back     bool // the respawn is already handled
 }
 
 func (h *fakeHome) Told() { h.told++ }
@@ -511,7 +512,14 @@ func (h *fakeHome) HomeDistance() (float64, bool)                 { return 42, h
 func (h *fakeHome) LeftBehind() []home.Cache                      { return h.left }
 func (h *fakeHome) Touch()                                        { h.touched++ }
 func (h *fakeHome) ResumeAfterDeath(f func(context.Context) bool) { h.resume = f }
-func (h *fakeHome) Ordered()                                      { h.resume = nil; h.ordered++ }
+func (h *fakeHome) ResumeAfterDeathWhileDead(f func(context.Context) bool) bool {
+	if h.back {
+		return false
+	}
+	h.resume = f
+	return true
+}
+func (h *fakeHome) Ordered() { h.resume = nil; h.ordered++ }
 
 func homeBrain() (*Brain, *fakeSession, *fakeHome) {
 	b, f, _ := newBrain(nil)
@@ -662,6 +670,27 @@ func TestALentFollowEndsInSilenceAndKeepsTheAnchor(t *testing.T) {
 	b.TaskDone(session.FinishedLent(follow.Task, follow.Origin, protocol.StatusFailed, protocol.ReasonDied))
 	if h.resume == nil {
 		t.Fatal("a lent follow that died left no resume")
+	}
+}
+
+func TestALentFollowCutShortByADeathIsResumedOnlyWhileTasIsDead(t *testing.T) {
+	b, f, h := homeBrain()
+	b.Chat(line("Sothr", "bjorn follow me"))
+	follow := f.sent()[0]
+	lent := session.FinishedLent(follow.Task, follow.Origin, protocol.StatusCancelled, protocol.ReasonSuperseded)
+	b.TaskDone(lent)
+	h.back = true
+	b.ResumeLentFollow(lent)
+	if h.resume != nil {
+		t.Fatal("past the respawn, a resume would fire on a later death")
+	}
+	h.back = false
+	b.ResumeLentFollow(lent)
+	if h.resume == nil || !h.resume(context.Background()) {
+		t.Fatal("a lent follow a death cut short is resumed")
+	}
+	if got := f.sent()[len(f.sent())-2]; got.Task != protocol.TaskFollow || got.Args.(*protocol.FollowArgs).Player != "Sothr" {
+		t.Fatal(got)
 	}
 }
 

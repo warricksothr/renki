@@ -236,6 +236,25 @@ func (k *Keeper) ResumeAfterDeath(f func(context.Context) bool) {
 	k.mu.Unlock()
 }
 
+// ResumeAfterDeathWhileDead is ResumeAfterDeath for a resume learned of
+// after the death rather than as it happened: it leaves f only while the
+// bot is still dead and the respawn not yet handled, and reports whether
+// it did. Left later, f would fire on some later death instead. Tick
+// handles the respawn under the same lock, so it either sees f or this
+// sees the bot back in the world.
+func (k *Keeper) ResumeAfterDeathWhileDead(f func(context.Context) bool) bool {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	st := k.s.State()
+	// Dead, or at no health a frame before the dead phase.
+	dying := st != nil && (st.Phase == protocol.PhaseDead || st.Phase == protocol.PhaseInWorld && st.HPMax > 0 && st.HP <= 0)
+	if !dying || k.respawned {
+		return false
+	}
+	k.resume = f
+	return true
+}
+
 // Ordered drops whatever a death left pending: the resume, and the
 // respawn Tick has not acted on yet. Any order given after the death wins,
 // even one such as stop that is over before the bot is back, and even
