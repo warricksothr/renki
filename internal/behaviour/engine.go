@@ -655,6 +655,7 @@ func (e *Engine) cancel(ctx context.Context, why string, requeue bool) error {
 	i.last = why
 	e.lease.Release()
 	e.lease = nil
+	e.loan = nil
 	e.active = ""
 	return nil
 }
@@ -681,6 +682,13 @@ func (e *Engine) giveBack(ctx context.Context, why string) (spent bool) {
 		// An order or the connection won the race with Return.
 		e.o.Logger.Info("follow not returned", append(attrs, "err", err)...)
 		return true
+	case err == nil && t == nil || errors.Is(err, session.ErrNoLoan):
+		// Still running, or it ended on its own before the run's first
+		// step. The run keeps its loan, and so its settle check, in case
+		// cancel cannot stop its step and the run goes on.
+		e.loan = l
+		e.o.Logger.Info("follow not replaced", attrs...)
+		return false
 	case err != nil:
 		e.o.Logger.Warn("could not return the follow", append(attrs, "err", err)...)
 		// The brain stays quiet about a lent follow, so say it here: the
@@ -689,10 +697,6 @@ func (e *Engine) giveBack(ctx context.Context, why string) (spent bool) {
 			e.o.Notify(ctx, fmt.Sprintf("I can't follow you again, %s.", l.follow.Player))
 		}
 		return true
-	case t == nil:
-		// Still running, or it ended on its own before the run's first step.
-		e.o.Logger.Info("follow not replaced", attrs...)
-		return false
 	default:
 		e.o.Logger.Info("follow returned", append(attrs, "id", t.ID)...)
 		return true
@@ -727,6 +731,7 @@ func (e *Engine) finish(ctx context.Context, success bool, detail string, v View
 	i.task = nil
 	e.lease.Release()
 	e.lease = nil
+	e.loan = nil
 	e.active = ""
 }
 

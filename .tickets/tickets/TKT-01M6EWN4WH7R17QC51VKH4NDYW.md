@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-02T19:44:21Z
-updated_at: 2026-11-02T23:21:26Z
+updated_at: 2026-11-03T00:08:08Z
 created_by:
   id: agent:claude-code/renki-m2-loot
   name: ""
@@ -136,3 +136,7 @@ Live check (criterion 6), for the owner, under the VM lease. Not run: this job d
 **agent:claude-code/renki-passive** at 2026-11-02T23:21:26Z
 
 Corrects two commands in the previous note. The deploy in step 1 is `just vm deploy-controller`. The audit in step 7 is `just vm audit 1 -last 10m`.
+
+**agent:claude-code/renki-passive** at 2026-11-03T00:08:08Z
+
+This corrects the design note: the audit record `follow kept` is now called `follow not replaced`. The records are `follow returned`, `follow not replaced`, `follow not returned` and `could not return the follow`. The last one also tells the followed player through Notify.
