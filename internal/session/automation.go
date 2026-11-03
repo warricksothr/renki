@@ -168,8 +168,11 @@ func (a *Automation) Return(ctx context.Context) (*Task, error) {
 	}
 	t := a.loan.task
 	a.loan.returned = true
-	if !t.Lent() {
-		// Nothing replaced the follow: it is still running, or it ended
+	status, reason, _ := t.Status()
+	if !t.Lent() || protocol.Final(status) && reason != protocol.ReasonSuperseded {
+		// The follow may also have ended on its own (failed, timed out)
+		// while the replacing step was in flight: that is a real end. Or
+		// nothing replaced the follow: it is still running, or it ended
 		// on its own. Send nothing; the handle stays for the caller to
 		// stop its own step, if any, and release.
 		return nil, nil
