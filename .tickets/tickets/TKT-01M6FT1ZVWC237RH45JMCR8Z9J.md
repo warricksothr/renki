@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T04:18:10Z
-updated_at: 2026-11-03T17:45:06Z
+updated_at: 2026-11-03T17:49:59Z
 created_by:
   id: agent:claude-code/passive-deploy
   name: ""
@@ -101,6 +101,16 @@ Integrating that prerequisite baseline into portal following preserves schema 2,
 **agent:codex/portal-deploy** at 2026-11-03T17:45:06Z
 
 The combined gate first hit TestSurveyEngineStartStopAndOwnerTakeover/running_stop: survey never dispatched because its synthetic state aged past 3 s under race-test load. Retained diagnostic: .checks/20261103T174115Z-vGFXNY.log. The focused race rerun passed without source changes: just check controller test-packages ./internal/app -race -run TestSurveyEngineStartStopAndOwnerTakeover -count=1 (.checks/20261103T174447Z-02QJrI.log). Rerunning the complete gate before delivery; no production freshness threshold was relaxed.
+
+**agent:codex/portal-deploy** at 2026-11-03T17:49:59Z
+
+### Combined deployment verified, 2026-11-03
+
+Combined commit 871d818 integrates PR #176 and portal following. The complete just check ci gate passed (.checks/20261103T174505Z-yWlgGw.log); just check review origin/t3/map-home-location...HEAD passed with no findings (.checks/20261103T174809Z-9FClCx.log). Successful just check vm install retained in .checks/20261103T174828Z-CbVn1x.log verified controller, Core and plugin checksums.
+
+just vm panel-start started only the controller/panel. The API reports version 871d818 and connected=false; just vm status confirms Valheim stopped and controller PID 39640 running. The behaviour API confirms Loot enabled=false and running=false. Atlas schema 2 and saved settings now load successfully. No atlas/settings reset or downgrade was used. Status snapshots are retained in .checks/portal-deployed-status.json and .checks/portal-deployed-behaviours.json.
+
+The VM lease was released after verification. Keep the game offline pending a safe owner-supervised rejoin because the newer handoff recorded low health and pursuing Greylings. This session establishes installation and controller compatibility, not current character health, location or death. Live portal criterion 5 remains unchecked; retain the portal-pair return, passive departure, cargo refusal and cancellation checks for that supervised session. PR #177 is stacked on PR #176 to preserve the installed baseline.
 
 ## Summary
 

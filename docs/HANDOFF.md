@@ -66,10 +66,20 @@ portal-follow exception. Do not blindly rejoin the saved pursuit.
 
 The deployment now integrates PR #176's atlas schema 2, base surveys, checked
 wading, door cleanup, read-only chest search and proactive/blocked-escape
-protection. Install the combined build with `just check vm install`, then
-`just vm panel-start` so schema/settings compatibility can be checked without
-starting the game. Record the actual verified version and final status in the
-portal ticket. A safe supervised rejoin with the owner must precede field work.
+protection. The combined build **871d818** was installed with
+`just check vm install`; controller, Core and plugin checksums all verified.
+`just vm panel-start` brought up the controller and panel without starting the
+game. `/api/status` reports version 871d818 and disconnected; VM status confirms
+Valheim is stopped and the controller is running. `/api/behaviours` confirms
+Loot is disabled and not running. Atlas/schema and saved settings load without
+the previous startup failure. The deployment lease was released after these
+checks. A safe supervised rejoin with the owner must precede field work.
+
+The combined `just check ci` gate passed (.checks/20261103T174505Z-yWlgGw.log),
+and `just check review origin/t3/map-home-location...HEAD` passed with no findings
+(.checks/20261103T174809Z-9FClCx.log). Successful installation is retained in
+.checks/20261103T174828Z-CbVn1x.log. The earlier survey timing failure and
+unchanged focused rerun are recorded on the portal ticket.
 
 For portal following, once Nimah can supervise a safe start:
 
