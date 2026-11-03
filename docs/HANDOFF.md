@@ -42,7 +42,21 @@ which UpdateGroundContact clears to zero; it is not a retained support normal.
 The correction validates the actual footing ray's walkable normal and preserves
 the original slope limit; body contact flags remain required. A regression uses
 the recorded body/footing with explicitly synthetic ray normals. Corrected
-build/deployment/native outcomes remain to be recorded.
+build3eb180f passed just check ci (166s), committed review and full deployment.
+Its native return travelled roughly350m farther toward home without observed
+injury, stopping57m short at[-188.95,29.49,-412.48]. Actual footing29.45 and
+local water30.1009426 put depth less than1mm past the planner's0.65m allowance,
+while still grounded and below the actual0.8m allowance. Evidence
+`.checks/task-h56xv1tf.json`, `.checks/new-home-corrected-3.json`.
+
+A follow-up distinguishes current actual depth from future planning headroom:
+current supported body/footing may use the0.15m settling reserve, but the next
+checked midpoint and endpoint must recover it. Recorded-wave regressions pass
+in `.checks/20261103T150631Z-qgBi60.log`. Full gate/deployment and a new native
+attempt remain pending. Latest15:08 observation is[-189.95,29.12,-412.8],
+grounded in reported0.8m water, full38.8HP, injurySeq0, only166s of cooked-tail
+meal left and no carried food. Recheck actual depth before retrying; idle drift
+has deepened the water. Home and bed are still unconfirmed.
 
 The owner also asked about atlas-generated chains and following player paths.
 Current tooling has named waypoints, live-validated route trails and survey

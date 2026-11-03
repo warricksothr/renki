@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T14:44:23Z
-updated_at: 2026-11-03T14:58:20Z
+updated_at: 2026-11-03T15:08:38Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -75,3 +75,9 @@ Full deployment is loading the new plugin. Live shallow movement, new-home arriv
 Build98481da deployed successfully, then native t-1 on the new controller run walked about12m from grounded 0.3m-deep water onto dry ground without observed injury. It stopped at[-52.96,30.64,-130.23], supported at30.62, with grounded=true and swimming=false. Evidence .checks/task-vgfo67v1.json and .checks/new-home-wading-1.json. This is partial shallow movement, not new-home arrival.
 
 The aggregate refusal can only have come from the character-contact normal in that recorded state. Installed Character source confirms GetLastGroundNormal returns m_groundContactNormal, not m_lastGroundNormal; UpdateGroundContact clears the former. Replaced that transient input with a fresh footing query using walking=true, preserving the same0.8 normal limit at the actual measured surface. Core Supported accepts only already validated footing; missing/steep ray results remain null. Added a captured-body/footing regression with synthetic flat versus steep ray normals, and precise runtime refusal reasons/support evidence. just check plugin test-core 'WadingTests|FullyQualifiedName~SupportSelectionTests' passed in .checks/20261103T145621Z-A7s4wD.log. Full gate for the correction is running. Do not count the first partial pass as validation of the corrected guard.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:08:38Z
+
+Build3eb180f passed full just check ci (166s), committed just check review and checksum-verified full deployment. Native return t-1 travelled roughly350m farther toward home without observed injury, then stopped57m short. Evidence .checks/task-h56xv1tf.json and .checks/new-home-corrected-3.json. The recorded refusal was body[-188.95,29.49,-412.48], footing29.45, water30.100942611694336, grounded true, swimming false. Depth crossed the0.65m planning allowance by less than1mm but remained below the actual0.8m limit.
+
+The follow-up separates actual current depth from future-step settling reserve. Supported current body/footing may use the0.15m reserve; checked future midpoints/endpoints must recover it. The recorded-wave regression also rejects a flat future step and depth beyond0.8m. Focused just check plugin test-core WadingTests passed in .checks/20261103T150631Z-qgBi60.log; full gate is running. Latest observation15:08 shows idle drift to[-189.95,29.12,-412.8], still grounded, full38.8HP, injurySeq0 and a nearly expired meal. Reobserve before retry; arrival and bed are not yet earned.

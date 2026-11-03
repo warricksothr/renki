@@ -1300,7 +1300,9 @@ behavior, including its bank and shore checks.
 
 The native walker derives a depth limit from the current character's swim-depth
 setting: the game's 0.4 m swim offset, a further 0.3 m reserve and a maximum
-0.8 m allowance. Another 0.15 m is reserved for settling. Planning validates the
+0.8 m allowance. Another 0.15 m is reserved for settling on future steps; the current body and
+footing may spend that reserve while remaining within the actual depth limit,
+and the next checked midpoint/endpoint must recover it. Planning validates the
 actual start footing, midpoint, endpoint and short execution prefix against
 current local liquid heights. Supported steps, slope, body clearance, portal
 exclusion and hostile checks still apply. Grounded water contact can continue;

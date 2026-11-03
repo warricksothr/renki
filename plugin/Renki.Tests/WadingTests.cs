@@ -45,8 +45,8 @@ namespace Renki.Tests
             Assert.True(Wading.Edge(a, a, b, c, 30, 30, 30, .8));
             Assert.False(Wading.Edge(a, a, b, c, 30, 30.3, 30, .8));
             Assert.False(Wading.Edge(a, a, b, new V3(.5, 29.3, 0), 30, 30, 30, .8));
-            Assert.False(Wading.Edge(a, new V3(0, 29.3, 0), b, c, 30, 30, 30, .8));
-            Assert.False(Wading.Edge(a, a, b, c, 30.3, 30, 30, .8));
+            Assert.False(Wading.Edge(a, new V3(0, 29.1, 0), b, c, 30, 30, 30, .8));
+            Assert.False(Wading.Edge(a, a, b, c, 30.31, 30, 30, .8));
         }
 
         [Fact]
@@ -62,6 +62,21 @@ namespace Renki.Tests
             Assert.False(Wading.Supported(a, slope.Point, 30, .8, true, false));
             Assert.False(Wading.Supported(a, a + new V3(0, -.7, 0), 30, .8, true, false));
             Assert.False(Wading.Edge(a, a, a + new V3(.25, .4, 0), a + new V3(.5, .5, 0), 30, 30, 30, .8));
+        }
+
+        [Fact]
+        public void CapturedWaveMaySpendSettlingReserveButNextStepMustRecoverIt()
+        {
+            var body = new V3(-188.95, 29.49, -412.48);
+            var floor = new V3(-188.95, 29.45, -412.48);
+            const double water = 30.100942611694336;
+            Assert.False(Wading.Clear(floor, water, .8));
+            Assert.True(Wading.Supported(body, floor, water, .8, true, false));
+            var middle = floor + new V3(.25, .08, 0);
+            var to = floor + new V3(.5, .16, 0);
+            Assert.True(Wading.Edge(body, floor, middle, to, water, water, water, .8));
+            Assert.False(Wading.Edge(body, floor, floor + new V3(.25, 0, 0), floor + new V3(.5, 0, 0), water, water, water, .8));
+            Assert.False(Wading.Supported(body, floor, 30.26, .8, true, false));
         }
 
         [Fact]
