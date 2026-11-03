@@ -627,6 +627,22 @@ func TestALateResumeIsLeftOnlyWhileTheBotIsDead(t *testing.T) {
 	if resumed != 1 {
 		t.Fatal("a stale resume fired on a later death", resumed)
 	}
+
+	// A zero-health frame the dead phase never followed: the resume is
+	// dropped once Tick sees the bot alive, not kept for a later death.
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", HP: 0, HPMax: 25})
+	if !k.ResumeAfterDeathWhileDead(resume) {
+		t.Fatal("at no health the resume is left")
+	}
+	f.set(f.hello, &protocol.State{Phase: protocol.PhaseInWorld, World: "Midgard", HP: 25, HPMax: 25})
+	k.Tick(ctx)
+	dead(f)
+	k.Tick(ctx)
+	back(f, nil)
+	k.Tick(ctx)
+	if resumed != 1 {
+		t.Fatal("a resume from a death that never came fired later", resumed)
+	}
 }
 
 func TestRespawnResumesOrFallsBackToHome(t *testing.T) {
