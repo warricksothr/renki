@@ -34,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-02T17:49:45Z
+updated_at: 2026-11-03T07:13:01Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:codex/home-survey-delivery
   name: ""
 extensions: {}
 ---
@@ -162,3 +162,9 @@ Supersedes the window in the previous goal 3.1 note: goal 3.1 no longer uses a c
 **agent:claude-code/renki-plan** at 2026-11-02T17:49:45Z
 
 Also supersedes "every live trial this week" in the earlier "Remaining for M3 goal 3.1" note: run the retreat-evidence report over every live trial since the flee fix TKT-01M6EFHED7 was deployed, with no calendar window.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:13:01Z
+
+Incident observed during TKT-01M6FV6E40 (Home survey: familiarize with an area and update its places) deployment/admission validation.
+
+Later live state supersedes the earlier water-position handoff. The audit records Greydwarf damage at 07:04:51.507Z (13.27) and 07:04:53.536Z (13.56) at [-167.59,28.74,-454.4]. Existing retreat dispatched plain flee t-1 within 0.2 s, toward saved home; it failed died at 07:04:53.561Z. Tas respawned at 07:05:11.674Z at [-31.08,36.55,15.19]. Existing after-death home handling then dispatched dry move_to t-4 toward [-204.39,32.97,-467.43]; it failed unreachable at 07:05:33.739Z after support/local-route refusals. No familiarize goal was created or dispatched. This was a two-hit low-supply water encounter, not a four-second blocked-flee proof or a survey-leg failure. Full evidence: .checks/audit-window-NgxmRf.jsonl; bounded report: .checks/20261103T071106Z-WhOy9o.log. No survival acceptance is earned. Record this under the existing flee/survival work; no claim takeover or implicit combat/supply permissions were made.

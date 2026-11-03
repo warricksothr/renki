@@ -35,7 +35,9 @@ no chest is opened and no bed is claimed. Wood delivery uses selected storage;
 marker rest uses sleeping with existing ownership/shelter/floor checks. Other
 food/resupply routines retain local point constraints around return/home.
 Selecting a large base does not migrate their definitions or teach portals.
-Following to a new location still does not change saved home.
+Death-near-home/shunning and short-home heuristics also remain local checks
+around the return point, not the whole base circle. Following to a new location
+still does not change saved home.
 
 Delivery is [PR #176](https://github.com/warricksothr/renki/pull/176), initial
 implementation commit **0152cb0**, plus a follow-up that normalizes empty storage selections
@@ -89,12 +91,33 @@ subsequent API still returned no surveys. Tas remained idle with unchanged HP
 and stamina. No native walk, coverage gain, checked return or separated-building
 proof is claimed.
 
-The next live pass needs dry supported staging, food, and owner-marked sleeping
-and storage approaches. Confirm the editable boundary and roles in Places,
-then start familiarization and retain coverage/waypoint diff, each direction,
-floor arrival and return evidence. Do not force this trial from water or tick
-the remaining live criteria on the strength of offline tests. The VM lease is
-released at handoff; read current lease status before further live changes.
+**Later incident and final state supersede the initial water observation.** At
+07:04:51 and 07:04:53 UTC a Greydwarf hit Tas for 13.27 and 13.56 at that
+water position. Existing retreat dispatched plain flee within 0.2 s; Tas died
+about two seconds later and respawned at the old bed
+`[-31.08, 36.55, 15.19]`. Existing after-death home handling attempted a dry
+return to the saved new home, then failed `unreachable` after local support/route
+refusals. No familiarization goal had been created or dispatched. The incident
+is recorded on TKT-01M62N256M (Plugin: flee task, and retreating when health is
+low), without taking over its claim. It does not earn a survival or survey pass.
+
+Full audit: `.checks/audit-window-NgxmRf.jsonl`; bounded report:
+`.checks/20261103T071106Z-WhOy9o.log`. Follow-up **c088d87** passed committed
+`just check review` with no findings (`.checks/20261103T070956Z-bsniPE.log`) and
+`just check vm deploy-controller` (`.checks/20261103T071033Z-KhYdFf.log`), keeping
+the game running. The final 07:11 UTC observation reports c088d87 idle on dry
+ground near `[-46.37, 33.78, 10.15]`, 25/25 HP, 50 stamina and no active/carried
+food. It is outside the saved new-home boundary. Evidence:
+`.checks/20261103T071114Z-ECsbpC.log`.
+
+The next live pass needs supplied, dry supported staging at the new home and
+owner-marked sleeping/storage approaches. Confirm the editable boundary and
+roles in Places, then start familiarization and retain coverage/waypoint diff,
+each direction, floor arrival and return evidence. The current old-bed location
+cannot start the saved new-home profile; neither water nor a distant respawn
+should be forced into a mapping pass. Leave the two native criteria unticked.
+The VM lease is released at handoff; read current lease status before further
+live changes.
 
 Atlas schema 2 transactionally migrates schema 1, preserving retained first
 receipt/source for honest new-versus-refreshed accounting. Evicted/reinserted

@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-03T07:09:56Z
+updated_at: 2026-11-03T07:13:02Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
@@ -100,6 +100,12 @@ Follow-up verification also ensures that refreshed loaded terrain does not end a
 **agent:codex/home-survey-delivery** at 2026-11-03T07:09:56Z
 
 Final just check ci passed again in .checks/20261103T070445Z-99MVRa.log (200 s). The exact final controller tree passed the entire just check controller test-race suite in .checks/20261103T070843Z-ldtKcP.log (37 s), after the candidate-learning regression and empty-role checkpoint fixes. Ten consecutive app start/stop/takeover race runs passed. The initial PR GitHub CI also passed. Follow-up commit/review and controller-only deployment finish delivery; no live mapping/return proof is inferred from these offline results.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:13:02Z
+
+Later live state supersedes the earlier water-position handoff. The audit records Greydwarf damage at 07:04:51.507Z (13.27) and 07:04:53.536Z (13.56) at [-167.59,28.74,-454.4]. Existing retreat dispatched plain flee t-1 within 0.2 s, toward saved home; it failed died at 07:04:53.561Z. Tas respawned at 07:05:11.674Z at [-31.08,36.55,15.19]. Existing after-death home handling then dispatched dry move_to t-4 toward [-204.39,32.97,-467.43]; it failed unreachable at 07:05:33.739Z after support/local-route refusals. No familiarize goal was created or dispatched. This was a two-hit low-supply water encounter, not a four-second blocked-flee proof or a survey-leg failure. Full evidence: .checks/audit-window-NgxmRf.jsonl; bounded report: .checks/20261103T071106Z-WhOy9o.log. No survival acceptance is earned. Record this under the existing flee/survival work; no claim takeover or implicit combat/supply permissions were made.
+
+Follow-up c088d87 passed committed just check review with no findings (.checks/20261103T070956Z-bsniPE.log) and just check vm deploy-controller (.checks/20261103T071033Z-KhYdFf.log), preserving the running game. At 07:11 UTC, runtime c088d87 was idle on dry ground near [-46.37,33.78,10.15], 25/25 HP, 50 stamina, no active/carried food, outside the new-home circle. The new-home profile and existing owner-saved home remain unchanged. Actual mapping, supported return and the 50 m building-route criteria remain unearned. The earlier statement that Tas remained at the water position was true only for the initial before/after refusal observations; this note supersedes it as the final runtime state. The VM lease is released before handoff.
 
 ## Summary
 
