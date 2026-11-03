@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-03T07:13:01Z
+updated_at: 2026-11-03T15:34:57Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -168,3 +168,9 @@ Also supersedes "every live trial this week" in the earlier "Remaining for M3 go
 Incident observed during TKT-01M6FV6E40 (Home survey: familiarize with an area and update its places) deployment/admission validation.
 
 Later live state supersedes the earlier water-position handoff. The audit records Greydwarf damage at 07:04:51.507Z (13.27) and 07:04:53.536Z (13.56) at [-167.59,28.74,-454.4]. Existing retreat dispatched plain flee t-1 within 0.2 s, toward saved home; it failed died at 07:04:53.561Z. Tas respawned at 07:05:11.674Z at [-31.08,36.55,15.19]. Existing after-death home handling then dispatched dry move_to t-4 toward [-204.39,32.97,-467.43]; it failed unreachable at 07:05:33.739Z after support/local-route refusals. No familiarize goal was created or dispatched. This was a two-hit low-supply water encounter, not a four-second blocked-flee proof or a survey-leg failure. Full evidence: .checks/audit-window-NgxmRf.jsonl; bounded report: .checks/20261103T071106Z-WhOy9o.log. No survival acceptance is earned. Record this under the existing flee/survival work; no claim takeover or implicit combat/supply permissions were made.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:34:57Z
+
+New-home continuation, without taking this ticket's claim: the operator opened storage entrance gates for access and left them open while searching chests for food. Greydwarf2600298615:830 entered and dealt11.75 at15:28:09.117Z and12.78 at15:28:11.282Z, leaving0.5/25HP. Native audit .checks/audit-window-OzbhE9.jsonl retains the exact window. Automatic flee t-25 was dispatched at15:28:09.826Z. A subsequent direct task-check chest probe t-27 replaced that already running flee at15:28:11.609Z, after both hits. Automatic retreat resumed as t-28 at15:28:11.822Z, cancelled t-27, then failed dry-bank distance_limit at15:28:21.345Z near[-184.9,30.97,-469.7]. This is not a death or a wading-task injury. The direct probe's0.22s interruption and leaving gates open are operator/tooling problems to preserve honestly, not evidence that retreat itself caused either hit.
+
+Checked home travel refused hostile corridors and stair support (.checks/task-e306cp1b.json). Ordinary native t-31 then reached saved home; t-34 returned to its interior point. Final grounded/sheltered state[-203.58,32.97,-466.37],0.5HP, no food, idle, house entrance1:14767 confirmed closed. .checks/new-home-final-observation.json and .checks/new-home-final-map.json. Do not send another exposed trial at this health. No survival acceptance is claimed; retain the existing assignee/claim.

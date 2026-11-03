@@ -24,7 +24,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-03T07:13:02Z
+updated_at: 2026-11-03T15:35:56Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
@@ -107,6 +107,12 @@ Later live state supersedes the earlier water-position handoff. The audit record
 
 Follow-up c088d87 passed committed just check review with no findings (.checks/20261103T070956Z-bsniPE.log) and just check vm deploy-controller (.checks/20261103T071033Z-KhYdFf.log), preserving the running game. At 07:11 UTC, runtime c088d87 was idle on dry ground near [-46.37,33.78,10.15], 25/25 HP, 50 stamina, no active/carried food, outside the new-home circle. The new-home profile and existing owner-saved home remain unchanged. Actual mapping, supported return and the 50 m building-route criteria remain unearned. The earlier statement that Tas remained at the water position was true only for the initial before/after refusal observations; this note supersedes it as the final runtime state. The VM lease is released before handoff.
 
+**agent:codex/home-survey-delivery** at 2026-11-03T15:34:57Z
+
+Relocation continuation reached the new-home floor through ordinary native t-31/t-34, retained in .checks/task-3wi2_zkp.json and .checks/task-kzu6dojq.json. The selected new home base still has configurable60m radius,600s and800m total travel with return home. Added/bound only the supported, actually accessible storage approach new home storage west at[-169.13,30.97,-467.75],5m radius, via normal waypoint creation and CAS base save. Sleeping remains unassigned: three house beds and one storage bed are all owned, none mine/free. Old owner-managed home storage and saved home are unchanged.
+
+No familiarize goal was started. A separate storage food search after leaving entrance gates open was attacked, leaving Tas at0.5HP. Tas is now inside the new-home house, grounded/sheltered, entrance1:14767 confirmed closed, no active/carried food. The house chest has raw meat but no ready meal; observed cooking is back in the exposed storage building. See docs/HANDOFF.md, .checks/new-home-final-observation.json, .checks/new-home-final-map.json and .checks/audit-window-OzbhE9.jsonl. Do not force survey admission or replay exposed work. Native criteria5 and7 remain unticked: no before/after survey coverage/waypoint refresh, checked pinned return or separated-building round trip was earned. Initial one-way travel and manually saved storage do not satisfy those criteria. Ready food, recovered health, no nearby threat and a free bed/verified sleeping approach are required before continuing live acceptance. Code remains deployed8f662f6 with full gate and committed review passing.
+
 ## Summary
 
-Delivered configurable durable familiarization in PR #176 and deployed 0152cb0. Offline/CI/review checks pass. Live admission correctly refused swimming/no-food staging without persisting work; native mapping/return and 50 m separated-building acceptance remain pending, documented in the latest note.
+Configurable familiarization is implemented and deployed in PR #176 (runtime8f662f6). Ordinary native movement reached the saved new home, and an actual accessible storage approach is saved/bound separately. No survey run was admitted; native criteria5/7 remain unticked. All observed beds are owned, and Tas is sheltered behind a confirmed closed door at0.5HP without food after a separate storage attack. Food, recovery and a free Tas bed/verified sleeping approach are required before live acceptance.

@@ -34,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-02T16:25:44Z
+updated_at: 2026-11-03T15:34:57Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:codex/home-survey-delivery
   name: ""
 extensions: {}
 ---
@@ -193,3 +193,9 @@ Applied on 2026-11-02 by the planning pass: milestone set to M5, to match the ex
 **agent:claude-code/renki-plan** at 2026-11-02T16:25:44Z
 
 Supersedes the 2026-11-02 move note on this ticket, which wrongly said an exit goal names it. No exit goal names it. Its open criteria, respawning at a claimed bed near home, are base work, so it sits in M5 with the other home tickets. The owner can unschedule it.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:34:57Z
+
+Continuation evidence for the owner-requested relocation, without taking this ticket claim. Tas reached the owner-saved new home using normal native movement (t-31 and t-34; .checks/task-3wi2_zkp.json, .checks/task-kzu6dojq.json). Latest .checks/new-home-final-observation.json is grounded/sheltered at[-203.58,32.97,-466.37],1.34m from home. Fresh .checks/new-home-final-map.json sees beds1:14717,1:14716,1:14968 in the house and941891633:6688 upstairs at storage, all owned:true and none mine. No free bed was observed and no ownership or spawn was changed. The owner is told a free bed is still needed; never clear another player's bed to satisfy this request.
+
+Tas is critically injured0.5/25HP following the separate storage Greydwarf encounter, out of food, with house entrance1:14767 confirmed closed. House chest1:15016 contains raw meat only; ready food and full native survey readiness remain unresolved. See docs/HANDOFF.md and the wading ticket for the current state. Preserve the existing claim on this ticket.

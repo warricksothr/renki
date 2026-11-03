@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6GXWKM2SC3K27C1JE98Z0AV
 title: "Travel: allow checked shallow-water wading without swimming"
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/home-survey-delivery
-  branch: t3/map-home-location
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b02dd361
-  commit: de0457496e394e5962c124ed0ddb6553948eece1
-  session: null
-  claimed_at: 2026-11-03T14:44:43Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-03T14:44:23Z
-updated_at: 2026-11-03T15:08:38Z
+updated_at: 2026-11-03T15:34:57Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -54,7 +47,7 @@ Validate with core boundary and captured-bank regressions, wire argument agreeme
 - [x] Planning and live execution admit supported shallow steps using current liquid height and native swimming threshold reserves.
 - [x] Missing support, discontinuous footing, excessive depth, swimming, unsafe slopes, obstacles, portals and hostile corridors remain refused.
 - [x] Focused regressions, the full gate and committed review pass.
-- [ ] Changed native southbound travel has retained receipts and health/support/water evidence, or an exact remaining refusal is recorded.
+- [x] Changed native southbound travel has retained receipts and health/support/water evidence, or an exact remaining refusal is recorded.
 
 ## Implementation plan
 
@@ -81,3 +74,21 @@ The aggregate refusal can only have come from the character-contact normal in th
 Build3eb180f passed full just check ci (166s), committed just check review and checksum-verified full deployment. Native return t-1 travelled roughly350m farther toward home without observed injury, then stopped57m short. Evidence .checks/task-h56xv1tf.json and .checks/new-home-corrected-3.json. The recorded refusal was body[-188.95,29.49,-412.48], footing29.45, water30.100942611694336, grounded true, swimming false. Depth crossed the0.65m planning allowance by less than1mm but remained below the actual0.8m limit.
 
 The follow-up separates actual current depth from future-step settling reserve. Supported current body/footing may use the0.15m reserve; checked future midpoints/endpoints must recover it. The recorded-wave regression also rejects a flat future step and depth beyond0.8m. Focused just check plugin test-core WadingTests passed in .checks/20261103T150631Z-qgBi60.log; full gate is running. Latest observation15:08 shows idle drift to[-189.95,29.12,-412.8], still grounded, full38.8HP, injurySeq0 and a nearly expired meal. Reobserve before retry; arrival and bed are not yet earned.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T15:34:56Z
+
+Final code is8f662f6, deployed with checksums and native join in .checks/20261103T151204Z-FYkdau.log (just check vm deploy,77s). just check ci passed164s in .checks/20261103T150803Z-vJctm7.log; committed just check review passed with no findings in .checks/20261103T151057Z-sfEh4J.log. The current-vs-future settling correction has the recorded-wave core regression; do not claim that exact sub-millimetre wave boundary was reproduced natively.
+
+Native corrected-mode evidence: t-2 reached the eastern stage (.checks/task-vpnco5bq.json); t-3 made grounded shallow progress to[-172.35,29.43,-420.78], reported0.6m depth,25HP and injurySeq0, then refused the deeper next segment (.checks/task-xqzomqku.json, .checks/new-home-east-approach-current.json). The next checked leg made another supported progress segment (.checks/task-s3yjuwha.json). t-5 stopped on an actual footing ray normal below0.8 on dry ground rather than bypass the slope rule (.checks/task-wv7c53_4.json). t-14 crossed the storage building's low supported floor successfully (.checks/task-z7wbqshh.json). Strict dry bank recovery separately refused that floor's planning reserve; its contract is preserved. These are actual supported shallow/low-floor outcomes and exact remaining refusals, not swimming authorization.
+
+Earlier long-leg3eb180f covered roughly350m farther toward home without injury, then stopped57m short at the wave margin. While idle, body drift deepened from0.6m water to swimming1.6m. Normal native shore recovery, not checked wading, regained dry ground (.checks/task-tck__bjm.json). Grounded wading refusal is not a guarantee the physics body stays put indefinitely.
+
+A later ordinary food search inside storage was attacked by a Greydwarf after the operator left entrance gates open. Damage11.75 and12.78 occurred at15:28:09.117Z and15:28:11.282Z; this is separate from the completed shallow travel. Automatic flee t-25 was briefly replaced by the direct chest probe t-27 after both hits, then resumed as t-28 within0.22s; t-28 stopped on dry-bank distance_limit at the bridge. Audit .checks/audit-window-OzbhE9.jsonl. No survive/combat/survey criterion is earned by that incident.
+
+Ordinary native move_to t-31 subsequently reached the actual saved home floor (.checks/task-3wi2_zkp.json); final inside-house return t-34 succeeded (.checks/task-kzu6dojq.json). The checked home attempt had refused hostile corridors and stair support probes (.checks/task-e306cp1b.json), so arrival is not credited to checked wading alone. Latest observation .checks/new-home-final-observation.json is runtime8f662f6,[-203.58,32.97,-466.37],1.34m from saved home, grounded/sheltered,0.5/25HP, injurySeq7002, no food, idle. .checks/new-home-final-map.json confirms entrance1:14767 closed. Three house beds and one storage bed are owned, none mine/free; no bed was claimed. House chest1:15016 has4DeerMeat,7RawMeat,1NeckTail and no ready meal in its snapshot. Cooking stations remain at the exposed storage building. Leave Tas protected; do not force another exposed search at this health.
+
+Saved the actual supported/accessible storage approach[-169.13,30.97,-467.75] as new home storage west (5m radius), and CAS-bound it to new home storage. Return, home, old owner markers and unassigned sleeping are preserved. Saved base version15:27:44.0249485Z is in .checks/new-home-storage-role-saved.json. Full local survey still has no admitted run: food/health/threat readiness and a free Tas bed remain pending; native coverage/return and separated-building round trips are unearned.
+
+## Summary
+
+Delivered explicit supported shallow-water travel in98481da/3eb180f/8f662f6, with full gate, committed review, checksum-verified deployment and retained native shallow/low-floor movement plus exact refusals. Current-vs-future depth reserve has recorded-wave regression. Ordinary movement separately reached new home; later storage combat left0.5HP. Bed and full survey remain unearned and separately tracked.

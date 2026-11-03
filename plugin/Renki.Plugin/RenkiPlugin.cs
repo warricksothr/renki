@@ -131,6 +131,7 @@ namespace Renki.Plugin
             runner = new TaskRunner(safety, TaskNames.Supported, new GameTaskHost(safety), Send, () => Time.unscaledTimeAsDouble,
                 fault: (where, e) => Logger.LogError($"task runner contained an exception in {where}: {e}"));
             Driver.OnFixedStep = dt => { if (!GuardRecovery(true, dt) && Driver.Active) runner.FixedTick(dt); };
+            Driver.OnMovementRefused = runner.RefuseMovement;
             reporter = new Reporter(this);
             TerrainReporter.Current = terrain;
             inventory = new InventoryReporter(this);
