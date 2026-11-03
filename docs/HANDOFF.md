@@ -37,32 +37,64 @@ food/resupply routines retain local point constraints around return/home.
 Selecting a large base does not migrate their definitions or teach portals.
 Following to a new location still does not change saved home.
 
-Three tickets were filed, groomed, promoted and claimed by this session:
+Delivery is [PR #176](https://github.com/warricksothr/renki/pull/176), initial
+implementation commit **0152cb0**, plus a follow-up that normalizes empty storage selections
+so checkpoint serialization cannot spuriously invalidate an unassigned base.
+An unassigned base still explores to learn candidates when terrain is already
+refreshed; loaded terrain alone does not end that first learning pass.
 
-- TKT-01M6FVN1XG (Base areas: separate sleeping, storage and return places).
-- TKT-01M6FV695N (Waypoints: refresh bot places around a selected area).
-- TKT-01M6FV6E40 (Home survey: familiarize with an area and update its places).
+Base areas TKT-01M6FVN1XG (Base areas: separate sleeping,
+storage and return places) and refresh TKT-01M6FV695N (Waypoints: refresh bot
+places around a selected area) are done and released. TKT-01M6FV6E40 (Home
+survey: familiarize with an area and update its places) has its offline criteria
+earned and remains in review for live survey/50 m building-route evidence.
 
 The local survey depends on these concrete base/refresh slices and reuses the
-existing host, rather than undertaking the general expedition backlog. M7's
-M2/M3 gates and other agents' claims remain unchanged. Ticket descriptions and
-plans record this decision; live criteria must be earned independently.
+existing host. M7's M2/M3 gates and other agents' claims remain unchanged. A
+note on TKT-01M6EFQN74 (Atlas: first-seen time and a measured-coverage query)
+identifies the shared schema/query to reuse; its separate coverage HTTP endpoint
+is still draft work and was not claimed or implemented here.
 
 ## Validation and runtime
 
-Focused home/atlas/behavior/goal/chat/app/protocol checks, the real plugin DLL
-build and native bounded-travel tests have passed. An integration test covers
-queued owner takeover and native stop of a running survey. A panel fixture
-checks saved scope versus unsaved radius edits on desktop and mobile. Logs are
-retained in `.checks/`; final gate/review/deployment outcomes belong in the
-newest ticket notes and will be recorded at delivery.
+`just check ci` passed in `.checks/20261103T070445Z-99MVRa.log` (200 s): 60/60
+desktop/mobile scenarios, controller race checks, actual plugin DLL build,
+Core/interop and repository tooling. `just check review` passed with no findings
+at 0152cb0 (`.checks/20261103T065700Z-y3SY0h.log`). Focused survey tests passed
+three consecutive race runs (`.checks/20261103T065308Z-LNJQsO.log`). They cover
+full/partial terrain, 50 m role separation, wrong floors, failed return, food
+reserve, uncertainty/restart, edits, queued takeover and running native stop.
+After the final controller changes, `just check controller test-race` passed
+(`.checks/20261103T070843Z-ldtKcP.log`). Ten repeated start/stop/takeover race
+runs passed (`.checks/20261103T070437Z-HAMvOv.log`).
 
-The initial read-only VM observation at 06:43 UTC found Tas connected at the
-game menu, without a current world/position. The session acquired the VM lease
-as `agent:codex/home-survey-delivery` for deployment/validation. Do not infer a
-successful new-home pass from offline checks. No new sleeping/storage roles
-were guessed from historical marker names. Final runtime state and any
-remaining native evidence will be recorded below before delivery.
+`just check vm deploy` passed under the lease, verifying package checksums and
+joining DizzysHellheim. The initial live controller reported **0152cb0**;
+the follow-up uses a controller-only deployment, preserving the running game. Evidence:
+`.checks/20261103T065712Z-kPMpX7.log`, with before/after observations and API
+responses in `.checks/home-survey-live/`.
+
+**Live survey could not start.** At 06:58–06:59 UTC Tas was swimming near
+`[-167.7, 28.75, -454.4]`, at 25/25 HP and 50 stamina, with no active or carried
+food. Saved home is already the owner's new point
+`[-204.39, 32.97, -467.43]` (set by Nimah), about 39 m away. The previous
+handoff's older home coordinates must not be reused.
+
+Saved an editable **new home** base centered on that existing home: 60 m radius,
+10 minutes, 800 m total travel, return bound to saved home. Sleeping/storage
+remain unassigned; their approach coordinates were not guessed. Existing home
+and waypoints were preserved. The authenticated start request refused on
+health/footing/capacity/boundary checks **before creating any survey**; the
+subsequent API still returned no surveys. Tas remained idle with unchanged HP
+and stamina. No native walk, coverage gain, checked return or separated-building
+proof is claimed.
+
+The next live pass needs dry supported staging, food, and owner-marked sleeping
+and storage approaches. Confirm the editable boundary and roles in Places,
+then start familiarization and retain coverage/waypoint diff, each direction,
+floor arrival and return evidence. Do not force this trial from water or tick
+the remaining live criteria on the strength of offline tests. The VM lease is
+released at handoff; read current lease status before further live changes.
 
 Atlas schema 2 transactionally migrates schema 1, preserving retained first
 receipt/source for honest new-versus-refreshed accounting. Evicted/reinserted

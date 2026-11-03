@@ -39,7 +39,15 @@ type BasePlaces struct {
 	Storage  []Waypoint `json:"storage"`
 }
 
-func cloneBase(b Base) Base                  { b.Storage = slices.Clone(b.Storage); return b }
+func cloneBase(b Base) Base {
+	// Empty role selections must survive omitempty checkpoint round trips.
+	if len(b.Storage) == 0 {
+		b.Storage = nil
+	} else {
+		b.Storage = slices.Clone(b.Storage)
+	}
+	return b
+}
 func (b Base) Contains(p protocol.Vec3) bool { return b.Center.FlatDistance(p) <= b.Radius }
 func finitePosition(p protocol.Vec3) bool {
 	for _, v := range p {

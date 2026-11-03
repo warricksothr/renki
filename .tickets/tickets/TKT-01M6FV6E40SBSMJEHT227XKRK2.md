@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6FV6E40SBSMJEHT227XKRK2
 title: "Home survey: familiarize with an area and update its places"
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: high
 due_on: null
@@ -21,17 +21,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/home-survey-delivery
-  branch: t3/map-home-location
-  worktree: /home/sothr/.t3/worktrees/renki/t3-b02dd361
-  commit: 0411381e7faf1eded3bc256781caa6e8ab4ab9de
-  session: null
-  claimed_at: 2026-11-03T06:29:51Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-03T06:57:00Z
+updated_at: 2026-11-03T07:09:56Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
@@ -87,3 +80,27 @@ Test persistent migration/rollback/world isolation, roles 50 m apart, multiple s
 **agent:codex/home-survey-delivery** at 2026-11-03T06:56:59Z
 
 Implemented configurable named bases and separate roles, protected scoped multi-place learning and the durable bounded familiarize profile. Final just check ci passed: .checks/20261103T065317Z-7PTGdo.log (197 s), including 60/60 desktop/mobile fixture scenarios, controller race suite, plugin DLL build/Core/interop tests and all repository tooling checks. Focused survey race checks passed three consecutive runs: .checks/20261103T065308Z-LNJQsO.log. Native movement args share a Go/C# fixture; wrong floor, failed return, diminishing food, uncertain restart, scope edits, queued takeover and running native stop are covered. Docs/EXPLORATION.md records implemented commands/configuration, retained food/home constraints, provenance eviction and the temporary-here deferral. Committed review and deployment/live evidence follow; offline evidence does not establish the actual separated buildings route.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:00:27Z
+
+Implementation is 0152cb0, PR https://github.com/warricksothr/renki/pull/176. Full just check ci passed (.checks/20261103T065317Z-7PTGdo.log); committed just check review passed with no findings (.checks/20261103T065700Z-y3SY0h.log). just check vm deploy passed with checksum verification and a successful world join (.checks/20261103T065712Z-kPMpX7.log). Live runtime reports 0152cb0.
+
+At 06:58–06:59 UTC Tas was swimming near [-167.7,28.75,-454.4] at 25/25 HP, 50 stamina, with no active/carried food. Existing owner-saved new home is [-204.39,32.97,-467.43], about 39 m away. Saved/selectable new home profile uses that center/return, editable 60 m radius, ten minutes and 800 m travel; sleeping/storage remain unassigned. Existing home/waypoints were preserved. Authenticated start refused for health/footing/capacity/boundary before any survey record or movement was created; GET /api/bases afterward still had no surveys. The after observation remained idle with unchanged HP/stamina. Evidence is retained in .checks/home-survey-live/{before-observation.json,save.log,start.log,after.log,after-observation.json}.
+
+Criteria 5 and 7 remain unticked: no live terrain/waypoint gain, supported return or native 50 m separated-building route was earned. Put this ticket in review pending dry supported staging, food and actual sleeping/storage approach bindings. The owner is away; do not invent those roles or force movement from water to earn a pass. Code and controls are delivered, with candidate learning permitted once readiness is satisfied. Temporary here anchors remain deferred as groomed; this area means the saved selected base. docs/HANDOFF.md records the runtime and next live check. VM lease will be released before handoff.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:02:34Z
+
+Final review found an empty-role checkpoint edge: the panel sends storage:[], while the durable goal JSON omits an empty storage list. Normalize empty lists in the shared base copy so the pinned base remains equal after checkpoint serialization. The survey engine start/stop/takeover integration now explicitly uses an empty storage selection, matching the first candidate-learning run. This is a controller-only follow-up; live water/no-food readiness and the two remaining native criteria are unchanged. The follow-up controller deployment preserves the running game.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:07:47Z
+
+Follow-up verification also ensures that refreshed loaded terrain does not end a candidate-learning survey before exploring when sleeping/storage are unassigned. A dedicated goal test earns this behavior. The integration fixture now supplies continuing telemetry like the native client during its initial observation delay; ten consecutive race runs passed (.checks/20261103T070437Z-HAMvOv.log). Freshness refusals now distinguish original-world, state-age, surroundings-age and incompatible game times. Focused goal/app checks passed after the final change (.checks/20261103T070703Z-Nv9qWX.log). These controller-only fixes retain all readiness restrictions; the live water/no-food staging is unchanged.
+
+**agent:codex/home-survey-delivery** at 2026-11-03T07:09:56Z
+
+Final just check ci passed again in .checks/20261103T070445Z-99MVRa.log (200 s). The exact final controller tree passed the entire just check controller test-race suite in .checks/20261103T070843Z-ldtKcP.log (37 s), after the candidate-learning regression and empty-role checkpoint fixes. Ten consecutive app start/stop/takeover race runs passed. The initial PR GitHub CI also passed. Follow-up commit/review and controller-only deployment finish delivery; no live mapping/return proof is inferred from these offline results.
+
+## Summary
+
+Delivered configurable durable familiarization in PR #176 and deployed 0152cb0. Offline/CI/review checks pass. Live admission correctly refused swimming/no-food staging without persisting work; native mapping/return and 50 m separated-building acceptance remain pending, documented in the latest note.

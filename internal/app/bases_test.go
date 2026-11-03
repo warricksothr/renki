@@ -95,8 +95,11 @@ func TestSurveyEngineStartStopAndOwnerTakeover(t *testing.T) {
 			tasks := []string{"move_to", "stop"}
 			url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome { return &protocol.Welcome{AllowedTasks: tasks} }}, a.Session)
 			p := bridgetest.ConnectWithFeatures(t, url, "", tasks, []string{"bounded_move_v1"})
-			p.Send(&protocol.State{Envelope: protocol.Envelope{T: 100}, World: "one", WorldUID: "1", Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{0, 40, 0}, HP: 80, HPMax: 80, Stamina: 60, Flags: []string{protocol.FlagGrounded}, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Raspberry", RemainingS: 1000}}}})
-			p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 100}})
+			send := func() {
+				p.Send(&protocol.State{Envelope: protocol.Envelope{T: 100}, World: "one", WorldUID: "1", Phase: protocol.PhaseInWorld, Pos: protocol.Vec3{0, 40, 0}, HP: 80, HPMax: 80, Stamina: 60, Flags: []string{protocol.FlagGrounded}, Food: &protocol.FoodStatus{Active: []protocol.ActiveFood{{Prefab: "Raspberry", RemainingS: 1000}}}})
+				p.Send(&protocol.Perception{Envelope: protocol.Envelope{T: 100}})
+			}
+			send()
 			scope := protocol.TerrainScope{Namespace: "test", WorldUID: "1", Epoch: "1", Source: "bot", Stream: "run", Game: "test", Generator: 2, Mods: "hash"}
 			height, tick, biome := 40.0, 100.0, "Meadows"
 			tile := protocol.TerrainTile{WaterLevel: 30, Heights: make([]*float64, 25), Biomes: make([]*string, 25), MeasuredAt: make([]*float64, 25)}
@@ -118,10 +121,11 @@ func TestSurveyEngineStartStopAndOwnerTakeover(t *testing.T) {
 			if err = a.Memory.Store.EditWaypoint("one", "", &w, nil); err != nil {
 				t.Fatal(err)
 			}
-			b := home.Base{Name: "camp", Center: protocol.Vec3{0, 40, 0}, Radius: 60, DurationS: 600, TravelM: 800, Return: w.Name, At: w.At}
+			b := home.Base{Name: "camp", Center: protocol.Vec3{0, 40, 0}, Radius: 60, DurationS: 600, TravelM: 800, Return: w.Name, Storage: []string{}, At: w.At}
 			if err = a.Memory.Store.EditBase("one", b.Name, &b, nil, false); err != nil {
 				t.Fatal(err)
 			}
+			send()
 			if _, err = a.startSurvey(context.Background(), "panel"); err != nil {
 				t.Fatal(err)
 			}
@@ -135,8 +139,13 @@ func TestSurveyEngineStartStopAndOwnerTakeover(t *testing.T) {
 				}
 				tickUntilGoal(t, a, g.ID, func(g goal.Record) bool { return g.Status == "cancelled" })
 			} else {
-				until = time.Now().Add(2500 * time.Millisecond)
+				until = time.Now().Add(4 * time.Second)
+				nextObservation := time.Now()
 				for time.Now().Before(until) {
+					if !time.Now().Before(nextObservation) {
+						send()
+						nextObservation = time.Now().Add(100 * time.Millisecond)
+					}
 					a.Behaviours.Tick(context.Background())
 					g, _ = a.Goals.Get(g.ID)
 					if g.Pending != nil && g.Pending.TaskID != "" {

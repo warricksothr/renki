@@ -123,8 +123,17 @@ func (r *runner) surveyCheck(g Record, v behaviour.View) error {
 	if terminal(g.Status) {
 		return nil
 	}
-	if v.State == nil || v.State.World != g.World || v.State.Phase != protocol.PhaseInWorld || v.StateAt.IsZero() || v.Now.Sub(v.StateAt) < 0 || v.Now.Sub(v.StateAt) > 3*time.Second || v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 5*time.Second || !behaviour.PerceptionBeside(v, 3) {
-		return errors.New("survey needs fresh state and surroundings in its original world")
+	if v.State == nil || v.State.World != g.World || v.State.Phase != protocol.PhaseInWorld {
+		return errors.New("survey needs its original live world")
+	}
+	if v.StateAt.IsZero() || v.Now.Sub(v.StateAt) < 0 || v.Now.Sub(v.StateAt) > 3*time.Second {
+		return fmt.Errorf("survey needs fresh state (age %.3f seconds)", v.Now.Sub(v.StateAt).Seconds())
+	}
+	if v.PerceptionAt.IsZero() || v.Now.Sub(v.PerceptionAt) < 0 || v.Now.Sub(v.PerceptionAt) > 5*time.Second {
+		return fmt.Errorf("survey needs fresh surroundings (age %.3f seconds)", v.Now.Sub(v.PerceptionAt).Seconds())
+	}
+	if !behaviour.PerceptionBeside(v, 3) {
+		return errors.New("survey state and surroundings are not from compatible game times")
 	}
 	if !v.Now.Before(g.Deadline) {
 		return errors.New("survey deadline exhausted")
@@ -351,7 +360,7 @@ func (r *runner) surveyNext(g Record, v behaviour.View, last *behaviour.Result) 
 		g, _ = r.t.Store.Get(g.ID)
 		s = g.Survey
 	}
-	if s.Target == len(s.Targets) && s.Coverage.Unknown == 0 && s.Coverage.Refreshed == s.Coverage.Total {
+	if s.Target == len(s.Targets) && s.Pinned.Sleeping != nil && len(s.Pinned.Storage) > 0 && s.Coverage.Unknown == 0 && s.Coverage.Refreshed == s.Coverage.Total {
 		if err = r.beginSurveyReturn(g); err != nil {
 			return nil, err
 		}

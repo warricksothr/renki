@@ -366,3 +366,44 @@ func TestSurveySuccessRequiresFreshFullCoverageAndSupportedReturn(t *testing.T) 
 		t.Fatal("missing earned completion", g.Status, g.Reason, g.Survey.Target, len(g.Survey.Targets), g.Survey.Unresolved)
 	}
 }
+
+func TestSurveyKnownTerrainStillExploresUnassignedBasePlaces(t *testing.T) {
+	host, r, v, id := surveyFixture(t)
+	b := host.Memory.ActiveBase("one")
+	expected := b.At
+	b.Sleeping = ""
+	b.Storage = []string{}
+	b.Radius = 10
+	b.At = b.At.Add(time.Second)
+	if err := host.Memory.EditBase("one", b.Name, b, &expected, false); err != nil {
+		t.Fatal(err)
+	}
+	pinned, err := home.ResolveBase(*host.Memory.ActiveBase("one"), host.Memory.Waypoints("one"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = host.Store.update(id, func(g *Record) error {
+		g.Radius = b.Radius
+		g.Survey.Pinned = pinned
+		g.Survey.Targets = []home.Waypoint{pinned.Return, pinned.Return}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	surveyFresh(&v)
+	_, _, scope, tiles := host.Session.TerrainView()
+	tick := v.State.T
+	for i := range tiles {
+		for j := range tiles[i].MeasuredAt {
+			tiles[i].MeasuredAt[j] = &tick
+		}
+	}
+	if err = host.Atlas().Ingest(context.Background(), session.TerrainObservation{World: "one", Scope: *scope, CapturedAt: tick, ReceivedAt: v.Now, Tiles: tiles}); err != nil {
+		t.Fatal(err)
+	}
+	o, err := r.Next(v, nil)
+	g, _ := host.Store.Get(id)
+	if err != nil || o == nil || g.Survey.Phase == "return" || g.Survey.Coverage.Refreshed != g.Survey.Coverage.Total {
+		t.Fatal("known terrain suppressed place learning", o, err, g.Survey.Coverage)
+	}
+}
