@@ -81,6 +81,7 @@ type Options struct {
 	Atlas           http.Handler
 	Inventory       func() any
 	Waypoints       http.Handler
+	Bases           http.Handler
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -150,6 +151,10 @@ func Handler(o Options) http.Handler {
 	if o.Waypoints != nil {
 		authed.Handle("GET /api/waypoints", o.Waypoints)
 		authed.Handle("POST /api/waypoints", o.Waypoints)
+	}
+	if o.Bases != nil {
+		authed.Handle("GET /api/bases", o.Bases)
+		authed.Handle("POST /api/bases", o.Bases)
 	}
 	if o.ContainerMemory != nil {
 		authed.HandleFunc("GET /api/memory/containers", func(w http.ResponseWriter, r *http.Request) {

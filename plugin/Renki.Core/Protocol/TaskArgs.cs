@@ -62,6 +62,7 @@ namespace Renki.Protocol
 
     public sealed class MoveToArgs : EncounterArgs
     {
+        public Renki.Movement.TravelScope Scope;
         public bool Dry;
         public bool AvoidHostiles;
         public Target To;
@@ -245,6 +246,19 @@ namespace Renki.Protocol
                         return new TransferArgs { Container = container, Items = parsed.ToArray(), MatchExisting = matchExisting };
                     }
                 case TaskNames.MoveTo:
+                    Renki.Movement.TravelScope scope = null;
+                    if (a["scope"] != null && a["scope"].Type != JTokenType.Null)
+                    {
+                        if (!(a["scope"] is JObject bounds)) throw new BadArgsException("scope must be an object");
+                        var center = Target.Parse(bounds["center"], "center").Pos;
+                        if (!center.HasValue) throw new BadArgsException("scope center must be coordinates");
+                        scope = new Renki.Movement.TravelScope { Center = center.Value, Radius = Number(bounds, "radius", 0), TravelM = Number(bounds, "travelM", 0), DurationS = Number(bounds, "durationS", 0) };
+                        var target = Target.Parse(a["to"], "to");
+                        var stop = Number(a, "stopDistance", 1.5);
+                        if (double.IsNaN(stop) || double.IsInfinity(stop) || stop < 0.25 || stop > 1.5) throw new BadArgsException("scoped stopDistance must be 0.25–1.5 m");
+                        if (!scope.Valid || !target.Pos.HasValue || !scope.Contains(target.Pos.Value) || !Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false) || Bool(a, "recoverThreats", false))
+                            throw new BadArgsException("invalid scoped dry movement");
+                    }
                     if (Bool(a, "defendThreats", false) && !Bool(a, "recoverThreats", false))
                         throw new BadArgsException("defendThreats requires recoverThreats");
                     if (Bool(a, "recoverThreats", false) && (!Bool(a, "dry", false) || !Bool(a, "avoidHostiles", false)))
@@ -253,6 +267,7 @@ namespace Renki.Protocol
                         throw new BadArgsException("avoidHostiles requires dry travel");
                     return new MoveToArgs
                     {
+                        Scope = scope,
                         To = Target.Parse(a["to"], "to"),
                         StopDistance = Number(a, "stopDistance", 1.5),
                         Run = Bool(a, "run", false),

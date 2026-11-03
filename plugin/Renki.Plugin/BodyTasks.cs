@@ -38,9 +38,9 @@ namespace Renki.Plugin
         BankExit bankExit = new BankExit();
         DryStaging dryStaging = new DryStaging();
         bool bankMoving;
-        public Walker()
+        public Walker(System.Func<V3, V3, bool> boundary = null)
         {
-            hostileClearance = (from, to) => !avoidHostiles || hostiles.Clear(from, to);
+            hostileClearance = (from, to) => (boundary == null || boundary(from, to)) && (!avoidHostiles || hostiles.Clear(from, to));
             dryProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance);
             bankProbe = new WorldNavigation.PlanningProbe(diagnostics: true, dry: true, executing: true, corridor: hostileClearance, bankExit: true);
         }
@@ -1170,7 +1170,8 @@ namespace Renki.Plugin
     {
         readonly MoveToArgs args;
         readonly GameObject entity;
-        readonly Walker walker = new Walker();
+        readonly Walker walker;
+        readonly BoundedTravel survey;
         readonly TravelEncounter encounter;
         Vector3 goal;
 
@@ -1181,13 +1182,24 @@ namespace Renki.Plugin
             this.entity = entity;
             if (args.RecoverThreats) encounter = new TravelEncounter(id, args.DefendThreats);
             var p = Player.m_localPlayer;
+            if (args.Scope != null) survey = new BoundedTravel(args.Scope, Convert.ToV3(p.transform.position), Time.unscaledTime);
+            walker = new Walker(survey == null ? (System.Func<V3, V3, bool>)null : survey.Clear);
             walker.SetGoal(p.transform.position, goal, args.StopDistance, reuseRoutes: args.To.Entity == null, dryGround: args.Dry, avoidHostiles: args.AvoidHostiles);
             walker.ResetStuck(p.transform.position);
         }
 
         public Outcome Tick(double dt)
         {
+            var p = Player.m_localPlayer;
+            var at = p != null ? Convert.ToV3(p.transform.position) : V3.Zero;
+            var refusal = survey?.Observe(at, Time.unscaledTime);
+            if (refusal != null)
+            {
+                Driver.Stand();
+                return Outcome.Failed(Wire.ReasonUnreachable, survey.Receipt(at, refusal));
+            }
             var ended = Step(dt);
+            if (ended != null && survey != null) ended.Detail = survey.Receipt(at, ended.Detail);
             if (ended != null) encounter?.Cancel();
             return ended;
         }

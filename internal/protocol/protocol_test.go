@@ -340,3 +340,18 @@ func TestTargetWithBothIsAnError(t *testing.T) {
 		t.Fatal("want an error for a target that is both a position and an entity")
 	}
 }
+
+func TestScopedMovementRejectsUnsafeOptions(t *testing.T) {
+	valid := `{"to":[-15,40,0],"dry":true,"avoidHostiles":true,"scope":{"center":[-25,40,0],"radius":60,"travelM":50,"durationS":40}}`
+	for _, change := range []struct{ old, next string }{
+		{`"dry":true`, `"dry":false`}, {`"avoidHostiles":true`, `"avoidHostiles":false`},
+		{`"to":[-15,40,0]`, `"to":"0:1"`}, {`"to":[-15,40,0]`, `"to":[80,40,0]`},
+		{`"radius":60`, `"radius":251`}, {`"travelM":50`, `"travelM":0`}, {`"durationS":40`, `"durationS":91`},
+		{`"dry":true`, `"dry":true,"recoverThreats":true`},
+		{`"dry":true`, `"dry":true,"stopDistance":100`}, {`"dry":true`, `"dry":true,"stopDistance":0`},
+	} {
+		if _, err := (&TaskRequest{Task: TaskMoveTo, Args: json.RawMessage(strings.Replace(valid, change.old, change.next, 1))}).DecodeArgs(); err == nil {
+			t.Fatal("accepted unsafe scope", change)
+		}
+	}
+}

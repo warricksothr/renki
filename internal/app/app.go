@@ -97,7 +97,11 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	}, Logger: log.With("part", "presence")})
 	var gatherWood func(context.Context, string) (string, error)
 	var resupplyFood func(context.Context, string) (string, error)
+	var baseCommand func(context.Context, string, string, *protocol.Vec3) (string, bool, error)
 	brain := chat.New(chat.Options{
+		BaseCommand: func(ctx context.Context, by, text string, pos *protocol.Vec3) (string, bool, error) {
+			return baseCommand(ctx, by, text, pos)
+		},
 		GatherWood:   func(ctx context.Context, by string) (string, error) { return gatherWood(ctx, by) },
 		ResupplyFood: func(ctx context.Context, by string) (string, error) { return resupplyFood(ctx, by) },
 		PlayerQuery:  playerPresence.PanelQuery,
@@ -150,7 +154,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	if len(goals) > 0 && goals[0] != nil {
 		a.Goals = goals[0]
 	}
-	a.goalTemplate = &goal.Template{Store: a.Goals, Landmarks: homes.Landmarks, Allowed: a.Session.Allowed}
+	a.goalTemplate = &goal.Template{Store: a.Goals, Memory: homes, Session: s, Atlas: func() *atlas.Store { return a.Atlas }, Landmarks: homes.Landmarks, Allowed: a.Session.Allowed}
 	a.supplyLog = log.With("part", "resupply")
 	a.Food.SetReserved(func() bool { return a.Goals.FoodRunning() || a.Behaviours != nil && a.Behaviours.PreparingFood() })
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate, "household_food": &goal.FoodWork{Goal: a.goalTemplate}, "personal_food": &goal.FoodWork{Goal: a.goalTemplate, Personal: true}},
@@ -163,6 +167,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Containers:   homes.RememberedContainers,
 		Landmarks:    homes.Landmarks,
 		Waypoints:    homes.Waypoints,
+		Base:         homes.ActiveBase,
 		Danger:       homes.DangerZones,
 		Pickups:      homes.Pickups,
 		Notify: func(ctx context.Context, line string) {
@@ -173,6 +178,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		},
 		Logger: log.With("part", "behaviour")})
 	gatherWood = a.Behaviours.StartWood
+	baseCommand = a.baseChat
 	a.escortSupply = make(chan escortSupplyRequest, 8)
 	resupplyFood = func(ctx context.Context, by string) (string, error) { return a.startFood(ctx, by, nil) }
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}

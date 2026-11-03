@@ -312,6 +312,11 @@ with a direct link from current work to goal controls. Map and camera share a
 balanced desktop row; the map grows into available height, while the camera
 preserves the whole image. Activity and Kit & objectives follow in two columns.
 Places & storage and People & preferences form a separate reference row.
+Inside Places, **Base area & familiarization** saves named base boundaries,
+separate sleeping/storage/return bindings and survey time/travel limits. It
+shows the saved base a start will use, supports multiple storage places, and
+reports terrain gaps, waypoint changes and return status. See
+[local familiarization](EXPLORATION.md#local-home-familiarization).
 Inventory and the place editor start collapsed; their summaries retain counts
 and pack status. Goals stay expanded. Activity, long goals, settings and place
 editors have bounded independent scrolling; expanding one does not clip other

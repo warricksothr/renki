@@ -1,9 +1,9 @@
 # Exploration goals: proposed after M2 and M3
 
 This is a proposed follow-on to M2 and M3, not a currently supported goal or an
-enabled routine. The current goal host accepts `combat_trial` only. Exploration
-needs its own validated specification, supporting runners, host budgets and
-success evidence before a script can request it.
+enabled routine. The goal host supports combat, household food and the bounded local
+`familiarize` profile below. General expeditions still need their own validated
+specification, supporting runners, host budgets and success evidence.
 
 The umbrella is TKT-01M66PFAYA1NTW2JHNRDKBK42E — Exploration goals after M2 and M3.
 Implementation remains in draft until these dependencies are complete:
@@ -43,6 +43,110 @@ Returning without enough discovery is a partial outcome. Reaching a distant
 point while losing the return option is not success. Unsafe conditions may
 require a bounded retreat or hold with a diagnostic, rather than forcing a
 return through danger.
+
+## Local home familiarization
+
+Tas can survey a configured base through the existing durable goal host. This
+local profile is independent of the broader expedition backlog: M7's M2/M3 gates
+remain unchanged. It uses dry native walking, never portals, and reports partial
+results when time, distance or access prevent completion.
+
+### Configure a base
+
+Open **Places & storage → Base area & familiarization**. Create a named base,
+use Tas's current position for its center or enter coordinates, and choose a
+radius of **10–250 m**, total time of **2–20 minutes**, and total travel of
+**50–4000 m**, including return. The form displays both radius and diameter.
+The defaults are 60 m radius, ten minutes and 800 m travel; these are editable,
+not an estimate of the owner's base. A 50–80 m span is not a radius.
+
+Mark a return place at Tas's supported position, or choose an existing place
+or saved home. Bind sleeping and one or more storage places separately. They
+need not be near the center or each other, but all bound places must be inside
+the circle. Use actual supported floor/approach coordinates, not a chest's
+collider center. Missing sleeping/storage bindings permit learning candidates,
+but the result remains partial. Learning a bed never claims it, and learning a
+chest never opens it or proves its contents/capacity/access.
+
+Save selects the base in that world. Other bases and historical markers remain.
+Following to a new home does not move saved home: `Tas, set home` remains the
+explicit command. Rename/deletion of a bound waypoint invalidates the binding
+until corrected; it never silently redirects a role. Save/select uses version
+checks, with rollback on failed persistence.
+
+Wood delivery uses bound storage zones; marker rest uses the sleeping place
+and retains owned-bed, floor, shelter and native sleep checks. Return/idle uses
+the selected return point. Food/resupply routines still have local constraints
+around their return/home point; selecting a large base does not migrate those
+routines or existing marker definitions to all its buildings.
+
+### Commands
+
+- `Tas, familiarize yourself with home` (also `this area`, `the area`, or
+  `Tas, survey home`): start at the saved selected base and show its limits.
+- `Tas, survey status`: report terrain measurements, new/refreshed samples,
+  travel/recorded legs, waypoint changes, blocked attempts and return status.
+- `Tas, base radius 80`: save an 80 m radius for the selected base.
+- `Tas, base sleeping bedroom`, `Tas, base storage warehouse`, and
+  `Tas, base return camp return`: bind existing named places. The panel supports
+  several storage places; the chat storage command replaces the list with one.
+- `Tas, stop`, any newer body order, or **Stop survey** cancels continuation.
+
+Configure the first base in the panel. `this area` means that saved base; there
+is no temporary `here` anchor or per-run override. Configuration never starts
+walking automatically. Starting requires a fresh idle body, no queued/running
+behavior, identified terrain, bounded-movement support, move/stop permission,
+dry supported footing, health at least 60% and 20 HP, 40 stamina, an active meal
+with five minutes left, and no nearby observed hostile. Admission refuses before
+creating a goal when these are missing.
+
+### Evidence and limits
+
+A run pins world/observer/connection, boundary/version and role coordinates.
+It visits return → sleeping → storage → sleeping → return, repeating for each
+storage, then surveys nearby fresh measured-ground approaches inside the
+circle. Failed approaches are remembered. Every native leg limits elapsed time,
+actual 3D travel (including detours), and boundary, and records a bounded trail.
+Outbound work reserves return time, travel and task slots. Diminishing food or
+stamina starts return between legs. Return revalidates the reverse sequence of
+visited stops and finally the pinned anchor; a former route is never permanent
+proof. Arrival needs a post-receipt state on the intended floor with support.
+
+State/perception freshness, injury, health, threats, water, session/world and
+base/waypoint edits are checked during native work. Unsafe/changed conditions
+stop with a diagnostic rather than forcing return. Uncertain receipts or a
+restart with pending work cannot replay a leg. A stopped run never resumes
+itself; a fresh request creates a new bounded session.
+
+Terrain coverage counts canonical **4 m samples** inside the circle: measured,
+new, refreshed, unknown and stale. Loaded terrain is not complete room/floor,
+object, container or access mapping. Trails separately show visited ground.
+New measurements require first receipt by this observer during the run;
+confirmations of known ground are refreshed, not new (see [ATLAS.md](ATLAS.md)).
+The controller map shows the base circle and recent native trails.
+
+Fresh actual structures/resources refresh multiple bot-managed places within
+the selected base. Owner edits, pinned role places, deletion suppression and
+other-base markers are protected. Missing objects in a scan never delete a
+place. Reports distinguish added, updated, protected, unchanged and skipped
+observations. The existing background discovery remains fill-only.
+
+A run succeeds only with all terrain refreshed, the required role visits,
+no unresolved/failed legs, and checked return. Otherwise a completed return is
+**partial**, with gaps; missing/blocked return is never reported as returned.
+Even success is a bounded terrain/route result, not complete inspection of every
+room. Large or obstructed bases can require repeated sessions and owner-marked
+approach positions. Native stairs/bridges and the new home's separated buildings
+still require live evidence; offline tests do not establish their traversability.
+
+Delivery tickets: TKT-01M6FVN1XG (Base areas: separate sleeping, storage and
+return places), TKT-01M6FV695N (Waypoints: refresh bot places around a selected
+area), and TKT-01M6FV6E40 (Home survey: familiarize with an area and update its
+places). Focused checks use `just check controller test-packages` for home,
+atlas, behavior, goal, chat and app, plus `just check plugin test-core
+BoundedTravel`. Run `just check ci` and committed `just check review` before
+pushing. Live checks take the VM lease and retain coverage, waypoint changes,
+gaps and supported arrival evidence; unearned game criteria stay unticked.
 
 ## What Tas knows about an area
 

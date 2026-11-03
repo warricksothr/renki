@@ -1,0 +1,1 @@
+{"v":1,"type":"task","seq":0,"t":0,"id":"t-survey","task":"move_to","args":{"to":[-15,40,0],"dry":true,"avoidHostiles":true,"stopDistance":1,"scope":{"center":[-25,40,0],"radius":60,"travelM":50,"durationS":40}},"timeoutS":41}

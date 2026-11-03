@@ -368,16 +368,36 @@ func (a *HarvestArgs) validate() error {
 // MoveToArgs are the arguments to `move_to`. A nil pointer means the
 // plugin's default: 1.5 m, and walking.
 type MoveToArgs struct {
-	Dry            bool     `json:"dry,omitempty"`
-	AvoidHostiles  bool     `json:"avoidHostiles,omitempty"`
-	RecoverThreats bool     `json:"recoverThreats,omitempty"`
-	DefendThreats  bool     `json:"defendThreats,omitempty"`
-	To             Target   `json:"to"`
-	StopDistance   *float64 `json:"stopDistance,omitempty"`
-	Run            *bool    `json:"run,omitempty"`
+	Scope          *MoveScope `json:"scope,omitempty"`
+	Dry            bool       `json:"dry,omitempty"`
+	AvoidHostiles  bool       `json:"avoidHostiles,omitempty"`
+	RecoverThreats bool       `json:"recoverThreats,omitempty"`
+	DefendThreats  bool       `json:"defendThreats,omitempty"`
+	To             Target     `json:"to"`
+	StopDistance   *float64   `json:"stopDistance,omitempty"`
+	Run            *bool      `json:"run,omitempty"`
 }
 
 func (a *MoveToArgs) validate() error {
+	if a.Scope != nil {
+		if !a.Dry || !a.AvoidHostiles || a.RecoverThreats || a.To.Pos == nil || a.To.Entity != "" {
+			return errors.New("scoped movement requires dry hostile-avoiding coordinates without combat recovery")
+		}
+		if err := a.Scope.Validate(); err != nil {
+			return err
+		}
+		for _, n := range *a.To.Pos {
+			if math.IsNaN(n) || math.IsInf(n, 0) || math.Abs(n) > 1e6 {
+				return errors.New("invalid scoped destination")
+			}
+		}
+		if a.StopDistance != nil && (math.IsNaN(*a.StopDistance) || math.IsInf(*a.StopDistance, 0) || *a.StopDistance < 0.25 || *a.StopDistance > 1.5) {
+			return errors.New("scoped stopDistance must be 0.25–1.5 m")
+		}
+		if a.To.Pos.FlatDistance(a.Scope.Center) > a.Scope.Radius {
+			return errors.New("movement destination outside scope")
+		}
+	}
 	if a.DefendThreats && !a.RecoverThreats {
 		return errors.New("defendThreats requires recoverThreats")
 	}
@@ -389,6 +409,31 @@ func (a *MoveToArgs) validate() error {
 	}
 	if a.To.IsZero() {
 		return errors.New("`to` is required")
+	}
+	return nil
+}
+
+// MoveScope adds native containment and measured travel receipts to move_to.
+type MoveScope struct {
+	Center    Vec3    `json:"center"`
+	Radius    float64 `json:"radius"`
+	TravelM   float64 `json:"travelM"`
+	DurationS float64 `json:"durationS"`
+}
+
+func (s MoveScope) Validate() error {
+	for _, v := range s.Center {
+		if math.IsNaN(v) || math.IsInf(v, 0) || math.Abs(v) > 1e6 {
+			return errors.New("invalid movement scope center")
+		}
+	}
+	for _, v := range []float64{s.Radius, s.TravelM, s.DurationS} {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return errors.New("movement scope limits must be finite")
+		}
+	}
+	if s.Radius < 10 || s.Radius > 250 || s.TravelM < 1 || s.TravelM > 500 || s.DurationS < 1 || s.DurationS > 90 {
+		return errors.New("invalid movement scope limits")
 	}
 	return nil
 }

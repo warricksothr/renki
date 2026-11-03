@@ -409,6 +409,9 @@ func (r *runner) Check(v behaviour.View) error {
 	if !ok {
 		return errors.New("goal disappeared")
 	}
+	if g.Survey != nil {
+		return r.surveyCheck(g, v)
+	}
 	if g.Food == nil {
 		return nil
 	}

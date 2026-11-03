@@ -1,152 +1,114 @@
 # Handoff
 
-The state of the work at the last handoff, and what the next agent needs
-that the tickets and the roadmap don't already say. Replace this page at
-each handoff rather than appending to it.
+Handoff of 2026-11-03 from `agent:codex/home-survey-delivery`, on
+`t3/map-home-location` (base 0411381). The owner moved home, estimates the base
+is 50–80 m across with sleeping/storage about 50 m apart, and asked for
+configurable familiarization. Their later instruction explicitly authorized
+filing, grooming, promotion and completion while away, superseding the earlier
+planning-only hold.
 
-Handoff of 2026-11-03, from `agent:claude-code/passive-deploy`. That session
-worked with the owner (Nimah in game) on the VM lease, loot reach and passive
-mode.
+## Home familiarization
 
-## Read first
+Implemented a local `familiarize` profile in the existing durable goal host,
+with configurable per-world named bases and distinct sleeping/storage/return
+bindings. See [EXPLORATION.md](EXPLORATION.md#local-home-familiarization) for the
+implemented controls, admission requirements, evidence and limitations.
 
-1. AGENTS.md: the rules for `just`, `just ci`, `just review` and tickets.
-2. docs/ROADMAP.md: the milestones and "Working in parallel".
-3. docs/BEHAVIOURS.md: idle and passive modes, the loan, Loot's settle area
-   and reach. This is where the current work is.
-4. docs/TESTING.md and docs/VM.md before any check or live work, including
-   "The VM lease".
+Configure **Places & storage → Base area & familiarization**, save/select the
+base, then request `Tas, familiarize yourself with home` (or `this area`, `the
+area`, `survey home`). `survey status` reports progress; stop or any newer body
+order wins. Radius is 10–250 m, total duration 2–20 minutes and total travel
+50–4000 m, including return. Defaults are editable, not measurements of the new
+base. `this area` means the saved base; temporary `here` anchors are deferred.
 
-## Where things stand
+The profile uses bounded dry hostile-avoiding native `move_to`, records actual
+3D travel/trails, checks post-receipt supported floor arrival, visits selected
+sleeping/storage connections in both directions and reserves return budgets.
+Unsafe conditions stop with a diagnostic. A restart with uncertain work cannot
+replay it. Coverage separates measured/new/refreshed/unknown/stale 4 m terrain
+samples from visited ground and observed objects. Partial results are expected;
+no terrain result claims complete room, chest or floor inspection.
 
-Main is at b5cc019, and **that build is deployed**, with Tas (Tasleroch) in
-the world. No pull requests are open.
+Scoped learning preserves owner edits, pinned roles, suppression, other bases
+and old owner-managed `home storage`. It creates multiple evidenced places;
+no chest is opened and no bed is claimed. Wood delivery uses selected storage;
+marker rest uses sleeping with existing ownership/shelter/floor checks. Other
+food/resupply routines retain local point constraints around return/home.
+Selecting a large base does not migrate their definitions or teach portals.
+Following to a new location still does not change saved home.
 
-What this stretch landed, in order:
+Three tickets were filed, groomed, promoted and claimed by this session:
 
-| PR | What it did |
-|---|---|
-| #168, #169 | The loot anchor and the piles view; wave 1 work. |
-| #170 | VM lease. `stop` and the panel's stop are exempt so a person can always stop the bot; inside `lease.py run` they still guard. |
-| #171 | Loot's adaptive reach (TKT-01M6EYEMRV): a settle tracker per player; the reach grows from 8 m to 30 m while the anchor stays in a small area. |
-| #172 | Tickets only: the idle/passive decision on epic TKT-01M62VXYQB, plus the drafts listed under "Next". |
-| #173 | Passive mode (TKT-01M6EWN4WH). Instances are `idle` or `passive`; Loot is passive and on. While a followed owner is settled, the engine lends the follow to a passive run and restarts the same follow after. A death during the run resumes the follow after the respawn. |
-| #174 | Perception skew. A scan sent just after the latest state frame is stamped ahead of it, and behaviours and goals refused it. That made passive Loot get cut off ("condition changed") several times a second. A scan may now lead state by up to 1 s (`behaviour.PerceptionBeside`). |
+- TKT-01M6FVN1XG (Base areas: separate sleeping, storage and return places).
+- TKT-01M6FV695N (Waypoints: refresh bot places around a selected area).
+- TKT-01M6FV6E40 (Home survey: familiarize with an area and update its places).
 
-## The live check in progress
+The local survey depends on these concrete base/refresh slices and reuses the
+existing host, rather than undertaking the general expedition backlog. M7's
+M2/M3 gates and other agents' claims remain unchanged. Ticket descriptions and
+plans record this decision; live criteria must be earned independently.
 
-TKT-01M6EWN4WH, "Behaviours: passive mode lends an owner's follow to passive
-instances", is done offline. Its acceptance criterion 6, the live check, is
-still unticked. Its newest note has what the owner saw on a892cfa:
-- several passive runs worked;
-- the churn that #174 fixes.
+## Validation and runtime
 
-Rerun it on b5cc019 with the owner, under the lease:
+Focused home/atlas/behavior/goal/chat/app/protocol checks, the real plugin DLL
+build and native bounded-travel tests have passed. An integration test covers
+queued owner takeover and native stop of a running survey. A panel fixture
+checks saved scope versus unsaved radius edits on desktop and mobile. Logs are
+retained in `.checks/`; final gate/review/deployment outcomes belong in the
+newest ticket notes and will be recorded at delivery.
 
-1. Owner says "follow", stops near a tree, fells it. After about 5 s settled,
-   Tas picks up the drops and falls back in when the owner walks off.
-2. The owner drops a stack at their feet. Tas leaves it alone (the anchor
-   rule from #169).
-3. The owner walks away mid-pickup. The run ends ("followed player moved
-   on") and the follow restarts.
-4. Any owner order mid-pickup wins, and no follow is restarted.
+The initial read-only VM observation at 06:43 UTC found Tas connected at the
+game menu, without a current world/position. The session acquired the VM lease
+as `agent:codex/home-survey-delivery` for deployment/validation. Do not infer a
+successful new-home pass from offline checks. No new sleeping/storage roles
+were guessed from historical marker names. Final runtime state and any
+remaining native evidence will be recorded below before delivery.
 
-Read the result from the controller log. Filter `C:/renki/logs/controller.log`
-for `behaviour started|follow returned|interrupted|finished|pickup`; each
-loan logs `passive=true follow=<id>`. Then tick criterion 6, or note what
-failed.
+Atlas schema 2 transactionally migrates schema 1, preserving retained first
+receipt/source for honest new-versus-refreshed accounting. Evicted/reinserted
+cells do not preserve lifetime provenance. See [ATLAS.md](ATLAS.md).
 
-TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials) is in
-`review` for the same reason. Criterion 1 needs its live A/B refusal check;
-the ticket's notes give the steps, with `/api/act/home` as the refused
-POST.
+## Other work retained from the prior handoff
 
-## Next
+The prior handoff reported b5cc019 deployed. PRs #168–174 supplied loot's anchor,
+adaptive reach, VM lease, passive follow loans and perception-skew tolerance.
+TKT-01M6EWN4WH (Behaviours: passive mode lends an owner's follow to passive
+instances) still needs its owner-in-game acceptance check: settled owner fells a
+tree, Tas collects loose drops, ignores a stack dropped at the owner's feet,
+resumes follow when the owner leaves, and yields permanently to a newer order.
+The previous notes observed successful passive runs before the skew fix and
+churn that #174 addresses. Read that ticket's latest evidence before retesting.
 
-All of these are drafts. Only the owner promotes one, so name them and let the
-owner choose.
+TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials) has a separate
+live A/B refusal check outstanding; its notes describe the refused request.
+Neither of these was silently closed by the home-survey work.
 
-- **TKT-01M6FT1ZVW (Follow: go through the portal the leader just used).**
-  High priority, filed in this session after the owner hit it live. The owner
-  asked for it ("can we look into following through portals?"), but has not yet
-  said to build it. The ticket has the approach. It needs a scoped exception to
-  the portal guard, which is owned by TKT-01M6AYP8 (Cache building collisions
-  and remember portal links). That ticket is `in-progress` and claimed by
-  `agent:codex/renki-milestones`, so expect conflicts in WorldNavigation.cs and
-  Driver.cs.
-- **TKT-01M6F877TX (Behaviours: passive gather works alongside the
-  anchor).** High priority. The owner's stated goal: when they harvest, Tas
-  harvests too. It depends on TKT-01M6F877Q8 (Behaviours: infer the anchor's
-  activity from changes around them). It also needs a fix for the known
-  re-lend churn (below), because it will be the second passive instance.
-- **TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
-  decisions).** There is no panel card for passive runs yet. The data is
-  already in `/api/behaviours`: `PassiveRun{Follow, Player}`.
-- **M5, later:**
-  - TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what the
-    base lacks);
-  - TKT-01M6F8780V (Agent: supply the passive list, with validation and
-    built-in fallback). The owner's design: the agent side (`internal/voice`)
-    supplies bundles of passive routines, ranked by what the base needs, and
-    the engine falls back to its built-in list.
+Other drafts remain the owner's future queue: portal following
+(TKT-01M6FT1ZVW), passive gather (TKT-01M6F877TX, depends on anchor activity
+inference TKT-01M6F877Q8), loot anchor panel (TKT-01M6EYEMTX), needs ledger
+(TKT-01M6F877XV), and agent-supplied passive lists (TKT-01M6F8780V). Portal
+following may conflict with the separately claimed building/portal memory work
+TKT-01M6AYP8; do not take it over implicitly.
 
-The owner's design for passive mode is recorded on epic TKT-01M62VXYQB. In
-short:
-- *idle* work runs only when Tas has nothing to do;
-- *passive* work runs alongside following, only while the owner is settled;
-- passive work yields when the owner leaves the area or gives any order;
-- gathering and looting are passive and on by default.
+Known unrelated gaps remain: passive re-lend churn when a second passive
+instance preempts, a zero-health frame without a death can lose resumed follow,
+custom settle shapes expire after ten minutes, and startup skips nine saved
+unknown goal instances. Do not delete owner settings to silence those warnings.
+The 32 old in-progress claims have not been taken over. App tests have a known
+occasional load timeout (TKT-01M6ESNXKF); inspect retained diagnostics first.
 
-## Known gaps that stand
+## Operating rules
 
-- **Zero-health frame.** If a frame reports zero HP and no death follows, a
-  follow lent at that moment is not restarted and the owner is not told. The
-  game is not known to send such a frame. See docs/BEHAVIOURS.md.
-- **Re-lend churn.** A higher-priority passive instance that preempts a passive
-  run restarts the follow, which is then lent again straight away. This is
-  harmless with Loot as the only passive instance. Fix it with the
-  gather-alongside ticket.
-- **Custom settle shapes.** A custom settle shape is forgotten after 10 minutes
-  without being asked for, including while its instance is busy. Its reach then
-  starts over.
-- **Strict perception checks elsewhere.** marker_food, marker_rest and
-  goal/food still use `math.Abs(State.T - Perception.T) <= 3`. This is
-  tolerant and not the bug #174 fixed. They could adopt
-  `behaviour.PerceptionBeside` for one rule.
-- **Unknown goal instances.** At every start the controller warns about nine
-  saved `goal/<hash>` instances: "invalid instance … unknown goal". They are
-  skipped. Nobody has looked at where they come from. Ask the owner before
-  deleting saved settings.
-- **Flaky app tests.** `internal/app` tests sometimes time out under load
-  (TKT-01M6ESNXKF). Rerun before chasing them.
+Read AGENTS.md and docs/TESTING.md before work; docs/VM.md before live changes.
+Run repeated tasks through `just`, focused checks through `just check`, the
+full gate as `just check ci`, and committed review as `just check review` before
+pushing. Write ticket prose with title beside its first ID, record decisions and
+remaining native checks, and identify every write with your actor/revision.
 
-## Waiting on the owner
-
-- Promoting the drafts above, and whether to build portal following now.
-- The live check above, which needs the owner in game.
-- The 32 stale `in-progress` claims from the 10-29 to 10-31 sessions are still
-  there (earlier handoff, decision 2). Don't take one over without the owner's
-  word.
-
-## Rules that are easy to miss
-
-- **The VM lease.** `just vm lease ACTOR [MIN]` before anything mutating, and
-  `just vm release` when done. `just vm lease-status` shows the holder.
-  Mutating recipes refuse without it. Reading (status, logs, read-only panel
-  requests) needs none. A deploy renews the lease.
-- **Deploying.** `just check vm deploy` builds and installs the plugin and
-  controller, then starts Tas. A worktree needs the gitignored `vm.local` and
-  `plugin/game.local.props`. Copy them from another worktree without reading
-  or printing them; without the props file the plugin build can't find the
-  Valheim assemblies. `just vm stop` then `just vm panel-start` takes Tas
-  offline but leaves the panel up.
-- **Secrets.** Never print or ask for the panel token, the CPA key, the server
-  password, or the contents of any `*.local.*` file.
-- **On the VM**, don't kill `renki-ctl` (port 18765). Write
-  `controller.local.json` as ASCII with no BOM.
-- **Tickets.** Name yourself with `--actor agent:tool/session` on every write.
-  `git ticket create --json` can fail to parse even when the ticket was made.
-  List before retrying, or you get a duplicate.
-- **Merges.** Check that a merge reached main with
-  `git merge-base --is-ancestor <head> origin/main`. Stacked PRs don't
-  retarget themselves; see the earlier handoff in git history.
+Take `just vm lease ACTOR` before VM mutation and `just vm release` afterward.
+Do not force another holder's lease. Deployment uses `just check vm deploy`;
+worktrees need gitignored `vm.local` and `plugin/game.local.props` copied without
+printing them. Secrets and local settings must never be printed. Keep Tas
+online after checks by default; an opt-in deployment restart is separate from
+trial cleanup. Do not kill the VM's `renki-ctl` service. Verify merge ancestry
+against fetched origin/main if a later session merges the PR.

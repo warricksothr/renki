@@ -1,5 +1,6 @@
 // Static control boundaries keep the existing API/map adapters attached once.
 // Preact owns the workspace; the adapter owns children of its named containers.
+import { BaseSurvey } from "./base-survey.jsx";
 export function MapWorkspace() {
   return (
     <section id="map-pane">
@@ -292,6 +293,7 @@ export function Places() {
           <h2>Places &amp; storage</h2>
         </div>
       </div>{" "}
+      <BaseSurvey />
       <details id="places">
         <summary>
           Places &amp; zones <span id="place-count"></span>
@@ -319,6 +321,7 @@ export function Places() {
               Purpose{" "}
               <select id="place-kind">
                 <option value="place">General</option>
+                <option value="rest">Sleeping / rest</option>
                 <option value="storage">Storage</option>
                 <option value="cooking">Cooking</option>
                 <option value="wood">Wood</option>

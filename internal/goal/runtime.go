@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
@@ -80,6 +81,9 @@ func decode(raw []byte, to any) error { return behaviour.Decode(raw, to) }
 
 type Template struct {
 	Store     *Store
+	Memory    *home.Store
+	Session   *session.Session
+	Atlas     func() *atlas.Store
 	Landmarks func(string) []home.Landmark
 	Allowed   func(string) bool
 }
@@ -98,6 +102,9 @@ func (t *Template) Validate(raw json.RawMessage) error {
 	}
 	if err := validateRecord(r); err != nil {
 		return err
+	}
+	if r.Survey != nil {
+		return nil
 	}
 	return ValidatePolicy(r.Policy)
 }
@@ -208,6 +215,9 @@ func (r *runner) Next(v behaviour.View, last *behaviour.Result) (*session.Order,
 	g, ok := r.t.Store.Get(r.id)
 	if !ok {
 		return nil, errors.New("goal disappeared")
+	}
+	if g.Survey != nil {
+		return r.surveyNext(g, v, last)
 	}
 	if g.Kind == "food_resupply" {
 		return r.foodNext(g, v, last)

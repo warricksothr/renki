@@ -36,6 +36,8 @@ export function startController() {
     worldEvents: null,
     worldEventsAt: 0,
     waypoints: [],
+    base: null,
+    surveyLegs: [],
     containers: new Map(),
   };
 
@@ -88,6 +90,8 @@ export function startController() {
       worldEvents: null,
       worldEventsAt: 0,
       waypoints: [],
+      base: null,
+      surveyLegs: [],
       containers: new Map(),
     });
     resetPlaceEditor();
@@ -266,6 +270,8 @@ export function startController() {
         world.worldEvents = data.worldEvents || null;
         world.worldEventsAt = Date.now();
         world.waypoints = data.waypoints || [];
+        world.base = data.base || null;
+        world.surveyLegs = data.surveyLegs || [];
         syncPlaceList();
         world.containers = new Map(
           (data.containers || []).map((c) => [c.entity, c]),
@@ -957,6 +963,33 @@ export function startController() {
       ctx.restore();
     }
 
+    if (world.base) {
+      ctx.save();
+      ctx.strokeStyle = "#79dfc5";
+      ctx.setLineDash([10, 5]);
+      ctx.beginPath();
+      ctx.arc(
+        sx(world.base.center[0]),
+        sy(world.base.center[2]),
+        world.base.radius * view.scale,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (const leg of world.surveyLegs) {
+      if (!leg.trail?.length) continue;
+      ctx.save();
+      ctx.strokeStyle = leg.status === "succeeded" ? "#79dfc5aa" : "#efb06b";
+      ctx.beginPath();
+      leg.trail.concat([leg.final]).forEach((p, i) => {
+        if (i) ctx.lineTo(sx(p[0]), sy(p[2]));
+        else ctx.moveTo(sx(p[0]), sy(p[2]));
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
     for (const p of world.waypoints) {
       if (!(p.radius > 0)) continue;
       ctx.save();

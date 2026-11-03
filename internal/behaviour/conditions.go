@@ -28,6 +28,7 @@ type View struct {
 	// last player who gave it an order. Empty until someone does.
 	Anchor    string
 	Home      *protocol.Vec3
+	Base      *home.Base
 	Danger    []home.DangerZone
 	Waypoints []home.Waypoint
 	Pickups   []home.Pickup
