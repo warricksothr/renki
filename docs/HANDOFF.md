@@ -1,11 +1,17 @@
 # Handoff
 
 Replace this page at each handoff; tickets retain decisions and evidence.
-Current work of 2026-11-04 by `agent:codex/portal-deploy`.
+Current work of 2026-11-04 by `agent:codex/gear-up`.
 
 ## Owner decisions and current task
 
-The owner selected native fire interactions for hearths. That fireplace slice is
+The owner requested clothes and an axe for Tas; the supervised operation is done
+on TKT-01M6KWJMP (Equip Tas with leather clothing and a woodcutting axe). Existing
+native actions supplied and equipped a leather helmet/chest/legs and a full
+flint axe. See gear receipts below. No runtime code changed or redeployment
+is needed.
+
+Previously, the owner selected native fire interactions for hearths. That slice is
 implemented, deployed and live-tested through the rebuilt half-wall opening.
 TKT-01M62VXZ4 (Plugin: add fuel and ore to machines and take their output) is
 review/released: criteria2/3/4 earned; both-task coverage and take_from remain
@@ -13,8 +19,8 @@ unticked. Do not describe cooking-output collection or other machines as shipped
 
 The broader objective remains arrival at saved home[-204,-467], claiming a bed
 and mapping the new base's stacked storage, navigation and double doors. Tas
-arrived through the old-base portal, owns the new bed and has mapped20/23 selected
-storage entities. Keep Tas and private video online, Loot disabled and automatic
+arrived through the old-base portal, owns the new bed and the initial survey read20/23 selected
+storage entities. Today door-side chest1:15433 was also read successfully. Keep Tas and private video online, Loot disabled and automatic
 logout disabled. No other agent is active; preserve older ticket claims.
 
 ## Runtime and final safe state
@@ -29,20 +35,57 @@ receipt passed; durable data retained (.checks/20261104T180836Z-KWYTZz.log).
 (.checks/20261104T180939Z-ISCenW.log).
 
 Final observed Tasleroch UID827096491 is connected to DizzysHellheim, idle upstairs
-at[-202.99,32.97,-467.42],grounded/sheltered/near_fire,109.5/109.5HP,injurySeq0.
-Three active meals: Sausages,BoarJerky,QueensJam;2 carried each,1 Wood and4 Stone.
+at[-204.56,32.97,-466.97],grounded/sheltered/near_fire,112.3/112.3HP,injurySeq0.
+Three active meals: Sausages,BoarJerky,QueensJam;1 carried each,1 Wood and4 Stone.
+Equipped quality1 AxeFlint100/100,HelmetLeather393.4/400,
+ArmorLeatherChest394.4/400,ArmorLeatherLegs236.1/400.
 Maximum-health decay is not injury. Bed1274003559:489 remains Mine=true,Owned=true.
 Home Wood Door1:14823 was explicitly closed by t-5 and freshly confirmed closed.
 Storage double doors1:15335/1:15334 remain observed open; no automatic closure
 claim is earned. Home rules remain idleMinutes0,afterDeath stay,afterOutage false.
-Evidence .checks/hearth-final-home-status.json,.checks/hearth-final-home-map.json,
-.checks/hearth-two-wood-after-inventory.json,.checks/task-e5g1xg9_.json.
+Final evidence .checks/gear-final-{status,inventory,map,video}.json.
+Earlier explicit door closure .checks/task-e5g1xg9_.json.
 
 VM console session2 works. Release the lease at handback; take/renew it before
-live work as agent:codex/portal-deploy. Keep the game online. After RDP use
+live work as agent:codex/gear-up. Keep the game online. After RDP use
 C:\renki\release-rdp.ps1. The private stream's final /api/video result is verified
-gameplay,scope1:DizzysHellheim:827096491 (.checks/hearth-posttest-video.json).
+gameplay,scope1:DizzysHellheim:827096491 (.checks/gear-final-video.json).
 Only private local output is configured, not an external public broadcast.
+
+## Clothing, axe and layered warehouse access
+
+TKT-01M6KWJMP is done/released. The owner identified a possible flint axe in a
+chest by the central doorway. Fresh t-8 inspection found it in1:15433
+[-170.71,30.97,-465.33],alongside other gear; cached contents were stale.
+This inspection succeeded without moving from[-169.69,31.03,-467.8]. t-9 withdrew
+one full AxeFlint and one HelmetLeather. t-12 withdrew one ArmorLeatherChest and
+one ArmorLeatherLegs from upper barrel1:15599[-165.1,32,-465]. t-10/13/14/15
+successfully equipped each; fresh inventory verified the equipped flags.
+
+Ordinary t-16 returned home. Optional t-17 repair at workbench1:15063 returned
+"repaired0/no more repairable gear"; observed durability did not improve. Do not
+claim repairs or invent a station-level/recipe cause. Armor remains usable but
+partly worn, especially trousers236.1/400. The normal station interaction
+holstered the axe; t-19 returned to the sleeping approach and t-20 re-equipped
+AxeFlint. Final inventory confirms all four equipped, axe100/100 and injurySeq0.
+No tree cutting, combat trial, crafting or material spending was ordered.
+Receipts .checks/task-907sf08y.json,.checks/task-6ohrx01c.json,
+.checks/task-sfonphhi.json,.checks/task-o1ck2k4w.json,.checks/task-qx71k4bg.json,
+.checks/task-bvuz1tdv.json,.checks/task-9x5dijfh.json,.checks/task-bezmf5ok.json,
+.checks/task-exgh0oqr.json,.checks/task-7wfd6f1m.json,.checks/task-2g3wugrq.json.
+
+The owner asked about inventorying two/three layers in the warehouse. Existing
+search_chests reads full container contents and updates memory, while the chat
+command asks for an item, e.g. "Tas, search nearby chests for flint axe within60m".
+Each layer retains its own entity/height. UseReach checks eye-relative3D sight
+and reach; InteractionApproach can measure alternate supported standing positions.
+Lower chest and upper barrel access have native proof. This does not establish
+every third-layer access:1:15414 and1:15438 remain previously unread candidates.
+The routine reports failed/unchecked observed candidates and bounds radius,
+time,travel and chest count; undiscovered storage remains unknown. Future stack
+changes need fresh receipts. Preserve the older equip implementation claim
+TKT-01M62N12D (Plugin: equip and unequip items); today's operation did not test
+its explicit unequip task or earn its combined criterion.
 
 ## Hearth support and exact live evidence
 
@@ -97,8 +140,8 @@ slice; do not attribute their acquisition to an ordered transfer.
 
 TKT-01M6H2AB (Search nearby or listed chests for requested items) is done.
 Its read-only survey inspected20/23 selected containers, including upper barrels
-y32 and lower chests y30.97,with identical empty inventory before/after. Gaps
-1:15433,1:15438,1:15414 remain unknown. Pukeberries1:15420 are not sustaining food.
+y32 and lower chests y30.97,with identical empty inventory before/after. Original gaps
+1:15438,1:15414 remain unknown;1:15433 was successfully refreshed today. Pukeberries1:15420 are not sustaining food.
 Evidence .checks/newbase-search-final.json,.checks/newbase-storage-map4.json,
 .checks/newbase-inventory-before.json,.checks/newbase-search-inventory-after.json.
 
