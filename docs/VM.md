@@ -1,5 +1,8 @@
 # Setting up the bot VM for remote control
 
+For combined panel/private-stream/game startup use `just check vm online`.
+The existing `just vm start` still starts only the game.
+
 For independent OBS capture, standby scenes and private HTTPS video, see
 [WINDOWS-VIDEO.md](WINDOWS-VIDEO.md). Streaming tasks are separate from the game
 and controller lifecycle; they use this same SSH and interactive console setup.

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6FV6E40SBSMJEHT227XKRK2
 title: "Home survey: familiarize with an area and update its places"
 type: task
-status: review
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -21,15 +21,22 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/portal-deploy
+  branch: t3/renki-runtime-loot-batch
+  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
+  commit: 501ca8d3ca755d7de1888f92f3a1e27e92bd6d7e
+  session: null
+  claimed_at: 2026-11-04T15:59:19Z
+  expires_at: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-03T16:00:45Z
+updated_at: 2026-11-04T16:25:59Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
 updated_by:
-  id: agent:codex/home-survey-delivery
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -74,6 +81,10 @@ Deliver the three local feature tickets together: persistent configurable named 
 Reuse the existing goal host and scheduler, with a dedicated native bounded-movement option on move_to rather than wait for the full general-purpose M7 exploration stack. This local workflow enumerates bounded nearby approaches, revalidates actual loaded terrain/objects, records blocked attempts and reports partial results. It does not claim general expedition readiness, autonomous survival, minimap exploration, portal traversal or all-object completeness. Replace the local ticket's dependencies on the broad explore runner/panel epics with the concrete local implementation; retain those tickets as references and leave their M2/M3 dependency gates unchanged.
 
 Test persistent migration/rollback/world isolation, roles 50 m apart, multiple sites, concurrent edits and suppression; native containment/dry navigation/distance limits and receipts; scoped coverage/provenance; uncertainty/restart, budget reserve, unknown/blocked areas, floor-aware arrival, stop/takeover; API authentication/CSRF and owner grammar. Use focused just check recipes, then just check ci before commits. Run just check review on committed changes, address findings, publish a PR and deploy under the VM lease. Record actual live outcomes and remaining limitations on tickets; never tick an unearned acceptance criterion.
+
+### Current native continuation
+
+After the owner restores the desktop session, start the installed reviewed build under the VM lease. Refresh state, inventory, meals, threats and current base settings; obtain available supplies through ordinary native access before the roughly 513 m journey. Pin the owner-confirmed saved home and use bounded supported hostile-avoiding travel with receipts and observed floor arrival. Respond to concrete obstruction evidence instead of repeating unchanged routes. At the base, select an observed free bed, claim through native interaction, verify ownership and bind a supported sleeping approach. Familiarize the existing 60 m base, inspect each reachable storage entity without transfers, and retain vertical position, access gaps and double-door traversal/cleanup evidence. Keep Loot disabled, preserve other ticket claims and leave Tas online. Report partial/blocked outcomes honestly; no criterion is earned by map visibility alone.
 
 ## Notes
 
@@ -124,6 +135,24 @@ Earlier ordinary native arrival at new home and the saved/bound new home storage
 **agent:codex/home-survey-delivery** at 2026-11-03T16:00:45Z
 
 Supersedes the healthy remote-platform snapshot in the preceding note. On deployed cc5f323, Greydwarf 1629975892:102 hit at 15:54:52.701Z (11.99 damage), 15:54:54.821Z (12.28) and 15:55:04.879Z (11.44). Automatic flee t-2 started within 0.28s of the first hit, failed unreachable at 15:54:55.186Z; replacement flee t-5 remained active until death at 15:55:04.915Z near [413.36,31.65,-1177.66]. No direct probe interrupted these retreats. Respawn at 15:55:22.962Z was at the old base [-31.08,36.55,15.19], followed by automatic strict-dry return t-7, which failed unreachable at 15:55:44.553Z. Latest resumed observation at 15:56:28Z: idle 25/25HP near [-46.32,33.79,10.13], no active/carried food, empty pack and no equipped gear; fresh local perception had no characters. Loot remains disabled. Exact retained events/states/inventory: .checks/audit-window-M3BtxI.jsonl; fresh state/map .checks/new-home-resume-runtime.json and .checks/new-home-resume-map.json. This is a death/failed escape, not a safe portal arrival or return, and does not earn survey, bed or survival acceptance.
+
+**agent:codex/portal-deploy** at 2026-11-04T15:46:59Z
+
+### Selected live objective; VM desktop prerequisite
+
+The owner requested bringing Tas online, navigating from the current position to the saved new home, assigning a bed and updating area/chest knowledge. The owner confirmed the saved destination near X -204, Z -467. The new base contains vertically stacked chests/barrels, more complicated navigation and additional double doors. Existing selected base is new home, radius 60 m, return home, storage new home storage west at [-169.13,30.97,-467.75], with no sleeping binding. Preserve historical markers and other ticket claims.
+
+At 2026-11-04 15:43–15:46Z, the VM was reachable but Valheim and controller were stopped. just vm panel-start failed before any game/body work: its scheduled task requires an interactive Admin logon. Read-only inspection through just vm shell confirmed quser reports no users, RenkiStart/RenkiController use Interactive logon, and the VM rebooted at local 03:15:26 on November 4. No game startup, route, survey or bed action occurred. Asked the owner to sign into Blight and use C:\renki\release-rdp.ps1 when leaving RDP. This is an external desktop prerequisite, not a deployment or compatibility failure.
+
+Continuation: reacquire the VM lease; start panel/game, obtain fresh scoped position, health, food, inventory, threats and base/waypoint settings. Prepare supplies before a long trip; the last session had an empty pack and no meals, but that is historical until reobserved. Use bounded native supported hostile-avoiding travel toward unchanged saved home, retaining receipts and floor-aware arrival evidence. Do not force portals or repeat an unchanged failed route. At the new base claim only an actually observed free bed, verify ownership/spawn and save a supported sleeping approach/binding. Then run bounded familiarization and read-only chest inspections, keeping identity/elevation and inaccessible candidates distinct. Verify both leaves and cleanup of double doors in actual travel. Map observation alone does not prove access to stacked storage. Leave Tas online, Loot disabled, and unearned live acceptance criteria unticked. No native goal can be created while its controller is offline.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:25:59Z
+
+On November 4, the owner restored the signed-in console and Tas restarted on deployed 501ca8d (just check vm start passed, .checks/20261104T155916Z-waASAP.log). Empty inventory, no active/carried food. Fresh normal read-only searches of outdoor chests 1:75525, 1:75526 and 1:77215 and house pantry 1:75501 found no ready food. Pantry now holds fish; historical mushrooms were absent. Northern berries were refused due Elite clearance. A southern mushroom attempt ended in death: Greydwarf 2675073813:273 approached, bank retreats t-18/t-20 and t-23/t-25 failed bearings_exhausted, damage at 16:12:35.238Z and 16:12:41.296Z, death at 16:12:41.322Z near [-11.08,30.8,44.77]. No food was collected. Audit .checks/audit-window-CReSWs.jsonl retains exact events. This supersedes earlier healthy/staged snapshots; neither forage nor retreat succeeded. The owner was informed; the agent should have abandoned the source as soon as the Greydwarf appeared.
+
+Respawn was 25/25HP at old bed. Stopped automatic home travel; persisted home.idleMinutes=0 and home.afterDeath=stay (afterOutage=false retained) to prevent another unsupplied 500m trip. RecoveryGuard/AutoLogout remain false; combat/gather permissions retained; Loot, Relocation mushrooms and Relocation food search disabled. Two bounded shelter returns failed without injury, leaving Tas at [-43.39,33.73,8.53], idle, grounded, 25/25HP with empty pack. Latest fresh perception at 16:24Z showed a non-targeting Boar ~30m away. Old double gates are open after these failed returns; closed-state observations from the earlier pantry inspection do not establish final door restoration.
+
+The owner says nearby SpawnCamp portal 1:166576 leads to the new base and cannot supply old-base food. Fresh native link is connected to 1:166579 at source [-50.26,34.09,13.84], without remote coordinates. Explicit ordered crossing is being added under TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals). No crossing, free bed, new-home food or survey completion is claimed yet. Saved home remains [-204.39,32.97,-467.43]. Keep Tas online except required implementation deployment restart.
 
 ## Summary
 

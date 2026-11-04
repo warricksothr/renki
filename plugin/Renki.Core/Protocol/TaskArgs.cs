@@ -142,6 +142,9 @@ namespace Renki.Protocol
         /// <summary>What to use, by entity id from perception.</summary>
         public string Entity;
 
+        /// <summary>Explicit portal crossing pinned to this native destination ID.</summary>
+        public string PortalTo;
+
         /// <summary>The alternative use, as with the modifier key held.</summary>
         public bool Alt;
 
@@ -436,8 +439,11 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook"), RecoverThreats = Bool(a, "recoverThreats", false), DefendThreats = Bool(a, "defendThreats", false) };
+                        var args = new InteractArgs { Entity = entity, PortalTo = Str(a, "portalTo"), Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook"), RecoverThreats = Bool(a, "recoverThreats", false), DefendThreats = Bool(a, "defendThreats", false) };
                         if (args.Cook == "") args.Cook = null;
+                        if (args.PortalTo == "") args.PortalTo = null;
+                        if (args.PortalTo != null && (args.PortalTo == entity || args.Alt || args.Hold || args.Sleep || args.Repair || args.Cook != null || args.RecoverThreats || args.DefendThreats))
+                            throw new BadArgsException("portalTo requires a different destination and cannot combine with other interaction modes");
                         if (args.DefendThreats && !args.RecoverThreats) throw new BadArgsException("defendThreats requires recoverThreats");
                         if (args.RecoverThreats && (args.Alt || args.Hold || args.Sleep || args.Repair || args.Cook != null))
                             throw new BadArgsException("interaction recovery requires a single ordinary pickable use");

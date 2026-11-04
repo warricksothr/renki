@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M
 title: Traverse known portals with verified arrivals
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -20,15 +20,22 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/portal-deploy
+  branch: t3/renki-portal-travel-startup
+  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
+  commit: 501ca8d3ca755d7de1888f92f3a1e27e92bd6d7e
+  session: null
+  claimed_at: 2026-11-04T16:21:07Z
+  expires_at: null
 archive: null
 created_at: 2026-11-01T07:12:19Z
-updated_at: 2026-11-03T16:00:45Z
+updated_at: 2026-11-04T16:21:45Z
 created_by:
   id: agent:codex/renki-milestones
   name: ""
 updated_by:
-  id: agent:codex/home-survey-delivery
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -43,6 +50,10 @@ Build on observed per-world portal links as explicit route transitions. Revalida
 - [ ] Link changes, native item/server restrictions and cancellation cannot cause unintended travel
 - [ ] Arrival location and return knowledge are observed and persisted separately from source link metadata
 - [ ] Repeatable native tests verify traversal and restoration without spawned supplies
+
+## Implementation plan
+
+Add an explicitly ordered interact portalTo transition that pins native source/destination IDs, stays separate from tag editing and ordinary walking, and advertises a feature checked before dispatch. Reuse the exact-link walking/trigger passage with an ordered mode: bounded hostile-avoiding approach, live link/cargo/access revalidation, observed native teleport, then grounded three-dimensional proximity to the loaded expected destination before success. Record the actual arrival and separately observed return link in the task/audit receipt; do not infer remote safety or general route chains. Cover protocol rejection, cancellation, changed links, native refusal and false-arrival cases with focused checks, then the complete gate and committed review before deployment. Cross the owner-selected SpawnCamp link only after fresh observations. Keep native repeatability and durable map-level route knowledge unchecked until earned.
 
 ## Notes
 

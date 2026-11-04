@@ -40,10 +40,14 @@ def remote(action):
     base = os.environ.get('RENKI_VM_DIR', 'C:/renki')
     if base != 'C:/renki':
         raise SystemExit('Windows streaming currently requires C:/renki')
+    if action in ('online', 'adapter-update'):
+        subprocess.run(['python3', str(ROOT / 'scripts/vm/lease.py'), '--target', target, '--dir', base, 'guard'], check=True)
     ssh = ['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', target]
     scp = ['scp', '-q', '-o', 'BatchMode=yes']
     subprocess.run(ssh + ["New-Item -ItemType Directory -Force C:/renki/streaming | Out-Null"], check=True)
     files = [ROOT / 'scripts/streaming/windows.ps1']
+    if action == 'online':
+        files += [ROOT / 'scripts/streaming/online.ps1']
     if action == 'slate':
         files += [ROOT / '.checks/streaming/windows/standby-obs.mp4']
     if action == 'setup':
@@ -51,7 +55,7 @@ def remote(action):
         files += [OUT / name for name, _, _ in ASSETS]
         files += [ROOT / 'internal/panel/static/slate.html', ROOT / '.checks/streaming/windows/standby-obs.mp4']
     subprocess.run(scp + list(map(str, files)) + [target + ':/C:/renki/streaming/'], check=True)
-    if action == 'adapter':
+    if action in ('adapter', 'adapter-update'):
         binary = ROOT / 'dist/obs-adapter.exe'
         subprocess.run(scp + [str(binary), target + ':/C:/renki/streaming/obs-adapter.next.exe'], check=True)
         digest = digest_file(binary)
@@ -65,7 +69,7 @@ def remote(action):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['downloads', 'setup', 'status', 'adapter', 'start', 'stop', 'relay', 'local-start', 'local-stop', 'snapshot', 'game-snapshot', 'enable', 'https', 'codec', 'beacon', 'slate', 'trial-source-loss', 'trial-watchdog'])
+    parser.add_argument('action', choices=['downloads', 'online', 'setup', 'status', 'adapter', 'adapter-update', 'start', 'stop', 'relay', 'local-start', 'local-stop', 'snapshot', 'game-snapshot', 'enable', 'https', 'codec', 'beacon', 'slate', 'trial-source-loss', 'trial-watchdog'])
     args = parser.parse_args()
     if args.action == 'downloads':
         downloads()

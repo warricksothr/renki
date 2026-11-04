@@ -528,7 +528,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
-| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only); `cook` (one carried raw-food prefab; see [COOKING.md](COOKING.md)) | M2 |
+| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only); `portalTo` (pinned native destination ID; exclusive crossing mode, requires `portal_travel_v1`, see [PORTALS.md](PORTALS.md)); `cook` (one carried raw-food prefab; see [COOKING.md](COOKING.md)) | M2 |
 | `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (carried food prefab; eat one) | M2 |

@@ -1,4 +1,4 @@
-param([ValidateSet('setup','status','adapter','start','stop','relay','local-start','local-stop','snapshot','game-snapshot','enable','https','codec','beacon','slate','trial-source-loss','trial-watchdog')][string]$Action = 'status')
+param([ValidateSet('online','setup','status','adapter','adapter-update','start','stop','relay','local-start','local-stop','snapshot','game-snapshot','enable','https','codec','beacon','slate','trial-source-loss','trial-watchdog')][string]$Action = 'status')
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $obsRoot = Join-Path $root 'obs'
@@ -23,6 +23,8 @@ function Task($Name, $Exe, $Arguments, $Working) {
     }
     Register-ScheduledTask -TaskName $Name -Principal $principal -Action $action -Settings $settings -Force | Out-Null
 }
+
+if ($Action -eq 'online') { & (Join-Path $root 'online.ps1'); exit }
 
 if ($Action -eq 'setup') {
     if (Get-Process obs64 -ErrorAction SilentlyContinue) { throw 'Stop the dedicated OBS instance before setup' }
@@ -102,13 +104,25 @@ AuxDevice4=disabled
     Task 'RenkiOBS' $obsExe '--portable --disable-shutdown-check --disable-missing-files-check --minimize-to-tray --scene "Renki Offline"' (Split-Path $obsExe)
     Write-Host 'Pinned portable OBS prepared; private authenticated control; no output or game started'
 }
-if ($Action -eq 'adapter') {
+if ($Action -in @('adapter','adapter-update')) {
+    $resumeTasks = @()
+    if ($Action -eq 'adapter-update') {
+        if (Get-Process obs64 -ErrorAction SilentlyContinue) {
+            & (Join-Path $root 'obs-adapter.exe') -config (Join-Path $private 'adapter.json') -action standby
+            if ($LASTEXITCODE -ne 0) { throw 'Could not retain standby during capture update' }
+        }
+        $resumeTasks = @(Get-ScheduledTask -TaskName RenkiCapture,RenkiCaptureWatchdog | Where-Object { $_.State -eq 'Running' })
+    }
     foreach ($name in @('RenkiCapture','RenkiCaptureWatchdog')) { Stop-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue }
     Get-Process obs-adapter -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $root 'obs-adapter.exe') } | Stop-Process -Force
     for ($attempt = 0; $attempt -lt 40; $attempt++) {
         try { Copy-Item (Join-Path $root 'obs-adapter.next.exe') (Join-Path $root 'obs-adapter.exe') -Force -ErrorAction Stop; break } catch [IO.IOException] { if ($attempt -eq 39) { throw }; Start-Sleep -Milliseconds 250 }
     }
     Remove-Item (Join-Path $root 'obs-adapter.next.exe')
+    if ($Action -eq 'adapter-update') {
+        foreach ($task in $resumeTasks) { Start-ScheduledTask -InputObject $task }
+        Write-Host 'Capture adapter updated; existing task configuration retained'; exit
+    }
     & (Join-Path $root 'obs-adapter.exe') -config (Join-Path $private 'adapter.json') -action configure
     if ($LASTEXITCODE -ne 0) { throw 'OBS configuration failed' }
     Task 'RenkiCapture' (Join-Path $root 'obs-adapter.exe') ('-config "' + (Join-Path $private 'adapter.json') + '" -action run') $root

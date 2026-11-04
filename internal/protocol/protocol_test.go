@@ -371,3 +371,18 @@ func TestWadingRejectsUnvalidatedMovement(t *testing.T) {
 		}
 	}
 }
+
+func TestInvalidPortalInteractionModes(t *testing.T) {
+	var cases []struct {
+		Args json.RawMessage `json:"args"`
+	}
+	if err := json.Unmarshal(read(t, "testdata/portal-invalid-args.json"), &cases); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range cases {
+		req := TaskRequest{Task: TaskInteract, Args: tc.Args}
+		if _, err := req.DecodeArgs(); err == nil {
+			t.Errorf("accepted incompatible portal args: %s", tc.Args)
+		}
+	}
+}

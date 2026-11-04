@@ -55,6 +55,7 @@ type Hello struct {
 }
 
 const FeatureSupportedWading = "supported_wading_v1"
+const FeaturePortalTravel = "portal_travel_v1"
 const FeatureInspectContainer = "inspect_container_v1"
 
 const FeatureMatchingDeposit = "deposit_match_existing_v1"

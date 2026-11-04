@@ -34,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T01:40:45Z
-updated_at: 2026-11-03T16:27:38Z
+updated_at: 2026-11-04T16:25:59Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/home-survey-delivery
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -192,3 +192,11 @@ Supersedes the healthy remote-platform snapshot in the preceding note. On deploy
 Current emergency supersedes prior healthy/online snapshots. Fresh observation at about16:12Z showed Tas at[150.65,70.48,-33.81],15.8/25HP, no food, stamina34.9, injurySeq8679, with flee t-20 running and two known targeting Greylings5–9m away (2494842417:2243 and1:100792). The operator explicitly ran just vm stop to prevent another death, then just vm panel-start to restore the independent panel without rejoining. No new died event was observed; menu HP0 is not a death receipt. Evidence .checks/new-home-defense-current.json, .checks/audit-window-VVadhq.jsonl, and read-only offline verification .checks/new-home-offline-verification.json.
 
 TKT-01M6H30FZE2PQC71JBDVG9CSTF (React to hostile pursuit before the first hit) implements fresh known targeting protection before damage. TKT-01M6EFHED7E7YV0VWND0F2CYMJ (Flee: fail fast on a blocked escape and re-aim on a new attacker) adds physical progress, checked ordinary escape bearings, one different-destination retry and new-attacker re-aim with owner-order/episode bounds. Regression checks are passing; full gate/review/install follow. No native survival acceptance is earned, and this ticket's existing claim is preserved. Do not blindly rejoin the saved pursuit or interrupt active recovery with a probe.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:25:59Z
+
+On November 4, the owner restored the signed-in console and Tas restarted on deployed 501ca8d (just check vm start passed, .checks/20261104T155916Z-waASAP.log). Empty inventory, no active/carried food. Fresh normal read-only searches of outdoor chests 1:75525, 1:75526 and 1:77215 and house pantry 1:75501 found no ready food. Pantry now holds fish; historical mushrooms were absent. Northern berries were refused due Elite clearance. A southern mushroom attempt ended in death: Greydwarf 2675073813:273 approached, bank retreats t-18/t-20 and t-23/t-25 failed bearings_exhausted, damage at 16:12:35.238Z and 16:12:41.296Z, death at 16:12:41.322Z near [-11.08,30.8,44.77]. No food was collected. Audit .checks/audit-window-CReSWs.jsonl retains exact events. This supersedes earlier healthy/staged snapshots; neither forage nor retreat succeeded. The owner was informed; the agent should have abandoned the source as soon as the Greydwarf appeared.
+
+Respawn was 25/25HP at old bed. Stopped automatic home travel; persisted home.idleMinutes=0 and home.afterDeath=stay (afterOutage=false retained) to prevent another unsupplied 500m trip. RecoveryGuard/AutoLogout remain false; combat/gather permissions retained; Loot, Relocation mushrooms and Relocation food search disabled. Two bounded shelter returns failed without injury, leaving Tas at [-43.39,33.73,8.53], idle, grounded, 25/25HP with empty pack. Latest fresh perception at 16:24Z showed a non-targeting Boar ~30m away. Old double gates are open after these failed returns; closed-state observations from the earlier pantry inspection do not establish final door restoration.
+
+The owner says nearby SpawnCamp portal 1:166576 leads to the new base and cannot supply old-base food. Fresh native link is connected to 1:166579 at source [-50.26,34.09,13.84], without remote coordinates. Explicit ordered crossing is being added under TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals). No crossing, free bed, new-home food or survey completion is claimed yet. Saved home remains [-204.39,32.97,-467.43]. Keep Tas online except required implementation deployment restart.

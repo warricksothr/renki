@@ -79,6 +79,7 @@ namespace Renki.Plugin
                 case InteractArgs ia:
                     {
                         var obj = FindEntity(ia.Entity);
+                        if (ia.PortalTo != null) return new PortalTravelTask(ia);
                         // A tombstone carries a Container too, which is not what to use.
                         var it = obj == null ? null
                             : (Interactable)obj.GetComponentInParent<TombStone>() ?? obj.GetComponentInParent<Interactable>();

@@ -1,163 +1,98 @@
 # Handoff
 
 Replace this page at each handoff; tickets retain decisions and evidence.
-Handoff of 2026-11-03 from `agent:codex/portal-deploy`.
+Current work of 2026-11-04 by `agent:codex/portal-deploy`.
 
-Read AGENTS.md, docs/ROADMAP.md, docs/BEHAVIOURS.md, docs/PORTALS.md,
-docs/TESTING.md and docs/VM.md before resuming live work.
+## Objective and owner decisions
 
-## Owner decisions and branch stack
+Bring Tas to saved home [-204.39,32.97,-467.43], claim an observed free bed,
+and map the area and individual storage access. The base has vertically stacked
+chests/barrels, complex navigation and more double doors. The owner says the
+old-base SpawnCamp portal leads directly to the new base and cannot supply food
+at the old base. The owner also requested starting OBS/private streaming with
+Tas. Keep Loot disabled. Keep the game online except required deployment
+restarts; automatic logout remains disabled. Do not take other sessions' claims.
 
-The owner selected portal following, authorized its deployment, then selected
-all three next drafts: deployment preflight, anchor activity tracking and Loot
-panel visibility. The owner explicitly chose **keep the game offline** while
-this batch is implemented. Do not start Valheim for these implementation checks.
+## Runtime and live failure
 
-- PR #176, `t3/map-home-location`, head dd0042f, holds the newer installed
-  prerequisite: atlas schema 2, home surveys, checked wading, chest inspection,
-  door cleanup and proactive/blocked-escape protection.
-- PR #177, `t3/continue-renki-bot`, head a148089, is stacked on #176 and adds
-  portal following. The installed runtime from this branch is **871d818**;
-  a148089 adds deployment records only.
-- The next batch is on `t3/renki-runtime-loot-batch`, based on a148089. Its delivery
-  base is `t3/continue-renki-bot` (#177). No PR was merged in this session.
+PRs #176/#177/#178 merged; installed runtime is main 501ca8d with verified
+preflight/checksums/receipt. #178 is unwatched. The reboot/desktop blocker was
+resolved by the owner; interactive session 2 started successfully through
+just check vm start (.checks/20261104T155916Z-waASAP.log). Tasleroch is connected
+to DizzysHellheim, world UID 827096491. Lease belongs to this worktree as
+agent:codex/portal-deploy; renew during work and release at handback.
 
-## Current implementation batch
+Four old-base chests were freshly inspected with normal read-only controls.
+No ready food was present; pantry 1:75501 contains raw fish, superseding its
+historical mushroom contents. Outdoor 1:75525 has trophies/Ectoplasm;
+1:75526 and 1:77215 are empty. The northern berry approach was refused due to
+Elite clearance. A southern mushroom attempt ended in Tas's death. Greydwarf
+2675073813:273 approached while the agent inspected collection code; the agent
+should have abandoned the source immediately. Bank retreat t-18/t-20 and
+t-23/t-25 failed bearings_exhausted. Hits at 16:12:35.238Z and 16:12:41.296Z,
+death at 16:12:41.322Z near [-11.08,30.8,44.77]; no food collected. Owner informed.
+Exact audit .checks/audit-window-CReSWs.jsonl; flee and survey tickets retain it.
 
-- TKT-01M6H80F6B (VM: detect runtime drift before installing older builds):
-  both install paths stage and preflight before stopping/replacing the current
-  runtime. The manifest records committed source/branch/ancestry, supported atlas
-  schema/tasks, checksums and actor. The staged controller reads config, saved
-  task permissions and SQLite schema without startup/migration/writable stores.
-  Unknown/newer/unmerged builds, changed checksums and incompatible data refuse.
-  An identifiable clean legacy ancestor can be adopted. Dirty/uncommitted source
-  is refused. Successful installs retain a receipt with verified hashes and prior
-  game/controller state. Installation keeps the game offline; only deploy/start
-  explicitly starts it. `just check vm deployment-refusal` exercises compatible
-  read-only inspection and both actual refusal entry points while retaining the
-  running panel, controller PID and installed/config/data hashes. Run only with
-  the game already offline, under the VM lease, on a committed reviewed candidate.
-- TKT-01M6F877Q8 (Behaviours: infer the anchor's activity from changes around
-  them): a pure tracker infers felling/mining/picking from vanished resources
-  within 12 m of a live authorized anchor, carries prefab/ID/position/time/age,
-  and expires after 30 s. Mixed evidence chooses nearest, then kind and ID.
-  Duplicate/old/stale/gapped frames, changed scope, jumps, capped kinds and scan
-  edges cannot invent new activity. `View.Activity` and behaviour status expose
-  it without enabling gathering or dispatching tasks. These are inferences;
-  current perception cannot identify the actor or prove every scan complete.
-- TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
-  decisions): `/api/behaviours` carries per-instance scoped, timestamped Loot
-  diagnostics. Selection and diagnostics share the decision function. A read-only
-  card shows enablement, anchor/settle/reach, recent inferred work, all effective
-  parameters/defaults and drop reasons. The map's Loot reach layer shows the
-  anchor, settle/reach circles, eligible filled drops, deliberate crosses and
-  hollow out-of-reach drops. Select an instance if several exist. Offline,
-  stale, changed-scope and saved-atlas views clear the live overlay; polling the
-  same frame cannot renew it. Disabled Loot stays disabled. The owner-in-game
-  reach-over-time criterion remains unearned.
+After respawn at the old bed, automatic home travel was stopped. Persisted
+home.idleMinutes=0 and home.afterDeath=stay prevent another unsupplied 500m trip;
+afterOutage=false retained. Restore only after safe supplied staging.
+RecoveryGuard/AutoLogout=false, combat/gather allowed. Loot, Relocation mushrooms
+and Relocation food search disabled. Empty pack, no meals. Two bounded shelter
+returns failed without injury. Latest observation at 16:24Z: idle, grounded,
+25/25HP at [-43.39,33.73,8.53]; non-targeting Boar ~30m away. Both old double
+gates were observed open after these failed returns; earlier closed observations
+do not prove restoration. Refresh before acting; do not repeat unsafe foraging.
 
-The full `just check ci` gate passed on the implementation (225 s) and again
-after the native verification correction (180 s), most recently retained in
-.checks/20261103T181030Z-mkQMwC.log. Focused Go/race checks and the desktop/mobile
-`loot-reach` UI scenario passed.
-The UI scenario also verifies distinct canvas colors, layer toggling, expiry of
-an unchanged frame and no non-GET requests. Committed review of candidate bc64ae9 passed with no findings
-(.checks/20261103T181344Z-riCsUg.log). Activity and preflight tickets are done and
-released; the panel ticket is in review and released with its in-game criterion
-unchecked.
+## Current implementation
 
-`just check vm deployment-refusal` passed in 11 s under the VM lease
-(.checks/20261103T181353Z-vMP7sd.log). The compatible candidate read the real
-config/settings/atlas successfully. With only staging ancestry then altered,
-both actual installers refused before stopping/replacing anything, retaining
-controller PID 39640 and installed/config/data hashes. Final VM status confirms
-Valheim stopped, controller running and bot disconnected. Lease released. The
-first verifier run had hit Get-FileHash sharing SQLite's open writer; its retained
-failure was corrected with a read-only shared handle before the passing rerun.
-No production build, configuration or Loot setting was changed.
+Branch t3/renki-portal-travel-startup builds on 501ca8d. Tickets:
 
-## Installed runtime and required offline state
+- TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M — Traverse known portals with verified arrivals:
+  owner-selected, promoted/claimed/in-progress. Adds explicit interact portalTo
+  with advertised feature gating, exact-link native walking admission, bounded
+  hostile-avoiding dry approach, native cargo/access checks and observed teleport.
+  Success requires grounded non-swimming 3D proximity to the loaded expected exit,
+  including vertical tolerance. Task/audit receipt separates actual arrival from
+  observed return-link metadata. Durable map route planning and repeatable native
+  return tests remain unearned.
+- TKT-01M6KNVKQZGF26CSJ5T49BH5MV — Start private OBS streaming alongside Tas:
+  owner-selected, claimed/in-progress. just vm online restores panel and existing
+  OBS/relay/capture/watchdog tasks, verifies private output, then starts the game.
+  Stream remains independent of game/controller lifecycle. just streaming
+  windows-adapter-update replaces the adapter without reinstalling scenes or
+  credentials; windows-online restores installed tasks. Active private output is
+  retained on repeat startup. Only loopback private RTMP output is configured.
+- TKT-01M6FV6E40SBSMJEHT227XKRK2 — Home survey: familiarize with an area and
+  update its places: claimed/in-progress, live criteria 5/7 unchecked. Portal
+  transport, new-home food, free bed and bounded survey still need live evidence.
 
-The initial portal-only deployment of 77a527c installed with verified checksums
-but its controller exited: `atlas schema 2 is newer than supported schema 1`.
-Saved settings also included `inspect_container`. The actual baseline was
-unmerged PR #176 (runtime 2e8c6d1), newer than the older main handoff suggested.
-The failed deploy's local wait was interrupted, then `just vm stop` stopped the
-game. No atlas/settings were deleted, reset or downgraded. Never deploy 77a527c
-alone against this runtime.
+Source portal freshly observed: SpawnCamp 1:166576 at [-50.26,34.09,13.84],
+connected to 1:166579; no target coordinates delivered. Owner identifies the
+new-base destination. Refresh the exact native link before ordered crossing.
+Do not fabricate leader evidence, edit tags, call teleport directly or bypass
+ordinary trigger guards globally.
 
-Combined build **871d818** installed successfully with `just check vm install`
-(.checks/20261103T174828Z-CbVn1x.log). Controller/Core/plugin checksums verified.
-`just vm panel-start` started only the controller/panel. `/api/status` reported
-871d818 and disconnected; VM status confirmed Valheim stopped and controller
-PID 39640 running. `/api/behaviours` confirmed **Loot disabled and not running**.
-The combined CI gate and committed review passed. Deployment lease released.
-The new implementation batch has not been installed in production.
+Focused protocol/session/OBS checks and portal/fixture core tests passed.
+The complete just check ci gate passed in 178s
+(.checks/20261104T162852Z-rZ5dey.log); commit then just check review before
+push/deployment. Deployment requires clean committed source. Native startup,
+repeat stream startup, portal crossing and new-home work are pending.
 
-PR #176's historical emergency stop was around 16:12Z: position
-[150.65,70.48,-33.81], 15.8/25 HP, no active/carried food and two targeting
-Greylings. This is not a fresh health/location claim after the brief failed
-startup. Grave recovery and a safe return remain unresolved; menu HP0 is not
-proof of death. Saved home is [-204.39,32.97,-467.43], base radius 60 m, storage
-approach [-169.13,30.97,-467.75]. Sleeping is unassigned; no free Tas bed was
-confirmed or claimed. Keep Loot disabled: it previously entered a portal during
-stuck recovery and stranded Tas. Retain #176's final guard that immediately
-fails a body task when portal input is refused.
+## Remaining checks and older claims
 
-## Portal following and remaining native checks
+Follow-portal ticket TKT-01M6FT1ZVW remains review/released: live leader round trip
+criterion 5 is unearned. Loot panel ticket TKT-01M6EYEMTX remains review/released:
+owner-in-game reach-over-time criterion unearned. Loot stays disabled.
 
-TKT-01M6FT1ZVW (Follow: go through the portal the leader just used) stays in
-review, released, with live criterion 5 unchecked. The plugin remembers nearby
-leader/source observations for 8 s, even during passive pickup. Disappearance or
-remote position jumps can start a bounded native crossing; returned follows
-accept that evidence. Only the observed source and unchanged destination are
-admitted, scoped to route planning and the active input step. Cancellation,
-standing, failure and teleport revoke the allowance; other portals stay blocked.
-Valheim's cargo/teleport rules remain authoritative. Cargo and crossing failures
-explain why Tas stopped without silently walking home. Arrival clears geometry
-and resumes follow. Offline policy/protocol/chat coverage does not prove entry
-into a native portal or actual arrival.
+TKT-01M62PRDS (Claim a bed near home, or tell owner none) and
+TKT-01M62N256 (Plugin: flee task, and retreating when health is low) retain prior
+session claims. Four new-base beds were historically owned; inspect again and
+never take another player's bed. Native search-chests and double-door tickets
+remain review with live criteria; a final closed state alone does not prove both
+leaves were restored. OBS freshness/standby ticket TKT-01M67DWF retains its prior
+claim and separate native checks. Do not infer those checks from active output.
 
-After the owner stages a safe supervised rejoin:
-
-1. Take `just vm lease agent:tool/session`; start a reviewed installed build.
-2. Follow Nimah through a connected portal pair and back; retain departure,
-   arrival/failure and task outcomes. Tick criterion 5 only after the pair passes.
-3. Agree with the owner before enabling passive Loot. Check departure during a
-   felling-drop pickup, native cargo refusal, stop/new-order takeover, and refusal
-   of other portals. Do not enable Loot for an offline deploy.
-4. Record Loot's anchor, settle and growing/reset reach while the owner stands,
-   fells and leaves. Record the real reach over time for the panel ticket.
-5. Release the VM lease after cleanup.
-
-Also still owed:
-
-- TKT-01M6EWN4WH (Behaviours: passive mode lends an owner's follow to passive
-  instances), criterion 6: collect felling drops and fall back in; leave an
-  owner-dropped stack; yield to movement mid-pickup and any new order. Earlier
-  a892cfa checks worked but churned before #174; the full rerun is missing.
-- TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials), criterion 1:
-  A/B refusal check with `/api/act/home` as the refused POST. Existing claim stays.
-
-## Next drafts and known gaps
-
-Only the three selected drafts were promoted. Passive gathering
-TKT-01M6F877TX (Behaviours: passive gather works alongside the anchor) still needs
-the owner's selection and deliberate policy work: existing gathering is
-beech-only, excludes players within 32 m of standing trees while passive reach
-is 30 m, and must fix re-lend churn. It is not an enable switch. Later work is
-TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what the base lacks)
-and TKT-01M6F8780V (Agent: supply the passive list, with validation and built-in
-fallback). Do not promote these yourself.
-
-- The 32 older in-progress claims remain; do not take them over without the owner.
-- A zero-health frame without a subsequent death can lose a lent follow.
-- Non-default settle shapes are forgotten after ten minutes without being asked
-  for, even while busy. Other perception checks still have older tolerances.
-- Nine saved `goal/<hash>` instances warn as unknown; ask before deleting them.
-- App timing/race flakes: TKT-01M6ESNXKF and TKT-01M6EWJ9. Read retained diagnostics
-  before a focused rerun; do not relax production freshness to make tests pass.
-- Ignored `vm.local` and `plugin/game.local.props` are configured. Never print
-  their contents, panel/CPA tokens, provider keys or server passwords.
-- Do not kill `renki-ctl` on the VM. Use the lease for mutations; read-only
-  inspection needs none. Write local JSON without a BOM.
+Earlier deployment-preflight/activity tracking tickets are done. Unselected
+passive gathering/needs-ledger/agent-list drafts stay draft. Twelve unknown saved
+goal instances warned on startup; do not delete without owner direction. Prior
+in-progress claims remain owned; no other agent is actively using the VM.

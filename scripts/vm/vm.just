@@ -49,6 +49,15 @@ guard: need-target
 test-lease:
     python3 -B "{{justfile_directory()}}/scripts/vm/lease-test.py"
 
+# Guard shared tooling that starts existing streaming tasks.
+lease-guard: guard
+
+# Start panel, existing private video stack and Tas; stream survives game stops.
+online MINUTES="5": need-target guard
+    just --justfile "{{justfile()}}" vm panel-start
+    just --justfile "{{justfile()}}" streaming windows-online
+    just --justfile "{{justfile()}}" vm start "{{MINUTES}}"
+
 # Check the connection, the account and the scheduled tasks.
 check: need-target
     {{ssh}} "whoami; hostname; Get-ScheduledTask -TaskName Renki* | Format-Table TaskName,State -AutoSize | Out-String -Width 120"

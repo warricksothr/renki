@@ -564,6 +564,9 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	if args, ok := decoded.(*protocol.MoveToArgs); ok && args.Wade && !slices.Contains(conn.Hello.Features, protocol.FeatureSupportedWading) {
 		return nil, errors.New("plugin does not support checked shallow-water wading")
 	}
+	if args, ok := decoded.(*protocol.InteractArgs); ok && args.PortalTo != "" && !slices.Contains(conn.Hello.Features, protocol.FeaturePortalTravel) {
+		return nil, errors.New("plugin does not support explicitly ordered portal travel")
+	}
 	resolved := false
 	if args, ok := decoded.(*protocol.MoveToArgs); ok && resolve != nil && args.To.Entity != "" && !strings.Contains(args.To.Entity, ":") {
 		if world == "" || phase != protocol.PhaseInWorld {

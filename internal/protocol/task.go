@@ -618,6 +618,7 @@ func (a *DropArgs) validate() error {
 // InteractArgs are the arguments to `interact`: the entity to use, with
 // the alternative use (Alt) or the use key held (Hold).
 type InteractArgs struct {
+	PortalTo       string `json:"portalTo,omitempty"`
 	RecoverThreats bool   `json:"recoverThreats,omitempty"`
 	DefendThreats  bool   `json:"defendThreats,omitempty"`
 	Entity         string `json:"entity"`
@@ -629,6 +630,9 @@ type InteractArgs struct {
 }
 
 func (a *InteractArgs) validate() error {
+	if a.PortalTo != "" && (a.PortalTo == a.Entity || a.Alt || a.Hold || a.Sleep || a.Repair || a.Cook != "" || a.RecoverThreats || a.DefendThreats) {
+		return errors.New("portalTo requires a different destination and cannot combine with other interaction modes")
+	}
 	if a.DefendThreats && !a.RecoverThreats {
 		return errors.New("defendThreats requires recoverThreats")
 	}
