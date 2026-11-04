@@ -3,8 +3,8 @@ package food
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
-	"math"
 	"slices"
 	"strings"
 	"time"
@@ -18,22 +18,40 @@ const Notice = 5 * time.Minute
 
 type Session interface {
 	State() *protocol.State
+	StateObservation() (*protocol.State, time.Time)
 	Handshake() (*protocol.Hello, *protocol.Welcome, bool)
 	Allowed(string) bool
 	Dispatch(context.Context, session.Order) (*session.Task, error)
+	DispatchFor(context.Context, session.Order, *protocol.Hello, string) (*session.Task, error)
 }
 type Keeper struct {
-	reserved                 func() bool
-	s                        Session
-	owners                   func() []string
-	log                      *slog.Logger
-	now                      func() time.Time
-	hello                    *protocol.Hello
-	world                    string
-	state                    *protocol.State
-	fresh, next, asked, sent time.Time
-	pending                  *session.Task
-	sentSeq                  uint64
+	policy            func() Policy
+	work              func() string
+	lastDecision      string
+	reserved          func() bool
+	s                 Session
+	owners            func() []string
+	log               *slog.Logger
+	now               func() time.Time
+	hello             *protocol.Hello
+	world             string
+	next, asked, sent time.Time
+	pending           *session.Task
+	sentSeq           uint64
+}
+
+// SetPolicy is configured before Run; callbacks return immutable snapshots.
+func (k *Keeper) SetPolicy(policy func() Policy, work func() string) { k.policy, k.work = policy, work }
+
+func (k *Keeper) decision(st *protocol.State) Decision {
+	p, work := Policy{}, ""
+	if k.policy != nil {
+		p = k.policy()
+	}
+	if k.work != nil {
+		work = k.work()
+	}
+	return Decide(st, p, work)
 }
 
 // SetReserved is configured before Run. A food goal then owns its own eating
@@ -66,7 +84,7 @@ func (k *Keeper) Tick(ctx context.Context) {
 		return
 	}
 	hello, _, connected := k.s.Handshake()
-	st := k.s.State()
+	st, at := k.s.StateObservation()
 	now := k.now()
 	if !connected || st == nil || st.Phase != protocol.PhaseInWorld || st.HP <= 0 || st.Food == nil {
 		return
@@ -78,12 +96,8 @@ func (k *Keeper) Tick(ctx context.Context) {
 		k.hello, k.world = hello, st.World
 		k.pending = nil
 		k.next = time.Time{}
-		k.state = nil
 	}
-	if st != k.state {
-		k.state, k.fresh = st, now
-	}
-	if now.Sub(k.fresh) > 3*time.Second || !k.s.Allowed(protocol.TaskUseItem) {
+	if at.IsZero() || now.Sub(at) < 0 || now.Sub(at) > 3*time.Second || !k.s.Allowed(protocol.TaskUseItem) {
 		return
 	}
 	if k.pending != nil {
@@ -112,22 +126,28 @@ func (k *Keeper) Tick(ctx context.Context) {
 		st.Task != nil && (st.Task.Task == protocol.TaskFlee || st.Task.Task == protocol.TaskAttack) {
 		return
 	}
-	if item := Choose(st.Food); item != "" {
-		t, err := k.s.Dispatch(ctx, session.Order{Task: protocol.TaskUseItem, Args: &protocol.UseItemArgs{Item: item}, TimeoutS: 5})
+	d := k.decision(st)
+	raw, _ := json.Marshal(d)
+	if string(raw) != k.lastDecision {
+		k.log.Info("food decision", "decision", d, "world", st.World, "worldUid", st.WorldUID, "stateSeq", st.Seq, "observationAt", at)
+		k.lastDecision = string(raw)
+	}
+	if item := d.Item; item != "" {
+		t, err := k.s.DispatchFor(ctx, session.Order{Task: protocol.TaskUseItem, Args: &protocol.UseItemArgs{Item: item}, TimeoutS: 5, Origin: "food:" + d.Mode + ":" + d.Reason}, hello, st.World)
 		k.next = now.Add(Retry)
 		if err != nil {
 			k.log.Debug("could not eat", "err", err)
 			return
 		}
 		k.pending, k.sent, k.sentSeq = t, now, st.Seq
-		k.log.Info("eating carried food", "prefab", item)
+		k.log.Info("eating carried food", "prefab", item, "taskId", t.ID, "decision", d, "stateSeq", st.Seq, "worldUid", st.WorldUID)
 		return
 	}
 	if len(st.Food.Active) > 0 || len(st.Food.Carried) > 0 || st.HPMax <= 0 || st.HP/st.HPMax >= .8 || len(k.owners()) == 0 || !k.s.Allowed(protocol.TaskSay) ||
 		!k.asked.IsZero() && now.Sub(k.asked) < Notice {
 		return
 	}
-	_, err := k.s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: strings.Join(k.owners(), ", ") + ", I'm low on health and out of carried food. Please give me food or point me to a stocked chest."}, TimeoutS: 5})
+	_, err := k.s.DispatchFor(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: strings.Join(k.owners(), ", ") + ", I'm low on health and out of carried food. Please give me food or point me to a stocked chest."}, TimeoutS: 5}, hello, st.World)
 	if err == nil {
 		k.asked = now
 	}
@@ -136,26 +156,5 @@ func (k *Keeper) Tick(ctx context.Context) {
 // Choose fills unused slots before refreshing an existing food; within each
 // group prefer health and then regeneration. Only game-eligible food is used.
 func Choose(status *protocol.FoodStatus) string {
-	if status == nil {
-		return ""
-	}
-	active := map[string]bool{}
-	for _, f := range status.Active {
-		active[f.Prefab] = true
-	}
-	var best *protocol.CarriedFood
-	for i := range status.Carried {
-		f := &status.Carried[i]
-		if !f.CanEat || f.Prefab == "" || f.Health <= 0 || math.IsNaN(f.Health) || math.IsInf(f.Health, 0) {
-			continue
-		}
-		if best == nil || len(status.Active) < 3 && active[best.Prefab] && !active[f.Prefab] ||
-			(len(status.Active) >= 3 || active[f.Prefab] == active[best.Prefab]) && (f.Health > best.Health || f.Health == best.Health && f.Regen > best.Regen) {
-			best = f
-		}
-	}
-	if best == nil {
-		return ""
-	}
-	return best.Prefab
+	return Decide(&protocol.State{Phase: protocol.PhaseInWorld, HP: 1, Food: status}, Policy{}, "").Item
 }

@@ -215,6 +215,7 @@ namespace Renki.Plugin
                 {
                     Prefab = name,
                     Health = Round(item.m_shared.m_food),
+                    Stamina = Round(item.m_shared.m_foodStamina),
                     Regen = Round(item.m_shared.m_foodRegen),
                     CanEat = p.CanEat(item, false) &&
                         (item.m_shared.m_consumeStatusEffect == null || !p.GetSEMan().HaveStatusEffect(item.m_shared.m_consumeStatusEffect.NameHash()) &&

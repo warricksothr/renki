@@ -52,7 +52,10 @@ func (m *Manager) inviteBedtime(ctx context.Context, live Live, current request,
 		return
 	}
 	// A crash or uncertain send after this durable reservation cannot replay it.
-	_, err = m.o.Session.DispatchFor(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: "It's night. Does anyone want to go to bed?", Channel: mode}, TimeoutS: 5, Origin: "nightly bedtime invitation"}, current.hello, current.world)
+	task, err := m.o.Session.DispatchFor(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: "It's night. Does anyone want to go to bed?", Channel: mode}, TimeoutS: 5, Origin: "nightly bedtime invitation"}, current.hello, current.world)
+	if task != nil {
+		m.o.Logger.Info("bedtime invitation attempted", "taskId", task.ID, "worldUid", st.WorldUID, "character", st.Character, "day", st.Time.Day, "night", night, "channel", mode, "stateSeq", st.Seq)
+	}
 	m.nextSay = now.Add(2 * time.Second)
 	if err != nil {
 		m.o.Logger.Warn("bedtime invitation attempt ended without a confirmed send", "err", err)

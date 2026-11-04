@@ -844,6 +844,10 @@ export function startController() {
         ? `Health ${Math.round(s.hp)} / ${Math.round(s.hpMax)}`
         : "Health unknown",
     );
+    const meal = inWorld ? s.foodDecision : null;
+    $("food-decision").textContent = meal
+      ? `Food: ${meal.mode} · ${meal.item ? plain(meal.item) : "waiting"} · ${meal.reason.replaceAll("_", " ")}`
+      : "Food choice unavailable";
     chip(
       "stamina",
       inWorld && s.staminaMax
@@ -2252,6 +2256,9 @@ export function startController() {
     "screenshot.quality": "JPEG quality (30–90)",
     "presence.marcoPolo": "Marco/Polo routines",
     "presence.bedtime": "Nightly bed invitation",
+    "food.activityAware": "Save better meals for work",
+    "food.idleMaxTier": "Highest idle food tier (1–8)",
+    "food.tiers": "Food tier overrides by prefab",
     "players.profiles": "Player control profiles",
   };
   const AFTER_DEATH = ["home", "resume", "stay"];

@@ -158,6 +158,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		}
 	})
 	a.Food = food.New(s, func() []string { return set.Values().Owners }, log.With("part", "food"), nil)
+	a.Food.SetPolicy(func() food.Policy { return set.Values().Food }, a.foodWorkload)
 	a.Retreat = retreat.New(s, func() []string { return set.Values().Owners }, func() (protocol.Vec3, bool) {
 		_, h, ok := keeper.Current()
 		return h.Pos, ok
@@ -167,6 +168,8 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		a.Goals = goals[0]
 	}
 	a.goalTemplate = &goal.Template{Store: a.Goals, Memory: homes, Session: s, Atlas: func() *atlas.Store { return a.Atlas }, Landmarks: homes.Landmarks, Allowed: a.Session.Allowed}
+	a.goalTemplate.FoodPolicy = func() food.Policy { return set.Values().Food }
+	a.goalTemplate.Logger = log.With("part", "goals")
 	a.supplyLog = log.With("part", "resupply")
 	a.Food.SetReserved(func() bool { return a.Goals.FoodRunning() || a.Behaviours != nil && a.Behaviours.PreparingFood() })
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate, "household_food": &goal.FoodWork{Goal: a.goalTemplate}, "personal_food": &goal.FoodWork{Goal: a.goalTemplate, Personal: true}},

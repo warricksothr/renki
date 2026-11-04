@@ -12,6 +12,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/atlas"
+	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/video"
 )
@@ -24,6 +25,7 @@ type Presence struct {
 	MarcoPolo     bool   `json:"marcoPolo"`
 }
 type Config struct {
+	Food       food.Policy               `json:"food"`
 	Screenshot protocol.ScreenshotConfig `json:"screenshot"`
 	Atlas      atlas.Policy              `json:"atlas"`
 	Players    access.Rules              `json:"players"`
@@ -149,6 +151,7 @@ var KnownTasks = []string{
 // Default returns the configuration used for anything a file leaves out.
 func Default() Config {
 	return Config{
+		Food:         food.Policy{IdleMaxTier: 2, Tiers: map[string]int{}},
 		Listen:       "127.0.0.1:8765",
 		Screenshot:   protocol.DefaultScreenshotConfig(),
 		Presence:     Presence{MarcoPolo: true},
@@ -186,6 +189,9 @@ func Load(path string) (Config, error) {
 
 // Validate refuses a configuration that would be unsafe or cannot work.
 func (c Config) Validate() error {
+	if err := c.Food.Validate(); err != nil {
+		return err
+	}
 	if c.Presence.Bedtime != "" && c.Presence.Bedtime != protocol.ChannelNormal && c.Presence.Bedtime != protocol.ChannelShout {
 		return errors.New("presence.bedtime must be empty, normal or shout")
 	}

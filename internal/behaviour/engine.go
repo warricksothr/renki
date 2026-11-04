@@ -212,6 +212,20 @@ func (e *Engine) PreparingFood() bool {
 	var p MarkerFoodParams
 	return Decode(i.definition.Params, &p) == nil && p.Marker.Kind == "cooking"
 }
+
+// Workload reads ownership without running observation trackers or inspectors.
+// It survives gaps between a runner's native steps and a lent follow's absence.
+func (e *Engine) Workload() string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.loan != nil {
+		return "follow"
+	}
+	if i := e.instances[e.active]; i != nil && i.runner != nil {
+		return i.definition.Template
+	}
+	return ""
+}
 func (e *Engine) Put(ctx context.Context, name string, raw json.RawMessage, by string) error {
 	var d Definition
 	if err := Decode(raw, &d); err != nil {

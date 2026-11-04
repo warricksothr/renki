@@ -151,10 +151,11 @@ type ActiveFood struct {
 	RemainingS float64 `json:"remainingS"`
 }
 type CarriedFood struct {
-	Prefab string  `json:"prefab"`
-	Health float64 `json:"health"`
-	Regen  float64 `json:"regen"`
-	CanEat bool    `json:"canEat"`
+	Stamina float64 `json:"stamina,omitempty"`
+	Prefab  string  `json:"prefab"`
+	Health  float64 `json:"health"`
+	Regen   float64 `json:"regen"`
+	CanEat  bool    `json:"canEat"`
 }
 
 type EscortStatus struct {

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"sort"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/atlas"
 	"github.com/warricksothr/renki/internal/behaviour"
+	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
@@ -80,12 +82,14 @@ func NewRecord(spec Spec, now time.Time) (Record, error) {
 func decode(raw []byte, to any) error { return behaviour.Decode(raw, to) }
 
 type Template struct {
-	Store     *Store
-	Memory    *home.Store
-	Session   *session.Session
-	Atlas     func() *atlas.Store
-	Landmarks func(string) []home.Landmark
-	Allowed   func(string) bool
+	Logger     *slog.Logger
+	FoodPolicy func() food.Policy
+	Store      *Store
+	Memory     *home.Store
+	Session    *session.Session
+	Atlas      func() *atlas.Store
+	Landmarks  func(string) []home.Landmark
+	Allowed    func(string) bool
 }
 type params struct {
 	ID string `json:"id"`

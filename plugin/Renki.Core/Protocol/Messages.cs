@@ -163,6 +163,7 @@ namespace Renki.Protocol
     }
     public sealed class CarriedFood
     {
+        [JsonProperty("stamina", DefaultValueHandling = DefaultValueHandling.Ignore)] public double Stamina;
         [JsonProperty("prefab")] public string Prefab;
         [JsonProperty("health")] public double Health;
         [JsonProperty("regen")] public double Regen;

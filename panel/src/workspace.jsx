@@ -277,6 +277,7 @@ export function Supplies() {
         <summary>
           Inventory <span id="inv-summary">not yet seen</span>
         </summary>
+        <p id="food-decision" role="status"></p>
         <div
           id="inv-grid"
           role="grid"

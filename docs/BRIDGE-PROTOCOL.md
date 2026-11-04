@@ -216,6 +216,10 @@ that is `stranded`, and body tasks then fail with `encumbered` (6.6) rather
 than going through stuck recovery. The game's auto-pickup never takes what would cross `weightMax`,
 and neither does `pickup` (`too_heavy`).
 
+`state.food.carried[].stamina` reports each meal's observed stamina benefit.
+Older plugins may omit it; the controller then uses zero for that contribution.
+It is used alongside health to rank work meals, not to bypass CanEat.
+
 `state.otherPlayers` is an optional native server-roster count excluding Tas.
 It is sent only in a live world when the server player list is available. Missing
 means unknown, while zero means no other listed player; local perception is a

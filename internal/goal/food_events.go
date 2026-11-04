@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"github.com/warricksothr/renki/internal/behaviour"
-	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -29,7 +28,11 @@ func (r *runner) foodEventWait(g Record, v behaviour.View) (*session.Order, erro
 		return r.need("household work needs safe home shelter or an event escape plan")
 	}
 	// Eating carried food is preparation, and never requires leaving shelter.
-	item := food.Choose(v.State.Food)
+	decision, err := r.foodDecision(g, v)
+	if err != nil {
+		return nil, err
+	}
+	item := decision.Item
 	fillSlot := item != "" && v.State.Food != nil && len(v.State.Food.Active) < 3 && remaining(v.State, item) == 0
 	if item != "" && (fillSlot || !nourished(v.State) || v.State.HP < v.State.HPMax*.8) {
 		return r.foodDispatch(g, v, "eat", item, "", &session.Order{Task: protocol.TaskUseItem, Args: &protocol.UseItemArgs{Item: item}, TimeoutS: 5})

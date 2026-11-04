@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-04T19:06:08Z
-updated_at: 2026-11-04T19:15:27Z
+updated_at: 2026-11-04T19:35:58Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -65,3 +65,7 @@ Cover persistence/restart, midnight, rollover, backwards time, distinct worlds/c
 **agent:codex/explore-night** at 2026-11-04T19:15:27Z
 
 Owner selected shout when other players are online. Implemented optional native server-roster count, durable world/character calendar-day and overnight attempt ledger, and persisted presence.bedtime modes. Initial CI caught stale generated panel JS; just panel build regenerated it. A separate focused app run hit the pre-existing retreat fixture timeout, then ten focused race repetitions passed; production safety guards were unchanged. Complete CI is running.
+
+**agent:codex/explore-night** at 2026-11-04T19:35:58Z
+
+Deployed commit4e57efd with just check vm install and just check vm online; preflight/checksums/receipt passed and private output restored. Enabled persisted presence.bedtime=shout. Native state reported otherPlayers=1. On native day213 at night onset, actual t-13 sent exactly “It's night. Does anyone want to go to bed?” via shout, accepted/succeeded at19:26:21Z. Exact audit .checks/audit-window-sPuxk5.jsonl and deployed status are retained. Tas remained awake; no sleep task was dispatched. Native state later crossed midnight to day214/night without a repeat observed so far; final deployment will verify restart deduplication against the same durable reservation. FullCI for4e57efd passed220s and committed review was clean. The later food batch adds correlated successful-attempt logging; it does not reset the invitation ledger.

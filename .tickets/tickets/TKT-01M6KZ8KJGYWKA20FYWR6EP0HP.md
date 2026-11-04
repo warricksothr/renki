@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-04T19:06:08Z
-updated_at: 2026-11-04T19:12:14Z
+updated_at: 2026-11-04T19:35:00Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -41,7 +41,7 @@ extensions: {}
 
 ## Description
 
-The owner requests an exploration and mapping outing around saved new home. Perform a supervised bounded land survey using existing native checked movement and durable atlas observations. Use a separate outing radius, initially120m unless the owner selects otherwise; keep the saved60m no-harvest base unchanged. Do not start the unchanged home-familiarization profile that already failed wave-sensitive deck return, and do not claim the draft general expedition runner is implemented.
+The owner requests an exploration and mapping outing around saved new home. Perform a supervised bounded land survey using existing native checked movement and durable atlas observations. Use a separate outing radius, 200m as selected by the owner; keep the saved60m no-harvest base unchanged. Do not start the unchanged home-familiarization profile that already failed wave-sensitive deck return, and do not claim the draft general expedition runner is implemented.
 
 Select legs from measured dry terrain and fresh threats, maintain food/gear and reserve return, avoid water crossings, portals, harvesting and fights, and stop or return on unsafe conditions. Measure retained terrain/route/discovery changes, distinguish refreshed versus new knowledge, and state honest gaps if safe navigation cannot cover an area.
 
@@ -53,7 +53,7 @@ Select legs from measured dry terrain and fresh threats, maintain food/gear and 
 
 ## Implementation plan
 
-Capture the saved60m camp, Tas's food/gear/state and the current durable atlas viewport. Pin a separate initial120m outing circle centered on saved home (or the owner's selected distance), with a bounded time/travel allowance and reserved return. Select fresh measured safe land legs and supervise each native movement receipt, fresh threats, food and injury before another leg. Known supported base-floor approaches remain distinct from dry terrain; do not rerun the failing unchanged familiarization profile or relax native water/support guards.
+Capture the saved60m camp, Tas's food/gear/state and the current durable atlas viewport. Pin a separate 200m outing circle centered on saved home , with a bounded time/travel allowance and reserved return. Select fresh measured safe land legs and supervise each native movement receipt, fresh threats, food and injury before another leg. Known supported base-floor approaches remain distinct from dry terrain; do not rerun the failing unchanged familiarization profile or relax native water/support guards.
 
 Record newly retained and refreshed canonical terrain samples plus native route evidence, discoveries and failed approaches. Use actual supported positions, avoid portals/water/harvesting/combat detours, and return along checked approaches while retaining a conservative reserve. Stop at a safe partial endpoint if navigation cannot continue safely. Report real gains and gaps rather than claiming the whole circle is explored. Preserve the base definition and owner places; leave Tas/private video online and release the VM lease.
 
@@ -62,3 +62,7 @@ Record newly retained and refreshed canonical terrain samples plus native route 
 **agent:codex/explore-night** at 2026-11-04T19:12:14Z
 
 Owner selected a 200 m outing radius followed by return home. This supersedes the initial 120 m default; saved new home radius remains 60 m. Live outing will use checked bounded legs and retain actual coverage and blocked directions.
+
+**agent:codex/explore-night** at 2026-11-04T19:32:13Z
+
+Owner confirmed200m radius with return home. Supervised route planning used separate200m native scopes; the saved60m base and role definitions remain unchanged. Strict dry exits were blocked west and east, while supported ordinary building legs were checked individually. Explicit short supported_wading_v1 exit t-21 succeeded from east gate to measured dry terrain [-144.85,31.51,-479.64] without swimming or injury; no generic water mode or native guard was changed. This revises the initial dry-only outing plan only for the existing short checked shallow-wading base exit/return. Native scope cannot combine with wade, so its target was checked inside the authorized200m circle and bounded to30s; subsequent outdoor legs resume native200m scope. Fresh outside perception sees a Greydwarf northeast near[-121.25,32.58,-450.62]; route selection goes southeast with hostile avoidance.

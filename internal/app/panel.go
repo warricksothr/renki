@@ -14,6 +14,7 @@ import (
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
@@ -25,6 +26,7 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
+	FoodDecision  *food.Decision             `json:"foodDecision,omitempty"`
 	OtherPlayers  *int                       `json:"otherPlayers,omitempty"`
 	WorldEvents   *protocol.WorldEventStatus `json:"worldEvents,omitempty"`
 	CaptureProof  *protocol.CaptureProof     `json:"captureProof,omitempty"`
@@ -91,6 +93,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		Owners: a.Settings.Values().Owners, Rules: a.Home.Rules(),
 		PerceptionRadius: a.Config.Perception.Radius,
 		Voice:            a.Voice != nil && a.Settings.Values().Voice, Model: a.Settings.Values().Model}
+	ps.FoodDecision = a.foodDecision()
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		ps.WorldUID = s.WorldUID

@@ -12,6 +12,8 @@ import (
 )
 
 type fake struct {
+	at                 time.Time
+	now                func() time.Time
 	st                 *protocol.State
 	hello              *protocol.Hello
 	connected, allowed bool
@@ -19,7 +21,11 @@ type fake struct {
 	status             string
 }
 
-func (f *fake) State() *protocol.State { return f.st }
+func (f *fake) State() *protocol.State                         { return f.st }
+func (f *fake) StateObservation() (*protocol.State, time.Time) { return f.st, f.at }
+func (f *fake) DispatchFor(ctx context.Context, o session.Order, _ *protocol.Hello, _ string) (*session.Task, error) {
+	return f.Dispatch(ctx, o)
+}
 func (f *fake) Handshake() (*protocol.Hello, *protocol.Welcome, bool) {
 	return f.hello, nil, f.connected
 }
@@ -34,9 +40,10 @@ func scene() (*fake, *Keeper, *time.Time) {
 		st: &protocol.State{Envelope: protocol.Envelope{Seq: 1}, Phase: protocol.PhaseInWorld, World: "world", HP: 25, HPMax: 25,
 			Food: &protocol.FoodStatus{Carried: []protocol.CarriedFood{{Prefab: "Meat", Health: 35, Regen: 2, CanEat: true}, {Prefab: "Berry", Health: 10, Regen: 1, CanEat: true}}}}}
 	k := New(f, func() []string { return []string{"Nimah"} }, slog.New(slog.NewTextHandler(io.Discard, nil)), func() time.Time { return now })
+	f.at, f.now = now, func() time.Time { return now }
 	return f, k, &now
 }
-func fresh(f *fake) { copy := *f.st; copy.Seq++; f.st = &copy }
+func fresh(f *fake) { copy := *f.st; copy.Seq++; f.st = &copy; f.at = f.now() }
 
 func TestReservedFoodGoalOwnsEatingUntilItsLeaseEnds(t *testing.T) {
 	f, k, _ := scene()
