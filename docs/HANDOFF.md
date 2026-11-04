@@ -5,7 +5,8 @@ Current work of 2026-11-04 by `agent:codex/gear-up`.
 
 ## Owner decisions and current task
 
-The owner requested clothes and an axe for Tas; the supervised operation is done
+The owner requested clothes and an axe, then a return to the eastern warehouse
+workbench for repair. The supervised operation is done
 on TKT-01M6KWJMP (Equip Tas with leather clothing and a woodcutting axe). Existing
 native actions supplied and equipped a leather helmet/chest/legs and a full
 flint axe. See gear receipts below. No runtime code changed or redeployment
@@ -34,25 +35,47 @@ receipt passed; durable data retained (.checks/20261104T180836Z-KWYTZz.log).
 `just check vm online` restored panel, private output and Tas in78s
 (.checks/20261104T180939Z-ISCenW.log).
 
-Final observed Tasleroch UID827096491 is connected to DizzysHellheim, idle upstairs
-at[-204.56,32.97,-466.97],grounded/sheltered/near_fire,112.3/112.3HP,injurySeq0.
+Final observed Tasleroch UID827096491 is connected to DizzysHellheim, idle
+at[-159.00,30.97,-475.07],beside the eastern warehouse workbench,
+grounded/sheltered/near_fire,106.4/106.4HP,injurySeq0.
 Three active meals: Sausages,BoarJerky,QueensJam;1 carried each,1 Wood and4 Stone.
-Equipped quality1 AxeFlint100/100,HelmetLeather393.4/400,
-ArmorLeatherChest394.4/400,ArmorLeatherLegs236.1/400.
+Equipped quality1 AxeFlint100/100,HelmetLeather400/400,
+ArmorLeatherChest400/400,ArmorLeatherLegs400/400.
 Maximum-health decay is not injury. Bed1274003559:489 remains Mine=true,Owned=true.
-Home Wood Door1:14823 was explicitly closed by t-5 and freshly confirmed closed.
+Home Wood Door1:14823 was explicitly closed earlier; refresh its state after
+the latest owner-requested return to the warehouse.
 Storage double doors1:15335/1:15334 remain observed open; no automatic closure
 claim is earned. Home rules remain idleMinutes0,afterDeath stay,afterOutage false.
-Final evidence .checks/gear-final-{status,inventory,map,video}.json.
+Final evidence .checks/warehouse-repair-final-{status,inventory,map,video}.json.
 Earlier explicit door closure .checks/task-e5g1xg9_.json.
 
 VM console session2 works. Release the lease at handback; take/renew it before
 live work as agent:codex/gear-up. Keep the game online. After RDP use
 C:\renki\release-rdp.ps1. The private stream's final /api/video result is verified
-gameplay,scope1:DizzysHellheim:827096491 (.checks/gear-final-video.json).
+gameplay,scope1:DizzysHellheim:827096491 (.checks/warehouse-repair-final-video.json).
 Only private local output is configured, not an external public broadcast.
 
 ## Clothing, axe and layered warehouse access
+
+Latest owner continuation: west forge1:15324[-165.67,30.31,-473.28],east
+workbench1:15887[-158.49,30.30,-476.39]. These are separate from the basic bench
+near Tas's bed. t-21 returned to the warehouse. t-22 failed ordinary station use
+from[-159.27,30.97,-474.67],approximately2.004m away in3D: the existing approach
+accepts planar2m arrival while the game requires strict3D distance below its2m
+use radius. Ordinary closer move t-24 reached[-159.00,30.97,-475.07],then t-25
+repaired all three leather pieces to400/400 with normal repair-button receipts.
+Game station identity/type and minimum-level eligibility checks remain intact;
+exact levels are not exposed and were not invented. t-26 re-equipped the full
+flint axe after crafting UI use. No injury or runtime change. Leave Tas online
+at this sheltered eastern workbench for the owner's next instruction.
+
+This supersedes the worn-armor/end-at-home state in the earlier gear history
+below. Receipts .checks/task-w1lvycaq.json,.checks/task-gyvdqj9w.json,
+.checks/task-5imt_75g.json,.checks/task-skao5zl2.json,.checks/task-lu4nsmup.json.
+Draft TKT-01M6KX627 (Repair: approach inside the station's native use radius)
+records the captured mismatch and closer-standing control; do not promote it
+without owner selection. There is no source fix yet. Native repair success is
+verified, not forge repair, automated station selection or explicit level telemetry.
 
 TKT-01M6KWJMP is done/released. The owner identified a possible flint axe in a
 chest by the central doorway. Fresh t-8 inspection found it in1:15433
@@ -64,10 +87,10 @@ successfully equipped each; fresh inventory verified the equipped flags.
 
 Ordinary t-16 returned home. Optional t-17 repair at workbench1:15063 returned
 "repaired0/no more repairable gear"; observed durability did not improve. Do not
-claim repairs or invent a station-level/recipe cause. Armor remains usable but
-partly worn, especially trousers236.1/400. The normal station interaction
+claim repairs or invent a station-level/recipe cause. At that earlier point armor remained usable but
+partly worn, especially trousers236.1/400; the warehouse repair above supersedes it. The normal station interaction
 holstered the axe; t-19 returned to the sleeping approach and t-20 re-equipped
-AxeFlint. Final inventory confirms all four equipped, axe100/100 and injurySeq0.
+AxeFlint. That earlier inventory confirmed all four equipped, axe100/100 and injurySeq0.
 No tree cutting, combat trial, crafting or material spending was ordered.
 Receipts .checks/task-907sf08y.json,.checks/task-6ohrx01c.json,
 .checks/task-sfonphhi.json,.checks/task-o1ck2k4w.json,.checks/task-qx71k4bg.json,
