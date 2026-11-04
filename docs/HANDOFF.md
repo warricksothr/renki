@@ -24,14 +24,15 @@ and verified the deployment receipt. Latest gate:222s,
 .checks/20261104T165928Z-Ml5zXw.log. Deployment:
 .checks/20261104T165942Z-50whAH.log. Do not redeploy unchanged code.
 
-At17:37Z Tasleroch is connected to DizzysHellheim, UID827096491, idle at
-[-204.57,32.97,-466.98], grounded/sheltered upstairs,71/71 food-adjusted HP,
-injurySeq0. Two meals remain (Sausages, BoarJerky), pack empty; supplies in the
-mapped storage barrel remain available through normal withdrawal. Loot stays
-disabled. Home rules remain idleMinutes0,afterDeath stay,afterOutage false after
-the earlier unsupplied old-base death. Do not restore autonomous travel without
-safe staging. Current status .checks/bed-return-progress.json; selected base
-.checks/bed-final-base.json. OBS still reports verified gameplay.
+At17:55Z Tasleroch is connected to DizzysHellheim, UID827096491, idle at
+[-204.59,32.97,-467.01], grounded/sheltered upstairs and near fire,25/25HP,
+injurySeq0. All meals expired; no food is carried. Pack contains1 Wood and4 Stone
+(retain both; only Wood was present at this turn's first inventory, and the
+later Stone acquisition was not attributed). Supplies remain in the mapped
+storage barrel through ordinary withdrawal. Replenish before prolonged work.
+Loot stays disabled. Home rules remain idleMinutes0,afterDeath stay,afterOutage
+false. Current status .checks/rebuilt-fire-return-observe.json; selected base
+.checks/bed-final-base.json. Tas still owns the bed and its spawn assignment.
 
 VM console session2 works. Lease is released at handback; take/renew it before
 live work as agent:codex/portal-deploy. Keep Tas online at handback.
@@ -105,29 +106,42 @@ base's expectedAt version; other base settings and old-base places were retained
 Evidence .checks/bed-binding-waypoint-result.json,
 .checks/bed-binding-base-result.json,.checks/bed-final-base.json.
 
-The owner identified the fire below the current floor, reached via the north
-staircase area. Dry scoped t-23 and t-25 refused without movement. Supervised
-ordinary native t-26 reached the lower north doorway; t-27 reached the sheltered
-lower room[-205.64,30.87,-467.42]. New campfire1274003559:991 briefly appeared
-at[-203.23,31.12,-470.01],fuel1,lit=false, then disappeared from fresh perception
-while the owner was present and making changes. The17:35:11Z native camera shows
-flames and Tas's Fire/Resting effects. No fuel/cooking interaction was sent and
-no fuel consumption or lighting is attributed to Tas. Later heat was absent;
-stable fire identity/readiness and actual sleep remain unverified. The installed
-runtime only fuels fires as part of cooking; do not disguise fueling as cooking.
-Standalone fueling remains drafted on TKT-01M62VXZ4 (Plugin: add fuel and ore to
-machines and take their output). Read-only t-20 inspected home chest1:15452:
-empty, no transfers. Do not add wood to an already fueled but blocked fire.
+The owner rebuilt the under-floor fire and added half walls directing smoke
+out the chimney, explicitly asking to confirm current interaction. Fresh hearth
+1274003559:2382 at[-203.66,30.37,-470.56] is lit,fuel1.9/20, and warmed Tas
+upstairs before travel. Ordinary native t-30 reached the lower room around
+revised geometry at[-205.5,30.26,-466.9]. The camera shows the hearth/opening and
+actual Fire/Resting/Rested effects,comfort5. No injury occurred, and the hearth
+remained freshly lit through final observations. This is a brief ventilation/
+heat check, not a long-term smoke-safety claim.
 
-Ordinary native t-29 returned upstairs to the saved sleeping approach without
-injury; all four currently observed home/storage doors are closed, without a
-claim that Tas closed all of them. It is daytime (day210,fraction0.33); no sleep
-request or shared time skip was attempted. Evidence .checks/task-456flpq4.json,
-.checks/task-ajz20imz.json,.checks/task-f7rj73pi.json,
-.checks/lower-house-map.json,.checks/home-fire-current-map.json,
-.checks/camera-20261104T173511516607Z.jpg,.checks/bed-return-progress.json.
+Explicit interact t-31 against that fresh hearth was rejected not_allowed:
+"the bot does not use that kind of thing". This is the installed InteractRule,
+which rejects standalone fireplace use before approach/sight/fuel actions.
+Therefore room access and heat are verified, but actual interaction reach
+through the half-wall opening remains unverified. No fuel/cooking interaction
+was executed, and Wood remains1; do not infer native refueling from the flame
+or warmth. A later inventory additionally contains4 Stone, so only the Wood
+count (not the entire inventory) was unchanged. No Stone movement was ordered.
+
+Standalone native refueling is still draft TKT-01M62VXZ4 (Plugin: add fuel and ore
+to machines and take their output). The owner requested verification, not
+selection/implementation of that draft. Its latest notes retain the actual
+policy rejection and explain that future native add_to must test exact hearth
+sight/reach and normal one-unit pack/fuel receipts. Do not bypass the policy or
+disguise fire tending as cooking. No implementation was promoted.
+
+Ordinary native t-32 returned to the saved sleeping approach without injury.
+Evidence .checks/task-iqa8gedg.json (room arrival),
+.checks/task-6asit0js.json (interaction rejection),.checks/task-3_j0pfd8.json
+(return),.checks/rebuilt-fire-room-map.json,.checks/rebuilt-fire-after-map.json,
+.checks/rebuilt-fire-final-map.json,.checks/rebuilt-fire-before-inventory.json,
+.checks/rebuilt-fire-after-inventory.json,
+.checks/camera-20261104T175332057774Z.jpg,.checks/rebuilt-fire-return-observe.json.
 Claim-and-respawn criterion2 on TKT-01M62PRDS remains unticked; native refusal
-criterion4 is earned by the reported exposure refusal. Preserve its prior claim.
+criterion4 is earned by the earlier reported exposure refusal. Preserve its
+prior claim. Actual sleep has not been tested. Earlier bed/lower-room receipts
+and initial fire replacement history remain on that ticket.
 
 First goal38cb6628bc116daff1b9323a returned partial without travel,690/704
 terrain samples measured,14 unknown,52 refreshed,17 places added/refreshed,

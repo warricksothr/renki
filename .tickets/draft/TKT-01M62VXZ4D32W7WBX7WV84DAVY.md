@@ -25,12 +25,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:15:14Z
+updated_at: 2026-11-04T17:55:01Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -80,3 +80,17 @@ Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entit
 **agent:claude-code/renki-plan** at 2026-11-02T16:15:14Z
 
 Supersedes the earlier criteria on smelters, kilns, fermenters and beehives. The 2026-11-02 planning pass removed this ticket's dependency on TKT-01M62VXZ39 (Perception: fuel, lit, queued and finished for fires and machines), so its criteria now cover fires and cooking stations only, which need nothing new from perception. Machine support (fuel or ore into smelters and kilns, output from fermenters and beehives, furnaces fuelled only while queued) waits on the owner's decision on whether the base has those machines. If it does, file it as a follow-up that depends on TKT-01M62VXZ39.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:54:38Z
+
+The owner rebuilt the under-floor fire with half walls directing smoke into the chimney and requested a native interaction check. Fresh observed target is hearth1274003559:2382 at[-203.66,30.37,-470.56],fuel1.9/20,lit=true; Tas already receives heat upstairs. One carried Wood was available for the test, but all meals had expired (25/25HP), so no prolonged exposed work was attempted.
+
+Ordinary native t-30 reached the sheltered lower room at[-205.5,30.26,-466.9] around the revised structures. The camera shows the lit hearth through its opening and actual Fire/Resting/Rested effects, comfort5, with injurySeq0. The hearth remained freshly lit across observations. Evidence .checks/task-iqa8gedg.json,.checks/rebuilt-fire-room-map.json,.checks/camera-20261104T175332057774Z.jpg,.checks/rebuilt-fire-after-map.json.
+
+Explicit normal interact t-31 targeting the freshly observed hearth was rejected not_allowed: the bot does not use that kind of thing. This is the existing InteractRule policy, not evidence that a half wall obstructs native use. Rejection happened before any fuel use or interaction approach/sight test; Wood remained1 and inventory unchanged (.checks/task-6asit0js.json,.checks/rebuilt-fire-before-inventory.json,.checks/rebuilt-fire-after-inventory.json). Do not report a successful refuel or verified interaction reach from room access, warmth or a camera view.
+
+The immediate validation outcome is room access and short heat/rest without injury, but standalone interaction/refueling is unsupported in the installed runtime. The add_to task on this ticket is still draft; the owner asked to confirm current interaction, so no implementation was promoted, no policy was bypassed and no cooking task was used as a disguised fuel action. Once native refueling is implemented, use this exact hearth/opening as a live sight/reach test with ordinary access and one-unit pack/fuel receipts. Keep actual sleep, sustained ventilation and long-term smoke safety separate from this brief check.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:55:01Z
+
+Correction to the preceding rebuilt-hearth note: only the carried Wood count was unchanged (1 before and after). The later inventory also contains4 Stone that were absent initially; no stone transfer/drop was ordered and their acquisition was not attributed. The entire inventory was therefore not unchanged. This does not change the refueling result: t-31 was rejected before native use, and no Wood was consumed. Retain both materials.
