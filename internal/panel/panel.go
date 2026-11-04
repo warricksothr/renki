@@ -44,6 +44,10 @@ const Cookie = "renki_panel"
 
 // Options configure the panel.
 type Options struct {
+	Sharing      *Sharing
+	ViewerStatus func() any
+	ViewerMap    func() any
+	ViewerAtlas  http.Handler
 	// Token is what the login form wants. It must not be empty.
 	Token string
 	// Log is the feed of records.
@@ -131,6 +135,8 @@ func Handler(o Options) http.Handler {
 		json.NewEncoder(w).Encode(o.Status())
 	})
 	authed.HandleFunc("GET /api/events", p.events)
+	authed.HandleFunc("GET /api/sharing", p.sharing)
+	authed.HandleFunc("POST /api/sharing", p.sharing)
 	if o.Inventory != nil {
 		authed.HandleFunc("GET /api/inventory", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -224,7 +230,53 @@ func Handler(o Options) http.Handler {
 	mux.HandleFunc("GET /login", p.loginForm)
 	mux.HandleFunc("POST /login", p.login)
 	mux.HandleFunc("POST /logout", p.logout)
-	mux.Handle("/", p.auth(authed))
+	viewer := http.NewServeMux()
+	if o.ViewerStatus != nil {
+		viewer.HandleFunc("GET /api/status", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(o.ViewerStatus())
+		})
+		viewer.HandleFunc("GET /api/events", p.viewerEvents)
+	}
+	if o.ViewerMap != nil {
+		viewer.HandleFunc("GET /api/map", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(o.ViewerMap())
+		})
+	}
+	if o.ViewerAtlas != nil {
+		viewer.Handle("GET /api/atlas/", o.ViewerAtlas)
+	}
+	if o.Video != nil {
+		viewer.Handle("GET /api/video", o.Video)
+		viewer.Handle("POST /api/video/whep", o.Video)
+		viewer.Handle("DELETE /api/video/session/{id}", o.Video)
+	}
+	viewer.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "viewer access is read-only", http.StatusForbidden)
+	})
+	mux.HandleFunc("POST /api/viewer/login", p.viewerLogin)
+	if o.ViewerStatus != nil {
+		mux.Handle("GET /api/viewer/events", p.viewerAuth(http.HandlerFunc(p.viewerEvents)))
+	}
+	// Assets contain no credentials. /view bootstraps the viewer cookie from a
+	// fragment so the link credential never enters access logs or referrers.
+	for _, path := range []string{"/app.js", "/terrain.js"} {
+		mux.Handle("GET "+path, http.FileServerFS(files))
+	}
+	mux.HandleFunc("GET /view", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		http.ServeFileFS(w, r, files, "index.html")
+	})
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// An explicit viewer context uses filtered endpoints even in an
+		// operator's browser; a viewer credential never enters the operator mux.
+		if r.Header.Get("X-Renki-Viewer") == "1" || (!p.operator(r) && viewerToken(r) != "") {
+			p.viewerAuth(viewer).ServeHTTP(w, r)
+			return
+		}
+		p.auth(authed).ServeHTTP(w, r)
+	}))
 	return headers(mux)
 }
 

@@ -1,6 +1,7 @@
 // Static control boundaries keep the existing API/map adapters attached once.
 // Preact owns the workspace; the adapter owns children of its named containers.
 import { BaseSurvey } from "./base-survey.jsx";
+import { HouseholdFoods } from "./household.jsx";
 export function MapWorkspace() {
   return (
     <section id="map-pane">
@@ -187,40 +188,8 @@ export function Supplies() {
             Keep Tas supplied, then gather, cook and store food toward a
             household target.
           </p>
+          <HouseholdFoods />
           <div class="household-targets">
-            <label>
-              Food to stock{" "}
-              <select id="goal-stock-food" defaultValue="Mushroom">
-                <option value="Mushroom">Mushrooms</option>
-                <option value="MushroomYellow">Yellow mushrooms</option>
-                <option value="Raspberry">Raspberries</option>
-                <option value="Blueberries">Blueberries</option>
-                <option value="Honey">Honey</option>
-                <option value="CookedMeat">Cooked boar meat</option>
-                <option value="CookedDeerMeat">Cooked deer meat</option>
-                <option value="NeckTailGrilled">Grilled neck tails</option>
-              </select>
-            </label>
-            <label>
-              Refill to (meals in storage){" "}
-              <input
-                id="goal-stock-count"
-                type="number"
-                min="1"
-                max="20"
-                defaultValue="4"
-              />
-            </label>
-            <label>
-              Refill below (meals)
-              <input
-                id="goal-stock-minimum"
-                type="number"
-                min="1"
-                max="20"
-                defaultValue="2"
-              />
-            </label>
             <label>
               <input id="goal-stock-hunting" type="checkbox" />
               Hunt ordinary wild boar and Necks for missing ingredients
@@ -417,16 +386,11 @@ export function Places() {
     </section>
   );
 }
-export function Preferences() {
+export function People() {
   return (
-    <section class="card preferences" id="preferences">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">CONFIGURE</span>
-          <h2>People &amp; preferences</h2>
-        </div>
-      </div>{" "}
-      <details id="presence-controls">
+    <section class="card" id="people">
+      <h2>People &amp; presence</h2>{" "}
+      <details id="presence-controls" open>
         <summary>
           Players &amp; presence <span id="presence-summary"></span>
         </summary>
@@ -483,6 +447,18 @@ export function Preferences() {
         </p>
         <p id="presence-result" role="status"></p>
       </details>
+    </section>
+  );
+}
+export function Preferences() {
+  return (
+    <section class="card preferences" id="preferences">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">CONFIGURE</span>
+          <h2>Settings</h2>
+        </div>
+      </div>{" "}
       <details id="voice">
         <summary>
           Voice <span id="voice-summary"></span>

@@ -182,3 +182,10 @@ backwards time cannot repeat it. A failed or uncertain send is not retried that
 night, preventing duplicate messages after a crash. Changing to a new world or
 character uses a separate record. Existing records are not evicted to permit
 more invitations. The routine also stays quiet while Tas is in bed or sleeping.
+
+The bedtime limiter uses native calendar day and unsmoothed `calendarFraction`
+from one clock sample. The lighting `dayFraction` is smoothed and can still be
+near 1 after the calendar day increments; it must not identify a night. Missing
+coherent calendar telemetry defers invitations. Both native night and raw night
+are required, including after a time skip. The persisted calendar/night high-water
+marks are retained on upgrade, even if that conservatively skips a night.

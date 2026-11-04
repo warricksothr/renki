@@ -3,8 +3,8 @@ schema: 4
 id: TKT-01M6KZ8KJGYWKA20FYWR6EP0HP
 title: Survey safe land around saved home and record map gains
 type: task
-status: in-progress
-status_reason: null
+status: blocked
+status_reason: Partial survey returned home safely; fresh hostile exclusions, wet detours and building approaches prevent a safe full200m route with current navigation.
 priority: normal
 due_on: null
 labels:
@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-04T19:06:08Z
-updated_at: 2026-11-04T19:35:00Z
+updated_at: 2026-11-04T19:54:59Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -47,8 +47,8 @@ Select legs from measured dry terrain and fresh threats, maintain food/gear and 
 
 ## Acceptance criteria
 
-- [ ] Pin a separate bounded outing around saved home while leaving the60m camp definition and no-harvest protection unchanged.
-- [ ] Supervise safe movement, retain atlas/map evidence and report actual new/refreshed knowledge and blocked areas without overstating coverage.
+- [x] Pin a separate bounded outing around saved home while leaving the60m camp definition and no-harvest protection unchanged.
+- [x] Supervise safe movement, retain atlas/map evidence and report actual new/refreshed knowledge and blocked areas without overstating coverage.
 - [ ] Verify checked return or a documented safe partial endpoint; leave Tas fed, equipped and online with private video, and release the VM lease.
 
 ## Implementation plan
@@ -66,3 +66,13 @@ Owner selected a 200 m outing radius followed by return home. This supersedes th
 **agent:codex/explore-night** at 2026-11-04T19:32:13Z
 
 Owner confirmed200m radius with return home. Supervised route planning used separate200m native scopes; the saved60m base and role definitions remain unchanged. Strict dry exits were blocked west and east, while supported ordinary building legs were checked individually. Explicit short supported_wading_v1 exit t-21 succeeded from east gate to measured dry terrain [-144.85,31.51,-479.64] without swimming or injury; no generic water mode or native guard was changed. This revises the initial dry-only outing plan only for the existing short checked shallow-wading base exit/return. Native scope cannot combine with wade, so its target was checked inside the authorized200m circle and bounded to30s; subsequent outdoor legs resume native200m scope. Fresh outside perception sees a Greydwarf northeast near[-121.25,32.58,-450.62]; route selection goes southeast with hostile avoidance.
+
+**agent:codex/explore-night** at 2026-11-04T19:54:59Z
+
+Final checked return t-15 succeeded at[-204.18,32.97,-467.58] (.checks/task-0scabckn.json); fresh status at home[-204.3,32.97,-467.57],90.3/90.3HP,injurySeq0,two active meals,leather/flint axe retained. Restored home.whenStuck=true. Final canonical200m atlas comparison:3288→3400 measured samples,112 new,1425 refreshed,0 lost;395 landmarks unchanged. Evidence .checks/explore-night-atlas-final.json,.checks/explore-night-final-summary.json,.checks/panel-batch-home-status.json.
+
+Full200m coverage is incomplete. Fresh Greydwarf/Elite exclusion and wet unsupported detours refused the first southeast continuation; a daylight attempt was constrained by a roaming boar and still required checked short building/wading return. No harvesting,combat,portal use,swimming or injury. General expedition runner and centered building/stair connectors remain unimplemented follow-up work. Keep the saved60m protected base unchanged. This is a measured partial survey with safe return, not a full-radius success.
+
+**agent:codex/explore-night** at 2026-11-04T19:54:59Z
+
+in-progress to blocked: Partial survey returned home safely; fresh hostile exclusions, wet detours and building approaches prevent a safe full200m route with current navigation.

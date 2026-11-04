@@ -142,6 +142,23 @@ namespace Renki.Protocol
         [JsonProperty("day")] public int Day;
         [JsonProperty("dayFraction")] public double DayFraction;
         [JsonProperty("night")] public bool Night;
+        // The visual fraction is smoothed and can lag the calendar at midnight.
+        [JsonProperty("calendarFraction", NullValueHandling = NullValueHandling.Ignore)] public double? CalendarFraction;
+
+        public static GameTime FromClock(double seconds, double dayLength, double displayFraction, bool night)
+        {
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0 ||
+                double.IsNaN(dayLength) || double.IsInfinity(dayLength) || dayLength <= 0 ||
+                seconds / dayLength >= int.MaxValue) return null;
+            var day = (int)System.Math.Floor(seconds / dayLength);
+            return new GameTime
+            {
+                Day = day,
+                CalendarFraction = (seconds - day * dayLength) / dayLength,
+                DayFraction = System.Math.Round(displayFraction, 3),
+                Night = night
+            };
+        }
     }
 
     public sealed class TaskRef

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/warricksothr/renki/internal/access"
@@ -247,9 +248,17 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 		case <-time.After(panelRetry):
 		}
 	}
+	sharing, sharingErr := panel.OpenSharing(filepath.Join(a.Config.DataDir, "panel-viewer.json"))
+	if sharingErr != nil {
+		log.Error("viewer sharing unavailable", "error", sharingErr)
+	}
 	srv := &http.Server{
 		Handler: panel.Handler(panel.Options{
 			Token:           a.Config.Panel.Token,
+			Sharing:         sharing,
+			ViewerStatus:    func() any { return a.PanelViewerStatus() },
+			ViewerMap:       a.ViewerMapSnapshot,
+			ViewerAtlas:     a.atlasHandler(false),
 			Log:             trail,
 			Status:          func() any { return a.PanelStatus(version) },
 			Act:             a.PanelAct,
@@ -267,8 +276,12 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Map:             a.MapSnapshot,
 			Camera:          a.CameraHandler(),
 			Video: video.New(a.Config.Panel.Video, func() video.Scope {
-				s := a.PanelStatus(version)
-				return video.Scope{Online: s.Connected && s.Phase == "in_world", Connection: s.Connection, World: s.World, WorldUID: s.WorldUID}
+				st := a.status()
+				scope := video.Scope{Online: st.Connected && st.Phase == "in_world", Connection: a.Session.ConnectionID()}
+				if s := a.Session.State(); s != nil && st.Connected {
+					scope.World, scope.WorldUID = s.World, s.WorldUID
+				}
+				return scope
 			}),
 			Atlas:     a.AtlasHandler(),
 			Inventory: func() any { return a.Session.PackSnapshot() },

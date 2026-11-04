@@ -125,6 +125,8 @@ window.renkiPreview.check = async () => {
       fixture.settings.length,
     "All runtime settings reachable",
   );
+  location.hash = "settings";
+  await wait(50);
   const last = document.querySelector("#settings-table tr:last-child button");
   last.scrollIntoView({ block: "center" });
   last.focus();
@@ -138,6 +140,8 @@ window.renkiPreview.check = async () => {
       document.querySelector('#inv-grid [tabindex="0"]'),
     "Inventory slots and item keyboard descriptions retained",
   );
+  location.hash = "operations";
+  await wait(50);
   if (fixture.jpeg) {
     for (const phase of [
       "disabled",

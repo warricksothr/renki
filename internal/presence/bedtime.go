@@ -13,13 +13,20 @@ import (
 func (m *Manager) inviteBedtime(ctx context.Context, live Live, current request, st *protocol.State, now time.Time) {
 	mode := live.Presence.Bedtime
 	if (mode != protocol.ChannelNormal && mode != protocol.ChannelShout) || m.o.ReserveBedtime == nil || now.Before(m.nextSay) || now.Before(m.nextBedtime) ||
-		!st.Time.Night || st.Time.Day < 1 || math.IsNaN(st.Time.DayFraction) || math.IsInf(st.Time.DayFraction, 0) || st.Time.DayFraction < 0 || st.Time.DayFraction >= 1 ||
+		!st.Time.Night || st.Time.CalendarFraction == nil || st.Time.Day < 1 || math.IsNaN(st.Time.DayFraction) || math.IsInf(st.Time.DayFraction, 0) || st.Time.DayFraction < 0 || st.Time.DayFraction >= 1 ||
 		st.WorldUID == "" || st.Character == "" || slices.Contains(st.Flags, protocol.FlagInBed) || slices.Contains(st.Flags, protocol.FlagSleeping) {
 		return
 	}
+	// Calendar day and raw fraction share one native clock sample. The
+	// smoothed lighting fraction can still read .998 after the day increments.
+	fraction := *st.Time.CalendarFraction
+	if math.IsNaN(fraction) || math.IsInf(fraction, 0) || fraction < 0 || fraction >= 1 || (fraction > .15 && fraction < .85) {
+		return
+	}
+	// Require native night AND raw night, so time-skip lighting lag cannot invite.
 	// The evening and following pre-dawn belong to one night, despite midnight.
 	night := st.Time.Day
-	if st.Time.DayFraction < .5 {
+	if fraction < .5 {
 		night--
 	}
 	if mode == protocol.ChannelShout {

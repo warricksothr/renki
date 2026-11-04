@@ -173,12 +173,10 @@ namespace Renki.Plugin
             if (env != null)
             {
                 s.Env = env.GetCurrentEnvironment()?.m_name ?? "";
-                s.Time = new GameTime
-                {
-                    Day = env.GetDay(),
-                    DayFraction = System.Math.Round(env.GetDayFraction(), 3),
-                    Night = EnvMan.IsNight(),
-                };
+                // Sample calendar day/fraction from the same unsmoothed clock.
+                // EnvMan.GetDayFraction is the delayed visual lighting fraction.
+                s.Time = GameTime.FromClock(ZNet.instance.GetTimeSeconds(), env.m_dayLengthSec,
+                    env.GetDayFraction(), EnvMan.IsNight());
             }
             Equip(s, "right", p.m_rightItem);
             Equip(s, "left", p.m_leftItem);

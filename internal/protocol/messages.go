@@ -266,9 +266,10 @@ func (s *State) Stranded() bool { return slices.Contains(s.Flags, FlagStranded) 
 
 // GameTime is the in-game calendar.
 type GameTime struct {
-	Day         int     `json:"day"`
-	DayFraction float64 `json:"dayFraction"`
-	Night       bool    `json:"night"`
+	CalendarFraction *float64 `json:"calendarFraction,omitempty"`
+	Day              int      `json:"day"`
+	DayFraction      float64  `json:"dayFraction"`
+	Night            bool     `json:"night"`
 }
 
 // TaskRef is the body task the plugin is running, as reported in State.

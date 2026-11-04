@@ -79,7 +79,7 @@ func TestNightInvitationKeepsAnActiveBodyOrderAndControlRevision(t *testing.T) {
 	url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, a.Settings.Values()) }}, a.Session)
 	p := bridgetest.Connect(t, url, []string{protocol.TaskSay, protocol.TaskFollow})
 	others := 1
-	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 100}, World: "one", WorldUID: "123", Character: "Tas", Phase: protocol.PhaseInWorld, HP: 25, OtherPlayers: &others, Time: protocol.GameTime{Day: 213, DayFraction: .8, Night: true}})
+	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 100}, World: "one", WorldUID: "123", Character: "Tas", Phase: protocol.PhaseInWorld, HP: 25, OtherPlayers: &others, Time: protocol.GameTime{Day: 213, DayFraction: .8, CalendarFraction: clockFraction(.9), Night: true}})
 	waitFor(t, func() bool { return a.Session.State() != nil })
 	follow, err := a.Session.Dispatch(context.Background(), session.Order{Task: protocol.TaskFollow, Args: protocol.FollowArgs{Player: "Nimah"}})
 	if err != nil {
@@ -101,3 +101,5 @@ func TestNightInvitationKeepsAnActiveBodyOrderAndControlRevision(t *testing.T) {
 	a.Presence.Tick(context.Background())
 	p.Quiet(50 * time.Millisecond)
 }
+
+func clockFraction(n float64) *float64 { return &n }

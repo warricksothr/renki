@@ -29,7 +29,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-04T19:06:08Z
-updated_at: 2026-11-04T19:35:58Z
+updated_at: 2026-11-04T19:54:59Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -69,3 +69,9 @@ Owner selected shout when other players are online. Implemented optional native 
 **agent:codex/explore-night** at 2026-11-04T19:35:58Z
 
 Deployed commit4e57efd with just check vm install and just check vm online; preflight/checksums/receipt passed and private output restored. Enabled persisted presence.bedtime=shout. Native state reported otherPlayers=1. On native day213 at night onset, actual t-13 sent exactly “It's night. Does anyone want to go to bed?” via shout, accepted/succeeded at19:26:21Z. Exact audit .checks/audit-window-sPuxk5.jsonl and deployed status are retained. Tas remained awake; no sleep task was dispatched. Native state later crossed midnight to day214/night without a repeat observed so far; final deployment will verify restart deduplication against the same durable reservation. FullCI for4e57efd passed220s and committed review was clean. The later food batch adds correlated successful-attempt logging; it does not reset the invitation ledger.
+
+**agent:codex/explore-night** at 2026-11-04T19:54:59Z
+
+This supersedes the interim no-repeat inference in the19:35 note. Complete exact audit19:24:00Z..19:45:00Z (.checks/audit-window-nxUeVD.jsonl) contains two bedtime shouts: t-13 at19:26:21Z and t-20 at19:30:50Z. Native day advanced213→214 while smoothed lighting dayFraction still read0.998. GetDayFraction is delayed lighting, while GetDay reads the raw network clock; combining them misidentifies the same night. No automatic sleep was sent.
+
+Corrected native telemetry now samples calendar day and calendarFraction coherently from one native clock reading and configured day length. The routine requires this raw optional field, uses it for night identity and requires raw night plus native night; older/missing clocks defer. Added the exact live midnight mismatch as a presence regression plus pure native clock tests and time-skip daylight deferral. Persisted high-water marks are retained: the earlier duplicate can conservatively suppress the next evening, rather than resetting history. Focused presence/home/app and GameTimeTests checks passed; fullCI is running. Corrected live midnight proof remains unearned until a future real night.

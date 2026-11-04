@@ -119,6 +119,7 @@ window.fetch=async(path,options={})=>{
  const request={path:String(path),method:options.method || 'GET',headers:options.headers || {},body:options.body || null,status:200};
  preview.requests.push(request);
  const respond=(value,status=200)=>{request.status=status;return reply(value,status);};
+ if (String(path)==='/api/viewer/login' && options.method==='POST') return new Response(null,{status:JSON.parse(options.body).token==='fixture-viewer-token'?204:401});
  if (String(path)==='/api/video/whep' && options.method==='POST') return new Response('fixture-answer',{status:preview.videoState==='no-source'?503:201,headers:{Location:'/api/video/session/12345678-1234-1234-1234-123456789abc'}});
  if (String(path).startsWith('/api/video/session/') && options.method==='DELETE')return new Response(null,{status:204});
  if (options.method && options.method!=='GET') return respond({text:'Read-only preview: actions are refused'},405);
@@ -127,6 +128,7 @@ window.fetch=async(path,options={})=>{
  switch(url.pathname){
  case '/api/video': return respond({enabled:preview.videoState!=='disabled',content:['gameplay','stalled','no-source'].includes(preview.videoState)?'gameplay':'standby',reason:preview.videoState==='disabled'?'Video is not configured':'Waiting for verified game capture',scope:preview.status.connection+':'+preview.status.world+':'+(preview.status.worldUid||'')});
  case '/api/status': return respond(preview.status);
+ case '/api/sharing': return respond({enabled:false,token:''});
  case '/api/inspection': return respond(preview.inspection);
  case '/api/behaviours': return respond(preview.behaviours || []);
  case '/api/bases': return respond({world:preview.status.world,active:'camp',bases:[{name:'camp',center:preview.status.pos||[0,40,0],radius:90,durationS:600,travelM:800,return:'home',storage:[],at:'2026-11-03T00:00:00Z'}],surveys:[]});

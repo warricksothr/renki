@@ -2,7 +2,7 @@
 
 For a separate public-safe broadcast design and offline OBS profile tooling, see
 [STREAMING.md](STREAMING.md). The authenticated panel and its map exports are
-operator surfaces and should not be used as streaming browser sources.
+operator surfaces. The separate viewer described below restricts access to map and video; map locations and on-screen game information remain visible.
 
 A web page, served by the controller, for watching the bot live: where it
 is, what it is doing, and why, with buttons to stop it, send it home or
@@ -121,7 +121,7 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
   name. It answers in the feed (`said to the panel`), not in the game.
   "Come here", "set home", "pick that up" and "follow me" need that
   owner's character in the bot's sight, and are refused when it is not.
-- **Activity:** a bounded timeline beside the camera, with tasks and chat visible
+- **Activity:** a bounded timeline below the map and camera, with tasks and chat visible
   by default. Task outcomes show readable reasons; each record has expandable
   **Technical details** containing the original audit line (`just vm audit`).
   Warnings and errors stay visible even when their category is unchecked. Under **Filters & history**: chat, tasks, the plugin's
@@ -140,6 +140,49 @@ On the dev box, add a `panel` block with `"listen": "127.0.0.1:8780"` to
 
 A new page starts with the last 500 records, the newest state, perception
 and inventory, and a state a second for the last five minutes for the trail.
+
+## Views and household plans
+
+Operations contains live vitals, commands, map, video and activity. Goals & kit
+contains inventory and durable objectives. Places & base, People, Decisions and
+Settings separate the editors and inspector. Views stay mounted when switching,
+so unfinished form entries and the video connection survive. Safety controls
+remain available in every operator view.
+
+Household food accepts up to eight distinct supported foods in one plan, each
+with its own refill target (1–20) and refill minimum (1–target). Add/remove rows
+rather than starting one goal per food. Saved goal cards show the whole target
+mix together. Stock once and idle household episodes use that same plan. The
+menu reflects existing forage/basic-cooking support; it does not add cauldron
+recipes. Hunting, sources, destinations and episode limits apply to the plan.
+
+## Read-only map and video sharing
+
+Settings → Map & video sharing enables a separate viewer link. Open it in a
+browser with network access to the current panel address. This does not publish
+the panel, create a tunnel or change firewall rules. `/view` also previews the
+filtered view in an operator's signed-in browser.
+
+A random 256-bit viewer credential is independent of the operator login. The
+link carries it in the URL fragment, removes the fragment before API use and
+exchanges it for an HttpOnly, SameSite cookie. Keep the link private. Operator-only
+`GET /api/sharing` reads it; `POST /api/sharing` accepts `rotate` or `disable` with
+the action header. The credential is atomically persisted in
+`dataDir/panel-viewer.json` with private file permissions and survives restart.
+Rotation and disabling invalidate existing viewer cookies and close their status
+streams on the next tick. Established WebRTC media can continue until its
+connection ends; revocation prevents new playback negotiation and reconnection.
+
+Viewer credentials allow only filtered observation status/status-only SSE,
+map/atlas reads and video playback negotiation/teardown. They cannot dispatch
+commands, edit anything, read inventory/chest contents, audit/chat, goals, player
+profiles, settings or diagnostic screenshots. Map locations, terrain, nearby
+actors and in-game video can reveal the base and player names; this is a shared
+map/video surface, not a redacted public broadcast. Use STREAMING.md for that
+separate workflow. Viewer bootstrap assets are public and contain no secrets;
+all observation and playback endpoints require viewer or operator authentication.
+`just check vm viewer-check` verifies live HTTP denials, filtered data and viewer
+revocation, preserving existing links and restoring sharing if initially disabled.
 
 ## How it works
 

@@ -606,3 +606,7 @@ auto-logout VALUE='': need-target
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")
     {{ssh}} "{{ps}} -File {{dir}}/recovery.ps1 -Key AutoLogout ${valuearg[*]}"
+
+# Verify filtered viewer HTTP access and revocation; preserve existing links and game work.
+viewer-check: need-target guard
+    python3 "{{justfile_directory()}}/scripts/vm/viewer-check.py"

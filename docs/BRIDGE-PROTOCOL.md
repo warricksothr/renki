@@ -1388,3 +1388,9 @@ swimming, missing footing, excessive depth or a reduced native allowance stops
 without switching to swimming recovery. A wading route is revalidated under the
 current mode whenever reused. This does not enable wading in the survey or
 existing household routines automatically.
+
+`time.calendarFraction` is optional raw calendar progress (0 inclusive to 1
+exclusive), sampled with `time.day` from one native network clock reading and
+the game's configured day length. `time.dayFraction` remains the smoothed visual
+lighting fraction. Calendar rollover can precede visual midnight. Nightly bedtime
+invitations require the coherent raw field; older plugins defer that routine.

@@ -23,7 +23,7 @@ func bedtimeFixture(t *testing.T) (*Manager, *fake, *Live, *time.Time, *home.Sto
 	m.o.ReserveBedtime = store.ReserveBedtime
 	live.Presence.Bedtime = protocol.ChannelShout
 	f.state.WorldUID = "123"
-	f.state.Time = protocol.GameTime{Day: 213, DayFraction: .8, Night: true}
+	f.state.Time = protocol.GameTime{Day: 213, DayFraction: .8, CalendarFraction: clockFraction(.9), Night: true}
 	others := 1
 	f.state.OtherPlayers = &others
 	return m, f, live, now, store
@@ -42,24 +42,47 @@ func TestBedtimeOncePerNightAndCalendarDayAcrossReconnectAndManagerRestart(t *te
 	opts := m.o
 	opts.ReserveBedtime = store.ReserveBedtime
 	m = New(opts)
-	f.state.Time = protocol.GameTime{Day: 214, DayFraction: .1, Night: true}
+	f.state.Time = protocol.GameTime{Day: 214, DayFraction: .1, CalendarFraction: clockFraction(.05), Night: true}
 	m.Tick(context.Background())
 	if len(f.orders) != 1 {
 		t.Fatal("midnight/reconnect/restart repeated invitation", f.orders)
 	}
 	advance(f, now, 3*time.Second)
-	f.state.Time = protocol.GameTime{Day: 214, DayFraction: .8, Night: true}
+	f.state.Time = protocol.GameTime{Day: 214, DayFraction: .8, CalendarFraction: clockFraction(.9), Night: true}
 	m.Tick(context.Background())
 	if len(f.orders) != 2 {
 		t.Fatal("next evening not invited", f.orders)
 	}
 	advance(f, now, 3*time.Second)
-	f.state.Time = protocol.GameTime{Day: 213, DayFraction: .8, Night: true}
+	f.state.Time = protocol.GameTime{Day: 213, DayFraction: .8, CalendarFraction: clockFraction(.9), Night: true}
 	m.Tick(context.Background())
 	live.Presence.Bedtime = protocol.ChannelNormal
 	m.Tick(context.Background())
 	if len(f.orders) != 2 {
 		t.Fatal("rollback/mode change repeated invitation")
+	}
+}
+
+func TestBedtimeNativeLightingLagAtMidnightDoesNotCreateAnotherNight(t *testing.T) {
+	m, f, _, now, _ := bedtimeFixture(t)
+	m.Tick(context.Background())
+	advance(f, now, 3*time.Second)
+	// Exact live failure: calendar day advanced but smoothed lighting was .998.
+	f.state.Time = protocol.GameTime{Day: 214, DayFraction: .998, CalendarFraction: clockFraction(.001), Night: true}
+	m.Tick(context.Background())
+	if len(f.orders) != 1 {
+		t.Fatal("smoothed lighting lag repeated invitation", f.orders)
+	}
+	advance(f, now, 3*time.Second)
+	f.state.Time.CalendarFraction = clockFraction(.5)
+	m.Tick(context.Background())
+	if len(f.orders) != 1 {
+		t.Fatal("time-skip lighting lag invited during raw daylight")
+	}
+	f.state.Time.CalendarFraction = nil
+	m.Tick(context.Background())
+	if len(f.orders) != 1 {
+		t.Fatal("missing coherent clock invited")
 	}
 }
 
@@ -101,7 +124,7 @@ func TestBedtimeDoesNotConsumeAnAbsentStaleOrSleepingScene(t *testing.T) {
 				t.Fatal("invalid scene invited", f.orders)
 			}
 			live.Presence.Bedtime = protocol.ChannelShout
-			f.state.Time = protocol.GameTime{Day: 213, DayFraction: .8, Night: true}
+			f.state.Time = protocol.GameTime{Day: 213, DayFraction: .8, CalendarFraction: clockFraction(.9), Night: true}
 			f.state.WorldUID = "123"
 			f.state.Flags = nil
 			f.connected = true
@@ -154,3 +177,5 @@ func TestBedtimeUncertainSendCannotReplayAndFailureToReserveDoesNotSend(t *testi
 		t.Fatal("uncertain send replayed", f.orders)
 	}
 }
+
+func clockFraction(n float64) *float64 { return &n }
