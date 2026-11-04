@@ -3,188 +3,146 @@
 Replace this page at each handoff; tickets retain decisions and evidence.
 Current work of 2026-11-04 by `agent:codex/portal-deploy`.
 
-## Objective and owner decisions
+## Owner decisions and current task
 
-Bring Tas to saved home [-204.39,32.97,-467.43], claim an observed free bed,
-and map the area and individual storage access. The new base has vertically
-stacked chests/barrels, complex navigation and double doors. The owner said
-the old-base SpawnCamp portal leads here and requested OBS/private streaming
-alongside Tas. Keep Loot disabled and the game online. Automatic logout remains
-disabled. No other agent is active, but preserve older ticket claims.
+The owner selected native fire interactions for hearths. That fireplace slice is
+implemented, deployed and live-tested through the rebuilt half-wall opening.
+TKT-01M62VXZ4 (Plugin: add fuel and ore to machines and take their output) is
+review/released: criteria2/3/4 earned; both-task coverage and take_from remain
+unticked. Do not describe cooking-output collection or other machines as shipped.
 
-## Runtime and current position
+The broader objective remains arrival at saved home[-204,-467], claiming a bed
+and mapping the new base's stacked storage, navigation and double doors. Tas
+arrived through the old-base portal, owns the new bed and has mapped20/23 selected
+storage entities. Keep Tas and private video online, Loot disabled and automatic
+logout disabled. No other agent is active; preserve older ticket claims.
 
-PRs #176/#177/#178 are merged; #178 is unwatched. This branch
-`t3/renki-portal-travel-startup` builds on main501ca8d. Plugin/controller bdd70e7
-was installed after full CI and committed review; OBS recovery correction4cc25b8
-and survey controller83a4743 also passed full CI and committed review.
-Controller-only deployment83a4743 retained Valheim, passed preflight/checksums
-and verified the deployment receipt. Latest gate:222s,
-.checks/20261104T165535Z-FOYm2i.log. Review: no findings,
-.checks/20261104T165928Z-Ml5zXw.log. Deployment:
-.checks/20261104T165942Z-50whAH.log. Do not redeploy unchanged code.
+## Runtime and final safe state
 
-At17:55Z Tasleroch is connected to DizzysHellheim, UID827096491, idle at
-[-204.59,32.97,-467.01], grounded/sheltered upstairs and near fire,25/25HP,
-injurySeq0. All meals expired; no food is carried. Pack contains1 Wood and4 Stone
-(retain both; only Wood was present at this turn's first inventory, and the
-later Stone acquisition was not attributed). Supplies remain in the mapped
-storage barrel through ordinary withdrawal. Replenish before prolonged work.
-Loot stays disabled. Home rules remain idleMinutes0,afterDeath stay,afterOutage
-false. Current status .checks/rebuilt-fire-return-observe.json; selected base
-.checks/bed-final-base.json. Tas still owns the bed and its spawn assignment.
+Branch `t3/renki-portal-travel-startup`, PR179, builds on main501ca8d. PRs176/177/178
+are merged;178 is unwatched. Plugin/controller1c1d36c is installed. Later evidence
+commits do not require another deployment. Full gate passed in227s,
+.checks/20261104T180339Z-7nnsAy.log; committed review had no findings,
+.checks/20261104T180805Z-6zOnNj.log. Deployment preflight, installed checksums and
+receipt passed; durable data retained (.checks/20261104T180836Z-KWYTZz.log).
+`just check vm online` restored panel, private output and Tas in78s
+(.checks/20261104T180939Z-ISCenW.log).
 
-VM console session2 works. Lease is released at handback; take/renew it before
-live work as agent:codex/portal-deploy. Keep Tas online at handback.
+Final observed Tasleroch UID827096491 is connected to DizzysHellheim, idle upstairs
+at[-202.99,32.97,-467.42],grounded/sheltered/near_fire,109.5/109.5HP,injurySeq0.
+Three active meals: Sausages,BoarJerky,QueensJam;2 carried each,1 Wood and4 Stone.
+Maximum-health decay is not injury. Bed1274003559:489 remains Mine=true,Owned=true.
+Home Wood Door1:14823 was explicitly closed by t-5 and freshly confirmed closed.
+Storage double doors1:15335/1:15334 remain observed open; no automatic closure
+claim is earned. Home rules remain idleMinutes0,afterDeath stay,afterOutage false.
+Evidence .checks/hearth-final-home-status.json,.checks/hearth-final-home-map.json,
+.checks/hearth-two-wood-after-inventory.json,.checks/task-e5g1xg9_.json.
 
-## OBS delivered
+VM console session2 works. Release the lease at handback; take/renew it before
+live work as agent:codex/portal-deploy. Keep the game online. After RDP use
+C:\renki\release-rdp.ps1. The private stream's final /api/video result is verified
+gameplay,scope1:DizzysHellheim:827096491 (.checks/hearth-posttest-video.json).
+Only private local output is configured, not an external public broadcast.
 
-TKT-01M6KNVKQZ — Start private OBS streaming alongside Tas is done.
-`just check vm online` restores panel, existing OBS/relay/capture/watchdog tasks,
-verifies active private output, then starts Tas. Repeated startup retains output
-and fresh verified scene. `just check streaming windows-online` restores video
-independently; `just check streaming windows-adapter-update` replaces only the
-adapter binary without scenes/credential reconfiguration. Keep the desktop signed
-in; after RDP use C:\renki\release-rdp.ps1. See docs/WINDOWS-VIDEO.md.
+## Hearth support and exact live evidence
 
-OBS33 unclean-shutdown startup was native-tested and recovered narrowly:
-archive stale dedicated run markers only while stopped, retaining crash logs;
-restart only the dedicated process whose sole current log message proves the
-shutdown dialog and whose control port is closed. Other states time out.
-Final independent video startup passed in9s,
-.checks/20261104T165401Z-wMi5vr.log, retaining gameplay. Latest17:04Z
-GET /api/video reports verified gameplay, scope1:DizzysHellheim:827096491
-(.checks/final-home-video.json). Only private local output is configured;
-no external broadcast destination. No need to restart an already healthy stream.
-Older OBS freshness/standby ticket TKT-01M67DWF retains its separate claim/checks.
+`add_to {entity,item,count}` supports ordinary finite refillable Fireplace fuel,
+including hearths,torches,braziers. Count is an explicit integer1–16. The plugin's
+new default-off Safety.AllowStations is enabled on this VM, alongside existing
+AllowGather/AllowMovement. Existing allowedTasks were preserved with add_to
+appended before launch. `just vm stations` reads the flag; changes apply after
+restart. No ownership claiming, fire toggling, fireworks or direct inventory/ZDO
+writes are used. Each ordinary UseItem is followed by exactly one pack decrement
+and a synchronized fuel increase before another use. An uncertain unit stops
+without retry; cancellation/reconnect does not replay it. Cooking shares the
+single-unit receipt while retaining its empty-fire and heat requirements.
 
-## Portal, food and stacked storage evidence
+Tending requires ordinary ward access, live sight/reach, food, safe health,
+grounded dry footing clear of flames/smoke and no nearby hostile. Approaches are
+bounded using existing supported-floor interaction movement. A fueled but unlit
+fire refuses more fuel; an empty fire may receive one unit and then stops if
+still unlit. Fuel verification does not establish heat or ventilation.
 
-TKT-01M6AZ7D — Traverse known portals with verified arrivals remains in-progress.
-Explicit portalTo pins observed native source/exit IDs and keeps tag editing
-separate. Bounded dry approach, native cargo/access/link checks and actual loaded
-exit arrival checks do not bypass the ordinary trigger guard globally.
-Actual outward crossing t-5: SpawnCamp1:166576 ->1:166579, grounded/dry arrival
-[-168.53,30.97,-458.92], observedReturnTo1:166576.
-.checks/task-pm_oi5en.json proves one outward traversal; durable map route
-transitions and repeatable return/restoration remain unearned.
+Rebuilt hearth1274003559:2382 at[-203.66,30.37,-470.56]: new-session t-1 rejected
+Stone as invalid_target before use. Ordinary t-2 reached the lower room via the
+north staircase/door at[-205.54,30.26,-466.87]. t-3 added exactly2 Wood through the
+half-wall opening from[-205.54,30.26,-466.89],without extra approach movement:
+pack3->2,fuel1.69052184->2.69052172; pack2->1,fuel2.69052172->3.69052172.
+Native success: added2/2 Wood,fuel3.691/20,lit=True. Fresh next perception confirms
+fuel1.7->3.7/20 and inventory Wood3->1,Stone4 unchanged. InjurySeq remained0.
+This proves actual use through the opening and short safe tending, not sustained
+smoke safety in every weather state. t-4 returned upstairs without injury.
 
-TKT-01M6H2AB — Search nearby or listed chests for requested items is done.
-Read-only search checked20/23 selected containers, including upper barrels y32
-and lower chests y30.97. Inventory remained exactly empty with the same seq112
-before/after. Gaps1:15433,1:15438,1:15414 remain unknown. Upper barrel1:15597
-has ready meals;1:15598 has berries/mushrooms. Pukeberries1:15420 were not treated
-as sustaining food. Only after the read-only evidence, separate t-30 withdrew
-3 Sausages,3 BoarJerky,2 CarrotSoup; food maintenance consumed meals normally.
-Evidence .checks/newbase-inventory-before.json,
-.checks/newbase-search-inventory-after.json,.checks/newbase-search-final.json,
-.checks/newbase-storage-map4.json,.checks/task-v8wtntcx.json.
+Exact task .checks/task-v5io_9bo.json; full audit window18:11:50Z..18:12:05Z
+.checks/audit-window-VvrnUU.jsonl. Before/after
+.checks/hearth-two-wood-{before,after}-{map,inventory}.json and after-status.json.
+Negative case .checks/task-xy4fy2om.json; lower-room and return receipts
+.checks/task-05kfvpse.json,.checks/task-zbsqagkt.json. No need to repeat the same
+successful test or consume more fuel without a new reason.
 
-## Survey and remaining navigation work
+## Food and storage
 
-TKT-01M6FV6E — Home survey: familiarize with an area and update its places remains
-in-progress. Saved selected base new home: radius60m,duration600s,travel800m,
-return home and storage new home storage west[-169.13,30.97,-467.75].
-Sleeping is now bound to tas bed approach. Four older beds1:14774,1:15016,
-1:14773,loft1:15382 belong to other characters and were left alone. The historic
-lower-area bed941891633:991 is only a stale marker; the owner thinks they moved
-it. Owner-requested TKT-01M6KS61A (Build and claim a bed through native placement)
-is filed as draft under the construction epic, dependent on the native building
-foundation. Filing is not implementation selection.
+Mapped upper food barrel1:15597 at[-165.89,32,-466.76] remains stocked with ready
+meals. CarrotSoup was absent on this visit; cached storage is not a guarantee.
+Material barrel1:15599 at[-165.1,32,-465] supplied2 Wood. Resupply first triggered
+automatic flee from Boar1946562314:4067: t-36 reached safety34m away with injurySeq0.
+Subsequent ordinary withdrawals supplied3 Sausages,3 BoarJerky and3 QueensJam;
+automatic maintenance ate one each. Ordinary t-44 returned home without injury.
+The boar was later observed north of home around[-199.94,30.46,-450.21]. Refresh
+threats before another exposed trip; no unsafe foraging or spawned supplies.
+Receipts .checks/task-55w4xxwr.json,.checks/task-kxuqqjfa.json,
+.checks/task-nm3uajxl.json,.checks/task-_2k3r8b3.json and
+.checks/hearth-resupply-flee.json. Four Stone were already carried before this
+slice; do not attribute their acquisition to an ordered transfer.
 
-The first owner-placed bed1274003559:168 at[-208.09,32.99,-468.03] refused t-19
-with "The bed is too exposed". The owner replaced/adjusted it. One stale-ID
-retry t-21 was rejected with no movement; fresh observation then selected
-unowned replacement1274003559:489 at[-207.83,32.99,-468.26]. Native t-22
-succeeded: "used the Bed: Spawn point set". Fresh Mine=true,Owned=true confirms
-Tas owns it. .checks/task-bvggbxpu.json,.checks/replacement-bed-after-map.json.
-This proves claim/spawn assignment, not actual sleep or respawn after death.
+TKT-01M6H2AB (Search nearby or listed chests for requested items) is done.
+Its read-only survey inspected20/23 selected containers, including upper barrels
+y32 and lower chests y30.97,with identical empty inventory before/after. Gaps
+1:15433,1:15438,1:15414 remain unknown. Pukeberries1:15420 are not sustaining food.
+Evidence .checks/newbase-search-final.json,.checks/newbase-storage-map4.json,
+.checks/newbase-inventory-before.json,.checks/newbase-search-inventory-after.json.
 
-Saved supported standing point tas bed approach[-204.89,32.97,-467.49],radius1,
-kind rest,entity1274003559:489,base new home. Bound new home.sleeping with the
-base's expectedAt version; other base settings and old-base places were retained.
-Evidence .checks/bed-binding-waypoint-result.json,
-.checks/bed-binding-base-result.json,.checks/bed-final-base.json.
+## Other delivered work and remaining gaps
 
-The owner rebuilt the under-floor fire and added half walls directing smoke
-out the chimney, explicitly asking to confirm current interaction. Fresh hearth
-1274003559:2382 at[-203.66,30.37,-470.56] is lit,fuel1.9/20, and warmed Tas
-upstairs before travel. Ordinary native t-30 reached the lower room around
-revised geometry at[-205.5,30.26,-466.9]. The camera shows the hearth/opening and
-actual Fire/Resting/Rested effects,comfort5. No injury occurred, and the hearth
-remained freshly lit through final observations. This is a brief ventilation/
-heat check, not a long-term smoke-safety claim.
+TKT-01M6KNVKQZ (Start private OBS streaming alongside Tas) is done.
+`just check vm online` restores panel,existing OBS/relay/capture/watchdog tasks,
+verifies private output,then starts Tas. `just check streaming windows-online`
+restores video independently. Repeated startup retains active output; the pinned
+OBS33 unclean-shutdown dialog has a narrow verified recovery. Do not reconfigure
+scenes/credentials or restart healthy output. See docs/WINDOWS-VIDEO.md.
 
-Explicit interact t-31 against that fresh hearth was rejected not_allowed:
-"the bot does not use that kind of thing". This is the installed InteractRule,
-which rejects standalone fireplace use before approach/sight/fuel actions.
-Therefore room access and heat are verified, but actual interaction reach
-through the half-wall opening remains unverified. No fuel/cooking interaction
-was executed, and Wood remains1; do not infer native refueling from the flame
-or warmth. A later inventory additionally contains4 Stone, so only the Wood
-count (not the entire inventory) was unchanged. No Stone movement was ordered.
+TKT-01M6AZ7D (Traverse known portals with verified arrivals) remains in-progress.
+Native outward t-5 crossed SpawnCamp1:166576->1:166579 and verified grounded dry
+arrival[-168.53,30.97,-458.92],observedReturnTo1:166576. Evidence
+.checks/task-pm_oi5en.json. Repeatable round trips and durable atlas portal routes
+remain unearned. The earlier t-5 is from a different controller session than the
+latest manual door closure.
 
-Standalone native refueling is still draft TKT-01M62VXZ4 (Plugin: add fuel and ore
-to machines and take their output). The owner requested verification, not
-selection/implementation of that draft. Its latest notes retain the actual
-policy rejection and explain that future native add_to must test exact hearth
-sight/reach and normal one-unit pack/fuel receipts. Do not bypass the policy or
-disguise fire tending as cooking. No implementation was promoted.
+Tas's new bed1274003559:489 at[-207.83,32.99,-468.26] was claimed natively with
+"Spawn point set" after the owner fixed an exposed predecessor. Saved place
+`tas bed approach`[-204.89,32.97,-467.49] is bound as new home.sleeping. Four other
+beds belong to others and were left alone. Actual sleep and respawn after death
+are not tested. Preserve TKT-01M62PRDS's older claim and unticked criterion2.
+Owner-requested TKT-01M6KS61A (Build and claim a bed through native placement)
+remains draft; filing was not implementation selection.
 
-Ordinary native t-32 returned to the saved sleeping approach without injury.
-Evidence .checks/task-iqa8gedg.json (room arrival),
-.checks/task-6asit0js.json (interaction rejection),.checks/task-3_j0pfd8.json
-(return),.checks/rebuilt-fire-room-map.json,.checks/rebuilt-fire-after-map.json,
-.checks/rebuilt-fire-final-map.json,.checks/rebuilt-fire-before-inventory.json,
-.checks/rebuilt-fire-after-inventory.json,
-.checks/camera-20261104T175332057774Z.jpg,.checks/rebuilt-fire-return-observe.json.
-Claim-and-respawn criterion2 on TKT-01M62PRDS remains unticked; native refusal
-criterion4 is earned by the earlier reported exposure refusal. Preserve its
-prior claim. Actual sleep has not been tested. Earlier bed/lower-room receipts
-and initial fire replacement history remain on that ticket.
+TKT-01M6FV6E (Home survey: familiarize with an area and update its places) remains
+in-progress. Survey9efba35d2e5246771e077c4d reached bound storage via t-1,35.485m,
+then its return t-2 failed after11.979m at[-177.89,30.97,-471.19]. Level deck y30.97
+under changing water30.155->30.275 triggered dry bank departure at0.9m clearance;
+its stronger1.1m recovery threshold was not regained within3m. Do not repeat the
+unchanged dry survey or relax water/support/hostile guards. Scope retained
+690/704 measured samples,14 unknown; separate supervised ordinary t-12 returned
+home and recorded71 route points. This does not earn survey return criteria5/7.
+Source correction83a4743 already lets an exact bound role within60m reach the
+existing bounded native dry walker when terrain under raised decking is wet.
+Audit .checks/audit-window-IxX5Fs.jsonl,.checks/survey-return-audit-summary.txt,
+.checks/task-gecesv1a.json. Supported deck/wave handling is a future implementation.
 
-First goal38cb6628bc116daff1b9323a returned partial without travel,690/704
-terrain samples measured,14 unknown,52 refreshed,17 places added/refreshed,
-9 old markers protected. Wet ground under the deck wrongly prevented dispatch
-to the bound storage role. Correction83a4743 allows an exact bound role within60m
-to reach the existing dry bounded native walker without fabricating floor heights.
-
-Retried goal9efba35d2e5246771e077c4d actually reached storage via t-1:
-35.485m travel,final[-170.06,31.04,-467.82]. Return t-2 failed after11.979m at
-[-177.89,30.97,-471.19]. The actual failure is wave-sensitive dry clearance:
-level deck/support y30.97, water30.155 rising to30.275. WaitingMargin0.9 triggered
-bank departure; its stronger1.1m recovery threshold was not regained on the level
-deck, and its3m bound refused distance_limit. Further terrain legs refused and
-the agent stopped the survey. Retained coverage690/704 measured,598 refreshed,
-14 unknown;7 new places,9 protected. Goal is cancelled, not a verified return.
-Do not repeat the same unchanged survey or relax water/support/hostile guards.
-Next implementation is to handle supported deck travel under changing wave
-clearance, then verify both directions with bounded receipts.
-
-Separate supervised ordinary native move t-12 succeeded home and recorded71
-route points. It does not earn the survey return or separated-building criterion.
-Exact audit .checks/audit-window-IxX5Fs.jsonl; bounded summary
-.checks/survey-return-audit-summary.txt; checkpoint .checks/continuation-observe.json;
-recovery receipt .checks/task-gecesv1a.json. Native trails are in full audit even
-where the goal checkpoint's trail arrays are null. Survey criteria5/7 stay unticked. The newly bound sleeping role has not yet
-been included in a fresh bounded survey; do not repeat the known failing
-storage round trip unchanged.
-
-TKT-01M6H243 — Close doors Tas opened after passing through the doorway remains
-review/released with native criterion4 unearned. Storage leaves1:15335/1:15334
-were opened but cleanup ran after Tas was8m away; fresh17:03Z perception confirms
-both remained open then. Fresh17:37Z perception now sees all four home/storage
-doors closed; this alone does not attribute closure to Tas. Explicit t-14 had
-closed home door1:14823 and fresh perception verified closed (.checks/task-zg0w2zau.json,.checks/home-after-close-map.json).
-This manual home-door closure does not prove automatic double-door restoration.
-
-## Older claims and boundaries
-
-TKT-01M62PRDS (Claim a bed near home, or tell owner none), TKT-01M62N256
-(Plugin: flee task, and retreating when health is low) and other earlier tickets
-retain their claims. Old-base mushroom foraging ended in death before portal
-travel; do not repeat it. Exact old pursuit audit .checks/audit-window-CReSWs.jsonl.
-TKT-01M6FT1Z (Follow: go through the portal the leader just used) and TKT-01M6EYEMT
-(Loot panel) stay review/released with their owner-in-game criteria unearned.
-Unselected passive-gathering/needs-ledger/agent-list drafts remain draft.
-Twelve unknown saved goal instances warned on startup; do not delete them.
+TKT-01M6H243 (Close doors Tas opened after passing through the doorway) remains
+review/released with native criterion4 unearned. Manual home-door closure today
+is not automatic double-door restoration. TKT-01M6FT1Z (Follow: go through the
+portal the leader just used) and TKT-01M6EYEMT (Loot panel) remain review/released
+with owner-in-game criteria unearned. Do not take over older flee/bed claims,
+promote unselected drafts or delete the twelve unknown saved goals warned at
+startup. Next work needs the owner's selection.

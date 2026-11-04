@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62VXZ4D32W7WBX7WV84DAVY
 title: "Plugin: add fuel and ore to machines and take their output"
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: normal
 due_on: null
@@ -22,17 +22,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/portal-deploy
-  branch: t3/renki-portal-travel-startup
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
-  commit: f2b608ae7a7afb95a37463e4baa6e29fde122d03
-  session: null
-  claimed_at: 2026-11-04T17:57:17Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-04T18:08:05Z
+updated_at: 2026-11-04T18:14:31Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -78,8 +71,8 @@ Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entit
 
 - [ ] Both respect wards and a Safety switch, and fail with the reasons 6.6 names
 - [x] An uncertain unit (no pack decrease or no fuel increase) stops the task without a retry, in a core test
-- [ ] One live add_to of 2 Wood into a home fire that has room for 2 reports 2 added, and the next perception shows its fuel up by at least 1.9 (fuel burns between samples); audit window linked
-- [ ] add_to puts fuel from the pack into a fire and reports how many
+- [x] One live add_to of 2 Wood into a home fire that has room for 2 reports 2 added, and the next perception shows its fuel up by at least 1.9 (fuel burns between samples); audit window linked
+- [x] add_to puts fuel from the pack into a fire and reports how many
 - [ ] take_from collects finished food from cooking stations
 
 ## Implementation plan
@@ -113,3 +106,17 @@ Implemented the owner-selected fireplace add_to slice, not take_from or general 
 Passed focused Fuel and CookingTests, controller protocol/config/settings/session/deployment tests, real plugin build and full just check ci (227s, .checks/20261104T180339Z-7nnsAy.log). Native deployment/test remains pending. Unit tests earn only uncertain-unit criterion2; output collection and both-task coverage remain unearned.
 
 Predeployment resupply: first t-33 withdrawal was superseded by ordinary automatic flee from the nearby boar; t-36 reached safety34m away with injurySeq0. t-38 withdrew3 Sausages and3 BoarJerky, reporting missing CarrotSoup honestly; t-41 withdrew3 QueensJam; t-43 withdrew2 Wood from mapped barrel1:15599. t-44 returned upstairs to[-204.35,32.97,-467.56] with three active meals, full115.4HP and injurySeq0. Pack now2 each Sausages/BoarJerky/QueensJam,3 Wood and4 Stone. Evidence .checks/task-zet106oa.json,.checks/hearth-resupply-flee.json,.checks/task-55w4xxwr.json,.checks/task-kxuqqjfa.json,.checks/task-nm3uajxl.json,.checks/task-_2k3r8b3.json,.checks/hearth-predeploy-inventory.json. No harvesting or invented supplies.
+
+**agent:codex/portal-deploy** at 2026-11-04T18:14:30Z
+
+Deployed1c1d36c with just check vm install: candidate preflight and installed checksums/deployment receipt passed; durable settings/data retained (.checks/20261104T180836Z-KWYTZz.log). just vm stations read absent=false, inserted true while offline, then read true. Preserved existing allowedTasks and appended add_to before the new game session. just check vm online restored the panel/private OBS stack and Tas in78s (.checks/20261104T180939Z-ISCenW.log). Post-test /api/video confirms verified gameplay, scope1:DizzysHellheim:827096491.
+
+Native new-session t-1 add_to(Stone,1) against hearth1274003559:2382 was rejected invalid_target before movement/consumption (.checks/task-xy4fy2om.json). t-2 reached the lower room at[-205.54,30.26,-466.87] using the north staircase/door (.checks/task-05kfvpse.json). t-3 add_to(Wood,2) succeeded through the owner's half-wall opening from[-205.54,30.26,-466.89], without an alternate approach or injury. Actual paired receipts: pack3->2 with fuel1.69052184->2.69052172; then pack2->1 with fuel2.69052172->3.69052172. The native task reported added2/2 Wood; fuel3.691/20,lit=True. Next perception confirms1.7->3.7/20, exceeding the required1.9 increase. Inventory confirms Wood3->1, Stone4 unchanged and meals retained. This earns criteria3/4. No smoke/fire injury was observed (injurySeq0); this short check does not establish sustained ventilation in every weather state.
+
+Audit window2026-11-04T18:11:50Z..18:12:05Z: .checks/audit-window-VvrnUU.jsonl. Exact task request/receipt traces and final status: .checks/task-v5io_9bo.json. Before/after .checks/hearth-two-wood-{before,after}-{map,inventory}.json and after-status.json retain observations. Ordinary t-4 returned upstairs (.checks/task-zbsqagkt.json). Explicit t-5 closed the open home Wood Door1:14823; fresh perception confirms closed (.checks/task-e5g1xg9_.json,.checks/hearth-final-home-map.json). This manual closure does not earn automatic double-door restoration. Storage double doors remain observed open; no extra traversal was made to close them.
+
+Final18:14Z Tas is idle/grounded/sheltered upstairs at[-202.99,32.97,-467.42],109.5/109.5HP,injurySeq0, three active meals plus2 carried each Sausages/BoarJerky/QueensJam,1 Wood and4 Stone. Bed1274003559:489 remains mine/owned, hearth lit3.7/20, private stream verified gameplay. Loot stays disabled; idleMinutes0,afterDeath stay,afterOutage false. Leave Tas online. The fireplace slice is delivered; criteria1/5 remain unticked because take_from is not implemented. Keep output collection separate from this owner's hearth request.
+
+## Summary
+
+Fireplace add_to delivered on PR179 and deployed1c1d36c. Native rebuilt-hearth test verified2 Wood consumed, fuel1.7->3.7/20 and lit=true through half-wall opening, without injury. Full CI and committed review passed. take_from remains unimplemented; criteria1/5 intentionally unearned.
