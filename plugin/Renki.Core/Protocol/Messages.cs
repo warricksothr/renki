@@ -142,6 +142,23 @@ namespace Renki.Protocol
         [JsonProperty("day")] public int Day;
         [JsonProperty("dayFraction")] public double DayFraction;
         [JsonProperty("night")] public bool Night;
+        // The visual fraction is smoothed and can lag the calendar at midnight.
+        [JsonProperty("calendarFraction", NullValueHandling = NullValueHandling.Ignore)] public double? CalendarFraction;
+
+        public static GameTime FromClock(double seconds, double dayLength, double displayFraction, bool night)
+        {
+            if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0 ||
+                double.IsNaN(dayLength) || double.IsInfinity(dayLength) || dayLength <= 0 ||
+                seconds / dayLength >= int.MaxValue) return null;
+            var day = (int)System.Math.Floor(seconds / dayLength);
+            return new GameTime
+            {
+                Day = day,
+                CalendarFraction = (seconds - day * dayLength) / dayLength,
+                DayFraction = System.Math.Round(displayFraction, 3),
+                Night = night
+            };
+        }
     }
 
     public sealed class TaskRef
@@ -163,6 +180,7 @@ namespace Renki.Protocol
     }
     public sealed class CarriedFood
     {
+        [JsonProperty("stamina", DefaultValueHandling = DefaultValueHandling.Ignore)] public double Stamina;
         [JsonProperty("prefab")] public string Prefab;
         [JsonProperty("health")] public double Health;
         [JsonProperty("regen")] public double Regen;
@@ -209,6 +227,7 @@ namespace Renki.Protocol
 
     public sealed class State : Message
     {
+        [JsonProperty("otherPlayers", NullValueHandling = NullValueHandling.Ignore)] public int? OtherPlayers;
         [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.State;
         [JsonProperty("phase")] public string Phase = "";
@@ -269,6 +288,7 @@ namespace Renki.Protocol
         [JsonProperty("minTool", NullValueHandling = NullValueHandling.Ignore)] public int? MinTool;
         [JsonProperty("stack", NullValueHandling = NullValueHandling.Ignore)] public int? Stack;
         [JsonProperty("yield", NullValueHandling = NullValueHandling.Ignore)] public ResourceYield Yield;
+        [JsonProperty("waterLevel", NullValueHandling = NullValueHandling.Ignore)] public double? WaterLevel;
     }
 
     public sealed class ResourceYield

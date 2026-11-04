@@ -36,6 +36,13 @@ namespace Renki.Plugin
                     return new MeleeTask(req.Id, attack, FindEntity(attack.Entity));
                 case HarvestArgs harvest:
                     return new HarvestTask(harvest, FindEntity(harvest.Entity));
+                case AddToArgs fuel:
+                    {
+                        var obj = FindEntity(fuel.Entity);
+                        var fire = obj != null ? obj.GetComponent<Fireplace>() : null;
+                        if (fire == null) throw new TaskRefused(Wire.ReasonInvalidTarget, "add_to requires a fireplace");
+                        return new FireplaceTask(req.Id, fuel, fire);
+                    }
                 case InspectContainerArgs inspection:
                     {
                         var obj = FindEntity(inspection.Container);
@@ -79,6 +86,7 @@ namespace Renki.Plugin
                 case InteractArgs ia:
                     {
                         var obj = FindEntity(ia.Entity);
+                        if (ia.PortalTo != null) return new PortalTravelTask(ia);
                         // A tombstone carries a Container too, which is not what to use.
                         var it = obj == null ? null
                             : (Interactable)obj.GetComponentInParent<TombStone>() ?? obj.GetComponentInParent<Interactable>();

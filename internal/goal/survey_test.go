@@ -407,3 +407,84 @@ func TestSurveyKnownTerrainStillExploresUnassignedBasePlaces(t *testing.T) {
 		t.Fatal("known terrain suppressed place learning", o, err, g.Survey.Coverage)
 	}
 }
+
+func TestSurveyBoundPlacesOverWaterStillRequireBoundedNativeRoundTrip(t *testing.T) {
+	host, r, v, id := surveyFixture(t)
+	surveyFresh(&v)
+	_, _, scope, tiles := host.Session.TerrainView()
+	tick, belowWater := v.State.T, 28.0
+	for i := range tiles {
+		for j := range tiles[i].Heights {
+			tiles[i].Heights[j] = &belowWater
+			tiles[i].MeasuredAt[j] = &tick
+		}
+	}
+	if err := host.Atlas().Ingest(context.Background(), session.TerrainObservation{World: "one", Scope: *scope, CapturedAt: tick, ReceivedAt: v.Now, Tiles: tiles}); err != nil {
+		t.Fatal(err)
+	}
+	var last *behaviour.Result
+	visits := map[string]int{}
+	for step := 0; step < 30; step++ {
+		surveyFresh(&v)
+		o, err := r.Next(v, last)
+		var delay *behaviour.Delay
+		if errors.As(err, &delay) {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, _ := host.Store.Get(id)
+		if terminal(g.Status) {
+			break
+		}
+		if o == nil {
+			continue
+		}
+		args := o.Args.(*protocol.MoveToArgs)
+		if !args.Dry || !args.AvoidHostiles || args.Scope == nil || args.Scope.Radius != 60 || args.Scope.TravelM > 100 || args.Scope.DurationS > 40 {
+			t.Fatalf("lost native movement constraints: %+v", args)
+		}
+		pos := *args.To.Pos
+		name := ""
+		for _, w := range g.Survey.Targets {
+			if pos == w.Pos {
+				name = w.Name
+				break
+			}
+		}
+		if name == "" {
+			t.Fatalf("invented a dry intermediate floor: %v", pos)
+		}
+		visits[name]++
+		// Dispatch alone is never an arrival. Feed a separate native receipt.
+		if len(g.Survey.Legs) >= g.TaskCount {
+			t.Fatal("leg verified without a receipt")
+		}
+		last = surveyReceipt(t, r, &v, o, time.Now().Add(time.Duration(step)).Format(time.RFC3339Nano), protocol.StatusSucceeded)
+	}
+	g, _ := host.Store.Get(id)
+	if !g.Survey.Returned || visits["bedroom"] < 2 || visits["warehouse"] < 1 || visits["return"] < 1 || g.Status == "succeeded" {
+		t.Fatalf("missing verified role routes or false full coverage: visits=%v status=%s returned=%v", visits, g.Status, g.Survey.Returned)
+	}
+}
+
+func TestSurveyAcceptsFoodMaximumDecayButStillStopsHealthLossAndInjury(t *testing.T) {
+	host, r, v, id := surveyFixture(t)
+	surveyFresh(&v)
+	g, _ := host.Store.Get(id)
+	v.State.HP, v.State.HPMax = 70, 70
+	if err := r.surveyCheck(g, v); err != nil {
+		t.Fatalf("food maximum decay stopped survey: %v", err)
+	}
+	v.State.HP = 69
+	if err := r.surveyCheck(g, v); err == nil {
+		t.Fatal("real loss below decayed maximum was ignored")
+	}
+	v.State.HP = 70
+	hit := *v.InjurySeq + 1
+	v.InjurySeq = &hit
+	if err := r.surveyCheck(g, v); err == nil {
+		t.Fatal("injury was hidden by maximum decay")
+	}
+}

@@ -230,3 +230,53 @@ func TestScreenshotSettingsPersistWithHardBounds(t *testing.T) {
 		t.Fatal("interval lost on restart")
 	}
 }
+
+func TestBedtimeModePersistsAndRejectsUnsupportedChannels(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	s := open(t, path)
+	for _, mode := range []string{"normal", "shout", ""} {
+		raw, _ := json.Marshal(mode)
+		if err := s.Set("presence.bedtime", raw, ByPanel); err != nil {
+			t.Fatal(err)
+		}
+		if got := open(t, path).Values().Presence.Bedtime; got != mode {
+			t.Fatal(got, mode)
+		}
+	}
+	for _, raw := range []string{`"whisper"`, `"invalid"`, `true`, `4`} {
+		if err := s.Set("presence.bedtime", json.RawMessage(raw), ByPanel); !errors.Is(err, ErrBadValue) {
+			t.Fatal(raw, err)
+		}
+	}
+}
+
+func TestFoodPolicySettingsValidatePersistAndCopyTierOverrides(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	s, err := Open(path, config.Default(), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, value := range map[string]string{"food.activityAware": "true", "food.idleMaxTier": "2", "food.tiers": `{"ModMeal":2}`} {
+		if err = s.Set(key, json.RawMessage(value), ByPanel); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = s.Set("food.tiers", json.RawMessage(`{"Bad":0}`), ByPanel); err == nil {
+		t.Fatal("invalid tier accepted")
+	}
+	if err = s.Set("food.idleMaxTier", json.RawMessage(`0`), ByPanel); err == nil {
+		t.Fatal("disabled idle food accepted")
+	}
+	s, err = Open(path, config.Default(), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := s.Values()
+	if !v.Food.ActivityAware || v.Food.Tier("ModMeal") != 2 {
+		t.Fatal(v.Food)
+	}
+	v.Food.Tiers["ModMeal"] = 7
+	if s.Values().Food.Tier("ModMeal") != 2 {
+		t.Fatal("settings aliases mutable tiers")
+	}
+}

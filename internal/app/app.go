@@ -83,6 +83,14 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	}
 	s := session.New(nil, log.With("part", "session"))
 	s.SetPermit(func(task string) bool { return slices.Contains(set.Values().AllowedTasks, task) })
+	s.SetHarvestAreas(func(world string) []protocol.HarvestExclusion {
+		bases, _ := homes.Bases(world)
+		areas := make([]protocol.HarvestExclusion, 0, len(bases))
+		for _, b := range bases {
+			areas = append(areas, protocol.HarvestExclusion{Center: b.Center, Radius: b.Radius})
+		}
+		return areas
+	})
 	keeper := home.NewLive(homes, func() config.HomeRules { return set.Values().Home }, s, log.With("part", "home"), nil)
 	s.SetMovePlace(func(world, name string) (protocol.Vec3, error) {
 		if place, ok := homes.Waypoint(world, name); ok {
@@ -91,7 +99,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		return protocol.Vec3{}, home.ErrNoWaypoint
 	})
 	players := &memory.Players{Session: s, Store: homes, Logger: log.With("part", "players")}
-	playerPresence := presence.New(presence.Options{Session: s, Players: players, Live: func() presence.Live {
+	playerPresence := presence.New(presence.Options{Session: s, Players: players, ReserveBedtime: homes.ReserveBedtime, Live: func() presence.Live {
 		v := set.Values()
 		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
 	}, Logger: log.With("part", "presence")})
@@ -150,6 +158,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		}
 	})
 	a.Food = food.New(s, func() []string { return set.Values().Owners }, log.With("part", "food"), nil)
+	a.Food.SetPolicy(func() food.Policy { return set.Values().Food }, a.foodWorkload)
 	a.Retreat = retreat.New(s, func() []string { return set.Values().Owners }, func() (protocol.Vec3, bool) {
 		_, h, ok := keeper.Current()
 		return h.Pos, ok
@@ -159,6 +168,8 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		a.Goals = goals[0]
 	}
 	a.goalTemplate = &goal.Template{Store: a.Goals, Memory: homes, Session: s, Atlas: func() *atlas.Store { return a.Atlas }, Landmarks: homes.Landmarks, Allowed: a.Session.Allowed}
+	a.goalTemplate.FoodPolicy = func() food.Policy { return set.Values().Food }
+	a.goalTemplate.Logger = log.With("part", "goals")
 	a.supplyLog = log.With("part", "resupply")
 	a.Food.SetReserved(func() bool { return a.Goals.FoodRunning() || a.Behaviours != nil && a.Behaviours.PreparingFood() })
 	a.Behaviours = behaviour.New(behaviour.Options{Session: s, Store: set, Templates: map[string]behaviour.Template{"goal": a.goalTemplate, "household_food": &goal.FoodWork{Goal: a.goalTemplate}, "personal_food": &goal.FoodWork{Goal: a.goalTemplate, Personal: true}},
@@ -172,6 +183,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Landmarks:    homes.Landmarks,
 		Waypoints:    homes.Waypoints,
 		Base:         homes.ActiveBase,
+		Bases:        func(world string) []home.Base { bases, _ := homes.Bases(world); return bases },
 		Danger:       homes.DangerZones,
 		Pickups:      homes.Pickups,
 		Notify: func(ctx context.Context, line string) {

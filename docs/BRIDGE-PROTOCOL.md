@@ -113,6 +113,8 @@ Optional `features` advertises argument semantics separately from task names.
 `deposit_match_existing_v1` permits the conditional deposit described below.
 A controller must refuse that option when the plugin omits this feature;
 older plugins can ignore unknown arguments, so sending it would be unsafe.
+`harvest_exclusions_v1` promises bounded `harvest.exclude` circles and native
+root/water checks. The controller refuses protected harvesting on older plugins.
 
 ### `welcome` (controller → plugin)
 
@@ -214,6 +216,15 @@ that is `stranded`, and body tasks then fail with `encumbered` (6.6) rather
 than going through stuck recovery. The game's auto-pickup never takes what would cross `weightMax`,
 and neither does `pickup` (`too_heavy`).
 
+`state.food.carried[].stamina` reports each meal's observed stamina benefit.
+Older plugins may omit it; the controller then uses zero for that contribution.
+It is used alongside health to rank work meals, not to bypass CanEat.
+
+`state.otherPlayers` is an optional native server-roster count excluding Tas.
+It is sent only in a live world when the server player list is available. Missing
+means unknown, while zero means no other listed player; local perception is a
+separate measure and cannot establish the whole server roster.
+
 ### 6.2 `perception` (at `perceptionHz`, default 1)
 
 What's near the bot, within `radius`, nearest first, capped at `maxPerKind`
@@ -281,6 +292,10 @@ or landmarks. Map snapshots and exports carry them through `perception`.
   is unknown. These dynamic values are sampled anew, independently of
   geometry caches. See [COOKING.md](COOKING.md).
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
+  Optional `waterLevel` is measured at the resource root using the local liquid
+  level and world water level. Missing means unknown. Automatic wood/stone/ore
+  places require the root more than 0.2 m above known water. Static fallen logs
+  such as `FirTree_oldLog` are `log`, rather than standing `tree` sites.
   Optional `yield` describes a drop/simple pickable's primary output:
   `{prefab, count, stackMax, weight}`. Count is a capacity upper bound
   including possible skill bonuses; weight is per item. Unknown, extra-drop
@@ -528,8 +543,8 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `emote` | instant | `name` (`wave`, `sit`, `point`, …) | M1 |
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
-| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only); `cook` (one carried raw-food prefab; see [COOKING.md](COOKING.md)) | M2 |
-| `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
+| `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only); `portalTo` (pinned native destination ID; exclusive crossing mode, requires `portal_travel_v1`, see [PORTALS.md](PORTALS.md)); `cook` (one carried raw-food prefab; see [COOKING.md](COOKING.md)) | M2 |
+| `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true); `exclude` (base circles) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (carried food prefab; eat one) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
@@ -540,11 +555,32 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `escort` | body | `player`; `protect` (names, at most 128); `distance` (2–8 m, default 3.5); `collect` / `defend` (default true). Persistent native follow/collection/defense/escape; see [ESCORT.md](ESCORT.md) | M3 |
 | `guard` (planned area guard) | body | `around`: player or position; `radius` | M3 |
+| `add_to` | body | `entity`: fireplace; `item`: exact fuel prefab; `count`: integer 1–16 | native fireplace refueling |
 | `inspect_container` | body | `container`: chest entity; required `scope` with `center`, `radius`, `travelM`, `durationS` | read-only storage |
 | `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 
 Notes:
+
+- `add_to` supports ordinary finite refillable fireplaces, including hearths,
+  torches and braziers, using their exact fuel item. It requires the plugin's
+  default-off `Safety.AllowStations`, `AllowGather`, `AllowMovement` and session
+  `allowedTasks` permission. Other machines and output collection are unsupported.
+  It uses bounded supported approaches with live sight/reach and ward checks;
+  tending requires food, safe health, grounded dry footing outside fire/smoke
+  and no nearby hostile. Each ordinary `Fireplace.UseItem` consumes at most one
+  item. A pack decrease of exactly one and synchronized fuel rise of 0.9–1.05
+  within five seconds verify a unit, allowing normal burning. No further use is
+  sent while a receipt is pending. An uncertain unit fails without retry; stop,
+  timeout and reconnect never replay it. Traces retain before/after pack/fuel,
+  target, position and lit state. The final detail reports verified added/requested
+  count, full/partial reason, fuel and lit state. Full follows the game's
+  `ceil(fuel) >= maxFuel` rule. A fueled but unlit fire refuses further fuel;
+  an empty fire may receive one unit, then stops if still unlit. Fuel is distinct
+  from heat: check ventilation/weather when it remains unlit. No fire toggles,
+  fireworks, ownership claims or direct inventory/ZDO writes are used. Missing
+  or incompatible fuel is `invalid_target`; uncertain receipt/safety is `refused`;
+  ward denial is `not_allowed`; lost access/reach stops the task.
 
 - `interact` with `sleep:true` uses only a bed and cannot combine `alt` or
   `hold`. It claims an unowned bed or sets the bot's spawn point if necessary,
@@ -711,8 +747,21 @@ Notes:
   Less than 1 m flat displacement over 4 s with a threat within 15 m fails
   `blocked`, with a trace naming position, threat, goal and gap. Replanning
   does not reset that physical-progress window.
-- `harvest` operates on one loaded tree, log, stump or mineable rock. It
-  chooses the greatest resource damage among usable carried melee tools that
+- `harvest` operates on one loaded tree, log, stump or mineable rock.
+  The controller requires fresh current-world target perception, refuses roots
+  inside any saved base circle, and supplies authoritative `exclude` circles
+  (`{center:[x,y,z],radius}`; at most 16, radius 10–250 m). This includes the
+  boundary and all heights. A work site's center outside camp grants no
+  permission to cut a target inside it. Callers cannot clear the saved policy.
+  Native work checks the actual target against this dispatch-time snapshot and
+  current root water clearance before approaching and every work tick. Missing
+  water knowledge or a root at/below water plus 0.2 m refuses work. Saved base
+  edits apply to subsequent harvest orders; stop existing work before changing
+  the protected boundary.
+  Discovery also excludes saved base circles. Invalid automatic resource sites
+  are pruned without owner-deletion suppression; owner places and saved role
+  bindings are preserved. Storage, sleeping and cooking sites remain inside camp.
+  It chooses the greatest resource damage among usable carried melee tools that
   meet `minTool`, requires at least 80% health and a work site clear of
   enemies within 15 m, approaches the resource's physical surface, and uses normal
   held primary-attack input with stamina and facing checks. Enemy proximity
@@ -996,7 +1045,7 @@ Notes:
 
 1. **Whitelist only.** The plugin carries out the tasks in section 7.2 and
    nothing else. No console or dev commands, ever.
-2. **The plugin's own config wins.** `allowGather`, `allowDrop`, `allowCombat`,
+2. **The plugin's own config wins.** `allowGather`, `allowStations`, `allowDrop`, `allowCombat`,
    `allowSailing`, `allowBossSummoning` and `allowRawControls` are read from the
    plugin's BepInEx config. `welcome.allowedTasks` can narrow them but never
    widen them.
@@ -1007,7 +1056,7 @@ Notes:
    the game's line length, and any leading `/` is stripped.
 5. **No friendly fire.** `attack` is refused on players and tamed creatures,
    and on anything `BaseAI.IsEnemy` says isn't hostile.
-6. **Wards.** `harvest` and `interact` are refused where the game's
+6. **Wards.** `add_to`, `harvest` and `interact` are refused where the game's
    private-area access check fails for the bot.
 7. **Bosses.** Interacting with offering bowls is refused unless
    `allowBossSummoning` is set.
@@ -1339,3 +1388,9 @@ swimming, missing footing, excessive depth or a reduced native allowance stops
 without switching to swimming recovery. A wading route is revalidated under the
 current mode whenever reused. This does not enable wading in the survey or
 existing household routines automatically.
+
+`time.calendarFraction` is optional raw calendar progress (0 inclusive to 1
+exclusive), sampled with `time.day` from one native network clock reading and
+the game's configured day length. `time.dayFraction` remains the smoothed visual
+lighting fraction. Calendar rollover can precede visual midnight. Nightly bedtime
+invitations require the coherent raw field; older plugins defer that routine.

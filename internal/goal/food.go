@@ -22,6 +22,7 @@ var cooked = map[string]string{"RawMeat": "CookedMeat", "DeerMeat": "CookedDeerM
 
 // FoodProgress is a typed host adapter, not a checkpoint of an arbitrary runner.
 type FoodProgress struct {
+	Decision         *food.Decision       `json:"decision,omitempty"`
 	Stock            *FoodStock           `json:"stock,omitempty"`
 	Acquisition      *FoodAcquisition     `json:"acquisition,omitempty"`
 	CandidateCount   int                  `json:"candidateCount,omitempty"`
@@ -285,7 +286,11 @@ func (r *runner) foodNext(g Record, v behaviour.View, last *behaviour.Result) (*
 		(stock.Delivering || stock.Known != nil && (stockLoaded(v) || !nourished(s) || mealCount(v.Inventory) < f.Reserve || s.HP < s.HPMax*.8)) {
 		return r.stockReturn(g, v, stock.Known, stock.Shortage, "committed delivery: personal reserve, nourishment, recovery or capacity pressure")
 	}
-	itemToEat := food.Choose(s.Food)
+	decision, err := r.foodDecision(g, v)
+	if err != nil {
+		return nil, err
+	}
+	itemToEat := decision.Item
 	fillSlot := itemToEat != "" && s.Food != nil && len(s.Food.Active) < 3 && remaining(s, itemToEat) == 0
 	// A reserve is measured after filling eligible food slots, so the normal
 	// keeper cannot immediately eat the entire newly prepared reserve.

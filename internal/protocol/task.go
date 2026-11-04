@@ -39,6 +39,7 @@ const (
 	TaskDeposit          = "deposit"
 	TaskWithdraw         = "withdraw"
 	TaskInspectContainer = "inspect_container"
+	TaskAddTo            = "add_to"
 	TaskHarvest          = "harvest"
 	TaskAttack           = "attack"
 	TaskUseItem          = "use_item"
@@ -116,6 +117,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &UnequipArgs{}
 	case TaskDeposit, TaskWithdraw:
 		args = &TransferArgs{}
+	case TaskAddTo:
+		args = &AddToArgs{}
 	case TaskInspectContainer:
 		args = &InspectContainerArgs{}
 	case TaskHarvest:
@@ -177,6 +180,27 @@ type TransferArgs struct {
 	Container     string         `json:"container"`
 	Items         []TransferItem `json:"items"`
 	MatchExisting bool           `json:"matchExisting,omitempty"`
+}
+
+// AddToArgs inserts bounded ordinary fuel units into one observed fireplace.
+type AddToArgs struct {
+	Entity string `json:"entity"`
+	Item   string `json:"item"`
+	Count  int    `json:"count"`
+}
+
+func (a *AddToArgs) UnmarshalJSON(raw []byte) error {
+	type plain AddToArgs
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	return d.Decode((*plain)(a))
+}
+
+func (a *AddToArgs) validate() error {
+	if strings.TrimSpace(a.Entity) == "" || strings.TrimSpace(a.Item) == "" || a.Count < 1 || a.Count > 16 {
+		return errors.New("add_to requires entity, item and integer count from 1 to 16")
+	}
+	return nil
 }
 
 // InspectContainerArgs requests current contents without transferring items.
@@ -402,13 +426,53 @@ func (a *AttackArgs) validate() error {
 // HarvestArgs operates on one resource; descendants remain separate targets.
 // Nil Collect means true, matching the plugin default.
 type HarvestArgs struct {
-	Entity  string `json:"entity"`
-	Collect *bool  `json:"collect,omitempty"`
+	Entity  string             `json:"entity"`
+	Collect *bool              `json:"collect,omitempty"`
+	Exclude []HarvestExclusion `json:"exclude,omitempty"`
 }
+
+// HarvestExclusion protects a saved base in the horizontal plane at any height.
+type HarvestExclusion struct {
+	Center Vec3    `json:"center"`
+	Radius float64 `json:"radius"`
+}
+
+func (a *HarvestExclusion) UnmarshalJSON(raw []byte) error {
+	var wire struct {
+		Center []*float64 `json:"center"`
+		Radius float64    `json:"radius"`
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&wire); err != nil {
+		return err
+	}
+	if len(wire.Center) != 3 || wire.Center[0] == nil || wire.Center[1] == nil || wire.Center[2] == nil {
+		return errors.New("harvest exclusion center must be [x,y,z]")
+	}
+	a.Center = Vec3{*wire.Center[0], *wire.Center[1], *wire.Center[2]}
+	a.Radius = wire.Radius
+	return nil
+}
+
+func (a HarvestExclusion) Contains(p Vec3) bool { return a.Center.FlatDistance(p) <= a.Radius }
 
 func (a *HarvestArgs) validate() error {
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
+	}
+	if len(a.Exclude) > 16 {
+		return errors.New("harvest supports at most 16 exclusions")
+	}
+	for _, area := range a.Exclude {
+		if !finite(area.Radius) || area.Radius < 10 || area.Radius > 250 {
+			return errors.New("harvest exclusion radius must be 10–250 m")
+		}
+		for _, n := range area.Center {
+			if !finite(n) || math.Abs(n) > 1e6 {
+				return errors.New("harvest exclusion center must be finite")
+			}
+		}
 	}
 	return nil
 }
@@ -618,6 +682,7 @@ func (a *DropArgs) validate() error {
 // InteractArgs are the arguments to `interact`: the entity to use, with
 // the alternative use (Alt) or the use key held (Hold).
 type InteractArgs struct {
+	PortalTo       string `json:"portalTo,omitempty"`
 	RecoverThreats bool   `json:"recoverThreats,omitempty"`
 	DefendThreats  bool   `json:"defendThreats,omitempty"`
 	Entity         string `json:"entity"`
@@ -629,6 +694,9 @@ type InteractArgs struct {
 }
 
 func (a *InteractArgs) validate() error {
+	if a.PortalTo != "" && (a.PortalTo == a.Entity || a.Alt || a.Hold || a.Sleep || a.Repair || a.Cook != "" || a.RecoverThreats || a.DefendThreats) {
+		return errors.New("portalTo requires a different destination and cannot combine with other interaction modes")
+	}
 	if a.DefendThreats && !a.RecoverThreats {
 		return errors.New("defendThreats requires recoverThreats")
 	}

@@ -187,6 +187,7 @@ type Session struct {
 	allowed        []string
 	permit         func(task string) bool
 	movePlace      func(world, name string) (protocol.Vec3, error)
+	harvestAreas   func(world string) []protocol.HarvestExclusion
 	tasks          map[string]*Task
 	nextTask       uint64
 }
@@ -544,6 +545,7 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	s.nextTask++
 	id := fmt.Sprintf("t-%d", s.nextTask)
 	resolve := s.movePlace
+	harvestAreas := s.harvestAreas
 	world, phase := "", ""
 	if s.state != nil {
 		world, phase = s.state.World, s.state.Phase
@@ -564,7 +566,28 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	if args, ok := decoded.(*protocol.MoveToArgs); ok && args.Wade && !slices.Contains(conn.Hello.Features, protocol.FeatureSupportedWading) {
 		return nil, errors.New("plugin does not support checked shallow-water wading")
 	}
+	if args, ok := decoded.(*protocol.InteractArgs); ok && args.PortalTo != "" && !slices.Contains(conn.Hello.Features, protocol.FeaturePortalTravel) {
+		return nil, errors.New("plugin does not support explicitly ordered portal travel")
+	}
 	resolved := false
+	if args, ok := decoded.(*protocol.HarvestArgs); ok {
+		if harvestAreas != nil {
+			if err := s.prepareHarvest(conn.Hello, world, phase, args, harvestAreas); err != nil {
+				return nil, err
+			}
+			resolved = true // Recheck world identity before sending the scoped policy.
+		}
+		if (harvestAreas != nil || len(args.Exclude) > 0) && !slices.Contains(conn.Hello.Features, protocol.FeatureHarvestExclusions) {
+			return nil, errors.New("plugin does not support protected dry harvesting")
+		}
+		req, err = protocol.NewTask(id, o.Task, args, o.TimeoutS)
+		if err != nil {
+			return nil, err
+		}
+		if _, err = req.DecodeArgs(); err != nil {
+			return nil, err
+		}
+	}
 	if args, ok := decoded.(*protocol.MoveToArgs); ok && resolve != nil && args.To.Entity != "" && !strings.Contains(args.To.Entity, ":") {
 		if world == "" || phase != protocol.PhaseInWorld {
 			return nil, errors.New("join a world before using a waypoint")
@@ -596,7 +619,7 @@ func (s *Session) dispatch(ctx context.Context, o Order, automation *Automation)
 	}
 	if resolved && (s.state == nil || s.state.World != world || s.state.Phase != protocol.PhaseInWorld) {
 		s.mu.Unlock()
-		return nil, errors.New("world changed while resolving the waypoint")
+		return nil, errors.New("world changed while resolving the task")
 	}
 	if automation != nil && s.automation != automation {
 		s.mu.Unlock()

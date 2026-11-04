@@ -103,6 +103,16 @@ func TestSavedAtlasOfflineQueriesAreBoundedAndAuthenticated(t *testing.T) {
 	if len(saved.Containers) != 1 || saved.Containers[0].Entity != "chest" || saved.Containers[0].Inventory().Count("Wood") != 10 {
 		t.Fatal("saved chest lost its shared contents", w.Body.String())
 	}
+
+	viewer := httptest.NewRecorder()
+	a.atlasHandler(false).ServeHTTP(viewer, httptest.NewRequest("GET", url, nil))
+	var public map[string]json.RawMessage
+	if err := json.Unmarshal(viewer.Body.Bytes(), &public); err != nil {
+		t.Fatal(err)
+	}
+	if viewer.Code != 200 || public["containers"] != nil || !strings.Contains(string(public["landmarks"]), "chest") {
+		t.Fatalf("viewer map leaked contents or lost chest location: %s", viewer.Body.String())
+	}
 	batch := make([]home.Landmark, 520)
 	for i := range batch {
 		batch[i] = outside

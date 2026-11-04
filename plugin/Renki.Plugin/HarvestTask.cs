@@ -75,6 +75,7 @@ namespace Renki.Plugin
             }
             else throw new TaskRefused(Wire.ReasonInvalidTarget, "harvest requires a tree, log, stump or mineable rock");
             origin = target.transform.position;
+            if (Excluded(out var exclusion)) throw new TaskRefused(Wire.ReasonRefused, exclusion);
             prefab = Perceiver.PrefabName(view, target);
             targetColliders = target.GetComponentsInChildren<Collider>();
             if (!targetColliders.Any(Alive)) throw new TaskRefused(Wire.ReasonInvalidTarget, "resource has no active physical target");
@@ -173,6 +174,7 @@ namespace Renki.Plugin
                 return AfterBreak(p, dt);
             }
             origin = target.transform.position;
+            if (Excluded(out var exclusion)) return Finish(Outcome.Failed(Wire.ReasonRefused, exclusion));
             if (!PrivateArea.CheckAccess(origin, 0f, false, false)) return Finish(Outcome.Failed(Wire.ReasonNotAllowed, "the resource is behind a ward"));
             if (!Settled(origin, rolling ? 6 : 2))
             {
@@ -398,6 +400,19 @@ namespace Renki.Plugin
                     ["complete"] = complete,
                 });
             return complete;
+        }
+
+        // Check the actual loaded target before approach/equip/attack, and on
+        // every tick: rolling logs cannot cross a camp boundary during work.
+        bool Excluded(out string why)
+        {
+            var point = Convert.ToV3(origin);
+            foreach (var area in args.Exclude)
+                if (area.Contains(point)) { why = "resource is inside a protected saved base"; return true; }
+            double? water = ZoneSystem.instance != null ? (double?)WorldNavigation.WaterLevel(point) : null;
+            if (!HarvestArea.DryRoot(point, water)) { why = "resource root is below or too close to water, or water level is unknown"; return true; }
+            why = null;
+            return false;
         }
 
         bool Protected(Player p, float fallRadius, out string why)

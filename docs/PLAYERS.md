@@ -164,3 +164,28 @@ immediately. A 30-second write batch also physically ages/prunes stored memory,
 including while nobody speaks; graceful shutdown flushes the final batch.
 An abrupt exit can lose the unsaved interval. Failed saves retain bounded
 pending observations with their original scope and times.
+
+## Nightly bed invitation
+
+Choose **Nightly bed invitation** in Players & presence: off, nearby normal
+chat, or a shout when the live server roster contains other players. The saved
+setting is `presence.bedtime`: `""`, `"normal"`, or `"shout"`; it defaults to off.
+Local chat needs a living player in fresh perception within15m. Missing time or
+audience telemetry keeps the routine quiet. The invitation asks, “It's night.
+Does anyone want to go to bed?” Tas waits for an ordinary sleep command; the
+invitation does not change movement, following, combat or sleep state.
+
+The controller uses native game night/day observations and stores an attempt
+before sending. Each world/character gets at most one invitation per calendar
+day and per night spanning midnight. Reconnects, restarts, mode changes and
+backwards time cannot repeat it. A failed or uncertain send is not retried that
+night, preventing duplicate messages after a crash. Changing to a new world or
+character uses a separate record. Existing records are not evicted to permit
+more invitations. The routine also stays quiet while Tas is in bed or sleeping.
+
+The bedtime limiter uses native calendar day and unsmoothed `calendarFraction`
+from one clock sample. The lighting `dayFraction` is smoothed and can still be
+near 1 after the calendar day increments; it must not identify a night. Missing
+coherent calendar telemetry defers invitations. Both native night and raw night
+are required, including after a time skip. The persisted calendar/night high-water
+marks are retained on upgrade, even if that conservatively skips a night.

@@ -13,6 +13,7 @@ import (
 	"github.com/warricksothr/renki/internal/bridge/bridgetest"
 	"github.com/warricksothr/renki/internal/config"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/session"
 )
 
 func TestPlayerProfilesAuthorizeCommandsAndRouteMarcoWithoutVoice(t *testing.T) {
@@ -70,3 +71,35 @@ func TestPlayerProfilesAuthorizeCommandsAndRouteMarcoWithoutVoice(t *testing.T) 
 		t.Fatal(c)
 	}
 }
+
+func TestNightInvitationKeepsAnActiveBodyOrderAndControlRevision(t *testing.T) {
+	cfg := config.Default()
+	cfg.Presence.Bedtime = protocol.ChannelShout
+	a := New(cfg, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, nil)
+	url := bridgetest.Serve(t, bridge.Options{Welcome: func(*protocol.Hello) *protocol.Welcome { return Welcome(cfg, a.Settings.Values()) }}, a.Session)
+	p := bridgetest.Connect(t, url, []string{protocol.TaskSay, protocol.TaskFollow})
+	others := 1
+	p.Send(&protocol.State{Envelope: protocol.Envelope{T: 100}, World: "one", WorldUID: "123", Character: "Tas", Phase: protocol.PhaseInWorld, HP: 25, OtherPlayers: &others, Time: protocol.GameTime{Day: 213, DayFraction: .8, CalendarFraction: clockFraction(.9), Night: true}})
+	waitFor(t, func() bool { return a.Session.State() != nil })
+	follow, err := a.Session.Dispatch(context.Background(), session.Order{Task: protocol.TaskFollow, Args: protocol.FollowArgs{Player: "Nimah"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.NextTask()
+	revision := a.Session.ControlRevision()
+	a.Presence.Tick(context.Background())
+	invited := p.NextTask()
+	if invited.Task != protocol.TaskSay || !strings.Contains(string(invited.Args), "go to bed") {
+		t.Fatal(invited)
+	}
+	if a.Session.ControlRevision() != revision {
+		t.Fatal("invitation changed body ownership")
+	}
+	if status, _, _ := follow.Status(); protocol.Final(status) {
+		t.Fatal("invitation cancelled follow")
+	}
+	a.Presence.Tick(context.Background())
+	p.Quiet(50 * time.Millisecond)
+}
+
+func clockFraction(n float64) *float64 { return &n }

@@ -55,7 +55,9 @@ type Hello struct {
 }
 
 const FeatureSupportedWading = "supported_wading_v1"
+const FeaturePortalTravel = "portal_travel_v1"
 const FeatureInspectContainer = "inspect_container_v1"
+const FeatureHarvestExclusions = "harvest_exclusions_v1"
 
 const FeatureMatchingDeposit = "deposit_match_existing_v1"
 
@@ -149,10 +151,11 @@ type ActiveFood struct {
 	RemainingS float64 `json:"remainingS"`
 }
 type CarriedFood struct {
-	Prefab string  `json:"prefab"`
-	Health float64 `json:"health"`
-	Regen  float64 `json:"regen"`
-	CanEat bool    `json:"canEat"`
+	Stamina float64 `json:"stamina,omitempty"`
+	Prefab  string  `json:"prefab"`
+	Health  float64 `json:"health"`
+	Regen   float64 `json:"regen"`
+	CanEat  bool    `json:"canEat"`
 }
 
 type EscortStatus struct {
@@ -191,6 +194,8 @@ type JourneyStatus struct {
 
 // State is the bot's own body, streamed at stateHz (6.1).
 type State struct {
+	// OtherPlayers is the live server roster count excluding Tas; nil is unknown.
+	OtherPlayers  *int          `json:"otherPlayers,omitempty"`
 	CaptureProof  *CaptureProof `json:"captureProof,omitempty"`
 	SharePosition *bool         `json:"sharePosition,omitempty"`
 	Envelope
@@ -261,9 +266,10 @@ func (s *State) Stranded() bool { return slices.Contains(s.Flags, FlagStranded) 
 
 // GameTime is the in-game calendar.
 type GameTime struct {
-	Day         int     `json:"day"`
-	DayFraction float64 `json:"dayFraction"`
-	Night       bool    `json:"night"`
+	CalendarFraction *float64 `json:"calendarFraction,omitempty"`
+	Day              int      `json:"day"`
+	DayFraction      float64  `json:"dayFraction"`
+	Night            bool     `json:"night"`
 }
 
 // TaskRef is the body task the plugin is running, as reported in State.
@@ -347,6 +353,8 @@ type PerceivedResource struct {
 	MinTool *int           `json:"minTool,omitempty"`
 	Stack   int            `json:"stack,omitempty"`
 	Yield   *ResourceYield `json:"yield,omitempty"`
+	// WaterLevel is measured at the resource root, not at the player's feet.
+	WaterLevel *float64 `json:"waterLevel,omitempty"`
 }
 
 // ResourceYield describes the primary item from a drop or simple pickable.

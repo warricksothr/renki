@@ -202,7 +202,12 @@ func (a *App) discoverWaypoints(ctx context.Context) {
 			if st == nil || st.World != world || st.Phase != protocol.PhaseInWorld {
 				continue
 			}
-			candidates := standardWaypoints(seen, st.Pos, at)
+			if err := a.Memory.Store.PruneHarvestPlaces(world, seen); err != nil {
+				a.Landmarks.Logger.Warn("could not prune invalid harvest places", "err", err)
+				continue
+			}
+			bases, _ := a.Memory.Store.Bases(world)
+			candidates := standardWaypoints(seen, st.Pos, at, bases...)
 			if err := a.Memory.Store.DiscoverWaypoints(world, candidates); err != nil {
 				a.Landmarks.Logger.Warn("could not remember standard places", "err", err)
 				continue
@@ -214,41 +219,28 @@ func (a *App) discoverWaypoints(ctx context.Context) {
 
 // Standard places come from actual objects, closest first, and are never
 // inferred from missing perception or invented coordinates.
-func standardWaypoints(seen *protocol.Perception, bot protocol.Vec3, at time.Time) []home.Waypoint {
+func standardWaypoints(seen *protocol.Perception, bot protocol.Vec3, at time.Time, bases ...home.Base) []home.Waypoint {
 	type candidate struct {
-		kind, prefab string
-		pos          protocol.Vec3
+		kind, prefab, entity string
+		pos                  protocol.Vec3
 	}
 	all := []candidate{}
 	for _, s := range seen.Structures {
 		if s.Kind == protocol.StructureContainer {
-			all = append(all, candidate{"storage", s.Prefab, s.Pos})
+			all = append(all, candidate{"storage", s.Prefab, s.ID, s.Pos})
 		}
 		lower := strings.ToLower(s.Prefab)
 		if strings.Contains(lower, "cooking") || strings.Contains(lower, "cauldron") {
-			all = append(all, candidate{"cooking", s.Prefab, s.Pos})
+			all = append(all, candidate{"cooking", s.Prefab, s.ID, s.Pos})
 		}
 	}
 	for _, r := range seen.Resources {
-		lower := strings.ToLower(r.Prefab)
-		kind := ""
-		switch {
-		case r.Kind == protocol.ResourceTree:
-			kind = "wood"
-		case r.Kind == protocol.ResourceRock:
-			kind = "stone"
-			for _, ore := range []string{"copper", "tin", "silver", "iron", "obsidian"} {
-				if strings.Contains(lower, ore) {
-					kind = "ore"
-				}
-			}
-		case r.Kind == protocol.ResourcePickable && strings.Contains(lower, "flint"):
-			kind = "flint"
-		case r.Kind == protocol.ResourcePickable && (strings.Contains(lower, "berry") || strings.Contains(lower, "berries")):
-			kind = "berries"
+		kind := home.ResourcePlaceKind(r)
+		if home.HarvestKind(kind) && home.HarvestProtected(bases, r.Pos) {
+			continue
 		}
 		if kind != "" {
-			all = append(all, candidate{kind, r.Prefab, r.Pos})
+			all = append(all, candidate{kind, r.Prefab, r.ID, r.Pos})
 		}
 	}
 	sort.SliceStable(all, func(i, j int) bool { return all[i].pos.FlatDistance(bot) < all[j].pos.FlatDistance(bot) })
@@ -263,7 +255,7 @@ func standardWaypoints(seen *protocol.Perception, bot protocol.Vec3, at time.Tim
 		if c.kind == "storage" || c.kind == "cooking" {
 			radius = 6
 		}
-		out = append(out, home.Waypoint{Name: c.kind, Kind: c.kind, Pos: c.pos, Radius: radius, At: at, Evidence: fmt.Sprintf("Observed %s", c.prefab)})
+		out = append(out, home.Waypoint{Name: c.kind, Kind: c.kind, Entity: c.entity, Pos: c.pos, Radius: radius, At: at, Evidence: fmt.Sprintf("Observed %s", c.prefab)})
 	}
 	return out
 }

@@ -1,3 +1,5 @@
+import { useEffect, useState } from "preact/hooks";
+import { Sharing, Viewer, viewerLogin } from "./sharing.jsx";
 import { render } from "preact";
 import { useStatus, online, humanize } from "./status.js";
 import {
@@ -5,6 +7,7 @@ import {
   Supplies,
   Places,
   Preferences,
+  People,
   Timeline,
   CommandBar,
 } from "./workspace.jsx";
@@ -61,7 +64,35 @@ function Objective() {
     </span>
   );
 }
+const pages = {
+  operations: "Operations",
+  plans: "Goals & kit",
+  places: "Places & base",
+  people: "People",
+  audit: "Decisions",
+  settings: "Settings",
+};
+function selectedPage() {
+  const hash = location.hash.slice(1);
+  return (
+    {
+      supplies: "plans",
+      goals: "plans",
+      navigation: "places",
+      preferences: "settings",
+      inspection: "audit",
+    }[hash] || (Object.hasOwn(pages, hash) ? hash : "operations")
+  );
+}
 function App() {
+  const [page, setPage] = useState(selectedPage);
+  useEffect(() => {
+    const change = () => {
+      setPage(selectedPage());
+    };
+    addEventListener("hashchange", change);
+    return () => removeEventListener("hashchange", change);
+  }, []);
   return (
     <>
       <a href="#workspace" class="skip-link">
@@ -108,57 +139,71 @@ function App() {
         <div class="workspace-title">
           <div>
             <span class="eyebrow">FIELD OPERATIONS</span>
-            <h1>Field overview</h1>
+            <h1>{pages[page]}</h1>
           </div>
           <nav aria-label="Workspace sections">
-            <a href="#map-pane">Map</a>
-            <a href="#camera">Camera</a>
-            <a href="#feed-pane">Activity</a>
-            <a href="#inspection">Decisions</a>
-            <a href="#supplies">Kit &amp; goals</a>
-            <a href="#navigation">Places</a>
-            <a href="#preferences">Preferences</a>
+            {Object.entries(pages).map(([key, label]) => (
+              <a
+                href={`#${key}`}
+                aria-current={page === key ? "page" : undefined}
+              >
+                {label}
+              </a>
+            ))}
+            <a href="/view" target="_blank" rel="noopener">
+              Viewer ↗
+            </a>
           </nav>
         </div>
-        <div class="overview" aria-label="Bot overview">
-          <div class="metric">
-            <span class="eyebrow">VITALS</span>
-            <strong id="hp">Health unknown</strong>
-            <span id="stamina" class="muted" />
+        <div hidden={page !== "operations"}>
+          <div class="overview" aria-label="Bot overview">
+            <div class="metric">
+              <span class="eyebrow">VITALS</span>
+              <strong id="hp">Health unknown</strong>
+              <span id="stamina" class="muted" />
+            </div>
+            <div class="metric">
+              <span class="eyebrow">FOOD</span>
+              <Food />
+            </div>
+            <div class="metric objective">
+              <span class="eyebrow">CURRENT WORK</span>
+              <strong id="task">Waiting for status</strong>
+              <Objective />
+              <a class="goal-jump" href="#supplies">
+                Manage goals →
+              </a>
+            </div>
+            <div class="metric">
+              <span class="eyebrow">SAFETY &amp; RETURN</span>
+              <strong id="home">Home unknown</strong>
+              <span id="combat" />
+              <WorldEvents />
+              <span id="load" class="chip" />
+            </div>
           </div>
-          <div class="metric">
-            <span class="eyebrow">FOOD</span>
-            <Food />
+          <CommandBar />
+          <div class="visual-workspace">
+            <MapWorkspace />
+            <Camera />
           </div>
-          <div class="metric objective">
-            <span class="eyebrow">CURRENT WORK</span>
-            <strong id="task">Waiting for status</strong>
-            <Objective />
-            <a class="goal-jump" href="#supplies">
-              Manage goals →
-            </a>
-          </div>
-          <div class="metric">
-            <span class="eyebrow">SAFETY &amp; RETURN</span>
-            <strong id="home">Home unknown</strong>
-            <span id="combat" />
-            <WorldEvents />
-            <span id="load" class="chip" />
-          </div>
-        </div>
-        <CommandBar />
-        <div class="visual-workspace">
-          <MapWorkspace />
-          <Camera />
-        </div>
-        <div class="operations">
           <Timeline />
+        </div>
+        <div hidden={page !== "plans"}>
           <Supplies />
         </div>
-        <Inspection />
-        <div class="operations reference-workspace">
+        <div hidden={page !== "places"}>
           <Places />
+        </div>
+        <div hidden={page !== "people"}>
+          <People />
+        </div>
+        <div hidden={page !== "audit"}>
+          <Inspection />
+        </div>
+        <div hidden={page !== "settings"}>
           <Preferences />
+          <Sharing active={page === "settings"} />
         </div>
         <footer>
           Renki · Observations guide decisions. Task receipts confirm outcomes.
@@ -167,5 +212,20 @@ function App() {
     </>
   );
 }
-render(<App />, document.getElementById("app"));
-startController();
+async function boot() {
+  const readOnly = location.pathname === "/view";
+  if (readOnly) {
+    // Explicitly request filtered data when previewing in an operator browser.
+    // EventSource uses its separate viewer endpoint.
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init = {}) =>
+      originalFetch(input, {
+        ...init,
+        headers: { ...init.headers, "X-Renki-Viewer": "1" },
+      });
+    if (!(await viewerLogin())) return;
+  }
+  render(readOnly ? <Viewer /> : <App />, document.getElementById("app"));
+  startController({ readOnly });
+}
+boot();

@@ -10,6 +10,50 @@ namespace Renki.Tests
     public sealed class HarvestTests
     {
         [Fact]
+        public void SavedCampExclusionsProtectEdgesAndCheckActualMovingRoots()
+        {
+            var area = new HarvestArea { Center = new V3(-204.39, 32.97, -467.43), Radius = 60 };
+            Assert.True(area.Valid);
+            Assert.True(area.Contains(new V3(-192.44, 30.31, -468.84)));
+            Assert.True(area.Contains(new V3(-204.39, 200, -407.43)));
+            Assert.False(area.Contains(new V3(-204.39, 32, -407.42)));
+            // A log moving inward must be tested at its current position.
+            Assert.False(area.Contains(new V3(-100, 35, -467.43)));
+            Assert.True(area.Contains(new V3(-150, 35, -467.43)));
+            Assert.False(HarvestArea.DryRoot(new V3(-216.17, 25.29, -489.48), 30));
+            Assert.False(HarvestArea.DryRoot(new V3(0, 30.2, 0), 30));
+            Assert.False(HarvestArea.DryRoot(new V3(0, 35, 0), null));
+            Assert.False(HarvestArea.DryRoot(new V3(0, 35, 0), double.NaN));
+            Assert.True(HarvestArea.DryRoot(new V3(0, 35, 0), 30));
+            Assert.Equal(Wire.ResourceLog, HarvestArea.DestructibleKind("FirTree_oldLog"));
+            Assert.Equal(Wire.ResourceStump, HarvestArea.DestructibleKind("Beech_Stub"));
+            Assert.Equal(Wire.ResourceTree, HarvestArea.DestructibleKind("Beech_small1"));
+        }
+
+        [Fact]
+        public void HarvestParsesOnlyBoundedFiniteExclusions()
+        {
+            var request = new TaskRequest { Task = TaskNames.Harvest, Args = JObject.Parse(@"{""entity"":""1:2"",""exclude"":[{""center"":[-204.39,32.97,-467.43],""radius"":60}]}") };
+            var args = (HarvestArgs)TaskArgs.Parse(request);
+            Assert.Single(args.Exclude);
+            Assert.True(args.Exclude[0].Contains(new V3(-204, 200, -467)));
+            foreach (var invalid in new[] {
+                @"{""center"":[0,0,0],""radius"":0}",
+                @"{""center"":[0,0,0],""radius"":251}",
+                @"{""center"":[1000001,0,0],""radius"":60}",
+                @"{""center"":[0,0,0],""radius"":60,""typo"":true}",
+                @"{""center"":""1:2"",""radius"":60}" })
+            {
+                request.Args["exclude"] = new JArray(JObject.Parse(invalid));
+                Assert.Throws<BadArgsException>(() => TaskArgs.Parse(request));
+            }
+            var excessive = new JArray();
+            for (var i = 0; i < 17; i++) excessive.Add(JObject.Parse(@"{""center"":[0,0,0],""radius"":60}"));
+            request.Args["exclude"] = excessive;
+            Assert.Throws<BadArgsException>(() => TaskArgs.Parse(request));
+        }
+
+        [Fact]
         public void RockingAndReplanningAtALogLipCannotRenewTreeApproachProgress()
         {
             var progress = new HarvestApproachProgress();

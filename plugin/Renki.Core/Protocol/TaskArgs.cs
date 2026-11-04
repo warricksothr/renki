@@ -9,7 +9,7 @@ namespace Renki.Protocol
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", Escort = "escort", LookAt = "look_at",
             Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
-            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw", InspectContainer = "inspect_container";
+            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw", InspectContainer = "inspect_container", AddTo = "add_to";
 
         /// <summary>The slots unequip empties: "hands" is both.</summary>
         public static readonly string[] Slots =
@@ -20,7 +20,7 @@ namespace Renki.Protocol
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
         public const string Harvest = "harvest", UseItem = "use_item", Attack = "attack";
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, InspectContainer, Harvest, UseItem, Attack };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, InspectContainer, AddTo, Harvest, UseItem, Attack };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -133,6 +133,7 @@ namespace Renki.Protocol
 
     public sealed class HarvestArgs
     {
+        public HarvestArea[] Exclude = Array.Empty<HarvestArea>();
         public string Entity;
         public bool Collect = true;
     }
@@ -141,6 +142,9 @@ namespace Renki.Protocol
     {
         /// <summary>What to use, by entity id from perception.</summary>
         public string Entity;
+
+        /// <summary>Explicit portal crossing pinned to this native destination ID.</summary>
+        public string PortalTo;
 
         /// <summary>The alternative use, as with the modifier key held.</summary>
         public bool Alt;
@@ -209,6 +213,12 @@ namespace Renki.Protocol
         public bool MatchExisting;
     }
 
+    public sealed class AddToArgs
+    {
+        public string Entity, Item;
+        public int Count;
+    }
+
     public sealed class InspectContainerArgs
     {
         public string Container;
@@ -227,6 +237,17 @@ namespace Renki.Protocol
             {
                 case TaskNames.Stop:
                     return new object();
+                case TaskNames.AddTo:
+                    {
+                        foreach (var property in a.Properties())
+                            if (property.Name != "entity" && property.Name != "item" && property.Name != "count")
+                                throw new BadArgsException("add_to takes only entity, item and count");
+                        var entity = Str(a, "entity"); var item = Str(a, "item"); var count = a["count"];
+                        if (string.IsNullOrWhiteSpace(entity) || string.IsNullOrWhiteSpace(item) ||
+                            count?.Type != JTokenType.Integer || count.Value<double>() < 1 || count.Value<double>() > 16)
+                            throw new BadArgsException("add_to requires entity, item and integer count from 1 to 16");
+                        return new AddToArgs { Entity = entity, Item = item, Count = count.Value<int>() };
+                    }
                 case TaskNames.InspectContainer:
                     {
                         foreach (var property in a.Properties())
@@ -430,14 +451,35 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        return new HarvestArgs { Entity = entity, Collect = Bool(a, "collect", true) };
+                        var exclusions = Array.Empty<HarvestArea>();
+                        if (a["exclude"] != null && a["exclude"].Type != JTokenType.Null)
+                        {
+                            if (!(a["exclude"] is JArray zones) || zones.Count > 16)
+                                throw new BadArgsException("harvest supports at most 16 exclusions");
+                            exclusions = new HarvestArea[zones.Count];
+                            for (var i = 0; i < zones.Count; i++)
+                            {
+                                if (!(zones[i] is JObject zone)) throw new BadArgsException("harvest exclusion must be an object");
+                                foreach (var property in zone.Properties())
+                                    if (property.Name != "center" && property.Name != "radius") throw new BadArgsException("unknown harvest exclusion field");
+                                var center = Target.Parse(zone["center"], "exclude.center").Pos;
+                                if (!center.HasValue) throw new BadArgsException("harvest exclusion center must be coordinates");
+                                var area = new HarvestArea { Center = center.Value, Radius = Number(zone, "radius", 0) };
+                                if (!area.Valid) throw new BadArgsException("invalid harvest exclusion");
+                                exclusions[i] = area;
+                            }
+                        }
+                        return new HarvestArgs { Entity = entity, Collect = Bool(a, "collect", true), Exclude = exclusions };
                     }
                 case TaskNames.Interact:
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        var args = new InteractArgs { Entity = entity, Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook"), RecoverThreats = Bool(a, "recoverThreats", false), DefendThreats = Bool(a, "defendThreats", false) };
+                        var args = new InteractArgs { Entity = entity, PortalTo = Str(a, "portalTo"), Alt = Bool(a, "alt", false), Hold = Bool(a, "hold", false), Sleep = Bool(a, "sleep", false), Repair = Bool(a, "repair", false), Cook = Str(a, "cook"), RecoverThreats = Bool(a, "recoverThreats", false), DefendThreats = Bool(a, "defendThreats", false) };
                         if (args.Cook == "") args.Cook = null;
+                        if (args.PortalTo == "") args.PortalTo = null;
+                        if (args.PortalTo != null && (args.PortalTo == entity || args.Alt || args.Hold || args.Sleep || args.Repair || args.Cook != null || args.RecoverThreats || args.DefendThreats))
+                            throw new BadArgsException("portalTo requires a different destination and cannot combine with other interaction modes");
                         if (args.DefendThreats && !args.RecoverThreats) throw new BadArgsException("defendThreats requires recoverThreats");
                         if (args.RecoverThreats && (args.Alt || args.Hold || args.Sleep || args.Repair || args.Cook != null))
                             throw new BadArgsException("interaction recovery requires a single ordinary pickable use");

@@ -216,3 +216,24 @@ func TestWoodCommandCannotOverwriteOwnerDefinitionsOrBypassPermissions(t *testin
 		}
 	}
 }
+
+func TestWoodPlanExcludesSavedBasesFromFreshAndRememberedSites(t *testing.T) {
+	v := woodView(t)
+	v.State.Pos = protocol.Vec3{40, 0, 0}
+	v.Bases = []home.Base{{Center: protocol.Vec3{}, Radius: 60}}
+	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("decorative", protocol.ResourceTree, 50), gatherResource("outside", protocol.ResourceTree, 70)}
+	last := GatherParams{Site: Place{World: v.State.World, Pos: protocol.Vec3{50, 0, 0}, Radius: 20}}
+	p, remembered, err := planWood(v, &last, nil)
+	if err != nil || remembered || p.Site.Pos[0] != 70 {
+		t.Fatal(p, remembered, err)
+	}
+	// A site centered outside the camp can overlap it: each actual tree is checked.
+	if gatherClear(v, v.Perception.Resources[0]) || !gatherClear(v, v.Perception.Resources[1]) {
+		t.Fatal("overlapping site bypassed camp boundary")
+	}
+	v.Perception.Resources = v.Perception.Resources[:1]
+	hint := home.Landmark{Entity: "remembered decorative", Kind: "tree", Prefab: "Beech1", MinTool: new(int), Pos: protocol.Vec3{-50, 0, 0}, At: v.Now}
+	if _, _, err = planWood(v, nil, nil, hint); err == nil {
+		t.Fatal("protected remembered tree selected")
+	}
+}

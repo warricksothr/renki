@@ -9,6 +9,49 @@ namespace Renki.Tests
         static readonly FollowPortalLink Source = new FollowPortalLink("1:10", "1:20", V3.Zero);
 
         [Fact]
+        public void OrderedCrossingRequiresNativeTeleportAndVerifiedExit()
+        {
+            var crossing = new PortalFollowCrossing(Source, 0, ordered: true);
+            // Destination evidence before a teleport must never complete travel.
+            Assert.Equal(PortalFollowAction.Walk, crossing.Tick(1, false, true, true, true, false));
+            Assert.Equal(PortalFollowAction.Hold, crossing.Tick(2, true, false, true, true, true));
+            Assert.False(crossing.Allows("1:10", "1:20"));
+            Assert.Equal(PortalFollowAction.Arrived, crossing.Tick(3, false, false, false, false, false));
+            Assert.Equal(PortalFollowAction.Hold, crossing.Tick(4, false, false, false, false, false));
+            Assert.Equal(PortalFollowAction.Resume, crossing.Tick(5, false, true, false, false, false));
+        }
+
+        [Fact]
+        public void OrderedMissingExitTimesOutAndCancellationRevokesEntry()
+        {
+            var crossing = new PortalFollowCrossing(Source, 0, ordered: true);
+            crossing.Tick(1, true, false, true, true, true);
+            crossing.Tick(2, false, false, false, false, false);
+            Assert.Equal(PortalFollowAction.Failed, crossing.Tick(18, false, false, false, false, false));
+            Assert.Contains("destination", crossing.Failure.Detail);
+            crossing = new PortalFollowCrossing(Source, 0, ordered: true);
+            crossing.Cancel();
+            Assert.False(crossing.Allows("1:10", "1:20"));
+            Assert.Equal(PortalFollowAction.Failed, crossing.Tick(1, false, true, true, true, false));
+            crossing = new PortalFollowCrossing(Source, 0, ordered: true);
+            Assert.Equal(PortalFollowAction.Failed, crossing.Tick(1, false, false, false, true, false));
+            crossing = new PortalFollowCrossing(Source, 0, ordered: true);
+            Assert.Equal(PortalFollowAction.Failed, crossing.Tick(1, false, false, true, false, false));
+            Assert.Equal(Wire.ReasonPortalCargo, crossing.Failure.Reason);
+        }
+
+        [Fact]
+        public void ExitRequiresGroundedThreeDimensionalProximity()
+        {
+            Assert.True(PortalArrival.Verified(V3.Zero, new V3(1, 0, 1), true, false, false));
+            Assert.False(PortalArrival.Verified(V3.Zero, new V3(0, 3, 0), true, false, false));
+            Assert.False(PortalArrival.Verified(V3.Zero, new V3(5, 0, 0), true, false, false));
+            Assert.False(PortalArrival.Verified(V3.Zero, V3.Zero, false, false, false));
+            Assert.False(PortalArrival.Verified(V3.Zero, V3.Zero, true, true, false));
+            Assert.False(PortalArrival.Verified(V3.Zero, V3.Zero, true, false, true));
+        }
+
+        [Fact]
         public void PassivePickupCanReturnAFollowAfterTheLeaderDisappearedAtAPortal()
         {
             // The trail is observed independently of the active body task.

@@ -179,6 +179,26 @@ func (o *OBS) VerifyScenes(ctx context.Context) error {
 }
 
 func (o *OBS) StartLocal(ctx context.Context) error {
+	var state struct {
+		OutputActive bool `json:"outputActive"`
+	}
+	if err := o.Call(ctx, "GetStreamStatus", nil, &state); err != nil {
+		return err
+	}
+	if state.OutputActive {
+		var settings struct {
+			StreamServiceSettings struct {
+				Server string `json:"server"`
+			} `json:"streamServiceSettings"`
+		}
+		if err := o.Call(ctx, "GetStreamServiceSettings", nil, &settings); err != nil {
+			return err
+		}
+		if settings.StreamServiceSettings.Server != "rtmp://127.0.0.1:11935/renki" {
+			return errors.New("Refusing nonlocal output control")
+		}
+		return o.VerifyScenes(ctx)
+	}
 	if err := o.VerifyScenes(ctx); err != nil {
 		return err
 	}

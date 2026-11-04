@@ -171,6 +171,7 @@ export const scenarios = {
     );
   },
   "inspection-peel": async ({ page, check, shot }) => {
+    await page.locator('nav a[href="#audit"]').click();
     const inspector = page.locator("#inspection");
     await inspector.getByText("Phases & guards", { exact: true }).click();
     await check(
@@ -243,6 +244,7 @@ export const scenarios = {
     );
   },
   "inspection-interruption": async ({ page, check, shot }) => {
+    await page.locator('nav a[href="#audit"]').click();
     const inspector = page.locator("#inspection");
     await expect(inspector.getByTestId("inspection-owner")).toContainText(
       "attack peel-1",
@@ -289,6 +291,7 @@ export const scenarios = {
     });
   },
   "inspection-pantry-offline": async ({ page, check, shot }) => {
+    await page.locator('nav a[href="#audit"]').click();
     await page.evaluate(() => {
       const d = renkiPreview.inspection;
       d.goal = {
@@ -414,6 +417,7 @@ export const scenarios = {
           "1 pursuing / 3 tracked · 1 uncertain · isolation 0.0/3 s",
         );
         await expect(page.locator("#goal-peel")).not.toBeChecked();
+        await page.locator('nav a[href="#plans"]').click();
         await page.locator("#goal-peel").check();
         await page.locator("#goal-combat").click();
         await expect
@@ -431,6 +435,7 @@ export const scenarios = {
           .toBe(1);
       },
     );
+    await page.locator('nav a[href="#operations"]').click();
     await page.locator("#combat").scrollIntoViewIfNeeded();
     await shot("peel-pursuit-status");
   },
@@ -507,6 +512,7 @@ export const scenarios = {
         "escort Nimah: follow · rejoining leader",
       );
     });
+    await page.locator('nav a[href="#operations"]').click();
     await page.locator("#combat").scrollIntoViewIfNeeded();
     await shot("escort-follow");
     await page.evaluate(() =>
@@ -699,6 +705,43 @@ export const scenarios = {
     );
     await page.locator("#camera").scrollIntoViewIfNeeded();
   },
+  "video-view-switch": async ({ page, check }) => {
+    await page.evaluate(() => renkiPreview.setVideo("gameplay"));
+    await expect(page.locator('[data-video-state="gameplay"]')).toBeVisible();
+    const connections = await page.evaluate(
+      () =>
+        renkiPreview.requests.filter((r) => r.path === "/api/video/whep")
+          .length,
+    );
+    await page.evaluate(
+      () => (window.initialVideo = document.querySelector("video")),
+    );
+    await page.locator('nav a[href="#settings"]').click();
+    // Hidden video elements may stop presentation callbacks. Editing settings
+    // must preserve transport longer than the ordinary stalled-video timeout.
+    await page.waitForTimeout(9500);
+    await page.locator('nav a[href="#operations"]').click();
+    await expect(page.locator('[data-video-state="gameplay"]')).toBeVisible();
+    await check(
+      "Configuration views preserve the video element and playback session",
+      async () => {
+        assert.equal(
+          await page.evaluate(
+            () => document.querySelector("video") === window.initialVideo,
+          ),
+          true,
+        );
+        assert.equal(
+          await page.evaluate(
+            () =>
+              renkiPreview.requests.filter((r) => r.path === "/api/video/whep")
+                .length,
+          ),
+          connections,
+        );
+      },
+    );
+  },
   "video-reconnect": async ({ page, check, shot }) => {
     await page.evaluate(() => renkiPreview.setVideo("gameplay"));
     await expect(page.locator('[data-video-state="gameplay"]')).toBeVisible();
@@ -754,177 +797,121 @@ export const scenarios = {
   },
 
   "layout-monitoring": async ({ page, check, shot }) => {
-    const original = page.viewportSize();
-    // Native anchor scrolling respects the fixture banner and sticky header;
-    // centring a tall card can leave its title under those fixed elements.
-    const show = (selector) =>
-      page
-        .locator(selector)
-        .evaluate((e) => e.scrollIntoView({ block: "start" }));
-    const geometry = () =>
-      page.evaluate(() => {
-        const box = (s) => {
-          const r = document.querySelector(s).getBoundingClientRect();
-          return {
-            x: r.x,
-            y: r.y + scrollY,
-            width: r.width,
-            height: r.height,
-            bottom: r.bottom + scrollY,
-          };
-        };
-        return Object.fromEntries(
-          [
-            "#say-form",
-            "#map-pane",
-            "#map",
-            "#camera",
-            ".video-stage",
-            "#feed-pane",
-            "#supplies",
-            "#navigation",
-            "#preferences",
-          ].map((s) => [s, box(s)]),
-        );
-      });
-    const aligned = async () => {
-      const g = await geometry();
-      const map = g["#map-pane"],
-        camera = g["#camera"],
-        feed = g["#feed-pane"],
-        goals = g["#supplies"];
-      assert.ok(
-        g["#say-form"].bottom < map.y,
-        "Command bar precedes monitoring",
-      );
-      assert.ok(g["#map"].height >= 260, "Map keeps a useful canvas height");
-      assert.ok(
-        g[".video-stage"].height >= 180,
-        "Camera keeps a useful scene height",
-      );
-      if (page.viewportSize().width > 1100) {
-        assert.ok(Math.abs(map.y - camera.y) < 2, "Map and camera share a row");
-        assert.ok(
-          Math.abs(map.bottom - camera.bottom) < 2,
-          "No map-side dead space below the card",
-        );
-        assert.ok(camera.x >= map.x + map.width, "Visual cards do not overlap");
-        assert.ok(
-          camera.width / map.width > 0.8,
-          "Camera has balanced desktop prominence",
-        );
-        assert.ok(
-          feed.y - map.bottom >= 12 && feed.y - map.bottom <= 24,
-          "Activity starts directly below views",
-        );
-      } else {
-        assert.ok(map.bottom <= camera.y, "Narrow views stack without overlap");
-        assert.ok(camera.bottom <= feed.y, "Activity follows both views");
-      }
-      if (page.viewportSize().width > 760) {
-        assert.ok(
-          Math.abs(feed.y - goals.y) < 2 && goals.x >= feed.x + feed.width,
-          "Activity and goals have two spacious columns",
-        );
-      } else {
-        for (const [a, b] of [
-          [map, camera],
-          [camera, feed],
-          [feed, goals],
-          [goals, g["#navigation"]],
-          [g["#navigation"], g["#preferences"]],
-        ])
-          assert.ok(a.bottom <= b.y, "Mobile cards stack without overlap");
-        for (const button of await page.locator(".acts button").all())
-          await expect(button).toBeInViewport({ ratio: 1 });
-      }
-      assert.ok(
-        g["#navigation"].y >= Math.max(feed.bottom, goals.bottom),
-        "Editors follow current work",
-      );
-      assert.ok(
-        await page.evaluate(() => document.body.scrollWidth <= innerWidth + 1),
-        "No horizontal overflow",
-      );
+    const navigate = async (key) => {
+      await page.locator(`nav a[href="#${key}"]`).click();
     };
     await check(
-      "Routine command and goal access are visible on arrival",
+      "Operations keeps commands, map, video and activity together",
       async () => {
-        assert.ok(
-          await page.evaluate(
-            () =>
-              document.querySelector(".workspace-title").getBoundingClientRect()
-                .top >=
-              document.querySelector(".topbar").getBoundingClientRect().bottom,
-          ),
-          "Header does not cover the workspace title",
-        );
-        await expect(page.locator("#say-text")).toBeInViewport({ ratio: 1 });
-        await expect(page.locator(".goal-jump")).toBeInViewport({ ratio: 1 });
+        for (const id of ["say-form", "map-pane", "camera", "feed-pane"])
+          await expect(page.locator(`#${id}`)).toBeVisible();
         for (const id of [
-          "inventory",
-          "places",
-          "presence-controls",
-          "voice",
-          "settings",
+          "supplies",
+          "navigation",
+          "people",
+          "inspection",
+          "preferences",
         ])
-          await expect(page.locator(`#${id}`)).toHaveJSProperty("open", false);
-        await expect(page.locator("#goals")).toHaveJSProperty("open", true);
+          await expect(page.locator(`#${id}`)).toBeHidden();
+        const geometry = await page.evaluate(() => {
+          const box = (id) => {
+            const r = document.getElementById(id).getBoundingClientRect();
+            return {
+              x: r.x,
+              y: r.y,
+              bottom: r.bottom,
+              width: r.width,
+              height: r.height,
+            };
+          };
+          return {
+            map: box("map-pane"),
+            canvas: box("map"),
+            camera: box("camera"),
+            feed: box("feed-pane"),
+          };
+        });
+        assert.ok(geometry.canvas.height >= 260);
+        if (page.viewportSize().width > 1100)
+          assert.ok(Math.abs(geometry.map.y - geometry.camera.y) < 2);
+        else assert.ok(geometry.map.bottom <= geometry.camera.y);
+        assert.ok(
+          geometry.feed.y >=
+            Math.max(geometry.map.bottom, geometry.camera.bottom),
+        );
       },
     );
-    await check("Monitoring geometry and responsive safety controls", aligned);
-    await shot("arrival");
-    await show("#map-pane");
-    await shot("views");
-    await page.locator(".goal-jump").click();
-    await expect(page.locator("#goals > summary")).toBeInViewport();
-    await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const summary = document
-              .querySelector("#goals > summary")
-              .getBoundingClientRect();
-            const cover = document
-              .querySelector(innerWidth > 760 ? ".topbar" : ".preview-notice")
-              .getBoundingClientRect();
-            return summary.top >= cover.bottom;
-          }),
-        { message: "Goal jump clears the header" },
-      )
-      .toBe(true);
-    await shot("work");
-    if (original.width > 760) {
-      for (const width of [1920, 1024, 768]) {
-        await page.setViewportSize({ width, height: 1080 });
-        await check(`Monitoring geometry at ${width}px`, aligned);
-        await show("#map-pane");
-        await shot(`views-${width}`);
-      }
-      await page.setViewportSize(original);
-    }
-    await page.locator(".map-key summary").click();
-    await page.locator(".video-diagnostics > summary").click();
-    await page.locator(".camera-details summary").click();
+    await shot("operations");
     await check(
-      "Expanded view details reflow without covering current work",
-      aligned,
+      "Views keep edits and a single map/video session mounted",
+      async () => {
+        await navigate("plans");
+        await page.locator("#goals details summary").click();
+        await page
+          .locator("#goal-stock-storage")
+          .fill("unfinished chest selection");
+        await navigate("places");
+        await expect(page.locator("#navigation")).toBeVisible();
+        await navigate("people");
+        await expect(page.locator("#people")).toBeVisible();
+        await navigate("settings");
+        await expect(page.locator("#preferences")).toBeVisible();
+        await expect(page.locator("#presence-controls")).toBeHidden();
+        await navigate("audit");
+        await expect(page.locator("#inspection")).toBeVisible();
+        await navigate("plans");
+        await expect(page.locator("#goal-stock-storage")).toHaveValue(
+          "unfinished chest selection",
+        );
+        await expect(page.locator("#map")).toHaveCount(1);
+        await expect(page.locator("video")).toHaveCount(1);
+      },
     );
-    await show("#camera");
-    await shot("expanded-views");
-    await page.locator("#inventory summary").click();
-    await page.locator('#inv-grid [tabindex="0"]').first().focus();
-    await expect(
-      page.locator('#inv-grid [tabindex="0"]').first(),
-    ).toBeInViewport();
-    await shot("inventory");
-    await page.locator("#places summary").click();
-    await page.locator("#place-new").click();
-    await page.locator("#place-name").focus();
-    await expect(page.locator("#place-name")).toBeFocused();
-    await shot("places");
+    await shot("plans");
+    await navigate("operations");
+    await expect(page.locator("#map-pane")).toBeVisible();
+  },
+  viewer: async ({ page, check, shot }) => {
+    await check(
+      "Viewer mounts map and video without administrative controls",
+      async () => {
+        await expect(page.locator("#map-pane")).toBeVisible();
+        await expect(page.locator("#camera")).toBeVisible();
+        assert.equal(await page.evaluate(() => location.hash), "");
+        const login = await page.evaluate(() =>
+          renkiPreview.requests.find((r) => r.path === "/api/viewer/login"),
+        );
+        assert.equal(JSON.parse(login.body).token, "fixture-viewer-token");
+        for (const selector of [
+          "button.act",
+          "#say-form",
+          "#supplies",
+          "#navigation",
+          "#preferences",
+          "#inspection",
+          ".video-diagnostics",
+        ])
+          await expect(page.locator(selector)).toHaveCount(0);
+        const paths = await page.evaluate(() =>
+          renkiPreview.requests.map((r) => r.path),
+        );
+        for (const prefix of [
+          "/api/behaviours",
+          "/api/inventory",
+          "/api/settings",
+          "/api/inspection",
+          "/api/days",
+        ])
+          assert.ok(!paths.some((p) => p.startsWith(prefix)), prefix);
+        await page.locator("#map").focus();
+        await page.keyboard.press("ArrowRight");
+        await expect(page.locator("#follow-bot")).not.toBeChecked();
+      },
+    );
+    await shot("viewer");
   },
   "base-survey": async ({ page, check, shot }) => {
+    await page.locator('nav a[href="#places"]').click();
     await page.locator("#places summary").click();
     const card = page.locator("#base-survey");
     await card.locator("summary").click();
@@ -970,6 +957,7 @@ export const scenarios = {
     await shot("base-survey-saved-scope");
   },
   "marker-idle-food": async ({ page, check, shot }) => {
+    await page.locator('nav a[href="#places"]').click();
     await page.locator("#places summary").click();
     await page.locator("#place-list").selectOption("home storage");
     await check(
@@ -1221,6 +1209,7 @@ export const scenarios = {
     await page.locator("#feed-pane").scrollIntoViewIfNeeded();
   },
   "goals-inventory": async ({ page, check, shot }) => {
+    await page.locator('nav a[href="#plans"]').click();
     await page.locator("#goals details summary").click();
     await page.locator("#goal-stock-storage").fill("fixture-chest");
     await check(
@@ -1241,6 +1230,45 @@ export const scenarios = {
         assert.deepEqual(body.spec.stock.targets, { Mushroom: 4 });
         assert.deepEqual(body.spec.stock.minimum, { Mushroom: 2 });
         assert.equal(body.spec.stock.allowHunting, false);
+      },
+    );
+    await check(
+      "One household plan includes several independently bounded foods",
+      async () => {
+        await page.locator("#household-add-food").click();
+        const row = page.locator("[data-food-row]").nth(1);
+        await row.locator("[data-food]").selectOption("CookedDeerMeat");
+        await row.locator("[data-count]").fill("8");
+        await row.locator("[data-minimum]").fill("3");
+        await page.locator("#goal-stock-start").click();
+        await expect(page.locator("#goal-result")).toContainText(
+          "Read-only preview",
+        );
+        let body = await page.evaluate(() =>
+          JSON.parse(
+            renkiPreview.requests.findLast(
+              (r) => r.path === "/api/goals" && r.method === "POST",
+            ).body,
+          ),
+        );
+        assert.deepEqual(body.spec.stock.targets, {
+          Mushroom: 4,
+          CookedDeerMeat: 8,
+        });
+        assert.deepEqual(body.spec.stock.minimum, {
+          Mushroom: 2,
+          CookedDeerMeat: 3,
+        });
+        await row.locator("[data-food]").selectOption("Mushroom");
+        const before = await page.evaluate(() => renkiPreview.requests.length);
+        await page.locator("#goal-stock-start").click();
+        await expect(page.locator("#goal-result")).toContainText("only once");
+        assert.equal(
+          await page.evaluate(() => renkiPreview.requests.length),
+          before,
+        );
+        await row.getByRole("button", { name: "Remove food row 2" }).click();
+        await expect(page.locator("[data-food-row]")).toHaveCount(1);
       },
     );
     await check(
@@ -1394,6 +1422,7 @@ export const scenarios = {
     await check(
       "Waypoint editor submits scoped data with action protection to refusing fixture",
       async () => {
+        await page.locator('nav a[href="#places"]').click();
         await page.locator("#places summary").click();
         await page.locator("#place-new").click();
         await expect(page.locator("#place-radius")).toHaveValue("0");
@@ -1418,13 +1447,14 @@ export const scenarios = {
     await check(
       "Player profile and settings errors remain readable and preserve form focus",
       async () => {
-        await page.locator("#presence-controls summary").click();
+        await page.locator('nav a[href="#people"]').click();
         await page.locator("#profile-name").fill("Fixture guest");
         await page.locator("#profile-role").selectOption("guest");
         await page.locator("#profile-form").getByRole("button").click();
         await expect(page.locator("#presence-result")).toContainText(
           "Read-only preview",
         );
+        await page.locator('nav a[href="#settings"]').click();
         await page.locator("#settings summary").click();
         const button = page
           .locator("#settings-table tr:last-child button")

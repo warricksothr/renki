@@ -10,8 +10,10 @@ import (
 
 func TestWoodStorageCanBeFiftyMetresFromSleeping(t *testing.T) {
 	v := woodView(t)
-	b := home.Base{Name: "camp", Center: protocol.Vec3{}, Radius: 100, DurationS: 600, TravelM: 800, Return: "home", Sleeping: "bedroom", Storage: []string{"warehouse"}, At: time.Now()}
+	b := home.Base{Name: "camp", Center: protocol.Vec3{}, Radius: 60, DurationS: 600, TravelM: 800, Return: "home", Sleeping: "bedroom", Storage: []string{"warehouse"}, At: time.Now()}
 	v.Base = &b
+	v.State.Pos = protocol.Vec3{30, 0, 0}
+	v.Perception.Resources = []protocol.PerceivedResource{gatherResource("outside tree", protocol.ResourceTree, 65)}
 	v.Waypoints = []home.Waypoint{{Name: "bedroom", Kind: "rest", Pos: protocol.Vec3{-25, 0, 0}}, {Name: "warehouse", Kind: "storage", Pos: protocol.Vec3{25, 0, 0}, Radius: 8}}
 	v.Containers = []*protocol.Container{{Entity: "new chest", Pos: protocol.Vec3{25, 0, 0}}, {Entity: "old home chest", Pos: *v.Home}}
 	p, _, err := planWood(v, nil, nil)
