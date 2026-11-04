@@ -9,7 +9,7 @@ namespace Renki.Protocol
     {
         public const string Stop = "stop", MoveTo = "move_to", Follow = "follow", Escort = "escort", LookAt = "look_at",
             Say = "say", Emote = "emote", Pickup = "pickup", Drop = "drop", Interact = "interact",
-            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw", InspectContainer = "inspect_container";
+            Flee = "flee", Equip = "equip", Unequip = "unequip", Deposit = "deposit", Withdraw = "withdraw", InspectContainer = "inspect_container", AddTo = "add_to";
 
         /// <summary>The slots unequip empties: "hands" is both.</summary>
         public static readonly string[] Slots =
@@ -20,7 +20,7 @@ namespace Renki.Protocol
         /// <summary>Every task the plugin carries out, M1 and what M2 has added
         /// so far. Safety still decides which of them it offers.</summary>
         public const string Harvest = "harvest", UseItem = "use_item", Attack = "attack";
-        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, InspectContainer, Harvest, UseItem, Attack };
+        public static readonly string[] Supported = { Stop, MoveTo, Follow, Escort, LookAt, Say, Emote, Pickup, Drop, Interact, Flee, Equip, Unequip, Deposit, Withdraw, InspectContainer, AddTo, Harvest, UseItem, Attack };
 
         /// <summary>Instant tasks run alongside the body task (7.1).</summary>
         public static bool IsInstant(string task) =>
@@ -212,6 +212,12 @@ namespace Renki.Protocol
         public bool MatchExisting;
     }
 
+    public sealed class AddToArgs
+    {
+        public string Entity, Item;
+        public int Count;
+    }
+
     public sealed class InspectContainerArgs
     {
         public string Container;
@@ -230,6 +236,17 @@ namespace Renki.Protocol
             {
                 case TaskNames.Stop:
                     return new object();
+                case TaskNames.AddTo:
+                    {
+                        foreach (var property in a.Properties())
+                            if (property.Name != "entity" && property.Name != "item" && property.Name != "count")
+                                throw new BadArgsException("add_to takes only entity, item and count");
+                        var entity = Str(a, "entity"); var item = Str(a, "item"); var count = a["count"];
+                        if (string.IsNullOrWhiteSpace(entity) || string.IsNullOrWhiteSpace(item) ||
+                            count?.Type != JTokenType.Integer || count.Value<double>() < 1 || count.Value<double>() > 16)
+                            throw new BadArgsException("add_to requires entity, item and integer count from 1 to 16");
+                        return new AddToArgs { Entity = entity, Item = item, Count = count.Value<int>() };
+                    }
                 case TaskNames.InspectContainer:
                     {
                         foreach (var property in a.Properties())

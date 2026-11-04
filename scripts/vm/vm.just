@@ -368,6 +368,18 @@ gather VALUE='': need-target
     [ -z "$1" ] || valuearg=(-Value "$1")
     {{ssh}} "{{ps}} -File {{dir}}/gather.ps1 ${valuearg[*]}"
 
+# Read AllowStations, or set true/false before restarting the game.
+[positional-arguments]
+stations VALUE='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    [ -z "$1" ] || {{lease}} guard
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/stations.ps1" "{{target}}:/{{dir}}/stations.ps1"
+    valuearg=()
+    [ -z "$1" ] || valuearg=(-Value "$1")
+    {{ssh}} "{{ps}} -File {{dir}}/stations.ps1 ${valuearg[*]}"
+
 # Prompts here without echoing, and sends the value over SSH's standard
 # input, so it is in no command line, log or chat. `just vm secret CPA_API_KEY`.
 [doc("Store a secret for the controller on the VM, such as an LLM key.")]

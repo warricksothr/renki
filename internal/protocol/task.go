@@ -39,6 +39,7 @@ const (
 	TaskDeposit          = "deposit"
 	TaskWithdraw         = "withdraw"
 	TaskInspectContainer = "inspect_container"
+	TaskAddTo            = "add_to"
 	TaskHarvest          = "harvest"
 	TaskAttack           = "attack"
 	TaskUseItem          = "use_item"
@@ -116,6 +117,8 @@ func (r *TaskRequest) DecodeArgs() (any, error) {
 		args = &UnequipArgs{}
 	case TaskDeposit, TaskWithdraw:
 		args = &TransferArgs{}
+	case TaskAddTo:
+		args = &AddToArgs{}
 	case TaskInspectContainer:
 		args = &InspectContainerArgs{}
 	case TaskHarvest:
@@ -177,6 +180,27 @@ type TransferArgs struct {
 	Container     string         `json:"container"`
 	Items         []TransferItem `json:"items"`
 	MatchExisting bool           `json:"matchExisting,omitempty"`
+}
+
+// AddToArgs inserts bounded ordinary fuel units into one observed fireplace.
+type AddToArgs struct {
+	Entity string `json:"entity"`
+	Item   string `json:"item"`
+	Count  int    `json:"count"`
+}
+
+func (a *AddToArgs) UnmarshalJSON(raw []byte) error {
+	type plain AddToArgs
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	return d.Decode((*plain)(a))
+}
+
+func (a *AddToArgs) validate() error {
+	if strings.TrimSpace(a.Entity) == "" || strings.TrimSpace(a.Item) == "" || a.Count < 1 || a.Count > 16 {
+		return errors.New("add_to requires entity, item and integer count from 1 to 16")
+	}
+	return nil
 }
 
 // InspectContainerArgs requests current contents without transferring items.

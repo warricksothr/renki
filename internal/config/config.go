@@ -142,7 +142,7 @@ var KnownTasks = []string{
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
 	protocol.TaskPickup, protocol.TaskDrop, protocol.TaskInteract, protocol.TaskFlee,
 	protocol.TaskEquip, protocol.TaskUnequip, protocol.TaskUseItem,
-	protocol.TaskDeposit, protocol.TaskWithdraw, protocol.TaskInspectContainer, protocol.TaskHarvest, protocol.TaskAttack,
+	protocol.TaskAddTo, protocol.TaskDeposit, protocol.TaskWithdraw, protocol.TaskInspectContainer, protocol.TaskHarvest, protocol.TaskAttack,
 }
 
 // Default returns the configuration used for anything a file leaves out.

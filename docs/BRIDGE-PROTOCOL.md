@@ -540,11 +540,32 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `attack` | body | `entity`; `style`: `melee`, `ranged` or `auto` | M3 |
 | `escort` | body | `player`; `protect` (names, at most 128); `distance` (2–8 m, default 3.5); `collect` / `defend` (default true). Persistent native follow/collection/defense/escape; see [ESCORT.md](ESCORT.md) | M3 |
 | `guard` (planned area guard) | body | `around`: player or position; `radius` | M3 |
+| `add_to` | body | `entity`: fireplace; `item`: exact fuel prefab; `count`: integer 1–16 | native fireplace refueling |
 | `inspect_container` | body | `container`: chest entity; required `scope` with `center`, `radius`, `travelM`, `durationS` | read-only storage |
 | `flee` | body | `from`: entity or position; `distance` (default 20); `toward`: entity or position (optional) | M3 |
 | `controls` | body | raw `move` `[x,z]`, `run`, `jump`, `attack`, `block`, `dodge`, … ; `durationS` ≤ 1 | debug |
 
 Notes:
+
+- `add_to` supports ordinary finite refillable fireplaces, including hearths,
+  torches and braziers, using their exact fuel item. It requires the plugin's
+  default-off `Safety.AllowStations`, `AllowGather`, `AllowMovement` and session
+  `allowedTasks` permission. Other machines and output collection are unsupported.
+  It uses bounded supported approaches with live sight/reach and ward checks;
+  tending requires food, safe health, grounded dry footing outside fire/smoke
+  and no nearby hostile. Each ordinary `Fireplace.UseItem` consumes at most one
+  item. A pack decrease of exactly one and synchronized fuel rise of 0.9–1.05
+  within five seconds verify a unit, allowing normal burning. No further use is
+  sent while a receipt is pending. An uncertain unit fails without retry; stop,
+  timeout and reconnect never replay it. Traces retain before/after pack/fuel,
+  target, position and lit state. The final detail reports verified added/requested
+  count, full/partial reason, fuel and lit state. Full follows the game's
+  `ceil(fuel) >= maxFuel` rule. A fueled but unlit fire refuses further fuel;
+  an empty fire may receive one unit, then stops if still unlit. Fuel is distinct
+  from heat: check ventilation/weather when it remains unlit. No fire toggles,
+  fireworks, ownership claims or direct inventory/ZDO writes are used. Missing
+  or incompatible fuel is `invalid_target`; uncertain receipt/safety is `refused`;
+  ward denial is `not_allowed`; lost access/reach stops the task.
 
 - `interact` with `sleep:true` uses only a bed and cannot combine `alt` or
   `hold`. It claims an unowned bed or sets the bot's spawn point if necessary,
@@ -996,7 +1017,7 @@ Notes:
 
 1. **Whitelist only.** The plugin carries out the tasks in section 7.2 and
    nothing else. No console or dev commands, ever.
-2. **The plugin's own config wins.** `allowGather`, `allowDrop`, `allowCombat`,
+2. **The plugin's own config wins.** `allowGather`, `allowStations`, `allowDrop`, `allowCombat`,
    `allowSailing`, `allowBossSummoning` and `allowRawControls` are read from the
    plugin's BepInEx config. `welcome.allowedTasks` can narrow them but never
    widen them.
@@ -1007,7 +1028,7 @@ Notes:
    the game's line length, and any leading `/` is stripped.
 5. **No friendly fire.** `attack` is refused on players and tamed creatures,
    and on anything `BaseAI.IsEnemy` says isn't hostile.
-6. **Wards.** `harvest` and `interact` are refused where the game's
+6. **Wards.** `add_to`, `harvest` and `interact` are refused where the game's
    private-area access check fails for the bot.
 7. **Bosses.** Interacting with offering bowls is refused unless
    `allowBossSummoning` is set.

@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62VXZ4D32W7WBX7WV84DAVY
 title: "Plugin: add fuel and ore to machines and take their output"
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: normal
 due_on: null
@@ -22,10 +22,17 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/portal-deploy
+  branch: t3/renki-portal-travel-startup
+  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
+  commit: f2b608ae7a7afb95a37463e4baa6e29fde122d03
+  session: null
+  claimed_at: 2026-11-04T17:57:17Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-04T17:55:01Z
+updated_at: 2026-11-04T18:08:05Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -70,10 +77,14 @@ Live, holding the VM lease (TKT-01M6EF5DTG): `just vm task-check add_to '{"entit
 ## Acceptance criteria
 
 - [ ] Both respect wards and a Safety switch, and fail with the reasons 6.6 names
-- [ ] An uncertain unit (no pack decrease or no fuel increase) stops the task without a retry, in a core test
+- [x] An uncertain unit (no pack decrease or no fuel increase) stops the task without a retry, in a core test
 - [ ] One live add_to of 2 Wood into a home fire that has room for 2 reports 2 added, and the next perception shows its fuel up by at least 1.9 (fuel burns between samples); audit window linked
 - [ ] add_to puts fuel from the pack into a fire and reports how many
 - [ ] take_from collects finished food from cooking stations
+
+## Implementation plan
+
+Implement the owner's selected fireplace slice: bounded add_to for native Fireplace fuel, including hearths, torches and braziers. Validate exact fuel metadata, normal ward/reach access and living safe footing; use ordinary UseItem once per unit and require pack decrease plus synchronized fuel increase before issuing another. Share the single-unit receipt with cooking while preserving cooking's empty-fire and heat requirements. Add default-off AllowStations plus session task permission, protocol validation and focused receipt/permission tests. Run focused checks, real plugin build, full CI and committed review; deploy under the VM lease and test the rebuilt half-wall hearth with real inventory/fuel evidence. Keep Tas and private video online outside the required restart. take_from and other machines remain outside this slice, with their acceptance criteria unticked.
 
 ## Notes
 
@@ -94,3 +105,11 @@ The immediate validation outcome is room access and short heat/rest without inju
 **agent:codex/portal-deploy** at 2026-11-04T17:55:01Z
 
 Correction to the preceding rebuilt-hearth note: only the carried Wood count was unchanged (1 before and after). The later inventory also contains4 Stone that were absent initially; no stone transfer/drop was ordered and their acquisition was not attributed. The entire inventory was therefore not unchanged. This does not change the refueling result: t-31 was rejected before native use, and no Wood was consumed. Retain both materials.
+
+**agent:codex/portal-deploy** at 2026-11-04T18:08:05Z
+
+Implemented the owner-selected fireplace add_to slice, not take_from or general machines. Native task uses exact ordinary fuel UseItem, live ward/sight/reach and health/food/threat/fire/smoke guards, bounded interaction approaches and one-unit pack plus synchronized fuel receipts. Added default-off AllowStations and session permission. Shared FuelUnit also protects the existing empty cooking-fire path. Fueled-but-unlit fires stop further additions; fuel and lit state are reported separately. New just vm stations preserves existing Safety settings and inserts the known flag before the first upgraded launch.
+
+Passed focused Fuel and CookingTests, controller protocol/config/settings/session/deployment tests, real plugin build and full just check ci (227s, .checks/20261104T180339Z-7nnsAy.log). Native deployment/test remains pending. Unit tests earn only uncertain-unit criterion2; output collection and both-task coverage remain unearned.
+
+Predeployment resupply: first t-33 withdrawal was superseded by ordinary automatic flee from the nearby boar; t-36 reached safety34m away with injurySeq0. t-38 withdrew3 Sausages and3 BoarJerky, reporting missing CarrotSoup honestly; t-41 withdrew3 QueensJam; t-43 withdrew2 Wood from mapped barrel1:15599. t-44 returned upstairs to[-204.35,32.97,-467.56] with three active meals, full115.4HP and injurySeq0. Pack now2 each Sausages/BoarJerky/QueensJam,3 Wood and4 Stone. Evidence .checks/task-zet106oa.json,.checks/hearth-resupply-flee.json,.checks/task-55w4xxwr.json,.checks/task-kxuqqjfa.json,.checks/task-nm3uajxl.json,.checks/task-_2k3r8b3.json,.checks/hearth-predeploy-inventory.json. No harvesting or invented supplies.

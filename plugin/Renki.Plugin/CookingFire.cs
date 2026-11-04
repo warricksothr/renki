@@ -34,12 +34,15 @@ namespace Renki.Plugin
 
         internal bool SafeFooting(Vector3 feet)
         {
-            // Match the game's head-height smoke sphere at the proposed
-            // standing position, rather than merely checking flame bounds.
+            return SafeFooting(feet, Nearby());
+        }
+
+        internal static bool SafeFooting(Vector3 feet, IEnumerable<Fireplace> fires)
+        {
             var player = Player.m_localPlayer;
             if (player == null || Physics.CheckSphere(feet + player.GetTopPoint() - player.transform.position + Vector3.up * .1f,
                 .5f, SmokeMask, QueryTriggerInteraction.Collide)) return false;
-            foreach (var nearby in Nearby())
+            foreach (var nearby in fires)
                 foreach (var original in BurningBounds(nearby))
                 {
                     var bounds = original; bounds.Expand(.7f);
