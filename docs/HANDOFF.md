@@ -87,6 +87,14 @@ loft1:15382 are all owned and none mine. The owner was asked asynchronously to
 make a bed available; no bed interaction was attempted. Do not claim another
 player's bed or invent a sleeping approach.
 
+At17:18Z the same four owned beds remained freshly observed. The lower-area
+bed941891633:991 at[-202,30.5,-467] exists only as an older map marker, not a
+fresh entity. The owner thinks they moved it and will place a new bed; keep Tas
+sheltered while waiting, then refresh perception before selecting any bed.
+Owner-requested TKT-01M6KS61A0T2VCT0RMQ1WF47CK (Build and claim a bed through
+native placement) is filed as draft under the construction epic, dependent on
+the native building foundation. Filing is not implementation selection.
+
 First goal38cb6628bc116daff1b9323a returned partial without travel,690/704
 terrain samples measured,14 unknown,52 refreshed,17 places added/refreshed,
 9 old markers protected. Wet ground under the deck wrongly prevented dispatch
