@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6KXKRTK0CXTWC4KV2YGC5TX
 title: Protect base resources and reject underwater harvest sites
 type: bug
-status: in-progress
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -20,17 +20,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/harvest-zones
-  branch: t3/renki-portal-travel-startup
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
-  commit: 7c67dfa7c23ceedd83b17e901799ce49c7e4a4ad
-  session: null
-  claimed_at: 2026-11-04T18:37:41Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-04T18:37:17Z
-updated_at: 2026-11-04T18:51:00Z
+updated_at: 2026-11-04T18:56:04Z
 created_by:
   id: agent:codex/harvest-zones
   name: ""
@@ -51,7 +44,7 @@ Implement saved-base protection in discovery, gather selection and task dispatch
 - [x] Saved base circles exclude wood and stone discovery and actual harvesting, including their edges and overlapping work zones.
 - [x] Underwater roots and fallen static logs do not become automatic wood sites; unknown water evidence is handled conservatively.
 - [x] Invalid automatic resource markers are pruned without changing owner places, bound roles or suppression; valid outside sites remain discoverable.
-- [ ] Focused regressions and full CI pass; deployed runtime safely refuses a camp target and invalid new-home automatic markers remain absent.
+- [x] Focused regressions and full CI pass; deployed runtime safely refuses a camp target and invalid new-home automatic markers remain absent.
 
 ## Implementation plan
 
@@ -76,3 +69,17 @@ Tas stayed online during coding. Before deployment, ordinary t-29 reached the fo
 **agent:codex/harvest-zones** at 2026-11-04T18:51:00Z
 
 Full just check ci passed in 186 s, including the actual Valheim plugin build and all protocol/native checks (.checks/20261104T184737Z-zO9WFA.log). Criteria 1–3 are earned by the implementation and regressions. Criterion 4 still awaits committed review, installation and safe live camp refusal/map cleanup checks. No camp resource will be struck to validate this guard.
+
+**agent:codex/harvest-zones** at 2026-11-04T18:55:46Z
+
+Deployed e5a7ec2 after committed just check review 7c67dfa..HEAD reported no findings (.checks/20261104T185106Z-nKwmJQ.log). just check vm install passed preflight, installed checksums and deployment-receipt verification while retaining durable data (.checks/20261104T185151Z-08PSEM.log). just check vm online restored Tas and existing private gameplay output in 68 s (.checks/20261104T185225Z-khRSDb.log).
+
+Live map comparison removed exactly new home wood 1–6 and new home stone 1. All 11 owner-managed places and the saved new home base definition (center [-204.39,32.97,-467.43], radius 60) remained byte-for-byte equal as JSON objects. No automatic wood/stone/ore site remains inside the circle across successive fresh captures. FirTree_oldLog 1:11828 and 1:14180 now report kind log with measured root Y25.29/26.03 below water at approximately30. Evidence: .checks/harvest-zones-{installed,final}-map.json and .checks/harvest-zones-live-summary.json. Unobserved global wood/stone sites outside saved bases remain last-known hints; missing fresh water evidence alone does not delete them.
+
+Two bounded explicit harvest requests, collect=false, for camp Beech1 1:14179 and Rock_3_frac 1:14273 both returned HTTP refusal: harvest target is inside a protected saved base (60 m radius). The just check vm task commands intentionally exit nonzero for these negative checks: .checks/20261104T185410Z-2H1WDQ.log and .checks/20261104T185419Z-2BNsXB.log. The exact audit window .checks/audit-window-H9ZyqE.jsonl contains no outgoing harvest task; only normal food maintenance use_item. This earns deployed controller refusal, not a destructive native cutting/mining trial. Native exclusion/root checks have unit coverage and a real plugin build. No camp resource was struck.
+
+Final Tas is online, idle, grounded/sheltered/near_fire at [-201.81,32.97,-468.07], near saved home, HP101.2/101.2, injurySeq0. Axe remains equipped100/100; helmet/chest/legs equipped400/400. Carried 2 each DeerStew, BoarJerky and QueensJam; active all three; Wood1 and Stone4 unchanged. Private /api/video reports enabled gameplay, scope1:DizzysHellheim:827096491. See final status/inventory and installed-video captures. The position was observed near home before installation; do not attribute it to a new move in the refusal checks. Saved exclusions are pinned per dispatch; stop active work before editing a base boundary. VM lease released at handback; game/private output remain online.
+
+## Summary
+
+Implemented and deployed e5a7ec2 on PR179. Saved base circles exclude harvesting and automatic wood/stone/ore sites; direct water evidence and corrected static-log classification prevent underwater wood markers. Seven invalid new-home automatic sites were pruned while preserving all 11 owner places and the saved 60 m boundary. Live tree and rock requests were refused before the bridge, with no harvest task or resource strike. Full CI and committed review passed. Tas and private gameplay output remain online; food reserves replenished, injurySeq0, equipped gear intact. The ticket's notes retain exact receipts and the dispatch-time snapshot limit.

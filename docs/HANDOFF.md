@@ -1,63 +1,95 @@
 # Handoff
 
 Replace this page at each handoff; tickets retain decisions and evidence.
-Current work of 2026-11-04 by `agent:codex/gear-up`.
+Current work of 2026-11-04 by `agent:codex/harvest-zones`.
 
-## Owner decisions and current task
+## Owner decision and completed work
 
-The owner requested clothes and an axe, then a return to the eastern warehouse
-workbench for repair. The supervised operation is done
-on TKT-01M6KWJMP (Equip Tas with leather clothing and a woodcutting axe). Existing
-native actions supplied and equipped a leather helmet/chest/legs and a full
-flint axe. See gear receipts below. No runtime code changed or redeployment
-is needed.
+The owner reported wood markers in water and requested protection for camp's
+wood and stone, choosing the saved **60 m new home boundary**. This is implemented,
+deployed and verified on TKT-01M6KXKRTK0CXTWC4KV2YGC5TX (Protect base resources
+and reject underwater harvest sites), done/released with all four criteria earned.
+Every saved base circle in the current world protects resource roots at all heights.
+New home remains center[-204.39,32.97,-467.43],radius60; its definition was not edited.
 
-Previously, the owner selected native fire interactions for hearths. That slice is
-implemented, deployed and live-tested through the rebuilt half-wall opening.
-TKT-01M62VXZ4 (Plugin: add fuel and ore to machines and take their output) is
-review/released: criteria2/3/4 earned; both-task coverage and take_from remain
-unticked. Do not describe cooking-output collection or other machines as shipped.
+Both survey and background discovery reject camp wood/stone/ore sites and require
+measured dry roots. Static FirTree_oldLog objects are logs rather than standing
+wood sites. Invalid automatic resource markers are pruned without suppressing
+future safe sites; owner edits and saved base role bindings survive. Gather planning
+checks camp exclusion, and every application harvest dispatch resolves a fresh
+current-world target and supplies authoritative saved circles. Native harvesting
+checks the actual root against those circles and current water before work and
+every tick. The advertised harvest_exclusions_v1 feature refuses unsafe fallback
+to older plugins. Existing collision, structure/fall, sight and ward guards remain.
+The circles are a dispatch-time snapshot: stop active harvesting before changing
+a base boundary. No cutting/mining trial was performed or is needed to repeat the
+safe refusal checks. Native checks have unit coverage and a real plugin build.
 
-The broader objective remains arrival at saved home[-204,-467], claiming a bed
-and mapping the new base's stacked storage, navigation and double doors. Tas
-arrived through the old-base portal, owns the new bed and the initial survey read20/23 selected
-storage entities. Today door-side chest1:15433 was also read successfully. Keep Tas and private video online, Loot disabled and automatic
-logout disabled. No other agent is active; preserve older ticket claims.
+The broader owner goal remains arrival at saved home, bed ownership and mapping
+stacked storage/navigation/double doors. Prior arrivals, bed claim, storage survey,
+hearth tending, clothing and repairs are retained below with their honest gaps.
+Keep Tas and private video online; Loot and automatic logout remain disabled.
+No other agent is active. Preserve older ticket claims and unselected drafts.
 
-## Runtime and final safe state
+## Installed runtime, validation and live proof
 
-Branch `t3/renki-portal-travel-startup`, PR179, builds on main501ca8d. PRs176/177/178
-are merged;178 is unwatched. Plugin/controller1c1d36c is installed. Later evidence
-commits do not require another deployment. Full gate passed in227s,
-.checks/20261104T180339Z-7nnsAy.log; committed review had no findings,
-.checks/20261104T180805Z-6zOnNj.log. Deployment preflight, installed checksums and
-receipt passed; durable data retained (.checks/20261104T180836Z-KWYTZz.log).
-`just check vm online` restored panel, private output and Tas in78s
-(.checks/20261104T180939Z-ISCenW.log).
+Branch `t3/renki-portal-travel-startup`,PR179,builds on main501ca8d. Plugin/controller
+**e5a7ec2** is installed; later evidence-only commits need no deployment.
+Full just check ci passed in186s (.checks/20261104T184737Z-zO9WFA.log), including the
+actual Valheim plugin build. Committed just check review 7c67dfa..HEAD had no findings
+(.checks/20261104T185106Z-nKwmJQ.log). Initial CI had an existing retreat-test timeout;
+five focused race runs passed before the successful complete gate. See the ticket.
 
-Final observed Tasleroch UID827096491 is connected to DizzysHellheim, idle
-at[-159.00,30.97,-475.07],beside the eastern warehouse workbench,
-grounded/sheltered/near_fire,106.4/106.4HP,injurySeq0.
-Three active meals: Sausages,BoarJerky,QueensJam;1 carried each,1 Wood and4 Stone.
-Equipped quality1 AxeFlint100/100,HelmetLeather400/400,
-ArmorLeatherChest400/400,ArmorLeatherLegs400/400.
-Maximum-health decay is not injury. Bed1274003559:489 remains Mine=true,Owned=true.
-Home Wood Door1:14823 was explicitly closed earlier; refresh its state after
-the latest owner-requested return to the warehouse.
-Storage double doors1:15335/1:15334 remain observed open; no automatic closure
-claim is earned. Home rules remain idleMinutes0,afterDeath stay,afterOutage false.
-Final evidence .checks/warehouse-repair-final-{status,inventory,map,video}.json.
-Earlier explicit door closure .checks/task-e5g1xg9_.json.
+just check vm install passed preflight,installed checksums and deployment receipt;
+durable data retained (.checks/20261104T185151Z-08PSEM.log). just check vm online
+restored panel,existing private output and Tas in68s
+(.checks/20261104T185225Z-khRSDb.log). VM console session2 still works; after RDP use
+C:\renki\release-rdp.ps1. VM lease was released; take it again as the current actor
+before live work. Do not stop the healthy game/private video at handback.
 
-VM console session2 works. Release the lease at handback; take/renew it before
-live work as agent:codex/gear-up. Keep the game online. After RDP use
-C:\renki\release-rdp.ps1. The private stream's final /api/video result is verified
-gameplay,scope1:DizzysHellheim:827096491 (.checks/warehouse-repair-final-video.json).
-Only private local output is configured, not an external public broadcast.
+Live comparison removed exactly `new home wood 1` through `6` and
+`new home stone 1`. All11 owner places and the saved base definition were unchanged.
+No automatic wood/stone/ore marker remains in camp across successive captures.
+Both static logs1:11828 and1:14180 now report kind log and measured water above their
+Y25.29/26.03 roots. Unobserved global wood/stone markers outside saved bases remain
+last-known hints; missing fresh water evidence alone does not delete them.
+Evidence .checks/harvest-zones-{installed,final}-map.json and
+.checks/harvest-zones-live-summary.json.
+
+Bounded collect=false requests for camp Beech1 1:14179 and Rock_3_frac 1:14273 both
+returned HTTP refusal: protected saved base(60 m radius). Their just check vm task
+commands intentionally exit nonzero: .checks/20261104T185410Z-2H1WDQ.log and
+.checks/20261104T185419Z-2BNsXB.log. Exact audit18:54:05Z..18:54:30Z
+.checks/audit-window-H9ZyqE.jsonl contains no outgoing harvest task,only normal
+BoarJerky maintenance. This proves controller refusal before the bridge,not native
+destructive work. Wood1,Stone4 and axe100/100 are unchanged; injurySeq0.
+
+## Final safe state and food
+
+Latest captured Tasleroch UID827096491 is connected to DizzysHellheim,idle at
+[-201.81,32.97,-468.07],near saved home,grounded/sheltered/near_fire,
+101.2/101.2HP,injurySeq0. That home position was already observed before installation;
+do not attribute it to the refusal tests. Equipped quality1 AxeFlint100/100,
+HelmetLeather400/400,ArmorLeatherChest400/400,ArmorLeatherLegs400/400.
+Active DeerStew,BoarJerky,QueensJam;carried2 each. Wood1,Stone4.
+Private /api/video reports enabled gameplay,scope1:DizzysHellheim:827096491.
+Final evidence .checks/harvest-zones-final-{status,inventory,map}.json and
+.checks/harvest-zones-installed-video.json. Current runtime and food counts
+supersede historical endpoints/counts below. Bed1274003559:489 remains the saved
+owned spawn; actual sleep/respawn remains untested.
+
+Food was replenished through ordinary known storage interaction: t-29 reached
+the upper food barrel approach; t-30 moved3 BoarJerky and3 QueensJam but could not
+supply missing Sausages (.checks/task-gzu65aif.json). Fresh barrel1:15597 contents
+showed DeerStew,then t-32 withdrew3 (.checks/task-s33_5u2w.json). t-34 successfully
+returned to the eastern warehouse workbench (.checks/task-mpihgx1t.json); a later
+fresh capture found Tas near home before installation. Do not invent a cause for
+that later position. Fresh food barrel contents remain finite; cached stock is
+not a guarantee. No unsafe foraging or camp harvesting was done.
 
 ## Clothing, axe and layered warehouse access
 
-Latest owner continuation: west forge1:15324[-165.67,30.31,-473.28],east
+Earlier owner operation: west forge1:15324[-165.67,30.31,-473.28],east
 workbench1:15887[-158.49,30.30,-476.39]. These are separate from the basic bench
 near Tas's bed. t-21 returned to the warehouse. t-22 failed ordinary station use
 from[-159.27,30.97,-474.67],approximately2.004m away in3D: the existing approach
