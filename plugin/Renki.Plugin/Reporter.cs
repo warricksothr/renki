@@ -133,6 +133,8 @@ namespace Renki.Plugin
             s.CaptureProof = plugin.CaptureProof;
             if (p == null) return s;
             s.Character = p.GetPlayerName();
+            if (phase == Wire.PhaseInWorld && ZNet.instance != null)
+                s.OtherPlayers = ZNet.instance.GetPlayerList().Count(peer => !string.IsNullOrWhiteSpace(peer.m_name) && peer.m_name != s.Character);
             if (phase == Wire.PhaseInWorld && ZNet.instance != null) s.SharePosition = ZNet.instance.IsReferencePositionPublic();
             s.World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
             s.WorldUid = ZNet.instance != null ? ZNet.instance.GetWorldUID().ToString(System.Globalization.CultureInfo.InvariantCulture) : null;

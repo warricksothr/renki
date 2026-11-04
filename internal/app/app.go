@@ -99,7 +99,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		return protocol.Vec3{}, home.ErrNoWaypoint
 	})
 	players := &memory.Players{Session: s, Store: homes, Logger: log.With("part", "players")}
-	playerPresence := presence.New(presence.Options{Session: s, Players: players, Live: func() presence.Live {
+	playerPresence := presence.New(presence.Options{Session: s, Players: players, ReserveBedtime: homes.ReserveBedtime, Live: func() presence.Live {
 		v := set.Values()
 		return presence.Live{Owners: v.Owners, Players: v.Players, Presence: v.Presence, AgentName: cfg.AgentName, Nicknames: v.Nicknames}
 	}, Logger: log.With("part", "presence")})

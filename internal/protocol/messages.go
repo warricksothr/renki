@@ -193,6 +193,8 @@ type JourneyStatus struct {
 
 // State is the bot's own body, streamed at stateHz (6.1).
 type State struct {
+	// OtherPlayers is the live server roster count excluding Tas; nil is unknown.
+	OtherPlayers  *int          `json:"otherPlayers,omitempty"`
 	CaptureProof  *CaptureProof `json:"captureProof,omitempty"`
 	SharePosition *bool         `json:"sharePosition,omitempty"`
 	Envelope

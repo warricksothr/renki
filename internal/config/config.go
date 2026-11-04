@@ -19,8 +19,9 @@ import (
 // Config is the controller's configuration file. Every field has a default,
 // so an empty file is a working configuration for a controller on the VM.
 type Presence struct {
-	SharePosition bool `json:"sharePosition"`
-	MarcoPolo     bool `json:"marcoPolo"`
+	Bedtime       string `json:"bedtime,omitempty"` // empty disables; otherwise normal or shout
+	SharePosition bool   `json:"sharePosition"`
+	MarcoPolo     bool   `json:"marcoPolo"`
 }
 type Config struct {
 	Screenshot protocol.ScreenshotConfig `json:"screenshot"`
@@ -185,6 +186,9 @@ func Load(path string) (Config, error) {
 
 // Validate refuses a configuration that would be unsafe or cannot work.
 func (c Config) Validate() error {
+	if c.Presence.Bedtime != "" && c.Presence.Bedtime != protocol.ChannelNormal && c.Presence.Bedtime != protocol.ChannelShout {
+		return errors.New("presence.bedtime must be empty, normal or shout")
+	}
 	if err := c.Screenshot.Validate(); err != nil {
 		return err
 	}

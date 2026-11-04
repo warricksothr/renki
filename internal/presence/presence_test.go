@@ -23,6 +23,7 @@ type fake struct {
 	connected  bool
 	orders     []session.Order
 	configs    []protocol.Config
+	sendError  error
 }
 
 func (f *fake) Handshake() (*protocol.Hello, *protocol.Welcome, bool) {
@@ -37,7 +38,7 @@ func (f *fake) DispatchFor(_ context.Context, o session.Order, hello *protocol.H
 		return nil, session.ErrBodyBusy
 	}
 	f.orders = append(f.orders, o)
-	return nil, nil
+	return nil, f.sendError
 }
 func (f *fake) Configure(_ context.Context, c protocol.Config) error {
 	f.configs = append(f.configs, c)

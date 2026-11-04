@@ -2251,6 +2251,7 @@ export function startController() {
     "screenshot.width": "Camera image width (320–1280)",
     "screenshot.quality": "JPEG quality (30–90)",
     "presence.marcoPolo": "Marco/Polo routines",
+    "presence.bedtime": "Nightly bed invitation",
     "players.profiles": "Player control profiles",
   };
   const AFTER_DEATH = ["home", "resume", "stay"];
@@ -2983,6 +2984,7 @@ export function startController() {
     presenceSnapshot = s;
     $("share-position").checked = !!s.presence?.sharePosition;
     $("marco-polo").checked = !!s.presence?.marcoPolo;
+    $("bedtime-invitation").value = s.presence?.bedtime || "";
     const desired = !!s.presence?.sharePosition;
     $("presence-summary").textContent =
       `${desired ? "marker shared" : "marker hidden"} · Marco/Polo ${s.presence?.marcoPolo ? "on" : "off"}`;
@@ -3064,6 +3066,9 @@ export function startController() {
   );
   $("marco-polo").addEventListener("change", () =>
     presenceSetting("presence.marcoPolo", $("marco-polo").checked),
+  );
+  $("bedtime-invitation").addEventListener("change", () =>
+    presenceSetting("presence.bedtime", $("bedtime-invitation").value),
   );
   $("profile-form").addEventListener("submit", (event) => {
     event.preventDefault();

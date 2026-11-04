@@ -440,6 +440,15 @@ export function Preferences() {
             location replies
           </label>
         </div>
+        <label>
+          Nightly bed invitation{" "}
+          <select id="bedtime-invitation">
+            <option value="">Off</option>
+            <option value="normal">Ask nearby players</option>
+            <option value="shout">Shout when others are online</option>
+          </select>
+        </label>
+        <p>Ask once each game night. Tas waits for a sleep command.</p>
         <p id="profile-owners"></p>
         <table id="profile-table" aria-label="Player control profiles"></table>
         <form id="profile-form" class="place-toolbar">

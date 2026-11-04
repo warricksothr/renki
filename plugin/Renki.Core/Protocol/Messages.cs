@@ -209,6 +209,7 @@ namespace Renki.Protocol
 
     public sealed class State : Message
     {
+        [JsonProperty("otherPlayers", NullValueHandling = NullValueHandling.Ignore)] public int? OtherPlayers;
         [JsonProperty("sharePosition", NullValueHandling = NullValueHandling.Ignore)] public bool? SharePosition;
         public override string MessageType => Wire.State;
         [JsonProperty("phase")] public string Phase = "";

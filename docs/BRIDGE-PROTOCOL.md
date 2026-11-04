@@ -216,6 +216,11 @@ that is `stranded`, and body tasks then fail with `encumbered` (6.6) rather
 than going through stuck recovery. The game's auto-pickup never takes what would cross `weightMax`,
 and neither does `pickup` (`too_heavy`).
 
+`state.otherPlayers` is an optional native server-roster count excluding Tas.
+It is sent only in a live world when the server player list is available. Missing
+means unknown, while zero means no other listed player; local perception is a
+separate measure and cannot establish the whole server roster.
+
 ### 6.2 `perception` (at `perceptionHz`, default 1)
 
 What's near the bot, within `radius`, nearest first, capped at `maxPerKind`

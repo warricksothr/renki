@@ -33,11 +33,12 @@ type Live struct {
 	Nicknames []string
 }
 type Options struct {
-	Session Session
-	Players PlayerMemory
-	Live    func() Live
-	Now     func() time.Time
-	Logger  *slog.Logger
+	ReserveBedtime func(worldUID, character string, day, night int) (bool, error)
+	Session        Session
+	Players        PlayerMemory
+	Live           func() Live
+	Now            func() time.Time
+	Logger         *slog.Logger
 }
 type PlayerMemory interface {
 	Last(string, string, time.Time) (home.PlayerEncounter, bool)
@@ -57,6 +58,7 @@ type Manager struct {
 	hello                                      *protocol.Hello
 	world                                      string
 	marcoUntil, lastMarco, nextSay, nextConfig time.Time
+	nextBedtime                                time.Time
 	replies, joins                             map[string]time.Time
 }
 
@@ -327,6 +329,8 @@ func (m *Manager) Tick(ctx context.Context) {
 			boundedRemember(m.replies, r.key, now)
 		}
 	}
+	m.inviteBedtime(ctx, live, current, st, now)
+
 }
 func (m *Manager) drain(keep bool) {
 	for range cap(m.queue) {

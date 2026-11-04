@@ -230,3 +230,22 @@ func TestScreenshotSettingsPersistWithHardBounds(t *testing.T) {
 		t.Fatal("interval lost on restart")
 	}
 }
+
+func TestBedtimeModePersistsAndRejectsUnsupportedChannels(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	s := open(t, path)
+	for _, mode := range []string{"normal", "shout", ""} {
+		raw, _ := json.Marshal(mode)
+		if err := s.Set("presence.bedtime", raw, ByPanel); err != nil {
+			t.Fatal(err)
+		}
+		if got := open(t, path).Values().Presence.Bedtime; got != mode {
+			t.Fatal(got, mode)
+		}
+	}
+	for _, raw := range []string{`"whisper"`, `"invalid"`, `true`, `4`} {
+		if err := s.Set("presence.bedtime", json.RawMessage(raw), ByPanel); !errors.Is(err, ErrBadValue) {
+			t.Fatal(raw, err)
+		}
+	}
+}

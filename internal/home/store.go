@@ -43,6 +43,7 @@ const keepGraves = 5
 
 // memory is the file's content.
 type memory struct {
+	BedtimeNights map[string]BedtimeAttempt `json:"bedtimeNights,omitempty"`
 	// Homes by world name.
 	Homes map[string]Home `json:"homes"`
 	// Interrupted is set while a body task runs, and cleared when it ends

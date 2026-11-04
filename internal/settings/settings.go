@@ -56,7 +56,7 @@ var Keys = []string{
 	"screenshot.enabled", "screenshot.intervalS", "screenshot.width", "screenshot.quality",
 	"model.provider", "model.name", "model.baseURL",
 	"home.whenLost", "home.whenStuck", "home.afterOutage", "home.idleMinutes", "home.afterDeath",
-	"overload.drop", "players.profiles", "presence.sharePosition", "presence.marcoPolo",
+	"overload.drop", "players.profiles", "presence.sharePosition", "presence.marcoPolo", "presence.bedtime",
 }
 
 // ownersOnly are the settings the agent may never change, pinned or not:

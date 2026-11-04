@@ -25,6 +25,7 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
+	OtherPlayers  *int                       `json:"otherPlayers,omitempty"`
 	WorldEvents   *protocol.WorldEventStatus `json:"worldEvents,omitempty"`
 	CaptureProof  *protocol.CaptureProof     `json:"captureProof,omitempty"`
 	SharePosition *bool                      `json:"sharePosition,omitempty"`
@@ -109,6 +110,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		ps.Connection = a.Session.ConnectionID()
 		ps.WorldEvents = a.Session.WorldEvents(s.World, ps.Connection, time.Now())
 		if s.Phase == protocol.PhaseInWorld {
+			ps.OtherPlayers = s.OtherPlayers
 			pos := s.Pos
 			ps.Pos = &pos
 			clock := s.Time
