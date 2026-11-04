@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6H2ABA6NZ6WVF6TCHEQ4NTT
 title: Search nearby or listed chests for requested items
 type: task
-status: review
+status: done
 status_reason: null
 priority: high
 due_on: null
@@ -23,12 +23,12 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T16:01:47Z
-updated_at: 2026-11-03T16:40:45Z
+updated_at: 2026-11-04T16:56:23Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
 updated_by:
-  id: agent:codex/home-survey-delivery
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -44,7 +44,7 @@ Add a reusable bounded search_chests behavior for a pinned explicit chest list o
 - [x] Read-only native inspection respects ordinary access and movement controls, publishes correlated contents and never transfers items.
 - [x] Search accepts an explicit chest list or configurable radius, bounds work and distinguishes checked matches, checked absence, inaccessible and unobserved storage.
 - [x] Owner chat requests such as look for wood in a nearby chest invoke the behavior, report results and preserve newer orders and retreat.
-- [ ] Regression tests, full CI and committed review pass; native searches and unchanged inventories are retained separately.
+- [x] Regression tests, full CI and committed review pass; native searches and unchanged inventories are retained separately.
 
 ## Implementation plan
 
@@ -66,6 +66,14 @@ Interrupted searches retain their partial findings and unchecked count in behavi
 
 Code landed in2e8c6d1. Full just check ci passed170s (.checks/20261103T163500Z-YLtrJQ.log); committed just check review passed8s with no findings (.checks/20261103T163822Z-KdkkbC.log). just check vm install passed16s with installed controller/Core/plugin checksum verification (.checks/20261103T163834Z-MJnAw1.log). just vm panel-start restored the independent panel without starting the game. Read-only delivered observation confirms offline; Loot remains disabled. The normal settings API added inspect_container while preserving all18 existing task permissions; readback confirmed it. Evidence .checks/new-home-delivered-observation.json, .checks/new-home-delivered-settings.json and .checks/new-home-delivered-behaviours.json. Native survival, double doors, chest inventories, survey/return and bed ownership remain unearned. No game rejoin or dangerous probe was attempted.
 
+**agent:codex/portal-deploy** at 2026-11-04T16:56:23Z
+
+Native November 4 delivery on reviewed/deployed bdd70e7: exact-link portal crossing t-5 arrived at new-base storage without injury. Bounded New home storage survey searched23 explicit chest/barrel IDs with radius30m, 180s/180m limits. Final report: checked20, unchecked3, matching consumables in3 containers. Inaccessible IDs1:15433,1:15438,1:15414 remain unknown; no entire-base absence/completion claim. Stacked upper barrel1:15597 at[-165.89,32,-466.76] freshly held71 ready meals, including sausages, deer stew, jerky, carrot soup and cooked fish. Upper barrel1:15598 held32 berries/mushrooms. Chest1:15420 held27 Pukeberries; generic consumable matching reports them, but they were not treated as sustaining meals or consumed.
+
+The complete read-only search left inventory exactly unchanged: same world/connection, inventory seq112/t375006.49987785146, empty items, weight0 before and after. Evidence .checks/newbase-inventory-before.json, .checks/newbase-search-inventory-after.json, .checks/newbase-search-final.json and .checks/newbase-storage-map4.json. Fresh stored snapshots distinguish upper/lower entity IDs and actual heights; no items moved during inspection.
+
+Only after the read-only evidence was retained, separate withdraw t-30 moved3 Sausages,3 BoarJerky,2 CarrotSoup from1:15597 (.checks/task-v8wtntcx.json). Existing food maintenance consumed one of each; fresh active meals and carried reserves were observed. HP recovered to the current decaying food maximum with injurySeq0. Scoped supported/hostile-avoiding move t-34 reached saved home[-203.53,32.97,-467.58] safely and sheltered; .checks/task-iettvo4g.json retains39.18m measured travel/trail. This is not a claim of access to the three failed containers or restoration of every door.
+
 ## Summary
 
-Implemented, tested, reviewed and installed bounded read-only chest inspection/search with radius/list/chat entry, fresh correlated counts, measured travel and retained partial results. inspect_container is enabled in the existing runtime allowlist. Native searches and before/after unchanged-inventory evidence remain unearned; AC4 stays unchecked while Tas is emergency-offline during an actual pursuit.
+Implemented and previously reviewed/deployed bounded read-only chest search. Native old-base absence/access trials and new-base positive stacked-storage search are retained. New-base search inspected20of23 explicit containers with unchanged empty inventory before/after; three inaccessible IDs remain unknown. Separate subsequent food withdrawal/consumption is distinguished from read-only evidence. Full CI and committed review passed on the installed implementation.

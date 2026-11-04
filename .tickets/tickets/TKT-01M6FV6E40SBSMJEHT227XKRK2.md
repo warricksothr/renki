@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-04T16:25:59Z
+updated_at: 2026-11-04T16:56:23Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
@@ -85,6 +85,8 @@ Test persistent migration/rollback/world isolation, roles 50 m apart, multiple s
 ### Current native continuation
 
 After the owner restores the desktop session, start the installed reviewed build under the VM lease. Refresh state, inventory, meals, threats and current base settings; obtain available supplies through ordinary native access before the roughly 513 m journey. Pin the owner-confirmed saved home and use bounded supported hostile-avoiding travel with receipts and observed floor arrival. Respond to concrete obstruction evidence instead of repeating unchanged routes. At the base, select an observed free bed, claim through native interaction, verify ownership and bind a supported sleeping approach. Familiarize the existing 60 m base, inspect each reachable storage entity without transfers, and retain vertical position, access gaps and double-door traversal/cleanup evidence. Keep Loot disabled, preserve other ticket claims and leave Tas online. Report partial/blocked outcomes honestly; no criterion is earned by map visibility alone.
+
+Native November 4 raised-base correction: the first survey refreshed17 places but skipped its 35m bound storage connection because all intermediate terrain samples were underwater beneath the deck. When no fresh dry terrain approach exists, allow an exact already-bound role within60m to reach the existing bounded native dry/hostile-avoiding walker. Do not invent intermediate floor heights or relax native water/support/obstacle/portal guards. Retain budgets, refusal memory and separate arrival receipts. Regress this wet-under-deck case and both-way role verification, run the full gate and committed review, deploy controller-only while Tas remains sheltered/online, then retry the same selected base survey and record partial coverage honestly. Bed binding remains pending an actual available bed.
 
 ## Notes
 
@@ -153,6 +155,22 @@ On November 4, the owner restored the signed-in console and Tas restarted on dep
 Respawn was 25/25HP at old bed. Stopped automatic home travel; persisted home.idleMinutes=0 and home.afterDeath=stay (afterOutage=false retained) to prevent another unsupplied 500m trip. RecoveryGuard/AutoLogout remain false; combat/gather permissions retained; Loot, Relocation mushrooms and Relocation food search disabled. Two bounded shelter returns failed without injury, leaving Tas at [-43.39,33.73,8.53], idle, grounded, 25/25HP with empty pack. Latest fresh perception at 16:24Z showed a non-targeting Boar ~30m away. Old double gates are open after these failed returns; closed-state observations from the earlier pantry inspection do not establish final door restoration.
 
 The owner says nearby SpawnCamp portal 1:166576 leads to the new base and cannot supply old-base food. Fresh native link is connected to 1:166579 at source [-50.26,34.09,13.84], without remote coordinates. Explicit ordered crossing is being added under TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals). No crossing, free bed, new-home food or survey completion is claimed yet. Saved home remains [-204.39,32.97,-467.43]. Keep Tas online except required implementation deployment restart.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:48:30Z
+
+Deployed reviewed bdd70e7 after full CI, committed review and verified preflight/checksums/receipt. The owner-selected source was freshly observed connected: SpawnCamp 1:166576 ->1:166579. First dry approach t-1 failed without moving; checked-wading stairs approach t-2 made progress but stopped unsupported_footing. Retrying explicit crossing t-3 from the changed position made a small safe approach then refused before entry. Two invalid mode combinations (scope+wade, ordinary travel+avoidHostiles) were rejected before dispatch; no movement occurred from them. A supervised normal native walk t-4 to the observed staircase at[-44.13,34.09,18.02] succeeded, retaining ordinary portal guards; native hostile avoidance is unavailable in that movement mode, and fresh non-targeting creatures remained outside the route. No injury occurred.
+
+From the stairs, exact-link crossing t-5 succeeded through the native trigger and observed teleport. Receipt: source1:166576, destination1:166579, actual grounded arrival[-168.53,30.97,-458.92], observedReturnTo1:166576. This is inside the selected new-base area, near its storage, not the exact saved home/bed. The exit was freshly observed connected with native target1:166576 and source coordinates; actual arrival is retained separately in the task/audit receipt. HP25/25, grounded on structure, not in water, near fire; no perceived hostile creatures. Evidence .checks/task-pm_oi5en.json and .checks/newbase-arrival-status.json/.checks/newbase-arrival-map.json. The private stream reported verified gameplay. The new base has stacked chests/barrels, both observed individually. A bounded read-only storage search is underway; fresh snapshots already establish ready food in upper barrel1:15597 and berries in1:15598. No bed has been claimed.
+
+This earns the explicit crossing implementation and one real outward traversal only. Durable map-level arrival/return route knowledge and repeated native return/restoration trials remain open. Do not infer safe return from the observed reverse link, or enable Loot. Keep home idle/death travel paused until food and safe staging are verified.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:56:23Z
+
+Native November 4 delivery on reviewed/deployed bdd70e7: exact-link portal crossing t-5 arrived at new-base storage without injury. Bounded New home storage survey searched23 explicit chest/barrel IDs with radius30m, 180s/180m limits. Final report: checked20, unchecked3, matching consumables in3 containers. Inaccessible IDs1:15433,1:15438,1:15414 remain unknown; no entire-base absence/completion claim. Stacked upper barrel1:15597 at[-165.89,32,-466.76] freshly held71 ready meals, including sausages, deer stew, jerky, carrot soup and cooked fish. Upper barrel1:15598 held32 berries/mushrooms. Chest1:15420 held27 Pukeberries; generic consumable matching reports them, but they were not treated as sustaining meals or consumed.
+
+The complete read-only search left inventory exactly unchanged: same world/connection, inventory seq112/t375006.49987785146, empty items, weight0 before and after. Evidence .checks/newbase-inventory-before.json, .checks/newbase-search-inventory-after.json, .checks/newbase-search-final.json and .checks/newbase-storage-map4.json. Fresh stored snapshots distinguish upper/lower entity IDs and actual heights; no items moved during inspection.
+
+Only after the read-only evidence was retained, separate withdraw t-30 moved3 Sausages,3 BoarJerky,2 CarrotSoup from1:15597 (.checks/task-v8wtntcx.json). Existing food maintenance consumed one of each; fresh active meals and carried reserves were observed. HP recovered to the current decaying food maximum with injurySeq0. Scoped supported/hostile-avoiding move t-34 reached saved home[-203.53,32.97,-467.58] safely and sheltered; .checks/task-iettvo4g.json retains39.18m measured travel/trail. This is not a claim of access to the three failed containers or restoration of every door.
 
 ## Summary
 

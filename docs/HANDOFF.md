@@ -119,3 +119,47 @@ Earlier deployment-preflight/activity tracking tickets are done. Unselected
 passive gathering/needs-ledger/agent-list drafts stay draft. Twelve unknown saved
 goal instances warned on startup; do not delete without owner direction. Prior
 in-progress claims remain owned; no other agent is actively using the VM.
+
+## Verified new-base continuation and pending survey correction
+
+This section supersedes the earlier old-base/stairs snapshot. From the stairs,
+explicit crossing t-5 succeeded: source1:166576, expected exit1:166579, actual
+arrival[-168.53,30.97,-458.92], observedReturnTo1:166576. Grounded, supported on
+structure, dry and uninjured; .checks/task-pm_oi5en.json. This proves one outward
+native crossing, not a safe return route or repeated round trip.
+
+The bounded read-only storage search checked20of23 explicitly selected containers,
+including upper barrels at y32 and lower chests at y30.97. Inventory remained
+exactly empty with the same seq112 before/after. Unknown access IDs1:15433,
+1:15438,1:15414 remain gaps. Upper barrel1:15597 contains ready meals;1:15598
+contains berries/mushrooms. Pukeberries in1:15420 are consumables, not sustaining
+food for this task. Only after recording read-only evidence, separate t-30
+withdrew3 Sausages,3 BoarJerky,2 CarrotSoup; food maintenance ate one of each.
+Remaining reserves and three active meals are verified. Chest-search ticket
+TKT-01M6H2ABA6 is done/released with the native evidence. OBS startup ticket
+TKT-01M6KNVKQZ is done; reviewed recovery correction4cc25b8 passed a final
+independent startup in9s (.checks/20261104T165401Z-wMi5vr.log), retaining gameplay.
+
+Scoped dry hostile-avoiding t-34 safely reached saved home with39.18m measured
+travel; actual[-203.53,32.97,-467.58], sheltered and full food-adjusted HP,
+injurySeq0. Its trace shows storage double doors opened then cleanup out of
+reach8m later; the home door also opened. This does not earn door restoration.
+Fresh beds1:14774,1:15016,1:14773 and loft1:15382 are all owned, none mine. The
+owner has a pending asynchronous request to make a bed available. Do not claim
+another player's bed or bind sleeping before observing an available one.
+
+Started familiarize goal38cb6628bc116daff1b9323a for the selected new home. It
+finished partial at the return anchor without travel:690/704 terrain samples
+measured,14 unknown,52 refreshed,17 places added/refreshed,9 old markers
+protected. It skipped the35m storage role because all intermediate terrain
+samples were wet beneath the deck. The controller correction now allows an
+exact bound role within60m to reach the existing bounded native dry walker
+when no ground sample offers an approach. It does not invent floors or relax
+native guards; failed targets remain failed. Survey health also accounts for
+maximum-health decay from food while retaining health-loss and injury stops.
+Focused goal regressions passed (.checks/20261104T165444Z-OlJ4Ul.log). Full gate
+passed222s (.checks/20261104T165535Z-FOYm2i.log); commit/review and perform
+controller-only deployment; keep Tas online.
+Then retry the saved-base survey, inspect actual route receipts/return and close
+any doors Tas left open using fresh observations. Missing sleeping binding and
+unreachable storage/terrain gaps must stay explicit. Keep Loot disabled.

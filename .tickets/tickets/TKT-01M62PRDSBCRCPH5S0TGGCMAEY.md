@@ -34,12 +34,12 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-03T16:00:45Z
+updated_at: 2026-11-04T16:57:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:codex/home-survey-delivery
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -211,3 +211,9 @@ Earlier ordinary native arrival at new home and the saved/bound new home storage
 **agent:codex/home-survey-delivery** at 2026-11-03T16:00:45Z
 
 Supersedes the healthy remote-platform snapshot in the preceding note. On deployed cc5f323, Greydwarf 1629975892:102 hit at 15:54:52.701Z (11.99 damage), 15:54:54.821Z (12.28) and 15:55:04.879Z (11.44). Automatic flee t-2 started within 0.28s of the first hit, failed unreachable at 15:54:55.186Z; replacement flee t-5 remained active until death at 15:55:04.915Z near [413.36,31.65,-1177.66]. No direct probe interrupted these retreats. Respawn at 15:55:22.962Z was at the old base [-31.08,36.55,15.19], followed by automatic strict-dry return t-7, which failed unreachable at 15:55:44.553Z. Latest resumed observation at 15:56:28Z: idle 25/25HP near [-46.32,33.79,10.13], no active/carried food, empty pack and no equipped gear; fresh local perception had no characters. Loot remains disabled. Exact retained events/states/inventory: .checks/audit-window-M3BtxI.jsonl; fresh state/map .checks/new-home-resume-runtime.json and .checks/new-home-resume-map.json. This is a death/failed escape, not a safe portal arrival or return, and does not earn survey, bed or survival acceptance.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:57:17Z
+
+Native November4: Tas reached the confirmed saved home via scoped supported move t-34, at[-203.53,32.97,-467.58], sheltered, full food-adjusted HP and injurySeq0. Fresh perception sees four beds, all owned and none mine:1:14774 [-204.98,32.99,-473.09],1:15016 [-207.05,32.99,-472.96],1:14773 [-205.49,32.99,-474.37], and storage-loft bed1:15382 [-170.39,36.99,-469.93]. No bed interaction/claim was attempted. Asked the owner asynchronously to make a bed available; continuing independent mapping meanwhile. Sleeping binding remains unset; no ownership was invented.
+
+The t-34 trace also disproves full double-door restoration: storage leaves at[-171.86,31.87,-466.97] and[-172.63,31.87,-468.8] opened at16:50:37.531/.789Z, then emitted cleanup out of reach at16:50:40.538/.795Z after Tas had moved roughly8m away. The home door at[-200.47,33.87,-468.1] opened at16:50:48.981Z. Evidence .checks/task-iettvo4g.json; final storage/home door closure must be freshly checked and any remaining cleanup gap retained. Passing through both leaves is not proof that they were closed. This does not earn the native door-restoration criterion.

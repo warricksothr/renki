@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6KNVKQZGF26CSJ5T49BH5MV
 title: Start private OBS streaming alongside Tas
 type: task
-status: review
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -21,7 +21,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-04T16:21:45Z
-updated_at: 2026-11-04T16:41:30Z
+updated_at: 2026-11-04T16:56:54Z
 created_by:
   id: agent:codex/portal-deploy
   name: ""
@@ -54,4 +54,4 @@ just check streaming windows-online passed in19s (.checks/20261104T163711Z-ZVVQv
 
 ## Summary
 
-Added guarded just vm online and independent just streaming windows-online startup. Verified recovery from the actual OBS 33 unclean-shutdown dialog, repeat startup retaining output duration, Tas joining and fresh gameplay capture. Full CI passed; final committed review is pending.
+Landed in4cc25b8 after full just check ci and committed just check review. Guarded just vm online starts panel/private video/Tas; native recovery from the actual OBS33 unclean-shutdown dialog passed, repeat startup retained active output duration, and verified changing gameplay capture passed. Final independent just check streaming windows-online also passed in9s (.checks/20261104T165401Z-wMi5vr.log) with gameplay retained. Existing source-loss/watchdog trials remain on their separate older ticket.
