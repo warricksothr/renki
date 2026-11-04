@@ -6,160 +6,126 @@ Current work of 2026-11-04 by `agent:codex/portal-deploy`.
 ## Objective and owner decisions
 
 Bring Tas to saved home [-204.39,32.97,-467.43], claim an observed free bed,
-and map the area and individual storage access. The base has vertically stacked
-chests/barrels, complex navigation and more double doors. The owner says the
-old-base SpawnCamp portal leads directly to the new base and cannot supply food
-at the old base. The owner also requested starting OBS/private streaming with
-Tas. Keep Loot disabled. Keep the game online except required deployment
-restarts; automatic logout remains disabled. Do not take other sessions' claims.
+and map the area and individual storage access. The new base has vertically
+stacked chests/barrels, complex navigation and double doors. The owner said
+the old-base SpawnCamp portal leads here and requested OBS/private streaming
+alongside Tas. Keep Loot disabled and the game online. Automatic logout remains
+disabled. No other agent is active, but preserve older ticket claims.
 
-## Runtime and live failure
+## Runtime and current position
 
-PRs #176/#177/#178 merged; prior installed runtime was main 501ca8d with verified
-preflight/checksums/receipt. #178 is unwatched. The reboot/desktop blocker was
-resolved by the owner; interactive session 2 started successfully through
-just check vm start (.checks/20261104T155916Z-waASAP.log). Tasleroch is connected
-to DizzysHellheim, world UID 827096491. Lease belongs to this worktree as
-agent:codex/portal-deploy; renew during work and release at handback.
+PRs #176/#177/#178 are merged; #178 is unwatched. This branch
+`t3/renki-portal-travel-startup` builds on main501ca8d. Plugin/controller bdd70e7
+was installed after full CI and committed review; OBS recovery correction4cc25b8
+and survey controller83a4743 also passed full CI and committed review.
+Controller-only deployment83a4743 retained Valheim, passed preflight/checksums
+and verified the deployment receipt. Latest gate:222s,
+.checks/20261104T165535Z-FOYm2i.log. Review: no findings,
+.checks/20261104T165928Z-Ml5zXw.log. Deployment:
+.checks/20261104T165942Z-50whAH.log. Do not redeploy unchanged code.
 
-Four old-base chests were freshly inspected with normal read-only controls.
-No ready food was present; pantry 1:75501 contains raw fish, superseding its
-historical mushroom contents. Outdoor 1:75525 has trophies/Ectoplasm;
-1:75526 and 1:77215 are empty. The northern berry approach was refused due to
-Elite clearance. A southern mushroom attempt ended in Tas's death. Greydwarf
-2675073813:273 approached while the agent inspected collection code; the agent
-should have abandoned the source immediately. Bank retreat t-18/t-20 and
-t-23/t-25 failed bearings_exhausted. Hits at 16:12:35.238Z and 16:12:41.296Z,
-death at 16:12:41.322Z near [-11.08,30.8,44.77]; no food collected. Owner informed.
-Exact audit .checks/audit-window-CReSWs.jsonl; flee and survey tickets retain it.
+At17:04Z Tasleroch is connected to DizzysHellheim, UID827096491, idle at
+[-203.11,32.97,-467.58], grounded/sheltered,115.7/115.7HP,injurySeq0.
+Three active meals: Sausages, BoarJerky, CarrotSoup; carried reserves include
+sausage/jerky, but no soup remains. .checks/final-home-observe.json retains
+status/inspection; .checks/final-home-behaviours.json verifies Loot disabled.
+Home rules remain idleMinutes0,afterDeath stay,afterOutage false after the earlier
+unsupplied old-base death. Do not restore autonomous travel without safe staging.
+VM console session2 works. Lease is released at handback; take/renew it before
+live work as agent:codex/portal-deploy. Keep Tas online at handback.
 
-After respawn at the old bed, automatic home travel was stopped. Persisted
-home.idleMinutes=0 and home.afterDeath=stay prevent another unsupplied 500m trip;
-afterOutage=false retained. Restore only after safe supplied staging.
-RecoveryGuard/AutoLogout=false, combat/gather allowed. Loot, Relocation mushrooms
-and Relocation food search disabled. Empty pack, no meals. Two bounded shelter
-returns failed without injury. Latest observation at 16:24Z: idle, grounded,
-25/25HP at [-43.39,33.73,8.53]; non-targeting Boar ~30m away. Both old double
-gates were observed open after these failed returns; earlier closed observations
-do not prove restoration. Refresh before acting; do not repeat unsafe foraging.
+## OBS delivered
 
-## Current implementation
+TKT-01M6KNVKQZ — Start private OBS streaming alongside Tas is done.
+`just check vm online` restores panel, existing OBS/relay/capture/watchdog tasks,
+verifies active private output, then starts Tas. Repeated startup retains output
+and fresh verified scene. `just check streaming windows-online` restores video
+independently; `just check streaming windows-adapter-update` replaces only the
+adapter binary without scenes/credential reconfiguration. Keep the desktop signed
+in; after RDP use C:\renki\release-rdp.ps1. See docs/WINDOWS-VIDEO.md.
 
-Branch t3/renki-portal-travel-startup builds on 501ca8d. Tickets:
+OBS33 unclean-shutdown startup was native-tested and recovered narrowly:
+archive stale dedicated run markers only while stopped, retaining crash logs;
+restart only the dedicated process whose sole current log message proves the
+shutdown dialog and whose control port is closed. Other states time out.
+Final independent video startup passed in9s,
+.checks/20261104T165401Z-wMi5vr.log, retaining gameplay. Latest17:04Z
+GET /api/video reports verified gameplay, scope1:DizzysHellheim:827096491
+(.checks/final-home-video.json). Only private local output is configured;
+no external broadcast destination. No need to restart an already healthy stream.
+Older OBS freshness/standby ticket TKT-01M67DWF retains its separate claim/checks.
 
-- TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M — Traverse known portals with verified arrivals:
-  owner-selected, promoted/claimed/in-progress. Adds explicit interact portalTo
-  with advertised feature gating, exact-link native walking admission, bounded
-  hostile-avoiding dry approach, native cargo/access checks and observed teleport.
-  Success requires grounded non-swimming 3D proximity to the loaded expected exit,
-  including vertical tolerance. Task/audit receipt separates actual arrival from
-  observed return-link metadata. Durable map route planning and repeatable native
-  return tests remain unearned.
-- TKT-01M6KNVKQZGF26CSJ5T49BH5MV — Start private OBS streaming alongside Tas:
-  owner-selected, claimed/in-progress. just vm online restores panel and existing
-  OBS/relay/capture/watchdog tasks, verifies private output, then starts the game.
-  Stream remains independent of game/controller lifecycle. just streaming
-  windows-adapter-update replaces the adapter without reinstalling scenes or
-  credentials; windows-online restores installed tasks. Active private output is
-  retained on repeat startup. Only loopback private RTMP output is configured.
-- TKT-01M6FV6E40SBSMJEHT227XKRK2 — Home survey: familiarize with an area and
-  update its places: claimed/in-progress, live criteria 5/7 unchecked. Portal
-  transport, new-home food, free bed and bounded survey still need live evidence.
+## Portal, food and stacked storage evidence
 
-Source portal freshly observed: SpawnCamp 1:166576 at [-50.26,34.09,13.84],
-connected to 1:166579; no target coordinates delivered. Owner identifies the
-new-base destination. Refresh the exact native link before ordered crossing.
-Do not fabricate leader evidence, edit tags, call teleport directly or bypass
-ordinary trigger guards globally.
+TKT-01M6AZ7D — Traverse known portals with verified arrivals remains in-progress.
+Explicit portalTo pins observed native source/exit IDs and keeps tag editing
+separate. Bounded dry approach, native cargo/access/link checks and actual loaded
+exit arrival checks do not bypass the ordinary trigger guard globally.
+Actual outward crossing t-5: SpawnCamp1:166576 ->1:166579, grounded/dry arrival
+[-168.53,30.97,-458.92], observedReturnTo1:166576.
+.checks/task-pm_oi5en.json proves one outward traversal; durable map route
+transitions and repeatable return/restoration remain unearned.
 
-Implementation bdd70e7 passed full just check ci (178s,
-.checks/20261104T162852Z-rZ5dey.log) and committed just check review (7s,
-.checks/20261104T163203Z-k3Y5lT.log), then just check vm install (28s,
-.checks/20261104T163223Z-RB5QJz.log) with preflight/checksum/receipt verification.
-just check streaming windows-adapter-update passed (9s).
+TKT-01M6H2AB — Search nearby or listed chests for requested items is done.
+Read-only search checked20/23 selected containers, including upper barrels y32
+and lower chests y30.97. Inventory remained exactly empty with the same seq112
+before/after. Gaps1:15433,1:15438,1:15414 remain unknown. Upper barrel1:15597
+has ready meals;1:15598 has berries/mushrooms. Pukeberries1:15420 were not treated
+as sustaining food. Only after the read-only evidence, separate t-30 withdrew
+3 Sausages,3 BoarJerky,2 CarrotSoup; food maintenance consumed meals normally.
+Evidence .checks/newbase-inventory-before.json,
+.checks/newbase-search-inventory-after.json,.checks/newbase-search-final.json,
+.checks/newbase-storage-map4.json,.checks/task-v8wtntcx.json.
 
-The first combined startup correctly stopped before game launch because OBS
-control never opened. Pinned OBS 33 removed --disable-shutdown-check and was
-blocked by its unclean-shutdown dialog (current log contained only that message).
-Startup now recovers only that verified dedicated-process state and archives
-stale .sentinel/run_* markers while OBS is stopped, retaining crash logs. Other
-running OBS states are not restarted. Diagnostics expose bounded redacted logs
-and control/task facts. just check streaming windows-online passed (19s,
-.checks/20261104T163711Z-ZVVQv9.log), recovering the dialog and archiving two
-markers. just check vm online passed (61s, .checks/20261104T163751Z-rsnInl.log),
-retaining private stream duration across repeat startup and restoring Tas on
-bdd70e7. GET /api/video reported verified gameplay, not merely active output.
-The recovery correction passed full just check ci (179s,
-.checks/20261104T163752Z-t3DOnR.log); commit/review it before pushing.
+## Survey and remaining navigation work
 
-First explicit crossing t-1 refused its dry approach without moving or injury:
-no supported route to the raised portal platform. .checks/task-fl99b0h8.json and
-.checks/audit-window-I4o7Jo.jsonl retain evidence. Camera
-.checks/camera-20261104T163940055274Z.jpg shows the platform and the stairs above
-Tas. A staging request combining wade and scope was rejected before dispatch;
-those modes are intentionally exclusive. A short checked-wading approach to the
-known stairs is pending. Refresh live state. No native teleport or new-home
-arrival has occurred; bed/food/survey remain pending.
+TKT-01M6FV6E — Home survey: familiarize with an area and update its places remains
+in-progress. Saved selected base new home: radius60m,duration600s,travel800m,
+return home and storage new home storage west[-169.13,30.97,-467.75].
+Sleeping remains unbound. Four freshly observed beds1:14774,1:15016,1:14773,
+loft1:15382 are all owned and none mine. The owner was asked asynchronously to
+make a bed available; no bed interaction was attempted. Do not claim another
+player's bed or invent a sleeping approach.
 
-## Remaining checks and older claims
+First goal38cb6628bc116daff1b9323a returned partial without travel,690/704
+terrain samples measured,14 unknown,52 refreshed,17 places added/refreshed,
+9 old markers protected. Wet ground under the deck wrongly prevented dispatch
+to the bound storage role. Correction83a4743 allows an exact bound role within60m
+to reach the existing dry bounded native walker without fabricating floor heights.
 
-Follow-portal ticket TKT-01M6FT1ZVW remains review/released: live leader round trip
-criterion 5 is unearned. Loot panel ticket TKT-01M6EYEMTX remains review/released:
-owner-in-game reach-over-time criterion unearned. Loot stays disabled.
+Retried goal9efba35d2e5246771e077c4d actually reached storage via t-1:
+35.485m travel,final[-170.06,31.04,-467.82]. Return t-2 failed after11.979m at
+[-177.89,30.97,-471.19]. The actual failure is wave-sensitive dry clearance:
+level deck/support y30.97, water30.155 rising to30.275. WaitingMargin0.9 triggered
+bank departure; its stronger1.1m recovery threshold was not regained on the level
+deck, and its3m bound refused distance_limit. Further terrain legs refused and
+the agent stopped the survey. Retained coverage690/704 measured,598 refreshed,
+14 unknown;7 new places,9 protected. Goal is cancelled, not a verified return.
+Do not repeat the same unchanged survey or relax water/support/hostile guards.
+Next implementation is to handle supported deck travel under changing wave
+clearance, then verify both directions with bounded receipts.
 
-TKT-01M62PRDS (Claim a bed near home, or tell owner none) and
-TKT-01M62N256 (Plugin: flee task, and retreating when health is low) retain prior
-session claims. Four new-base beds were historically owned; inspect again and
-never take another player's bed. Native search-chests and double-door tickets
-remain review with live criteria; a final closed state alone does not prove both
-leaves were restored. OBS freshness/standby ticket TKT-01M67DWF retains its prior
-claim and separate native checks. Do not infer those checks from active output.
+Separate supervised ordinary native move t-12 succeeded home and recorded71
+route points. It does not earn the survey return or separated-building criterion.
+Exact audit .checks/audit-window-IxX5Fs.jsonl; bounded summary
+.checks/survey-return-audit-summary.txt; checkpoint .checks/continuation-observe.json;
+recovery receipt .checks/task-gecesv1a.json. Native trails are in full audit even
+where the goal checkpoint's trail arrays are null. Survey criteria5/7 stay unticked.
 
-Earlier deployment-preflight/activity tracking tickets are done. Unselected
-passive gathering/needs-ledger/agent-list drafts stay draft. Twelve unknown saved
-goal instances warned on startup; do not delete without owner direction. Prior
-in-progress claims remain owned; no other agent is actively using the VM.
+TKT-01M6H243 — Close doors Tas opened after passing through the doorway remains
+review/released with native criterion4 unearned. Storage leaves1:15335/1:15334
+were opened but cleanup ran after Tas was8m away; fresh17:03Z perception confirms
+both remain open. Explicit t-14 closed home door1:14823 and fresh perception
+verified closed (.checks/task-zg0w2zau.json,.checks/home-after-close-map.json).
+This manual home-door closure does not prove automatic double-door restoration.
 
-## Verified new-base continuation and pending survey correction
+## Older claims and boundaries
 
-This section supersedes the earlier old-base/stairs snapshot. From the stairs,
-explicit crossing t-5 succeeded: source1:166576, expected exit1:166579, actual
-arrival[-168.53,30.97,-458.92], observedReturnTo1:166576. Grounded, supported on
-structure, dry and uninjured; .checks/task-pm_oi5en.json. This proves one outward
-native crossing, not a safe return route or repeated round trip.
-
-The bounded read-only storage search checked20of23 explicitly selected containers,
-including upper barrels at y32 and lower chests at y30.97. Inventory remained
-exactly empty with the same seq112 before/after. Unknown access IDs1:15433,
-1:15438,1:15414 remain gaps. Upper barrel1:15597 contains ready meals;1:15598
-contains berries/mushrooms. Pukeberries in1:15420 are consumables, not sustaining
-food for this task. Only after recording read-only evidence, separate t-30
-withdrew3 Sausages,3 BoarJerky,2 CarrotSoup; food maintenance ate one of each.
-Remaining reserves and three active meals are verified. Chest-search ticket
-TKT-01M6H2ABA6 is done/released with the native evidence. OBS startup ticket
-TKT-01M6KNVKQZ is done; reviewed recovery correction4cc25b8 passed a final
-independent startup in9s (.checks/20261104T165401Z-wMi5vr.log), retaining gameplay.
-
-Scoped dry hostile-avoiding t-34 safely reached saved home with39.18m measured
-travel; actual[-203.53,32.97,-467.58], sheltered and full food-adjusted HP,
-injurySeq0. Its trace shows storage double doors opened then cleanup out of
-reach8m later; the home door also opened. This does not earn door restoration.
-Fresh beds1:14774,1:15016,1:14773 and loft1:15382 are all owned, none mine. The
-owner has a pending asynchronous request to make a bed available. Do not claim
-another player's bed or bind sleeping before observing an available one.
-
-Started familiarize goal38cb6628bc116daff1b9323a for the selected new home. It
-finished partial at the return anchor without travel:690/704 terrain samples
-measured,14 unknown,52 refreshed,17 places added/refreshed,9 old markers
-protected. It skipped the35m storage role because all intermediate terrain
-samples were wet beneath the deck. The controller correction now allows an
-exact bound role within60m to reach the existing bounded native dry walker
-when no ground sample offers an approach. It does not invent floors or relax
-native guards; failed targets remain failed. Survey health also accounts for
-maximum-health decay from food while retaining health-loss and injury stops.
-Focused goal regressions passed (.checks/20261104T165444Z-OlJ4Ul.log). Full gate
-passed222s (.checks/20261104T165535Z-FOYm2i.log); commit/review and perform
-controller-only deployment; keep Tas online.
-Then retry the saved-base survey, inspect actual route receipts/return and close
-any doors Tas left open using fresh observations. Missing sleeping binding and
-unreachable storage/terrain gaps must stay explicit. Keep Loot disabled.
+TKT-01M62PRDS (Claim a bed near home, or tell owner none), TKT-01M62N256
+(Plugin: flee task, and retreating when health is low) and other earlier tickets
+retain their claims. Old-base mushroom foraging ended in death before portal
+travel; do not repeat it. Exact old pursuit audit .checks/audit-window-CReSWs.jsonl.
+TKT-01M6FT1Z (Follow: go through the portal the leader just used) and TKT-01M6EYEMT
+(Loot panel) stay review/released with their owner-in-game criteria unearned.
+Unselected passive-gathering/needs-ledger/agent-list drafts remain draft.
+Twelve unknown saved goal instances warned on startup; do not delete them.

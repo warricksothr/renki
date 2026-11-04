@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-04T16:56:23Z
+updated_at: 2026-11-04T17:05:39Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
@@ -172,6 +172,18 @@ The complete read-only search left inventory exactly unchanged: same world/conne
 
 Only after the read-only evidence was retained, separate withdraw t-30 moved3 Sausages,3 BoarJerky,2 CarrotSoup from1:15597 (.checks/task-v8wtntcx.json). Existing food maintenance consumed one of each; fresh active meals and carried reserves were observed. HP recovered to the current decaying food maximum with injurySeq0. Scoped supported/hostile-avoiding move t-34 reached saved home[-203.53,32.97,-467.58] safely and sheltered; .checks/task-iettvo4g.json retains39.18m measured travel/trail. This is not a claim of access to the three failed containers or restoration of every door.
 
+**agent:codex/portal-deploy** at 2026-11-04T17:05:38Z
+
+Reviewed commit83a4743 passed just check ci (222s, .checks/20261104T165535Z-FOYm2i.log), committed just check review with no findings (.checks/20261104T165928Z-Ml5zXw.log), then just check vm deploy-controller with preflight/checksum/receipt verification (.checks/20261104T165942Z-50whAH.log). Valheim stayed online.
+
+Survey9efba35d2e5246771e077c4d actually reached the bound storage approach: t-1 succeeded at[-170.06,31.04,-467.82], with35.485m measured travel. The return leg t-2 failed after11.979m at[-177.89,30.97,-471.19]. Native evidence shows a wave-dependent bank-buffer refusal, not missing terrain alone: deck/support y30.97, water30.155 rising to30.275, flat normal[0,1,0]. WaitingMargin0.9 activated bank departure; its stronger1.1m recovery threshold was not reached on the level deck, and the3m bound refused distance_limit. No water/support/hostile safeguards were relaxed. Subsequent terrain approaches also refused; the agent stopped the survey rather than spending the remaining600s. Final retained survey coverage690/704 measured,598 refreshed,14 unknown;7 new places,9 protected old markers. Survey status is cancelled, not a verified completed return.
+
+Separate ordinary native move t-12 succeeded back to saved home, recording71 route points. It was a supervised recovery and does not earn the bounded survey return or separated-building criterion. Exact live audit .checks/audit-window-IxX5Fs.jsonl and compact .checks/survey-return-audit-summary.txt; final goal checkpoint in .checks/continuation-observe.json. Missing trail arrays in the goal checkpoint do not mean native receipts lacked trails; full audit retains them.
+
+Fresh17:03Z perception still has four owned/non-mine beds1:14774,1:15016,1:14773,1:15382; no claim attempted. Owner previously asked to make a bed available; sleeping remains unbound. Explicit t-14 closed home door1:14823, and .checks/home-after-close-map.json verifies closed. Storage leaves1:15335/1:15334 remain observed open; automatic cleanup is not earned.
+
+At17:04Z Tas is idle, grounded/sheltered at[-203.11,32.97,-467.58],115.7/115.7HP,injurySeq0, with three active meals and carried sausage/jerky reserves. Loot is disabled, idle home travel0, afterDeath stay, afterOutage false. Private OBS is still verified gameplay (.checks/final-home-video.json). Next native work is to handle the wave-sensitive raised-deck dry-route refusal while preserving actual-water guards, then verify the round trip and an actually available bed. Do not repeat the same failed survey unchanged or infer all rooms/storage/doors were inspected.
+
 ## Summary
 
-Configurable familiarization, independent base roles and supported wading are deployed in PR #176 (runtime cc5f323). Tas earlier reached the saved home and an actual storage approach is saved/bound. Owner food restored health, then automatic Loot accidentally entered darkforest; Loot is paused and its final-guard continuation bug is fixed and native-verified. Tas is now healthy on the remote portal platform. No bed claimed or survey admitted; native criteria5/7 remain unticked. Controlled return, meal readiness and a free Tas bed/verified sleeping approach remain pending.
+Deployed reviewed83a4743 over merged PRs176/177/178. Tas crossed the observed old-base portal, inspected20/23 selected stacked storage containers without transfers, then separately withdrew native food and reached saved home. Survey reached storage and refreshed598/704 terrain samples, but its bounded return failed on wave-sensitive deck clearance; cancelled and recovered home through a separate ordinary native walk. No survey return/complete-area claim. Tas remains online, sheltered, healthy and fed with verified private OBS gameplay. Four observed beds remain owned by others; no bed claimed. Sleeping binding, dry round-trip survey and double-door restoration remain open.

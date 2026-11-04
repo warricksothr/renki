@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T15:58:23Z
-updated_at: 2026-11-04T16:57:17Z
+updated_at: 2026-11-04T17:05:39Z
 created_by:
   id: agent:codex/home-survey-delivery
   name: ""
@@ -68,6 +68,10 @@ Code landed in2e8c6d1. Full just check ci passed170s (.checks/20261103T163500Z-Y
 Native November4: Tas reached the confirmed saved home via scoped supported move t-34, at[-203.53,32.97,-467.58], sheltered, full food-adjusted HP and injurySeq0. Fresh perception sees four beds, all owned and none mine:1:14774 [-204.98,32.99,-473.09],1:15016 [-207.05,32.99,-472.96],1:14773 [-205.49,32.99,-474.37], and storage-loft bed1:15382 [-170.39,36.99,-469.93]. No bed interaction/claim was attempted. Asked the owner asynchronously to make a bed available; continuing independent mapping meanwhile. Sleeping binding remains unset; no ownership was invented.
 
 The t-34 trace also disproves full double-door restoration: storage leaves at[-171.86,31.87,-466.97] and[-172.63,31.87,-468.8] opened at16:50:37.531/.789Z, then emitted cleanup out of reach at16:50:40.538/.795Z after Tas had moved roughly8m away. The home door at[-200.47,33.87,-468.1] opened at16:50:48.981Z. Evidence .checks/task-iettvo4g.json; final storage/home door closure must be freshly checked and any remaining cleanup gap retained. Passing through both leaves is not proof that they were closed. This does not earn the native door-restoration criterion.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:05:39Z
+
+Fresh17:03Z observation confirms storage leaves1:15335/1:15334 remain open after the home/storage survey and recovery. Explicit native interact t-14 closed home door1:14823; subsequent perception verifies closed in .checks/home-after-close-map.json. This is manual restoration of the home door only, not proof of automatic double-door cleanup. Tas remains sheltered at saved home; do not tick native criterion4.
 
 ## Summary
 
