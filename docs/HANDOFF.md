@@ -95,6 +95,27 @@ Owner-requested TKT-01M6KS61A0T2VCT0RMQ1WF47CK (Build and claim a bed through
 native placement) is filed as draft under the construction epic, dependent on
 the native building foundation. Filing is not implementation selection.
 
+At17:25Z the owner placed new bed1274003559:168 at[-208.09,32.99,-468.03],
+freshly observed owned=false. Native interact t-19 approached it but failed
+refused: "The bed is too exposed"; it remains unowned. Tas is sheltered at
+[-205.25,32.97,-467.77], uninjured. Receipt .checks/task-f0oetsx5.json and
+.checks/bed-claimed-map.json. The owner has pending asynchronous questions to
+adjust the bed's shelter and identify the home fire they want lit. Only the
+already-lit storage campfire1:15355 around40m away is currently observed; do not
+assume it serves the new bed. The installed runtime supports fueling only as
+part of cooking; ordinary interact refuses fireplaces. Do not use cooking as
+a disguised fire-lighting action or bypass native interaction rules. Standalone
+fueling remains drafted on TKT-01M62VXZ4 (Plugin: add fuel and ore to machines
+and take their output); no implementation was selected in this turn.
+
+Read-only t-20 inspected adjacent home chest1:15452 successfully, with zero
+travel and no transfers; it is empty. Tas also has an empty pack and two meals
+after the last soup expired; no carried Wood. Evidence .checks/task-gp6xuik9.json,
+.checks/home-bed-container-memory.json,.checks/bed-shelter-wait-status.json.
+Fresh observations show the storage double doors now closed; no evidence
+attributes their closure to Tas, so automatic cleanup remains unearned.
+Do not retry the unchanged exposed bed or bind it as Tas's sleeping place.
+
 First goal38cb6628bc116daff1b9323a returned partial without travel,690/704
 terrain samples measured,14 unknown,52 refreshed,17 places added/refreshed,
 9 old markers protected. Wet ground under the deck wrongly prevented dispatch

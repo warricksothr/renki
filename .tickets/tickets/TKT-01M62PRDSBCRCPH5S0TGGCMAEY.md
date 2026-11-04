@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-04T16:57:17Z
+updated_at: 2026-11-04T17:26:54Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -217,3 +217,7 @@ Supersedes the healthy remote-platform snapshot in the preceding note. On deploy
 Native November4: Tas reached the confirmed saved home via scoped supported move t-34, at[-203.53,32.97,-467.58], sheltered, full food-adjusted HP and injurySeq0. Fresh perception sees four beds, all owned and none mine:1:14774 [-204.98,32.99,-473.09],1:15016 [-207.05,32.99,-472.96],1:14773 [-205.49,32.99,-474.37], and storage-loft bed1:15382 [-170.39,36.99,-469.93]. No bed interaction/claim was attempted. Asked the owner asynchronously to make a bed available; continuing independent mapping meanwhile. Sleeping binding remains unset; no ownership was invented.
 
 The t-34 trace also disproves full double-door restoration: storage leaves at[-171.86,31.87,-466.97] and[-172.63,31.87,-468.8] opened at16:50:37.531/.789Z, then emitted cleanup out of reach at16:50:40.538/.795Z after Tas had moved roughly8m away. The home door at[-200.47,33.87,-468.1] opened at16:50:48.981Z. Evidence .checks/task-iettvo4g.json; final storage/home door closure must be freshly checked and any remaining cleanup gap retained. Passing through both leaves is not proof that they were closed. This does not earn the native door-restoration criterion.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:26:54Z
+
+Owner placed free bed1274003559:168 at[-208.09,32.99,-468.03]. Fresh observation confirms owned=false. Ordinary native claim t-19 approached from shelter but failed refused: The bed is too exposed; bed remains unowned. No ownership/spawn/sleeping binding claimed. Evidence .checks/task-f0oetsx5.json and .checks/bed-claimed-map.json. Asked owner asynchronously to fix shelter and identify the home fire: only the lit storage fire1:15355 is currently observed, approximately40m from the new bed. Tas remains sheltered/grounded without injury. Standalone fireplace fueling is not implemented; existing fueling is confined to the cooking task supporting fire.
