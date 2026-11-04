@@ -33,6 +33,7 @@ type Options struct {
 	Landmarks  func(world string) []home.Landmark
 	Waypoints  func(world string) []home.Waypoint
 	Base       func(world string) *home.Base
+	Bases      func(world string) []home.Base
 	Danger     func(world string, now time.Time) []home.DangerZone
 	Pickups    func(world string) []home.Pickup
 	Logger     *slog.Logger
@@ -435,6 +436,9 @@ func (e *Engine) view() View {
 	}
 	if e.o.Waypoints != nil && v.State != nil {
 		v.Waypoints = e.o.Waypoints(v.State.World)
+	}
+	if e.o.Bases != nil && v.State != nil {
+		v.Bases = e.o.Bases(v.State.World)
 	}
 	if e.o.Base != nil && v.State != nil {
 		v.Base = e.o.Base(v.State.World)

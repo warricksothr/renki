@@ -113,6 +113,8 @@ Optional `features` advertises argument semantics separately from task names.
 `deposit_match_existing_v1` permits the conditional deposit described below.
 A controller must refuse that option when the plugin omits this feature;
 older plugins can ignore unknown arguments, so sending it would be unsafe.
+`harvest_exclusions_v1` promises bounded `harvest.exclude` circles and native
+root/water checks. The controller refuses protected harvesting on older plugins.
 
 ### `welcome` (controller → plugin)
 
@@ -281,6 +283,10 @@ or landmarks. Map snapshots and exports carry them through `perception`.
   is unknown. These dynamic values are sampled anew, independently of
   geometry caches. See [COOKING.md](COOKING.md).
 - `resources`: `minTool` is the lowest tool tier that can harvest it.
+  Optional `waterLevel` is measured at the resource root using the local liquid
+  level and world water level. Missing means unknown. Automatic wood/stone/ore
+  places require the root more than 0.2 m above known water. Static fallen logs
+  such as `FirTree_oldLog` are `log`, rather than standing `tree` sites.
   Optional `yield` describes a drop/simple pickable's primary output:
   `{prefab, count, stackMax, weight}`. Count is a capacity upper bound
   including possible skill bonuses; weight is per item. Unknown, extra-drop
@@ -529,7 +535,7 @@ Character elevation remains `state.pos[1]`; the existing `swimming` and
 | `pickup` | body | `entity` (a drop) | M2 |
 | `drop` | instant | `prefab`; `count` (at least 1) | M2 |
 | `interact` | body | `entity`; `alt` (bool); `hold` (bool); `sleep` (beds only); `repair` (crafting stations only); `portalTo` (pinned native destination ID; exclusive crossing mode, requires `portal_travel_v1`, see [PORTALS.md](PORTALS.md)); `cook` (one carried raw-food prefab; see [COOKING.md](COOKING.md)) | M2 |
-| `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true) | M2 |
+| `harvest` | body | `entity` (tree, log, stump or mineable rock); `collect` (default true); `exclude` (base circles) | M2 |
 | `equip` / `unequip` | instant | `item` (prefab) / `slot`: `right`, `left`, `hands`, `head`, `chest`, `legs`, `shoulder`, `utility`, `trinket` or `ammo` | M2 |
 | `use_item` | instant | `item` (carried food prefab; eat one) | M2 |
 | `deposit` | body | `container`; `items`: `[{prefab, count \| "all"}]` | M2 |
@@ -732,8 +738,21 @@ Notes:
   Less than 1 m flat displacement over 4 s with a threat within 15 m fails
   `blocked`, with a trace naming position, threat, goal and gap. Replanning
   does not reset that physical-progress window.
-- `harvest` operates on one loaded tree, log, stump or mineable rock. It
-  chooses the greatest resource damage among usable carried melee tools that
+- `harvest` operates on one loaded tree, log, stump or mineable rock.
+  The controller requires fresh current-world target perception, refuses roots
+  inside any saved base circle, and supplies authoritative `exclude` circles
+  (`{center:[x,y,z],radius}`; at most 16, radius 10–250 m). This includes the
+  boundary and all heights. A work site's center outside camp grants no
+  permission to cut a target inside it. Callers cannot clear the saved policy.
+  Native work checks the actual target against this dispatch-time snapshot and
+  current root water clearance before approaching and every work tick. Missing
+  water knowledge or a root at/below water plus 0.2 m refuses work. Saved base
+  edits apply to subsequent harvest orders; stop existing work before changing
+  the protected boundary.
+  Discovery also excludes saved base circles. Invalid automatic resource sites
+  are pruned without owner-deletion suppression; owner places and saved role
+  bindings are preserved. Storage, sleeping and cooking sites remain inside camp.
+  It chooses the greatest resource damage among usable carried melee tools that
   meet `minTool`, requires at least 80% health and a work site clear of
   enemies within 15 m, approaches the resource's physical surface, and uses normal
   held primary-attack input with stamina and facing checks. Enemy proximity

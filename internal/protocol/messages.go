@@ -57,6 +57,7 @@ type Hello struct {
 const FeatureSupportedWading = "supported_wading_v1"
 const FeaturePortalTravel = "portal_travel_v1"
 const FeatureInspectContainer = "inspect_container_v1"
+const FeatureHarvestExclusions = "harvest_exclusions_v1"
 
 const FeatureMatchingDeposit = "deposit_match_existing_v1"
 
@@ -348,6 +349,8 @@ type PerceivedResource struct {
 	MinTool *int           `json:"minTool,omitempty"`
 	Stack   int            `json:"stack,omitempty"`
 	Yield   *ResourceYield `json:"yield,omitempty"`
+	// WaterLevel is measured at the resource root, not at the player's feet.
+	WaterLevel *float64 `json:"waterLevel,omitempty"`
 }
 
 // ResourceYield describes the primary item from a drop or simple pickable.

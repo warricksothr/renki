@@ -426,13 +426,53 @@ func (a *AttackArgs) validate() error {
 // HarvestArgs operates on one resource; descendants remain separate targets.
 // Nil Collect means true, matching the plugin default.
 type HarvestArgs struct {
-	Entity  string `json:"entity"`
-	Collect *bool  `json:"collect,omitempty"`
+	Entity  string             `json:"entity"`
+	Collect *bool              `json:"collect,omitempty"`
+	Exclude []HarvestExclusion `json:"exclude,omitempty"`
 }
+
+// HarvestExclusion protects a saved base in the horizontal plane at any height.
+type HarvestExclusion struct {
+	Center Vec3    `json:"center"`
+	Radius float64 `json:"radius"`
+}
+
+func (a *HarvestExclusion) UnmarshalJSON(raw []byte) error {
+	var wire struct {
+		Center []*float64 `json:"center"`
+		Radius float64    `json:"radius"`
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&wire); err != nil {
+		return err
+	}
+	if len(wire.Center) != 3 || wire.Center[0] == nil || wire.Center[1] == nil || wire.Center[2] == nil {
+		return errors.New("harvest exclusion center must be [x,y,z]")
+	}
+	a.Center = Vec3{*wire.Center[0], *wire.Center[1], *wire.Center[2]}
+	a.Radius = wire.Radius
+	return nil
+}
+
+func (a HarvestExclusion) Contains(p Vec3) bool { return a.Center.FlatDistance(p) <= a.Radius }
 
 func (a *HarvestArgs) validate() error {
 	if a.Entity == "" {
 		return errors.New("`entity` is required")
+	}
+	if len(a.Exclude) > 16 {
+		return errors.New("harvest supports at most 16 exclusions")
+	}
+	for _, area := range a.Exclude {
+		if !finite(area.Radius) || area.Radius < 10 || area.Radius > 250 {
+			return errors.New("harvest exclusion radius must be 10–250 m")
+		}
+		for _, n := range area.Center {
+			if !finite(n) || math.Abs(n) > 1e6 {
+				return errors.New("harvest exclusion center must be finite")
+			}
+		}
 	}
 	return nil
 }

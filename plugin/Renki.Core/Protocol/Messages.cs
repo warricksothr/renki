@@ -269,6 +269,7 @@ namespace Renki.Protocol
         [JsonProperty("minTool", NullValueHandling = NullValueHandling.Ignore)] public int? MinTool;
         [JsonProperty("stack", NullValueHandling = NullValueHandling.Ignore)] public int? Stack;
         [JsonProperty("yield", NullValueHandling = NullValueHandling.Ignore)] public ResourceYield Yield;
+        [JsonProperty("waterLevel", NullValueHandling = NullValueHandling.Ignore)] public double? WaterLevel;
     }
 
     public sealed class ResourceYield

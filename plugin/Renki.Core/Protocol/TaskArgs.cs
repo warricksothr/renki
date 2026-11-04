@@ -133,6 +133,7 @@ namespace Renki.Protocol
 
     public sealed class HarvestArgs
     {
+        public HarvestArea[] Exclude = Array.Empty<HarvestArea>();
         public string Entity;
         public bool Collect = true;
     }
@@ -450,7 +451,25 @@ namespace Renki.Protocol
                     {
                         var entity = Str(a, "entity");
                         if (string.IsNullOrEmpty(entity)) throw new BadArgsException("`entity` is required");
-                        return new HarvestArgs { Entity = entity, Collect = Bool(a, "collect", true) };
+                        var exclusions = Array.Empty<HarvestArea>();
+                        if (a["exclude"] != null && a["exclude"].Type != JTokenType.Null)
+                        {
+                            if (!(a["exclude"] is JArray zones) || zones.Count > 16)
+                                throw new BadArgsException("harvest supports at most 16 exclusions");
+                            exclusions = new HarvestArea[zones.Count];
+                            for (var i = 0; i < zones.Count; i++)
+                            {
+                                if (!(zones[i] is JObject zone)) throw new BadArgsException("harvest exclusion must be an object");
+                                foreach (var property in zone.Properties())
+                                    if (property.Name != "center" && property.Name != "radius") throw new BadArgsException("unknown harvest exclusion field");
+                                var center = Target.Parse(zone["center"], "exclude.center").Pos;
+                                if (!center.HasValue) throw new BadArgsException("harvest exclusion center must be coordinates");
+                                var area = new HarvestArea { Center = center.Value, Radius = Number(zone, "radius", 0) };
+                                if (!area.Valid) throw new BadArgsException("invalid harvest exclusion");
+                                exclusions[i] = area;
+                            }
+                        }
+                        return new HarvestArgs { Entity = entity, Collect = Bool(a, "collect", true), Exclude = exclusions };
                     }
                 case TaskNames.Interact:
                     {

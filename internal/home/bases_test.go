@@ -166,7 +166,7 @@ func TestRefreshMultiplePlacesOwnerProtectionSuppressionAndOtherBase(t *testing.
 func TestRefreshMovedEntityAndFailedSaveKeepHonestPlaces(t *testing.T) {
 	s := Memory()
 	b := baseFixture(t, s)
-	c := Waypoint{Kind: "wood", Pos: protocol.Vec3{0, 10, 20}, Radius: 15, At: b.At.Add(time.Second), Entity: "tree:1"}
+	c := Waypoint{Kind: "berries", Pos: protocol.Vec3{0, 10, 20}, Radius: 15, At: b.At.Add(time.Second), Entity: "tree:1"}
 	changes, err := s.RefreshBasePlaces("one", b, []Waypoint{c})
 	if err != nil || len(changes.Added) != 1 {
 		t.Fatal(changes, err)

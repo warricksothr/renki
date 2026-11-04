@@ -83,6 +83,14 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	}
 	s := session.New(nil, log.With("part", "session"))
 	s.SetPermit(func(task string) bool { return slices.Contains(set.Values().AllowedTasks, task) })
+	s.SetHarvestAreas(func(world string) []protocol.HarvestExclusion {
+		bases, _ := homes.Bases(world)
+		areas := make([]protocol.HarvestExclusion, 0, len(bases))
+		for _, b := range bases {
+			areas = append(areas, protocol.HarvestExclusion{Center: b.Center, Radius: b.Radius})
+		}
+		return areas
+	})
 	keeper := home.NewLive(homes, func() config.HomeRules { return set.Values().Home }, s, log.With("part", "home"), nil)
 	s.SetMovePlace(func(world, name string) (protocol.Vec3, error) {
 		if place, ok := homes.Waypoint(world, name); ok {
@@ -172,6 +180,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Landmarks:    homes.Landmarks,
 		Waypoints:    homes.Waypoints,
 		Base:         homes.ActiveBase,
+		Bases:        func(world string) []home.Base { bases, _ := homes.Bases(world); return bases },
 		Danger:       homes.DangerZones,
 		Pickups:      homes.Pickups,
 		Notify: func(ctx context.Context, line string) {
