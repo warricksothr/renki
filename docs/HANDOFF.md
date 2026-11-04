@@ -15,7 +15,7 @@ restarts; automatic logout remains disabled. Do not take other sessions' claims.
 
 ## Runtime and live failure
 
-PRs #176/#177/#178 merged; installed runtime is main 501ca8d with verified
+PRs #176/#177/#178 merged; prior installed runtime was main 501ca8d with verified
 preflight/checksums/receipt. #178 is unwatched. The reboot/desktop blocker was
 resolved by the owner; interactive session 2 started successfully through
 just check vm start (.checks/20261104T155916Z-waASAP.log). Tasleroch is connected
@@ -72,11 +72,34 @@ new-base destination. Refresh the exact native link before ordered crossing.
 Do not fabricate leader evidence, edit tags, call teleport directly or bypass
 ordinary trigger guards globally.
 
-Focused protocol/session/OBS checks and portal/fixture core tests passed.
-The complete just check ci gate passed in 178s
-(.checks/20261104T162852Z-rZ5dey.log); commit then just check review before
-push/deployment. Deployment requires clean committed source. Native startup,
-repeat stream startup, portal crossing and new-home work are pending.
+Implementation bdd70e7 passed full just check ci (178s,
+.checks/20261104T162852Z-rZ5dey.log) and committed just check review (7s,
+.checks/20261104T163203Z-k3Y5lT.log), then just check vm install (28s,
+.checks/20261104T163223Z-RB5QJz.log) with preflight/checksum/receipt verification.
+just check streaming windows-adapter-update passed (9s).
+
+The first combined startup correctly stopped before game launch because OBS
+control never opened. Pinned OBS 33 removed --disable-shutdown-check and was
+blocked by its unclean-shutdown dialog (current log contained only that message).
+Startup now recovers only that verified dedicated-process state and archives
+stale .sentinel/run_* markers while OBS is stopped, retaining crash logs. Other
+running OBS states are not restarted. Diagnostics expose bounded redacted logs
+and control/task facts. just check streaming windows-online passed (19s,
+.checks/20261104T163711Z-ZVVQv9.log), recovering the dialog and archiving two
+markers. just check vm online passed (61s, .checks/20261104T163751Z-rsnInl.log),
+retaining private stream duration across repeat startup and restoring Tas on
+bdd70e7. GET /api/video reported verified gameplay, not merely active output.
+The recovery correction passed full just check ci (179s,
+.checks/20261104T163752Z-t3DOnR.log); commit/review it before pushing.
+
+First explicit crossing t-1 refused its dry approach without moving or injury:
+no supported route to the raised portal platform. .checks/task-fl99b0h8.json and
+.checks/audit-window-I4o7Jo.jsonl retain evidence. Camera
+.checks/camera-20261104T163940055274Z.jpg shows the platform and the stairs above
+Tas. A staging request combining wade and scope was rejected before dispatch;
+those modes are intentionally exclusive. A short checked-wading approach to the
+known stairs is pending. Refresh live state. No native teleport or new-home
+arrival has occurred; bed/food/survey remain pending.
 
 ## Remaining checks and older claims
 

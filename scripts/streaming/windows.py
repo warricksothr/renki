@@ -69,7 +69,7 @@ def remote(action):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['downloads', 'online', 'setup', 'status', 'adapter', 'adapter-update', 'start', 'stop', 'relay', 'local-start', 'local-stop', 'snapshot', 'game-snapshot', 'enable', 'https', 'codec', 'beacon', 'slate', 'trial-source-loss', 'trial-watchdog'])
+    parser.add_argument('action', choices=['downloads', 'online', 'setup', 'status', 'diagnose', 'adapter', 'adapter-update', 'start', 'stop', 'relay', 'local-start', 'local-stop', 'snapshot', 'game-snapshot', 'enable', 'https', 'codec', 'beacon', 'slate', 'trial-source-loss', 'trial-watchdog'])
     args = parser.parse_args()
     if args.action == 'downloads':
         downloads()

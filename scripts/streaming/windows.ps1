@@ -1,4 +1,4 @@
-param([ValidateSet('online','setup','status','adapter','adapter-update','start','stop','relay','local-start','local-stop','snapshot','game-snapshot','enable','https','codec','beacon','slate','trial-source-loss','trial-watchdog')][string]$Action = 'status')
+param([ValidateSet('online','setup','status','diagnose','adapter','adapter-update','start','stop','relay','local-start','local-stop','snapshot','game-snapshot','enable','https','codec','beacon','slate','trial-source-loss','trial-watchdog')][string]$Action = 'status')
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $obsRoot = Join-Path $root 'obs'
@@ -101,7 +101,7 @@ AuxDevice4=disabled
     if (-not (Get-NetFirewallRule -Name RenkiObsPrivate -ErrorAction SilentlyContinue)) {
         New-NetFirewallRule -Name RenkiObsPrivate -DisplayName 'Renki OBS control stays local' -Direction Inbound -Action Block -Protocol TCP -LocalPort 4455 | Out-Null
     }
-    Task 'RenkiOBS' $obsExe '--portable --disable-shutdown-check --disable-missing-files-check --minimize-to-tray --scene "Renki Offline"' (Split-Path $obsExe)
+    Task 'RenkiOBS' $obsExe '--portable --disable-missing-files-check --minimize-to-tray --scene "Renki Offline"' (Split-Path $obsExe)
     Write-Host 'Pinned portable OBS prepared; private authenticated control; no output or game started'
 }
 if ($Action -in @('adapter','adapter-update')) {
@@ -133,7 +133,7 @@ if ($Action -in @('adapter','adapter-update')) {
 if ($Action -eq 'start') {
     $existing = Get-Process obs64 -ErrorAction SilentlyContinue
     if ($existing -and $existing.Path -ne $obsExe.Replace('/','\')) { throw 'A different OBS installation is already running' }
-    Task 'RenkiOBS' $obsExe '--portable --disable-shutdown-check --disable-missing-files-check --minimize-to-tray --scene "Renki Offline"' (Split-Path $obsExe)
+    Task 'RenkiOBS' $obsExe '--portable --disable-missing-files-check --minimize-to-tray --scene "Renki Offline"' (Split-Path $obsExe)
     if (-not $existing) { Start-ScheduledTask -TaskName RenkiOBS }
 }
 if ($Action -eq 'beacon') {
@@ -268,4 +268,18 @@ if ($Action -eq 'status') {
     Get-Process obs64,obs-adapter,mediamtx -ErrorAction SilentlyContinue | Select-Object Name,Id,CPU,WorkingSet64 | Format-Table -AutoSize
     if (Test-Path (Join-Path $private 'status.json')) { Get-Content (Join-Path $private 'status.json') }
     if (Test-Path (Join-Path $root 'obs-adapter.exe')) { & (Join-Path $root 'obs-adapter.exe') -config (Join-Path $private 'adapter.json') -action status }
+}
+
+if ($Action -eq 'diagnose') {
+    Get-Process obs64 -ErrorAction SilentlyContinue | Select-Object Id,SessionId,Path,MainWindowTitle,Responding | Format-List
+    $log = Get-ChildItem (Join-Path $obsRoot 'config/obs-studio/logs') -Filter '*.txt' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($log) {
+        Write-Host ('OBS startup log: ' + $log.Name + ' bytes=' + $log.Length)
+        ((Get-Content $log.FullName -Raw) -replace [string][char]0,'') -split "`n" | Select-Object -Last 120 | Where-Object { $_ -notmatch 'password|token|secret|stream.?key' }
+    }
+    $task = Get-ScheduledTask -TaskName RenkiOBS
+    [pscustomobject]@{TaskExecutable=$task.Actions[0].Execute; TaskDisablesShutdownCheck=$task.Actions[0].Arguments.Contains('--disable-shutdown-check'); ProcessDisablesShutdownCheck=(@(Get-CimInstance Win32_Process -Filter "name='obs64.exe'")[0].CommandLine -like '*--disable-shutdown-check*')} | Format-List
+    $ws = Get-Content (Join-Path $obsRoot 'config/obs-studio/plugin_config/obs-websocket/config.json') -Raw | ConvertFrom-Json
+    [pscustomobject]@{ControlEnabled=$ws.server_enabled; ControlPort=$ws.server_port; AuthenticationRequired=$ws.auth_required} | Format-List
+    Get-NetTCPConnection -LocalPort 4455 -ErrorAction SilentlyContinue | Select-Object State,LocalAddress,OwningProcess | Format-Table
 }

@@ -52,7 +52,14 @@ existing OBS/relay/capture/watchdog tasks, waits for authenticated OBS and activ
 private output, then starts Tas. Repeating it retains active private output and
 the current verified scene. It requires the VM lease and a signed-in console.
 `just check streaming windows-online` restores video independently. Neither
-recipe installs software or reconfigures capture. Missing setup or a failed
+recipe installs software or reconfigures capture. OBS 33 removed the old
+`--disable-shutdown-check` launch option: after an unclean shutdown it can block
+on a modal dialog before opening control. Startup archives stale `run_*` markers
+from this dedicated portable profile only while OBS is stopped, retaining crash
+logs. It can restart a dedicated instance only when its current startup log
+contains solely the unclean-shutdown message and the control port is closed;
+other running instances are retained and readiness still times out. This matches
+the pinned [OBS 33 crash handler](https://github.com/obsproject/obs-studio/blob/33.0.1/frontend/utility/CrashHandler.cpp). Missing setup or a failed
 video task stops combined startup before launching the game; already running
 services remain available for diagnosis. `just check streaming windows-adapter-update`
 updates only the capture binary before `windows-online`, preserving installed
