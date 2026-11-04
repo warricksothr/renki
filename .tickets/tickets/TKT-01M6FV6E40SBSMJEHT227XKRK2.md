@@ -31,7 +31,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-04T17:05:39Z
+updated_at: 2026-11-04T17:37:38Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
@@ -183,6 +183,10 @@ Separate ordinary native move t-12 succeeded back to saved home, recording71 rou
 Fresh17:03Z perception still has four owned/non-mine beds1:14774,1:15016,1:14773,1:15382; no claim attempted. Owner previously asked to make a bed available; sleeping remains unbound. Explicit t-14 closed home door1:14823, and .checks/home-after-close-map.json verifies closed. Storage leaves1:15335/1:15334 remain observed open; automatic cleanup is not earned.
 
 At17:04Z Tas is idle, grounded/sheltered at[-203.11,32.97,-467.58],115.7/115.7HP,injurySeq0, with three active meals and carried sausage/jerky reserves. Loot is disabled, idle home travel0, afterDeath stay, afterOutage false. Private OBS is still verified gameplay (.checks/final-home-video.json). Next native work is to handle the wave-sensitive raised-deck dry-route refusal while preserving actual-water guards, then verify the round trip and an actually available bed. Do not repeat the same failed survey unchanged or infer all rooms/storage/doors were inspected.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:37:38Z
+
+Owner-adjusted replacement bed1274003559:489 was claimed through native t-22 with Spawn point set and fresh Mine ownership. Saved supported tas bed approach[-204.89,32.97,-467.49] and bound new home.sleeping with expectedAt conflict protection; no invented floor/bed coordinates or replacement of old-base markers. Ordinary native lower-room visit and t-29 return succeeded without injury; actual stable heat/sleep is not earned. Full claim/navigation/fire evidence is on TKT-01M62PRDSBCRCPH5S0TGGCMAEY (Claim a bed near home, or tell the owner there is none), .checks/task-bvggbxpu.json and .checks/bed-final-base.json. The earlier wave-sensitive bounded storage return remains unresolved; do not repeat the unchanged survey or tick criteria5/7.
 
 ## Summary
 

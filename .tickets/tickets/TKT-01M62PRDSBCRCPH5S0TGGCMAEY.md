@@ -34,7 +34,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T02:10:24Z
-updated_at: 2026-11-04T17:26:54Z
+updated_at: 2026-11-04T17:37:38Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -62,7 +62,7 @@ Nimah, 2026-10-28: the bot should claim a bed close to home if one is available,
 - [x] Perception says whether a bed is owned, and 6.2 and the fixtures say so
 - [ ] With a free bed near home, the bot claims it and respawns there after a death
 - [ ] With none, it tells an owner once and says so in status
-- [ ] A refusal from the game (no roof, a ward) is reported with its reason
+- [x] A refusal from the game (no roof, a ward) is reported with its reason
 - [x] In the current batch, an authorized nighttime bed request interrupts escort, reaches a suitable bed and confirms in_bed or explains the native refusal
 
 ## Implementation plan
@@ -221,3 +221,13 @@ The t-34 trace also disproves full double-door restoration: storage leaves at[-1
 **agent:codex/portal-deploy** at 2026-11-04T17:26:54Z
 
 Owner placed free bed1274003559:168 at[-208.09,32.99,-468.03]. Fresh observation confirms owned=false. Ordinary native claim t-19 approached from shelter but failed refused: The bed is too exposed; bed remains unowned. No ownership/spawn/sleeping binding claimed. Evidence .checks/task-f0oetsx5.json and .checks/bed-claimed-map.json. Asked owner asynchronously to fix shelter and identify the home fire: only the lit storage fire1:15355 is currently observed, approximately40m from the new bed. Tas remains sheltered/grounded without injury. Standalone fireplace fueling is not implemented; existing fueling is confined to the cooking task supporting fire.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:37:37Z
+
+The owner replaced/adjusted the exposed bed and identified the fire below the current floor, reached through the northern staircase area. Fresh observation identified replacement bed1274003559:489 at[-207.83,32.99,-468.26] as owned=false. A stale-ID retry t-21 for the removed168 bed was rejected without movement; the subsequent request used the refreshed489 ID.
+
+Native t-22 succeeded: used the Bed: Spawn point set. Fresh perception confirms Mine=true and Owned=true for1274003559:489. Evidence .checks/task-bvggbxpu.json and .checks/replacement-bed-after-map.json. This confirms claim/spawn assignment, not respawn after death or actual sleep. Saved rest waypoint tas bed approach at the observed supported standing position[-204.89,32.97,-467.49], radius1, tied to this bed entity and selected base new home; updated that base's sleeping binding with expectedAt conflict protection. Evidence .checks/bed-binding-waypoint-result.json,.checks/bed-binding-base-result.json,.checks/bed-final-base.json. Other players' beds and old-base rest marker were retained.
+
+Dry scoped approaches t-23 and t-25 refused with no movement. Separate supervised ordinary native t-26 reached the lower north doorway and t-27 reached the sheltered lower room at[-205.64,30.87,-467.42]. New campfire1274003559:991 at[-203.23,31.12,-470.01] was briefly observed with fuel1,lit=false. It later disappeared from fresh structures while the owner was present; a native camera at17:35:11Z shows flames and Tas's Fire/Resting effects. No fuel or cooking interaction was sent, no material was consumed, and no fire-lighting action is attributed to Tas. Missing/changed fire identity and later loss of the heat effect prevent claiming stable bed-fire readiness. Evidence .checks/lower-house-map.json,.checks/home-fire-current-map.json,.checks/camera-20261104T173511516607Z.jpg.
+
+Ordinary native t-29 returned to the saved sleeping approach successfully. At17:37Z Tas is idle, grounded/sheltered upstairs[-204.57,32.97,-466.98],71/71 food-adjusted HP,injurySeq0. It is daytime (day210,fraction0.33); no sleep request or time skip was attempted. .checks/task-f7rj73pi.json and .checks/bed-return-progress.json retain the return. Claim-and-respawn criterion2 remains unticked; the previously observed too-exposed refusal was reported plainly to the owner, earning refusal criterion4. Standalone fire fueling and sustained fire/actual sleeping checks remain distinct work.
