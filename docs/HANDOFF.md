@@ -6,15 +6,17 @@ Current work of 2026-11-04 by `agent:codex/explore-night`.
 ## Current state and owner choices
 
 Branch `t3/renki-portal-travel-startup`, PR179. Installed plugin/controller
-08590de includes bedtime invitations and activity-aware food; the current panel
-and coherent bedtime-clock correction are awaiting final CI/review/deployment.
+**f254e95** includes the panel views/multi-food plans/viewer sharing, activity-aware
+food and coherent bedtime-clock correction. Later evidence-only commits need no
+redeployment. VM lease released; take it again before live changes.
 Keep Tas and private video online. Loot and automatic logout remain disabled.
 Do not take older ticket claims or promote unselected drafts.
 
 Tas returned home through checked stair-foot/top approaches: final t-15 succeeded
-at[-204.18,32.97,-467.58], receipt .checks/task-0scabckn.json. Fresh status
-.checks/panel-batch-home-status.json shows[-204.3,32.97,-467.57],90.3/90.3HP,
-injurySeq0,two active meals. Leather helmet/chest/legs and full flint axe remain
+at[-204.18,32.97,-467.58], receipt .checks/task-0scabckn.json. Final post-deployment status
+.checks/panel-batch-final-status.json shows[-204.3,32.97,-467.57],38.5/38.5HP,
+injurySeq0,one active BoarJerky,two carried. Health-cap decline is food decay;
+the normal keeper remains responsible for eligible refresh. No injury occurred. Leather helmet/chest/legs and full flint axe remain
 his equipment. Restored home.whenStuck=true after supervised travel. Saved new
 home remains[-204.39,32.97,-467.43],radius60; that protected no-harvest boundary
 was never enlarged for exploration. Bed1274003559:489 is the owned saved spawn;
@@ -38,7 +40,7 @@ TWO shouts in the same night, t-13 at19:26:21Z and t-20 at19:30:50Z. This correc
 the earlier interim no-repeat inference. GetDay uses raw network time while
 GetDayFraction is smoothed lighting, still0.998 when day advanced213→214.
 
-The pending fix samples day/calendarFraction coherently from one native clock
+The installed fix samples day/calendarFraction coherently from one native clock
 reading and configured day length. Invitations require this optional raw field
 and both raw/native night; older/missing clocks defer. Exact mismatch, restart,
 midnight, rollback, missing/stale audience, uncertain send, persistence failure
@@ -59,7 +61,7 @@ versus cheap consumption was not tested because that choice was absent.
 Prior gates:4e57efd fullCI220s;08590de fullCI176s including actual plugin build;
 both committed reviews clean. Logs retained in .checks/20261104T19*.log.
 
-## Panel implementation awaiting final deployment
+## Deployed panel and validation
 
 TKT-01M6M15PSGDEV44W48XCKXK1M5 (Group household food targets and split panel
 configuration views):1–8 distinct supported foods with independent target/minimum
@@ -75,7 +77,7 @@ atlas/video playback; no chest contents,inventory,settings,audit/chat,commands.
 Streams recheck revocation; established WebRTC media can continue until disconnect.
 Viewer map positions and visible game content remain shared, not redacted broadcast.
 
-Default sharing disabled. just check vm viewer-check temporarily enables/rotates
+Sharing is disabled after the live check, matching its initial state. just check vm viewer-check temporarily enables/rotates
 only if initially disabled, restores that state, preserves existing links and
 writes credential-free .checks/viewer-live.json. New dataDir/panel-viewer.json
 must survive deployment. Do not publish the operator token in viewer links/logs.
@@ -83,7 +85,22 @@ must survive deployment. Do not publish the operator token in viewer links/logs.
 Focused backend,desktop/mobile multi-food,viewer and navigation checks pass.
 Full just check ci passed203s (.checks/20261104T200146Z-Ge5pgb.log), including66/66
 desktop/mobile scenarios,Go race checks,actual plugin build and1033 native tests.
-Committed review and final deployment evidence will supersede this pending state.
+Committed review08590de..HEAD was clean(.checks/20261104T200526Z-33HvVe.log).
+just check vm install passed32s(preflight,checksums,receipt,durable data retained),
+just check vm online passed62s and just check vm viewer-check passed14s.
+Logs .checks/20261104T200545Z-LsrO6X.log,200617Z-H2Dax5.log,200719Z-U73Mqu.log.
+Live viewer login204,allowed reads200,private/control refusals403,rotation401;
+credential-free results .checks/viewer-live.json. Both live and saved chest
+contents are excluded. Private /api/video reports gameplay. Food/presence/home
+settings persisted. Native calendarFraction is present(day215),but corrected
+live night/midnight delivery remains unearned. Final status/map/inventory files
+are .checks/panel-batch-final-*.json; exact final audit
+.checks/audit-window-1RhaJy.jsonl. No body tasks were issued by viewer testing.
+
+Bedtime,food and panel tickets are done/released. The partial survey ticket is
+blocked/released with all safe-outing/return evidence retained; this is not full
+coverage. Leave Tas and private output online. Before another live operation,
+read current state/food and take a new lease; do not infer current stock from cache.
 
 ## Partial exploration and navigation follow-up
 

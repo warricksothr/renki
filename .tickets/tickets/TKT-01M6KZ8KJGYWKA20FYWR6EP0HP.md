@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/explore-night
-  branch: t3/renki-portal-travel-startup
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
-  commit: f0c4869dc65a0dbec99519423b2386c362b35ada
-  session: null
-  claimed_at: 2026-11-04T19:06:22Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-04T19:06:08Z
-updated_at: 2026-11-04T19:54:59Z
+updated_at: 2026-11-04T20:09:36Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -49,7 +42,7 @@ Select legs from measured dry terrain and fresh threats, maintain food/gear and 
 
 - [x] Pin a separate bounded outing around saved home while leaving the60m camp definition and no-harvest protection unchanged.
 - [x] Supervise safe movement, retain atlas/map evidence and report actual new/refreshed knowledge and blocked areas without overstating coverage.
-- [ ] Verify checked return or a documented safe partial endpoint; leave Tas fed, equipped and online with private video, and release the VM lease.
+- [x] Verify checked return or a documented safe partial endpoint; leave Tas fed, equipped and online with private video, and release the VM lease.
 
 ## Implementation plan
 
@@ -76,3 +69,11 @@ Full200m coverage is incomplete. Fresh Greydwarf/Elite exclusion and wet unsuppo
 **agent:codex/explore-night** at 2026-11-04T19:54:59Z
 
 in-progress to blocked: Partial survey returned home safely; fresh hostile exclusions, wet detours and building approaches prevent a safe full200m route with current navigation.
+
+**agent:codex/explore-night** at 2026-11-04T20:09:35Z
+
+Final post-deployment f254e95 status confirms Tas remains at[-204.3,32.97,-467.57],idle,grounded/sheltered/near_fire,injurySeq0. One active BoarJerky and two carried; full current38.5/38.5HP reflects food decay,not injury. Leather/flint axe equipped,private video gameplay. VM lease released. Return/retention criterion earned; full200m survey still blocked for the documented safe-route limits.
+
+## Summary
+
+Partial200m survey retained112 new and1425 refreshed canonical terrain samples with0 lost. Checked return home succeeded without injury; saved60m protected base unchanged. Tas/private gameplay online and VM lease released. Full-radius coverage remains blocked by hostile exclusions,wet detours and building approaches; do not claim complete coverage.

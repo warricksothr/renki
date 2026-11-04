@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6KZ8KGV2MQANWADECVXBSPP
 title: Ask players about bedtime once per game night
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -19,17 +19,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/explore-night
-  branch: t3/renki-portal-travel-startup
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
-  commit: f0c4869dc65a0dbec99519423b2386c362b35ada
-  session: null
-  claimed_at: 2026-11-04T19:06:22Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-04T19:06:08Z
-updated_at: 2026-11-04T19:54:59Z
+updated_at: 2026-11-04T20:09:34Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -47,10 +40,10 @@ Use native game night/day observations and a durable world/character high-water 
 
 ## Acceptance criteria
 
-- [ ] Night invitations use fresh native time and an observed audience, preserve body tasks, and never start sleep automatically.
-- [ ] A durable world/character limit prevents repeats across midnight, reconnect, restart, send uncertainty and clock rollback; a later night can invite again.
-- [ ] Players & presence exposes a persisted off/nearby/shout setting; meaningful regressions and full CI pass.
-- [ ] Deploy and enable the selected mode, retain Tas/private output online, and document any live audience/night check that remains unearned.
+- [x] Night invitations use fresh native time and an observed audience, preserve body tasks, and never start sleep automatically.
+- [x] A durable world/character limit prevents repeats across midnight, reconnect, restart, send uncertainty and clock rollback; a later night can invite again.
+- [x] Players & presence exposes a persisted off/nearby/shout setting; meaningful regressions and full CI pass.
+- [x] Deploy and enable the selected mode, retain Tas/private output online, and document any live audience/night check that remains unearned.
 
 ## Implementation plan
 
@@ -75,3 +68,11 @@ Deployed commit4e57efd with just check vm install and just check vm online; pref
 This supersedes the interim no-repeat inference in the19:35 note. Complete exact audit19:24:00Z..19:45:00Z (.checks/audit-window-nxUeVD.jsonl) contains two bedtime shouts: t-13 at19:26:21Z and t-20 at19:30:50Z. Native day advanced213→214 while smoothed lighting dayFraction still read0.998. GetDayFraction is delayed lighting, while GetDay reads the raw network clock; combining them misidentifies the same night. No automatic sleep was sent.
 
 Corrected native telemetry now samples calendar day and calendarFraction coherently from one native clock reading and configured day length. The routine requires this raw optional field, uses it for night identity and requires raw night plus native night; older/missing clocks defer. Added the exact live midnight mismatch as a presence regression plus pure native clock tests and time-skip daylight deferral. Persisted high-water marks are retained: the earlier duplicate can conservatively suppress the next evening, rather than resetting history. Focused presence/home/app and GameTimeTests checks passed; fullCI is running. Corrected live midnight proof remains unearned until a future real night.
+
+**agent:codex/explore-night** at 2026-11-04T20:09:33Z
+
+Installed f254e95 with deployment preflight/checksums/receipt success; just check vm online restored Tas/private gameplay. FullCI203s and committed review08590de..HEAD clean. Native live status now carries coherent calendarFraction0.18173056,day215 alongside smoothed dayFraction0.272,proving the new native telemetry is installed. presence.bedtime=shout persisted; final exact audit20:05:40Z..20:08Z (.checks/audit-window-1RhaJy.jsonl) is retained. No new real-night/midnight invitation was attempted after this correction, so corrected live rollover proof remains explicitly unearned. The previous duplicate is documented and covered by the exact regression; durable history was retained. Tas is awake,online,at home with injurySeq0; VM lease released.
+
+## Summary
+
+Implemented on PR179, deployed plugin/controller f254e95; full just check ci and committed review passed. Installed f254e95 with deployment preflight/checksums/receipt success; just check vm online restored Tas/private gameplay. FullCI203s and committed review08590de..HEAD clean. Native live status now carries coherent calendarFraction0.18173056,day215 alongside smoothed dayFraction0.272,proving the new native telemetry is installed. presence.bedtime=shout persisted; final exact audit20:05:40Z..20:08Z (.checks/audit-window-1RhaJy.jsonl) is retained. No new real-night/midnight invitation was attempted after this correction, so corrected live rollover proof remains explicitly unearned. The previous duplicate is documented and covered by the exact regression; durable history was retained. Tas is awake,online,at home with injurySeq0; VM lease released.

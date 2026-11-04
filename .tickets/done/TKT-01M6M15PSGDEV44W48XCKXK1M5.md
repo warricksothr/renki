@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6M15PSGDEV44W48XCKXK1M5
 title: Group household food targets and split panel configuration views
 type: task
-status: in-progress
+status: done
 status_reason: null
 priority: normal
 due_on: null
@@ -17,17 +17,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:codex/explore-night
-  branch: t3/renki-portal-travel-startup
-  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
-  commit: 08590dec7bfa8ee607ca79d168fcfed85e39d9ad
-  session: null
-  claimed_at: 2026-11-04T19:41:14Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-04T19:39:30Z
-updated_at: 2026-11-04T20:05:26Z
+updated_at: 2026-11-04T20:09:35Z
 created_by:
   id: agent:codex/explore-night
   name: ""
@@ -46,7 +39,7 @@ Owner requests selecting several food types in one Household food plan, rather t
 - [x] One household plan accepts multiple distinct supported foods with per-food targets/minimums and displays them together.
 - [x] Operator navigation separates operations, goals, places, people, audit/decisions and settings while preserving current controls and edits.
 - [x] A shareable map/video view has separate viewer credentials and server-enforced access; viewer sessions cannot issue game or configuration commands or read audit/private settings.
-- [ ] Meaningful backend and UI checks, full CI and committed review pass; deploy and verify current private output and Tas remain online.
+- [x] Meaningful backend and UI checks, full CI and committed review pass; deploy and verify current private output and Tas remain online.
 
 ## Implementation plan
 
@@ -63,3 +56,11 @@ Focused desktop/mobile multi-food and viewer checks pass, including duplicate re
 **agent:codex/explore-night** at 2026-11-04T20:05:25Z
 
 Full just check ci passed203s (.checks/20261104T200146Z-Ge5pgb.log), including66/66 desktop/mobile panel scenarios,Go race checks,actual plugin build and1033 native tests. The extra view-switch scenario retains an active video element/session through more than9s in Settings. Corrected new container test fixture dimensions and applied the plugin formatter; no production guard was weakened. Ready for committed review and deployment.
+
+**agent:codex/explore-night** at 2026-11-04T20:09:35Z
+
+Deployed f254e95 after full just check ci203s(.checks/20261104T200146Z-Ge5pgb.log) and clean committed review(.checks/20261104T200526Z-33HvVe.log). Installation preflight/checksums/receipt passed32s; just check vm online restored private gameplay and Tas62s. just check vm viewer-check passed14s(.checks/20261104T200719Z-U73Mqu.log): real viewer cookie login204,filtered status/map/SSE/video/atlas reads200,game/configuration/inventory/audit/private-memory routes403,and rotated credential401. .checks/viewer-live.json contains only credential-free results. Sharing was initially disabled and restored disabled; existing private address unchanged. .checks/panel-batch-final-status.json shows f254e95 at[-204.3,32.97,-467.57],injurySeq0,idle; video reports gameplay. Food/presence/stuck-return settings persisted. VM lease released; leave Tas/private output online.
+
+## Summary
+
+Implemented on PR179, deployed plugin/controller f254e95; full just check ci and committed review passed. Deployed f254e95 after full just check ci203s(.checks/20261104T200146Z-Ge5pgb.log) and clean committed review(.checks/20261104T200526Z-33HvVe.log). Installation preflight/checksums/receipt passed32s; just check vm online restored private gameplay and Tas62s. just check vm viewer-check passed14s(.checks/20261104T200719Z-U73Mqu.log): real viewer cookie login204,filtered status/map/SSE/video/atlas reads200,game/configuration/inventory/audit/private-memory routes403,and rotated credential401. .checks/viewer-live.json contains only credential-free results. Sharing was initially disabled and restored disabled; existing private address unchanged. .checks/panel-batch-final-status.json shows f254e95 at[-204.3,32.97,-467.57],injurySeq0,idle; video reports gameplay. Food/presence/stuck-return settings persisted. VM lease released; leave Tas/private output online.
