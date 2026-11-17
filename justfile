@@ -49,7 +49,7 @@ fmt: (route "fmt")
 clean: (route "clean")
 
 # Everything CI runs: each component's ci, then the ticket store.
-ci: (route "ci") streaming::test tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-client-lifecycle vm::test-gather-trial vm::test-escort-check vm::test-sleep-check vm::test-cooking-check vm::test-food-check vm::test-recover-home vm::test-marker-food-check vm::test-route-benchmark vm::test-lease vm::test-deployment
+ci: (route "ci") streaming::test tickets-check check-test broadcast-test vm::test-combat-trial vm::test-harvest-trial vm::test-goal-trial vm::test-marker-check vm::test-atlas-check vm::test-resupply-food vm::test-camera-check vm::test-client-lifecycle vm::test-gather-trial vm::test-escort-check vm::test-sleep-check vm::test-cooking-check vm::test-food-check vm::test-recover-home vm::test-marker-food-check vm::test-route-benchmark vm::test-lease vm::test-deployment vm::test-doctor setup-worktree-test
 
 # Retain full output in .checks/; print a summary or the last 80 failure lines.
 # For example: just check ci, just check controller test-packages ./internal/home.
@@ -60,6 +60,15 @@ check +ARGS:
 # Verify log retention, bounded output, and failure propagation without builds.
 check-test:
     @bash "{{justfile_directory()}}/scripts/check-test.sh"
+
+# Files already present are kept; pass --check to see what would be copied.
+[doc("Copy the ignored local files (vm.local, plugin/game.local.props) from another worktree.")]
+[positional-arguments]
+setup-worktree *ARGS:
+    @bash "{{justfile_directory()}}/scripts/setup-worktree.sh" "{{justfile_directory()}}" "$@"
+
+setup-worktree-test:
+    @bash "{{justfile_directory()}}/scripts/setup-worktree-test.sh"
 
 # Secret-free profile and OBS request planning; files only, never connects.
 [positional-arguments]

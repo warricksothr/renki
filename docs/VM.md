@@ -16,6 +16,38 @@ the game is never launched that way. SSH starts a scheduled task, and the
 task runs the game in the bot account's own desktop session. That session
 has to stay logged in: auto-logon and `release-rdp.ps1` below see to that.
 
+## Start here: doctor, setup-worktree, up
+
+    just setup-worktree     # once per fresh worktree: copy vm.local and plugin/game.local.props
+    just vm doctor          # is the setup whole, and what fixes each gap?
+    just vm up              # doctor, then panel, private video and Tas
+
+A fresh worktree lacks the ignored local files that name the VM and the game's
+assemblies. `just setup-worktree` copies them from the main checkout, or
+failing that from the worktree with the newest copy. It keeps files already
+present and prints names only; `--check` copies nothing.
+
+`just vm doctor` is one read-only pass over what a session otherwise checks by
+hand: the worktree's local files, SSH, the bot account's desktop session, the
+scheduled tasks, the game, BepInEx and plugin files, Tailscale and the panel
+address, the controller, the installed build against this branch and
+origin/main, the lease, disk space and the video tasks. Each finding names its
+fix. It needs no lease, copies nothing to the VM and prints no token, key or
+address. It exits 1 when a check failed; warnings and information exit 0.
+`--json` prints the gathered facts and the checks.
+
+Two of its findings are easy to miss otherwise. A panel bound to the Tailscale
+address stops answering when Tailscale on the VM is signed out, although the
+controller still runs: sign in on the VM and the panel answers again without a
+restart. An installed build that is not in your branch makes the deployment
+preflight below refuse, so doctor warns about it before you build anything.
+`just vm up` copies this worktree's start scripts beside the installed build,
+so it fails when those scripts differ from the installed commit's, or when
+this checkout lacks that commit.
+
+`just vm up` runs doctor and stops there if anything failed. Otherwise it
+takes the lease and runs `just vm online`. Release the lease when you are done.
+
 ## The VM lease
 
 There is one VM and one game client, so one session at a time deploys or runs
