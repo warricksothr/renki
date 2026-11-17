@@ -161,15 +161,22 @@ func (a *App) unknownPlace(out RoutePlanStatus, from protocol.Vec3, place, why s
 		names = append(names, w.Name)
 	}
 	sort.Strings(names)
-	if len(names) > 24 {
-		names = append(names[:24], fmt.Sprintf("and %d more", len(names)-24))
+	if _, ok := a.Routes.Store.Home(out.World); ok {
+		names = append([]string{"home"}, names...)
+	}
+	if len(names) > 25 {
+		names = append(names[:25], fmt.Sprintf("and %d more", len(names)-25))
+	}
+	saved := " No places are saved in this world."
+	if len(names) > 0 {
+		saved = " Saved places: " + strings.Join(names, ", ") + "."
 	}
 	if why == "" {
 		why = fmt.Sprintf("No saved place is named %q.", place)
 	}
 	out.Place = place
 	out.Plan = route.Plan{Reason: route.ReasonUnknownPlace, Legs: []route.Leg{}, Start: route.Anchor{Pos: from},
-		Explain: why + " Saved places: home, " + strings.Join(names, ", ") + "."}
+		Explain: why + saved}
 	return out
 }
 

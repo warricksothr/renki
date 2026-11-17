@@ -186,3 +186,23 @@ func TestPlanStartsAtTheWalkedCellWhenTheBodyIsBesideIt(t *testing.T) {
 		t.Fatal(p.LengthM)
 	}
 }
+
+// A teleport leaves a walked cell joined to nothing. A position beside it
+// joins at the connected cell a little farther off, not at the island.
+func TestALoneCellIsPassedOverForAJoinedOneNearby(t *testing.T) {
+	_, nodes := walked(t,
+		line(protocol.Vec3{0.5, 30, 0.5}, protocol.Vec3{10.5, 30, 0.5}, 10),
+		[]protocol.Vec3{{0.5, 30, 2.5}, {200.5, 30, 200.5}},
+		[]protocol.Vec3{{10.5, 30, 2.5}, {300.5, 30, 300.5}})
+	p := Find(nodes, protocol.Vec3{0.5, 30, 2.2}, protocol.Vec3{10.5, 30, 2.2})
+	if !p.Found {
+		t.Fatalf("plan = %+v", p)
+	}
+	if p.Start.Cell != "0,60,0" || p.Target.Cell != "10,60,0" {
+		t.Fatalf("anchors = %q, %q", p.Start.Cell, p.Target.Cell)
+	}
+	// With nothing joined in reach, the lone cell is still the anchor.
+	if p = Find(nodes, protocol.Vec3{200.5, 30, 200.5}, protocol.Vec3{10.5, 30, 0.5}); p.Reason != ReasonDisconnected || p.Start.Cell == "" {
+		t.Fatalf("plan from a lone cell = %+v", p)
+	}
+}

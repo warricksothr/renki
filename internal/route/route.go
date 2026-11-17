@@ -95,29 +95,51 @@ func blocked(e home.RouteEdge) bool { return e.Fail > 0 && !e.WalkedAt.After(e.F
 type graph struct {
 	nodes []home.RouteNode
 	index map[string]int
+	// leaves and enters mark cells with a usable link out and a usable link
+	// in. A cell can have neither: the far end of a teleport is walked but
+	// joined to nothing.
+	leaves, enters []bool
 }
 
 func newGraph(nodes []home.RouteNode) graph {
-	g := graph{nodes: nodes, index: make(map[string]int, len(nodes))}
+	g := graph{nodes: nodes, index: make(map[string]int, len(nodes)), leaves: make([]bool, len(nodes)), enters: make([]bool, len(nodes))}
 	for i, n := range nodes {
 		g.index[n.Key] = i
+	}
+	for i, n := range nodes {
+		for _, e := range n.Links {
+			if j, ok := g.index[e.To]; ok && !blocked(e) {
+				g.leaves[i], g.enters[j] = true, true
+			}
+		}
 	}
 	return g
 }
 
 // anchor finds the walked cell a position joins at: the nearest within reach
-// on its own floor. With none, it reports the nearest cell anywhere.
-func (g graph) anchor(pos protocol.Vec3) (Anchor, int) {
+// on its own floor, preferring a cell that is joined to others (joined says
+// which cells are) over a nearer one that leads nowhere. With none in reach,
+// it reports the nearest cell anywhere.
+func (g graph) anchor(pos protocol.Vec3, joined []bool) (Anchor, int) {
 	a := Anchor{Pos: pos}
-	best, bestD, any, anyD := -1, math.Inf(1), -1, math.Inf(1)
+	best, bestD, lone, loneD, any, anyD := -1, math.Inf(1), -1, math.Inf(1), -1, math.Inf(1)
 	for i, n := range g.nodes {
 		d := dist(n.Pos, pos)
 		if d < anyD {
 			any, anyD = i, d
 		}
-		if d <= SnapM && math.Abs(n.Pos[1]-pos[1]) <= SnapHeightM && d < bestD {
+		if d > SnapM || math.Abs(n.Pos[1]-pos[1]) > SnapHeightM {
+			continue
+		}
+		if joined[i] && d < bestD {
 			best, bestD = i, d
 		}
+		if d < loneD {
+			lone, loneD = i, d
+		}
+	}
+	if best < 0 {
+		best, bestD = lone, loneD
 	}
 	if best >= 0 {
 		p := g.nodes[best].Pos
@@ -250,8 +272,8 @@ func Find(nodes []home.RouteNode, from, to protocol.Vec3) Plan {
 	g := newGraph(nodes)
 	p := Plan{Legs: []Leg{}}
 	var start, goal int
-	p.Start, start = g.anchor(from)
-	p.Target, goal = g.anchor(to)
+	p.Start, start = g.anchor(from, g.leaves)
+	p.Target, goal = g.anchor(to, g.enters)
 	switch {
 	case len(nodes) == 0:
 		p.Reason, p.Explain = ReasonEmpty, "No ground has been walked in this world yet. Walk the body there, or have it follow someone."
@@ -271,7 +293,7 @@ func Find(nodes []home.RouteNode, from, to protocol.Vec3) Plan {
 		p.Reason = ReasonDisconnected
 		best, bestD := -1, math.Inf(1)
 		for i, ok := range reached {
-			if d := dist(g.nodes[i].Pos, g.nodes[goal].Pos); ok && d < bestD {
+			if d := dist(g.nodes[i].Pos, to); ok && d < bestD {
 				best, bestD = i, d
 			}
 		}
