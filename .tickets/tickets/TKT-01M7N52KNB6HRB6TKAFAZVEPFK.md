@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M7N52KNB6HRB6TKAFAZVEPFK
 title: "VM: doctor, setup-worktree and up recipes for bringing the bot back"
 type: task
-status: in-progress
+status: review
 status_reason: null
 priority: normal
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/refresh-setup
-  branch: t3/refresh-bot-setup-automation
-  worktree: /home/sothr/.t3/worktrees/renki/t3-527f19de-ed082ea71ff42b98
-  commit: a29b23a3e622efa384090c04bd624f4ea479fb6c
-  session: null
-  claimed_at: 2026-11-17T16:22:39Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-17T16:22:39Z
-updated_at: 2026-11-17T16:27:49Z
+updated_at: 2026-11-17T17:07:28Z
 created_by:
   id: agent:claude-code/refresh-setup
   name: ""
@@ -67,3 +60,7 @@ doctor.ps1 gathers secret-free facts over SSH stdin (nothing copied to the VM); 
 **agent:claude-code/refresh-setup** at 2026-11-17T16:27:49Z
 
 Criterion 6 (just vm up brings Tas into the world) is unticked: starting the game waits on the owner's go-ahead. Doctor run live on 2026-11-17 after the owner signed Tailscale back in: 0 failed, warnings for origin/main lacking installed f254e95 (PR #179 open) and for stopped relay/capture tasks. just check ci passed in 302 s.
+
+## Summary
+
+Landed on t3/refresh-bot-setup-automation, stacked on PR #179: just vm doctor (read-only, 22 offline tests), just vm up (doctor --starting, then online) and just setup-worktree. Six vuoro rounds; every finding fixed except one that stands: up's gate does not compare the streaming scripts, which are outside the deployment package and receipt by design. Criterion 6 awaits the owner's go-ahead to start the game.
