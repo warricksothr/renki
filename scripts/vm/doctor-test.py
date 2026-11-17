@@ -140,6 +140,7 @@ class DoctorTest(unittest.TestCase):
         local = dict(LOCAL, build={'in_head': None, 'in_main': None, 'ahead': 0})
         by, checks = run(local)
         self.assertEqual((by['build']['level'], by['build']['fix']), (doctor.WARN, 'git fetch origin'))
+        self.assertTrue(doctor.failed(doctor.evaluate(copy.deepcopy(local), copy.deepcopy(VM), starting=True)))
         self.assertNotIn('main', by)
 
     def test_branch_ahead_of_the_installed_build_is_information(self):

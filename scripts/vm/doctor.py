@@ -148,7 +148,8 @@ def evaluate(local, vm, starting=False):
     else:
         name = f"{deployment.get('version')} from {deployment.get('branch') or 'an unknown branch'}"
         if build.get('in_head') is None:
-            out.append(check(WARN, 'build', f'installed {name}; this checkout does not have that commit',
+            out.append(check(FAIL if starting else WARN, 'build',
+                             f'installed {name}; this checkout does not have that commit, so it is not in this branch',
                              'git fetch origin'))
         elif not build['in_head']:
             if starting:
