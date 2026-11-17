@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T22:27:01Z
+updated_at: 2026-11-17T22:50:06Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -116,3 +116,9 @@ Not done: the home survey does not use the walker; it moves with dry receipted m
 The walker is generic (PR to follow from t3/walker-generic): it plans through a Navigator, makes moves in a MoveStyle, and has a stateless form, NextLeg, for runs that keep their own state. A travel behaviour walks a plan, and chat's go to and the panel's go button use it when route memory has a plan of two legs or more. Live on 2026-11-17: the panel sent Tas from the warehouse to "new home rest 3" on home's upper floor, "route 13 legs 72 m; arrived".
 
 Agreed with the owner on 2026-11-17, in this order: (1) generic walker, done; (2) shared travel run for chat, panel and go home: chat and panel done, go home, the corpse run and retreat not; (3) base-bound behaviours, stow and marker cargo first; (4) food goals and return home; (5) home survey last. Open question for step 3: whether a failed dry move falls back to a planned ordinary walk, or planned walks replace dry moves. My suggestion was the fallback.
+
+**agent:claude-code/chests** at 2026-11-17T22:50:06Z
+
+Step 3, first part (branch t3/walker-stow): stow falls back to a walk over known ground when its native approach or the deposit's own walk cannot reach a chest, once per chest; marker cargo's return does the same. Collect, gather, marker food and marker cargo all deposit through stow. Runs now get the navigator as View.Routes. Not run live: staging a failing approach with cargo in hand was not attempted.
+
+Left in step 3: the moves to a site or marker that collect, gather, marker food and marker rest make. Left in step 2: go home, the corpse run, retreat.
