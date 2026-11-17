@@ -275,8 +275,8 @@ or landmarks. Map snapshots and exports carry them through `perception`.
 
 - `characters`: the bot itself is left out. `stars` is the creature's
   level less one. `hostile` means the creature would fight the bot, and
-  `targetingMe` that it has picked the bot as its target. A character with
-  no AI, such as a training dummy, is never `hostile`.
+  `targetingMe` that it has picked the bot as its target. A character
+  that is a built piece, such as a training dummy, is never `hostile`.
 - `structures`: only pieces of the kinds above, and graves (`tombstone`)
   with something in them. Walls, floors and the like are left out, so a
   base cannot fill the cap with them. Walls come in `layout` (6.9). `mine`
