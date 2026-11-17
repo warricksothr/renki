@@ -256,6 +256,9 @@ func (r *markerCargoRun) Next(v View, result *Result) (*session.Order, error) {
 					return walk.first(), nil
 				}
 			}
+			if result != nil && result.Reason != "" {
+				return nil, errors.New(strings.TrimSpace("cargo return did not succeed: " + result.Reason + " " + result.Detail))
+			}
 			return nil, errors.New("cargo return did not succeed")
 		}
 		if !r.atOrigin(v) {

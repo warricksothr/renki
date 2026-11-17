@@ -195,7 +195,7 @@ func (s *stowRun) Recover(r Result) bool {
 	if r.Status != protocol.StatusFailed && r.Status != protocol.StatusRejected {
 		return false
 	}
-	return slices.Contains([]string{protocol.ReasonInventoryFull, protocol.ReasonRefused, protocol.ReasonTargetLost, protocol.ReasonUnreachable, protocol.ReasonStuck}, r.Reason)
+	return slices.Contains([]string{protocol.ReasonInventoryFull, protocol.ReasonRefused, protocol.ReasonTargetLost, protocol.ReasonUnreachable, protocol.ReasonStuck, protocol.ReasonBlocked}, r.Reason)
 }
 func chestPosition(v View, id string) (protocol.Vec3, bool) {
 	if freshPerception(v) {

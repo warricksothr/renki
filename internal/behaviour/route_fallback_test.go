@@ -136,3 +136,42 @@ func TestCargoReturnWalksAKnownWayWhenItsMoveFails(t *testing.T) {
 		t.Fatalf("steps = %d, at %v", steps, v.State.Pos)
 	}
 }
+
+// A blocked approach is recovered like an unreachable one: the walk if there
+// is a known way, and otherwise the next chest.
+func TestStowRecoversABlockedApproach(t *testing.T) {
+	blocked := &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonBlocked}
+	a, corner, chest := protocol.Vec3{.5, 0, .5}, protocol.Vec3{8.5, 0, .5}, protocol.Vec3{8.5, 0, 8.5}
+	mem, _ := walkedMemory(t, []protocol.Vec3{a, corner, chest})
+	v := haulView()
+	v.State.Pos = a
+	v.Containers = []*protocol.Container{{Entity: "a", Pos: chest}}
+	r := &stowRun{p: stowParams()}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if !r.Recover(*blocked) {
+		t.Fatal("a blocked approach ends the run")
+	}
+	if o := nextTask(t, r, v, blocked, protocol.TaskDeposit); o.Args.(*protocol.TransferArgs).Container != "b" {
+		t.Fatal(o)
+	}
+	v.Routes = mem
+	r = &stowRun{p: stowParams()}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	nextTask(t, r, v, blocked, protocol.TaskMoveTo)
+}
+
+func TestCargoReturnKeepsTheNativeReasonWhenNoWalkFollows(t *testing.T) {
+	r, v := cargoJourney(t)
+	if _, err := r.Next(v, nil); err != nil {
+		t.Fatal(err)
+	}
+	v.State.Pos = v.Waypoints[1].Pos
+	v.Inventory.Seq++
+	v.Inventory.Items[0].Stack = 2
+	v.Containers = []*protocol.Container{{Entity: "coal", Task: "deposit", Direction: protocol.TaskDeposit, Moved: map[string]int{"Coal": 5}}}
+	nextTask(t, r, v, &Result{Status: protocol.StatusSucceeded, TaskID: "deposit"}, protocol.TaskMoveTo)
+	_, err := r.Next(v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable, Detail: "no dry route"})
+	if err == nil || err.Error() != "cargo return did not succeed: unreachable no dry route" {
+		t.Fatal(err)
+	}
+}
