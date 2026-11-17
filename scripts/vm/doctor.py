@@ -146,7 +146,9 @@ def evaluate(local, vm, starting=False):
     deployment = vm.get('deployment')
     build = local.get('build') or {}
     if not deployment:
-        out.append(check(WARN, 'build', 'no deployment receipt on the VM', 'just check vm install'))
+        out.append(check(FAIL if starting else WARN, 'build',
+                         'no deployment receipt on the VM, so the start scripts up copies cannot be compared',
+                         'just check vm install'))
     else:
         name = f"{deployment.get('version')} from {deployment.get('branch') or 'an unknown branch'}"
         if build.get('in_head') is None:

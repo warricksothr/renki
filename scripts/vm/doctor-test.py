@@ -163,6 +163,8 @@ class DoctorTest(unittest.TestCase):
         self.assertEqual(by['build']['level'], doctor.WARN)
         self.assertIn('C: 4 GB', by['disk']['detail'])
         self.assertFalse(doctor.failed(checks))
+        vm = dict(copy.deepcopy(VM), deployment=None)
+        self.assertTrue(doctor.failed(doctor.evaluate(copy.deepcopy(LOCAL), vm, starting=True)))
 
     def test_video_partly_running_warns_and_fully_off_informs(self):
         tasks = dict(VM['tasks'], RenkiRelay='Ready')
