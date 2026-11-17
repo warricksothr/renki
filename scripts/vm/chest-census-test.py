@@ -67,12 +67,21 @@ class CensusTest(unittest.TestCase):
                          {'old': False, 'today': True, 'live': True, 'hour': True, 'weeks': False, 'undated': False})
         self.assertEqual([c['entity'] for c in census.order(found, [0, 0, 0])],
                          ['today', 'live', 'hour', 'weeks', 'undated', 'old'])
-        results = [{'entity': 'old', 'ids': ['old'], 'status': 'rejected',
+        results = [{'entity': 'old', 'ids': ['old'], 'status': 'rejected', 'bodyDistance': 4.0,
                     'reason': 'invalid_target no storage chest at that entity'},
                    {'entity': 'live', 'ids': ['live'], 'status': 'succeeded', 'openedBefore': False}]
         summary = census.summarise(results, [{'entity': 'live', 'items': []}])
         self.assertEqual((summary['gone'], summary['refused']), (['old'], {}))
         self.assertIn('no longer there (1): old', census.render(summary))
+        # Asked from beyond loading range, the same answer proves nothing.
+        far = dict(results[0], bodyDistance=120.0)
+        self.assertFalse(census.is_gone(far))
+        self.assertFalse(census.is_gone(dict(results[0], bodyDistance=None)))
+        self.assertEqual(census.summarise([far], [])['gone'], [])
+
+    def test_an_opened_container_out_of_sight_is_not_ranked_as_probably_gone(self):
+        remembered = [{'entity': 'r', 'kind': 'container', 'pos': [30, 0, 0], 'ageS': 14 * 86400, 'items': []}]
+        self.assertTrue(census.candidates(remembered, [], [], [0, 0, 0], 40)[0]['sighted'])
 
     def test_stale_only_keeps_unopened_and_old_chests(self):
         chests = [{'entity': 'new', 'opened': True, 'ageS': 60}, {'entity': 'old', 'opened': True, 'ageS': 5000},

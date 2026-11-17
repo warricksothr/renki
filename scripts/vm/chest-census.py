@@ -32,6 +32,8 @@ FINAL = ('succeeded', 'failed', 'rejected', 'cancelled')
 # The plugin found no container under any id known for the place. With the
 # body in range that is evidence of absence, not a failure to reach it.
 GONE = 'invalid_target'
+# Well inside the distance at which the client keeps objects loaded.
+LOADED_M = 30
 MIN_HP_FRACTION = 0.5
 MAX_CONSECUTIVE_FAILURES = 6
 
@@ -89,8 +91,11 @@ def candidates(remembered, landmarks, structures, center, radius, now=None):
                 if known and known not in entry['ids']:
                     entry['ids'].append(known)
             if source == 'remembered':
+                # Its age is that of the contents, not of the last sighting,
+                # and perception lists only the nearest containers, so an
+                # opened container counts as sighted until asked for.
                 entry.update(opened=True, ageS=row.get('ageS'), items=len(row.get('items') or []),
-                             remembered=entity)
+                             remembered=entity, sighted=True)
                 if row.get('observedEntity'):
                     entry['entity'] = row['observedEntity']
             elif source == 'seen':
@@ -170,7 +175,11 @@ def render(summary):
 
 
 def is_gone(outcome):
-    return outcome['status'] != 'succeeded' and (outcome.get('reason') or '').split(' ', 1)[0] == GONE
+    """No container under any known id, asked from close enough that the game
+    has the area loaded. From farther away the same answer only means the
+    object is not loaded, so it stays an ordinary refusal."""
+    near = outcome.get('bodyDistance') is not None and outcome['bodyDistance'] <= LOADED_M
+    return outcome['status'] != 'succeeded' and near and (outcome.get('reason') or '').split(' ', 1)[0] == GONE
 
 
 def vm(*arguments):
@@ -250,14 +259,16 @@ def next_step(outcome, tried_ids, ids, walked, stepped_back):
     return None
 
 
-def attempt(chest, scope, start):
+def attempt(chest, scope, start, body):
     tried, walked, stepped_back, entity = [], [], False, chest['entity']
+    distance = math.dist(body, chest['pos']) if body else None
     while True:
         tried.append(entity)
         outcome = run_task('inspect_container', {'container': entity, 'scope': scope}, 75)
         step = next_step(outcome, tried, chest['ids'], walked, stepped_back)
         if step is None:
-            outcome.update(entity=entity, tried=tried, walked=walked, steppedBack=stepped_back)
+            outcome.update(entity=entity, tried=tried, walked=walked, steppedBack=stepped_back,
+                           bodyDistance=distance)
             return outcome
         if step[0] == 'id':
             entity = step[1]
@@ -304,7 +315,7 @@ def main(argv=None):
     out = ROOT / '.checks' / 'census'
     out.mkdir(parents=True, exist_ok=True)
     path = out / (datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.json')
-    results, failures, stopped = [], 0, ''
+    results, failures, stopped, body = [], 0, '', start
 
     def save(after=None):
         # Written after every container: an SSH failure an hour in must not
@@ -315,7 +326,7 @@ def main(argv=None):
 
     try:
         for index, chest in enumerate(chests, 1):
-            outcome = attempt(chest, scope, start)
+            outcome = attempt(chest, scope, start, body)
             outcome.update(ids=chest['ids'], prefab=chest['prefab'], pos=chest['pos'],
                            openedBefore=chest['opened'])
             results.append(outcome)
@@ -330,6 +341,7 @@ def main(argv=None):
             if not is_gone(outcome):
                 failures = 0 if outcome['status'] == 'succeeded' else failures + 1
             now = vm('panel', 'GET', '/api/status')
+            body = now.get('pos') or body
             if now.get('phase') != 'in_world':
                 stopped = 'the bot left the world'
             elif now.get('hpMax') and now.get('hp', 0) < MIN_HP_FRACTION * now['hpMax']:
