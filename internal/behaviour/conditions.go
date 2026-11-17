@@ -30,8 +30,10 @@ type View struct {
 	Owners           []string
 	// Anchor is the player Tas is with: the one it follows, or else the
 	// last player who gave it an order. Empty until someone does.
-	Anchor    string
-	Home      *protocol.Vec3
+	Anchor string
+	Home   *protocol.Vec3
+	// Routes plans over known ground; nil when there is no navigator.
+	Routes    Navigator
 	Base      *home.Base
 	Bases     []home.Base
 	Danger    []home.DangerZone

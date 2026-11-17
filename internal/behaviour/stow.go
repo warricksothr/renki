@@ -152,9 +152,41 @@ type stowRun struct {
 	beforeSeq    uint64
 	failures     []string
 	dry          bool
+	// route is a walk over known ground to the current chest, tried once
+	// per chest (routed) after the native way there failed.
+	route  *routeWalk
+	routed bool
 }
 
-func (*stowRun) Recover(r Result) bool {
+// A routed walk stops this near the chest; the deposit then finds its own
+// standing position.
+const stowRouteStopM = 2.5
+
+// routeTo starts a walk over known ground to the current chest. The native
+// move or deposit could not get there; route memory may know the stairs or
+// the doorway it did not find. It returns nil when there is no such way, or
+// one was already tried for this chest.
+func (r *stowRun) routeTo(v View, reason string) *session.Order {
+	if r.routed || v.Routes == nil || !slices.Contains([]string{protocol.ReasonUnreachable, protocol.ReasonStuck, protocol.ReasonBlocked}, reason) {
+		return nil
+	}
+	pos, ok := chestPosition(v, r.p.To[r.index])
+	if !ok {
+		return nil
+	}
+	walk := newRouteWalk(v.Routes, r.p.World, v.State.Pos, pos, stowRouteStopM, MoveStyle{})
+	if !walk.plan.Found || len(walk.plan.Legs) < 2 {
+		return nil
+	}
+	r.routed, r.route, r.walking = true, walk, true
+	return walk.first()
+}
+
+func (s *stowRun) Recover(r Result) bool {
+	if s.route != nil && !s.route.done {
+		// A failed leg is the walk's to answer: it plans again.
+		return true
+	}
 	if r.Status == protocol.StatusRejected && r.Reason == protocol.ReasonInvalidTarget {
 		// A missing chest is rejected before a TransferTask exists; it
 		// cannot have moved items and needs no transfer receipt.
@@ -195,8 +227,22 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 			return nil, errors.New("missing chest approach result")
 		}
 		r.walking = false
-		r.approached = result.Status == protocol.StatusSucceeded
-		if !r.approached {
+		if r.route != nil {
+			if next := r.route.step(v, result); next != nil {
+				r.walking = true
+				return next, nil
+			}
+			r.approached = r.route.arrived
+			if !r.approached {
+				r.failures = append(r.failures, r.p.To[r.index]+": "+r.route.story())
+				r.index++
+				r.homeApproach, r.routed = false, false
+			}
+			r.route = nil
+		} else if r.approached = result.Status == protocol.StatusSucceeded; !r.approached {
+			if next := r.routeTo(v, result.Reason); next != nil {
+				return next, nil
+			}
 			// A raised chest can be a poor exterior path goal even though
 			// the owner's configured home point has a usable entrance route.
 			// Try it once, only for a known chest within 10 m of that home.
@@ -209,12 +255,20 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 			}
 			r.failures = append(r.failures, r.p.To[r.index]+": "+result.Reason)
 			r.index++
-			r.homeApproach = false
+			r.homeApproach, r.routed = false, false
 		}
 	}
 	if r.pending {
 		if result == nil {
 			return nil, errors.New("missing deposit result")
+		}
+		// The deposit walks itself, within the bounded walker's limits. When
+		// it could not reach the chest, walk a known way there and ask again.
+		if result.Status != protocol.StatusSucceeded {
+			if next := r.routeTo(v, result.Reason); next != nil {
+				r.pending = false
+				return next, nil
+			}
 		}
 		// Transfer reports are sent before the pack and final task result. A
 		// receipt from another task or a remembered snapshot cannot prove a move.
@@ -241,7 +295,7 @@ func (r *stowRun) Next(v View, result *Result) (*session.Order, error) {
 		}
 		r.pending = false
 		r.approached = false
-		r.homeApproach = false
+		r.homeApproach, r.routed = false, false
 		r.index++
 	}
 	current := stowCounts(v.Inventory, r.p)

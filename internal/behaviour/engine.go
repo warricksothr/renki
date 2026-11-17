@@ -484,6 +484,7 @@ func (e *Engine) view() View {
 			v.Home = &home
 		}
 	}
+	v.Routes = e.o.Routes
 	v.Idle = v.State != nil && (v.State.Task == nil || protocol.Final(v.State.Task.Status))
 	if follow, ok := e.o.Session.OwnerFollow(); ok && !v.Idle {
 		v.Following = &follow

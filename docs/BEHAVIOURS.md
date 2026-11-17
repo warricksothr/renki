@@ -287,6 +287,11 @@ work-site discovery, leader detours/resumption, resource exploration, tool
 swings and chat shortcuts remain separate work. This template is suitable
 for staged loose flint/stone/branch tests; it does not fell trees or mine rock.
 
+When stow's native way to a chest fails `unreachable`, `stuck` or `blocked`
+and route memory knows a way of two legs or more, it walks that way once and
+asks again (docs/ROUTES.md, "Putting things away"). Those legs are ordinary
+moves without hostile or water avoidance.
+
 ## Inferred anchor activity
 
 Every ordered fresh perception frame feeds a pure activity tracker. A tree, log

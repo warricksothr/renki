@@ -127,6 +127,21 @@ the walk went, and Tas says why in the game when he does not arrive. With no
 such plan, or while Tas is busy with something else, they send the one direct
 move they always did. That move still teaches the way.
 
+### Putting things away
+
+Stow keeps its native way to a chest: a dry move, or the deposit's own
+bounded walk. When that fails `unreachable`, `stuck` or `blocked` and route
+memory has a plan of two legs or more to the chest, stow walks it with
+ordinary moves, stops within 2.5 m and asks again. It does this once for each
+chest; a walk that does not arrive is that chest's failure, with the walk's
+story as the reason. Collect, gather, marker food and marker cargo all put
+things away through stow, so they have it too. Marker cargo's return to its
+marker falls back the same way.
+
+A fallback walk is made of ordinary moves: it does not avoid hostiles or
+water as the native move does. The run's own threat and injury checks still
+stop it between legs.
+
 ### For other runs
 
 The walker takes its plans from a `Navigator` (`Plan`, and `Failed` for a leg
@@ -140,8 +155,9 @@ plans from where the body stands and returns the first move, with nothing to
 remember between moves. `Arrived` judges a move and `LegFailed` reports one
 that failed.
 
-Not converted yet: go home, the corpse run, stow, the marker behaviours,
-gathering's return legs, the food goals and the home survey.
+Not converted yet: go home, the corpse run, retreat, the moves to a site or
+marker that collect, gather, marker food and marker rest make, the food goals
+and the home survey.
 
 ## Limits
 
