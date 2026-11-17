@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-17T19:07:17Z
+updated_at: 2026-11-17T19:27:11Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -107,3 +107,7 @@ Three steps, each its own pull request. (1) Discovery: scripts/vm/chest-census.p
 **agent:claude-code/chests** at 2026-11-17T19:07:17Z
 
 The six unreachable containers of the 2026-11-17 controller census were asked for from the east building: the bounded walker found no route to the warehouse and measured no standing spot (audit .checks/audit-window-Ycti3U.jsonl, t-70 to t-76). The census now walks toward the container when no spot was measured. Not yet verified live.
+
+**agent:claude-code/chests** at 2026-11-17T19:27:11Z
+
+2026-11-17 build 831964f live, radius 45 m: 52 opened, 12 gone and forgotten, none refused, 19 not checked because the run reached its 64-container cap (the recipe now asks for 96). The six containers unreachable from the east building opened after the walk toward them. 151 s. Evidence .checks/census/20261117T192626Z.json. The chat command was not tried in game.

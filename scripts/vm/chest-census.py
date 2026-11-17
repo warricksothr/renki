@@ -315,9 +315,9 @@ CENSUS_INSTANCE = 'Container census'
 
 
 def census_definition(world, center, radius, limit):
-    params = {'world': world, 'center': center, 'radius': radius}
-    if limit:
-        params['maxContainers'] = limit
+    # The behaviour's own default of 64 fell short at the new home, where 52
+    # containers and 12 stale records left 19 unchecked; ask for its maximum.
+    params = {'world': world, 'center': center, 'radius': radius, 'maxContainers': limit or 96}
     return {'template': 'census', 'params': params, 'trigger': {'kind': 'manual'}, 'repeat': {'mode': 'once'},
             'priority': 10, 'enabled': False}
 

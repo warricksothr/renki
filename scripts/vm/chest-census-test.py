@@ -131,7 +131,7 @@ class CensusTest(unittest.TestCase):
         got = census.census_status([{'name': 'other'}, {'name': census.CENSUS_INSTANCE, 'runs': 1}])
         self.assertEqual(got['runs'], 1)
         definition = census.census_definition('w', [1, 2, 3], 30, 0)
-        self.assertEqual(definition['params'], {'world': 'w', 'center': [1, 2, 3], 'radius': 30})
+        self.assertEqual(definition['params'], {'world': 'w', 'center': [1, 2, 3], 'radius': 30, 'maxContainers': 96})
         self.assertEqual((definition['enabled'], definition['trigger']['kind']), (False, 'manual'))
         self.assertEqual(census.census_definition('w', [1, 2, 3], 30, 5)['params']['maxContainers'], 5)
 
