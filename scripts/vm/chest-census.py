@@ -362,6 +362,8 @@ def via_controller(args, status):
     start, world = status['pos'], status.get('world')
     if not 10 <= args.radius <= 100:
         raise SystemExit('the controller census takes --radius 10-100 m')
+    if not 0 <= args.limit <= 96:
+        raise SystemExit('the controller census takes --limit 1-96')
     definition = census_definition(world, start, args.radius, args.limit)
     try:
         saved = vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'save',

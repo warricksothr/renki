@@ -121,10 +121,15 @@ type censusRun struct {
 	// walked holds the standing positions tried for the pending container.
 	walked   []protocol.Vec3
 	failures int
-	reported bool
+	// walkCharged is the travel total once the current walk was charged.
+	walkCharged float64
+	reported    bool
 }
 
-func (r *censusRun) Recover(result Result) bool { return r.base.Recover(result) }
+// Recover keeps the run going after any failed walk to a standing spot: the
+// walk is only a means, and the container is asked for again from wherever
+// the body stopped. Inspections recover as the search's do.
+func (r *censusRun) Recover(result Result) bool { return r.walking || r.base.Recover(result) }
 func (r *censusRun) Dispatched(id string) error { r.base.taskID = id; return nil }
 
 // Entries returns the outcomes so far, for status and tests.
@@ -217,8 +222,11 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 		}
 		if r.walking {
 			// Whatever the walk achieved, ask again from where the body
-			// now stands: the inspection re-measures reach itself.
+			// now stands: the inspection re-measures reach itself. The
+			// walk was charged in full when ordered, so the displacement
+			// Check just added is not counted a second time.
 			r.walking = false
+			b.travel = r.walkCharged
 			if r.spent(v) {
 				r.record("refused", "budget ended before a second look", 0)
 			} else {
@@ -293,6 +301,7 @@ func (r *censusRun) settle(v View, result *Result) error {
 			r.walking = true
 			// Charged now, in full, whether or not the walk arrives.
 			b.travel += censusWalkCharge * distance(v.State.Pos, *spot)
+			r.walkCharged = b.travel
 			return nil
 		}
 		r.record("refused", result.Reason, 0)

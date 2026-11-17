@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-17T18:27:33Z
+updated_at: 2026-11-17T18:45:36Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -99,3 +99,7 @@ Three steps, each its own pull request. (1) Discovery: scripts/vm/chest-census.p
 **agent:claude-code/chests** at 2026-11-17T17:56:06Z
 
 2026-11-17 live census at the new home: 56 containers within 45 m of the warehouse (45 wood chests, 11 barrels), 32 never opened. Bulk materials are already hand-sorted into single-item chests; food is in barrels; two barrels hold many one-off items. Chest tasks fail from some standing spots: see TKT-01M7N9VE23Q3HJPXN5CWRR1ZKR and the walk-round in scripts/vm/chest-census.py. Evidence under .checks/census/.
+
+**agent:claude-code/chests** at 2026-11-17T18:45:36Z
+
+2026-11-17 controller census live on build 3366a1b at the new home warehouse, radius 45 m: 50 containers opened in 104 s (23 for the first time), 3 gone, 6 unreachable, 2 not checked after six refusals in a row. The SSH loop took about a minute per container. Memory now holds 145 distinct items in 50 fresh containers; 15 items are split across containers. Evidence .checks/census/20261117T184524Z.json. Gone containers are reported, not yet forgotten from memory.

@@ -3,6 +3,7 @@ package behaviour
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -114,8 +115,9 @@ func TestCensusWalksToAVerifiedStandingSpotThenAsksAgain(t *testing.T) {
 	if got := r.Entries(); len(got) != 1 || got[0].Outcome != "opened" || got[0].Walks != 1 {
 		t.Fatalf("%+v", got)
 	}
-	// The walk was charged at twice its straight line when ordered.
-	if want := censusWalkCharge * distance(protocol.Vec3{}, protocol.Vec3{3, 0, 1}); r.base.travel < want {
+	// The walk is charged at twice its straight line, once: the displacement
+	// seen afterwards is not added again. The reopened inspection adds 1 m.
+	if want := censusWalkCharge*distance(protocol.Vec3{}, protocol.Vec3{3, 0, 1}) + 1; math.Abs(r.base.travel-want) > 1e-9 {
 		t.Fatal(r.base.travel, want)
 	}
 }
@@ -162,8 +164,13 @@ func TestCensusGivesUpOnAContainerAfterTwoWalks(t *testing.T) {
 			t.Fatal(i, o, err)
 		}
 		_ = r.Dispatched("m")
-		// A failed walk still earns one more look from wherever it ended.
-		if o, err = r.Next(v, &Result{TaskID: "m", Status: protocol.StatusFailed, Reason: protocol.ReasonStuck}); err != nil || o.Task != protocol.TaskInspectContainer {
+		// A failed walk still earns one more look from wherever it ended,
+		// whatever stopped it: the run must not end on a walk's reason.
+		water := Result{TaskID: "m", Status: protocol.StatusFailed, Reason: "deep_water"}
+		if !r.Recover(water) {
+			t.Fatal("a failed walk would end the census")
+		}
+		if o, err = r.Next(v, &water); err != nil || o.Task != protocol.TaskInspectContainer {
 			t.Fatal(i, o, err)
 		}
 	}
