@@ -29,6 +29,9 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 FINAL = ('succeeded', 'failed', 'rejected', 'cancelled')
+# The plugin found no container under any id known for the place. With the
+# body in range that is evidence of absence, not a failure to reach it.
+GONE = 'invalid_target'
 MIN_HP_FRACTION = 0.5
 MAX_CONSECUTIVE_FAILURES = 6
 
@@ -43,15 +46,32 @@ def is_container(row):
 
 
 SAME_PLACE_M = 0.6
+# A landmark seen this recently counts as a sighting. Older ones are places a
+# container once stood: on 2026-11-17 seven two-week-old landmarks within 5 m
+# of the bot were all gone.
+SIGHTED_S = 6 * 3600
 
 
-def candidates(remembered, landmarks, structures, center, radius):
+def age_s(row, now):
+    """Seconds since a row was last seen: its own ageS, else from `at`
+    (landmarks on the map carry only the time). Unknown is infinitely old."""
+    if row.get('ageS') is not None:
+        return row['ageS']
+    try:
+        at = datetime.datetime.fromisoformat(str(row.get('at'))[:19] + '+00:00')
+    except ValueError:
+        return math.inf
+    return (now - at).total_seconds()
+
+
+def candidates(remembered, landmarks, structures, center, radius, now=None):
     """Every chest within radius, one per place. A chest's entity id can change
     between sessions, so the same box may be remembered under one id, seen
     under another and marked as a landmark under a third: rows within
     SAME_PLACE_M are one chest. The id currently seen is the one to ask for;
     remembered contents and exact positions are kept; rounded landmark
     positions only fill gaps."""
+    now = now or datetime.datetime.now(datetime.timezone.utc)
     found = []
     for source, rows in (('remembered', remembered), ('seen', structures), ('landmark', landmarks)):
         for row in rows or []:
@@ -63,7 +83,7 @@ def candidates(remembered, landmarks, structures, center, radius):
             entry = next((c for c in found if entity in c['ids'] or math.dist(c['pos'], pos) <= SAME_PLACE_M), None)
             if entry is None:
                 entry = {'entity': entity, 'ids': [], 'prefab': row.get('prefab'), 'pos': pos, 'source': source,
-                         'opened': False, 'ageS': None, 'items': None}
+                         'opened': False, 'ageS': None, 'items': None, 'sighted': False}
                 found.append(entry)
             for known in (entity, row.get('observedEntity')):
                 if known and known not in entry['ids']:
@@ -74,13 +94,25 @@ def candidates(remembered, landmarks, structures, center, radius):
                 if row.get('observedEntity'):
                     entry['entity'] = row['observedEntity']
             elif source == 'seen':
-                entry.update(entity=entity, pos=pos if not entry['opened'] else entry['pos'])
+                entry.update(entity=entity, pos=pos if not entry['opened'] else entry['pos'], sighted=True)
+            elif 0 <= age_s(row, now) <= SIGHTED_S:
+                entry['sighted'] = True
     return found
 
 
 def order(chests, start):
     """Nearest-neighbour walk from start, so the bot does not cross the room
-    between neighbours. Ties break on entity for a stable plan."""
+    between neighbours. Ties break on entity for a stable plan. Containers
+    with no recent sighting come after every sighted one: most are gone."""
+    out, at = [], start
+    for group in (True, False):
+        walked = walk([c for c in chests if bool(c.get('sighted', True)) == group], at)
+        out += walked
+        at = walked[-1]['pos'] if walked else at
+    return out
+
+
+def walk(chests, start):
     left, at, out = list(chests), start, []
     while left:
         nxt = min(left, key=lambda c: (round(math.dist(c['pos'], at), 2), c['entity']))
@@ -98,9 +130,10 @@ def summarise(results, after):
     """Counts, the refusal reasons, and where each item now sits."""
     by_entity = {c['entity']: c for c in after or []}
     opened = [r for r in results if r['status'] == 'succeeded']
+    gone = sorted(r['entity'] for r in results if is_gone(r))
     reasons = {}
     for r in results:
-        if r['status'] != 'succeeded':
+        if r['status'] != 'succeeded' and not is_gone(r):
             key = f"{r['status']}: {why(r)}"
             reasons.setdefault(key, []).append(r['entity'])
     items, empty = {}, 0
@@ -114,7 +147,7 @@ def summarise(results, after):
             entry['count'] += int(stack.get('count') or stack.get('stack') or 1)
             entry['chests'].add(r['entity'])
     return {
-        'attempted': len(results), 'opened': len(opened), 'empty': empty,
+        'attempted': len(results), 'opened': len(opened), 'empty': empty, 'gone': gone,
         'newlyOpened': sum(1 for r in opened if not r.get('openedBefore')),
         'refused': {key: sorted(value) for key, value in sorted(reasons.items())},
         'items': {name: {'count': v['count'], 'chests': sorted(v['chests'])}
@@ -125,6 +158,8 @@ def summarise(results, after):
 def render(summary):
     lines = [f"census: {summary['opened']}/{summary['attempted']} chests opened "
              f"({summary['newlyOpened']} for the first time, {summary['empty']} empty)"]
+    if summary['gone']:
+        lines.append(f"  no longer there ({len(summary['gone'])}): {', '.join(summary['gone'])}"[:200])
     for reason, entities in summary['refused'].items():
         lines.append(f"  not opened ({len(entities)}): {reason}")
     scattered = [(name, v) for name, v in summary['items'].items() if len(v['chests']) > 1]
@@ -132,6 +167,10 @@ def render(summary):
     for name, v in scattered[:15]:
         lines.append(f"    {name}: {v['count']} in {len(v['chests'])} chests")
     return '\n'.join(lines)
+
+
+def is_gone(outcome):
+    return outcome['status'] != 'succeeded' and (outcome.get('reason') or '').split(' ', 1)[0] == GONE
 
 
 def vm(*arguments):
@@ -167,7 +206,8 @@ def why(outcome):
     code = reason.split(' ', 1)[0]
     marker = '"detail":"'
     if marker in reason:
-        return f"{code}: {reason.split(marker, 1)[1].split('"', 1)[0]}"[:110]
+        detail = reason.split(marker, 1)[1].split('"', 1)[0]
+        return f'{code}: {detail}'[:110]
     return reason[:110]
 
 
@@ -199,7 +239,7 @@ def next_step(outcome, tried_ids, ids, walked, stepped_back):
     if outcome['status'] == 'succeeded':
         return None
     code = (outcome.get('reason') or '').split(' ', 1)[0]
-    if code == 'invalid_target':
+    if code == GONE:
         return next((('id', i) for i in ids if i not in tried_ids), None)
     if code == 'unreachable':
         spot = next((s for s in outcome.get('standing') or [] if s not in walked), None)
@@ -261,36 +301,53 @@ def main(argv=None):
         return 0
 
     scope = {'center': start, 'radius': min(250, args.radius + 10), 'travelM': 80, 'durationS': 60}
-    results, failures, stopped = [], 0, ''
-    for index, chest in enumerate(chests, 1):
-        outcome = attempt(chest, scope, start)
-        outcome.update(ids=chest['ids'], prefab=chest['prefab'], pos=chest['pos'],
-                       openedBefore=chest['opened'])
-        results.append(outcome)
-        print(f"  [{index}/{len(chests)}] {outcome['entity']} {outcome['status']}"
-              + (' after walking round' if outcome['walked'] and outcome['status'] == 'succeeded' else '')
-              + (' after stepping back' if outcome['steppedBack'] and outcome['status'] == 'succeeded' else '')
-              + (f": {why(outcome)}" if outcome['status'] != 'succeeded' else ''), flush=True)
-        failures = 0 if outcome['status'] == 'succeeded' else failures + 1
-        now = vm('panel', 'GET', '/api/status')
-        if now.get('phase') != 'in_world':
-            stopped = 'the bot left the world'
-        elif now.get('hpMax') and now.get('hp', 0) < MIN_HP_FRACTION * now['hpMax']:
-            stopped = f"health {now.get('hp')} is under half of {now['hpMax']}"
-        elif failures >= MAX_CONSECUTIVE_FAILURES:
-            stopped = f'{failures} chests in a row could not be opened'
-        if stopped:
-            print(f'stopping: {stopped}')
-            break
-
-    after = vm('panel', 'GET', '/api/memory/containers').get('containers')
-    summary = summarise(results, after)
     out = ROOT / '.checks' / 'census'
     out.mkdir(parents=True, exist_ok=True)
     path = out / (datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.json')
-    path.write_text(json.dumps({'start': start, 'scope': scope, 'stopped': stopped, 'planned': len(chests),
-                                'results': results, 'summary': summary, 'containers': after}, indent=1) + '\n')
-    print(render(summary))
+    results, failures, stopped = [], 0, ''
+
+    def save(after=None):
+        # Written after every container: an SSH failure an hour in must not
+        # lose the refusals and walks recorded so far.
+        path.write_text(json.dumps({'start': start, 'scope': scope, 'stopped': stopped, 'planned': len(chests),
+                                    'results': results, 'summary': summarise(results, after),
+                                    'containers': after}, indent=1) + '\n')
+
+    try:
+        for index, chest in enumerate(chests, 1):
+            outcome = attempt(chest, scope, start)
+            outcome.update(ids=chest['ids'], prefab=chest['prefab'], pos=chest['pos'],
+                           openedBefore=chest['opened'])
+            results.append(outcome)
+            save()
+            print(f"  [{index}/{len(chests)}] {outcome['entity']} "
+                  + ('no longer there' if is_gone(outcome) else outcome['status'])
+                  + (' after walking round' if outcome['walked'] and outcome['status'] == 'succeeded' else '')
+                  + (' after stepping back' if outcome['steppedBack'] and outcome['status'] == 'succeeded' else '')
+                  + (f": {why(outcome)}" if outcome['status'] != 'succeeded' and not is_gone(outcome) else ''),
+                  flush=True)
+            # A container that is gone costs nothing and says nothing about the next one.
+            if not is_gone(outcome):
+                failures = 0 if outcome['status'] == 'succeeded' else failures + 1
+            now = vm('panel', 'GET', '/api/status')
+            if now.get('phase') != 'in_world':
+                stopped = 'the bot left the world'
+            elif now.get('hpMax') and now.get('hp', 0) < MIN_HP_FRACTION * now['hpMax']:
+                stopped = f"health {now.get('hp')} is under half of {now['hpMax']}"
+            elif failures >= MAX_CONSECUTIVE_FAILURES:
+                stopped = f'{failures} containers in a row could not be opened'
+            if stopped:
+                break
+    except (SystemExit, subprocess.SubprocessError, ValueError, KeyboardInterrupt) as error:
+        stopped = f'interrupted: {type(error).__name__}: {str(error)[:200]}'
+    if stopped:
+        print(f'stopping: {stopped}')
+    try:
+        after = vm('panel', 'GET', '/api/memory/containers').get('containers')
+    except (SystemExit, subprocess.SubprocessError, ValueError):
+        after = None
+    save(after)
+    print(render(summarise(results, after)))
     print(f'Evidence: {path}')
     return 0 if not stopped else 1
 

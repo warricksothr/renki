@@ -53,6 +53,27 @@ class CensusTest(unittest.TestCase):
         chests = [{'entity': name, 'pos': [x, 0, 0]} for name, x in (('far', 9), ('near', 1), ('mid', 4))]
         self.assertEqual([c['entity'] for c in census.order(chests, [0, 0, 0])], ['near', 'mid', 'far'])
 
+    def test_unsighted_landmarks_come_last_and_gone_ones_are_not_refusals(self):
+        marks = [{'entity': 'old', 'kind': 'container', 'pos': [1, 0, 0], 'ageS': 14 * 86400},
+                 {'entity': 'today', 'kind': 'container', 'pos': [5, 0, 0], 'ageS': 600},
+                 {'entity': 'hour', 'kind': 'container', 'pos': [20, 0, 0], 'at': '2026-11-17T17:00:00.5Z'},
+                 {'entity': 'weeks', 'kind': 'container', 'pos': [22, 0, 0], 'at': '2026-11-03T07:04:52Z'},
+                 {'entity': 'undated', 'kind': 'container', 'pos': [24, 0, 0]}]
+        seen = [{'id': 'live', 'kind': 'container', 'pos': [9, 0, 0]}]
+        import datetime
+        now = datetime.datetime(2026, 11, 17, 18, 0, tzinfo=datetime.timezone.utc)
+        found = census.candidates([], marks, seen, [0, 0, 0], 40, now)
+        self.assertEqual({c['entity']: c['sighted'] for c in found},
+                         {'old': False, 'today': True, 'live': True, 'hour': True, 'weeks': False, 'undated': False})
+        self.assertEqual([c['entity'] for c in census.order(found, [0, 0, 0])],
+                         ['today', 'live', 'hour', 'weeks', 'undated', 'old'])
+        results = [{'entity': 'old', 'ids': ['old'], 'status': 'rejected',
+                    'reason': 'invalid_target no storage chest at that entity'},
+                   {'entity': 'live', 'ids': ['live'], 'status': 'succeeded', 'openedBefore': False}]
+        summary = census.summarise(results, [{'entity': 'live', 'items': []}])
+        self.assertEqual((summary['gone'], summary['refused']), (['old'], {}))
+        self.assertIn('no longer there (1): old', census.render(summary))
+
     def test_stale_only_keeps_unopened_and_old_chests(self):
         chests = [{'entity': 'new', 'opened': True, 'ageS': 60}, {'entity': 'old', 'opened': True, 'ageS': 5000},
                   {'entity': 'never', 'opened': False, 'ageS': None}]
