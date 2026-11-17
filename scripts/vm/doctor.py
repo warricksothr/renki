@@ -30,9 +30,11 @@ def check(level, name, detail, fix=''):
     return {'level': level, 'name': name, 'detail': detail, 'fix': fix}
 
 
-def evaluate(local, vm):
+def evaluate(local, vm, starting=False):
     """Turn gathered facts into checks. `vm` is None when SSH was not tried,
-    or {'error': text} when it failed."""
+    or {'error': text} when it failed. `starting` is `vm up` asking: it copies
+    this worktree's start scripts to the VM, so a build from another branch
+    blocks it."""
     out = []
     missing = [name for name in LOCAL_FILES if not local['files'].get(name)]
     if not local.get('target'):
@@ -128,6 +130,8 @@ def evaluate(local, vm):
         out.append(check(WARN, 'panel', 'no panel in controller.local.json', 'just vm panel-setup'))
     elif not panel_ok:
         pass
+    elif panel.get('error') == 'no port in panel.listen':
+        out.append(check(FAIL, 'panel', 'panel.listen in controller.local.json has no port', 'just vm panel-setup'))
     elif not panel.get('addressPresent'):
         out.append(check(FAIL, 'panel', 'the address the panel listens on does not exist on the VM',
                          'just vm panel-setup'))
@@ -147,9 +151,13 @@ def evaluate(local, vm):
             out.append(check(WARN, 'build', f'installed {name}; this checkout does not have that commit',
                              'git fetch origin'))
         elif not build['in_head']:
-            # Starting what is installed still works, so `vm up` is not blocked.
-            out.append(check(WARN, 'build', f'installed {name} is not in this branch, so a deploy from here is refused',
-                             'merge or rebase onto the installed branch before deploying'))
+            if starting:
+                out.append(check(FAIL, 'build', f'installed {name} is not in this branch, and up would run it '
+                                 "with this branch's start scripts",
+                                 'merge or rebase onto the installed branch, or run up from a worktree that has it'))
+            else:
+                out.append(check(WARN, 'build', f'installed {name} is not in this branch, so a deploy from here is '
+                                 'refused', 'merge or rebase onto the installed branch before deploying or starting'))
         elif build.get('ahead'):
             out.append(check(INFO, 'build', f"installed {name}; this branch is {build['ahead']} commit(s) ahead",
                              'just check vm deploy, when you want them on the VM'))
@@ -270,6 +278,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--target', default='')
     parser.add_argument('--dir', default='C:/renki')
+    parser.add_argument('--starting', action='store_true', help='also fail on what would make `vm up` unsafe')
     parser.add_argument('--json', action='store_true', help='print facts and checks as JSON')
     args = parser.parse_args(argv)
 
@@ -280,7 +289,7 @@ def main(argv=None):
         if not vm.get('error') and not vm.get('script_error'):
             local['build'] = build_facts((vm.get('deployment') or {}).get('source'))
             local['lease'] = lease_line(args.target, args.dir)
-    checks = evaluate(local, vm)
+    checks = evaluate(local, vm, starting=args.starting)
     if args.json:
         local.pop('target')
         print(json.dumps({'local': local, 'vm': vm, 'checks': checks}, indent=2))

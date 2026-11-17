@@ -108,14 +108,21 @@ class DoctorTest(unittest.TestCase):
         self.assertIn('setup-remote', by['tasks']['fix'])
         self.assertEqual(by['game']['fix'], 'just vm install')
 
-    def test_build_outside_this_branch_warns_without_blocking_up(self):
-        # `vm up` starts what is installed and deploys nothing, so it must pass.
+    def test_build_outside_this_branch_warns_but_blocks_up(self):
+        # `vm up` copies this worktree's start scripts beside the installed build.
         local = dict(LOCAL, build={'in_head': False, 'in_main': False, 'ahead': 0})
         by, checks = run(local)
         self.assertEqual(by['build']['level'], doctor.WARN)
         self.assertIn('refused', by['build']['detail'])
         self.assertEqual(by['main']['level'], doctor.WARN)
         self.assertFalse(doctor.failed(checks))
+        starting = doctor.evaluate(copy.deepcopy(local), copy.deepcopy(VM), starting=True)
+        self.assertTrue(doctor.failed(starting))
+        self.assertFalse(doctor.failed(doctor.evaluate(copy.deepcopy(LOCAL), copy.deepcopy(VM), starting=True)))
+
+    def test_portless_panel_address_points_at_setup_not_a_restart(self):
+        by, _ = run(panel__http=0, panel__error='no port in panel.listen')
+        self.assertEqual((by['panel']['level'], by['panel']['fix']), (doctor.FAIL, 'just vm panel-setup'))
 
     def test_both_local_files_missing_still_warns_about_the_props(self):
         local = dict(LOCAL, files={'vm.local': False, 'plugin/game.local.props': False})

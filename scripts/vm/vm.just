@@ -70,7 +70,7 @@ test-doctor:
 # Refuses before taking the lease or starting anything when a check failed.
 [doc("Bring the bot up: doctor first, then panel, private video and Tas.")]
 up MINUTES="5": need-target
-    just --justfile "{{justfile()}}" vm doctor
+    just --justfile "{{justfile()}}" vm doctor --starting
     just --justfile "{{justfile()}}" vm online "{{MINUTES}}"
 
 # Check the connection, the account and the scheduled tasks.

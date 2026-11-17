@@ -41,7 +41,8 @@ address stops answering when Tailscale on the VM is signed out, although the
 controller still runs: sign in on the VM and the panel answers again without a
 restart. An installed build that is not in your branch makes the deployment
 preflight below refuse, so doctor warns about it before you build anything.
-It is a warning because starting what is already installed still works.
+`just vm up` treats it as a failure, because it copies this worktree's start
+scripts beside the installed build.
 
 `just vm up` runs doctor and stops there if anything failed. Otherwise it
 takes the lease and runs `just vm online`. Release the lease when you are done.
