@@ -153,8 +153,10 @@ namespace Renki.Plugin
             pc.Kind = c.IsTamed() ? Wire.PerceivedTamed : Wire.PerceivedCreature;
             pc.Prefab = PrefabName(c.m_nview, c.gameObject);
             if (c.GetLevel() > 1) pc.Stars = c.GetLevel() - 1;
-            if (BaseAI.IsEnemy(c, me)) pc.Hostile = true;
             var ai = c.GetBaseAI();
+            // A character with no AI cannot act: a training dummy is of an
+            // enemy faction and would otherwise stop every run near it.
+            if (ai != null && BaseAI.IsEnemy(c, me)) pc.Hostile = true;
             // AI targets are local to the peer simulating the creature.
             // Remote attackers are also recognized from damage events by
             // the controller; absence of this flag does not mean safety.
