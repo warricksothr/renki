@@ -259,24 +259,33 @@ def next_step(outcome, tried_ids, ids, walked, stepped_back):
     return None
 
 
+def farthest(asked_from, pos):
+    """The greatest distance any request for this container may have been
+    made from: the body can have moved between requests, and "gone" needs
+    every one of them to have been in loading range."""
+    return max((math.dist(p, pos) for p in asked_from), default=None)
+
+
 def attempt(chest, scope, start, body):
     tried, walked, stepped_back, entity = [], [], False, chest['entity']
-    distance = math.dist(body, chest['pos']) if body else None
+    asked_from = [body] if body else []
     while True:
         tried.append(entity)
         outcome = run_task('inspect_container', {'container': entity, 'scope': scope}, 75)
         step = next_step(outcome, tried, chest['ids'], walked, stepped_back)
         if step is None:
             outcome.update(entity=entity, tried=tried, walked=walked, steppedBack=stepped_back,
-                           bodyDistance=distance)
+                           bodyDistance=farthest(asked_from, chest['pos']))
             return outcome
         if step[0] == 'id':
             entity = step[1]
         elif step[0] == 'walk':
             walked.append(step[1])
+            asked_from.append(step[1])
             run_task('move_to', {'to': step[1], 'stopDistance': 0.4}, 60)
         else:
             stepped_back = True
+            asked_from.append(start)
             run_task('move_to', {'to': start, 'stopDistance': 1.0}, 60)
 
 
