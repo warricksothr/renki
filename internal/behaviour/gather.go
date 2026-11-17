@@ -77,22 +77,27 @@ type gatherRun struct {
 	treeOpen                                  bool
 	home                                      *protocol.Vec3
 	homePhase                                 string
-	homeReceipt                               *uint64
-	repairHomeScan                            uint64
-	stow                                      *stowRun
-	prepared, repairPending                   bool
-	repairBefore                              uint64
-	defender                                  string
-	defenses                                  int
-	defenseReceipt                            *gatherDefenseReceipt
-	resume                                    *protocol.PerceivedResource
-	clearingWildlife                          bool
-	wildlifeAttempts                          int
-	wildlifeUntil                             time.Time
-	wildlifeObserveUntil                      time.Time
-	wildlifeScan                              uint64
-	pursuerWaiting                            string
-	pursuerUntil                              time.Time
+	// approaching is set while the move to the work point is out. to, back
+	// and homeWalk are the walks over known ground tried once when the
+	// native move there, back to it, or home found no way.
+	approaching             bool
+	to, back, homeWalk      detour
+	homeReceipt             *uint64
+	repairHomeScan          uint64
+	stow                    *stowRun
+	prepared, repairPending bool
+	repairBefore            uint64
+	defender                string
+	defenses                int
+	defenseReceipt          *gatherDefenseReceipt
+	resume                  *protocol.PerceivedResource
+	clearingWildlife        bool
+	wildlifeAttempts        int
+	wildlifeUntil           time.Time
+	wildlifeObserveUntil    time.Time
+	wildlifeScan            uint64
+	pursuerWaiting          string
+	pursuerUntil            time.Time
 }
 
 func (r *gatherRun) Recover(result Result) bool {
@@ -101,6 +106,18 @@ func (r *gatherRun) Recover(result Result) bool {
 	// Harvest receipts may omit entity. The engine correlates their task ID
 	// to this runner's outstanding explicit request, so the pinned resource
 	// remains authoritative. A conflicting reported entity is never accepted.
+	if r.stow == nil && r.defender == "" && r.pending == nil {
+		// A move home, to the work point or back to it that found no way
+		// goes to Next, which may know a walked one.
+		switch {
+		case r.homePhase != "":
+			return r.homeWalk.recovers(result)
+		case r.returning:
+			return r.back.recovers(result)
+		case r.approaching:
+			return r.to.recovers(result)
+		}
+	}
 	return r.stow != nil && r.stow.Recover(result) || r.p.Defend && r.pending != nil &&
 		(result.Entity == r.pending.ID || result.Entity == "" && result.TaskID != "") &&
 		result.Status == protocol.StatusFailed && result.Reason == protocol.ReasonRefused
@@ -255,8 +272,14 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		result = nil
 	}
 	if r.homePhase != "" {
-		if result == nil || result.Status != protocol.StatusSucceeded {
-			return nil, errors.New("gather home return lacks native success")
+		// Until the arrival has been taken, the result is the native move's
+		// or a leg's. Home is often up a stair the native move cannot find.
+		if r.homeReceipt == nil {
+			if order, _, err := r.homeWalk.next(v, v.State.World, *r.home, 2, result, "home return"); order != nil {
+				return order, nil
+			} else if err != nil {
+				return nil, errors.New("gather home return lacks native success: " + err.Error())
+			}
 		}
 		// Wait for a state strictly after observing the receipt. A task
 		// response can arrive after the pose used by this engine tick.
@@ -309,8 +332,17 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		return nil, nil
 	}
 	if r.returning {
+		if order, _, err := r.back.next(v, r.p.Site.World, r.p.Site.Pos, 2, result, "gather return"); order != nil || err != nil {
+			return order, err
+		}
 		r.finished = true
 		return nil, nil
+	}
+	if r.approaching {
+		if order, _, err := r.to.next(v, r.p.Site.World, r.p.Site.Pos, 2, result, "gather approach"); order != nil || err != nil {
+			return order, err
+		}
+		r.approaching, result = false, nil
 	}
 	if v.Inventory == nil || !freshPerception(v) {
 		return nil, ErrWait
@@ -373,6 +405,7 @@ func (r *gatherRun) Next(v View, result *Result) (*session.Order, error) {
 		// the native harvest's 18 m acquisition range. Approach the work
 		// point before choosing a tree, even from the edge of that zone.
 		if distance(v.State.Pos, r.p.Site.Pos) > math.Min(r.p.Site.Radius, 12) {
+			r.approaching = true
 			pos := r.p.Site.Pos
 			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, Dry: true, AvoidHostiles: true}, TimeoutS: 90}, nil
 		}
@@ -572,6 +605,7 @@ func (r *gatherRun) deliver(v View) (*session.Order, error) {
 func (r *gatherRun) goHome(phase string) *session.Order {
 	r.homePhase = phase
 	r.homeReceipt = nil
+	r.homeWalk = detour{}
 	pos := *r.home
 	stop := 2.0
 	return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}, StopDistance: &stop, Dry: true, AvoidHostiles: true}, TimeoutS: 120}

@@ -141,8 +141,10 @@ marker falls back the same way.
 The same fallback, tried once and only for those three reasons, covers the
 other moves these runs make to a place (`detour` in
 `internal/behaviour/route_walk.go`): collect's move to its site and back,
-marker food's return to its marker after foraging or cooking, and the day
-rest's move to the bedside. When there is no known way the run ends as it
+marker food's return to its marker after foraging or cooking, the day rest's
+move to the bedside, and gather's walk home, its move to the work point and
+its return there. Gather's move toward a tree is left alone: a tree stands on
+ground not yet walked. When there is no known way the run ends as it
 did before, with the native reason.
 
 A fallback walk is made of ordinary moves: it does not avoid hostiles or
@@ -162,8 +164,8 @@ plans from where the body stands and returns the first move, with nothing to
 remember between moves. `Arrived` judges a move and `LegFailed` reports one
 that failed.
 
-Not converted yet: go home, the corpse run, retreat, gather's own moves, the
-food goals and the home survey.
+Not converted yet: go home, the corpse run, retreat, the food goals and the
+home survey.
 
 ## Limits
 

@@ -2,6 +2,7 @@ package behaviour
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -316,5 +317,92 @@ func TestNoWalkerUserRecoversACancelledLeg(t *testing.T) {
 	}
 	if !census.Recover(timeout) || census.Recover(cancelled) {
 		t.Fatal("census")
+	}
+}
+
+// Gather's walk home finds no way up to the home floor; route memory knows
+// the stair. The arrival is still proved on the home floor afterwards.
+func TestGatherWalksAKnownWayHome(t *testing.T) {
+	r, v := gathering(t)
+	r.p.Return = false
+	r.p.ReturnHome = true
+	home := protocol.Vec3{20.5, 5, 20.5}
+	v.Home = &home
+	nextTask(t, r, v, nil, protocol.TaskHarvest)
+	finishGatherTree(t, r, &v, "one")
+	from := v.State.Pos
+	foot := protocol.Vec3{from[0] + 10, from[1], from[2]}
+	top := protocol.Vec3{foot[0], 5, foot[2] + 10}
+	mem, _ := walkedMemory(t, []protocol.Vec3{from, foot, top, home})
+	v.Routes = inWorld{mem, "test"}
+	if !r.Recover(*noWay) || r.Recover(Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonStopped}) {
+		t.Fatal("recovers the wrong home failures")
+	}
+	o := nextTask(t, r, v, noWay, protocol.TaskMoveTo)
+	for steps := 0; ; steps++ {
+		if steps > 12 {
+			t.Fatal("never home")
+		}
+		v.State.Pos = moveTarget(t, o.Args)
+		next, err := r.Next(v, success("leg"))
+		if errors.Is(err, ErrWait) {
+			break
+		}
+		if err != nil || next == nil {
+			t.Fatal(next, err)
+		}
+		o = next
+	}
+	if distance(v.State.Pos, home) > 2 {
+		t.Fatalf("stopped at %v", v.State.Pos)
+	}
+	// The walk is over; the same leg result comes back while the arrival is
+	// proved. From under the floor it is refused, and on it the run goes on
+	// without starting another walk.
+	v.State.Seq++
+	below := v
+	state := *v.State
+	state.Pos = protocol.Vec3{home[0], 0, home[2]}
+	below.State = &state
+	if _, err := r.Next(below, success("leg")); err == nil || !strings.Contains(err.Error(), "not confirmed on the home floor") {
+		t.Fatal("arrival under the floor accepted", err)
+	}
+	v.State.Pos = home
+	if _, err := r.Next(v, success("leg")); err != nil && !errors.Is(err, ErrWait) || r.homePhase != "" || r.homeWalk.walk == nil || !r.homeWalk.walk.done {
+		t.Fatalf("after arriving home: %v, phase %q", err, r.homePhase)
+	}
+	// With no known way the native reason is kept.
+	r, v = gathering(t)
+	r.p.Return, r.p.ReturnHome = false, true
+	v.Home = &home
+	nextTask(t, r, v, nil, protocol.TaskHarvest)
+	finishGatherTree(t, r, &v, "one")
+	if _, err := r.Next(v, noWay); err == nil || !strings.Contains(err.Error(), "gather home return lacks native success: home return did not succeed: unreachable") {
+		t.Fatal(err)
+	}
+}
+
+// Gather's move to its work point finds no way; route memory knows one.
+func TestGatherWalksAKnownWayToItsWorkPoint(t *testing.T) {
+	r, v := gathering(t)
+	site := r.p.Site.Pos
+	from := protocol.Vec3{site[0] + 30.5, site[1], site[2] + 30.5}
+	corner := protocol.Vec3{from[0], site[1], site[2]}
+	mem, _ := walkedMemory(t, []protocol.Vec3{from, corner, site})
+	v.State.Pos, v.Routes = from, inWorld{mem, "test"}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if !r.Recover(*noWay) || r.Recover(Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonStopped}) {
+		t.Fatal("recovers the wrong approach failures")
+	}
+	o := nextTask(t, r, v, noWay, protocol.TaskMoveTo)
+	if to := moveTarget(t, o.Args); to == site || distance(to, from) > routeMaxLegForTest {
+		t.Fatalf("first leg = %v", to)
+	}
+	// Without a known way the run ends with the native reason.
+	r, v = gathering(t)
+	v.State.Pos = from
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if _, err := r.Next(v, noWay); err == nil || !strings.Contains(err.Error(), "gather approach did not succeed: unreachable") {
+		t.Fatal(err)
 	}
 }

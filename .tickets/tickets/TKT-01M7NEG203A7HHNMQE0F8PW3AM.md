@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T23:16:24Z
+updated_at: 2026-11-17T23:40:22Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -128,3 +128,7 @@ Left in step 3: the moves to a site or marker that collect, gather, marker food 
 Step 3, second part (branch t3/walker-sites): one helper, detour, holds the fallback (native move first; a walk over known ground once when it finds no way). It now covers marker cargo's return, collect's move to its site and back, marker food's returns and the day rest's bedside move. No walker user recovers a cancelled leg any more, which also fixes the census, travel and stow from earlier PRs. Not run live.
 
 Left: gather's own moves (step 3); go home, the corpse run, retreat (step 2); food goals and return home (step 4); home survey (step 5).
+
+**agent:claude-code/chests** at 2026-11-17T23:40:22Z
+
+Step 3 is done (branch t3/walker-gather): gather falls back to a known way for its walk home, its move to the work point and its return there. Its move toward a tree is left alone. docs/HANDOFF.md now lists what is done and what is left: go home, the corpse run and retreat (step 2), the food goals and return home (step 4), the home survey (step 5). Not run live.
