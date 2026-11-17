@@ -82,6 +82,8 @@ class CensusTest(unittest.TestCase):
     def test_gone_needs_every_request_to_have_been_in_range(self):
         self.assertIsNone(census.farthest([], [0, 0, 0]))
         self.assertEqual(census.farthest([[3, 0, 0], [50, 0, 0]], [0, 0, 0]), 50)
+        unread = census.farthest([[3, 0, 0], [float('inf')] * 3], [0, 0, 0])
+        self.assertFalse(census.is_gone({'status': 'rejected', 'reason': 'invalid_target x', 'bodyDistance': unread}))
 
     def test_an_opened_container_out_of_sight_is_not_ranked_as_probably_gone(self):
         remembered = [{'entity': 'r', 'kind': 'container', 'pos': [30, 0, 0], 'ageS': 14 * 86400, 'items': []}]

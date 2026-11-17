@@ -260,18 +260,29 @@ def next_step(outcome, tried_ids, ids, walked, stepped_back):
 
 
 def farthest(asked_from, pos):
-    """The greatest distance any request for this container may have been
-    made from: the body can have moved between requests, and "gone" needs
-    every one of them to have been in loading range."""
+    """The greatest distance a rejected request for this container was made
+    from: the body can move between requests, and "gone" needs every one of
+    them to have been in loading range. An unread position is infinitely far."""
     return max((math.dist(p, pos) for p in asked_from), default=None)
 
 
-def attempt(chest, scope, start, body):
+def where():
+    try:
+        return vm('panel', 'GET', '/api/status').get('pos')
+    except (SystemExit, subprocess.SubprocessError, ValueError):
+        return None
+
+
+def attempt(chest, scope, start):
     tried, walked, stepped_back, entity = [], [], False, chest['entity']
-    asked_from = [body] if body else []
+    asked_from = []
     while True:
         tried.append(entity)
         outcome = run_task('inspect_container', {'container': entity, 'scope': scope}, 75)
+        if (outcome.get('reason') or '').split(' ', 1)[0] == GONE:
+            # A rejection moves nothing, so the position read now is where the
+            # request was made from, whatever an earlier move achieved.
+            asked_from.append(where() or [math.inf] * 3)
         step = next_step(outcome, tried, chest['ids'], walked, stepped_back)
         if step is None:
             outcome.update(entity=entity, tried=tried, walked=walked, steppedBack=stepped_back,
@@ -281,11 +292,9 @@ def attempt(chest, scope, start, body):
             entity = step[1]
         elif step[0] == 'walk':
             walked.append(step[1])
-            asked_from.append(step[1])
             run_task('move_to', {'to': step[1], 'stopDistance': 0.4}, 60)
         else:
             stepped_back = True
-            asked_from.append(start)
             run_task('move_to', {'to': start, 'stopDistance': 1.0}, 60)
 
 
@@ -324,7 +333,7 @@ def main(argv=None):
     out = ROOT / '.checks' / 'census'
     out.mkdir(parents=True, exist_ok=True)
     path = out / (datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.json')
-    results, failures, stopped, body = [], 0, '', start
+    results, failures, stopped = [], 0, ''
 
     def save(after=None):
         # Written after every container: an SSH failure an hour in must not
@@ -335,7 +344,7 @@ def main(argv=None):
 
     try:
         for index, chest in enumerate(chests, 1):
-            outcome = attempt(chest, scope, start, body)
+            outcome = attempt(chest, scope, start)
             outcome.update(ids=chest['ids'], prefab=chest['prefab'], pos=chest['pos'],
                            openedBefore=chest['opened'])
             results.append(outcome)
@@ -350,7 +359,6 @@ def main(argv=None):
             if not is_gone(outcome):
                 failures = 0 if outcome['status'] == 'succeeded' else failures + 1
             now = vm('panel', 'GET', '/api/status')
-            body = now.get('pos') or body
             if now.get('phase') != 'in_world':
                 stopped = 'the bot left the world'
             elif now.get('hpMax') and now.get('hp', 0) < MIN_HP_FRACTION * now['hpMax']:
