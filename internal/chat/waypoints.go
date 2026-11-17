@@ -104,7 +104,10 @@ func (b *Brain) waypointCommand(text string, c *protocol.Chat, from origin, owne
 		// Over walked ground when the way is known: stairs and doorways an
 		// ordinary move to the place itself may not find.
 		if b.opts.Travel != nil {
-			if _, travelErr := b.opts.Travel(context.Background(), c.From.Name, name, old.Pos); travelErr == nil {
+			// Settled means the trip started, or a newer order arrived
+			// while it was starting and stands: no direct move either way.
+			var settled bool
+			if settled, err = b.opts.Travel(context.Background(), c.From.Name, name, old.Pos); settled {
 				break
 			}
 		}

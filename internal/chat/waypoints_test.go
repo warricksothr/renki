@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/warricksothr/renki/internal/home"
@@ -66,5 +68,47 @@ func TestPanelCannotMarkAnUnseenOwnersPosition(t *testing.T) {
 	b.Chat(c)
 	if len(b.opts.Places.Waypoints("one")) != 0 {
 		t.Fatal("invented speaker position")
+	}
+}
+
+// A known route is walked as a trip; the direct move is sent only when no
+// trip was started, and never over a newer order that replaced one.
+func TestGoToPrefersATripAndFallsBackToTheDirectMove(t *testing.T) {
+	b, f, _ := newBrain(nil)
+	store := home.Memory()
+	b.opts.Places = store
+	f.state = &protocol.State{Phase: protocol.PhaseInWorld, World: "one"}
+	b.Chat(line("Sothr", "Bjorn mark this as the mine"))
+	moves := func() int {
+		n := 0
+		for _, o := range f.sent() {
+			if _, ok := o.Args.(*protocol.MoveToArgs); ok {
+				n++
+			}
+		}
+		return n
+	}
+	var asked []string
+	settled, failure := true, error(nil)
+	b.opts.Travel = func(_ context.Context, by, place string, to protocol.Vec3) (bool, error) {
+		asked = append(asked, by+" "+place)
+		if to != (protocol.Vec3{10, 0, 10}) {
+			t.Fatalf("to = %v", to)
+		}
+		return settled, failure
+	}
+	b.Chat(line("Sothr", "Bjorn go to the mine"))
+	if len(asked) != 1 || asked[0] != "Sothr mine" || moves() != 0 {
+		t.Fatal(asked, moves())
+	}
+	failure = errors.New("a newer order replaced the trip")
+	b.Chat(line("Sothr", "Bjorn go to the mine"))
+	if moves() != 0 {
+		t.Fatal("sent a move over a newer order")
+	}
+	settled, failure = false, nil
+	b.Chat(line("Sothr", "Bjorn go to the mine"))
+	if moves() != 1 {
+		t.Fatalf("direct moves = %d", moves())
 	}
 }

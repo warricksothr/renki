@@ -158,8 +158,9 @@ var ErrNoKnownRoute = errors.New("no known route")
 
 // StartTravel starts a trip for an owner over known ground. It returns
 // ErrNoKnownRoute when there is no plan of at least two legs, and another
-// error when the body is busy; either way nothing was started and the caller
-// may send its direct move instead.
+// error when the body is busy; nothing was started and the caller may send
+// its direct move instead. ErrReplaced is the exception: a newer order came
+// in while the trip was starting, and nothing may be sent over it.
 func (e *Engine) StartTravel(ctx context.Context, by string, request TravelParams) (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

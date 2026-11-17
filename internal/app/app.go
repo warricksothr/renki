@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"slices"
@@ -108,12 +109,12 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	var resupplyFood func(context.Context, string) (string, error)
 	var baseCommand func(context.Context, string, string, *protocol.Vec3) (string, bool, error)
 	var searchChests func(context.Context, string, chat.ChestSearchRequest) (string, error)
-	var travel func(context.Context, string, string, protocol.Vec3) (string, error)
+	var travel func(context.Context, string, string, protocol.Vec3) (bool, error)
 	brain := chat.New(chat.Options{
 		SearchChests: func(ctx context.Context, by string, p chat.ChestSearchRequest) (string, error) {
 			return searchChests(ctx, by, p)
 		},
-		Travel: func(ctx context.Context, by, place string, to protocol.Vec3) (string, error) {
+		Travel: func(ctx context.Context, by, place string, to protocol.Vec3) (bool, error) {
 			return travel(ctx, by, place, to)
 		},
 		BaseCommand: func(ctx context.Context, by, text string, pos *protocol.Vec3) (string, bool, error) {
@@ -209,8 +210,12 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		}
 		return a.Behaviours.StartChestSearch(ctx, by, behaviour.SearchChestsParams{Item: p.Item, Radius: p.Radius, Chests: p.Chests})
 	}
-	travel = func(ctx context.Context, by, place string, to protocol.Vec3) (string, error) {
-		return a.Behaviours.StartTravel(ctx, by, behaviour.TravelParams{To: to, Place: place})
+	travel = func(ctx context.Context, by, place string, to protocol.Vec3) (bool, error) {
+		_, err := a.Behaviours.StartTravel(ctx, by, behaviour.TravelParams{To: to, Place: place})
+		if errors.Is(err, behaviour.ErrReplaced) {
+			return true, err
+		}
+		return err == nil, nil
 	}
 	baseCommand = a.baseChat
 	a.escortSupply = make(chan escortSupplyRequest, 8)

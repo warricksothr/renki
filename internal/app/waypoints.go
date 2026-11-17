@@ -108,7 +108,7 @@ func (a *App) WaypointHandler() http.Handler {
 			// Over walked ground when the way is known; otherwise the direct
 			// move. Dispatch resolves the latest stored coordinate and checks
 			// the world again.
-			if _, err = a.Behaviours.StartTravel(r.Context(), "panel", behaviour.TravelParams{World: command.World, To: place.Pos, Place: place.Name}); err != nil {
+			if _, err = a.Behaviours.StartTravel(r.Context(), "panel", behaviour.TravelParams{World: command.World, To: place.Pos, Place: place.Name}); err != nil && !errors.Is(err, behaviour.ErrReplaced) {
 				_, err = a.Session.Dispatch(r.Context(), session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Entity: place.Name}}, Origin: "panel waypoint", TimeoutS: 90})
 			}
 			if err == nil {

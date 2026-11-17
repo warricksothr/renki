@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T21:55:10Z
+updated_at: 2026-11-17T22:27:01Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -110,3 +110,9 @@ Live on 2026-11-17: a census started on home's upper floor crossed to the wareho
 Found on the way: a training dummy near home counted as a threat (it has an enemy faction and a MonsterAI). Built pieces are now never hostile, in perception and in native route checks. A timed-out inspection no longer ends the census.
 
 Not done: the home survey does not use the walker; it moves with dry receipted moves in internal/goal/survey.go and needs its own change. The home to warehouse and back check as a plain owner move was not run; the census crossing covers the same ground one way. 20 containers stayed unchecked in the last run: four inspections timed out at 45 s each while a Greydwarf Elite stood about 37 m off, and the 600 s budget ended.
+
+**agent:claude-code/chests** at 2026-11-17T22:27:01Z
+
+The walker is generic (PR to follow from t3/walker-generic): it plans through a Navigator, makes moves in a MoveStyle, and has a stateless form, NextLeg, for runs that keep their own state. A travel behaviour walks a plan, and chat's go to and the panel's go button use it when route memory has a plan of two legs or more. Live on 2026-11-17: the panel sent Tas from the warehouse to "new home rest 3" on home's upper floor, "route 13 legs 72 m; arrived".
+
+Agreed with the owner on 2026-11-17, in this order: (1) generic walker, done; (2) shared travel run for chat, panel and go home: chat and panel done, go home, the corpse run and retreat not; (3) base-bound behaviours, stow and marker cargo first; (4) food goals and return home; (5) home survey last. Open question for step 3: whether a failed dry move falls back to a planned ordinary walk, or planned walks replace dry moves. My suggestion was the fallback.
