@@ -51,6 +51,11 @@ def evaluate(local, vm):
         out.append(check(FAIL, 'ssh', (vm or {}).get('error') or 'not reached',
                          'docs/VM.md, "When something is off": sshd, firewall rule, authorized key'))
         return out
+    if vm.get('script_error'):
+        out.append(check(OK, 'ssh', 'connected'))
+        out.append(check(FAIL, 'doctor', vm['script_error'],
+                         'just vm shell, then run the checks by hand; report the gap in doctor.ps1'))
+        return out
     out.append(check(OK, 'ssh', 'connected; VM up since ' + (vm.get('boot') or 'unknown')))
 
     if vm.get('desktop'):
@@ -245,14 +250,19 @@ def gather_vm(target, vm_dir):
                 return json.loads(line[len(MARKER):])
             except ValueError:
                 break
-    return {'error': f'ssh exit {done.returncode}: {ssh_reason(done.stderr + done.stdout)}'}
+    # ssh itself fails with 255; any other exit is the script's own.
+    if done.returncode != 255:
+        return {'script_error': f'doctor.ps1 ran on the VM but returned no facts (exit {done.returncode})'}
+    return {'error': f'ssh exit 255: {ssh_reason(done.stderr + done.stdout)}'}
 
 
 def lease_line(target, vm_dir):
     done = subprocess.run([sys.executable, '-B', str(Path(__file__).with_name('lease.py')),
                            '--target', target, '--dir', vm_dir, 'status'],
                           capture_output=True, text=True, stdin=subprocess.DEVNULL)
-    lines = (done.stdout.strip() or done.stderr.strip()).splitlines()
+    if done.returncode != 0:
+        return 'lease state unknown: ' + ssh_reason(done.stderr + done.stdout)
+    lines = done.stdout.strip().splitlines()
     return lines[-1] if lines else ''
 
 
@@ -267,7 +277,7 @@ def main(argv=None):
     vm = None
     if args.target:
         vm = gather_vm(args.target, args.dir)
-        if not vm.get('error'):
+        if not vm.get('error') and not vm.get('script_error'):
             local['build'] = build_facts((vm.get('deployment') or {}).get('source'))
             local['lease'] = lease_line(args.target, args.dir)
     checks = evaluate(local, vm)

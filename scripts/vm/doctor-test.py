@@ -64,6 +64,12 @@ class DoctorTest(unittest.TestCase):
         self.assertEqual([c['name'] for c in checks], ['worktree', 'ssh'])
         self.assertTrue(doctor.failed(checks))
 
+    def test_script_failure_is_not_blamed_on_ssh(self):
+        checks = doctor.evaluate(copy.deepcopy(LOCAL), {'script_error': 'doctor.ps1 ran on the VM but returned no facts (exit 1)'})
+        by = {c['name']: c for c in checks}
+        self.assertEqual((by['ssh']['level'], by['doctor']['level']), (doctor.OK, doctor.FAIL))
+        self.assertNotIn('sshd', by['doctor']['fix'])
+
     def test_logged_out_tailscale_is_the_one_panel_finding(self):
         # The state of 2026-11-17: the controller ran, bound to an address
         # that had gone, and every panel request timed out.

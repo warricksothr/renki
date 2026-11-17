@@ -44,7 +44,7 @@ if ($settings -and $settings.ValheimExe) {
     $game.bepinex = Test-Path (Join-Path $root 'BepInEx\core')
     $game.plugin = (Test-Path (Join-Path $root 'BepInEx\plugins\renki\Renki.Plugin.dll')) -and
         (Test-Path (Join-Path $root 'BepInEx\plugins\renki\Renki.Core.dll'))
-    $drive = (Split-Path $settings.ValheimExe -Qualifier).TrimEnd(':')
+    $drive = Try-Get { (Split-Path $settings.ValheimExe -Qualifier).TrimEnd(':') }
     if ($drive -and $drives -notcontains $drive) { $drives += $drive }
 }
 $facts.game = $game
