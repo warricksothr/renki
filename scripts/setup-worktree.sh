@@ -9,6 +9,10 @@ set -euo pipefail
 
 root="$1"
 mode="${2:-copy}"
+if [ "$#" -gt 2 ] || { [ "$#" -eq 2 ] && [ "$mode" != --check ]; }; then
+    echo "usage: just setup-worktree [--check]" >&2
+    exit 2
+fi
 files=(vm.local plugin/game.local.props)
 
 mapfile -t trees < <(git -C "$root" worktree list --porcelain | sed -n 's/^worktree //p')

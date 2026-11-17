@@ -24,6 +24,10 @@ out="$(bash "$script" "$tmp/fresh" --check)"
 [ ! -e "$tmp/fresh/vm.local" ] || fail "--check copied a file"
 grep -q 'target\|props$' <<<"$out" && fail "printed file contents"
 
+# Anything but --check is refused rather than taken as a request to copy.
+if bash "$script" "$tmp/fresh" --dry-run >/dev/null 2>&1; then fail "accepted an unknown argument"; fi
+[ ! -e "$tmp/fresh/vm.local" ] || fail "an unknown argument copied a file"
+
 # The newest sibling copy wins; an existing file is kept.
 echo mine > "$tmp/fresh/vm.local"
 bash "$script" "$tmp/fresh" >/dev/null

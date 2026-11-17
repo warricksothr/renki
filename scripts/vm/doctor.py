@@ -22,6 +22,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 MARKER = 'RENKI-DOCTOR '
 LOCAL_FILES = ('vm.local', 'plugin/game.local.props')
+# What `vm up` copies to the VM before starting (vm.just, panel-start).
+START_SCRIPTS = ('scripts/vm/start-bot.ps1', 'scripts/vm/start-panel.ps1')
 LOW_DISK_GB = 10
 OK, INFO, WARN, FAIL = 'ok', 'info', 'warn', 'fail'
 
@@ -33,8 +35,8 @@ def check(level, name, detail, fix=''):
 def evaluate(local, vm, starting=False):
     """Turn gathered facts into checks. `vm` is None when SSH was not tried,
     or {'error': text} when it failed. `starting` is `vm up` asking: it copies
-    this worktree's start scripts to the VM, so a build from another branch
-    blocks it."""
+    this worktree's start scripts to the VM, so it is blocked when they differ
+    from the installed build's or that build cannot be compared."""
     out = []
     missing = [name for name in LOCAL_FILES if not local['files'].get(name)]
     if not local.get('target'):
@@ -152,18 +154,17 @@ def evaluate(local, vm, starting=False):
                              f'installed {name}; this checkout does not have that commit, so it is not in this branch',
                              'git fetch origin'))
         elif not build['in_head']:
-            if starting:
-                out.append(check(FAIL, 'build', f'installed {name} is not in this branch, and up would run it '
-                                 "with this branch's start scripts",
-                                 'merge or rebase onto the installed branch, or run up from a worktree that has it'))
-            else:
-                out.append(check(WARN, 'build', f'installed {name} is not in this branch, so a deploy from here is '
-                                 'refused', 'merge or rebase onto the installed branch before deploying or starting'))
+            out.append(check(WARN, 'build', f'installed {name} is not in this branch, so a deploy from here is refused',
+                             'merge or rebase onto the installed branch before deploying'))
         elif build.get('ahead'):
             out.append(check(INFO, 'build', f"installed {name}; this branch is {build['ahead']} commit(s) ahead",
                              'just check vm deploy, when you want them on the VM'))
         else:
             out.append(check(OK, 'build', f'installed {name} is this commit'))
+        if starting and build.get('scripts_differ'):
+            out.append(check(FAIL, 'start', 'up copies start scripts that differ from the installed build: ' +
+                             ', '.join(build['scripts_differ']),
+                             'deploy this branch first (just check vm deploy), or run up from the installed commit'))
         if build.get('in_main') is False:
             out.append(check(WARN, 'main', 'origin/main does not contain the installed build',
                              'merge its pull request, so other branches can deploy'))
@@ -223,12 +224,14 @@ def build_facts(source):
     """Where the installed commit sits relative to HEAD and origin/main.
     None means this checkout does not have the commit at all."""
     if not source or git('cat-file', '-e', source + '^{commit}').returncode != 0:
-        return {'in_head': None, 'in_main': None, 'ahead': 0}
+        return {'in_head': None, 'in_main': None, 'ahead': 0, 'scripts_differ': []}
     in_head = git('merge-base', '--is-ancestor', source, 'HEAD').returncode == 0
     main = git('merge-base', '--is-ancestor', source, 'origin/main')
     count = git('rev-list', '--count', source + '..HEAD').stdout.strip() if in_head else '0'
+    # Compared with the working tree, because that is what up copies.
+    differ = git('diff', '--name-only', source, '--', *START_SCRIPTS).stdout.split()
     return {'in_head': in_head, 'in_main': main.returncode == 0 if main.returncode in (0, 1) else None,
-            'ahead': int(count or 0)}
+            'ahead': int(count or 0), 'scripts_differ': differ}
 
 
 SSH_REASONS = (('timed out', 'connection timed out'), ('refused', 'connection refused'),

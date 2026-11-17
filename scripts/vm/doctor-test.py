@@ -108,16 +108,25 @@ class DoctorTest(unittest.TestCase):
         self.assertIn('setup-remote', by['tasks']['fix'])
         self.assertEqual(by['game']['fix'], 'just vm install')
 
-    def test_build_outside_this_branch_warns_but_blocks_up(self):
-        # `vm up` copies this worktree's start scripts beside the installed build.
-        local = dict(LOCAL, build={'in_head': False, 'in_main': False, 'ahead': 0})
+    def test_build_outside_this_branch_warns_about_deploys(self):
+        local = dict(LOCAL, build={'in_head': False, 'in_main': False, 'ahead': 0, 'scripts_differ': []})
         by, checks = run(local)
         self.assertEqual(by['build']['level'], doctor.WARN)
         self.assertIn('refused', by['build']['detail'])
         self.assertEqual(by['main']['level'], doctor.WARN)
         self.assertFalse(doctor.failed(checks))
-        starting = doctor.evaluate(copy.deepcopy(local), copy.deepcopy(VM), starting=True)
-        self.assertTrue(doctor.failed(starting))
+        # Its start scripts match, so up may start it from here.
+        self.assertFalse(doctor.failed(doctor.evaluate(copy.deepcopy(local), copy.deepcopy(VM), starting=True)))
+
+    def test_up_is_blocked_only_when_the_copied_start_scripts_differ(self):
+        # `vm up` copies this worktree's start scripts beside the installed build.
+        local = dict(LOCAL, build={'in_head': True, 'in_main': True, 'ahead': 2,
+                                   'scripts_differ': ['scripts/vm/start-bot.ps1']})
+        self.assertFalse(doctor.failed(doctor.evaluate(copy.deepcopy(local), copy.deepcopy(VM))))
+        checks = doctor.evaluate(copy.deepcopy(local), copy.deepcopy(VM), starting=True)
+        by = {c['name']: c for c in checks}
+        self.assertEqual(by['start']['level'], doctor.FAIL)
+        self.assertIn('start-bot.ps1', by['start']['detail'])
         self.assertFalse(doctor.failed(doctor.evaluate(copy.deepcopy(LOCAL), copy.deepcopy(VM), starting=True)))
 
     def test_portless_panel_address_points_at_setup_not_a_restart(self):
