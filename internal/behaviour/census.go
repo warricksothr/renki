@@ -272,6 +272,11 @@ func (r *censusRun) inspect(v View) *session.Order {
 		Scope: &protocol.MoveScope{Center: b.center, Radius: r.p.Radius, TravelM: math.Min(500, r.p.TravelM-b.travel), DurationS: seconds}}, TimeoutS: seconds}
 }
 
+// timeFor reports whether the run has this many seconds left.
+func (r *censusRun) timeFor(v View, seconds float64) bool {
+	return r.p.DurationS-v.Now.Sub(r.base.began).Seconds() >= seconds
+}
+
 func (r *censusRun) spent(v View) bool {
 	b := &r.base
 	return r.p.DurationS-v.Now.Sub(b.began).Seconds() < 1 || r.p.TravelM-b.travel < 1
@@ -308,13 +313,13 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 			// larger of its charge and its movement, not their sum.
 			r.walkMoved += b.travel - (r.walkBase + math.Max(r.walkCharge, r.walkMoved))
 			b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
-			// No further leg without the time for one, or once the budget
-			// is spent.
-			if r.spent(v) || r.p.DurationS-v.Now.Sub(b.began).Seconds() < routeLegTimeout {
-				r.walk.abandon("budget ended")
-			}
+			// The finished leg is judged first. No further leg starts
+			// without the time for one, or once the budget is spent.
 			if next := r.walk.step(v, result); next != nil {
-				return next, nil
+				if !r.spent(v) && r.timeFor(v, routeLegTimeout) {
+					return next, nil
+				}
+				r.walk.abandon("budget ended")
 			}
 			// Whatever the walk achieved, ask again from where the body
 			// now stands: the inspection re-measures reach itself.
@@ -397,7 +402,7 @@ func (r *censusRun) settle(v View, result *Result) error {
 	case result.Reason == protocol.ReasonUnreachable && measured || result.Reason == protocol.ReasonInvalidTarget:
 		// Unreachable from here, or too far away for the game to have it
 		// loaded: walk nearer and ask again.
-		if !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v) {
+		if !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v) && r.timeFor(v, routeLegTimeout) {
 			if to, stop, ok := r.walkTarget(v.State.Pos, receipt.Standing); ok {
 				// Over walked ground when route memory knows a way, and
 				// otherwise the one direct move.
@@ -411,11 +416,13 @@ func (r *censusRun) settle(v View, result *Result) error {
 					r.walkBase, r.walkCharge, r.walkMoved = b.travel, charge, 0
 					b.travel += charge
 					walk.afford = func(lengthM float64) bool {
-						more := censusWalkCharge * lengthM
-						if r.walkBase+r.walkCharge+more >= r.p.TravelM {
+						// On top of what the walk has cost so far: the
+						// new way starts from where the body now stands.
+						charge := math.Max(r.walkCharge, r.walkMoved) + censusWalkCharge*lengthM
+						if r.walkBase+charge >= r.p.TravelM {
 							return false
 						}
-						r.walkCharge += more
+						r.walkCharge = charge
 						b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
 						return true
 					}
