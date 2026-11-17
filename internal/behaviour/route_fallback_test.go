@@ -209,6 +209,10 @@ func TestDetourWalksAKnownWayOrKeepsTheNativeReason(t *testing.T) {
 	if !d.recovers(Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}) {
 		t.Fatal("a failed leg would end the run")
 	}
+	// A cancelled leg is a player's order or a dropped session: not recovered.
+	if d.recovers(stopped) || d.recovers(Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonSuperseded}) {
+		t.Fatal("walks on over a cancelled leg")
+	}
 	v.State.Pos = corner
 	if o, _, err = d.next(v, "test", b, 1, success("leg"), "return"); err != nil || o == nil {
 		t.Fatal(o, err)
@@ -273,3 +277,44 @@ func TestCollectWalksAKnownWayToItsSite(t *testing.T) {
 }
 
 const routeMaxLegForTest = 10.5
+
+func TestNoWalkerUserRecoversACancelledLeg(t *testing.T) {
+	a, corner, chest := protocol.Vec3{.5, 0, .5}, protocol.Vec3{8.5, 0, .5}, protocol.Vec3{8.5, 0, 8.5}
+	mem, _ := walkedMemory(t, []protocol.Vec3{a, corner, chest})
+	cancelled := Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonSuperseded}
+	timeout := Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}
+
+	v := haulView()
+	v.State.Pos, v.Routes = a, mem
+	v.Containers = []*protocol.Container{{Entity: "a", Pos: chest}}
+	stow := &stowRun{p: stowParams()}
+	nextTask(t, stow, v, nil, protocol.TaskMoveTo)
+	nextTask(t, stow, v, noWay, protocol.TaskMoveTo)
+	if !stow.Recover(timeout) || stow.Recover(cancelled) {
+		t.Fatal("stow")
+	}
+
+	sv := searchView()
+	sv.State.Pos = a
+	trip := newTravel(t, mem, TravelParams{World: "test", To: chest})
+	if _, err := trip.Next(sv, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !trip.Recover(timeout) || trip.Recover(cancelled) {
+		t.Fatal("travel")
+	}
+
+	census := newCensus(t, CensusParams{World: "test", Radius: 25})
+	census.routes = mem
+	sv.Perception.Structures = []protocol.PerceivedStructure{{ID: "c", Kind: protocol.StructureContainer, Pos: protocol.Vec3{9.5, 0, 9.5}}}
+	if _, err := census.Next(sv, nil); err != nil {
+		t.Fatal(err)
+	}
+	_ = census.Dispatched("t1")
+	if _, err := census.Next(sv, &Result{TaskID: "t1", Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable, Detail: `inspection:{"travel":0}`}); err != nil {
+		t.Fatal(err)
+	}
+	if !census.Recover(timeout) || census.Recover(cancelled) {
+		t.Fatal("census")
+	}
+}

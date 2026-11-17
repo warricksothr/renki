@@ -65,7 +65,7 @@ func TestTravelSaysWhyItDidNotArriveAndStopsAtItsDeadline(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = r.Dispatched("t1")
-	if !r.Recover(Result{}) {
+	if !r.Recover(Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable}) {
 		t.Fatal("a failed leg would end the trip")
 	}
 	// The leg failed and the time is up: no second plan is walked.

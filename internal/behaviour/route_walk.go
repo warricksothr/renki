@@ -158,6 +158,14 @@ func groundFailure(result *Result) bool {
 	return result.Status == protocol.StatusSucceeded
 }
 
+// answers reports whether the walk takes a leg's result as its own to plan
+// round: it is under way and the leg failed or was refused. A cancelled leg
+// is never the walk's. A player's order or a dropped session ended it, and
+// another move would walk over that.
+func (w *routeWalk) answers(result Result) bool {
+	return w != nil && !w.done && (result.Status == protocol.StatusFailed || result.Status == protocol.StatusRejected)
+}
+
 // abandon ends the walk where the body stands, with the reason in its story.
 func (w *routeWalk) abandon(why string) {
 	if !w.done {
@@ -306,7 +314,7 @@ func foundNoWay(reason string) bool {
 // that found no way may have a walked one.
 func (d *detour) recovers(result Result) bool {
 	if d.walk != nil {
-		return !d.walk.done
+		return d.walk.answers(result)
 	}
 	return result.Status == protocol.StatusFailed && foundNoWay(result.Reason)
 }
