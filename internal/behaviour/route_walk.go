@@ -50,6 +50,32 @@ type routeWalk struct {
 	arrived bool
 	// notes is the walk's story, one short entry per plan or failure.
 	notes []string
+	// afford, when set, is asked before a walk planned again is taken up:
+	// the run charges the new way's length, or refuses it.
+	afford func(lengthM float64) bool
+}
+
+// groundFailure reports a result that says something about the ground: the
+// move found no way, got stuck, or reported success short of the leg's end or
+// on another floor. A timeout, a refusal or a stop says nothing lasting, and
+// marking a link for one would close good ground after a passing threat.
+func groundFailure(result *Result) bool {
+	if result == nil {
+		return false
+	}
+	switch result.Reason {
+	case protocol.ReasonUnreachable, protocol.ReasonStuck, protocol.ReasonBlocked, protocol.ReasonDeepWater:
+		return true
+	}
+	return result.Status == protocol.StatusSucceeded
+}
+
+// abandon ends the walk where the body stands, with the reason in its story.
+func (w *routeWalk) abandon(why string) {
+	if !w.done {
+		w.done = true
+		w.notes = append(w.notes, why)
+	}
 }
 
 func newRouteWalk(mem RouteMemory, world string, from, to protocol.Vec3, stop float64) *routeWalk {
@@ -132,7 +158,7 @@ func (w *routeWalk) step(v View, result *Result) *session.Order {
 		return nil
 	}
 	note := fmt.Sprintf("leg %d of %d %s", w.leg+1, len(w.plan.Legs), outcomeOf(result))
-	if from, to, ok := w.plan.FailedLink(w.leg, body); ok && w.mem.Failed != nil {
+	if from, to, ok := w.plan.FailedLink(w.leg, body); ok && w.mem.Failed != nil && groundFailure(result) {
 		if known, err := w.mem.Failed(w.world, from, to); err == nil && known {
 			note += ", link marked failed"
 		}
@@ -145,6 +171,10 @@ func (w *routeWalk) step(v View, result *Result) *session.Order {
 	w.replans++
 	if !w.replan(body) {
 		w.done = true
+		return nil
+	}
+	if w.afford != nil && !w.afford(w.plan.LengthM) {
+		w.abandon("no budget for the new way")
 		return nil
 	}
 	return w.order()

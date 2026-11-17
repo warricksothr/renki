@@ -100,8 +100,10 @@ one ordinary move per leg, checked on arrival (`internal/behaviour/route_walk.go
 - A leg has arrived when its move succeeded and the body stands within a
   metre of the leg's stop distance and within a metre of its height. A move
   that reports success from the floor below has not arrived.
-- A leg that fails marks the link out of the walked cell nearest where the
-  body stopped as failed, in that direction. The way is then planned again
+- A leg that fails for a reason about the ground (`unreachable`, `stuck`,
+  `blocked`, `deep_water`, or a success that stopped short or on another
+  floor) marks the link out of the walked cell nearest where the body stopped
+  as failed, in that direction. A timeout, a refusal or a stop marks nothing. The way is then planned again
   from where the body stands, at most twice. `just vm routes` counts failed
   links; a plan says how many its search skipped.
 - With no plan, the run makes the one direct move it would have made without

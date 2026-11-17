@@ -55,6 +55,9 @@ const (
 	// An ordinary move returns no travel receipt and exists to go round an
 	// obstacle, so each walk is charged this multiple of its straight line.
 	censusWalkCharge = 2
+	// An inspection that timed out left no receipt. It is charged this many
+	// metres for each second it was given: the bounded walker's pace.
+	censusTimeoutMS = 2
 )
 
 func (p *CensusParams) defaults() {
@@ -142,9 +145,14 @@ type censusRun struct {
 	// walked holds the positions walked to for the pending container.
 	walked   []protocol.Vec3
 	failures int
-	// walkCharged is the travel total once the current walk was charged.
-	walkCharged float64
-	reported    bool
+	// A walk is charged when ordered, and again for each way planned anew.
+	// walkBase is the travel total before it, walkCharge what it has been
+	// charged and walkMoved what the body has been seen to move during it.
+	// The walk costs the larger of the two.
+	walkBase, walkCharge, walkMoved float64
+	// inspectS is the time the pending inspection was given.
+	inspectS float64
+	reported bool
 }
 
 // Recover keeps the run going after any failed walk to a standing spot: the
@@ -259,6 +267,7 @@ func (r *censusRun) inspect(v View) *session.Order {
 		}
 	}
 	seconds := math.Min(45, r.p.DurationS-v.Now.Sub(b.began).Seconds())
+	r.inspectS = seconds
 	return &session.Order{Task: protocol.TaskInspectContainer, Args: &protocol.InspectContainerArgs{Container: r.pending.id,
 		Scope: &protocol.MoveScope{Center: b.center, Radius: r.p.Radius, TravelM: math.Min(500, r.p.TravelM-b.travel), DurationS: seconds}}, TimeoutS: seconds}
 }
@@ -295,16 +304,23 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 			return nil, errors.New("missing matching census outcome")
 		}
 		if r.walking {
+			// Check just added what the body moved. The walk costs the
+			// larger of its charge and its movement, not their sum.
+			r.walkMoved += b.travel - (r.walkBase + math.Max(r.walkCharge, r.walkMoved))
+			b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
+			// No further leg without the time for one, or once the budget
+			// is spent.
+			if r.spent(v) || r.p.DurationS-v.Now.Sub(b.began).Seconds() < routeLegTimeout {
+				r.walk.abandon("budget ended")
+			}
 			if next := r.walk.step(v, result); next != nil {
 				return next, nil
 			}
 			// Whatever the walk achieved, ask again from where the body
-			// now stands: the inspection re-measures reach itself. The
-			// walk was charged in full when ordered, so the displacement
-			// Check just added is not counted a second time.
+			// now stands: the inspection re-measures reach itself.
 			r.walking = false
 			r.stories = append(r.stories, r.walk.story())
-			b.travel = r.walkCharged
+			b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
 			if r.spent(v) {
 				r.record("refused", "budget ended before a second look", 0)
 			} else {
@@ -351,13 +367,16 @@ func (r *censusRun) settle(v View, result *Result) error {
 	receipt, measured := parseInspection(result.Detail)
 	if measured {
 		b.travel = math.Max(b.travel, b.legStartTravel+*receipt.Travel)
-	} else if result.Status != protocol.StatusRejected && result.Reason != protocol.ReasonTimeout {
+	} else if result.Reason == protocol.ReasonTimeout {
+		// A timeout ends the task before a receipt is written, most often
+		// while every approach is closed by a threat's exclusion area. One
+		// such container should not end the census, but the budget must stay
+		// an upper bound: Check saw only where the body ended up, so the
+		// inspection is charged as if it had walked its whole time.
+		b.travel = math.Max(b.travel, b.legStartTravel+censusTimeoutMS*r.inspectS)
+	} else if result.Status != protocol.StatusRejected {
 		// As in search_chests: without native travel accounting the budget
-		// cannot be trusted, so nothing further is asked. A timeout is the
-		// exception. It ends the task before a receipt is written, most often
-		// while every approach is closed by a threat's exclusion area, and
-		// what the body moved meanwhile was counted from its position by
-		// Check. One container that timed out should not end the census.
+		// cannot be trusted, so nothing further is asked.
 		b.stop = true
 	}
 	switch {
@@ -388,9 +407,18 @@ func (r *censusRun) settle(v View, result *Result) error {
 					r.walked = append(r.walked, to)
 					r.walk, r.walking = walk, true
 					// Charged now, in full, whether or not the walk
-					// arrives or is planned again.
+					// arrives. A way planned again is charged when taken.
+					r.walkBase, r.walkCharge, r.walkMoved = b.travel, charge, 0
 					b.travel += charge
-					r.walkCharged = b.travel
+					walk.afford = func(lengthM float64) bool {
+						more := censusWalkCharge * lengthM
+						if r.walkBase+r.walkCharge+more >= r.p.TravelM {
+							return false
+						}
+						r.walkCharge += more
+						b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
+						return true
+					}
 					return nil
 				}
 			}

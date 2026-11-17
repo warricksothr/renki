@@ -179,3 +179,36 @@ func TestCensusWalksOverRouteMemoryToAFarContainer(t *testing.T) {
 		t.Fatal(r.Summary())
 	}
 }
+
+func TestRouteWalkMarksNothingForATimeoutAndAsksBeforeANewWay(t *testing.T) {
+	a, b := protocol.Vec3{.5, 30, .5}, protocol.Vec3{.5, 30, 8.5}
+	mem, store := walkedMemory(t, []protocol.Vec3{a, b})
+	v := searchView()
+	v.State.Pos = a
+	w := newRouteWalk(mem, "test", a, b, .4)
+	asked := 0
+	w.afford = func(float64) bool { asked++; return false }
+	w.first()
+	if o := w.step(v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}); o != nil || asked != 1 {
+		t.Fatalf("order = %+v, asked = %d", o, asked)
+	}
+	if stats := home.SummariseRoutes(store.Routes("test")); stats.Failed != 0 {
+		t.Fatalf("a timeout marked %d links", stats.Failed)
+	}
+	if !strings.Contains(w.story(), "no budget for the new way; did not arrive") {
+		t.Fatal(w.story())
+	}
+}
+
+func TestCensusChargesATimedOutInspectionItsWholeTime(t *testing.T) {
+	v := searchView()
+	r := newCensus(t, CensusParams{World: "test", Radius: 25})
+	_, _ = r.Next(v, nil)
+	_ = r.Dispatched("t1")
+	if _, err := r.Next(v, &Result{TaskID: "t1", Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}); err != nil {
+		t.Fatal(err)
+	}
+	if r.base.travel != censusTimeoutMS*45 {
+		t.Fatalf("travel = %v", r.base.travel)
+	}
+}
