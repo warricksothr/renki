@@ -809,6 +809,10 @@ so each walk is charged to the travel budget when it is ordered, at twice the
 longer of its straight line and its planned length. A spot more than 15 m
 away, outside the radius or beyond the remaining budget is not walked to. The
 walk itself is not confined to the radius; each move has 30 s. Six refusals in a row end the run; gone containers do not count.
+An inspection that ends without its travel receipt ends the run, since the
+budget can no longer be trusted. A timeout is the exception: it refuses that
+container and the run goes on, with the body's movement counted from its
+position.
 
 The run says one line in chat and its status keeps the counts, the gone ids,
 each refusal and, under `Walks:`, how each walk went. `just vm chest-census` starts it and prints that report with

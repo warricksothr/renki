@@ -351,9 +351,13 @@ func (r *censusRun) settle(v View, result *Result) error {
 	receipt, measured := parseInspection(result.Detail)
 	if measured {
 		b.travel = math.Max(b.travel, b.legStartTravel+*receipt.Travel)
-	} else if result.Status != protocol.StatusRejected {
+	} else if result.Status != protocol.StatusRejected && result.Reason != protocol.ReasonTimeout {
 		// As in search_chests: without native travel accounting the budget
-		// cannot be trusted, so nothing further is asked.
+		// cannot be trusted, so nothing further is asked. A timeout is the
+		// exception. It ends the task before a receipt is written, most often
+		// while every approach is closed by a threat's exclusion area, and
+		// what the body moved meanwhile was counted from its position by
+		// Check. One container that timed out should not end the census.
 		b.stop = true
 	}
 	switch {

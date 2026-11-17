@@ -328,7 +328,16 @@ func TestCensusStopsWhenAnInspectionLacksItsTravelReceipt(t *testing.T) {
 	r := newCensus(t, CensusParams{World: "test"})
 	_, _ = r.Next(v, nil)
 	_ = r.Dispatched("t1")
+	// A timeout writes no receipt; it refuses that container and goes on.
 	o, err := r.Next(v, &Result{TaskID: "t1", Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout})
+	if err != nil || o.Task != protocol.TaskInspectContainer || strings.Contains(r.Summary(), "receipt missing") {
+		t.Fatal(o, err, r.Summary())
+	}
+	if got := r.Entries(); len(got) != 1 || got[0].Outcome != "refused" || got[0].Reason != protocol.ReasonTimeout {
+		t.Fatalf("entries = %+v", got)
+	}
+	_ = r.Dispatched("t2")
+	o, err = r.Next(v, &Result{TaskID: "t2", Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable})
 	if err != nil || o.Task != protocol.TaskSay || !strings.Contains(r.Summary(), "receipt missing") {
 		t.Fatal(o, err, r.Summary())
 	}
