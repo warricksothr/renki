@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T19:31:25Z
+updated_at: 2026-11-17T19:48:01Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -69,7 +69,7 @@ Changing the bounded walker's search, or centring on stairs and doorways: TKT-01
 
 ## Acceptance criteria
 
-- [ ] Completed walks become per-world links with height, persisted across restarts
+- [x] Completed walks become per-world links with height, persisted across restarts
 - [ ] A target on another floor or in another building is reached by planned legs over proven links
 - [ ] A failed link is avoided until it is walked again
 - [ ] Containers and stations are grouped by building and floor
@@ -90,3 +90,7 @@ Unattended runs may use it (owner decision, 2026-11-17). Native threat, water, f
 **agent:claude-code/chests** at 2026-11-17T19:31:00Z
 
 Owner decisions, 2026-11-17: Tas may use ordinary multi-leg moves on runs he starts himself, and may prefer them to the bursty bounded movement. Route memory is the top priority and blocks other work. Its debug information must be part of the regular process, so an agent can read it and guide the bot. Deploy and merge as the work completes.
+
+**agent:claude-code/chests** at 2026-11-17T19:48:01Z
+
+Slice 1 live on 2026-11-17: after four ordinary legs from the warehouse to home, just vm routes showed 30 walked cells and 58 links (29 walked, 29 inferred back) across height levels 31 to 32.5 m in one group, including the stairs. Criterion 1 ticked: persistence across restarts is covered by internal/home/routes_test.go; a live restart was not checked.
