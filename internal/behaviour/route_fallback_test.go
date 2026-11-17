@@ -1,6 +1,7 @@
 package behaviour
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -173,5 +174,147 @@ func TestCargoReturnKeepsTheNativeReasonWhenNoWalkFollows(t *testing.T) {
 	_, err := r.Next(v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable, Detail: "no dry route"})
 	if err == nil || err.Error() != "cargo return did not succeed: unreachable no dry route" {
 		t.Fatal(err)
+	}
+}
+
+func TestDetourWalksAKnownWayOrKeepsTheNativeReason(t *testing.T) {
+	a, corner, b := protocol.Vec3{.5, 0, .5}, protocol.Vec3{8.5, 0, .5}, protocol.Vec3{8.5, 0, 8.5}
+	mem, _ := walkedMemory(t, []protocol.Vec3{a, corner, b})
+	v := haulView()
+	v.State.Pos = a
+	var none detour
+	if _, _, err := none.next(v, "test", b, 1, noWay, "return"); err == nil || err.Error() != "return did not succeed: unreachable" {
+		t.Fatal(err)
+	}
+	if _, _, err := none.next(v, "test", b, 1, nil, "return"); err == nil {
+		t.Fatal("a missing result arrived")
+	}
+	if _, arrived, err := none.next(v, "test", b, 1, success("move"), "return"); !arrived || err != nil {
+		t.Fatal(arrived, err)
+	}
+	stopped := Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonStopped}
+	if !none.recovers(*noWay) || none.recovers(stopped) || none.recovers(Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}) {
+		t.Fatal("recovers the wrong native failures")
+	}
+	v.Routes = mem
+	var d detour
+	// A timeout says nothing about the way: no walk for it.
+	if _, _, err := d.next(v, "test", b, 1, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}, "return"); err == nil || d.walk != nil {
+		t.Fatal(err)
+	}
+	o, arrived, err := d.next(v, "test", b, 1, noWay, "return")
+	if err != nil || arrived || distance(moveTarget(t, o.Args), corner) > .1 {
+		t.Fatal(o, arrived, err)
+	}
+	if !d.recovers(Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}) {
+		t.Fatal("a failed leg would end the run")
+	}
+	// A cancelled leg is a player's order or a dropped session: not recovered.
+	if d.recovers(stopped) || d.recovers(Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonSuperseded}) {
+		t.Fatal("walks on over a cancelled leg")
+	}
+	v.State.Pos = corner
+	if o, _, err = d.next(v, "test", b, 1, success("leg"), "return"); err != nil || o == nil {
+		t.Fatal(o, err)
+	}
+	v.State.Pos = b
+	if o, arrived, err = d.next(v, "test", b, 1, success("leg"), "return"); err != nil || o != nil || !arrived {
+		t.Fatal(o, arrived, err)
+	}
+	if d.recovers(*noWay) {
+		t.Fatal("answers for a walk that is over")
+	}
+}
+
+// The bedside move finds no way; route memory knows one.
+func TestDayRestWalksAKnownWayToTheBedside(t *testing.T) {
+	r, v := restFixture(t, false)
+	bed := v.Perception.Structures[0].Pos
+	from := v.State.Pos
+	side := protocol.Vec3{from[0], from[1], from[2] + 6}
+	far := protocol.Vec3{bed[0], bed[1], bed[2] + 6}
+	mem, _ := walkedMemory(t, []protocol.Vec3{from, side, far, bed})
+	v.Routes = inWorld{mem, "test"}
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if !r.Recover(*noWay) || r.Recover(Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonStopped}) {
+		t.Fatal("recovers the wrong bedside failures")
+	}
+	o := nextTask(t, r, v, noWay, protocol.TaskMoveTo)
+	if o.Args.(*protocol.MoveToArgs).To.Pos == nil {
+		t.Fatal("not a leg over walked ground", o.Args)
+	}
+	// With no known way the native reason is kept.
+	r, v = restFixture(t, false)
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if _, err := r.Next(v, noWay); err == nil || !strings.Contains(err.Error(), "rest lacks native success: bedside move did not succeed: unreachable") {
+		t.Fatal(err)
+	}
+}
+
+// Collect's move to a far site finds no way; route memory knows one.
+func TestCollectWalksAKnownWayToItsSite(t *testing.T) {
+	a, corner, site := protocol.Vec3{.5, 0, .5}, protocol.Vec3{30.5, 0, .5}, protocol.Vec3{30.5, 0, 30.5}
+	mem, _ := walkedMemory(t, []protocol.Vec3{a, corner, site})
+	p := collectParams()
+	p.Site.Pos = site
+	raw, _ := json.Marshal(p)
+	runner, err := (Collect{}).Start(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := runner.(*collectRun)
+	v := haulView()
+	v.State.Pos, v.Routes = a, mem
+	v.Inventory = pack(10)
+	nextTask(t, r, v, nil, protocol.TaskMoveTo)
+	if !r.Recover(*noWay) {
+		t.Fatal("a site with no native way ends the run")
+	}
+	o := nextTask(t, r, v, noWay, protocol.TaskMoveTo)
+	if to := moveTarget(t, o.Args); to == site || distance(to, a) > routeMaxLegForTest {
+		t.Fatalf("first leg = %v", to)
+	}
+}
+
+const routeMaxLegForTest = 10.5
+
+func TestNoWalkerUserRecoversACancelledLeg(t *testing.T) {
+	a, corner, chest := protocol.Vec3{.5, 0, .5}, protocol.Vec3{8.5, 0, .5}, protocol.Vec3{8.5, 0, 8.5}
+	mem, _ := walkedMemory(t, []protocol.Vec3{a, corner, chest})
+	cancelled := Result{Status: protocol.StatusCancelled, Reason: protocol.ReasonSuperseded}
+	timeout := Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}
+
+	v := haulView()
+	v.State.Pos, v.Routes = a, mem
+	v.Containers = []*protocol.Container{{Entity: "a", Pos: chest}}
+	stow := &stowRun{p: stowParams()}
+	nextTask(t, stow, v, nil, protocol.TaskMoveTo)
+	nextTask(t, stow, v, noWay, protocol.TaskMoveTo)
+	if !stow.Recover(timeout) || stow.Recover(cancelled) {
+		t.Fatal("stow")
+	}
+
+	sv := searchView()
+	sv.State.Pos = a
+	trip := newTravel(t, mem, TravelParams{World: "test", To: chest})
+	if _, err := trip.Next(sv, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !trip.Recover(timeout) || trip.Recover(cancelled) {
+		t.Fatal("travel")
+	}
+
+	census := newCensus(t, CensusParams{World: "test", Radius: 25})
+	census.routes = mem
+	sv.Perception.Structures = []protocol.PerceivedStructure{{ID: "c", Kind: protocol.StructureContainer, Pos: protocol.Vec3{9.5, 0, 9.5}}}
+	if _, err := census.Next(sv, nil); err != nil {
+		t.Fatal(err)
+	}
+	_ = census.Dispatched("t1")
+	if _, err := census.Next(sv, &Result{TaskID: "t1", Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable, Detail: `inspection:{"travel":0}`}); err != nil {
+		t.Fatal(err)
+	}
+	if !census.Recover(timeout) || census.Recover(cancelled) {
+		t.Fatal("census")
 	}
 }

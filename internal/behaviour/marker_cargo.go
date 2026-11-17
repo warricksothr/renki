@@ -52,9 +52,9 @@ type markerCargoRun struct {
 	p     MarkerCargoParams
 	guard markerFoodRun
 	child *stowRun
-	// back is a walk over known ground to the marker, tried once after the
-	// native return could not get there.
-	back        *routeWalk
+	// back is the walk over known ground to the marker, tried once after
+	// the native return could not get there.
+	back        detour
 	items       []string
 	tried       map[string]bool
 	shortage    map[string]int
@@ -94,12 +94,7 @@ func (r *markerCargoRun) Check(v View) error {
 }
 func (r *markerCargoRun) Recover(result Result) bool {
 	if r.returning {
-		// A walk under way answers for its own legs. Before one, a return
-		// that found no way is given to Next, which may know a walked one.
-		if r.back != nil {
-			return !r.back.done
-		}
-		return slices.Contains([]string{protocol.ReasonUnreachable, protocol.ReasonStuck, protocol.ReasonBlocked}, result.Reason)
+		return r.back.recovers(result)
 	}
 	return r.child != nil && (r.child.Recover(result) || result.Status == protocol.StatusFailed && result.Reason == protocol.ReasonNotAllowed)
 }
@@ -236,35 +231,15 @@ func (r *markerCargoRun) Next(v View, result *Result) (*session.Order, error) {
 		r.items = sortedKeys(r.surplus(v))
 	}
 	if r.returning {
-		if r.back != nil {
-			if result == nil {
-				return nil, errors.New("cargo return did not succeed")
-			}
-			if next := r.back.step(v, result); next != nil {
-				return next, nil
-			}
-			if !r.back.arrived {
-				return nil, errors.New("cargo return did not succeed: " + r.back.story())
-			}
-		} else if result == nil || result.Status != protocol.StatusSucceeded {
-			// The native return found no way. Route memory may know the
-			// stairs or doorway it missed.
-			if result != nil && v.Routes != nil && slices.Contains([]string{protocol.ReasonUnreachable, protocol.ReasonStuck, protocol.ReasonBlocked}, result.Reason) {
-				walk := newRouteWalk(v.Routes, r.p.Marker.World, v.State.Pos, r.guard.marker.Pos, 1.5, MoveStyle{})
-				if walk.plan.Found && len(walk.plan.Legs) >= 2 {
-					r.back = walk
-					return walk.first(), nil
-				}
-			}
-			if result != nil && result.Reason != "" {
-				return nil, errors.New(strings.TrimSpace("cargo return did not succeed: " + result.Reason + " " + result.Detail))
-			}
-			return nil, errors.New("cargo return did not succeed")
+		// The native return may find no way. Route memory may know the
+		// stairs or doorway it missed.
+		if order, _, err := r.back.next(v, r.p.Marker.World, r.guard.marker.Pos, 1.5, result, "cargo return"); order != nil || err != nil {
+			return order, err
 		}
 		if !r.atOrigin(v) {
 			return nil, ErrWait
 		}
-		r.returning, r.back = false, nil
+		r.returning, r.back = false, detour{}
 	}
 	for {
 		if r.child != nil {

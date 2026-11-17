@@ -46,14 +46,23 @@ func MarkerRestDefinition(marker Marker, sleep bool) Definition {
 }
 
 type markerRestRun struct {
-	p         MarkerRestParams
-	marker    *home.Waypoint
-	home      *protocol.Vec3
-	bed       *protocol.PerceivedStructure
-	sent      bool
+	p      MarkerRestParams
+	marker *home.Waypoint
+	home   *protocol.Vec3
+	bed    *protocol.PerceivedStructure
+	sent   bool
+	// walk is the walk over known ground to the bedside, tried once after
+	// the native move found no way.
+	walk      detour
 	beforeSeq uint64
 	began     time.Time
 	health    healthSample
+}
+
+// Recover keeps the run when the bedside move found no way: Next may know a
+// walked one. A failed sleep is never recovered.
+func (r *markerRestRun) Recover(result Result) bool {
+	return r.sent && !r.p.Sleep && r.walk.recovers(result)
 }
 
 func resting(s *protocol.State) bool {
@@ -155,8 +164,14 @@ func (r *markerRestRun) Next(v View, result *Result) (*session.Order, error) {
 		}
 	}
 	if r.sent {
-		if result == nil || result.Status != protocol.StatusSucceeded {
-			return nil, errors.New("rest lacks native success")
+		if r.p.Sleep {
+			if result == nil || result.Status != protocol.StatusSucceeded {
+				return nil, errors.New("rest lacks native success")
+			}
+		} else if order, _, err := r.walk.next(v, v.State.World, r.bed.Pos, 2, result, "bedside move"); order != nil {
+			return order, nil
+		} else if err != nil {
+			return nil, errors.New("rest lacks native success: " + err.Error())
 		}
 		if v.State.Seq <= r.beforeSeq {
 			return nil, ErrWait

@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T22:50:06Z
+updated_at: 2026-11-17T23:16:24Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -122,3 +122,9 @@ Agreed with the owner on 2026-11-17, in this order: (1) generic walker, done; (2
 Step 3, first part (branch t3/walker-stow): stow falls back to a walk over known ground when its native approach or the deposit's own walk cannot reach a chest, once per chest; marker cargo's return does the same. Collect, gather, marker food and marker cargo all deposit through stow. Runs now get the navigator as View.Routes. Not run live: staging a failing approach with cargo in hand was not attempted.
 
 Left in step 3: the moves to a site or marker that collect, gather, marker food and marker rest make. Left in step 2: go home, the corpse run, retreat.
+
+**agent:claude-code/chests** at 2026-11-17T23:16:24Z
+
+Step 3, second part (branch t3/walker-sites): one helper, detour, holds the fallback (native move first; a walk over known ground once when it finds no way). It now covers marker cargo's return, collect's move to its site and back, marker food's returns and the day rest's bedside move. No walker user recovers a cancelled leg any more, which also fixes the census, travel and stow from earlier PRs. Not run live.
+
+Left: gather's own moves (step 3); go home, the corpse run, retreat (step 2); food goals and return home (step 4); home survey (step 5).

@@ -184,8 +184,9 @@ func (r *stowRun) routeTo(v View, reason string) *session.Order {
 
 func (s *stowRun) Recover(r Result) bool {
 	if s.route != nil && !s.route.done {
-		// A failed leg is the walk's to answer: it plans again.
-		return true
+		// A failed leg is the walk's to answer: it plans again. A cancelled
+		// one ends the run.
+		return s.route.answers(r)
 	}
 	if r.Status == protocol.StatusRejected && r.Reason == protocol.ReasonInvalidTarget {
 		// A missing chest is rejected before a TransferTask exists; it

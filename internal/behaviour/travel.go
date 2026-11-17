@@ -86,7 +86,7 @@ func (r *travelRun) name() string {
 }
 
 // Recover keeps the trip going after a leg fails: the walk plans again.
-func (r *travelRun) Recover(Result) bool        { return r.walk != nil && !r.walk.done }
+func (r *travelRun) Recover(result Result) bool { return r.walk.answers(result) }
 func (r *travelRun) Dispatched(id string) error { r.taskID = id; return nil }
 
 func (r *travelRun) check(v View) error {

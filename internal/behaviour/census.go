@@ -158,7 +158,12 @@ type censusRun struct {
 // Recover keeps the run going after any failed walk to a standing spot: the
 // walk is only a means, and the container is asked for again from wherever
 // the body stopped. Inspections recover as the search's do.
-func (r *censusRun) Recover(result Result) bool { return r.walking || r.base.Recover(result) }
+func (r *censusRun) Recover(result Result) bool {
+	if r.walking {
+		return r.walk.answers(result)
+	}
+	return r.base.Recover(result)
+}
 func (r *censusRun) Dispatched(id string) error { r.base.taskID = id; return nil }
 
 // Entries returns the outcomes so far, for status and tests.
