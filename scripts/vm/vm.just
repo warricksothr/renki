@@ -58,6 +58,21 @@ online MINUTES="5": need-target guard
     just --justfile "{{justfile()}}" streaming windows-online
     just --justfile "{{justfile()}}" vm start "{{MINUTES}}"
 
+# Read-only: worktree files, SSH, desktop, tasks, game, Tailscale, panel, build, lease, video.
+[doc("Check the whole setup and name the fix for each gap; exit 1 when something failed.")]
+[positional-arguments]
+doctor *ARGS:
+    @python3 -B "{{justfile_directory()}}/scripts/vm/doctor.py" --target "{{target}}" --dir "{{dir}}" "$@"
+
+test-doctor:
+    python3 -B "{{justfile_directory()}}/scripts/vm/doctor-test.py"
+
+# Refuses before taking the lease or starting anything when a check failed.
+[doc("Bring the bot up: doctor first, then panel, private video and Tas.")]
+up MINUTES="5": need-target
+    just --justfile "{{justfile()}}" vm doctor
+    just --justfile "{{justfile()}}" vm online "{{MINUTES}}"
+
 # Check the connection, the account and the scheduled tasks.
 check: need-target
     {{ssh}} "whoami; hostname; Get-ScheduledTask -TaskName Renki* | Format-Table TaskName,State -AutoSize | Out-String -Width 120"
