@@ -101,6 +101,16 @@ func (b *Brain) waypointCommand(text string, c *protocol.Chat, from origin, owne
 			b.opts.Home.Touch()
 			b.opts.Home.Ordered()
 		}
+		// Over walked ground when the way is known: stairs and doorways an
+		// ordinary move to the place itself may not find.
+		if b.opts.Travel != nil {
+			// Settled means the trip started, or a newer order arrived
+			// while it was starting and stands: no direct move either way.
+			var settled bool
+			if settled, err = b.opts.Travel(context.Background(), c.From.Name, name, old.Pos); settled {
+				break
+			}
+		}
 		_, err = b.d.Dispatch(context.Background(), session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Entity: name}}, Origin: from, TimeoutS: 90})
 	}
 	if err != nil {

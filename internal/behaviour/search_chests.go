@@ -372,8 +372,18 @@ func (e *Engine) StartCensus(ctx context.Context, by string, request CensusParam
 	return fmt.Sprintf("I'll open every container within %.0fm, up to %d, report what I find and leave everything where it is. Say stop to cancel.", request.Radius, request.MaxContainers), nil
 }
 
-// startOwnerRun saves and starts a one-off read-only storage run for a
-// player: only from a fresh idle body, with nothing queued, and never over a
+// ErrReplaced is a start refused because a newer order arrived while the run
+// was being started. The newer order stands: a caller must not send another
+// in the run's place.
+var ErrReplaced = errors.New("a newer order replaced the run")
+
+type replacedError struct{ noun string }
+
+func (e replacedError) Error() string      { return "a newer order replaced the " + e.noun }
+func (replacedError) Is(target error) bool { return target == ErrReplaced }
+
+// startOwnerRun saves and starts a one-off run for a player, a read-only
+// storage run or a trip: only from a fresh idle body, with nothing queued, and never over a
 // newer order. prepare completes the parameters from the view and checks
 // admission. The caller holds e.mu.
 func (e *Engine) startOwnerRun(ctx context.Context, by, instance, source, template, noun string, prepare func(View) (json.RawMessage, error)) error {
@@ -404,8 +414,11 @@ func (e *Engine) startOwnerRun(ctx context.Context, by, instance, source, templa
 	}
 	defer admission.Release()
 	tasks := []string{protocol.TaskInspectContainer, protocol.TaskSay, protocol.TaskStop}
-	if template == "census" {
+	switch template {
+	case "census":
 		tasks = append(tasks, protocol.TaskMoveTo)
+	case "travel":
+		tasks = []string{protocol.TaskMoveTo, protocol.TaskSay, protocol.TaskStop}
 	}
 	for _, task := range tasks {
 		if !e.o.Session.Allowed(task) {
@@ -424,7 +437,7 @@ func (e *Engine) startOwnerRun(ctx context.Context, by, instance, source, templa
 	}
 	if e.o.Session.ControlRevision() != revision {
 		_ = e.action(ctx, instance, "stop", source+by)
-		return fmt.Errorf("a newer order replaced the %s", noun)
+		return replacedError{noun}
 	}
 	return nil
 }

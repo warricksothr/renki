@@ -11,11 +11,97 @@ import (
 	"github.com/warricksothr/renki/internal/session"
 )
 
-// RouteMemory is what a run needs of route memory (docs/ROUTES.md): the walked
-// graph to plan over, and a way to say a link did not carry the body.
+// Navigator plans a way for the body and learns from a leg that failed. Route
+// memory is the first one; another may plan over ground only seen.
+type Navigator interface {
+	// Plan returns legs, each an ordinary move, or the reason there are none.
+	Plan(world string, from, to protocol.Vec3) route.Plan
+	// Failed says the body could not get from one position on a plan to the
+	// next. It reports whether the navigator knew such a link.
+	Failed(world string, from, to protocol.Vec3) (bool, error)
+}
+
+// RouteMemory is the Navigator over route memory (docs/ROUTES.md): the walked
+// graph to plan over, and a way to mark a link that did not carry the body.
 type RouteMemory struct {
-	Graph  func(world string) []home.RouteNode
-	Failed func(world string, from, to protocol.Vec3) (bool, error)
+	Graph      func(world string) []home.RouteNode
+	MarkFailed func(world string, from, to protocol.Vec3) (bool, error)
+}
+
+// ReasonNoRouteMemory is the reason a RouteMemory with no graph gives.
+const ReasonNoRouteMemory = "no_route_memory"
+
+func (m RouteMemory) Plan(world string, from, to protocol.Vec3) route.Plan {
+	if m.Graph == nil {
+		return route.Plan{Reason: ReasonNoRouteMemory, Explain: "Route memory is not available.", Legs: []route.Leg{}}
+	}
+	return route.Find(m.Graph(world), from, to)
+}
+
+func (m RouteMemory) Failed(world string, from, to protocol.Vec3) (bool, error) {
+	if m.MarkFailed == nil {
+		return false, nil
+	}
+	return m.MarkFailed(world, from, to)
+}
+
+// MoveStyle is how a walk's moves are made. The zero value is a plain move
+// with the walk's own leg timeout.
+type MoveStyle struct {
+	// Dry keeps the body out of water and AvoidHostiles away from threats:
+	// the native move then refuses ground an ordinary one would cross.
+	Dry, AvoidHostiles bool
+	Run                *bool
+	// LegTimeoutS bounds each move. Zero means routeLegTimeout.
+	LegTimeoutS float64
+}
+
+func (s MoveStyle) order(to protocol.Vec3, stop float64) *session.Order {
+	timeout := s.LegTimeoutS
+	if timeout <= 0 {
+		timeout = routeLegTimeout
+	}
+	return &session.Order{Task: protocol.TaskMoveTo, TimeoutS: timeout,
+		Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &to}, StopDistance: &stop, Dry: s.Dry, AvoidHostiles: s.AvoidHostiles, Run: s.Run}}
+}
+
+// Arrived reports whether a move toward target ended there: it succeeded and
+// the body stands within the stop distance and on the target's floor.
+func Arrived(body, target protocol.Vec3, stop float64, result *Result) bool {
+	return result != nil && result.Status == protocol.StatusSucceeded &&
+		body.FlatDistance(target) <= stop+routeArriveSlackM && math.Abs(body[1]-target[1]) <= math.Max(routeFloorM, stop)
+}
+
+// NextLeg is the walker without memory of its own, for a run that keeps its
+// state elsewhere or must survive a restart: it plans from where the body
+// stands and returns the first move toward to, with the plan it came from.
+// With no plan the move is the direct one. Call it again after each move; the
+// run is there once Arrived says so for to itself.
+func NextLeg(nav Navigator, world string, from, to protocol.Vec3, stop float64, style MoveStyle) (*session.Order, route.Plan) {
+	plan := route.Plan{Reason: ReasonNoRouteMemory, Legs: []route.Leg{}}
+	if nav != nil {
+		plan = nav.Plan(world, from, to)
+	}
+	if !plan.Found || len(plan.Legs) < 2 {
+		return style.order(to, stop), plan
+	}
+	return style.order(plan.Legs[0].To, routeLegStopM), plan
+}
+
+// LegFailed tells the navigator about a move from NextLeg that did not
+// arrive, when the result says something about the ground. plan is the one
+// NextLeg returned and body where the move ended. It reports whether a link
+// was marked.
+func LegFailed(nav Navigator, world string, plan route.Plan, body protocol.Vec3, result *Result) bool {
+	if nav == nil || !plan.Found || !groundFailure(result) {
+		return false
+	}
+	from, to, ok := plan.FailedLink(0, body)
+	if !ok {
+		return false
+	}
+	known, err := nav.Failed(world, from, to)
+	return err == nil && known
 }
 
 const (
@@ -37,10 +123,11 @@ const (
 // no plan it makes the one direct move a run would have made without route
 // memory, so new ground can still be learnt.
 type routeWalk struct {
-	mem   RouteMemory
+	nav   Navigator
 	world string
 	to    protocol.Vec3
 	stop  float64
+	style MoveStyle
 
 	plan    route.Plan
 	leg     int
@@ -78,8 +165,8 @@ func (w *routeWalk) abandon(why string) {
 	}
 }
 
-func newRouteWalk(mem RouteMemory, world string, from, to protocol.Vec3, stop float64) *routeWalk {
-	w := &routeWalk{mem: mem, world: world, to: to, stop: stop}
+func newRouteWalk(nav Navigator, world string, from, to protocol.Vec3, stop float64, style MoveStyle) *routeWalk {
+	w := &routeWalk{nav: nav, world: world, to: to, stop: stop, style: style}
 	w.replan(from)
 	return w
 }
@@ -87,12 +174,12 @@ func newRouteWalk(mem RouteMemory, world string, from, to protocol.Vec3, stop fl
 // replan plans from where the body is. It reports whether there is a plan.
 func (w *routeWalk) replan(from protocol.Vec3) bool {
 	w.leg = 0
-	if w.mem.Graph == nil {
+	if w.nav == nil {
 		w.direct = true
-		w.notes = append(w.notes, "direct, no route memory")
+		w.notes = append(w.notes, "direct, no navigator")
 		return false
 	}
-	w.plan = route.Find(w.mem.Graph(w.world), from, w.to)
+	w.plan = w.nav.Plan(w.world, from, w.to)
 	if !w.plan.Found {
 		w.notes = append(w.notes, "no route ("+w.plan.Reason+")")
 		return false
@@ -115,7 +202,7 @@ func (w *routeWalk) order() *session.Order {
 	if !w.direct && w.leg < len(w.plan.Legs)-1 {
 		to, stop = w.plan.Legs[w.leg].To, routeLegStopM
 	}
-	return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &to}, StopDistance: &stop}, TimeoutS: routeLegTimeout}
+	return w.style.order(to, stop)
 }
 
 // first starts the walk. Without a plan the walk is one direct move.
@@ -138,8 +225,7 @@ func (w *routeWalk) step(v View, result *Result) *session.Order {
 	if !last {
 		target, stop = w.plan.Legs[w.leg].To, routeLegStopM
 	}
-	here := result != nil && result.Status == protocol.StatusSucceeded &&
-		body.FlatDistance(target) <= stop+routeArriveSlackM && math.Abs(body[1]-target[1]) <= math.Max(routeFloorM, stop)
+	here := Arrived(body, target, stop, result)
 	if here && !last {
 		// Near enough to the end already: the legs left would only shuffle
 		// the body about inside the distance it was asked to stop at.
@@ -158,8 +244,8 @@ func (w *routeWalk) step(v View, result *Result) *session.Order {
 		return nil
 	}
 	note := fmt.Sprintf("leg %d of %d %s", w.leg+1, len(w.plan.Legs), outcomeOf(result))
-	if from, to, ok := w.plan.FailedLink(w.leg, body); ok && w.mem.Failed != nil && groundFailure(result) {
-		if known, err := w.mem.Failed(w.world, from, to); err == nil && known {
+	if from, to, ok := w.plan.FailedLink(w.leg, body); ok && groundFailure(result) {
+		if known, err := w.nav.Failed(w.world, from, to); err == nil && known {
 			note += ", link marked failed"
 		}
 	}

@@ -118,7 +118,30 @@ entry carries a `route` line and the run's summary a `Walks:` part, such as
 or `no route (target_off_walked_ground); direct move failed (timeout); did not arrive`.
 Read it before guiding the body by hand: it says which leg failed and why.
 
-The home survey does not use it yet.
+### Going to a place
+
+`Tas, go to <place>` in chat and the panel's go button take a trip over walked
+ground when route memory has a plan of two legs or more: the `travel`
+behaviour, saved as `Owner travel` (docs/BEHAVIOURS.md). Its status says how
+the walk went, and Tas says why in the game when he does not arrive. With no
+such plan, or while Tas is busy with something else, they send the one direct
+move they always did. That move still teaches the way.
+
+### For other runs
+
+The walker takes its plans from a `Navigator` (`Plan`, and `Failed` for a leg
+that did not carry the body). `RouteMemory` is the only one so far; a planner
+over ground Tas has seen but not walked would be another. A `MoveStyle` sets
+how each move is made: plain, or dry and avoiding hostiles, running or not,
+and the time each leg is given.
+
+A run that keeps its own state, or must survive a restart, uses `NextLeg`: it
+plans from where the body stands and returns the first move, with nothing to
+remember between moves. `Arrived` judges a move and `LegFailed` reports one
+that failed.
+
+Not converted yet: go home, the corpse run, stow, the marker behaviours,
+gathering's return legs, the food goals and the home survey.
 
 ## Limits
 

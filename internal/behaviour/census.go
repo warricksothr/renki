@@ -23,7 +23,7 @@ import (
 // are asked for too, so one that has gone is found out and forgotten.
 type Census struct {
 	Landmarks func(world string) []home.Landmark
-	Routes    RouteMemory
+	Routes    Navigator
 }
 
 type CensusParams struct {
@@ -137,7 +137,7 @@ type censusRun struct {
 	known     bool
 	walking   bool
 	landmarks func(world string) []home.Landmark
-	routes    RouteMemory
+	routes    Navigator
 	// walk is the walk under way, and stories those made for the pending
 	// container.
 	walk    *routeWalk
@@ -406,7 +406,7 @@ func (r *censusRun) settle(v View, result *Result) error {
 			if to, stop, ok := r.walkTarget(v.State.Pos, receipt.Standing); ok {
 				// Over walked ground when route memory knows a way, and
 				// otherwise the one direct move.
-				walk := newRouteWalk(r.routes, r.p.World, v.State.Pos, to, stop)
+				walk := newRouteWalk(r.routes, r.p.World, v.State.Pos, to, stop, MoveStyle{})
 				charge := censusWalkCharge * math.Max(distance(v.State.Pos, to), walk.lengthM(v.State.Pos))
 				if b.travel+charge < r.p.TravelM {
 					r.walked = append(r.walked, to)

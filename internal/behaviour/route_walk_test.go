@@ -35,7 +35,7 @@ func walkedMemory(t *testing.T, walks ...[]protocol.Vec3) (RouteMemory, *home.St
 			t.Fatal(err)
 		}
 	}
-	return RouteMemory{Graph: s.Routes, Failed: func(world string, from, to protocol.Vec3) (bool, error) {
+	return RouteMemory{Graph: s.Routes, MarkFailed: func(world string, from, to protocol.Vec3) (bool, error) {
 		return s.MarkRouteFailed(world, from, to, time.Now())
 	}}, s
 }
@@ -52,7 +52,7 @@ func TestRouteWalkGoesLegByLegAndArrives(t *testing.T) {
 	mem, _ := walkedMemory(t, []protocol.Vec3{a, corner, b})
 	v := searchView()
 	v.State.Pos = a
-	w := newRouteWalk(mem, "test", a, b, .4)
+	w := newRouteWalk(mem, "test", a, b, .4, MoveStyle{})
 	o := w.first()
 	if got := moveTarget(t, o.Args); distance(got, corner) > .1 || *o.Args.(*protocol.MoveToArgs).StopDistance != routeLegStopM {
 		t.Fatalf("first leg = %v", got)
@@ -73,7 +73,7 @@ func TestRouteWalkMarksAFailedLinkAndGoesRoundAnotherWay(t *testing.T) {
 	mem, store := walkedMemory(t, []protocol.Vec3{a, near, b}, []protocol.Vec3{a, far, b})
 	v := searchView()
 	v.State.Pos = a
-	w := newRouteWalk(mem, "test", a, b, .4)
+	w := newRouteWalk(mem, "test", a, b, .4, MoveStyle{})
 	first := moveTarget(t, w.first().Args)
 	// The move fails where the body stands: the link out of the first cell.
 	o := w.step(v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable})
@@ -95,10 +95,10 @@ func TestRouteWalkStopsAfterItsReplans(t *testing.T) {
 	a, b := protocol.Vec3{.5, 30, .5}, protocol.Vec3{.5, 30, 8.5}
 	mem, _ := walkedMemory(t, []protocol.Vec3{a, b})
 	// Nothing is marked, so every plan is the same and every move fails.
-	mem.Failed = nil
+	mem.MarkFailed = nil
 	v := searchView()
 	v.State.Pos = a
-	w := newRouteWalk(mem, "test", a, b, .4)
+	w := newRouteWalk(mem, "test", a, b, .4, MoveStyle{})
 	orders := 0
 	for o := w.first(); o != nil; o = w.step(v, &Result{Status: protocol.StatusFailed, Reason: protocol.ReasonTimeout}) {
 		if orders++; orders > 10 {
@@ -114,7 +114,7 @@ func TestRouteWalkCountsAnArrivalOnTheWrongFloorAsAFailure(t *testing.T) {
 	a, b := protocol.Vec3{.5, 30, .5}, protocol.Vec3{.5, 30, 8.5}
 	mem, _ := walkedMemory(t, []protocol.Vec3{a, b})
 	v := searchView()
-	w := newRouteWalk(mem, "test", a, b, .4)
+	w := newRouteWalk(mem, "test", a, b, .4, MoveStyle{})
 	w.first()
 	v.State.Pos = protocol.Vec3{.5, 27, 8.5}
 	w.replans = routeMaxReplans
@@ -126,8 +126,8 @@ func TestRouteWalkCountsAnArrivalOnTheWrongFloorAsAFailure(t *testing.T) {
 func TestRouteWalkWithoutAPlanIsOneDirectMove(t *testing.T) {
 	to := protocol.Vec3{9, 0, 0}
 	v := searchView()
-	for _, mem := range []RouteMemory{{}, {Graph: func(string) []home.RouteNode { return nil }}} {
-		w := newRouteWalk(mem, "test", v.State.Pos, to, 2.5)
+	for _, mem := range []Navigator{nil, RouteMemory{}, RouteMemory{Graph: func(string) []home.RouteNode { return nil }}} {
+		w := newRouteWalk(mem, "test", v.State.Pos, to, 2.5, MoveStyle{})
 		o := w.first()
 		if moveTarget(t, o.Args) != to || *o.Args.(*protocol.MoveToArgs).StopDistance != 2.5 {
 			t.Fatalf("order = %+v", o)
@@ -185,7 +185,7 @@ func TestRouteWalkMarksNothingForATimeoutAndAsksBeforeANewWay(t *testing.T) {
 	mem, store := walkedMemory(t, []protocol.Vec3{a, b})
 	v := searchView()
 	v.State.Pos = a
-	w := newRouteWalk(mem, "test", a, b, .4)
+	w := newRouteWalk(mem, "test", a, b, .4, MoveStyle{})
 	asked := 0
 	w.afford = func(float64) bool { asked++; return false }
 	w.first()
