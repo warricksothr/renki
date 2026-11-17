@@ -1,6 +1,7 @@
 package behaviour
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -287,4 +288,54 @@ func (w *routeWalk) story() string {
 		end = "walking"
 	}
 	return strings.Join(append(append([]string{}, w.notes...), end), "; ")
+}
+
+// detour is the walk over known ground a run falls back on when its native
+// move to a position found no way. The run keeps the native move, with its
+// water and hostile avoidance, as its first choice; a detour is ordinary
+// moves over ground the body has walked, tried once.
+type detour struct{ walk *routeWalk }
+
+// foundNoWay reports a reason that says the native move found no way there.
+func foundNoWay(reason string) bool {
+	return reason == protocol.ReasonUnreachable || reason == protocol.ReasonStuck || reason == protocol.ReasonBlocked
+}
+
+// recovers reports whether a failed result should go to next rather than end
+// the run: a walk under way answers for its own legs, and before one a move
+// that found no way may have a walked one.
+func (d *detour) recovers(result Result) bool {
+	if d.walk != nil {
+		return !d.walk.done
+	}
+	return result.Status == protocol.StatusFailed && foundNoWay(result.Reason)
+}
+
+// next takes the result of the native move, or of a detour's leg. It returns
+// the next move to make, or that the body arrived, or an error saying what
+// did not succeed: the native reason, or the walk's story.
+func (d *detour) next(v View, world string, to protocol.Vec3, stop float64, result *Result, what string) (*session.Order, bool, error) {
+	if result == nil {
+		return nil, false, errors.New(what + " did not succeed")
+	}
+	if d.walk != nil {
+		if next := d.walk.step(v, result); next != nil {
+			return next, false, nil
+		}
+		if !d.walk.arrived {
+			return nil, false, errors.New(what + " did not succeed: " + d.walk.story())
+		}
+		return nil, true, nil
+	}
+	if result.Status == protocol.StatusSucceeded {
+		return nil, true, nil
+	}
+	if v.Routes != nil && foundNoWay(result.Reason) {
+		walk := newRouteWalk(v.Routes, world, v.State.Pos, to, stop, MoveStyle{})
+		if walk.plan.Found && len(walk.plan.Legs) >= 2 {
+			d.walk = walk
+			return walk.first(), false, nil
+		}
+	}
+	return nil, false, errors.New(strings.TrimSpace(what + " did not succeed: " + result.Reason + " " + result.Detail))
 }

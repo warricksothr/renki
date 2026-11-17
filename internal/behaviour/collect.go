@@ -94,6 +94,9 @@ func PerceptionBeside(v View, maxAge float64) bool {
 	return age >= -perceptionLead && age <= maxAge
 }
 
+// A walk over known ground to a site ends this near its centre.
+const collectDetourStopM = 1.5
+
 type collectRun struct {
 	p                            CollectParams
 	arrived, returning, finished bool
@@ -110,11 +113,22 @@ type collectRun struct {
 	picked                       bool
 	pickScan                     uint64
 	stow                         *stowRun
+	// approaching is set while the move to the site is out. to and back are
+	// the walks over known ground tried when the native move to the site,
+	// or back to it, found no way.
+	approaching bool
+	to, back    detour
 }
 
 func (r *collectRun) Recover(result Result) bool {
 	if r.stow != nil {
 		return r.stow.Recover(result)
+	}
+	if r.returning {
+		return r.back.recovers(result)
+	}
+	if r.approaching {
+		return r.to.recovers(result)
 	}
 	// Auto-pickup can consume a spawned product after perception but before
 	// the explicit request reaches GameTaskHost. Only a pending pickable
@@ -172,12 +186,22 @@ func (r *collectRun) Next(v View, result *Result) (*session.Order, error) {
 		return nil, nil
 	}
 	if r.returning {
+		if order, _, err := r.back.next(v, r.p.Site.World, r.p.Site.Pos, collectDetourStopM, result, "collect return"); order != nil || err != nil {
+			return order, err
+		}
 		r.finished = true
 		return nil, nil
+	}
+	if r.approaching {
+		if order, _, err := r.to.next(v, r.p.Site.World, r.p.Site.Pos, collectDetourStopM, result, "collect approach"); order != nil || err != nil {
+			return order, err
+		}
+		r.approaching, result = false, nil
 	}
 	if !r.arrived {
 		r.arrived = true
 		if distance(v.State.Pos, r.p.Site.Pos) > r.p.Site.Radius {
+			r.approaching = true
 			pos := r.p.Site.Pos
 			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &pos}}, TimeoutS: 90}, nil
 		}

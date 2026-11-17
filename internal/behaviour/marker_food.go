@@ -54,13 +54,16 @@ func MarkerFoodDefinition(marker Marker) Definition {
 }
 
 type markerFoodRun struct {
-	p                       MarkerFoodParams
-	marker                  *home.Waypoint
-	began                   time.Time
-	health                  healthSample
-	collect                 *collectRun
-	stow                    *stowRun
-	returning               bool
+	p         MarkerFoodParams
+	marker    *home.Waypoint
+	began     time.Time
+	health    healthSample
+	collect   *collectRun
+	stow      *stowRun
+	returning bool
+	// back is the walk over known ground to the marker, tried once after
+	// the native return found no way.
+	back                    detour
 	cooking                 string
 	station                 string
 	packSeq, stateSeq       uint64
@@ -120,6 +123,9 @@ func (r *markerFoodRun) check(v View, requireMarkerPosition bool) error {
 	return nil
 }
 func (r *markerFoodRun) Recover(result Result) bool {
+	if r.returning {
+		return r.back.recovers(result)
+	}
 	return r.collect != nil && r.collect.Recover(result) || r.stow != nil && r.stow.Recover(result)
 }
 func (r *markerFoodRun) Next(v View, result *Result) (*session.Order, error) {
@@ -141,7 +147,8 @@ func (r *markerFoodRun) Next(v View, result *Result) (*session.Order, error) {
 }
 func (r *markerFoodRun) forage(v View, result *Result) (*session.Order, error) {
 	if r.returning {
-		return nil, nil
+		order, _, err := r.back.next(v, r.p.Marker.World, r.marker.Pos, 2, result, "forage return")
+		return order, err
 	}
 	if r.collect == nil {
 		r.collect = &collectRun{p: CollectParams{Site: Place{World: r.p.Marker.World, Pos: r.marker.Pos, Radius: markerRadius(*r.marker)}, Items: wildMeals, MaxTargets: 4, MaxWeightFraction: .75, Drops: true, CarryOnly: true}, seen: map[string]bool{}}
@@ -210,10 +217,11 @@ func (r *markerFoodRun) store(v View, result *Result) (*session.Order, error) {
 }
 func (r *markerFoodRun) cook(v View, result *Result) (*session.Order, error) {
 	if r.returning {
-		if result == nil || result.Status != protocol.StatusSucceeded {
-			return nil, errors.New("cooking finished but return to marker was not verified")
+		order, _, err := r.back.next(v, r.p.Marker.World, r.marker.Pos, 1, result, "return to marker")
+		if err != nil {
+			return nil, errors.New("cooking finished but return to marker was not verified: " + err.Error())
 		}
-		return nil, nil
+		return order, nil
 	}
 	if r.cooking != "" {
 		if result == nil || result.Status != protocol.StatusSucceeded || result.TaskID == "" {

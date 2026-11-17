@@ -138,6 +138,13 @@ story as the reason. Collect, gather, marker food and marker cargo all put
 things away through stow, so they have it too. Marker cargo's return to its
 marker falls back the same way.
 
+The same fallback, tried once and only for those three reasons, covers the
+other moves these runs make to a place (`detour` in
+`internal/behaviour/route_walk.go`): collect's move to its site and back,
+marker food's return to its marker after foraging or cooking, and the day
+rest's move to the bedside. When there is no known way the run ends as it
+did before, with the native reason.
+
 A fallback walk is made of ordinary moves: it does not avoid hostiles or
 water as the native move does. The run's own threat and injury checks still
 stop it between legs.
@@ -155,9 +162,8 @@ plans from where the body stands and returns the first move, with nothing to
 remember between moves. `Arrived` judges a move and `LegFailed` reports one
 that failed.
 
-Not converted yet: go home, the corpse run, retreat, the moves to a site or
-marker that collect, gather, marker food and marker rest make, the food goals
-and the home survey.
+Not converted yet: go home, the corpse run, retreat, gather's own moves, the
+food goals and the home survey.
 
 ## Limits
 
