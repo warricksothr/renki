@@ -790,8 +790,11 @@ When an inspection fails `unreachable` and its receipt lists `standing`
 positions, the census walks to the first one inside its radius with an
 ordinary `move_to` and asks again, at most twice per container. The
 inspection's own bounded walk gives up within its local search limit where an
-ordinary move goes round a row of chests. The walk counts against the travel
-budget. Six refusals in a row end the run; gone containers do not count.
+ordinary move goes round a row of chests. An ordinary move returns no travel
+receipt, so each walk is charged to the travel budget at twice its straight
+line when it is ordered, and a spot more than 15 m away, outside the radius or
+beyond the remaining budget is not walked to. The walk itself is not confined
+to the radius; it has 30 s. Six refusals in a row end the run; gone containers do not count.
 
 The run says one line in chat and its status keeps the counts, the gone ids
 and each refusal. `just vm chest-census` starts it and prints that report with

@@ -114,6 +114,37 @@ func TestCensusWalksToAVerifiedStandingSpotThenAsksAgain(t *testing.T) {
 	if got := r.Entries(); len(got) != 1 || got[0].Outcome != "opened" || got[0].Walks != 1 {
 		t.Fatalf("%+v", got)
 	}
+	// The walk was charged at twice its straight line when ordered.
+	if want := censusWalkCharge * distance(protocol.Vec3{}, protocol.Vec3{3, 0, 1}); r.base.travel < want {
+		t.Fatal(r.base.travel, want)
+	}
+}
+
+func TestCensusDoesNotWalkToAFarSpotOrPastItsTravelBudget(t *testing.T) {
+	for name, p := range map[string]CensusParams{
+		"far":    {World: "test", Radius: 60},
+		"budget": {World: "test", TravelM: 10},
+	} {
+		v := searchView()
+		v.Perception.Structures = v.Perception.Structures[:1]
+		r := newCensus(t, p)
+		if _, err := r.Next(v, nil); err != nil {
+			t.Fatal(name, err)
+		}
+		_ = r.Dispatched("t1")
+		spot := `[20,0,0]`
+		if name == "budget" {
+			spot = `[6,0,0]`
+		}
+		o, err := r.Next(v, &Result{TaskID: "t1", Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable,
+			Detail: `inspection:{"travel":0,"standing":[` + spot + `]}`})
+		if err != nil || o.Task == protocol.TaskMoveTo {
+			t.Fatal(name, o, err)
+		}
+		if got := r.Entries(); len(got) != 1 || got[0].Outcome != "refused" || got[0].Walks != 0 {
+			t.Fatalf("%s: %+v", name, got)
+		}
+	}
 }
 
 func TestCensusGivesUpOnAContainerAfterTwoWalks(t *testing.T) {

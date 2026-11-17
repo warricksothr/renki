@@ -362,14 +362,15 @@ def via_controller(args, status):
     start, world = status['pos'], status.get('world')
     if not 10 <= args.radius <= 100:
         raise SystemExit('the controller census takes --radius 10-100 m')
-    before = (census_status(vm('panel', 'GET', '/api/behaviours')) or {}).get('runs', 0)
     definition = census_definition(world, start, args.radius, args.limit)
     try:
-        vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'save',
-                                                           'definition': definition}))
+        saved = vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'save',
+                                                                   'definition': definition}))
     except SystemExit:
         raise SystemExit('the installed controller refused the census definition; deploy a build with the '
                          'census behaviour or pass --via ssh')
+    # Saving replaces the instance and resets its run count, so count from here.
+    before = (census_status(saved) or {}).get('runs', 0)
     vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'start'}))
     began = time.monotonic()
     deadline = began + 1300

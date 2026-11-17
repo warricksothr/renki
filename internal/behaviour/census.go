@@ -37,6 +37,12 @@ const (
 	censusMaxWalks = 2
 	// Refusals in a row, not counting gone containers, before giving up.
 	censusMaxFailures = 6
+	// The plugin verifies standing positions within 12 m of the body. A
+	// farther one is not walked to.
+	censusMaxWalkM = 15
+	// An ordinary move returns no travel receipt and exists to go round an
+	// obstacle, so each walk is charged this multiple of its straight line.
+	censusWalkCharge = 2
 )
 
 func (p *CensusParams) defaults() {
@@ -106,12 +112,13 @@ type CensusEntry struct {
 }
 
 type censusRun struct {
-	p        CensusParams
-	base     chestSearchRun
-	entries  []CensusEntry
-	pending  *chestCandidate
-	known    bool
-	walking  bool
+	p       CensusParams
+	base    chestSearchRun
+	entries []CensusEntry
+	pending *chestCandidate
+	known   bool
+	walking bool
+	// walked holds the standing positions tried for the pending container.
 	walked   []protocol.Vec3
 	failures int
 	reported bool
@@ -140,9 +147,10 @@ func parseInspection(detail string) (inspectionReceipt, bool) {
 // standingSpot picks the first verified position inside the census area that
 // has not been walked to. The inspection's own bounded walk already failed to
 // reach it; an ordinary move may go round what stopped that.
-func (r *censusRun) standingSpot(spots []protocol.Vec3) *protocol.Vec3 {
+func (r *censusRun) standingSpot(from protocol.Vec3, spots []protocol.Vec3) *protocol.Vec3 {
 	for _, spot := range spots {
-		ok := spot.FlatDistance(r.base.center) <= r.p.Radius
+		ok := spot.FlatDistance(r.base.center) <= r.p.Radius && distance(from, spot) <= censusMaxWalkM &&
+			r.base.travel+censusWalkCharge*distance(from, spot) < r.p.TravelM
 		for _, n := range spot {
 			ok = ok && finite(n) && math.Abs(n) <= 1e6
 		}
@@ -280,9 +288,11 @@ func (r *censusRun) settle(v View, result *Result) error {
 	case result.Reason == protocol.ReasonInvalidTarget && distance(v.State.Pos, r.pending.pos) <= censusLoadedM:
 		r.record("gone", "", 0)
 	case result.Reason == protocol.ReasonUnreachable && measured && !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v):
-		if spot := r.standingSpot(receipt.Standing); spot != nil {
+		if spot := r.standingSpot(v.State.Pos, receipt.Standing); spot != nil {
 			r.walked = append(r.walked, *spot)
 			r.walking = true
+			// Charged now, in full, whether or not the walk arrives.
+			b.travel += censusWalkCharge * distance(v.State.Pos, *spot)
 			return nil
 		}
 		r.record("refused", result.Reason, 0)
