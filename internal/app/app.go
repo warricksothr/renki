@@ -110,6 +110,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	var baseCommand func(context.Context, string, string, *protocol.Vec3) (string, bool, error)
 	var searchChests func(context.Context, string, chat.ChestSearchRequest) (string, error)
 	var travel func(context.Context, string, string, protocol.Vec3) (bool, error)
+	var travelHome func(context.Context, string) (bool, error)
 	brain := chat.New(chat.Options{
 		SearchChests: func(ctx context.Context, by string, p chat.ChestSearchRequest) (string, error) {
 			return searchChests(ctx, by, p)
@@ -117,6 +118,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Travel: func(ctx context.Context, by, place string, to protocol.Vec3) (bool, error) {
 			return travel(ctx, by, place, to)
 		},
+		TravelHome: func(ctx context.Context, by string) (bool, error) { return travelHome(ctx, by) },
 		BaseCommand: func(ctx context.Context, by, text string, pos *protocol.Vec3) (string, bool, error) {
 			return baseCommand(ctx, by, text, pos)
 		},
@@ -217,6 +219,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		}
 		return err == nil, nil
 	}
+	travelHome = a.travelHome
 	baseCommand = a.baseChat
 	a.escortSupply = make(chan escortSupplyRequest, 8)
 	resupplyFood = func(ctx context.Context, by string) (string, error) { return a.startFood(ctx, by, nil) }

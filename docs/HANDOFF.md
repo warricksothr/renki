@@ -9,13 +9,13 @@ Read AGENTS.md, docs/VM.md ("Start here"), docs/ROUTES.md and docs/MEMORY.md.
 ## State
 
 Tas (Tasleroch) is online in the warehouse near [-155.6, 31.0, -471.5], not at
-home, on the build of `main` at PR #189 plus branch `t3/walker-gather`, with
+home, on the build of `main` at PR #190 plus branch `t3/walker-home`, with
 sausages carried.
 Private video is running. Loot and automatic logout remain disabled. The VM
 lease is released. The game had been offline from 2026-11-04 to 2026-11-17,
 130 game days; Tailscale on the VM had signed out and is signed in again.
 
-PRs #179 to #189 are merged.
+PRs #179 to #190 are merged.
 
 ## Owner decisions, 2026-11-17
 
@@ -60,12 +60,15 @@ home, stair top [-193.01, 32.97, -471.11], stair foot [-189.51, 31.26,
    owner agreed this order on 2026-11-17, and docs/ROUTES.md, "Walking a
    plan", says what each piece does:
    - Done: the generic walker (`Navigator`, `MoveStyle`, `NextLeg`); the
-     `travel` behaviour behind chat's `go to` and the panel's go button; the
+     `travel` behaviour behind chat's `go to` and `go home` and the panel's
+     go and home buttons; the
      `detour` fallback in stow, collect, gather, marker food, marker cargo
      and the day rest.
-   - Left, step 2: go home (`internal/home/home.go`), the corpse run
-     (`internal/chat/brain.go`) and retreat. They dispatch one owner task
-     and track it, so they need more than a call to `StartTravel`.
+   - Left, step 2: the trips home Tas starts himself (`Keeper.GoHome` in
+     `internal/home/home.go`, when idle or after a failed follow or move)
+     and the corpse run (`internal/chat/brain.go`). Each dispatches one
+     task and follows it by id, so it needs more than a call to
+     `StartTravel`. Retreat is an escape; a planned walk may not suit it.
    - Left, step 4: the food goals and return home in `internal/goal`. They
      save each pending leg; `NextLeg` is the form made for them.
    - Left, step 5: the home survey. It stops on any leg without a `survey:`

@@ -140,6 +140,10 @@ type Options struct {
 	// false when nothing was started and the direct move should be sent
 	// instead. True with an error means a newer order replaced the trip.
 	Travel func(ctx context.Context, by, place string, to protocol.Vec3) (bool, error)
+	// TravelHome is Travel for the way home, with the same answers. It
+	// reports false when there is no home, no known way or the body cannot
+	// set out: GoHome then says why, or sends its direct move.
+	TravelHome func(ctx context.Context, by string) (bool, error)
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration
@@ -954,6 +958,20 @@ func (b *Brain) goHome(from origin) {
 	if b.opts.Home == nil {
 		b.say(from, "I don't have a home.")
 		return
+	}
+	// Over walked ground when the way is known: home is often up a stair
+	// the direct move does not find.
+	if b.opts.TravelHome != nil {
+		if settled, err := b.opts.TravelHome(context.Background(), from.player); settled {
+			if err != nil {
+				b.say(from, "I couldn't do that: "+err.Error())
+				return
+			}
+			b.ordered(from)
+			b.opts.Home.Told()
+			b.say(from, "Heading home.")
+			return
+		}
 	}
 	if _, err := b.opts.Home.GoHome(context.Background(), from, "told to"); err != nil {
 		b.opts.Logger.Warn("not going home", "err", err)

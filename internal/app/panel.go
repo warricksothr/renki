@@ -198,7 +198,15 @@ func (a *App) PanelAct(ctx context.Context, action string) (string, error) {
 			return "Stopped.", nil
 		}
 	case "home":
-		if _, err = a.Home.GoHome(ctx, nil, "the panel"); err == nil {
+		// Over walked ground when the way is known, and otherwise the
+		// direct move.
+		settled, travelErr := a.travelHome(ctx, "panel")
+		if settled {
+			err = travelErr
+		} else {
+			_, err = a.Home.GoHome(ctx, nil, "the panel")
+		}
+		if err == nil {
 			a.Home.Told()
 			return "Heading home.", nil
 		}
