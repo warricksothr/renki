@@ -191,7 +191,8 @@ namespace Renki.Plugin
         Outcome Finish(Outcome result)
         {
             if (inspect && budget != null && Player.m_localPlayer != null)
-                result.Detail = budget.Receipt(Convert.ToV3(Player.m_localPlayer.transform.position), result.Detail, "inspection");
+                result.Detail = budget.Receipt(Convert.ToV3(Player.m_localPlayer.transform.position), result.Detail, "inspection",
+                    result.Status == Wire.StatusFailed && result.Reason == Wire.ReasonUnreachable ? approach?.Verified : null);
             Cancel();
             return result;
         }

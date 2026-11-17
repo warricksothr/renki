@@ -180,6 +180,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		ResumeFollow: brain.ResumeLentFollow,
 		Home:         func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers:   homes.RememberedContainers,
+		Forget:       homes.ForgetContainers,
 		Landmarks:    homes.Landmarks,
 		Waypoints:    homes.Waypoints,
 		Base:         homes.ActiveBase,
@@ -195,6 +196,9 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Logger: log.With("part", "behaviour")})
 	gatherWood = a.Behaviours.StartWood
 	searchChests = func(ctx context.Context, by string, p chat.ChestSearchRequest) (string, error) {
+		if p.Census {
+			return a.Behaviours.StartCensus(ctx, by, behaviour.CensusParams{Radius: p.Radius})
+		}
 		return a.Behaviours.StartChestSearch(ctx, by, behaviour.SearchChestsParams{Item: p.Item, Radius: p.Radius, Chests: p.Chests})
 	}
 	baseCommand = a.baseChat

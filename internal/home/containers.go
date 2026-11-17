@@ -124,3 +124,50 @@ func (s *Store) RememberContainers(world string, observations []RememberedContai
 	}
 	return nil
 }
+
+// ForgetContainers removes containers the game no longer has, from container
+// memory and from the landmark layer, and reports how many records went.
+// Unknown ids are ignored. Failed persistence leaves both layers unchanged.
+func (s *Store) ForgetContainers(world string, entities []string) (int, error) {
+	if world == "" || len(entities) == 0 {
+		return 0, nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	containers := maps.Clone(s.mem.Containers[world])
+	marks := s.mem.Landmarks[world]
+	places := maps.Clone(marks.Entities)
+	removed := 0
+	for _, id := range entities {
+		if _, ok := containers[id]; ok {
+			delete(containers, id)
+			removed++
+		}
+		// Only a landmark recorded as a container goes: the id of a vanished
+		// chest must not delete some other kind of place.
+		if r, ok := places[id]; ok && r.Type >= 0 && r.Type < len(marks.Types) && marks.Types[r.Type].Kind == protocol.StructureContainer {
+			delete(places, id)
+			removed++
+		}
+	}
+	if removed == 0 {
+		return 0, nil
+	}
+	oldContainers, oldMarks := s.mem.Containers, s.mem.Landmarks
+	nextContainers, nextMarks := maps.Clone(oldContainers), maps.Clone(oldMarks)
+	if nextContainers == nil {
+		nextContainers = map[string]map[string]RememberedContainer{}
+	}
+	if nextMarks == nil {
+		nextMarks = map[string]landmarkWorld{}
+	}
+	nextContainers[world] = containers
+	marks.Entities = places
+	nextMarks[world] = marks
+	s.mem.Containers, s.mem.Landmarks = nextContainers, nextMarks
+	if err := s.save(); err != nil {
+		s.mem.Containers, s.mem.Landmarks = oldContainers, oldMarks
+		return 0, err
+	}
+	return removed, nil
+}

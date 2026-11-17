@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-17T17:56:06Z
+updated_at: 2026-11-17T19:27:11Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -90,8 +90,24 @@ Live evidence is the assignments section of `just vm upkeep-report` in TKT-01M6E
 - [ ] An assigned item goes only to its chests; a full assigned chest is reported with item and count rather than spilled elsewhere
 - [ ] With an empty table, marker_cargo and stow behave as before, in a test
 
+## Implementation plan
+
+Three steps, each its own pull request. (1) Discovery: scripts/vm/chest-census.py (PR #181), then the controller census behaviour with native standing spots in the inspection receipt, so memory can be refreshed in minutes wherever Tas is. (2) Storage plan: per-world roles for containers (dedicated to one item, shared by a category such as trophies, loose, do not touch) and adjacent containers treated as groups; proposed from census contents for the owner to approve. (3) Unloading and idle sorting that follow the plan. The chat-editing dependency is dropped for step 2: the API and panel come first.
+
 ## Notes
 
 **agent:claude-code/chests** at 2026-11-17T17:56:06Z
 
 2026-11-17 live census at the new home: 56 containers within 45 m of the warehouse (45 wood chests, 11 barrels), 32 never opened. Bulk materials are already hand-sorted into single-item chests; food is in barrels; two barrels hold many one-off items. Chest tasks fail from some standing spots: see TKT-01M7N9VE23Q3HJPXN5CWRR1ZKR and the walk-round in scripts/vm/chest-census.py. Evidence under .checks/census/.
+
+**agent:claude-code/chests** at 2026-11-17T18:45:36Z
+
+2026-11-17 controller census live on build 3366a1b at the new home warehouse, radius 45 m: 50 containers opened in 104 s (23 for the first time), 3 gone, 6 unreachable, 2 not checked after six refusals in a row. The SSH loop took about a minute per container. Memory now holds 145 distinct items in 50 fresh containers; 15 items are split across containers. Evidence .checks/census/20261117T184524Z.json. Gone containers are reported, not yet forgotten from memory.
+
+**agent:claude-code/chests** at 2026-11-17T19:07:17Z
+
+The six unreachable containers of the 2026-11-17 controller census were asked for from the east building: the bounded walker found no route to the warehouse and measured no standing spot (audit .checks/audit-window-Ycti3U.jsonl, t-70 to t-76). The census now walks toward the container when no spot was measured. Not yet verified live.
+
+**agent:claude-code/chests** at 2026-11-17T19:27:11Z
+
+2026-11-17 build 831964f live, radius 45 m: 52 opened, 12 gone and forgotten, none refused, 19 not checked because the run reached its 64-container cap (the recipe now asks for 96). The six containers unreachable from the east building opened after the walk toward them. 151 s. Evidence .checks/census/20261117T192626Z.json. The chat command was not tried in game.

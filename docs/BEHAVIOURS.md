@@ -758,7 +758,58 @@ checked chests, matches/counts/locations, and unchecked/inaccessible candidates.
 It never claims undiscovered storage is empty. Chat reports counters and the
 first match; behavior status retains all findings and failures.
 
-The run is bounded by a fixed radius, actual native travel, time and candidate
+### Container census
+
+`census` opens every container within a radius, nearest to the body first,
+and takes nothing. Use it on a first visit, after time away, or when memory
+has proved wrong: remembered contents are a hint with an age.
+
+```json
+{"template": "census",
+ "params": {"world": "your world", "radius": 30, "maxContainers": 64,
+            "durationS": 600, "travelM": 600},
+ "trigger": {"kind": "manual"}, "repeat": {"mode": "once"}, "enabled": false}
+```
+
+Radius is 10–100 m (default 30), maxContainers 1–96 (default 64), durationS
+30–1200 s (default 600) and travelM 10–2000 m (default 600). Optional `center`
+pins coordinates; otherwise the starting position is pinned. Candidates are
+the containers perception reports and those memory holds, as for the search,
+and also containers remembered only as landmarks, unless one stands within
+0.6 m of a known container (the same box under an older id).
+`Tas, take inventory`, `Tas, census` or `Tas, check all the chests` starts one
+for an owner, with `within 40m` to change the radius.
+Admission, health, threat, freshness and budget rules are the search's.
+
+Each container ends as one of three outcomes:
+
+- **opened**: a fresh native `inspect_container` receipt arrived, so memory now
+  holds its contents. The report counts those opened for the first time.
+- **gone**: the plugin found no container under that id while the body stood
+  within 30 m. When the run ends, finished or interrupted, gone containers
+  are removed from container memory and from the landmark layer. From farther
+  away the same answer proves nothing, because the object may not be loaded,
+  so the census walks nearer and asks again.
+- **refused**: anything else, with the native reason.
+
+When an inspection fails `unreachable`, the census walks with an ordinary
+`move_to` and asks again, at most twice per container. It goes to the first
+`standing` position in the receipt that lies inside its radius. When the
+receipt has none, as when the bounded walker finds no route between buildings
+and never measures a standing position, it walks toward the container itself
+and stops within 2.5 m. The inspection's own bounded walk gives up within its
+local search limit where an ordinary move goes round a row of chests or
+crosses to the next building. An ordinary move returns no travel
+receipt, so each walk is charged to the travel budget at twice its straight
+line when it is ordered, and a spot more than 15 m away, outside the radius or
+beyond the remaining budget is not walked to. The walk itself is not confined
+to the radius; it has 30 s. Six refusals in a row end the run; gone containers do not count.
+
+The run says one line in chat and its status keeps the counts, the gone ids
+and each refusal. `just vm chest-census` starts it and prints that report with
+what memory now holds (docs/MEMORY.md).
+
+The search run is bounded by a fixed radius, actual native travel, time and candidate
 count. It requires dry grounded footing, at least 15 HP and 40% max health,
 and stops for injury, threats, stale data or changed world/owner orders. A
 missing native travel receipt stops further inspections. It leaves all items

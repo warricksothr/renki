@@ -22,6 +22,11 @@ namespace Renki.Plugin
         MoveToTask walk;
         float began = -1, walkAt, angle;
         int seed, walks, measured, bodyRejected, reachRejected;
+        readonly List<V3> verified = new List<V3>();
+
+        /// <summary>Positions that passed reach and body clearance and that a
+        /// bounded walk was started toward, oldest first.</summary>
+        internal IReadOnlyList<V3> Verified => verified;
 
         internal InteractionApproach(string source, string label, string id, GameObject target, Func<Player, Vector3, bool> ready, Renki.Movement.TravelScope scope = null)
         { this.source = source; this.label = label; this.id = id; this.target = target; this.ready = ready; this.scope = scope; }
@@ -85,6 +90,7 @@ namespace Renki.Plugin
                 if (!ready(me, feet)) { reachRejected++; continue; }
                 walk = new MoveToTask(new MoveToArgs { To = new Target { Pos = Convert.ToV3(feet) }, StopDistance = scope == null ? .15 : .25, Dry = true, AvoidHostiles = true, Scope = scope }, feet, null);
                 walkAt = Time.unscaledTime; walks++;
+                verified.Add(Convert.ToV3(feet));
                 Tracer.Emit(source, "approaching verified interaction position", new Dictionary<string, object>
                 { ["id"] = id, ["attempt"] = walks, ["seed"] = index, ["to"] = Convert.ToArray(feet) });
                 return null;

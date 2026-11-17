@@ -92,25 +92,21 @@ for the focused persistence, frame-scoping, freshness and API regressions.
 ### Refreshing it: the container census
 
 Remembered contents change only when a container is opened, so after time
-away they are a hint with an age, not stock. `just vm chest-census` opens
-every container within a radius of the bot, nearest first, with the read-only
-`inspect_container` task, and retains each outcome under `.checks/census/`.
-`--plan` lists the candidates and sends nothing; `--only stale` skips what was
-opened recently. Anything perception or memory marks as kind `container`
-counts: chests of every tier, barrels, carts and holds.
+away they are a hint with an age, not stock. The controller's `census`
+behaviour (docs/BEHAVIOURS.md, "Container census") opens every container
+within a radius of the bot with the read-only `inspect_container` task.
+`just vm chest-census` starts it, waits, and prints its report and what
+memory now holds; evidence goes to `.checks/census/`. `--plan` lists the
+candidates and sends nothing. Anything perception or memory marks as kind
+`container` counts: chests of every tier, barrels, carts and holds.
 
-One container can be remembered under one entity id, seen under another and
-landmarked under a third, so rows within 0.6 m are one candidate, asked for by
-the id currently seen. On `invalid_target` the other ids are tried. On
-`unreachable` the census reads the standing spot the plugin verified from the
-task's trace, walks there with an ordinary `move_to`, and asks again: the
-inspection's own bounded walker gives up within its local search limit where
-an ordinary move goes round a row of chests. It stops after six consecutive
-failures or when health falls under half.
-
-The census drives the bot over SSH at about a minute per container. Moving the
-loop into the controller is tracked on TKT-01M62VXZ8 (assign every item to
-chests, with a loose-items chest) and its follow-ups.
+`just vm chest-census --via ssh` is the original loop, driven from the
+workstation at about a minute per container. It works against a build
+without the census behaviour, keeps per-container evidence, and takes
+`--only stale`. It also merges candidates that carry several entity ids for
+one place (rows within 0.6 m), tries the other ids on `invalid_target`, ranks
+landmarks with no sighting in six hours last, and reads the standing spot
+from the task's trace on builds whose receipts do not carry it.
 
 ## Injuries and danger
 
