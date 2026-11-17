@@ -64,6 +64,16 @@ online MINUTES="5": need-target guard
 routes: need-target
     @just --justfile "{{justfile()}}" vm panel GET /api/routes | python3 -B "{{justfile_directory()}}/scripts/vm/routes.py"
 
+# TARGET is "x,y,z" or a place name: home, or a saved place. FROM, "x,y,z",
+# plans from somewhere the body is not. Read-only: nothing is sent to the game.
+[doc("Plan a route over walked ground and print its legs, or why there is none and what to walk.")]
+[positional-arguments]
+route-plan TARGET FROM='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    path=$(python3 -B "{{justfile_directory()}}/scripts/vm/routes.py" plan-path "$1" "$2")
+    just --justfile "{{justfile()}}" vm panel GET "$path" 2>&1 | python3 -B "{{justfile_directory()}}/scripts/vm/routes.py"
+
 test-routes:
     python3 -B "{{justfile_directory()}}/scripts/vm/routes-test.py"
 

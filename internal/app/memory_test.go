@@ -239,3 +239,14 @@ func TestMemoryAPIsAreAuthenticatedAndReportAge(t *testing.T) {
 	}
 
 }
+
+func TestParseVecAcceptsOnlyThreeFiniteNumbers(t *testing.T) {
+	if v, err := parseVec(" -169.69, 31.03 ,-467.8"); err != nil || v != (protocol.Vec3{-169.69, 31.03, -467.8}) {
+		t.Fatal(v, err)
+	}
+	for _, bad := range []string{"", "1,2", "1,2,3,4", "a,2,3", "NaN,2,3", "Inf,2,3", "1e9,2,3"} {
+		if _, err := parseVec(bad); err == nil {
+			t.Fatal("accepted", bad)
+		}
+	}
+}

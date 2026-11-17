@@ -1,9 +1,15 @@
 package app
 
 import (
+	"errors"
+	"fmt"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
+	"github.com/warricksothr/renki/internal/route"
 	"math"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -120,4 +126,78 @@ func (a *App) RouteMemory(cells bool) any {
 		out.Cells = nodes
 	}
 	return out
+}
+
+// RoutePlanStatus is a plan with what it was asked for.
+type RoutePlanStatus struct {
+	World string `json:"world"`
+	// Place is the named place the target came from, if any.
+	Place string `json:"place,omitempty"`
+	route.Plan
+}
+
+func parseVec(text string) (protocol.Vec3, error) {
+	var v protocol.Vec3
+	parts := strings.Split(text, ",")
+	if len(parts) != 3 {
+		return v, errors.New("a position is x,y,z")
+	}
+	for i, part := range parts {
+		n, err := strconv.ParseFloat(strings.TrimSpace(part), 64)
+		if err != nil || math.IsNaN(n) || math.IsInf(n, 0) || math.Abs(n) > 1e6 {
+			return v, errors.New("a position is three finite numbers: x,y,z")
+		}
+		v[i] = n
+	}
+	return v, nil
+}
+
+// RoutePlan answers GET /api/routes/plan. The target is `to=x,y,z` or
+// `place=NAME`: "home", or a saved place by name. `from=x,y,z` replaces the
+// body's position, so a plan can be asked for somewhere the body is not. It
+// sends no game task.
+func (a *App) RoutePlan(q url.Values) (any, error) {
+	state := a.Session.State()
+	if state == nil || state.Phase != protocol.PhaseInWorld {
+		return nil, errors.New("the bot is not in a world")
+	}
+	out := RoutePlanStatus{World: state.World}
+	from := state.Pos
+	if text := q.Get("from"); text != "" {
+		var err error
+		if from, err = parseVec(text); err != nil {
+			return nil, err
+		}
+	}
+	var to protocol.Vec3
+	switch place, text := strings.TrimSpace(q.Get("place")), q.Get("to"); {
+	case place != "" && text != "":
+		return nil, errors.New("give to or place, not both")
+	case text != "":
+		var err error
+		if to, err = parseVec(text); err != nil {
+			return nil, err
+		}
+	case strings.EqualFold(place, "home"):
+		h, ok := a.Routes.Store.Home(state.World)
+		if !ok {
+			return nil, errors.New("no home is saved in this world")
+		}
+		to, out.Place = h.Pos, "home"
+	case place != "":
+		found := false
+		for _, w := range a.Routes.Store.Waypoints(state.World) {
+			if strings.EqualFold(w.Name, place) {
+				to, out.Place, found = w.Pos, w.Name, true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("no saved place is named %q", place)
+		}
+	default:
+		return nil, errors.New("give a target: to=x,y,z or place=NAME")
+	}
+	out.Plan = route.Find(a.Routes.Store.Routes(state.World), from, to)
+	return out, nil
 }
