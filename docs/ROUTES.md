@@ -92,6 +92,34 @@ When there is no route, the reason is one of:
 (`to`, `lengthM`, `climb`, `cells`, `inferred`), `lengthM`, `cells`,
 `avoided`, and for a missing route `closest` and `gapM`.
 
+## Walking a plan
+
+A run that has to get somewhere the bounded walker cannot reach walks a plan:
+one ordinary move per leg, checked on arrival (`internal/behaviour/route_walk.go`).
+
+- A leg has arrived when its move succeeded and the body stands within a
+  metre of the leg's stop distance and within a metre of its height. A move
+  that reports success from the floor below has not arrived.
+- A leg that fails for a reason about the ground (`unreachable`, `stuck`,
+  `blocked`, `deep_water`, or a success that stopped short or on another
+  floor) marks the link out of the walked cell nearest where the body stopped
+  as failed, in that direction. A timeout, a refusal or a stop marks nothing. The way is then planned again
+  from where the body stands, at most twice. `just vm routes` counts failed
+  links; a plan says how many its search skipped.
+- With no plan, the run makes the one direct move it would have made without
+  route memory. That move is recorded like any other, so it teaches the way.
+- A walk ends early once the body is within the stop distance of its target.
+
+The container census uses it for every walk it makes: to a verified standing
+position, or toward a container too far away to be loaded. Each container's
+entry carries a `route` line and the run's summary a `Walks:` part, such as
+`route 9 legs 40 m; arrived` or
+`route 4 legs 18 m; leg 2 of 4 failed (unreachable), link marked failed; route 6 legs 25 m; arrived`
+or `no route (target_off_walked_ground); direct move failed (timeout); did not arrive`.
+Read it before guiding the body by hand: it says which leg failed and why.
+
+The home survey does not use it yet.
+
 ## Limits
 
 - Recorded ground was walkable once. A door may since be shut, a wall built

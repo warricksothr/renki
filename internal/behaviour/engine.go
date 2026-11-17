@@ -36,6 +36,8 @@ type Options struct {
 	Bases      func(world string) []home.Base
 	Danger     func(world string, now time.Time) []home.DangerZone
 	Pickups    func(world string) []home.Pickup
+	// Routes is route memory, for runs that walk over known ground.
+	Routes RouteMemory
 	// Forget removes containers a run proved are gone from memory.
 	Forget func(world string, entities []string) (int, error)
 	Logger *slog.Logger
@@ -131,7 +133,7 @@ func New(o Options) *Engine {
 	if o.Anchor == nil {
 		o.Anchor = func() string { return "" }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "census": Census{Landmarks: o.Landmarks}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "census": Census{Landmarks: o.Landmarks, Routes: o.Routes}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}

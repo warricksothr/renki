@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T20:29:05Z
+updated_at: 2026-11-17T21:55:10Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -100,3 +100,13 @@ Slice 1 live on 2026-11-17: after four ordinary legs from the warehouse to home,
 Slice 2 (planner) is up as PR #184 and deployed to the VM. internal/route plans over the walked graph; GET /api/routes/plan and `just vm route-plan TARGET [FROM]` show the legs or the reason there is none. Live: home to the warehouse is 9 legs, 40 m, down the stairs; the way back climbs them.
 
 Not done: nothing walks a plan yet. Slice 3 is the runner (ordinary move_to per leg, arrival checked on the intended floor, MarkRouteFailed and replan on a failed leg), then its use in the census and the home survey, with the plan and per-leg outcome in behaviour status.
+
+**agent:claude-code/chests** at 2026-11-17T21:55:10Z
+
+Slice 3, first part, is on branch t3/route-walk: the census walks plans over route memory (internal/behaviour/route_walk.go), one ordinary move per leg, arrival checked on the intended floor, a ground failure marking its link and the way planned again. Each entry and the run summary say how the walks went.
+
+Live on 2026-11-17: a census started on home's upper floor crossed to the warehouse by itself ("route 7 legs 37 m; arrived"), and a later run opened 45 containers across both buildings with no hand-fed waypoints. Route memory grew from 42 to 134 walked cells.
+
+Found on the way: a training dummy near home counted as a threat (it has an enemy faction and a MonsterAI). Built pieces are now never hostile, in perception and in native route checks. A timed-out inspection no longer ends the census.
+
+Not done: the home survey does not use the walker; it moves with dry receipted moves in internal/goal/survey.go and needs its own change. The home to warehouse and back check as a plain owner move was not run; the census crossing covers the same ground one way. 20 containers stayed unchecked in the last run: four inspections timed out at 45 s each while a Greydwarf Elite stood about 37 m off, and the 600 s budget ended.

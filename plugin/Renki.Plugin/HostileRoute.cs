@@ -6,7 +6,9 @@ using UnityEngine;
 namespace Renki.Plugin
 {
     /// <summary>One loaded-threat sample per physics frame, shared by all
-    /// planning probes. Passive animals do not acquire an exclusion area.</summary>
+    /// planning probes. Passive animals do not acquire an exclusion area, and
+    /// neither does a built piece: a training dummy has a MonsterAI and an enemy
+    /// faction, and its 40 m area closed every bounded walk at the base.</summary>
     sealed class HostileRoute
     {
         readonly List<Character> characters = new List<Character>();
@@ -26,7 +28,7 @@ namespace Renki.Plugin
                 ["count"] = threats.Count,
                 ["nearest"] = player == null ? new object[0] : characters
                     .Where(c => c != null && c != player && !c.IsDead() &&
-                        c.GetComponent<MonsterAI>() != null && BaseAI.IsEnemy(player, c))
+                        c.GetComponent<MonsterAI>() != null && c.GetComponent<Piece>() == null && BaseAI.IsEnemy(player, c))
                     .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude)
                     .Take(8).Select(c => (object)new Dictionary<string, object>
                     {
@@ -58,7 +60,7 @@ namespace Renki.Plugin
                 saturated = characters.Count > 128;
                 if (saturated) return;
                 foreach (var c in characters)
-                    if (c != null && c != player && !c.IsDead() && c.GetComponent<MonsterAI>() != null && BaseAI.IsEnemy(player, c))
+                    if (c != null && c != player && !c.IsDead() && c.GetComponent<MonsterAI>() != null && c.GetComponent<Piece>() == null && BaseAI.IsEnemy(player, c))
                         threats.Add(new HostileClearance.Threat(Convert.ToV3(c.transform.position),
                             c.m_nview != null && c.m_nview.IsValid() ? c.m_nview.GetPrefabName() : null, c.GetLevel()));
                 available = true;

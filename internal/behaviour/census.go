@@ -23,6 +23,7 @@ import (
 // are asked for too, so one that has gone is found out and forgotten.
 type Census struct {
 	Landmarks func(world string) []home.Landmark
+	Routes    RouteMemory
 }
 
 type CensusParams struct {
@@ -54,6 +55,9 @@ const (
 	// An ordinary move returns no travel receipt and exists to go round an
 	// obstacle, so each walk is charged this multiple of its straight line.
 	censusWalkCharge = 2
+	// An inspection that timed out left no receipt. It is charged this many
+	// metres for each second it was given: the bounded walker's pace.
+	censusTimeoutMS = 2
 )
 
 func (p *CensusParams) defaults() {
@@ -103,7 +107,7 @@ func (t Census) Start(raw json.RawMessage) (Runner, error) {
 	// Its item is never matched here.
 	base := chestSearchRun{p: SearchChestsParams{World: p.World, Item: "census", Center: p.Center, Radius: p.Radius,
 		MaxChests: 32, DurationS: p.DurationS, TravelM: p.TravelM}, seen: map[string]bool{}}
-	return &censusRun{p: p, base: base, landmarks: t.Landmarks}, nil
+	return &censusRun{p: p, base: base, landmarks: t.Landmarks, routes: t.Routes}, nil
 }
 
 func (t Census) Ready(raw json.RawMessage, v View) bool {
@@ -120,6 +124,9 @@ type CensusEntry struct {
 	Stacks  int           `json:"stacks"`
 	First   bool          `json:"first,omitempty"`
 	Walks   int           `json:"walks,omitempty"`
+	// Route tells the walks made for the container: each plan over walked
+	// ground, any leg that failed, and how the walk ended.
+	Route string `json:"route,omitempty"`
 }
 
 type censusRun struct {
@@ -130,14 +137,22 @@ type censusRun struct {
 	known     bool
 	walking   bool
 	landmarks func(world string) []home.Landmark
-	// walked holds the positions walked to for the pending container, and
-	// walkStop how near the current walk has to get.
-	walkStop float64
+	routes    RouteMemory
+	// walk is the walk under way, and stories those made for the pending
+	// container.
+	walk    *routeWalk
+	stories []string
+	// walked holds the positions walked to for the pending container.
 	walked   []protocol.Vec3
 	failures int
-	// walkCharged is the travel total once the current walk was charged.
-	walkCharged float64
-	reported    bool
+	// A walk is charged when ordered, and again for each way planned anew.
+	// walkBase is the travel total before it, walkCharge what it has been
+	// charged and walkMoved what the body has been seen to move during it.
+	// The walk costs the larger of the two.
+	walkBase, walkCharge, walkMoved float64
+	// inspectS is the time the pending inspection was given.
+	inspectS float64
+	reported bool
 }
 
 // Recover keeps the run going after any failed walk to a standing spot: the
@@ -228,7 +243,7 @@ func (r *censusRun) addLandmarks(v View) {
 
 func (r *censusRun) record(outcome, reason string, stacks int) {
 	r.entries = append(r.entries, CensusEntry{Entity: r.pending.id, Pos: r.pending.pos, Outcome: outcome, Reason: reason,
-		Stacks: stacks, First: outcome == "opened" && !r.known, Walks: len(r.walked)})
+		Stacks: stacks, First: outcome == "opened" && !r.known, Walks: len(r.walked), Route: strings.Join(r.stories, ", then ")})
 	if outcome == "refused" {
 		r.failures++
 	} else if outcome == "opened" {
@@ -239,7 +254,7 @@ func (r *censusRun) record(outcome, reason string, stacks int) {
 		at := r.pending.pos
 		r.base.queue = slices.DeleteFunc(r.base.queue, func(c chestCandidate) bool { return distance(c.pos, at) <= censusSamePlaceM })
 	}
-	r.pending, r.walked, r.walking = nil, nil, false
+	r.pending, r.walked, r.walking, r.walk, r.stories = nil, nil, false, nil, nil
 }
 
 func (r *censusRun) inspect(v View) *session.Order {
@@ -252,8 +267,14 @@ func (r *censusRun) inspect(v View) *session.Order {
 		}
 	}
 	seconds := math.Min(45, r.p.DurationS-v.Now.Sub(b.began).Seconds())
+	r.inspectS = seconds
 	return &session.Order{Task: protocol.TaskInspectContainer, Args: &protocol.InspectContainerArgs{Container: r.pending.id,
 		Scope: &protocol.MoveScope{Center: b.center, Radius: r.p.Radius, TravelM: math.Min(500, r.p.TravelM-b.travel), DurationS: seconds}}, TimeoutS: seconds}
+}
+
+// timeFor reports whether the run has this many seconds left.
+func (r *censusRun) timeFor(v View, seconds float64) bool {
+	return r.p.DurationS-v.Now.Sub(r.base.began).Seconds() >= seconds
 }
 
 func (r *censusRun) spent(v View) bool {
@@ -288,12 +309,23 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 			return nil, errors.New("missing matching census outcome")
 		}
 		if r.walking {
+			// Check just added what the body moved. The walk costs the
+			// larger of its charge and its movement, not their sum.
+			r.walkMoved += b.travel - (r.walkBase + math.Max(r.walkCharge, r.walkMoved))
+			b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
+			// The finished leg is judged first. No further leg starts
+			// without the time for one, or once the budget is spent.
+			if next := r.walk.step(v, result); next != nil {
+				if !r.spent(v) && r.timeFor(v, routeLegTimeout) {
+					return next, nil
+				}
+				r.walk.abandon("budget ended")
+			}
 			// Whatever the walk achieved, ask again from where the body
-			// now stands: the inspection re-measures reach itself. The
-			// walk was charged in full when ordered, so the displacement
-			// Check just added is not counted a second time.
+			// now stands: the inspection re-measures reach itself.
 			r.walking = false
-			b.travel = r.walkCharged
+			r.stories = append(r.stories, r.walk.story())
+			b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
 			if r.spent(v) {
 				r.record("refused", "budget ended before a second look", 0)
 			} else {
@@ -303,9 +335,7 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 			if err != nil {
 				return nil, err
 			}
-			spot := r.walked[len(r.walked)-1]
-			stop := r.walkStop
-			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &spot}, StopDistance: &stop}, TimeoutS: 30}, nil
+			return r.walk.first(), nil
 		}
 	}
 	b.discover(v)
@@ -342,6 +372,13 @@ func (r *censusRun) settle(v View, result *Result) error {
 	receipt, measured := parseInspection(result.Detail)
 	if measured {
 		b.travel = math.Max(b.travel, b.legStartTravel+*receipt.Travel)
+	} else if result.Reason == protocol.ReasonTimeout {
+		// A timeout ends the task before a receipt is written, most often
+		// while every approach is closed by a threat's exclusion area. One
+		// such container should not end the census, but the budget must stay
+		// an upper bound: Check saw only where the body ended up, so the
+		// inspection is charged as if it had walked its whole time.
+		b.travel = math.Max(b.travel, b.legStartTravel+censusTimeoutMS*r.inspectS)
 	} else if result.Status != protocol.StatusRejected {
 		// As in search_chests: without native travel accounting the budget
 		// cannot be trusted, so nothing further is asked.
@@ -365,15 +402,32 @@ func (r *censusRun) settle(v View, result *Result) error {
 	case result.Reason == protocol.ReasonUnreachable && measured || result.Reason == protocol.ReasonInvalidTarget:
 		// Unreachable from here, or too far away for the game to have it
 		// loaded: walk nearer and ask again.
-		if !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v) {
+		if !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v) && r.timeFor(v, routeLegTimeout) {
 			if to, stop, ok := r.walkTarget(v.State.Pos, receipt.Standing); ok {
-				r.walked = append(r.walked, to)
-				r.walkStop = stop
-				r.walking = true
-				// Charged now, in full, whether or not the walk arrives.
-				b.travel += censusWalkCharge * distance(v.State.Pos, to)
-				r.walkCharged = b.travel
-				return nil
+				// Over walked ground when route memory knows a way, and
+				// otherwise the one direct move.
+				walk := newRouteWalk(r.routes, r.p.World, v.State.Pos, to, stop)
+				charge := censusWalkCharge * math.Max(distance(v.State.Pos, to), walk.lengthM(v.State.Pos))
+				if b.travel+charge < r.p.TravelM {
+					r.walked = append(r.walked, to)
+					r.walk, r.walking = walk, true
+					// Charged now, in full, whether or not the walk
+					// arrives. A way planned again is charged when taken.
+					r.walkBase, r.walkCharge, r.walkMoved = b.travel, charge, 0
+					b.travel += charge
+					walk.afford = func(lengthM float64) bool {
+						// On top of what the walk has cost so far: the
+						// new way starts from where the body now stands.
+						charge := math.Max(r.walkCharge, r.walkMoved) + censusWalkCharge*lengthM
+						if r.walkBase+charge >= r.p.TravelM {
+							return false
+						}
+						r.walkCharge = charge
+						b.travel = r.walkBase + math.Max(r.walkCharge, r.walkMoved)
+						return true
+					}
+					return nil
+				}
 			}
 		}
 		r.record("refused", result.Reason, 0)
@@ -431,7 +485,7 @@ func (r *censusRun) InterruptedSummary() string { return r.Summary() }
 func (r *censusRun) Summary() string {
 	_, _, _, _, stacks := r.counts()
 	parts := []string{r.line(), fmt.Sprintf("%d stacks seen.", stacks)}
-	var gone, refused []string
+	var gone, refused, walks []string
 	for _, e := range r.entries {
 		switch e.Outcome {
 		case "gone":
@@ -439,12 +493,18 @@ func (r *censusRun) Summary() string {
 		case "refused":
 			refused = append(refused, e.Entity+": "+e.Reason)
 		}
+		if e.Route != "" {
+			walks = append(walks, e.Entity+": "+e.Route)
+		}
 	}
 	if len(gone) > 0 {
 		parts = append(parts, "Gone, and forgotten: "+strings.Join(gone, ", ")+".")
 	}
 	if len(refused) > 0 {
 		parts = append(parts, "Not opened: "+strings.Join(refused, "; ")+".")
+	}
+	if len(walks) > 0 {
+		parts = append(parts, "Walks: "+strings.Join(walks, " | ")+".")
 	}
 	if r.base.stop {
 		parts = append(parts, "Stopped: native travel receipt missing.")
