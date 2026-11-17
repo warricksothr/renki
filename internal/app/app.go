@@ -53,6 +53,7 @@ type App struct {
 	Behaviours     *behaviour.Engine
 	Memory         *memory.Containers
 	Landmarks      *memory.Landmarks
+	Routes         *memory.Routes
 	Danger         *memory.Danger
 	Bridge         *bridge.Server
 	// Settings are what can change while the bot runs: owners, nicknames,
@@ -206,6 +207,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	resupplyFood = func(ctx context.Context, by string) (string, error) { return a.startFood(ctx, by, nil) }
 	a.Memory = &memory.Containers{Session: s, Store: homes, Logger: log.With("part", "memory")}
 	a.Landmarks = &memory.Landmarks{Session: s, Store: homes, Logger: log.With("part", "memory")}
+	a.Routes = &memory.Routes{Session: s, Store: homes, Logger: log.With("part", "routes")}
 	a.Danger = &memory.Danger{Store: homes, Logger: log.With("part", "memory")}
 	s.SetListener(&listeners{players: players, presence: a.Presence, brain: brain, retreat: a.Retreat, behaviours: a.Behaviours, danger: a.Danger, supply: a.queueEscortSupply})
 	a.Bridge = bridge.NewServer(bridge.Options{
@@ -277,6 +279,7 @@ func Welcome(cfg config.Config, v settings.Values) *protocol.Welcome {
 func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	ctx, cancel := context.WithCancel(ctx)
 	landmarksDone := make(chan struct{})
+	routesDone := make(chan struct{})
 	dangerDone := make(chan struct{})
 	playersDone := make(chan struct{})
 	memoryDone := make(chan struct{})
@@ -285,6 +288,7 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 		cancel()
 		// Let the recorder persist its final batch before main can exit.
 		<-landmarksDone
+		<-routesDone
 		<-dangerDone
 		<-playersDone
 		<-memoryDone
@@ -312,6 +316,10 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	go func() {
 		defer close(landmarksDone)
 		a.Landmarks.Run(ctx)
+	}()
+	go func() {
+		defer close(routesDone)
+		a.Routes.Run(ctx)
 	}()
 	return a.Bridge.Serve(ctx, ln)
 }

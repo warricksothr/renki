@@ -5,6 +5,8 @@ describes stable world identity, sample freshness, bounded change history,
 retention/quota settings and saved-map viewing. Portable exports remain backlog.
 The policies below describe the existing JSON memory layers.
 
+Where the body has walked is a separate layer, [route memory](ROUTES.md).
+
 ## Last-seen places
 
 Useful structures, pickables (including berry bushes) and recognized ore

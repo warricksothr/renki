@@ -206,4 +206,5 @@ parallel", says how tickets are handed to agents and where they conflict.
 docs/HANDOFF.md says where the last session left off and what waits on the
 owner. Read it before you start, and replace it when you hand off.
 In a fresh worktree run `just setup-worktree`, then `just vm doctor`: it checks the whole setup read-only and names the fix for each gap (docs/VM.md, "Start here").
+When a move fails or a place cannot be reached, read `just vm routes` first: it shows the ground Tas has walked and whether he stands on it (docs/ROUTES.md).
 Live work takes the VM lease first, `just vm lease ACTOR`, and gives it back with `just vm release` (docs/VM.md, "The VM lease").

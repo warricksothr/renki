@@ -80,12 +80,14 @@ type Options struct {
 	Behaviours      http.Handler
 	ContainerMemory func() any
 	LandmarkMemory  func() any
-	PlayerMemory    func() any
-	Map             func() any
-	Atlas           http.Handler
-	Inventory       func() any
-	Waypoints       http.Handler
-	Bases           http.Handler
+	// RouteMemory reports walked ground; cells asks for the whole graph.
+	RouteMemory  func(cells bool) any
+	PlayerMemory func() any
+	Map          func() any
+	Atlas        http.Handler
+	Inventory    func() any
+	Waypoints    http.Handler
+	Bases        http.Handler
 }
 
 // TaskCommand is an explicit order for repeatable game checks. IDs and
@@ -172,6 +174,12 @@ func Handler(o Options) http.Handler {
 		authed.HandleFunc("GET /api/memory/landmarks", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(o.LandmarkMemory())
+		})
+	}
+	if o.RouteMemory != nil {
+		authed.HandleFunc("GET /api/routes", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(o.RouteMemory(r.URL.Query().Get("cells") == "1"))
 		})
 	}
 	if o.Video != nil {

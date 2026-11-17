@@ -58,6 +58,15 @@ online MINUTES="5": need-target guard
     just --justfile "{{justfile()}}" streaming windows-online
     just --justfile "{{justfile()}}" vm start "{{MINUTES}}"
 
+# Read-only. Groups are sets of walked cells with a walked way between them;
+# more than one means some place has no known route to another.
+[doc("Show the ground Tas has walked: cells, links, height levels, separate groups, and where he stands in it.")]
+routes: need-target
+    @just --justfile "{{justfile()}}" vm panel GET /api/routes | python3 -B "{{justfile_directory()}}/scripts/vm/routes.py"
+
+test-routes:
+    python3 -B "{{justfile_directory()}}/scripts/vm/routes-test.py"
+
 # Read-only: worktree files, SSH, desktop, tasks, game, Tailscale, panel, build, lease, video.
 [doc("Check the whole setup and name the fix for each gap; exit 1 when something failed.")]
 [positional-arguments]

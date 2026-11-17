@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M7NEG203A7HHNMQE0F8PW3AM
 title: "Route memory: plan building routes over ground Tas has walked"
 type: task
-status: draft
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -18,10 +18,17 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/chests
+  branch: t3/controller-census
+  worktree: /home/sothr/.t3/worktrees/renki/t3-527f19de-ed082ea71ff42b98
+  commit: f48dc9064bbbba7e1291c44f0e090c91f3daf4fd
+  session: null
+  claimed_at: 2026-11-17T19:30:59Z
+  expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T19:07:17Z
+updated_at: 2026-11-17T19:31:25Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -67,3 +74,19 @@ Changing the bounded walker's search, or centring on stairs and doorways: TKT-01
 - [ ] A failed link is avoided until it is walked again
 - [ ] Containers and stations are grouped by building and floor
 - [ ] Live: home to warehouse and back, and a census across both buildings, without hand-fed waypoints
+
+## Implementation plan
+
+Three slices, each its own pull request, deployed and merged as it completes.
+
+1. **Record and inspect.** `internal/home/routes.go` keeps, per world, walked cells (1 m in x and z, 0.5 m in height so floors stay apart) and directed links between consecutive cells, with a count, last-walked time and failures. A link is reversible only when its height step is small, so a drop is never planned as a climb. `internal/memory/routes.go` samples session state while the body is grounded, in the world and not swimming; a teleport, portal or gap breaks the chain. Read-only debug from the first slice: `GET /api/routes` and `just vm routes` report cells, links, floors, connected groups and the newest recording. Deployed first, because the graph only grows from walking.
+2. **Plan and explain.** A pure planner (`internal/route`) searches the graph from the cell nearest the body to the cell nearest the target and reduces the path to legs. `GET /api/routes/plan` and `just vm route-plan` print the legs, or why there is none: no walked cell near the start or target, or the two lie in separate groups, with the nearest reachable cell and the gap.
+3. **Walk and learn from failure.** A runner sends ordinary `move_to` legs, checks arrival on the intended floor, marks a failed link and replans. The census and the home survey use it; each run's plan and per-leg outcome go to the audit log and behaviour status.
+
+Unattended runs may use it (owner decision, 2026-11-17). Native threat, water, fall and ward checks stay in the plugin for every leg.
+
+## Notes
+
+**agent:claude-code/chests** at 2026-11-17T19:31:00Z
+
+Owner decisions, 2026-11-17: Tas may use ordinary multi-leg moves on runs he starts himself, and may prefer them to the bursty bounded movement. Route memory is the top priority and blocks other work. Its debug information must be part of the regular process, so an agent can read it and guide the bot. Deploy and merge as the work completes.
