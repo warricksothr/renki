@@ -51,10 +51,13 @@ type RouteStep struct {
 type routeLink struct {
 	// N counts times walked in this direction. A link with N of 0 is the
 	// inferred reverse of a walked one.
-	N      int       `json:"n,omitempty"`
-	At     time.Time `json:"at"`
-	Fail   int       `json:"fail,omitempty"`
-	FailAt time.Time `json:"failAt,omitzero"`
+	N  int       `json:"n,omitempty"`
+	At time.Time `json:"at"`
+	// WalkedAt is when the body last went along the link in this direction.
+	// It stays zero for a link only ever inferred.
+	WalkedAt time.Time `json:"walkedAt,omitzero"`
+	Fail     int       `json:"fail,omitempty"`
+	FailAt   time.Time `json:"failAt,omitzero"`
 }
 
 type routeCell struct {
@@ -70,11 +73,12 @@ type routeWorld struct {
 // RouteEdge and RouteNode are an independent copy of the graph for planning
 // and inspection.
 type RouteEdge struct {
-	To     string    `json:"to"`
-	N      int       `json:"n"`
-	At     time.Time `json:"at"`
-	Fail   int       `json:"fail,omitempty"`
-	FailAt time.Time `json:"failAt,omitzero"`
+	To       string    `json:"to"`
+	N        int       `json:"n"`
+	At       time.Time `json:"at"`
+	WalkedAt time.Time `json:"walkedAt,omitzero"`
+	Fail     int       `json:"fail,omitempty"`
+	FailAt   time.Time `json:"failAt,omitzero"`
 }
 
 type RouteNode struct {
@@ -93,7 +97,7 @@ func (s *Store) Routes(world string) []RouteNode {
 	for key, c := range cells {
 		n := RouteNode{Key: key, Pos: c.Pos, At: c.At}
 		for to, l := range c.Links {
-			n.Links = append(n.Links, RouteEdge{To: to, N: l.N, At: l.At, Fail: l.Fail, FailAt: l.FailAt})
+			n.Links = append(n.Links, RouteEdge{To: to, N: l.N, At: l.At, WalkedAt: l.WalkedAt, Fail: l.Fail, FailAt: l.FailAt})
 		}
 		sort.Slice(n.Links, func(i, j int) bool { return n.Links[i].To < n.Links[j].To })
 		out = append(out, n)
@@ -159,6 +163,9 @@ func (s *Store) RememberRoute(world string, steps []RouteStep, now time.Time) er
 		l := c.Links[to]
 		if walked {
 			l.N++
+			if !l.WalkedAt.After(at) {
+				l.WalkedAt = at
+			}
 		}
 		if !l.At.After(at) {
 			l.At = at

@@ -71,8 +71,8 @@ type Plan struct {
 	Legs    []Leg   `json:"legs"`
 	LengthM float64 `json:"lengthM"`
 	Cells   int     `json:"cells"`
-	// Avoided counts links left out because a move along them failed and
-	// they have not been walked since.
+	// Avoided counts failed links the search skipped. They need not lie
+	// near the route found, so it says the graph has failures, not where.
 	Avoided int `json:"avoided"`
 	// Closest is the walked cell joined to the start that lies nearest the
 	// target, when there is no way through: where a walk would have to be
@@ -85,8 +85,10 @@ func dist(a, b protocol.Vec3) float64 {
 	return math.Sqrt((a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2]))
 }
 
-// blocked reports a link a move failed along that has not been walked since.
-func blocked(e home.RouteEdge) bool { return e.Fail > 0 && !e.At.After(e.FailAt) }
+// blocked reports a link a move failed along that has not been walked, in
+// that direction, since. Walking the other way proves nothing about this one:
+// a gate may open from one side only.
+func blocked(e home.RouteEdge) bool { return e.Fail > 0 && !e.WalkedAt.After(e.FailAt) }
 
 type graph struct {
 	nodes []home.RouteNode
@@ -275,13 +277,18 @@ func Find(nodes []home.RouteNode, from, to protocol.Vec3) Plan {
 		p.Closest, p.GapM = &closest, bestD
 		p.Explain = fmt.Sprintf("Walked ground near the target is not joined to the body's. The joined cell nearest the target is %.1f m short of it; walk that gap once to join them.", bestD)
 		if avoided > 0 {
-			p.Explain += fmt.Sprintf(" %d links were left out because a move along them failed.", avoided)
+			p.Explain += fmt.Sprintf(" The search skipped %d failed links; one of them may be the missing way.", avoided)
 		}
 		return p
 	}
 	p.Found = true
 	p.Cells = len(path)
 	p.Legs = g.legs(path)
+	// The body is near the first walked cell, not on it: start there, so the
+	// first long move begins on walked ground.
+	if head := dist(from, g.nodes[start].Pos); head > 0.5 {
+		p.Legs = append([]Leg{{To: g.nodes[start].Pos, LengthM: head, Climb: g.nodes[start].Pos[1] - from[1]}}, p.Legs...)
+	}
 	// The last walked cell is near the target, not on it: finish there.
 	if tail := dist(g.nodes[goal].Pos, to); tail > 0.5 {
 		p.Legs = append(p.Legs, Leg{To: to, LengthM: tail, Climb: to[1] - g.nodes[goal].Pos[1]})
@@ -291,7 +298,7 @@ func Find(nodes []home.RouteNode, from, to protocol.Vec3) Plan {
 	}
 	p.Explain = fmt.Sprintf("%d legs, %.0f m over %d walked cells.", len(p.Legs), p.LengthM, p.Cells)
 	if avoided > 0 {
-		p.Explain += fmt.Sprintf(" %d failed links avoided.", avoided)
+		p.Explain += fmt.Sprintf(" The search skipped %d failed links.", avoided)
 	}
 	return p
 }

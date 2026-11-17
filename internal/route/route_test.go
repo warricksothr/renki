@@ -146,8 +146,16 @@ func TestAFailedLinkIsAvoidedUntilItIsWalkedAgain(t *testing.T) {
 		t.Fatal(known, err)
 	}
 	detour := Find(s.Routes("w"), from, to)
-	if !detour.Found || detour.LengthM < 9 || detour.Avoided == 0 || !strings.Contains(detour.Explain, "failed links avoided") {
+	if !detour.Found || detour.LengthM < 9 || detour.Avoided == 0 || !strings.Contains(detour.Explain, "skipped") {
 		t.Fatalf("%+v", detour)
+	}
+	// Walking the stretch the other way does not clear this direction.
+	back := now.Add(30 * time.Second)
+	if err := s.RememberRoute("w", []home.RouteStep{{From: protocol.Vec3{3.5, 31, 0.5}, To: protocol.Vec3{2.5, 31, 0.5}, At: back}}, back); err != nil {
+		t.Fatal(err)
+	}
+	if still := Find(s.Routes("w"), from, to); still.LengthM < 9 {
+		t.Fatalf("a walk the other way cleared the failure: %+v", still)
 	}
 	// Walking the failed stretch again clears it.
 	later := now.Add(time.Minute)
@@ -165,5 +173,16 @@ func TestPlanFinishesAtTheTargetWhenTheLastCellIsShortOfIt(t *testing.T) {
 	last := p.Legs[len(p.Legs)-1]
 	if !p.Found || last.To != (protocol.Vec3{6.5, 31, 1.5}) || last.Cells != 0 || p.Target.DistanceM < 2 {
 		t.Fatalf("%+v", p)
+	}
+}
+
+func TestPlanStartsAtTheWalkedCellWhenTheBodyIsBesideIt(t *testing.T) {
+	_, nodes := walked(t, line(protocol.Vec3{0.5, 31, 0.5}, protocol.Vec3{8.5, 31, 0.5}, 8))
+	p := Find(nodes, protocol.Vec3{0.5, 31, 3.5}, protocol.Vec3{8.5, 31, 0.5})
+	if !p.Found || len(p.Legs) != 2 || p.Legs[0].To != (protocol.Vec3{0.5, 31, 0.5}) || p.Legs[0].Cells != 0 || p.Legs[0].LengthM != 3 {
+		t.Fatalf("%+v", p)
+	}
+	if p.LengthM != 11 {
+		t.Fatal(p.LengthM)
 	}
 }

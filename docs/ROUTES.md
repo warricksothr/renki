@@ -67,7 +67,9 @@ A position joins the graph at the nearest walked cell within 4 m and 1.25 m
 in height, so it joins on its own floor: the room above is not "near". The
 planner then takes the shortest walked way. A link never walked in that
 direction costs a quarter more. A link a move failed along is left out until
-it is walked again.
+it is walked again in that same direction; walking it the other way proves
+nothing, since a gate may open from one side only. The first leg goes to the
+walked cell the body joined at, when that is more than half a metre away.
 
 The way is cut into **legs**. A leg ends where going on would take the walked
 way more than 0.6 m off a straight line, with height counted double, or make
