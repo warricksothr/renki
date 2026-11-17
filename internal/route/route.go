@@ -61,6 +61,26 @@ type Leg struct {
 	Cells int `json:"cells"`
 	// Inferred counts links taken against the direction they were walked.
 	Inferred int `json:"inferred,omitempty"`
+	// Path is the walked position of each cell on the leg, first to last. It
+	// is empty for a leg that leaves walked ground at either end of a plan.
+	Path []protocol.Vec3 `json:"-"`
+}
+
+// FailedLink names the link a leg's move most likely failed on: the one out
+// of the leg's cell nearest where the body stopped. It reports false for a
+// leg off walked ground, which has no link to blame.
+func (p Plan) FailedLink(leg int, body protocol.Vec3) (from, to protocol.Vec3, ok bool) {
+	if leg < 0 || leg >= len(p.Legs) || len(p.Legs[leg].Path) < 2 {
+		return from, to, false
+	}
+	path := p.Legs[leg].Path
+	at := 0
+	for i := range path[:len(path)-1] {
+		if dist(path[i], body) < dist(path[at], body) {
+			at = i
+		}
+	}
+	return path[at], path[at+1], true
 }
 
 // Plan is a route, or the explanation for there being none.
@@ -253,6 +273,9 @@ func (g graph) legs(path []int) []Leg {
 			end = next
 		}
 		leg := Leg{To: g.nodes[path[end]].Pos, Cells: end - start, Climb: g.nodes[path[end]].Pos[1] - g.nodes[path[start]].Pos[1]}
+		for i := start; i <= end; i++ {
+			leg.Path = append(leg.Path, g.nodes[path[i]].Pos)
+		}
 		for i := start; i < end; i++ {
 			leg.LengthM += dist(g.nodes[path[i]].Pos, g.nodes[path[i+1]].Pos)
 			for _, e := range g.nodes[path[i]].Links {

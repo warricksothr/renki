@@ -799,14 +799,19 @@ receipt has none, as when the bounded walker finds no route between buildings
 and never measures a standing position, it walks toward the container itself
 and stops within 2.5 m. The inspection's own bounded walk gives up within its
 local search limit where an ordinary move goes round a row of chests or
-crosses to the next building. An ordinary move returns no travel
-receipt, so each walk is charged to the travel budget at twice its straight
-line when it is ordered, and a spot more than 15 m away, outside the radius or
-beyond the remaining budget is not walked to. The walk itself is not confined
-to the radius; it has 30 s. Six refusals in a row end the run; gone containers do not count.
+crosses to the next building.
 
-The run says one line in chat and its status keeps the counts, the gone ids
-and each refusal. `just vm chest-census` starts it and prints that report with
+Each walk goes over route memory when it knows a way (docs/ROUTES.md,
+"Walking a plan"): one ordinary move per leg, each checked on arrival, a
+failed leg marking its link and the way planned again, at most twice. With no
+known way it is one direct move. An ordinary move returns no travel receipt,
+so each walk is charged to the travel budget when it is ordered, at twice the
+longer of its straight line and its planned length. A spot more than 15 m
+away, outside the radius or beyond the remaining budget is not walked to. The
+walk itself is not confined to the radius; each move has 30 s. Six refusals in a row end the run; gone containers do not count.
+
+The run says one line in chat and its status keeps the counts, the gone ids,
+each refusal and, under `Walks:`, how each walk went. `just vm chest-census` starts it and prints that report with
 what memory now holds (docs/MEMORY.md).
 
 The search run is bounded by a fixed radius, actual native travel, time and candidate

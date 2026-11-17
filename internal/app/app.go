@@ -182,12 +182,15 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Home:         func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers:   homes.RememberedContainers,
 		Forget:       homes.ForgetContainers,
-		Landmarks:    homes.Landmarks,
-		Waypoints:    homes.Waypoints,
-		Base:         homes.ActiveBase,
-		Bases:        func(world string) []home.Base { bases, _ := homes.Bases(world); return bases },
-		Danger:       homes.DangerZones,
-		Pickups:      homes.Pickups,
+		Routes: behaviour.RouteMemory{Graph: homes.Routes, Failed: func(world string, from, to protocol.Vec3) (bool, error) {
+			return homes.MarkRouteFailed(world, from, to, time.Now())
+		}},
+		Landmarks: homes.Landmarks,
+		Waypoints: homes.Waypoints,
+		Base:      homes.ActiveBase,
+		Bases:     func(world string) []home.Base { bases, _ := homes.Bases(world); return bases },
+		Danger:    homes.DangerZones,
+		Pickups:   homes.Pickups,
 		Notify: func(ctx context.Context, line string) {
 			_, err := s.Dispatch(ctx, session.Order{Task: protocol.TaskSay, Args: &protocol.SayArgs{Text: line}, TimeoutS: 5})
 			if err != nil {

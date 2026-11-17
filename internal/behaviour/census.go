@@ -23,6 +23,7 @@ import (
 // are asked for too, so one that has gone is found out and forgotten.
 type Census struct {
 	Landmarks func(world string) []home.Landmark
+	Routes    RouteMemory
 }
 
 type CensusParams struct {
@@ -103,7 +104,7 @@ func (t Census) Start(raw json.RawMessage) (Runner, error) {
 	// Its item is never matched here.
 	base := chestSearchRun{p: SearchChestsParams{World: p.World, Item: "census", Center: p.Center, Radius: p.Radius,
 		MaxChests: 32, DurationS: p.DurationS, TravelM: p.TravelM}, seen: map[string]bool{}}
-	return &censusRun{p: p, base: base, landmarks: t.Landmarks}, nil
+	return &censusRun{p: p, base: base, landmarks: t.Landmarks, routes: t.Routes}, nil
 }
 
 func (t Census) Ready(raw json.RawMessage, v View) bool {
@@ -120,6 +121,9 @@ type CensusEntry struct {
 	Stacks  int           `json:"stacks"`
 	First   bool          `json:"first,omitempty"`
 	Walks   int           `json:"walks,omitempty"`
+	// Route tells the walks made for the container: each plan over walked
+	// ground, any leg that failed, and how the walk ended.
+	Route string `json:"route,omitempty"`
 }
 
 type censusRun struct {
@@ -130,9 +134,12 @@ type censusRun struct {
 	known     bool
 	walking   bool
 	landmarks func(world string) []home.Landmark
-	// walked holds the positions walked to for the pending container, and
-	// walkStop how near the current walk has to get.
-	walkStop float64
+	routes    RouteMemory
+	// walk is the walk under way, and stories those made for the pending
+	// container.
+	walk    *routeWalk
+	stories []string
+	// walked holds the positions walked to for the pending container.
 	walked   []protocol.Vec3
 	failures int
 	// walkCharged is the travel total once the current walk was charged.
@@ -228,7 +235,7 @@ func (r *censusRun) addLandmarks(v View) {
 
 func (r *censusRun) record(outcome, reason string, stacks int) {
 	r.entries = append(r.entries, CensusEntry{Entity: r.pending.id, Pos: r.pending.pos, Outcome: outcome, Reason: reason,
-		Stacks: stacks, First: outcome == "opened" && !r.known, Walks: len(r.walked)})
+		Stacks: stacks, First: outcome == "opened" && !r.known, Walks: len(r.walked), Route: strings.Join(r.stories, ", then ")})
 	if outcome == "refused" {
 		r.failures++
 	} else if outcome == "opened" {
@@ -239,7 +246,7 @@ func (r *censusRun) record(outcome, reason string, stacks int) {
 		at := r.pending.pos
 		r.base.queue = slices.DeleteFunc(r.base.queue, func(c chestCandidate) bool { return distance(c.pos, at) <= censusSamePlaceM })
 	}
-	r.pending, r.walked, r.walking = nil, nil, false
+	r.pending, r.walked, r.walking, r.walk, r.stories = nil, nil, false, nil, nil
 }
 
 func (r *censusRun) inspect(v View) *session.Order {
@@ -288,11 +295,15 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 			return nil, errors.New("missing matching census outcome")
 		}
 		if r.walking {
+			if next := r.walk.step(v, result); next != nil {
+				return next, nil
+			}
 			// Whatever the walk achieved, ask again from where the body
 			// now stands: the inspection re-measures reach itself. The
 			// walk was charged in full when ordered, so the displacement
 			// Check just added is not counted a second time.
 			r.walking = false
+			r.stories = append(r.stories, r.walk.story())
 			b.travel = r.walkCharged
 			if r.spent(v) {
 				r.record("refused", "budget ended before a second look", 0)
@@ -303,9 +314,7 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 			if err != nil {
 				return nil, err
 			}
-			spot := r.walked[len(r.walked)-1]
-			stop := r.walkStop
-			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &spot}, StopDistance: &stop}, TimeoutS: 30}, nil
+			return r.walk.first(), nil
 		}
 	}
 	b.discover(v)
@@ -367,13 +376,19 @@ func (r *censusRun) settle(v View, result *Result) error {
 		// loaded: walk nearer and ask again.
 		if !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v) {
 			if to, stop, ok := r.walkTarget(v.State.Pos, receipt.Standing); ok {
-				r.walked = append(r.walked, to)
-				r.walkStop = stop
-				r.walking = true
-				// Charged now, in full, whether or not the walk arrives.
-				b.travel += censusWalkCharge * distance(v.State.Pos, to)
-				r.walkCharged = b.travel
-				return nil
+				// Over walked ground when route memory knows a way, and
+				// otherwise the one direct move.
+				walk := newRouteWalk(r.routes, r.p.World, v.State.Pos, to, stop)
+				charge := censusWalkCharge * math.Max(distance(v.State.Pos, to), walk.lengthM(v.State.Pos))
+				if b.travel+charge < r.p.TravelM {
+					r.walked = append(r.walked, to)
+					r.walk, r.walking = walk, true
+					// Charged now, in full, whether or not the walk
+					// arrives or is planned again.
+					b.travel += charge
+					r.walkCharged = b.travel
+					return nil
+				}
 			}
 		}
 		r.record("refused", result.Reason, 0)
@@ -431,7 +446,7 @@ func (r *censusRun) InterruptedSummary() string { return r.Summary() }
 func (r *censusRun) Summary() string {
 	_, _, _, _, stacks := r.counts()
 	parts := []string{r.line(), fmt.Sprintf("%d stacks seen.", stacks)}
-	var gone, refused []string
+	var gone, refused, walks []string
 	for _, e := range r.entries {
 		switch e.Outcome {
 		case "gone":
@@ -439,12 +454,18 @@ func (r *censusRun) Summary() string {
 		case "refused":
 			refused = append(refused, e.Entity+": "+e.Reason)
 		}
+		if e.Route != "" {
+			walks = append(walks, e.Entity+": "+e.Route)
+		}
 	}
 	if len(gone) > 0 {
 		parts = append(parts, "Gone, and forgotten: "+strings.Join(gone, ", ")+".")
 	}
 	if len(refused) > 0 {
 		parts = append(parts, "Not opened: "+strings.Join(refused, "; ")+".")
+	}
+	if len(walks) > 0 {
+		parts = append(parts, "Walks: "+strings.Join(walks, " | ")+".")
 	}
 	if r.base.stop {
 		parts = append(parts, "Stopped: native travel receipt missing.")
