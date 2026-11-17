@@ -372,8 +372,8 @@ func (e *Engine) StartCensus(ctx context.Context, by string, request CensusParam
 	return fmt.Sprintf("I'll open every container within %.0fm, up to %d, report what I find and leave everything where it is. Say stop to cancel.", request.Radius, request.MaxContainers), nil
 }
 
-// startOwnerRun saves and starts a one-off read-only storage run for a
-// player: only from a fresh idle body, with nothing queued, and never over a
+// startOwnerRun saves and starts a one-off run for a player, a read-only
+// storage run or a trip: only from a fresh idle body, with nothing queued, and never over a
 // newer order. prepare completes the parameters from the view and checks
 // admission. The caller holds e.mu.
 func (e *Engine) startOwnerRun(ctx context.Context, by, instance, source, template, noun string, prepare func(View) (json.RawMessage, error)) error {
@@ -404,8 +404,11 @@ func (e *Engine) startOwnerRun(ctx context.Context, by, instance, source, templa
 	}
 	defer admission.Release()
 	tasks := []string{protocol.TaskInspectContainer, protocol.TaskSay, protocol.TaskStop}
-	if template == "census" {
+	switch template {
+	case "census":
 		tasks = append(tasks, protocol.TaskMoveTo)
+	case "travel":
+		tasks = []string{protocol.TaskMoveTo, protocol.TaskSay, protocol.TaskStop}
 	}
 	for _, task := range tasks {
 		if !e.o.Session.Allowed(task) {

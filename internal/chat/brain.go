@@ -136,6 +136,9 @@ type Options struct {
 	GatherWood   func(context.Context, string) (string, error)
 	ResupplyFood func(context.Context, string) (string, error)
 	SearchChests func(context.Context, string, ChestSearchRequest) (string, error)
+	// Travel starts a trip to a saved place over known ground. An error
+	// means nothing was started, and the direct move is sent instead.
+	Travel func(ctx context.Context, by, place string, to protocol.Vec3) (string, error)
 	// ReplyWindow is how long after the bot speaks to a player that
 	// player's lines count as addressed without the bot's name.
 	ReplyWindow time.Duration

@@ -108,9 +108,13 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 	var resupplyFood func(context.Context, string) (string, error)
 	var baseCommand func(context.Context, string, string, *protocol.Vec3) (string, bool, error)
 	var searchChests func(context.Context, string, chat.ChestSearchRequest) (string, error)
+	var travel func(context.Context, string, string, protocol.Vec3) (string, error)
 	brain := chat.New(chat.Options{
 		SearchChests: func(ctx context.Context, by string, p chat.ChestSearchRequest) (string, error) {
 			return searchChests(ctx, by, p)
+		},
+		Travel: func(ctx context.Context, by, place string, to protocol.Vec3) (string, error) {
+			return travel(ctx, by, place, to)
 		},
 		BaseCommand: func(ctx context.Context, by, text string, pos *protocol.Vec3) (string, bool, error) {
 			return baseCommand(ctx, by, text, pos)
@@ -182,7 +186,7 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 		Home:         func() (protocol.Vec3, bool) { _, h, ok := keeper.Current(); return h.Pos, ok },
 		Containers:   homes.RememberedContainers,
 		Forget:       homes.ForgetContainers,
-		Routes: behaviour.RouteMemory{Graph: homes.Routes, Failed: func(world string, from, to protocol.Vec3) (bool, error) {
+		Routes: behaviour.RouteMemory{Graph: homes.Routes, MarkFailed: func(world string, from, to protocol.Vec3) (bool, error) {
 			return homes.MarkRouteFailed(world, from, to, time.Now())
 		}},
 		Landmarks: homes.Landmarks,
@@ -204,6 +208,9 @@ func New(cfg config.Config, voice chat.Voice, log *slog.Logger, audit *audit.Log
 			return a.Behaviours.StartCensus(ctx, by, behaviour.CensusParams{Radius: p.Radius})
 		}
 		return a.Behaviours.StartChestSearch(ctx, by, behaviour.SearchChestsParams{Item: p.Item, Radius: p.Radius, Chests: p.Chests})
+	}
+	travel = func(ctx context.Context, by, place string, to protocol.Vec3) (string, error) {
+		return a.Behaviours.StartTravel(ctx, by, behaviour.TravelParams{To: to, Place: place})
 	}
 	baseCommand = a.baseChat
 	a.escortSupply = make(chan escortSupplyRequest, 8)

@@ -758,6 +758,27 @@ checked chests, matches/counts/locations, and unchecked/inaccessible candidates.
 It never claims undiscovered storage is empty. Chat reports counters and the
 first match; behavior status retains all findings and failures.
 
+### Travel
+
+`travel` takes the body to a position over walked ground (docs/ROUTES.md,
+"Walking a plan"): one ordinary move per leg, each checked on arrival, the way
+planned again when a leg fails.
+
+```json
+{"template": "travel",
+ "params": {"world": "your world", "to": [-169.1, 31.0, -467.8],
+            "place": "warehouse", "stopM": 1, "run": false},
+ "trigger": {"kind": "manual"}, "repeat": {"mode": "once"}, "enabled": false}
+```
+
+`stopM` is 0.2–10 m (default 1). `place` only names the destination in
+reports. The trip has 3 s for each metre planned and never less than a minute.
+It needs fresh state in the named world and makes no health or threat check
+of its own: it is what an owner's `go to` does, and that never had one.
+Chat and the panel start it as `Owner travel` when a plan of two legs or more
+exists, and send the direct move otherwise. When Tas does not arrive he says
+why once in the game, and the status keeps the walk's story.
+
 ### Container census
 
 `census` opens every container within a radius, nearest to the body first,
