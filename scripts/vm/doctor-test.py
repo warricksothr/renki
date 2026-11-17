@@ -80,6 +80,7 @@ class DoctorTest(unittest.TestCase):
 
     def test_unanswering_panel_names_the_restart(self):
         by, _ = run(panel__http=0, panel__error='Timeout')
+        self.assertIn('[$addr]', Path(__file__).with_name('doctor.ps1').read_text())
         self.assertEqual(by['panel']['level'], doctor.FAIL)
         self.assertIn('Timeout', by['panel']['detail'])
         self.assertIn('panel-start', by['panel']['fix'])
@@ -101,12 +102,26 @@ class DoctorTest(unittest.TestCase):
         self.assertIn('setup-remote', by['tasks']['fix'])
         self.assertEqual(by['game']['fix'], 'just vm install')
 
-    def test_build_outside_this_branch_fails_before_a_deploy_would(self):
+    def test_build_outside_this_branch_warns_without_blocking_up(self):
+        # `vm up` starts what is installed and deploys nothing, so it must pass.
         local = dict(LOCAL, build={'in_head': False, 'in_main': False, 'ahead': 0})
         by, checks = run(local)
-        self.assertEqual(by['build']['level'], doctor.FAIL)
+        self.assertEqual(by['build']['level'], doctor.WARN)
+        self.assertIn('refused', by['build']['detail'])
         self.assertEqual(by['main']['level'], doctor.WARN)
-        self.assertTrue(doctor.failed(checks))
+        self.assertFalse(doctor.failed(checks))
+
+    def test_both_local_files_missing_still_warns_about_the_props(self):
+        local = dict(LOCAL, files={'vm.local': False, 'plugin/game.local.props': False})
+        by, _ = run(local)
+        self.assertEqual(by['worktree']['level'], doctor.WARN)
+
+    def test_ssh_failure_text_never_repeats_ssh_output(self):
+        self.assertEqual(doctor.ssh_reason('ssh: connect to host 100.101.102.103 port 22: Connection timed out'),
+                         'connection timed out')
+        self.assertEqual(doctor.ssh_reason('ssh: Could not resolve hostname bot-vm: unknown'),
+                         'host name does not resolve')
+        self.assertNotIn('bot-vm', doctor.ssh_reason('bot-vm said something odd'))
 
     def test_unknown_commit_asks_for_a_fetch(self):
         local = dict(LOCAL, build={'in_head': None, 'in_main': None, 'ahead': 0})

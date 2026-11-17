@@ -40,9 +40,9 @@ def evaluate(local, vm):
                          'just setup-worktree'))
         return out
     if missing:
-        level = WARN if missing == ['plugin/game.local.props'] else OK
-        out.append(check(level, 'worktree', 'missing ' + ', '.join(missing) +
-                         (' (the plugin cannot build, so no deploy)' if level == WARN else ' (RENKI_VM is set)'),
+        props = 'plugin/game.local.props' in missing
+        out.append(check(WARN if props else OK, 'worktree', 'missing ' + ', '.join(missing) +
+                         (' (the plugin cannot build, so no deploy)' if props else ' (RENKI_VM is set)'),
                          'just setup-worktree'))
     else:
         out.append(check(OK, 'worktree', 'local files present'))
@@ -142,8 +142,9 @@ def evaluate(local, vm):
             out.append(check(WARN, 'build', f'installed {name}; this checkout does not have that commit',
                              'git fetch origin'))
         elif not build['in_head']:
-            out.append(check(FAIL, 'build', f'installed {name} is not in this branch, so a deploy from here is refused',
-                             'merge or rebase onto the installed branch first'))
+            # Starting what is installed still works, so `vm up` is not blocked.
+            out.append(check(WARN, 'build', f'installed {name} is not in this branch, so a deploy from here is refused',
+                             'merge or rebase onto the installed branch before deploying'))
         elif build.get('ahead'):
             out.append(check(INFO, 'build', f"installed {name}; this branch is {build['ahead']} commit(s) ahead",
                              'just check vm deploy, when you want them on the VM'))
@@ -216,6 +217,20 @@ def build_facts(source):
             'ahead': int(count or 0)}
 
 
+SSH_REASONS = (('timed out', 'connection timed out'), ('refused', 'connection refused'),
+               ('permission denied', 'key not accepted'), ('could not resolve', 'host name does not resolve'),
+               ('no route', 'no route to the VM'), ('host key', 'host key not accepted'))
+
+
+def ssh_reason(output):
+    """Fixed text for a failed SSH run: ssh's own message names the host."""
+    lowered = output.lower()
+    for needle, reason in SSH_REASONS:
+        if needle in lowered:
+            return reason
+    return 'no facts returned; run just vm check to see why'
+
+
 def gather_vm(target, vm_dir):
     script = f"$RenkiDir = '{vm_dir}'\n" + (Path(__file__).with_name('doctor.ps1')).read_text()
     command = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[Console]::In.ReadToEnd() | Invoke-Expression"'
@@ -230,8 +245,7 @@ def gather_vm(target, vm_dir):
                 return json.loads(line[len(MARKER):])
             except ValueError:
                 break
-    tail = (done.stderr.strip() or done.stdout.strip()).splitlines()[-1:] or ['no output']
-    return {'error': f'ssh exit {done.returncode}: {tail[0][:160]}'}
+    return {'error': f'ssh exit {done.returncode}: {ssh_reason(done.stderr + done.stdout)}'}
 
 
 def lease_line(target, vm_dir):

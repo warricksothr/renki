@@ -92,15 +92,16 @@ if ($config -and $config.panel -and $config.panel.listen) {
     $panel.configured = $true
     $listen = [string]$config.panel.listen
     $split = $listen.LastIndexOf(':')
-    $addr = $listen.Substring(0, $split).Trim('[', ']')
-    $port = $listen.Substring($split + 1)
+    $addr = if ($split -ge 0) { $listen.Substring(0, $split).Trim('[', ']') } else { $listen }
+    $port = if ($split -ge 0) { $listen.Substring($split + 1) } else { '' }
     $panel.kind = if ($addr -match '^(127\.|localhost$|::1$)') { 'loopback' }
         elseif ($addr -match '^(100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|fd7a:)') { 'tailscale' }
         elseif ($addr -in '', '0.0.0.0', '::') { 'any' } else { 'other' }
     $panel.addressPresent = ($panel.kind -in 'any', 'loopback') -or
         [bool](Get-NetIPAddress -IPAddress $addr -ErrorAction SilentlyContinue)
-    $probe = if ($panel.kind -eq 'any') { '127.0.0.1' } else { $addr }
-    if ($panel.addressPresent) {
+    $probe = if ($panel.kind -eq 'any') { '127.0.0.1' } elseif ($addr.Contains(':')) { "[$addr]" } else { $addr }
+    if (-not $port) { $panel.error = 'no port in panel.listen' }
+    elseif ($panel.addressPresent) {
         try {
             $panel.http = [int](Invoke-WebRequest -UseBasicParsing -TimeoutSec 8 -Uri "http://${probe}:$port/").StatusCode
         } catch [System.Net.WebException] {
