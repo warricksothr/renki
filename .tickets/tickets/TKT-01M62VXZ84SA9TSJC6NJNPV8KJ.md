@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-17T18:45:36Z
+updated_at: 2026-11-17T19:07:17Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -103,3 +103,7 @@ Three steps, each its own pull request. (1) Discovery: scripts/vm/chest-census.p
 **agent:claude-code/chests** at 2026-11-17T18:45:36Z
 
 2026-11-17 controller census live on build 3366a1b at the new home warehouse, radius 45 m: 50 containers opened in 104 s (23 for the first time), 3 gone, 6 unreachable, 2 not checked after six refusals in a row. The SSH loop took about a minute per container. Memory now holds 145 distinct items in 50 fresh containers; 15 items are split across containers. Evidence .checks/census/20261117T184524Z.json. Gone containers are reported, not yet forgotten from memory.
+
+**agent:claude-code/chests** at 2026-11-17T19:07:17Z
+
+The six unreachable containers of the 2026-11-17 controller census were asked for from the east building: the bounded walker found no route to the warehouse and measured no standing spot (audit .checks/audit-window-Ycti3U.jsonl, t-70 to t-76). The census now walks toward the container when no spot was measured. Not yet verified live.

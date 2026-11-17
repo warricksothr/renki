@@ -36,9 +36,11 @@ type Options struct {
 	Bases      func(world string) []home.Base
 	Danger     func(world string, now time.Time) []home.DangerZone
 	Pickups    func(world string) []home.Pickup
-	Logger     *slog.Logger
-	Now        func() time.Time
-	Notify     func(context.Context, string)
+	// Forget removes containers a run proved are gone from memory.
+	Forget func(world string, entities []string) (int, error)
+	Logger *slog.Logger
+	Now    func() time.Time
+	Notify func(context.Context, string)
 	// ResumeFollow is told of an owner's follow a passive run had borrowed
 	// when Tas died before it went back, so the follow can be resumed after
 	// the respawn as one that was running at the death would be.
@@ -129,7 +131,7 @@ func New(o Options) *Engine {
 	if o.Anchor == nil {
 		o.Anchor = func() string { return "" }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "census": Census{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "census": Census{Landmarks: o.Landmarks}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}
@@ -785,6 +787,17 @@ func (e *Engine) finish(ctx context.Context, success bool, detail string, v View
 		msg = "behaviour failed"
 	}
 	e.o.Logger.Info(msg, "instance", e.active, "runs", i.completed, "detail", detail)
+	// Whether it finished or was interrupted, what a run proved gone stays
+	// gone: memory must not keep offering a container the game lacks.
+	if g, ok := i.runner.(interface{ Gone() (string, []string) }); ok && e.o.Forget != nil {
+		if world, ids := g.Gone(); len(ids) > 0 {
+			if n, err := e.o.Forget(world, ids); err != nil {
+				e.o.Logger.Warn("could not forget gone containers", "instance", e.active, "err", err)
+			} else {
+				e.o.Logger.Info("forgot gone containers", "instance", e.active, "containers", ids, "records", n)
+			}
+		}
+	}
 	i.runner = nil
 	i.task = nil
 	e.lease.Release()

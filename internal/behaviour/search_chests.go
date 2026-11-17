@@ -325,61 +325,106 @@ const chestSearchSource = "chat:chest-search:"
 func (e *Engine) StartChestSearch(ctx context.Context, by string, request SearchChestsParams) (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	err := e.startOwnerRun(ctx, by, chestSearchInstance, chestSearchSource, "search_chests", "search", func(v View) (json.RawMessage, error) {
+		request.World = v.State.World
+		request.defaults()
+		if request.Center == nil {
+			pos := v.State.Pos
+			request.Center = &pos
+		}
+		raw, _ := json.Marshal(request)
+		r, err := (SearchChests{}).Start(raw)
+		if err != nil {
+			return nil, err
+		}
+		return raw, r.(*chestSearchRun).Check(v)
+	})
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("I'll look for %s in up to %d chests within %.0fm, report what I checked, and leave the items there. Say stop to cancel.", request.Item, request.MaxChests, request.Radius), nil
+}
+
+const censusInstance = "Owner census"
+const censusSource = "chat:census:"
+
+// StartCensus admits an owner's request to open every container nearby.
+func (e *Engine) StartCensus(ctx context.Context, by string, request CensusParams) (string, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	err := e.startOwnerRun(ctx, by, censusInstance, censusSource, "census", "census", func(v View) (json.RawMessage, error) {
+		request.World = v.State.World
+		request.defaults()
+		if request.Center == nil {
+			pos := v.State.Pos
+			request.Center = &pos
+		}
+		raw, _ := json.Marshal(request)
+		r, err := e.o.Templates["census"].Start(raw)
+		if err != nil {
+			return nil, err
+		}
+		return raw, r.(*censusRun).base.Check(v)
+	})
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("I'll open every container within %.0fm, up to %d, report what I find and leave everything where it is. Say stop to cancel.", request.Radius, request.MaxContainers), nil
+}
+
+// startOwnerRun saves and starts a one-off read-only storage run for a
+// player: only from a fresh idle body, with nothing queued, and never over a
+// newer order. prepare completes the parameters from the view and checks
+// admission. The caller holds e.mu.
+func (e *Engine) startOwnerRun(ctx context.Context, by, instance, source, template, noun string, prepare func(View) (json.RawMessage, error)) error {
 	if strings.TrimSpace(by) == "" {
-		return "", errors.New("a player must request the search")
+		return fmt.Errorf("a player must request the %s", noun)
 	}
 	hello, _, _ := e.o.Session.Handshake()
 	v := e.view()
 	revision := e.o.Session.ControlRevision()
 	if !v.Idle || e.active != "" {
-		return "", errors.New("stop my current task first")
+		return errors.New("stop my current task first")
 	}
 	for _, i := range e.instances {
 		if i.pending {
-			return "", errors.New("stop queued behavior first")
+			return errors.New("stop queued behavior first")
 		}
 	}
 	if v.State == nil {
-		return "", errors.New("fresh world required")
+		return errors.New("fresh world required")
 	}
-	request.World = v.State.World
-	request.defaults()
-	if request.Center == nil {
-		pos := v.State.Pos
-		request.Center = &pos
-	}
-	raw, _ := json.Marshal(request)
-	t := SearchChests{}
-	r, err := t.Start(raw)
+	raw, err := prepare(v)
 	if err != nil {
-		return "", err
-	}
-	if err = r.(*chestSearchRun).Check(v); err != nil {
-		return "", err
+		return err
 	}
 	admission, err := e.o.Session.TryAutomationFor(hello, v.State.World)
 	if err != nil {
-		return "", errors.New("stop my current task first")
+		return errors.New("stop my current task first")
 	}
 	defer admission.Release()
-	for _, task := range []string{protocol.TaskInspectContainer, protocol.TaskSay, protocol.TaskStop} {
+	tasks := []string{protocol.TaskInspectContainer, protocol.TaskSay, protocol.TaskStop}
+	if template == "census" {
+		tasks = append(tasks, protocol.TaskMoveTo)
+	}
+	for _, task := range tasks {
 		if !e.o.Session.Allowed(task) {
-			return "", fmt.Errorf("%s is not allowed", task)
+			return fmt.Errorf("%s is not allowed", task)
 		}
 	}
-	if old := e.instances[chestSearchInstance]; old != nil && (old.definition.Template != "search_chests" || !strings.HasPrefix(e.o.Store.Instances()[chestSearchInstance].By, chestSearchSource)) {
-		return "", errors.New("rename the existing Owner chest search behavior first")
+	if old := e.instances[instance]; old != nil && (old.definition.Template != template || !strings.HasPrefix(e.o.Store.Instances()[instance].By, source)) {
+		return fmt.Errorf("rename the existing %s behavior first", instance)
 	}
-	d := Definition{Template: "search_chests", Params: raw, Trigger: Trigger{Kind: "manual"}, Repeat: Repeat{Mode: "once"}, Priority: 10}
-	if err = e.put(ctx, chestSearchInstance, d, chestSearchSource+by); err != nil {
-		return "", err
+	d := Definition{Template: template, Params: raw, Trigger: Trigger{Kind: "manual"}, Repeat: Repeat{Mode: "once"}, Priority: 10}
+	if err = e.put(ctx, instance, d, source+by); err != nil {
+		return err
 	}
-	if err = e.action(ctx, chestSearchInstance, "start", chestSearchSource+by); err != nil {
-		return "", err
+	if err = e.action(ctx, instance, "start", source+by); err != nil {
+		return err
 	}
 	if e.o.Session.ControlRevision() != revision {
-		_ = e.action(ctx, chestSearchInstance, "stop", chestSearchSource+by)
-		return "", errors.New("a newer order replaced the search")
+		_ = e.action(ctx, instance, "stop", source+by)
+		return fmt.Errorf("a newer order replaced the %s", noun)
 	}
-	return fmt.Sprintf("I'll look for %s in up to %d chests within %.0fm, report what I checked, and leave the items there. Say stop to cancel.", request.Item, request.MaxChests, request.Radius), nil
+	return nil
 }

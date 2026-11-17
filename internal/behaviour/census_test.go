@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
@@ -184,26 +185,112 @@ func TestCensusGivesUpOnAContainerAfterTwoWalks(t *testing.T) {
 }
 
 func TestCensusCallsAContainerGoneOnlyFromLoadingRange(t *testing.T) {
-	for _, tc := range []struct {
-		at   protocol.Vec3
-		want string
-	}{{protocol.Vec3{0, 0, 0}, "gone"}, {protocol.Vec3{-29, 0, 0}, "refused"}} {
+	missing := &Result{TaskID: "t", Status: protocol.StatusRejected, Reason: protocol.ReasonInvalidTarget}
+	start := func(at protocol.Vec3) (*censusRun, View) {
 		v := searchView()
-		v.State.Pos = tc.at
+		v.State.Pos = at
 		v.Perception.Structures = []protocol.PerceivedStructure{{ID: "a", Kind: protocol.StructureContainer, Pos: protocol.Vec3{2, 0, 0}}}
 		center := protocol.Vec3{0, 0, 0}
 		r := newCensus(t, CensusParams{World: "test", Center: &center, Radius: 40})
 		if _, err := r.Next(v, nil); err != nil {
 			t.Fatal(err)
 		}
-		_ = r.Dispatched("t1")
-		o, err := r.Next(v, &Result{TaskID: "t1", Status: protocol.StatusRejected, Reason: protocol.ReasonInvalidTarget})
-		if err != nil || o.Task != protocol.TaskSay {
-			t.Fatal(o, err)
-		}
-		if got := r.Entries(); len(got) != 1 || got[0].Outcome != tc.want {
-			t.Fatalf("at %v: %+v", tc.at, got)
-		}
+		_ = r.Dispatched("t")
+		return r, v
+	}
+	// Close by, no container under that id means it is gone.
+	r, v := start(protocol.Vec3{0, 0, 0})
+	if o, err := r.Next(v, missing); err != nil || o.Task != protocol.TaskSay {
+		t.Fatal(o, err)
+	}
+	if world, ids := r.Gone(); world != "test" || len(ids) != 1 || ids[0] != "a" {
+		t.Fatal(world, ids)
+	}
+	// From beyond loading range the same answer proves nothing: walk toward
+	// the container, stopping within reach, and ask again.
+	r, v = start(protocol.Vec3{-35, 0, 0})
+	o, err := r.Next(v, missing)
+	if err != nil || o.Task != protocol.TaskMoveTo {
+		t.Fatal(o, err)
+	}
+	if move := o.Args.(*protocol.MoveToArgs); *move.To.Pos != (protocol.Vec3{2, 0, 0}) || *move.StopDistance != 2.5 {
+		t.Fatalf("%+v", move)
+	}
+	if _, ids := r.Gone(); len(ids) != 0 {
+		t.Fatal("called gone from out of range", ids)
+	}
+	_ = r.Dispatched("m")
+	v.State.Pos = protocol.Vec3{0, 0, 0}
+	if o, err = r.Next(v, &Result{TaskID: "m", Status: protocol.StatusSucceeded}); err != nil || o.Task != protocol.TaskInspectContainer {
+		t.Fatal(o, err)
+	}
+	_ = r.Dispatched("t")
+	if o, err = r.Next(v, missing); err != nil || o.Task != protocol.TaskSay {
+		t.Fatal(o, err)
+	}
+	if got := r.Entries(); len(got) != 1 || got[0].Outcome != "gone" || got[0].Walks != 1 {
+		t.Fatalf("%+v", got)
+	}
+}
+
+func TestCensusWalksTowardAContainerWhenNoStandingSpotWasMeasured(t *testing.T) {
+	// 2026-11-17: from another building the bounded walker found no route
+	// and measured nothing, six times running. An ordinary move had crossed
+	// the same ground earlier that day.
+	v := searchView()
+	v.State.Pos = protocol.Vec3{-12, 0, 0}
+	v.Perception.Structures = v.Perception.Structures[:1]
+	center := protocol.Vec3{0, 0, 0}
+	r := newCensus(t, CensusParams{World: "test", Center: &center})
+	_, _ = r.Next(v, nil)
+	_ = r.Dispatched("t")
+	o, err := r.Next(v, &Result{TaskID: "t", Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable,
+		Detail: `inspection:{"travel":0,"detail":"no supported, water-safe route"}`})
+	if err != nil || o.Task != protocol.TaskMoveTo || *o.Args.(*protocol.MoveToArgs).To.Pos != (protocol.Vec3{2, 0, 0}) {
+		t.Fatal(o, err)
+	}
+	// Already beside it, there is nowhere better to walk: it is refused.
+	v = searchView()
+	v.Perception.Structures = v.Perception.Structures[:1]
+	r = newCensus(t, CensusParams{World: "test", Radius: 25})
+	_, _ = r.Next(v, nil)
+	_ = r.Dispatched("t")
+	o, err = r.Next(v, &Result{TaskID: "t", Status: protocol.StatusFailed, Reason: protocol.ReasonUnreachable, Detail: `inspection:{"travel":0}`})
+	if err != nil || o.Task != protocol.TaskSay || r.Entries()[0].Outcome != "refused" {
+		t.Fatal(o, err, r.Entries())
+	}
+}
+
+func TestCensusAsksForLandmarkOnlyContainersOncePerPlace(t *testing.T) {
+	v := searchView()
+	v.Perception.Structures = v.Perception.Structures[:1] // "a" at [2,0,0]
+	marks := []home.Landmark{
+		{Entity: "old-a", Kind: protocol.StructureContainer, Pos: protocol.Vec3{2, 0, .5}}, // the same box, older id
+		{Entity: "stale", Kind: protocol.StructureContainer, Pos: protocol.Vec3{6, 0, 0}},  // nothing seen there now
+		{Entity: "door", Kind: protocol.StructureDoor, Pos: protocol.Vec3{7, 0, 0}},        // not storage
+		{Entity: "far", Kind: protocol.StructureContainer, Pos: protocol.Vec3{90, 0, 0}},   // outside the radius
+	}
+	raw, _ := json.Marshal(CensusParams{World: "test", Radius: 25})
+	run, err := (Census{Landmarks: func(string) []home.Landmark { return marks }}).Start(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := run.(*censusRun)
+	o, err := r.Next(v, nil)
+	if err != nil || o.Args.(*protocol.InspectContainerArgs).Container != "a" {
+		t.Fatal(o, err)
+	}
+	_ = r.Dispatched("t1")
+	o, err = r.Next(v, opened(&v, "a", "t1", 10))
+	if err != nil || o.Task != protocol.TaskInspectContainer || o.Args.(*protocol.InspectContainerArgs).Container != "stale" {
+		t.Fatal(o, err)
+	}
+	_ = r.Dispatched("t2")
+	if o, err = r.Next(v, &Result{TaskID: "t2", Status: protocol.StatusRejected, Reason: protocol.ReasonInvalidTarget}); err != nil || o.Task != protocol.TaskSay {
+		t.Fatal(o, err)
+	}
+	if _, ids := r.Gone(); len(ids) != 1 || ids[0] != "stale" {
+		t.Fatal(ids)
 	}
 }
 
@@ -231,7 +318,7 @@ func TestCensusStopsAfterRepeatedRefusalsButNotForGoneContainers(t *testing.T) {
 	if gone != 3 || refused != censusMaxFailures || r.unchecked() != 3 {
 		t.Fatal(gone, refused, r.unchecked(), r.Summary())
 	}
-	if s := r.Summary(); !strings.Contains(s, "Gone: a, b, c.") || !strings.Contains(s, "Not opened: d: refused") {
+	if s := r.Summary(); !strings.Contains(s, "Gone, and forgotten: a, b, c.") || !strings.Contains(s, "Not opened: d: refused") {
 		t.Fatal(s)
 	}
 }

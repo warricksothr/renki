@@ -16,7 +16,12 @@ type ChestSearchRequest struct {
 	Item   string
 	Radius float64
 	Chests []string
+	// Census asks for every container nearby to be opened and recorded,
+	// rather than for one item to be found.
+	Census bool
 }
+
+var chestCensus = regexp.MustCompile(`^(?:(?:take|do)(?: an| a)? (?:inventory|census)|(?:inventory|census)|(?:check|open|count|look in|look through) (?:all |every )?(?:the |our )?(?:chests?|containers?|storage))$`)
 
 var chestRadius = regexp.MustCompile(` within ([0-9]+)(?: ?m| meters?| metres?)$`)
 var chestList = regexp.MustCompile(`^(?:search|check) chests? ([0-9]+:[0-9]+(?:[ ,]+[0-9]+:[0-9]+)*) for ([a-z0-9 _-]+)$`)
@@ -31,7 +36,12 @@ func parseChestSearch(raw string) (ChestSearchRequest, bool, error) {
 		p.Radius, _ = strconv.ParseFloat(m[1], 64)
 		text = strings.TrimSuffix(text, m[0])
 	}
-	if m := chestList.FindStringSubmatch(text); m != nil {
+	if chestCensus.MatchString(text) {
+		p.Census = true
+		if p.Radius == 25 {
+			p.Radius = 30
+		}
+	} else if m := chestList.FindStringSubmatch(text); m != nil {
 		p.Item = m[2]
 		p.Chests = strings.Fields(strings.ReplaceAll(m[1], ",", " "))
 	} else if m := chestNearby.FindStringSubmatch(text); m != nil {

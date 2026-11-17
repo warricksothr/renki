@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -17,7 +18,12 @@ import (
 // away, on a first visit, or once memory has proved wrong, this is how the
 // controller learns what storage holds and which remembered containers are
 // gone. It shares search_chests' admission, budgets and safety stops.
-type Census struct{}
+//
+// Landmarks supplies remembered places. Containers known only as landmarks
+// are asked for too, so one that has gone is found out and forgotten.
+type Census struct {
+	Landmarks func(world string) []home.Landmark
+}
 
 type CensusParams struct {
 	World         string         `json:"world"`
@@ -40,6 +46,11 @@ const (
 	// The plugin verifies standing positions within 12 m of the body. A
 	// farther one is not walked to.
 	censusMaxWalkM = 15
+	// Records of one container can differ by this much: landmark positions
+	// are rounded to half a metre.
+	censusSamePlaceM = .6
+	// Closer than this, walking toward the container itself gains nothing.
+	censusNearM = 4
 	// An ordinary move returns no travel receipt and exists to go round an
 	// obstacle, so each walk is charged this multiple of its straight line.
 	censusWalkCharge = 2
@@ -92,7 +103,7 @@ func (t Census) Start(raw json.RawMessage) (Runner, error) {
 	// Its item is never matched here.
 	base := chestSearchRun{p: SearchChestsParams{World: p.World, Item: "census", Center: p.Center, Radius: p.Radius,
 		MaxChests: 32, DurationS: p.DurationS, TravelM: p.TravelM}, seen: map[string]bool{}}
-	return &censusRun{p: p, base: base}, nil
+	return &censusRun{p: p, base: base, landmarks: t.Landmarks}, nil
 }
 
 func (t Census) Ready(raw json.RawMessage, v View) bool {
@@ -112,13 +123,16 @@ type CensusEntry struct {
 }
 
 type censusRun struct {
-	p       CensusParams
-	base    chestSearchRun
-	entries []CensusEntry
-	pending *chestCandidate
-	known   bool
-	walking bool
-	// walked holds the standing positions tried for the pending container.
+	p         CensusParams
+	base      chestSearchRun
+	entries   []CensusEntry
+	pending   *chestCandidate
+	known     bool
+	walking   bool
+	landmarks func(world string) []home.Landmark
+	// walked holds the positions walked to for the pending container, and
+	// walkStop how near the current walk has to get.
+	walkStop float64
 	walked   []protocol.Vec3
 	failures int
 	// walkCharged is the travel total once the current walk was charged.
@@ -149,21 +163,67 @@ func parseInspection(detail string) (inspectionReceipt, bool) {
 	return receipt, true
 }
 
-// standingSpot picks the first verified position inside the census area that
-// has not been walked to. The inspection's own bounded walk already failed to
-// reach it; an ordinary move may go round what stopped that.
-func (r *censusRun) standingSpot(from protocol.Vec3, spots []protocol.Vec3) *protocol.Vec3 {
-	for _, spot := range spots {
-		ok := spot.FlatDistance(r.base.center) <= r.p.Radius && distance(from, spot) <= censusMaxWalkM &&
-			r.base.travel+censusWalkCharge*distance(from, spot) < r.p.TravelM
-		for _, n := range spot {
+// walkTarget picks where an ordinary move should take the body before the
+// container is asked for again, and how near it must get. The inspection's
+// own bounded walk has already failed, or the container was too far to be
+// loaded; an ordinary move may go round what stopped it.
+//
+// A position the plugin verified for reach and body clearance comes first.
+// Without one, as when the bounded walker finds no route between buildings
+// and never measures a standing position, the body walks toward the container
+// itself and stops within reach of it.
+func (r *censusRun) walkTarget(from protocol.Vec3, spots []protocol.Vec3) (protocol.Vec3, float64, bool) {
+	affordable := func(to protocol.Vec3) bool {
+		ok := to.FlatDistance(r.base.center) <= r.p.Radius && r.base.travel+censusWalkCharge*distance(from, to) < r.p.TravelM
+		for _, n := range to {
 			ok = ok && finite(n) && math.Abs(n) <= 1e6
 		}
-		if ok && !slices.Contains(r.walked, spot) {
-			return &spot
+		return ok && !slices.Contains(r.walked, to)
+	}
+	for _, spot := range spots {
+		if affordable(spot) && distance(from, spot) <= censusMaxWalkM {
+			return spot, .4, true
 		}
 	}
-	return nil
+	if to := r.pending.pos; distance(from, to) > censusNearM && affordable(to) {
+		return to, 2.5, true
+	}
+	return protocol.Vec3{}, 0, false
+}
+
+// addLandmarks queues containers remembered only as places. One that stands
+// where a known container does is the same box under an older id.
+func (r *censusRun) addLandmarks(v View) {
+	if r.landmarks == nil {
+		return
+	}
+	b := &r.base
+	var known []protocol.Vec3
+	for _, c := range v.Containers {
+		known = append(known, c.Pos)
+	}
+	for _, c := range v.Perception.Structures {
+		if c.Kind == protocol.StructureContainer {
+			known = append(known, c.Pos)
+		}
+	}
+	for _, c := range b.queue {
+		known = append(known, c.pos)
+	}
+	for _, l := range r.landmarks(r.p.World) {
+		if l.Kind != protocol.StructureContainer || b.seen[l.Entity] || l.Pos.FlatDistance(b.center) > r.p.Radius {
+			continue
+		}
+		b.seen[l.Entity] = true
+		same := false
+		for _, pos := range known {
+			same = same || distance(pos, l.Pos) <= censusSamePlaceM
+		}
+		if !same {
+			b.queue = append(b.queue, chestCandidate{l.Entity, l.Pos})
+			known = append(known, l.Pos)
+		}
+	}
 }
 
 func (r *censusRun) record(outcome, reason string, stacks int) {
@@ -173,6 +233,11 @@ func (r *censusRun) record(outcome, reason string, stacks int) {
 		r.failures++
 	} else if outcome == "opened" {
 		r.failures = 0
+	}
+	if outcome == "opened" {
+		// Another id queued for this same place is this container.
+		at := r.pending.pos
+		r.base.queue = slices.DeleteFunc(r.base.queue, func(c chestCandidate) bool { return distance(c.pos, at) <= censusSamePlaceM })
 	}
 	r.pending, r.walked, r.walking = nil, nil, false
 }
@@ -212,6 +277,8 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 		b.began = v.Now
 		b.lastPos = v.State.Pos
 		b.health = sampleHealth(v)
+		b.discover(v)
+		r.addLandmarks(v)
 	}
 	if r.reported {
 		return nil, nil
@@ -237,7 +304,7 @@ func (r *censusRun) Next(v View, result *Result) (*session.Order, error) {
 				return nil, err
 			}
 			spot := r.walked[len(r.walked)-1]
-			stop := .4
+			stop := r.walkStop
 			return &session.Order{Task: protocol.TaskMoveTo, Args: &protocol.MoveToArgs{To: protocol.Target{Pos: &spot}, StopDistance: &stop}, TimeoutS: 30}, nil
 		}
 	}
@@ -295,20 +362,36 @@ func (r *censusRun) settle(v View, result *Result) error {
 		r.record("opened", "", len(seen.Items))
 	case result.Reason == protocol.ReasonInvalidTarget && distance(v.State.Pos, r.pending.pos) <= censusLoadedM:
 		r.record("gone", "", 0)
-	case result.Reason == protocol.ReasonUnreachable && measured && !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v):
-		if spot := r.standingSpot(v.State.Pos, receipt.Standing); spot != nil {
-			r.walked = append(r.walked, *spot)
-			r.walking = true
-			// Charged now, in full, whether or not the walk arrives.
-			b.travel += censusWalkCharge * distance(v.State.Pos, *spot)
-			r.walkCharged = b.travel
-			return nil
+	case result.Reason == protocol.ReasonUnreachable && measured || result.Reason == protocol.ReasonInvalidTarget:
+		// Unreachable from here, or too far away for the game to have it
+		// loaded: walk nearer and ask again.
+		if !b.stop && len(r.walked) < censusMaxWalks && !r.spent(v) {
+			if to, stop, ok := r.walkTarget(v.State.Pos, receipt.Standing); ok {
+				r.walked = append(r.walked, to)
+				r.walkStop = stop
+				r.walking = true
+				// Charged now, in full, whether or not the walk arrives.
+				b.travel += censusWalkCharge * distance(v.State.Pos, to)
+				r.walkCharged = b.travel
+				return nil
+			}
 		}
 		r.record("refused", result.Reason, 0)
 	default:
 		r.record("refused", result.Reason, 0)
 	}
 	return nil
+}
+
+// Gone names the containers this run proved absent, for memory to forget.
+func (r *censusRun) Gone() (string, []string) {
+	var ids []string
+	for _, e := range r.entries {
+		if e.Outcome == "gone" {
+			ids = append(ids, e.Entity)
+		}
+	}
+	return r.p.World, ids
 }
 
 func (r *censusRun) counts() (opened, first, gone, refused, stacks int) {
@@ -358,7 +441,7 @@ func (r *censusRun) Summary() string {
 		}
 	}
 	if len(gone) > 0 {
-		parts = append(parts, "Gone: "+strings.Join(gone, ", ")+".")
+		parts = append(parts, "Gone, and forgotten: "+strings.Join(gone, ", ")+".")
 	}
 	if len(refused) > 0 {
 		parts = append(parts, "Not opened: "+strings.Join(refused, "; ")+".")
