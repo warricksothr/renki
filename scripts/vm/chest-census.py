@@ -70,7 +70,9 @@ def candidates(remembered, landmarks, structures, center, radius, now=None):
     """Every chest within radius, one per place. A chest's entity id can change
     between sessions, so the same box may be remembered under one id, seen
     under another and marked as a landmark under a third: rows within
-    SAME_PLACE_M are one chest. The id currently seen is the one to ask for;
+    SAME_PLACE_M are one chest. The id currently seen is the one to ask for,
+    then the remembered `entity`; its `observedEntity` is the superseded
+    object the contents came from, kept only as a last id to try;
     remembered contents and exact positions are kept; rounded landmark
     positions only fill gaps."""
     now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -96,8 +98,6 @@ def candidates(remembered, landmarks, structures, center, radius, now=None):
                 # opened container counts as sighted until asked for.
                 entry.update(opened=True, ageS=row.get('ageS'), items=len(row.get('items') or []),
                              remembered=entity, sighted=True)
-                if row.get('observedEntity'):
-                    entry['entity'] = row['observedEntity']
             elif source == 'seen':
                 entry.update(entity=entity, pos=pos if not entry['opened'] else entry['pos'], sighted=True)
             elif 0 <= age_s(row, now) <= SIGHTED_S:
@@ -204,7 +204,13 @@ def run_task(task, arguments, timeout):
                 return {'task': task_id, 'status': frame['status'], 'reason': reason[:1200],
                         'standing': standing_spots(records)}
         time.sleep(2)
-    return {'task': task_id, 'status': 'unknown', 'reason': 'no terminal result within the wait limit'}
+    # Still running as far as anyone knows: stop it before anything else is
+    # sent, so the next request cannot overlap it.
+    try:
+        vm('panel', 'POST', '/api/act/stop')
+    except (SystemExit, subprocess.SubprocessError, ValueError):
+        pass
+    return {'task': task_id, 'status': 'unknown', 'reason': 'no terminal result within the wait limit; stop sent'}
 
 
 def why(outcome):
@@ -363,6 +369,8 @@ def main(argv=None):
                 stopped = 'the bot left the world'
             elif now.get('hpMax') and now.get('hp', 0) < MIN_HP_FRACTION * now['hpMax']:
                 stopped = f"health {now.get('hp')} is under half of {now['hpMax']}"
+            elif outcome['status'] == 'unknown':
+                stopped = f"{outcome['entity']} gave no result within the wait limit"
             elif failures >= MAX_CONSECUTIVE_FAILURES:
                 stopped = f'{failures} containers in a row could not be opened'
             if stopped:

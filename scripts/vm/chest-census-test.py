@@ -23,11 +23,13 @@ class CensusTest(unittest.TestCase):
         self.assertEqual((found[0]['entity'], found[0]['opened'], found[0]['items']), ('1:15527', True, 1))
         self.assertEqual(found[0]['ids'], ['1:15433', '1:15527'])
 
-    def test_observed_entity_is_the_id_to_ask_for(self):
+    def test_observed_entity_is_superseded_and_only_a_fallback(self):
+        # internal/home/containers.go: ObservedEntity is the old object the
+        # contents came from; Entity is the current one at that place.
         remembered = [{'entity': '1:15687', 'observedEntity': '1:15597', 'prefab': 'piece_chest_barrel',
                        'pos': [0, 0, 0], 'items': []}]
         found = census.candidates(remembered, [], [], [0, 0, 0], 10)
-        self.assertEqual(found[0]['entity'], '1:15597')
+        self.assertEqual((found[0]['entity'], found[0]['ids']), ('1:15687', ['1:15687', '1:15597']))
 
     def test_stacked_and_adjacent_chests_stay_separate(self):
         seen = [{'id': 'a', 'prefab': CHEST, 'pos': [0, 31, 0]}, {'id': 'b', 'prefab': CHEST, 'pos': [0, 32, 0]},
