@@ -100,6 +100,14 @@ func (c *routeChain) observe(state *protocol.State, at time.Time, conn uint64) (
 	if conn != c.conn {
 		c.conn, c.last = conn, nil
 	}
+	for _, n := range state.Pos {
+		// The store refuses such a step, and one refused step would hold
+		// back every later batch.
+		if math.IsNaN(n) || math.IsInf(n, 0) || math.Abs(n) > 1e6 {
+			c.last = nil
+			return home.RouteStep{}, false
+		}
+	}
 	if !walkable(state) {
 		// In the air, in water, or not in the world: the chain is broken
 		// here, so a jump down or a swim is never joined into a walk.

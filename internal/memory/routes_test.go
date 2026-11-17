@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -46,6 +47,21 @@ func TestRouteChainJoinsOnlyGroundedSamplesCloseInSpaceAndTime(t *testing.T) {
 	// The chain restarts from the last accepted sample.
 	if step, ok = c.observe(standing(64, 30, 0), at(1.5), 2); !ok || step.From != (protocol.Vec3{63, 30, 0}) {
 		t.Fatal(step, ok)
+	}
+}
+
+func TestRouteChainDropsPositionsTheStoreWouldRefuse(t *testing.T) {
+	var c routeChain
+	t0 := time.Now()
+	c.observe(standing(0, 30, 0), t0, 1)
+	for _, x := range []float64{2e6, math.NaN(), math.Inf(1)} {
+		if _, ok := c.observe(standing(x, 30, 0), t0.Add(time.Second), 1); ok {
+			t.Fatal("made a step to", x)
+		}
+		if step, ok := c.observe(standing(1, 30, 0), t0.Add(2*time.Second), 1); ok {
+			t.Fatal("joined across a bad position", step)
+		}
+		c.observe(standing(0, 30, 0), t0, 1)
 	}
 }
 
