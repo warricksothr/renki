@@ -8,13 +8,13 @@ Read AGENTS.md, docs/VM.md ("Start here"), docs/ROUTES.md and docs/MEMORY.md.
 
 ## State
 
-Tas (Tasleroch) is online at saved home [-204.39, 32.97, -467.43] on the build
-of branch `t3/route-memory`, fed, with cooked deer meat and sausages carried.
+Tas (Tasleroch) is online in the warehouse near [-155.6, 31.0, -471.5], not at
+home, on the build of `main` at PR #185, with sausages carried.
 Private video is running. Loot and automatic logout remain disabled. The VM
 lease is released. The game had been offline from 2026-11-04 to 2026-11-17,
 130 game days; Tailscale on the VM had signed out and is signed in again.
 
-PRs #179 to #182 are merged. Open: the route memory recording slice.
+PRs #179 to #185 are merged. Nothing is open.
 
 ## Owner decisions, 2026-11-17
 
@@ -32,7 +32,15 @@ PRs #179 to #182 are merged. Open: the route memory recording slice.
   `Tas, take inventory` in chat (docs/BEHAVIOURS.md, "Container census").
   Gone containers are forgotten from memory and landmarks. The chat command
   has not been tried in game.
-- Route memory, slice 1: recording and `just vm routes` (docs/ROUTES.md).
+- Route memory (docs/ROUTES.md): recording and `just vm routes`; the planner
+  and `just vm route-plan`; and walking a plan, used by the census. On
+  2026-11-17 a census started on home's upper floor crossed to the warehouse
+  by itself, and a later one opened 45 containers across both buildings.
+  Memory holds 134 walked cells, none failed.
+- A built piece is never hostile. A training dummy near home had stopped
+  every run within 20 m and closed the bounded walker's routes for 40 m.
+- A timed-out inspection no longer ends a census. It is charged 2 m of travel
+  for each second it was given. The owner has not been asked about this.
 
 ## Why route memory
 
@@ -47,25 +55,34 @@ home, stair top [-193.01, 32.97, -471.11], stair foot [-189.51, 31.26,
 ## Next
 
 1. TKT-01M7NEG203A7HHNMQE0F8PW3AM (Route memory: plan building routes over
-   ground Tas has walked), in progress, claimed by this session's actor. Slice
-   2 is the planner with `just vm route-plan`; slice 3 walks plans, marks
-   failed links, and is used by the census and the home survey.
+   ground Tas has walked), in progress, claimed by this session's actor. What
+   is left is the home survey. It moves with dry, receipted moves inside the
+   base boundary and stops on any leg without a `survey:` receipt
+   (`internal/goal/survey.go`), so an ordinary leg needs a new kind of leg
+   there: decide how its travel is charged and how the boundary is kept
+   before writing it. The budget fixes made in review of PR #185 have not
+   been run live.
 2. TKT-01M62VXZ84SA9TSJC6NJNPV8KJ (Controller: assign every item to chests,
    with a loose-items chest): the storage plan, waiting on route memory. The
    owner wants one item type per chest for bulk goods, related chests grouped
    together, and shared chests for low-volume categories such as trophies.
    The game's item type is too coarse to group by: 56 items are "Material".
-   The last census is `.checks/census/20261117T192626Z.json`: 52 containers,
-   153 distinct items, 15 items split across containers.
+   The fullest census is `.checks/census/20261117T192626Z.json`: 52
+   containers, 153 distinct items, 15 split. The newest,
+   `20261117T214213Z.json`, opened 45 and left 20 unchecked: four inspections
+   timed out while a Greydwarf Elite stood about 37 m from the warehouse.
 3. TKT-01M62VXYWJHB5BC9VGCBM0PVXD (Remember what each chest holds): claimed;
    looks built, needs its criteria confirmed against the tests.
 
 ## Known gaps
 
-- The home survey still cannot leave the upper floor; route walking fixes it.
+- The home survey still cannot leave the upper floor (see Next, 1).
+- `just check ci` failed twice on 2026-11-17 on one panel UI scenario with no
+  checks run (`mobile/inspection-peel`, then `mobile/shared-regression`) and
+  passed on an unchanged rerun. The cause is not known.
 - TKT-01M7N9VE23Q3HJPXN5CWRR1ZKR (Inspect: no approach found when Tas starts
   flush against a chest row) is a draft. The census works round it.
-- The census's walk toward a container is an ordinary move with no scope.
+- The census's walks are ordinary moves with no scope.
 - `TestSurveyEngineStartStopAndOwnerTakeover` in `internal/app` is timing
   sensitive and failed one gate run; it passed alone and on rerun.
 - The GitHub runner once lacked the dotnet CLI; rerunning the job passed.
