@@ -45,6 +45,66 @@ def render(status):
     return '\n'.join(lines)
 
 
+def plan_path(target, origin=''):
+    """The API path for a plan. A target of three numbers is a position;
+    anything else is a place name ("home", or a saved place)."""
+    import re
+    from urllib.parse import quote
+    number = r'-?\d+(?:\.\d+)?'
+    position = re.compile(rf'^{number},{number},{number}$')
+    target = target.replace(' ', '') if position.match(target.replace(' ', '')) else target.strip()
+    key = 'to' if position.match(target) else 'place'
+    if not target:
+        raise SystemExit('route-plan needs a target: x,y,z or a place name')
+    path = f'/api/routes/plan?{key}={quote(target, safe="")}'
+    if origin:
+        origin = origin.replace(' ', '')
+        if not position.match(origin):
+            raise SystemExit('the start must be x,y,z')
+        path += f'&from={quote(origin, safe="")}'
+    return path
+
+
+def spot(pos):
+    return '[' + ', '.join(f'{n:.1f}' for n in pos) + ']'
+
+
+def render_plan(plan):
+    if plan.get('reason') == 'unknown_place':
+        return f"route to {plan.get('place')!r}: NO ROUTE (unknown_place): {plan.get('explain')}"
+    target = f"{plan['place']} {spot(plan['target']['pos'])}" if plan.get('place') else spot(plan['target']['pos'])
+    lines = [f"route from {spot(plan['start']['pos'])} to {target}"]
+    if not plan.get('found'):
+        lines.append(f"  NO ROUTE ({plan.get('reason')}): {plan.get('explain')}")
+        for name in ('start', 'target'):
+            anchor = plan[name]
+            if not anchor.get('cell') and anchor.get('cellPos'):
+                lines.append(f"  nearest walked cell to the {name}: {spot(anchor['cellPos'])}, "
+                             f"{anchor['distanceM']:.1f} m away")
+        if plan.get('closest'):
+            lines.append(f"  walk from {spot(plan['closest'])} toward the target to close the "
+                         f"{plan['gapM']:.1f} m gap")
+        return '\n'.join(lines)
+    lines.append(f"  {plan['explain']}")
+    for index, leg in enumerate(plan['legs'], 1):
+        notes = []
+        if abs(leg.get('climb', 0)) >= 0.4:
+            notes.append(f"{'up' if leg['climb'] > 0 else 'down'} {abs(leg['climb']):.1f} m")
+        if leg.get('inferred'):
+            notes.append(f"{leg['inferred']} of {leg['cells']} links never walked this way")
+        if not leg.get('cells'):
+            notes.append('off walked ground')
+        lines.append(f"  {index:>2}. {spot(leg['to'])}  {leg['lengthM']:.1f} m"
+                     + (f"  ({'; '.join(notes)})" if notes else ''))
+    return '\n'.join(lines)
+
+
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'plan-path':
+        print(plan_path(*sys.argv[2:4]))
+        sys.exit(0)
     raw = sys.stdin.read()
-    print(render(json.loads(raw[raw.index('{'):])))
+    if '{' not in raw:
+        raise SystemExit(raw.strip() or 'no reply')
+    data = json.loads(raw[raw.index('{'):])
+    print(render_plan(data) if 'legs' in data else render(data))

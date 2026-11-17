@@ -7,8 +7,8 @@ walked, so the controller can plan through a base over ground known to carry
 it, and so an agent can see what is known when a move fails.
 
 It is built in three slices, tracked on TKT-01M7NEG203A7HHNMQE0F8PW3AM (Route
-memory: plan building routes over ground Tas has walked). **Recording and
-inspection exist. Planning and walking do not yet.**
+memory: plan building routes over ground Tas has walked). **Recording,
+inspection and planning exist. Nothing walks a plan yet.**
 
 ## What is recorded
 
@@ -51,6 +51,46 @@ floor Tas has stood on but never walked up to shows as its own group.
 
 Read this first when a move fails or a route cannot be planned. It shows
 whether the target's surroundings were ever walked, and on which level.
+
+## Planning
+
+    just vm route-plan home
+    just vm route-plan "new home storage west"
+    just vm route-plan "-163.35,30.97,-467.12"
+    just vm route-plan home "-169.69,31.03,-467.8"     # from somewhere else
+
+plans from the body, or from a given position, to a position or a named
+place: `home`, or a saved place by name. It is read-only. It prints the legs,
+each an ordinary move, or why there is no route and what to walk to make one.
+
+A position joins the graph at the nearest walked cell within 4 m and 1.25 m
+in height, so it joins on its own floor: the room above is not "near". The
+planner then takes the shortest walked way. A link never walked in that
+direction costs a quarter more. A link a move failed along is left out until
+it is walked again in that same direction; walking it the other way proves
+nothing, since a gate may open from one side only. The first leg goes to the
+walked cell the body joined at, when that is more than half a metre away.
+
+The way is cut into **legs**. A leg ends where going on would take the walked
+way more than 0.6 m off a straight line, with height counted double, or make
+the leg longer than 10 m. So corners, stair feet and stair tops end legs, and
+a straight corridor is one leg. When the last walked cell is short of the
+target, a final leg goes to the target itself and is marked off walked ground.
+
+When there is no route, the reason is one of:
+
+| Reason | Meaning | What to do |
+|---|---|---|
+| `nothing_walked` | The world has no walked ground. | Walk the body, or have it follow someone. |
+| `start_off_walked_ground` | No walked cell near the body on its level. | Move it onto known ground. The report names the nearest cell. |
+| `target_off_walked_ground` | No walked cell near the target on its level. | Walk there once. |
+| `no_walked_way_between` | Both ends are known but not joined. | Walk the gap. The report gives the joined cell nearest the target and the distance. |
+| `unknown_place` | The place name matches no saved place, or no home is saved. | Use one of the names the report lists. |
+
+`GET /api/routes/plan?to=x,y,z` or `?place=NAME`, with optional
+`from=x,y,z`, returns `found`, `reason`, `explain`, `start`, `target`, `legs`
+(`to`, `lengthM`, `climb`, `cells`, `inferred`), `lengthM`, `cells`,
+`avoided`, and for a missing route `closest` and `gapM`.
 
 ## Limits
 

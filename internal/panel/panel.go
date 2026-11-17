@@ -24,6 +24,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -81,7 +82,9 @@ type Options struct {
 	ContainerMemory func() any
 	LandmarkMemory  func() any
 	// RouteMemory reports walked ground; cells asks for the whole graph.
-	RouteMemory  func(cells bool) any
+	RouteMemory func(cells bool) any
+	// RoutePlan plans over walked ground; an error is a bad request.
+	RoutePlan    func(query url.Values) (any, error)
 	PlayerMemory func() any
 	Map          func() any
 	Atlas        http.Handler
@@ -180,6 +183,17 @@ func Handler(o Options) http.Handler {
 		authed.HandleFunc("GET /api/routes", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(o.RouteMemory(r.URL.Query().Get("cells") == "1"))
+		})
+	}
+	if o.RoutePlan != nil {
+		authed.HandleFunc("GET /api/routes/plan", func(w http.ResponseWriter, r *http.Request) {
+			plan, err := o.RoutePlan(r.URL.Query())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(plan)
 		})
 	}
 	if o.Video != nil {

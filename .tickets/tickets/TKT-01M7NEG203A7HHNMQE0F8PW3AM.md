@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T19:48:01Z
+updated_at: 2026-11-17T20:29:05Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -94,3 +94,9 @@ Owner decisions, 2026-11-17: Tas may use ordinary multi-leg moves on runs he sta
 **agent:claude-code/chests** at 2026-11-17T19:48:01Z
 
 Slice 1 live on 2026-11-17: after four ordinary legs from the warehouse to home, just vm routes showed 30 walked cells and 58 links (29 walked, 29 inferred back) across height levels 31 to 32.5 m in one group, including the stairs. Criterion 1 ticked: persistence across restarts is covered by internal/home/routes_test.go; a live restart was not checked.
+
+**agent:claude-code/chests** at 2026-11-17T20:29:05Z
+
+Slice 2 (planner) is up as PR #184 and deployed to the VM. internal/route plans over the walked graph; GET /api/routes/plan and `just vm route-plan TARGET [FROM]` show the legs or the reason there is none. Live: home to the warehouse is 9 legs, 40 m, down the stairs; the way back climbs them.
+
+Not done: nothing walks a plan yet. Slice 3 is the runner (ordinary move_to per leg, arrival checked on the intended floor, MarkRouteFailed and replan on a failed leg), then its use in the census and the home survey, with the plan and per-leg outcome in behaviour status.
