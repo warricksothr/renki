@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62VXYWJHB5BC9VGCBM0PVXD
 title: Remember what each chest holds, its size and when it was seen
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -20,15 +20,22 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/chests
+  branch: t3/agent-tooling-chests
+  worktree: /home/sothr/.t3/worktrees/renki/t3-527f19de-ed082ea71ff42b98
+  commit: f5f77d2be6a4dc656f76fd56502c35db91e2d63a
+  session: null
+  claimed_at: 2026-11-17T17:35:47Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T16:17:51Z
+updated_at: 2026-11-17T17:35:47Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan
+  id: agent:claude-code/chests
   name: ""
 extensions: {}
 ---

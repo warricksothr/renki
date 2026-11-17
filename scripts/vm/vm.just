@@ -64,6 +64,9 @@ online MINUTES="5": need-target guard
 doctor *ARGS:
     @python3 -B "{{justfile_directory()}}/scripts/vm/doctor.py" --target "{{target}}" --dir "{{dir}}" "$@"
 
+test-chest-census:
+    python3 -B "{{justfile_directory()}}/scripts/vm/chest-census-test.py"
+
 test-doctor:
     python3 -B "{{justfile_directory()}}/scripts/vm/doctor-test.py"
 
@@ -321,6 +324,16 @@ task TASK ARGS='{}' TIMEOUT='60':
     set -euo pipefail
     body=$(python3 -c 'import json,sys; print(json.dumps(dict(task=sys.argv[1],args=json.loads(sys.argv[2]),timeoutS=float(sys.argv[3]))))' "$1" "$2" "$3")
     just --justfile "{{justfile()}}" vm panel POST /api/task "$body"
+
+# Read-only for the base: nothing is moved. --plan lists candidates without a lease.
+[doc("Open every known chest near the bot, nearest first, and record contents and refusals.")]
+[positional-arguments]
+chest-census *ARGS: need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    script="{{justfile_directory()}}/scripts/vm/chest-census.py"
+    for arg in "$@"; do [ "$arg" = --plan ] && exec python3 -B "$script" "$@"; done
+    exec {{lease}} run -- python3 -B "$script" "$@"
 
 # Send once, wait for the terminal outcome, retain full task evidence locally.
 [positional-arguments]

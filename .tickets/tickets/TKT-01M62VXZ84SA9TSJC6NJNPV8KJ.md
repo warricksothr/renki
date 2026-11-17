@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M62VXZ84SA9TSJC6NJNPV8KJ
 title: "Controller: assign every item to chests, with a loose-items chest"
 type: task
-status: draft
+status: ready
 status_reason: null
 priority: normal
 due_on: null
@@ -20,15 +20,22 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:claude-code/chests
+  branch: t3/agent-tooling-chests
+  worktree: /home/sothr/.t3/worktrees/renki/t3-527f19de-ed082ea71ff42b98
+  commit: f5f77d2be6a4dc656f76fd56502c35db91e2d63a
+  session: null
+  claimed_at: 2026-11-17T17:35:47Z
+  expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-02T15:59:48Z
+updated_at: 2026-11-17T17:56:06Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
 updated_by:
-  id: agent:claude-code/renki-plan-m5
+  id: agent:claude-code/chests
   name: ""
 extensions: {}
 ---
@@ -82,3 +89,9 @@ Live evidence is the assignments section of `just vm upkeep-report` in TKT-01M6E
 - [ ] The table is kept per bot and world in the settings store and served by GET and POST /api/assignments with the source recorded
 - [ ] An assigned item goes only to its chests; a full assigned chest is reported with item and count rather than spilled elsewhere
 - [ ] With an empty table, marker_cargo and stow behave as before, in a test
+
+## Notes
+
+**agent:claude-code/chests** at 2026-11-17T17:56:06Z
+
+2026-11-17 live census at the new home: 56 containers within 45 m of the warehouse (45 wood chests, 11 barrels), 32 never opened. Bulk materials are already hand-sorted into single-item chests; food is in barrels; two barrels hold many one-off items. Chest tasks fail from some standing spots: see TKT-01M7N9VE23Q3HJPXN5CWRR1ZKR and the walk-round in scripts/vm/chest-census.py. Evidence under .checks/census/.
