@@ -89,6 +89,29 @@ Both memory recorders require only a controller deployment.
 Use `just check controller test-packages ./internal/home ./internal/memory ./internal/behaviour ./internal/session ./internal/app ./internal/panel`
 for the focused persistence, frame-scoping, freshness and API regressions.
 
+### Refreshing it: the container census
+
+Remembered contents change only when a container is opened, so after time
+away they are a hint with an age, not stock. `just vm chest-census` opens
+every container within a radius of the bot, nearest first, with the read-only
+`inspect_container` task, and retains each outcome under `.checks/census/`.
+`--plan` lists the candidates and sends nothing; `--only stale` skips what was
+opened recently. Anything perception or memory marks as kind `container`
+counts: chests of every tier, barrels, carts and holds.
+
+One container can be remembered under one entity id, seen under another and
+landmarked under a third, so rows within 0.6 m are one candidate, asked for by
+the id currently seen. On `invalid_target` the other ids are tried. On
+`unreachable` the census reads the standing spot the plugin verified from the
+task's trace, walks there with an ordinary `move_to`, and asks again: the
+inspection's own bounded walker gives up within its local search limit where
+an ordinary move goes round a row of chests. It stops after six consecutive
+failures or when health falls under half.
+
+The census drives the bot over SSH at about a minute per container. Moving the
+loop into the controller is tracked on TKT-01M62VXZ8 (assign every item to
+chests, with a loose-items chest) and its follow-ups.
+
 ## Injuries and danger
 
 Actual `damaged` and `died` events persist per world with position, wall time,
