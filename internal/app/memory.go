@@ -8,6 +8,7 @@ import (
 	"github.com/warricksothr/renki/internal/route"
 	"math"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -152,6 +153,26 @@ func parseVec(text string) (protocol.Vec3, error) {
 	return v, nil
 }
 
+// unknownPlace answers a plan for a name that resolves to nothing: a reply an
+// agent can read, with the names that would work, rather than an HTTP error.
+func (a *App) unknownPlace(out RoutePlanStatus, from protocol.Vec3, place, why string) RoutePlanStatus {
+	var names []string
+	for _, w := range a.Routes.Store.Waypoints(out.World) {
+		names = append(names, w.Name)
+	}
+	sort.Strings(names)
+	if len(names) > 24 {
+		names = append(names[:24], fmt.Sprintf("and %d more", len(names)-24))
+	}
+	if why == "" {
+		why = fmt.Sprintf("No saved place is named %q.", place)
+	}
+	out.Place = place
+	out.Plan = route.Plan{Reason: route.ReasonUnknownPlace, Legs: []route.Leg{}, Start: route.Anchor{Pos: from},
+		Explain: why + " Saved places: home, " + strings.Join(names, ", ") + "."}
+	return out
+}
+
 // RoutePlan answers GET /api/routes/plan. The target is `to=x,y,z` or
 // `place=NAME`: "home", or a saved place by name. `from=x,y,z` replaces the
 // body's position, so a plan can be asked for somewhere the body is not. It
@@ -181,7 +202,7 @@ func (a *App) RoutePlan(q url.Values) (any, error) {
 	case strings.EqualFold(place, "home"):
 		h, ok := a.Routes.Store.Home(state.World)
 		if !ok {
-			return nil, errors.New("no home is saved in this world")
+			return a.unknownPlace(out, from, place, "No home is saved in this world."), nil
 		}
 		to, out.Place = h.Pos, "home"
 	case place != "":
@@ -193,7 +214,7 @@ func (a *App) RoutePlan(q url.Values) (any, error) {
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("no saved place is named %q", place)
+			return a.unknownPlace(out, from, place, ""), nil
 		}
 	default:
 		return nil, errors.New("give a target: to=x,y,z or place=NAME")

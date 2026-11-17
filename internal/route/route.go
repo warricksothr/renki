@@ -35,6 +35,8 @@ const (
 	ReasonStartOff     = "start_off_walked_ground"
 	ReasonTargetOff    = "target_off_walked_ground"
 	ReasonDisconnected = "no_walked_way_between"
+	// ReasonUnknownPlace is set by callers that resolve a place name.
+	ReasonUnknownPlace = "unknown_place"
 )
 
 // Anchor is where a position meets the graph.

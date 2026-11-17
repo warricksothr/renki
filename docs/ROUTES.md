@@ -85,6 +85,7 @@ When there is no route, the reason is one of:
 | `start_off_walked_ground` | No walked cell near the body on its level. | Move it onto known ground. The report names the nearest cell. |
 | `target_off_walked_ground` | No walked cell near the target on its level. | Walk there once. |
 | `no_walked_way_between` | Both ends are known but not joined. | Walk the gap. The report gives the joined cell nearest the target and the distance. |
+| `unknown_place` | The place name matches no saved place, or no home is saved. | Use one of the names the report lists. |
 
 `GET /api/routes/plan?to=x,y,z` or `?place=NAME`, with optional
 `from=x,y,z`, returns `found`, `reason`, `explain`, `start`, `target`, `legs`

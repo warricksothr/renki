@@ -64,6 +64,11 @@ class RoutesTest(unittest.TestCase):
         text = routes.render_plan(plan)
         self.assertIn('NO ROUTE (no_walked_way_between): Not joined.', text)
         self.assertIn('walk from [4.5, 31.0, 0.5] toward the target to close the 4.9 m gap', text)
+        unknown = {'found': False, 'reason': 'unknown_place', 'place': 'nowhere', 'legs': [],
+                   'explain': 'No saved place is named "nowhere". Saved places: home, pantry.',
+                   'start': {'pos': [0, 31, 0]}, 'target': {'pos': [0, 0, 0]}}
+        self.assertIn("route to 'nowhere': NO ROUTE (unknown_place)", routes.render_plan(unknown))
+        self.assertIn('Saved places: home, pantry', routes.render_plan(unknown))
         off = {'found': False, 'reason': 'target_off_walked_ground', 'explain': 'x', 'legs': [],
                'start': {'pos': [0, 31, 0], 'cell': 'a'},
                'target': {'pos': [9, 40, 0], 'cellPos': [8, 33, 0], 'distanceM': 7.1}}

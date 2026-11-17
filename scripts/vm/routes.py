@@ -70,6 +70,8 @@ def spot(pos):
 
 
 def render_plan(plan):
+    if plan.get('reason') == 'unknown_place':
+        return f"route to {plan.get('place')!r}: NO ROUTE (unknown_place): {plan.get('explain')}"
     target = f"{plan['place']} {spot(plan['target']['pos'])}" if plan.get('place') else spot(plan['target']['pos'])
     lines = [f"route from {spot(plan['start']['pos'])} to {target}"]
     if not plan.get('found'):
