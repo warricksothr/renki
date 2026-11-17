@@ -12,6 +12,7 @@ import (
 
 	"github.com/warricksothr/renki/internal/access"
 	"github.com/warricksothr/renki/internal/atlas"
+	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/video"
 )
@@ -19,10 +20,12 @@ import (
 // Config is the controller's configuration file. Every field has a default,
 // so an empty file is a working configuration for a controller on the VM.
 type Presence struct {
-	SharePosition bool `json:"sharePosition"`
-	MarcoPolo     bool `json:"marcoPolo"`
+	Bedtime       string `json:"bedtime,omitempty"` // empty disables; otherwise normal or shout
+	SharePosition bool   `json:"sharePosition"`
+	MarcoPolo     bool   `json:"marcoPolo"`
 }
 type Config struct {
+	Food       food.Policy               `json:"food"`
 	Screenshot protocol.ScreenshotConfig `json:"screenshot"`
 	Atlas      atlas.Policy              `json:"atlas"`
 	Players    access.Rules              `json:"players"`
@@ -142,12 +145,13 @@ var KnownTasks = []string{
 	protocol.TaskLookAt, protocol.TaskSay, protocol.TaskEmote,
 	protocol.TaskPickup, protocol.TaskDrop, protocol.TaskInteract, protocol.TaskFlee,
 	protocol.TaskEquip, protocol.TaskUnequip, protocol.TaskUseItem,
-	protocol.TaskDeposit, protocol.TaskWithdraw, protocol.TaskInspectContainer, protocol.TaskHarvest, protocol.TaskAttack,
+	protocol.TaskAddTo, protocol.TaskDeposit, protocol.TaskWithdraw, protocol.TaskInspectContainer, protocol.TaskHarvest, protocol.TaskAttack,
 }
 
 // Default returns the configuration used for anything a file leaves out.
 func Default() Config {
 	return Config{
+		Food:         food.Policy{IdleMaxTier: 2, Tiers: map[string]int{}},
 		Listen:       "127.0.0.1:8765",
 		Screenshot:   protocol.DefaultScreenshotConfig(),
 		Presence:     Presence{MarcoPolo: true},
@@ -185,6 +189,12 @@ func Load(path string) (Config, error) {
 
 // Validate refuses a configuration that would be unsafe or cannot work.
 func (c Config) Validate() error {
+	if err := c.Food.Validate(); err != nil {
+		return err
+	}
+	if c.Presence.Bedtime != "" && c.Presence.Bedtime != protocol.ChannelNormal && c.Presence.Bedtime != protocol.ChannelShout {
+		return errors.New("presence.bedtime must be empty, normal or shout")
+	}
 	if err := c.Screenshot.Validate(); err != nil {
 		return err
 	}

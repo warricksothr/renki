@@ -33,6 +33,7 @@ type View struct {
 	Anchor    string
 	Home      *protocol.Vec3
 	Base      *home.Base
+	Bases     []home.Base
 	Danger    []home.DangerZone
 	Waypoints []home.Waypoint
 	Pickups   []home.Pickup

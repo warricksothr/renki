@@ -1,0 +1,1 @@
+{"v": 1, "type": "task", "seq": 0, "t": 0, "id": "portal-1", "task": "interact", "args": {"entity": "1:10", "portalTo": "1:20"}, "timeoutS": 120}

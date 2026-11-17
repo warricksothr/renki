@@ -16,6 +16,7 @@ namespace Renki.Tasks
         public bool AllowMovement = true;
         public bool AllowChat = true;
         public bool AllowGather;
+        public bool AllowStations;
         public bool AllowDrop = true;
         public bool AllowCombat;
         public bool AllowSailing;
@@ -47,6 +48,7 @@ namespace Renki.Tasks
                 case "say":
                 case "emote": return AllowChat;
                 // They walk to what they gather, so movement must be allowed too.
+                case "add_to": return AllowStations && AllowGather && AllowMovement;
                 case "pickup":
                 case "deposit":
                 case "withdraw":

@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import subprocess
 import windows
 
 
@@ -24,3 +25,23 @@ class PinnedDownloads(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     windows.downloads()
                 self.assertFalse((out / 'asset.zip').exists())
+
+
+class ExistingStackStartup(unittest.TestCase):
+    def test_lost_lease_prevents_remote_startup_or_upload(self):
+        with patch.dict(windows.os.environ, {'RENKI_VM': 'test@invalid', 'RENKI_VM_DIR': 'C:/renki'}), patch.object(windows.subprocess, 'run', side_effect=subprocess.CalledProcessError(1, 'lease')) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                windows.remote('online')
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(run.call_args.args[0][-1], 'guard')
+
+    def test_existing_stack_startup_stages_only_scripts_not_tools_or_credentials(self):
+        with patch.dict(windows.os.environ, {'RENKI_VM': 'test@invalid', 'RENKI_VM_DIR': 'C:/renki'}), patch.object(windows.subprocess, 'run') as run, patch.object(windows, 'downloads') as downloads:
+            windows.remote('online')
+            commands = [call.args[0] for call in run.call_args_list]
+            self.assertEqual(commands[0][-1], 'guard')
+            upload = next(command for command in commands if command[0] == 'scp')
+            self.assertTrue(any(path.endswith('/online.ps1') for path in upload))
+            self.assertFalse(any('adapter.json' in path or path.endswith('.exe') for path in upload))
+            self.assertTrue(commands[-1][-1].endswith('-Action online'))
+            downloads.assert_not_called()

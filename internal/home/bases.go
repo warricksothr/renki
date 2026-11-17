@@ -13,7 +13,7 @@ import (
 	"github.com/warricksothr/renki/internal/protocol"
 )
 
-// Base keeps an owner's survey boundary separate from the places work uses.
+// Base defines an owner's survey and no-harvest boundary, separate from work places.
 // Role bindings reference waypoint names. Rename/deletion invalidates a binding
 // until explicitly edited; it never silently redirects work to another place.
 type Base struct {

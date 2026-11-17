@@ -24,6 +24,16 @@ namespace Renki.Tests
             throw new DirectoryNotFoundException("internal/protocol/testdata not found above " + AppContext.BaseDirectory);
         }
 
+        [Fact]
+        public void InvalidPortalInteractionModes()
+        {
+            foreach (var item in JArray.Parse(File.ReadAllText(Path.Combine(Root, "portal-invalid-args.json"))))
+            {
+                var request = new TaskRequest { Task = TaskNames.Interact, Args = (JObject)item["args"] };
+                Assert.Throws<BadArgsException>(() => TaskArgs.Parse(request));
+            }
+        }
+
         static Sender SenderOf(string dir) => dir == "plugin" ? Sender.Plugin : Sender.Controller;
 
         public static IEnumerable<object[]> Strict() =>

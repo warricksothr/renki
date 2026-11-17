@@ -14,6 +14,7 @@ namespace Renki.Plugin
         static readonly Collider[] nearby = new Collider[64];
         static FollowPortalPassage planning;
         readonly FollowPortalLink link;
+        readonly bool ordered;
         readonly PortalFollowCrossing crossing;
         readonly Walker walker = new Walker();
         readonly TeleportWorld source;
@@ -21,24 +22,26 @@ namespace Renki.Plugin
         bool walking;
         public bool Done { get; private set; }
 
-        public FollowPortalPassage(FollowPortalLink link)
+        public FollowPortalPassage(FollowPortalLink link, bool ordered = false)
         {
             this.link = link;
-            crossing = new PortalFollowCrossing(link, Time.unscaledTime);
+            this.ordered = ordered;
+            crossing = new PortalFollowCrossing(link, Time.unscaledTime, ordered);
             source = link != null ? Resolve(link.Source) : null;
             triggers = source != null ? source.GetComponentsInChildren<Collider>() : Array.Empty<Collider>();
             Tracer.Emit("follow", link != null ? "portal departure" : "teleport observed", new Dictionary<string, object>
             { ["source"] = link?.Source, ["destination"] = link?.Destination, ["entry"] = link?.Entry.ToArray() });
         }
 
-        static TeleportWorld Resolve(string id)
+        internal static TeleportWorld Resolve(string id)
         {
+            if (id == null) return null;
             var parts = id.Split(':');
             return parts.Length == 2 && long.TryParse(parts[0], out var user) && uint.TryParse(parts[1], out var serial)
                 ? ZNetScene.instance?.FindInstance(new ZDOID(user, serial))?.GetComponent<TeleportWorld>() : null;
         }
 
-        static string Destination(TeleportWorld portal)
+        internal static string Destination(TeleportWorld portal)
         {
             var view = portal != null ? portal.GetComponent<ZNetView>() : null;
             var record = view != null && view.IsValid() ? view.GetZDO() : null;
@@ -94,6 +97,15 @@ namespace Renki.Plugin
             var leaderHere = leader != null && !leader.IsDead() && (crossing.Arriving || link == null
                 ? Vector3.Distance(player.transform.position, leader.transform.position) < 128
                 : Vector3.Distance(Convert.ToVector3(link.Entry), leader.transform.position) <= PortalLeaderTrail.RemoteJump);
+            if (ordered)
+            {
+                var destination = Resolve(link.Destination);
+                leaderHere = crossing.Arriving && destination != null && destination.isActiveAndEnabled &&
+                    PortalArrival.Verified(Convert.ToV3(player.transform.position), Convert.ToV3(destination.transform.position),
+                        player.IsOnGround(), player.IsSwimming(), teleporting);
+                if (!crossing.Arriving && valid && !PrivateArea.CheckAccess(source.transform.position, 0f, false, false))
+                { Cancel(); return Outcome.Failed(Wire.ReasonNotAllowed, "portal is behind a ward"); }
+            }
             var action = crossing.Tick(Time.unscaledTime, teleporting, leaderHere, valid,
                 !valid || player.IsTeleportable(source.m_allowAllItems), inTrigger);
             if (action != PortalFollowAction.Walk) Driver.Stand();
@@ -111,6 +123,19 @@ namespace Renki.Plugin
                     return null;
                 case PortalFollowAction.Resume:
                     Done = true;
+                    if (ordered)
+                    {
+                        var destination = Resolve(link.Destination);
+                        var receipt = new Dictionary<string, object>
+                        {
+                            ["source"] = link.Source,
+                            ["destination"] = link.Destination,
+                            ["arrival"] = Convert.ToArray(player.transform.position),
+                            ["observedReturnTo"] = Destination(destination)
+                        };
+                        Tracer.Emit("portal", "verified arrival", receipt);
+                        return Outcome.Succeeded(Newtonsoft.Json.JsonConvert.SerializeObject(receipt));
+                    }
                     return null;
                 case PortalFollowAction.Hold:
                     return null;
@@ -127,7 +152,7 @@ namespace Renki.Plugin
                 if (!walking)
                 {
                     walker.ResetStuck(player.transform.position);
-                    walker.SetGoal(player.transform.position, Convert.ToVector3(link.Entry), within: .1, dryGround: true);
+                    walker.SetGoal(player.transform.position, Convert.ToVector3(link.Entry), within: .1, dryGround: true, avoidHostiles: ordered);
                     walking = true;
                 }
                 var failed = Walker.Stranded(player) ?? walker.Refused();

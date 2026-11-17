@@ -45,26 +45,7 @@ func ObservedPlaces(seen *protocol.Perception, at time.Time) []Waypoint {
 		}
 	}
 	for _, r := range seen.Resources {
-		kind := ""
-		lower := strings.ToLower(r.Prefab)
-		switch r.Kind {
-		case protocol.ResourceTree:
-			kind = "wood"
-		case protocol.ResourceRock:
-			kind = "stone"
-			for _, ore := range []string{"copper", "tin", "silver", "iron", "obsidian"} {
-				if strings.Contains(lower, ore) {
-					kind = "ore"
-				}
-			}
-		case protocol.ResourcePickable:
-			if strings.Contains(lower, "flint") {
-				kind = "flint"
-			}
-			if strings.Contains(lower, "berry") || strings.Contains(lower, "berries") {
-				kind = "berries"
-			}
-		}
+		kind := ResourcePlaceKind(r)
 		if kind != "" {
 			add(kind, r.Prefab, r.ID, r.Pos)
 		}
@@ -115,7 +96,7 @@ func (s *Store) RefreshBasePlaces(world string, b Base, candidates []Waypoint) (
 			}
 		}
 		for _, c := range candidates {
-			if !b.Contains(c.Pos) || c.At.IsZero() || !finitePosition(c.Pos) || c.Entity == "" || slices.Contains(current.Suppressed, c.Kind) {
+			if !b.Contains(c.Pos) || c.At.IsZero() || !finitePosition(c.Pos) || c.Entity == "" || slices.Contains(current.Suppressed, c.Kind) || s.protectedHarvestPlace(world, c) {
 				changes.Skipped++
 				continue
 			}

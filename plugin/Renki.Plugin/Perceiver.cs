@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Renki.Perception;
 using Renki.Protocol;
+using Renki.Tasks;
 using UnityEngine;
 
 namespace Renki.Plugin
@@ -427,6 +428,7 @@ namespace Renki.Plugin
             }
             pos = nview.transform.position;
             r.Pos = Convert.ToArray(pos);
+            if (ZoneSystem.instance != null) r.WaterLevel = WorldNavigation.WaterLevel(Convert.ToV3(pos));
             r.Id = Id(nview);
             return r;
         }
@@ -448,10 +450,9 @@ namespace Renki.Plugin
             else if (go.TryGetComponent<MineRock>(out var rock)) (k.Kind, k.MinTool) = (Wire.ResourceRock, rock.m_minToolTier);
             else if (go.TryGetComponent<MineRock5>(out var rock5)) (k.Kind, k.MinTool) = (Wire.ResourceRock, rock5.m_minToolTier);
             // The game counts both stumps and small trees (Beech_small1) as
-            // destructible trees; only the stumps are named for it.
+            // destructible trees; names distinguish stumps and static fallen logs.
             else if (go.TryGetComponent<Destructible>(out var wood) && wood.m_destructibleType == DestructibleType.Tree)
-                (k.Kind, k.MinTool) = (k.Prefab.IndexOf("stub", System.StringComparison.OrdinalIgnoreCase) >= 0
-                    ? Wire.ResourceStump : Wire.ResourceTree, wood.m_minToolTier);
+                (k.Kind, k.MinTool) = (HarvestArea.DestructibleKind(k.Prefab), wood.m_minToolTier);
             else if (go.TryGetComponent<Pickable>(out var pick)) (k.Kind, k.Part) = (Wire.ResourcePickable, pick);
             else if (go.TryGetComponent<PickableItem>(out var item)) (k.Kind, k.Part) = (Wire.ResourcePickable, item);
             else if (go.TryGetComponent<ItemDrop>(out var drop)) (k.Kind, k.Part) = (Wire.ResourceDrop, drop);

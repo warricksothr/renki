@@ -133,6 +133,8 @@ namespace Renki.Plugin
             s.CaptureProof = plugin.CaptureProof;
             if (p == null) return s;
             s.Character = p.GetPlayerName();
+            if (phase == Wire.PhaseInWorld && ZNet.instance != null)
+                s.OtherPlayers = ZNet.instance.GetPlayerList().Count(peer => !string.IsNullOrWhiteSpace(peer.m_name) && peer.m_name != s.Character);
             if (phase == Wire.PhaseInWorld && ZNet.instance != null) s.SharePosition = ZNet.instance.IsReferencePositionPublic();
             s.World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "";
             s.WorldUid = ZNet.instance != null ? ZNet.instance.GetWorldUID().ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
@@ -171,12 +173,10 @@ namespace Renki.Plugin
             if (env != null)
             {
                 s.Env = env.GetCurrentEnvironment()?.m_name ?? "";
-                s.Time = new GameTime
-                {
-                    Day = env.GetDay(),
-                    DayFraction = System.Math.Round(env.GetDayFraction(), 3),
-                    Night = EnvMan.IsNight(),
-                };
+                // Sample calendar day/fraction from the same unsmoothed clock.
+                // EnvMan.GetDayFraction is the delayed visual lighting fraction.
+                s.Time = GameTime.FromClock(ZNet.instance.GetTimeSeconds(), env.m_dayLengthSec,
+                    env.GetDayFraction(), EnvMan.IsNight());
             }
             Equip(s, "right", p.m_rightItem);
             Equip(s, "left", p.m_leftItem);
@@ -213,6 +213,7 @@ namespace Renki.Plugin
                 {
                     Prefab = name,
                     Health = Round(item.m_shared.m_food),
+                    Stamina = Round(item.m_shared.m_foodStamina),
                     Regen = Round(item.m_shared.m_foodRegen),
                     CanEat = p.CanEat(item, false) &&
                         (item.m_shared.m_consumeStatusEffect == null || !p.GetSEMan().HaveStatusEffect(item.m_shared.m_consumeStatusEffect.NameHash()) &&

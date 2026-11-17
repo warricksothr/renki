@@ -159,7 +159,7 @@ func (r *runner) surveyCheck(g Record, v behaviour.View) error {
 		return errors.New("a pinned base place changed; start a new survey")
 	}
 	p := v.State
-	if !base.Contains(p.Pos) || !finite(p.HP) || !finite(p.HPMax) || p.HPMax <= 0 || p.HP < math.Max(20, p.HPMax*.6) || p.HP < s.Health-.01 || p.Stranded() || p.Encumbered() || slices.Contains(p.Flags, protocol.FlagSwimming) || p.Location != nil && p.Location.InWater {
+	if !base.Contains(p.Pos) || !finite(p.HP) || !finite(p.HPMax) || p.HPMax <= 0 || p.HP < math.Max(20, p.HPMax*.6) || p.HP < math.Min(s.Health, p.HPMax)-.01 || p.Stranded() || p.Encumbered() || slices.Contains(p.Flags, protocol.FlagSwimming) || p.Location != nil && p.Location.InWater {
 		return errors.New("survey interrupted by health, footing, capacity or boundary")
 	}
 	if (s.Injury == nil) != (v.InjurySeq == nil) || s.Injury != nil && *s.Injury != *v.InjurySeq {
@@ -376,6 +376,12 @@ func (r *runner) surveyNext(g Record, v behaviour.View, last *behaviour.Result) 
 			target = &p
 		} else {
 			target = surveyApproach(g, v, points, &p)
+			// Terrain below a raised deck can be wet while its explicitly
+			// bound place has a supported approach. Let the bounded native
+			// dry walker check that connection, without inventing a floor.
+			if target == nil && v.State.Pos.FlatDistance(p) <= 60 {
+				target = &p
+			}
 		}
 		if target == nil || surveyFailed(s, *target) {
 			// Keep an honest unresolved role in the ledger; skip only this

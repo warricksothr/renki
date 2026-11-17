@@ -322,3 +322,78 @@ func TestSourceLossTrialFailsWhenRestoreDoesNotVerify(t *testing.T) {
 		t.Fatalf("Unverified restore reported %v", err)
 	}
 }
+
+func TestLocalStartupRetainsExistingPrivateOutputAndRefusesOtherOutput(t *testing.T) {
+	for _, server := range []string{"rtmp://127.0.0.1:11935/renki", "rtmp://example.invalid/live"} {
+		t.Run(server, func(t *testing.T) {
+			o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+				switch kind {
+				case "GetStreamStatus":
+					return true, map[string]any{"outputActive": true}
+				case "GetStreamServiceSettings":
+					return true, map[string]any{"streamServiceSettings": map[string]any{"server": server}}
+				case "GetSceneItemList":
+					var req struct {
+						Scene string `json:"sceneName"`
+					}
+					json.Unmarshal(data, &req)
+					source := "Renki Standby"
+					if req.Scene == Gameplay {
+						source = Source
+					}
+					return true, map[string]any{"sceneItems": []any{map[string]any{"sourceName": source, "sceneItemEnabled": true}}}
+				default:
+					t.Errorf("existing output mutated: %s", kind)
+					return false, nil
+				}
+			})
+			err := o.StartLocal(context.Background())
+			if (err == nil) != (server == "rtmp://127.0.0.1:11935/renki") {
+				t.Fatalf("wrong result: %v", err)
+			}
+		})
+	}
+}
+
+func TestLocalStartupSelectsStandbyAndFixedDestinationBeforeStarting(t *testing.T) {
+	var mutations []string
+	o := fakeOBS(t, func(kind string, data json.RawMessage) (bool, any) {
+		switch kind {
+		case "GetStreamStatus":
+			return true, map[string]any{"outputActive": false}
+		case "GetSceneItemList":
+			var req struct {
+				Scene string `json:"sceneName"`
+			}
+			json.Unmarshal(data, &req)
+			source := "Renki Standby"
+			if req.Scene == Gameplay {
+				source = Source
+			}
+			return true, map[string]any{"sceneItems": []any{map[string]any{"sourceName": source, "sceneItemEnabled": true}}}
+		case "GetCurrentProgramScene", "GetStudioModeEnabled":
+			return true, nil
+		case "SetCurrentProgramScene":
+			if !strings.Contains(string(data), Offline) {
+				t.Error("startup did not choose standby")
+			}
+		case "SetStreamServiceSettings":
+			if !strings.Contains(string(data), "rtmp://127.0.0.1:11935/renki") {
+				t.Error("wrong destination")
+			}
+		case "StartStream":
+		default:
+			t.Errorf("unexpected call %s", kind)
+		}
+		if strings.HasPrefix(kind, "Set") || kind == "StartStream" {
+			mutations = append(mutations, kind)
+		}
+		return true, nil
+	})
+	if err := o.StartLocal(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(mutations, ",") != "SetCurrentProgramScene,SetStreamServiceSettings,StartStream" {
+		t.Fatalf("unsafe ordering: %v", mutations)
+	}
+}

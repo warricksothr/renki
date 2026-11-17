@@ -176,7 +176,7 @@ func TestNothingWithoutLoggingIn(t *testing.T) {
 	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/login" {
 		t.Errorf("/: %d %s", res.StatusCode, res.Header.Get("Location"))
 	}
-	for _, path := range []string{"/api/status", "/api/events", "/app.js", "/index.html?x"} {
+	for _, path := range []string{"/api/status", "/api/events", "/index.html?x"} {
 		res, _ := c.Get(srv.URL + path)
 		if res.StatusCode != http.StatusUnauthorized && res.StatusCode != http.StatusSeeOther {
 			t.Errorf("%s served without a login: %d", path, res.StatusCode)

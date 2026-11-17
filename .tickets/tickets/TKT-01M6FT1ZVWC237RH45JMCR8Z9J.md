@@ -22,7 +22,7 @@ moved_to: null
 claim: null
 archive: null
 created_at: 2026-11-03T04:18:10Z
-updated_at: 2026-11-03T17:49:59Z
+updated_at: 2026-11-04T03:38:15Z
 created_by:
   id: agent:claude-code/passive-deploy
   name: ""
@@ -111,6 +111,16 @@ Combined commit 871d818 integrates PR #176 and portal following. The complete ju
 just vm panel-start started only the controller/panel. The API reports version 871d818 and connected=false; just vm status confirms Valheim stopped and controller PID 39640 running. The behaviour API confirms Loot enabled=false and running=false. Atlas schema 2 and saved settings now load successfully. No atlas/settings reset or downgrade was used. Status snapshots are retained in .checks/portal-deployed-status.json and .checks/portal-deployed-behaviours.json.
 
 The VM lease was released after verification. Keep the game offline pending a safe owner-supervised rejoin because the newer handoff recorded low health and pursuing Greylings. This session establishes installation and controller compatibility, not current character health, location or death. Live portal criterion 5 remains unchecked; retain the portal-pair return, passive departure, cargo refusal and cancellation checks for that supervised session. PR #177 is stacked on PR #176 to preserve the installed baseline.
+
+**agent:codex/portal-deploy** at 2026-11-04T03:38:15Z
+
+### Merged batch deployed and Tas brought online
+
+The owner explicitly requested deployment and bringing Tas online, superseding the implementation-only offline instruction. PRs #176, #177 and #178 are merged; deployed main 501ca8d under the VM lease using just check vm install (24 s; .checks/20261104T033528Z-rRGmvh.log). Native compatibility preflight, installed checksums and deployment receipt verified; durable data retained. Started the panel on the new version, then just check vm start passed (64 s; .checks/20261104T033606Z-hUky0q.log).
+
+Fresh 2026-11-04 03:37Z observations: Tasleroch connected in DizzysHellheim at [-31.08,36.49,15.19], grounded/sheltered, 25/25 HP, 50/50 stamina, no recorded injury. Inventory and active/carried meals are empty. One boar about 30 m away had no observed targeting of Tas; no players or Greylings were observed. Saved home is about 513 m away. No travel/recovery task was ordered. Loot remains disabled, not running and not pending; the new diagnostics are fresh. Combat remains allowed; RecoveryGuard and AutoLogout remain false. Valheim PID 36840 and controller PID 31360 running. Leave Tas online as requested, and stage food/gear before travel or native portal/Loot trials. This deployment does not earn any remaining live acceptance criterion.
+
+Evidence: .checks/deploy-online-observation.json, .checks/deploy-online-map.json, .checks/deploy-online-inventory.json, .checks/deploy-online-behaviours.json. docs/HANDOFF.md updated with current merged/deployed state and historical observations retained separately.
 
 ## Summary
 

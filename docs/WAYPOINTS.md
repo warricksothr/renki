@@ -12,9 +12,10 @@ uses the last saved position through normal movement and safety checks.
 Changing a zone's radius does not change movement's arrival distance.
 
 Tas creates one standard place per purpose when he actually observes
-evidence: storage chests, cooking equipment, trees, mineable stone/ore,
+evidence: storage chests, cooking equipment, standing trees, mineable stone/ore,
 flint pickables or berry bushes. He does not invent unseen locations or
-choose temporary drops/stumps as a renewable wood/flint site. Automatic
+choose drops, fallen logs or stumps as renewable wood sites. Wood/stone/ore
+places require observed resource roots above known water. Automatic
 zones have a dashed outline. Editing or renaming one makes it owner-managed;
 future discovery does not overwrite it. Deleting a purpose suppresses its
 automatic recreation in that world. You can still add it manually.
@@ -28,6 +29,16 @@ learns multiple scoped places and protects owner edits, pinned roles, other-base
 markers and deletion suppression. Its terrain and route report keeps gaps
 visible; it does not open chests or assign beds. `rest` is a waypoint purpose
 for sleeping/rest approaches.
+
+Every saved base area is also a no-harvest circle for wood, stone and ore,
+including its edge and every height. A saved 60 m base radius protects that
+whole circle. Resources outside camp retain the ordinary structure and work-safety
+checks. A work zone overlapping camp cannot authorize cutting a tree inside it.
+Invalid automatic resource markers inside a saved base or observed underwater
+are removed without suppressing future safe sites. Owner-managed places and
+base role bindings remain saved, but cannot override the harvest protection.
+Stop active harvesting before changing the base boundary; subsequent orders
+use the newly saved circles.
 
 **What's nearby?** lists up to 24 current or last-seen objects within the
 zone (15 m around a point). Chests use the same remembered contents as Tas

@@ -325,3 +325,40 @@ it may rotate the oldest resolved record only after its deadline plus fifteen
 minutes, preserving recent source feedback. Active/suspended goals and any
 uncertain pending action are retained. Rotation and admission are one atomic
 write; a store full of recent/unresolved records reports the limit explicitly.
+
+## Meal preferences by activity
+
+Enable `food.activityAware` in runtime settings to conserve meals during idle
+maintenance. `food.idleMaxTier` defaults to 2. The built-in progression table
+classifies Meadows meals as tier 1 and Black Forest meals as tier 2; it is a
+controller preference, not the game's inventory upgrade-quality field.
+`food.tiers` accepts prefab-to-tier overrides (integer 1–8), for example
+`{"ModMeal":2}`. Unlisted/modded meals stay reserved while idle.
+
+Idle selection fills eligible empty slots first, then prefers lower tiers and
+higher health/regeneration within a tier. Optional refreshes wait until the
+active meal has at most two minutes remaining. Work may use all eligible foods,
+ranked by observed health plus stamina, then health and regeneration. Missing
+stamina telemetry contributes zero. Emergency recovery prefers health. Escort preparation, travel, gathering and
+lease-backed work retain that context between individual native tasks; nearby
+inferred player activity alone does not establish Tas's workload.
+
+No active meal, HP below 60% of maximum, or HP below 35 permits an emergency
+choice from all eligible meals, including reserved/unclassified meals. This
+can spend a better meal to recover. Existing native CanEat checks, food-goal
+reservations, receipt waits, sleeping/combat exclusions and retry limits remain.
+No slots are forcibly cleared and no meal is eaten just to change profiles.
+
+The shared selector covers background carried-food maintenance and durable
+personal/household food-goal eating. Home preparation conserves meals; escort
+preparation, an outdoor food trip or a known event uses the work profile.
+Explicit owner eat commands still name their own item. Food acquisition and
+household stock targets keep their existing recipe/catalog limits; this setting
+does not add recipes, source knowledge or premium-stock production.
+
+Inventory displays the current mode and choice. `/api/status.foodDecision`
+includes candidate tiers, eligibility/reservation reasons and policy version.
+Maintenance choice changes and sent actions are audited with observation scope
+and task ID; durable goals retain their choice and log changes with goal/run ID.
+Unknown tier is 0. These explanations describe policy selection; a send is not
+proof of native consumption, which still requires its task/food receipt.

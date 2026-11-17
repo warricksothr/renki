@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/warricksothr/renki/internal/access"
@@ -14,6 +15,7 @@ import (
 	"github.com/warricksothr/renki/internal/behaviour"
 	"github.com/warricksothr/renki/internal/chat"
 	"github.com/warricksothr/renki/internal/config"
+	"github.com/warricksothr/renki/internal/food"
 	"github.com/warricksothr/renki/internal/goal"
 	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/panel"
@@ -25,6 +27,8 @@ import (
 
 // PanelStatus is the panel's snapshot of the bot (GET /api/status).
 type PanelStatus struct {
+	FoodDecision  *food.Decision             `json:"foodDecision,omitempty"`
+	OtherPlayers  *int                       `json:"otherPlayers,omitempty"`
 	WorldEvents   *protocol.WorldEventStatus `json:"worldEvents,omitempty"`
 	CaptureProof  *protocol.CaptureProof     `json:"captureProof,omitempty"`
 	SharePosition *bool                      `json:"sharePosition,omitempty"`
@@ -90,6 +94,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		Owners: a.Settings.Values().Owners, Rules: a.Home.Rules(),
 		PerceptionRadius: a.Config.Perception.Radius,
 		Voice:            a.Voice != nil && a.Settings.Values().Voice, Model: a.Settings.Values().Model}
+	ps.FoodDecision = a.foodDecision()
 	if s := a.Session.State(); s != nil && st.Connected {
 		ps.World, ps.HP, ps.HPMax, ps.Biome = s.World, s.HP, s.HPMax, s.Biome
 		ps.WorldUID = s.WorldUID
@@ -109,6 +114,7 @@ func (a *App) PanelStatus(version string) PanelStatus {
 		ps.Connection = a.Session.ConnectionID()
 		ps.WorldEvents = a.Session.WorldEvents(s.World, ps.Connection, time.Now())
 		if s.Phase == protocol.PhaseInWorld {
+			ps.OtherPlayers = s.OtherPlayers
 			pos := s.Pos
 			ps.Pos = &pos
 			clock := s.Time
@@ -242,9 +248,17 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 		case <-time.After(panelRetry):
 		}
 	}
+	sharing, sharingErr := panel.OpenSharing(filepath.Join(a.Config.DataDir, "panel-viewer.json"))
+	if sharingErr != nil {
+		log.Error("viewer sharing unavailable", "error", sharingErr)
+	}
 	srv := &http.Server{
 		Handler: panel.Handler(panel.Options{
 			Token:           a.Config.Panel.Token,
+			Sharing:         sharing,
+			ViewerStatus:    func() any { return a.PanelViewerStatus() },
+			ViewerMap:       a.ViewerMapSnapshot,
+			ViewerAtlas:     a.atlasHandler(false),
 			Log:             trail,
 			Status:          func() any { return a.PanelStatus(version) },
 			Act:             a.PanelAct,
@@ -262,8 +276,12 @@ func (a *App) ServePanel(ctx context.Context, trail *audit.Log, version string, 
 			Map:             a.MapSnapshot,
 			Camera:          a.CameraHandler(),
 			Video: video.New(a.Config.Panel.Video, func() video.Scope {
-				s := a.PanelStatus(version)
-				return video.Scope{Online: s.Connected && s.Phase == "in_world", Connection: s.Connection, World: s.World, WorldUID: s.WorldUID}
+				st := a.status()
+				scope := video.Scope{Online: st.Connected && st.Phase == "in_world", Connection: a.Session.ConnectionID()}
+				if s := a.Session.State(); s != nil && st.Connected {
+					scope.World, scope.WorldUID = s.World, s.WorldUID
+				}
+				return scope
 			}),
 			Atlas:     a.AtlasHandler(),
 			Inventory: func() any { return a.Session.PackSnapshot() },

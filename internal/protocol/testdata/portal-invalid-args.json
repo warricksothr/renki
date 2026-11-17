@@ -1,0 +1,50 @@
+[
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:20",
+      "alt": true
+    }
+  },
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:20",
+      "cook": "RawMeat"
+    }
+  },
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:20",
+      "hold": true
+    }
+  },
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:20",
+      "recoverThreats": true
+    }
+  },
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:20",
+      "repair": true
+    }
+  },
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:10"
+    }
+  },
+  {
+    "args": {
+      "entity": "1:10",
+      "portalTo": "1:20",
+      "sleep": true
+    }
+  }
+]

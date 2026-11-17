@@ -5,14 +5,14 @@ import { lootForMap, dropStyles } from "./loot.js";
 import { publishStatus, scope as statusScope } from "./status.js";
 import { subscribeEvents } from "./events.js";
 import { areaEvent, eventDetails } from "./world-events.js";
+import { householdTargets } from "./household.js";
 
 // Compatibility adapter for the established panel controls and the single map
 // renderer. Only start after Preact has synchronously mounted the workspace.
-export function startController() {
+export function startController({ readOnly = false } = {}) {
   // The renki panel: one event stream (/api/events) feeds the header, the
   // feed and the map. Records are audit log records (docs/AUDIT.md) with the
   // timeline's line and a category added; statuses are /api/status snapshots.
-  "use strict";
 
   const $ = (id) => document.getElementById(id);
   const FEED_MAX = 1500;
@@ -186,7 +186,7 @@ export function startController() {
     }
   }
 
-  $("atlas-world").addEventListener("change", () => {
+  $("atlas-world")?.addEventListener("change", () => {
     const key = $("atlas-world").value;
     atlasPinned = Boolean(key);
     if (atlasPinned) {
@@ -373,7 +373,7 @@ export function startController() {
     if (owners.includes(keep)) sel.value = keep;
   }
 
-  $("say-form").addEventListener("submit", async (e) => {
+  $("say-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = $("say-text").value.trim();
     if (!text) return;
@@ -522,9 +522,9 @@ export function startController() {
     return `${id}${name ? " " + name : ""}: ${end || "no end seen"}, ${secs} s`;
   }
 
-  $("task-close").addEventListener("click", () => $("task-view").close());
-  $("day").addEventListener("focus", loadDays);
-  $("day").addEventListener("change", () => showDay($("day").value));
+  $("task-close")?.addEventListener("click", () => $("task-view").close());
+  $("day")?.addEventListener("focus", loadDays);
+  $("day")?.addEventListener("change", () => showDay($("day").value));
 
   // ---- records into the map ----
 
@@ -703,43 +703,47 @@ export function startController() {
 
   function chip(id, text, cls) {
     const el = $(id);
+    if (!el) return;
     el.textContent = text || "";
     el.className = "chip" + (cls ? " " + cls : "");
   }
 
   function onStatus(s) {
     publishStatus(s);
-    updateLootStatus(s);
-    if ($("places").open && Date.now() - idleFoodRefreshAt >= 5000)
-      refreshIdleFood();
-    const inWorld = s.connected && s.phase === "in_world";
-    const nextInventoryScope = inWorld
-      ? `${s.connection}:${s.world}:${s.worldUid || ""}`
-      : "";
-    if (inventoryScope !== nextInventoryScope || !inWorld) {
-      inventoryScope = nextInventoryScope;
-      inventory = null;
-      weight = [0, 0];
-      $("inv-grid").replaceChildren();
-      $("inv-summary").textContent = inWorld
-        ? "Waiting for observation"
-        : "Bot offline · no current inventory";
-      if (inWorld) loadInventory(nextInventoryScope, s.world, s.connection);
+    if (!readOnly) updateLootStatus(s);
+    if (!readOnly) {
+      if ($("places").open && Date.now() - idleFoodRefreshAt >= 5000)
+        refreshIdleFood();
+      const inWorld = s.connected && s.phase === "in_world";
+      const nextInventoryScope = inWorld
+        ? `${s.connection}:${s.world}:${s.worldUid || ""}`
+        : "";
+      if (inventoryScope !== nextInventoryScope || !inWorld) {
+        inventoryScope = nextInventoryScope;
+        inventory = null;
+        weight = [0, 0];
+        $("inv-grid").replaceChildren();
+        $("inv-summary").textContent = inWorld
+          ? "Waiting for observation"
+          : "Bot offline · no current inventory";
+        if (inWorld) loadInventory(nextInventoryScope, s.world, s.connection);
+      }
+      renderGoals(s);
+      renderPresence(s);
+      const needs =
+        s.connected && s.phase === "in_world" ? s.storageNeeded || [] : [];
+      const storage = $("storage-needed");
+      storage.hidden = needs.length === 0;
+      storage.textContent = needs
+        .map(
+          (n) =>
+            `Storage needed: ${Object.entries(n.items)
+              .map(([name, count]) => `${count} ${name}`)
+              .join(", ")}. ${n.reason}`,
+        )
+        .join(" · ");
     }
-    renderGoals(s);
-    renderPresence(s);
-    const needs =
-      s.connected && s.phase === "in_world" ? s.storageNeeded || [] : [];
-    const storage = $("storage-needed");
-    storage.hidden = needs.length === 0;
-    storage.textContent = needs
-      .map(
-        (n) =>
-          `Storage needed: ${Object.entries(n.items)
-            .map(([name, count]) => `${count} ${name}`)
-            .join(", ")}. ${n.reason}`,
-      )
-      .join(" · ");
+    const inWorld = s.connected && s.phase === "in_world";
     mapOnline = Boolean(s.connected && s.phase === "in_world" && s.world);
     followAtlas();
     const active = !selectedAtlas && mapOnline;
@@ -822,8 +826,10 @@ export function startController() {
     );
     for (const b of document.querySelectorAll("button.act"))
       b.disabled = !s.connected || acting;
-    onModel(s);
-    sayAs(s.owners || []);
+    if (!readOnly) {
+      onModel(s);
+      sayAs(s.owners || []);
+    }
     chip(
       "who",
       s.character ? `${s.character}${s.world ? " in " + s.world : ""}` : "",
@@ -844,6 +850,11 @@ export function startController() {
         ? `Health ${Math.round(s.hp)} / ${Math.round(s.hpMax)}`
         : "Health unknown",
     );
+    const meal = inWorld ? s.foodDecision : null;
+    if (!readOnly)
+      $("food-decision").textContent = meal
+        ? `Food: ${meal.mode} · ${meal.item ? plain(meal.item) : "waiting"} · ${meal.reason.replaceAll("_", " ")}`
+        : "Food choice unavailable";
     chip(
       "stamina",
       inWorld && s.staminaMax
@@ -891,6 +902,7 @@ export function startController() {
       : lootForMap(chosenLoot(), lootStatus, lootReceivedAt);
   }
   function renderLootCard() {
+    if (readOnly) return;
     renderComponent(
       <LootCard
         rows={lootRows}
@@ -924,6 +936,7 @@ export function startController() {
     refreshLoot();
   }
   async function refreshLoot() {
+    if (readOnly) return;
     if (lootAbort || Date.now() - lootLastAttempt < 2000) return;
     const generation = lootGeneration,
       controller = new AbortController();
@@ -1798,8 +1811,8 @@ export function startController() {
     draw();
   }
 
-  $("zoom-in").addEventListener("click", () => zoom(1.5));
-  $("zoom-out").addEventListener("click", () => zoom(1 / 1.5));
+  $("zoom-in")?.addEventListener("click", () => zoom(1.5));
+  $("zoom-out")?.addEventListener("click", () => zoom(1 / 1.5));
   canvas.addEventListener(
     "wheel",
     (e) => {
@@ -1808,7 +1821,7 @@ export function startController() {
     },
     { passive: false },
   );
-  $("follow-bot").addEventListener("change", (e) => {
+  $("follow-bot")?.addEventListener("change", (e) => {
     view.followBot = e.target.checked;
     draw();
   });
@@ -2223,10 +2236,10 @@ export function startController() {
     modelTimer = setTimeout(() => (out.textContent = ""), 8000);
   }
 
-  $("model-select").addEventListener("change", () => (picked = true));
-  $("model-use").addEventListener("click", useModel);
-  $("model-refresh").addEventListener("click", loadModels);
-  $("voice").addEventListener("toggle", () => $("voice").open && loadModels());
+  $("model-select")?.addEventListener("change", () => (picked = true));
+  $("model-use")?.addEventListener("click", useModel);
+  $("model-refresh")?.addEventListener("click", loadModels);
+  $("voice")?.addEventListener("toggle", () => $("voice").open && loadModels());
 
   // ---- settings ----
 
@@ -2251,6 +2264,10 @@ export function startController() {
     "screenshot.width": "Camera image width (320–1280)",
     "screenshot.quality": "JPEG quality (30–90)",
     "presence.marcoPolo": "Marco/Polo routines",
+    "presence.bedtime": "Nightly bed invitation",
+    "food.activityAware": "Save better meals for work",
+    "food.idleMaxTier": "Highest idle food tier (1–8)",
+    "food.tiers": "Food tier overrides by prefab",
     "players.profiles": "Player control profiles",
   };
   const AFTER_DEATH = ["home", "resume", "stay"];
@@ -2406,7 +2423,7 @@ export function startController() {
     settingsTimer = setTimeout(() => (out.textContent = ""), 8000);
   }
 
-  $("settings").addEventListener(
+  $("settings")?.addEventListener(
     "toggle",
     () => $("settings").open && loadSettings(),
   );
@@ -2414,37 +2431,49 @@ export function startController() {
   // ---- the stream ----
 
   function connect() {
-    subscribeEvents({
-      opened: () => {
-        mapGeneration++;
-        mapFetchedAt = 0;
+    subscribeEvents(
+      {
+        opened: () => {
+          mapGeneration++;
+          mapFetchedAt = 0;
+        },
+        record: (e) => {
+          if (!readOnly) onRecord(JSON.parse(e.data));
+        },
+        status: (e) => onStatus(JSON.parse(e.data)),
+        interrupted: async () => {
+          chip("link", "reconnecting…", "off");
+          publishStatus(null);
+          if (!readOnly) {
+            updateLootStatus(null);
+            inventoryScope = "";
+            inventoryVersion++;
+            inventory = null;
+            $("inv-grid").replaceChildren();
+            $("inv-summary").textContent =
+              "Connection interrupted · inventory unavailable";
+            for (const button of document.querySelectorAll("button.act"))
+              button.disabled = true;
+            $("goal-combat").disabled = true;
+          }
+          chip("hp", "Health unknown");
+          chip("stamina", "");
+          chip("task", "Status unavailable");
+          chip("home", "Home unknown");
+          chip("combat", "");
+          chip("load", "");
+          // Native transient retries and explicit CLOSED recovery share one stream.
+          const res = await fetch("/api/status").catch(() => null);
+          if (res && res.status === 401) {
+            if (readOnly) {
+              $("viewer-session").textContent =
+                "Viewer access ended. Ask for a new link.";
+            } else location.href = "/login";
+          }
+        },
       },
-      record: (e) => onRecord(JSON.parse(e.data)),
-      status: (e) => onStatus(JSON.parse(e.data)),
-      interrupted: async () => {
-        chip("link", "reconnecting…", "off");
-        publishStatus(null);
-        updateLootStatus(null);
-        inventoryScope = "";
-        inventoryVersion++;
-        inventory = null;
-        $("inv-grid").replaceChildren();
-        $("inv-summary").textContent =
-          "Connection interrupted · inventory unavailable";
-        for (const button of document.querySelectorAll("button.act"))
-          button.disabled = true;
-        $("goal-combat").disabled = true;
-        chip("hp", "Health unknown");
-        chip("stamina", "");
-        chip("task", "Status unavailable");
-        chip("home", "Home unknown");
-        chip("combat", "");
-        chip("load", "");
-        // Native transient retries and explicit CLOSED recovery share one stream.
-        const res = await fetch("/api/status").catch(() => null);
-        if (res && res.status === 401) location.href = "/login";
-      },
-    });
+      readOnly ? { create: () => new EventSource("/api/viewer/events") } : {},
+    );
   }
 
   // ---- named places and circular zones ----
@@ -2456,6 +2485,7 @@ export function startController() {
     $("place-result").classList.toggle("error", error);
   }
   function syncPlaceList() {
+    if (readOnly) return;
     const list = $("place-list");
     list.replaceChildren(
       Object.assign(document.createElement("option"), {
@@ -2476,6 +2506,7 @@ export function startController() {
       : "";
   }
   function resetPlaceEditor() {
+    if (readOnly) return;
     placeOriginal = "";
     placeExpected = null;
     placePicking = false;
@@ -2492,7 +2523,9 @@ export function startController() {
       $(id).disabled = true;
   }
   function editPlace(p) {
+    if (readOnly) return;
     if (!p) return;
+    location.hash = "places";
     placeOriginal = p.name;
     placeExpected = p.at;
     $("places").open = true;
@@ -2570,8 +2603,8 @@ export function startController() {
         $("place-idle-status").textContent = error.message;
     }
   }
-  $("place-idle-enable").addEventListener("click", () => setIdleFood(true));
-  $("place-idle-disable").addEventListener("click", () => setIdleFood(false));
+  $("place-idle-enable")?.addEventListener("click", () => setIdleFood(true));
+  $("place-idle-disable")?.addEventListener("click", () => setIdleFood(false));
   function useBotPlace() {
     if (!world.bot) {
       placeResult("Tas must be in the world to use his position.", true);
@@ -2657,17 +2690,17 @@ export function startController() {
         placeResult(error.message, true);
     }
   }
-  $("place-list").addEventListener("change", (e) =>
+  $("place-list")?.addEventListener("change", (e) =>
     editPlace(world.waypoints.find((p) => p.name === e.target.value)),
   );
-  $("place-new").addEventListener("click", () => {
+  $("place-new")?.addEventListener("click", () => {
     resetPlaceEditor();
     $("places").open = true;
     useBotPlace();
     $("place-name").focus();
   });
-  $("place-bot").addEventListener("click", useBotPlace);
-  $("place-pick").addEventListener("click", () => {
+  $("place-bot")?.addEventListener("click", useBotPlace);
+  $("place-pick")?.addEventListener("click", () => {
     placePicking = !placePicking;
     canvas.classList.toggle("picking-place", placePicking);
     $("place-pick").setAttribute("aria-pressed", String(placePicking));
@@ -2676,13 +2709,13 @@ export function startController() {
       placePicking ? "Click the map to choose a position, then save." : "",
     );
   });
-  $("place-form").addEventListener("submit", (e) => {
+  $("place-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     writePlace("set");
   });
-  $("place-delete").addEventListener("click", () => writePlace("delete"));
-  $("place-go").addEventListener("click", () => writePlace("go"));
-  $("place-near").addEventListener("click", async () => {
+  $("place-delete")?.addEventListener("click", () => writePlace("delete"));
+  $("place-go")?.addEventListener("click", () => writePlace("go"));
+  $("place-near")?.addEventListener("click", async () => {
     const name = placeOriginal,
       selectedWorld = mapWorld,
       generation = mapGeneration;
@@ -2854,7 +2887,7 @@ export function startController() {
       out.textContent = e.message;
     }
   }
-  $("goal-combat").addEventListener("click", () => {
+  $("goal-combat")?.addEventListener("click", () => {
     const s = goalSnapshot;
     if (s?.connected && s.phase === "in_world" && s.pos)
       goalCommand({
@@ -2879,20 +2912,20 @@ export function startController() {
       s.home.world !== s.world
     )
       throw new Error("Tas needs a known home in his current world.");
-    const minimum = Number($("goal-stock-minimum").value);
-    const count = Number($("goal-stock-count").value),
-      food = $("goal-stock-food").value;
+    const { targets, minimum } = householdTargets(
+      [...document.querySelectorAll("[data-food-row]")].map((row) => ({
+        food: row.querySelector("[data-food]").value,
+        count: row.querySelector("[data-count]").value,
+        minimum: row.querySelector("[data-minimum]").value,
+      })),
+    );
     const storage = $("goal-stock-storage")
       .value.split(",")
       .map((x) => x.trim())
       .filter(Boolean);
-    if (!Number.isInteger(count) || count < 1 || count > 20 || !storage.length)
+    if (!storage.length)
       throw new Error(
         "Choose 1–20 meals and at least one destination chest ID.",
-      );
-    if (!Number.isInteger(minimum) || minimum < 1 || minimum > count)
-      throw new Error(
-        "Refill minimum must be between one and the refill target.",
       );
     const allowHunting = $("goal-stock-hunting").checked;
     const huntAreas = $("goal-stock-hunt-areas")
@@ -2909,8 +2942,8 @@ export function startController() {
       reserve: 2,
       storage,
       stock: {
-        targets: { [food]: count },
-        minimum: { [food]: minimum },
+        targets,
+        minimum,
         allowHunting,
         huntAreas,
         sources: $("goal-stock-sources")
@@ -2920,7 +2953,7 @@ export function startController() {
       },
     };
   }
-  $("goal-stock-start").addEventListener("click", () => {
+  $("goal-stock-start")?.addEventListener("click", () => {
     try {
       goalCommand({ action: "start", spec: householdSpec() });
     } catch (e) {
@@ -2973,8 +3006,10 @@ export function startController() {
       out.textContent = e.message;
     }
   }
-  $("goal-stock-idle").addEventListener("click", () => householdIdle(true));
-  $("goal-stock-disable").addEventListener("click", () => householdIdle(false));
+  $("goal-stock-idle")?.addEventListener("click", () => householdIdle(true));
+  $("goal-stock-disable")?.addEventListener("click", () =>
+    householdIdle(false),
+  );
 
   // ---- player profiles and map presence ----
   let presenceSnapshot = null,
@@ -2983,6 +3018,7 @@ export function startController() {
     presenceSnapshot = s;
     $("share-position").checked = !!s.presence?.sharePosition;
     $("marco-polo").checked = !!s.presence?.marcoPolo;
+    $("bedtime-invitation").value = s.presence?.bedtime || "";
     const desired = !!s.presence?.sharePosition;
     $("presence-summary").textContent =
       `${desired ? "marker shared" : "marker hidden"} · Marco/Polo ${s.presence?.marcoPolo ? "on" : "off"}`;
@@ -3059,13 +3095,16 @@ export function startController() {
       });
     return presenceSetting("players.profiles", profiles);
   }
-  $("share-position").addEventListener("change", () =>
+  $("share-position")?.addEventListener("change", () =>
     presenceSetting("presence.sharePosition", $("share-position").checked),
   );
-  $("marco-polo").addEventListener("change", () =>
+  $("marco-polo")?.addEventListener("change", () =>
     presenceSetting("presence.marcoPolo", $("marco-polo").checked),
   );
-  $("profile-form").addEventListener("submit", (event) => {
+  $("bedtime-invitation")?.addEventListener("change", () =>
+    presenceSetting("presence.bedtime", $("bedtime-invitation").value),
+  );
+  $("profile-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const name = $("profile-name").value.trim();
     if (name) assignProfile(name, $("profile-role").value);
@@ -3141,7 +3180,7 @@ export function startController() {
       };
     },
   };
-  $("map-export").addEventListener("click", () => {
+  $("map-export")?.addEventListener("click", () => {
     const snapshot = window.renkiSnapshots.map();
     const base =
       "renki-map-" + snapshot.metadata.capturedAt.replace(/[:.]/g, "-");
@@ -3161,6 +3200,6 @@ export function startController() {
   });
 
   connect();
-  loadDays();
+  if (!readOnly) loadDays();
   draw();
 }

@@ -13,7 +13,8 @@ import (
 )
 
 // AtlasHandler is read-only and registered behind panel authentication.
-func (a *App) AtlasHandler() http.Handler {
+func (a *App) AtlasHandler() http.Handler { return a.atlasHandler(true) }
+func (a *App) atlasHandler(contents bool) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/atlas/worlds", func(w http.ResponseWriter, r *http.Request) {
 		if a.Atlas == nil {
@@ -118,7 +119,9 @@ func (a *App) AtlasHandler() http.Handler {
 					containers = append(containers, c)
 				}
 			}
-			result["containers"] = containers
+			if contents {
+				result["containers"] = containers
+			}
 		}
 		writeAtlas(w, result)
 	})

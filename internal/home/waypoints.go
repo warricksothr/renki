@@ -201,7 +201,7 @@ func (s *Store) DiscoverWaypoints(world string, candidates []Waypoint) error {
 	current := s.mem.Waypoints[world]
 	needed := false
 	for _, w := range candidates {
-		occupied := slices.Contains(current.Suppressed, w.Kind)
+		occupied := slices.Contains(current.Suppressed, w.Kind) || s.protectedHarvestPlace(world, w)
 		for _, old := range current.Places {
 			if old.Kind == w.Kind || old.Name == w.Name {
 				occupied = true
@@ -229,7 +229,7 @@ func (s *Store) DiscoverWaypoints(world string, candidates []Waypoint) error {
 			if len(current.Places) >= MaxWaypoints {
 				break
 			}
-			occupied := slices.Contains(current.Suppressed, w.Kind)
+			occupied := slices.Contains(current.Suppressed, w.Kind) || s.protectedHarvestPlace(world, w)
 			for _, old := range current.Places {
 				if old.Kind == w.Kind || old.Name == w.Name {
 					occupied = true

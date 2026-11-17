@@ -33,6 +33,7 @@ type Options struct {
 	Landmarks  func(world string) []home.Landmark
 	Waypoints  func(world string) []home.Waypoint
 	Base       func(world string) *home.Base
+	Bases      func(world string) []home.Base
 	Danger     func(world string, now time.Time) []home.DangerZone
 	Pickups    func(world string) []home.Pickup
 	Logger     *slog.Logger
@@ -210,6 +211,20 @@ func (e *Engine) PreparingFood() bool {
 	}
 	var p MarkerFoodParams
 	return Decode(i.definition.Params, &p) == nil && p.Marker.Kind == "cooking"
+}
+
+// Workload reads ownership without running observation trackers or inspectors.
+// It survives gaps between a runner's native steps and a lent follow's absence.
+func (e *Engine) Workload() string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.loan != nil {
+		return "follow"
+	}
+	if i := e.instances[e.active]; i != nil && i.runner != nil {
+		return i.definition.Template
+	}
+	return ""
 }
 func (e *Engine) Put(ctx context.Context, name string, raw json.RawMessage, by string) error {
 	var d Definition
@@ -435,6 +450,9 @@ func (e *Engine) view() View {
 	}
 	if e.o.Waypoints != nil && v.State != nil {
 		v.Waypoints = e.o.Waypoints(v.State.World)
+	}
+	if e.o.Bases != nil && v.State != nil {
+		v.Bases = e.o.Bases(v.State.World)
 	}
 	if e.o.Base != nil && v.State != nil {
 		v.Base = e.o.Base(v.State.World)

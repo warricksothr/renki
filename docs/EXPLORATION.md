@@ -109,8 +109,13 @@ circle. Failed approaches are remembered. Every native leg limits elapsed time,
 actual 3D travel (including detours), and boundary, and records a bounded trail.
 Outbound work reserves return time, travel and task slots. Diminishing food or
 stamina starts return between legs. Return revalidates the reverse sequence of
-visited stops and finally the pinned anchor; a former route is never permanent
-proof. Arrival needs a post-receipt state on the intended floor with support.
+visited stops and finally the pinned anchor. When fresh measured ground offers
+no intermediate point toward a bound place within 60 m, the goal can request
+that exact place directly. The same bounded native dry walker must validate its
+actual support, obstacles and hostiles; wet terrain under a deck neither proves
+an unsafe floor nor grants permission to cross water. Failed targets remain
+failed and cannot be retried through this fallback. A former route is never
+permanent proof. Arrival needs a post-receipt state on the intended floor with support.
 
 State/perception freshness, injury, health, threats, water, session/world and
 base/waypoint edits are checked during native work. Unsafe/changed conditions

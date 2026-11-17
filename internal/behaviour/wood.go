@@ -133,7 +133,7 @@ func planWood(v View, last *GatherParams, hints []home.RememberedContainer, land
 			best = &copy
 		}
 	}
-	remembered := last != nil && last.Site.World == v.State.World && distance(last.Site.Pos, *v.Home) <= 150
+	remembered := last != nil && last.Site.World == v.State.World && distance(last.Site.Pos, *v.Home) <= 150 && !home.HarvestProtected(v.Bases, last.Site.Pos) && (v.Base == nil || !v.Base.Contains(last.Site.Pos))
 	if remembered {
 		// Fresh visible safe trees near the old site confirm it. A distant
 		// remembered site is only a destination hint; gather rechecks on arrival.
@@ -176,7 +176,7 @@ func planWood(v View, last *GatherParams, hints []home.RememberedContainer, land
 			}
 		}
 		if hint == nil {
-			return fail("I don't know a safe beech work site nearby; trees near characters or buildings must stay standing")
+			return fail("I don't know a safe beech work site nearby; trees inside saved bases or near characters or buildings must stay standing")
 		}
 		p.Site.Pos = hint.Pos
 	}

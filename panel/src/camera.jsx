@@ -180,7 +180,7 @@ export function DiagnosticCamera() {
   );
 }
 
-export function Camera() {
+export function Camera({ readOnly = false }) {
   const [diagnostics, setDiagnostics] = useState(false);
   return (
     <section class="card camera" id="camera" aria-labelledby="video-title">
@@ -191,13 +191,15 @@ export function Camera() {
         </div>
       </div>
       <Video />
-      <details
-        class="video-diagnostics"
-        onToggle={(e) => setDiagnostics(e.currentTarget.open)}
-      >
-        <summary>Diagnostic images &amp; capture settings</summary>
-        {diagnostics && <DiagnosticCamera />}
-      </details>
+      {!readOnly && (
+        <details
+          class="video-diagnostics"
+          onToggle={(e) => setDiagnostics(e.currentTarget.open)}
+        >
+          <summary>Diagnostic images &amp; capture settings</summary>
+          {diagnostics && <DiagnosticCamera />}
+        </details>
+      )}
     </section>
   );
 }

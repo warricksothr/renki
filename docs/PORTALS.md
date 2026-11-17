@@ -75,6 +75,24 @@ messages without a trip home. A supervised portal-pair crossing and return
 with Nimah remains required live evidence; offline policy tests do not prove
 native trigger entry or arrival.
 
+## Explicitly ordered crossing
+
+`interact` with `entity` and `portalTo` orders one native crossing, distinct from
+text interaction or walking. The controller requires `portal_travel_v1`; both
+IDs pin the source and destination. The source must be loaded within 16 m. It
+rechecks the exact link, ward access and native cargo rules during approach,
+walks on supported dry ground with hostile avoidance, and admits only this
+trigger. Other interaction modes cannot be combined with it. Cancellation
+revokes admission; native refusal and bounded entry/teleport/arrival timeouts
+retain their portal failure outcomes. It never invokes teleport or edits tags.
+
+Success requires observed native teleport completion followed by a grounded,
+non-swimming position within 4 m in three dimensions of the loaded expected
+exit, with at most 1.5 m vertical difference. Geometry resets on teleport. A task/audit receipt records source,
+destination, actual arrival and the separately observed exit's return link;
+an observed return link alone does not prove a safe or successful return.
+Durable map route planning and repeatable native return evidence remain open.
+
 ## General controlled travel next
 
 Portal travel should be a distinct transition in a goal's route: walk to an

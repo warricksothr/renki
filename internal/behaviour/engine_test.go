@@ -468,3 +468,21 @@ func TestEngineHonoursDelaysPastTheObservationWaitLimit(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkloadReadsOwnershipWithoutAdvancingObservationTrackers(t *testing.T) {
+	e := &Engine{instances: map[string]*instance{}}
+	e.instances["job"] = &instance{definition: Definition{Template: "gather"}, runner: &twoRun{}}
+	e.active = "job"
+	for range 3 {
+		if got := e.Workload(); got != "gather" {
+			t.Fatal(got)
+		}
+	}
+	if e.activity.previous != nil || e.activity.activity != nil {
+		t.Fatal("workload read advanced activity history")
+	}
+	e.active = ""
+	if e.Workload() != "" {
+		t.Fatal("finished ownership remained busy")
+	}
+}

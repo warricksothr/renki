@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/warricksothr/renki/internal/home"
 	"github.com/warricksothr/renki/internal/protocol"
 	"github.com/warricksothr/renki/internal/session"
 )
@@ -118,6 +119,13 @@ func passiveDeer(c protocol.PerceivedCharacter) bool {
 }
 
 func gatherClearance(v View, resource protocol.PerceivedResource, withoutDeer bool) bool {
+	if home.HarvestProtected(v.Bases, resource.Pos) || v.Base != nil && v.Base.Contains(resource.Pos) {
+		return false
+	}
+	// Remembered hints have no water telemetry; native dispatch revalidates them.
+	if resource.WaterLevel != nil && !resource.DryRoot() {
+		return false
+	}
 	radius := 8.0
 	if resource.Kind == protocol.ResourceTree {
 		radius = 32

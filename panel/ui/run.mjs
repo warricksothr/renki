@@ -144,7 +144,7 @@ try {
   );
   const html = await readFile(join(out, "fixture.html"));
   server = createServer(async (req, res) => {
-    if (req.url === "/" && req.method === "GET") {
+    if (["/", "/view"].includes(req.url) && req.method === "GET") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(html);
     } else if (
@@ -226,7 +226,10 @@ try {
       });
       await context.route("**/*", (route) => {
         const request = route.request();
-        if (request.url() === origin + "/" && request.method() === "GET")
+        if (
+          [origin + "/", origin + "/view"].includes(request.url()) &&
+          request.method() === "GET"
+        )
           return route.continue();
         entry.errors.network.push({
           url: request.url(),
@@ -244,14 +247,21 @@ try {
         entry.screenshots.push(name);
       };
       try {
-        await page.goto(origin + "/", { waitUntil: "load" });
+        await page.goto(
+          origin +
+            (scenario === "viewer" ? "/view#token=fixture-viewer-token" : "/"),
+          {
+            waitUntil: "load",
+          },
+        );
         await page.evaluate(async () => {
           await window.renkiPreviewReady;
           await document.fonts.ready;
         });
         if (
           !scenario.startsWith("video-") &&
-          scenario !== "layout-monitoring"
+          scenario !== "layout-monitoring" &&
+          scenario !== "viewer"
         ) {
           await page.locator(".video-diagnostics > summary").click();
           await expect(page.locator(".camera-badge")).toHaveText(

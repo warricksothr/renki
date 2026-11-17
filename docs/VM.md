@@ -1,5 +1,8 @@
 # Setting up the bot VM for remote control
 
+For combined panel/private-stream/game startup use `just check vm online`.
+The existing `just vm start` still starts only the game.
+
 For independent OBS capture, standby scenes and private HTTPS video, see
 [WINDOWS-VIDEO.md](WINDOWS-VIDEO.md). Streaming tasks are separate from the game
 and controller lifecycle; they use this same SSH and interactive console setup.
@@ -294,3 +297,14 @@ It leaves the game stopped, for example while a recovery route is being
 cleared. `just vm deploy` performs that same install and then starts Tas;
 `just vm start` starts an already installed build. Use `just check vm install`
 or `just check vm deploy` to retain deployment output.
+
+### Fireplace fuel permission
+
+`just vm stations` reads `Safety.AllowStations` (false when absent).
+`just vm stations true` enables native `add_to` on the next game start;
+`just vm stations false` disables it. The recipe preserves the other plugin
+settings, inserting the known entry under `[Safety]` for first deployment.
+The VM lease guards changes. Gathering, movement and the session's `add_to`
+permission are also required. Use `just vm task-check add_to` with explicit
+`entity`, `item` and `count` arguments and a finite timeout to retain receipts.
+Fuel verified does not establish that an unlit fire can burn; inspect ventilation.

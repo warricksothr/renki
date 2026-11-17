@@ -101,8 +101,9 @@ func TestWaypointContextUsesCurrentMovesAndWorldScopedRememberedContents(t *test
 }
 
 func TestStandardPlacesOnlyUseObservedPersistentResourceKinds(t *testing.T) {
+	water := 30.0
 	seen := &protocol.Perception{Structures: []protocol.PerceivedStructure{{Kind: "container", Prefab: "piece_chest_wood", Pos: protocol.Vec3{5, 36, 0}}, {Kind: "container", Pos: protocol.Vec3{2, 36, 0}}, {Kind: "station", Prefab: "piece_cookingstation", Pos: protocol.Vec3{3, 36, 0}}}, Resources: []protocol.PerceivedResource{
-		{Kind: "stump", Prefab: "Beech_Stub"}, {Kind: "drop", Prefab: "Flint"}, {Kind: "tree", Prefab: "Beech1", Pos: protocol.Vec3{10, 32, 0}},
+		{Kind: "stump", Prefab: "Beech_Stub"}, {Kind: "drop", Prefab: "Flint"}, {Kind: "tree", Prefab: "Beech1", Pos: protocol.Vec3{10, 32, 0}, WaterLevel: &water},
 		{Kind: "pickable", Prefab: "Pickable_Flint", Pos: protocol.Vec3{15, 31, 0}}, {Kind: "pickable", Prefab: "RaspberryBush", Pos: protocol.Vec3{20, 34, 0}},
 	}}
 	out := standardWaypoints(seen, protocol.Vec3{}, time.Now())
@@ -112,5 +113,27 @@ func TestStandardPlacesOnlyUseObservedPersistentResourceKinds(t *testing.T) {
 	}
 	if len(kinds) != 5 || kinds["storage"].Pos != (protocol.Vec3{2, 36, 0}) || kinds["flint"].Pos[0] != 15 || kinds["wood"].Pos[0] != 10 || kinds["cooking"].Pos[1] != 36 {
 		t.Fatal(out)
+	}
+}
+
+func TestStandardPlacesSkipCampAndWaterBeforeChoosingNearest(t *testing.T) {
+	water := 30.0
+	seen := &protocol.Perception{Resources: []protocol.PerceivedResource{
+		{ID: "inside", Kind: "tree", Prefab: "Beech1", Pos: protocol.Vec3{10, 35, 0}, WaterLevel: &water},
+		{ID: "edge", Kind: "rock", Prefab: "Rock_3_frac", Pos: protocol.Vec3{60, 35, 0}, WaterLevel: &water},
+		{ID: "wet", Kind: "tree", Prefab: "Beech1", Pos: protocol.Vec3{65, 28, 0}, WaterLevel: &water},
+		{ID: "unknown", Kind: "tree", Prefab: "Beech1", Pos: protocol.Vec3{70, 35, 0}},
+		{ID: "fallen", Kind: "tree", Prefab: "FirTree_oldLog", Pos: protocol.Vec3{75, 35, 0}, WaterLevel: &water},
+		{ID: "outside", Kind: "tree", Prefab: "Beech1", Pos: protocol.Vec3{80, 35, 0}, WaterLevel: &water},
+		{ID: "outside rock", Kind: "rock", Prefab: "Rock_3_frac", Pos: protocol.Vec3{61, 35, 0}, WaterLevel: &water},
+	}, Structures: []protocol.PerceivedStructure{{ID: "storage", Kind: "container", Pos: protocol.Vec3{0, 35, 0}}}}
+	got := standardWaypoints(seen, protocol.Vec3{}, time.Now(), home.Base{Radius: 60})
+	if len(got) != 3 {
+		t.Fatal(got)
+	}
+	for _, p := range got {
+		if p.Kind == "wood" && p.Entity != "outside" || p.Kind == "stone" && p.Entity != "outside rock" {
+			t.Fatal(p)
+		}
 	}
 }

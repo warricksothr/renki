@@ -19,6 +19,11 @@ windows-status:
 windows-action action:
     python3 scripts/streaming/windows.py "$1"
 
+# Restore existing private tasks without reinstalling or reconfiguring them.
+windows-online:
+    just vm lease-guard
+    python3 scripts/streaming/windows.py online
+
 windows-start:
     python3 scripts/streaming/windows.py start
 
@@ -30,6 +35,12 @@ windows-slate-file: prepare
 
 windows-slate: windows-slate-file
     python3 scripts/streaming/windows.py slate
+
+# Update only the adapter binary; preserve installed scenes, credentials and output.
+windows-adapter-update:
+    just vm lease-guard
+    GOOS=windows GOARCH=amd64 go build -buildvcs=false -trimpath -o dist/obs-adapter.exe ./cmd/obs-adapter
+    python3 scripts/streaming/windows.py adapter-update
 
 windows-adapter:
     GOOS=windows GOARCH=amd64 go build -buildvcs=false -trimpath -o dist/obs-adapter.exe ./cmd/obs-adapter

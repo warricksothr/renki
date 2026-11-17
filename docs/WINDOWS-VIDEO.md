@@ -47,6 +47,24 @@ test recovery unless an operator can unlock it.
    18780 forwards to the existing local tailnet address; Serve requires a
    loopback upstream. The original panel address remains usable.
 
+After setup, use `just check vm online` for normal startup. It restores the panel,
+existing OBS/relay/capture/watchdog tasks, waits for authenticated OBS and active
+private output, then starts Tas. Repeating it retains active private output and
+the current verified scene. It requires the VM lease and a signed-in console.
+`just check streaming windows-online` restores video independently. Neither
+recipe installs software or reconfigures capture. OBS 33 removed the old
+`--disable-shutdown-check` launch option: after an unclean shutdown it can block
+on a modal dialog before opening control. Startup archives stale `run_*` markers
+from this dedicated portable profile only while OBS is stopped, retaining crash
+logs. It can restart a dedicated instance only when its current startup log
+contains solely the unclean-shutdown message and the control port is closed;
+other running instances are retained and readiness still times out. This matches
+the pinned [OBS 33 crash handler](https://github.com/obsproject/obs-studio/blob/33.0.1/frontend/utility/CrashHandler.cpp). Missing setup or a failed
+video task stops combined startup before launching the game; already running
+services remain available for diagnosis. `just check streaming windows-adapter-update`
+updates only the capture binary before `windows-online`, preserving installed
+scenes, credentials and output. Game/controller stops retain the stream.
+
 `just check streaming windows-status` reports redacted state and OBS metrics.
 `just check streaming windows-action snapshot` and
 `just check streaming windows-action game-snapshot` retrieve allowed source
@@ -57,7 +75,7 @@ Tasks `RenkiOBS`, `RenkiRelay`, `RenkiCapture` and `RenkiCaptureWatchdog` use th
 existing interactive bot account. They are independently installed/startable;
 this slice does not enable automatic output at Windows logon. Bot logout,
 controller restarts, body stop and trial cleanup do not stop them. OBS starts
-on `Renki Offline`; `local-start` also explicitly selects it.
+on `Renki Offline`; `local-start` selects it when starting inactive output.
 
 ## Capture evidence and containment
 

@@ -49,6 +49,15 @@ guard: need-target
 test-lease:
     python3 -B "{{justfile_directory()}}/scripts/vm/lease-test.py"
 
+# Guard shared tooling that starts existing streaming tasks.
+lease-guard: guard
+
+# Start panel, existing private video stack and Tas; stream survives game stops.
+online MINUTES="5": need-target guard
+    just --justfile "{{justfile()}}" vm panel-start
+    just --justfile "{{justfile()}}" streaming windows-online
+    just --justfile "{{justfile()}}" vm start "{{MINUTES}}"
+
 # Check the connection, the account and the scheduled tasks.
 check: need-target
     {{ssh}} "whoami; hostname; Get-ScheduledTask -TaskName Renki* | Format-Table TaskName,State -AutoSize | Out-String -Width 120"
@@ -359,6 +368,18 @@ gather VALUE='': need-target
     [ -z "$1" ] || valuearg=(-Value "$1")
     {{ssh}} "{{ps}} -File {{dir}}/gather.ps1 ${valuearg[*]}"
 
+# Read AllowStations, or set true/false before restarting the game.
+[positional-arguments]
+stations VALUE='': need-target
+    #!/usr/bin/env bash
+    set -euo pipefail
+    [[ -z "$1" || "$1" = true || "$1" = false ]] || { echo 'Use true or false' >&2; exit 2; }
+    [ -z "$1" ] || {{lease}} guard
+    scp -q -o BatchMode=yes "{{justfile_directory()}}/scripts/vm/stations.ps1" "{{target}}:/{{dir}}/stations.ps1"
+    valuearg=()
+    [ -z "$1" ] || valuearg=(-Value "$1")
+    {{ssh}} "{{ps}} -File {{dir}}/stations.ps1 ${valuearg[*]}"
+
 # Prompts here without echoing, and sends the value over SSH's standard
 # input, so it is in no command line, log or chat. `just vm secret CPA_API_KEY`.
 [doc("Store a secret for the controller on the VM, such as an LLM key.")]
@@ -585,3 +606,7 @@ auto-logout VALUE='': need-target
     valuearg=()
     [ -z "$1" ] || valuearg=(-Value "$1")
     {{ssh}} "{{ps}} -File {{dir}}/recovery.ps1 -Key AutoLogout ${valuearg[*]}"
+
+# Verify filtered viewer HTTP access and revocation; preserve existing links and game work.
+viewer-check: need-target guard
+    python3 "{{justfile_directory()}}/scripts/vm/viewer-check.py"

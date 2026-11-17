@@ -2211,3 +2211,46 @@ footer {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.workspace-title nav a[aria-current="page"] {
+  color: var(--ink, #f1f4ed);
+  background: #294540;
+  border-radius: 5px;
+  padding: 6px 9px;
+}
+.household-foods {
+  min-width: 0;
+  border: 1px solid #354b47;
+  border-radius: 8px;
+  margin: 14px 0;
+}
+.household-food-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  padding: 12px 0;
+  border-bottom: 1px solid #354b47;
+}
+.household-food-row label {
+  flex: 1 1 140px;
+  display: grid;
+  gap: 6px;
+}
+.household-food-row input,
+.household-food-row select {
+  width: 100%;
+  box-sizing: border-box;
+}
+#household-add-food {
+  margin-top: 12px;
+}
+.viewer-link {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 16px;
+}
+#sharing {
+  margin-top: 20px;
+}

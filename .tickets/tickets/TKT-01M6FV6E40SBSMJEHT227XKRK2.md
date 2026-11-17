@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M6FV6E40SBSMJEHT227XKRK2
 title: "Home survey: familiarize with an area and update its places"
 type: task
-status: review
+status: in-progress
 status_reason: null
 priority: high
 due_on: null
@@ -21,15 +21,22 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim: null
+claim:
+  actor: agent:codex/portal-deploy
+  branch: t3/renki-runtime-loot-batch
+  worktree: /home/sothr/.t3/worktrees/renki/t3-6c0da0c0
+  commit: 501ca8d3ca755d7de1888f92f3a1e27e92bd6d7e
+  session: null
+  claimed_at: 2026-11-04T15:59:19Z
+  expires_at: null
 archive: null
 created_at: 2026-11-03T04:38:05Z
-updated_at: 2026-11-03T16:00:45Z
+updated_at: 2026-11-04T17:37:38Z
 created_by:
   id: agent:codex/home-survey-planning
   name: ""
 updated_by:
-  id: agent:codex/home-survey-delivery
+  id: agent:codex/portal-deploy
   name: ""
 extensions: {}
 ---
@@ -74,6 +81,12 @@ Deliver the three local feature tickets together: persistent configurable named 
 Reuse the existing goal host and scheduler, with a dedicated native bounded-movement option on move_to rather than wait for the full general-purpose M7 exploration stack. This local workflow enumerates bounded nearby approaches, revalidates actual loaded terrain/objects, records blocked attempts and reports partial results. It does not claim general expedition readiness, autonomous survival, minimap exploration, portal traversal or all-object completeness. Replace the local ticket's dependencies on the broad explore runner/panel epics with the concrete local implementation; retain those tickets as references and leave their M2/M3 dependency gates unchanged.
 
 Test persistent migration/rollback/world isolation, roles 50 m apart, multiple sites, concurrent edits and suppression; native containment/dry navigation/distance limits and receipts; scoped coverage/provenance; uncertainty/restart, budget reserve, unknown/blocked areas, floor-aware arrival, stop/takeover; API authentication/CSRF and owner grammar. Use focused just check recipes, then just check ci before commits. Run just check review on committed changes, address findings, publish a PR and deploy under the VM lease. Record actual live outcomes and remaining limitations on tickets; never tick an unearned acceptance criterion.
+
+### Current native continuation
+
+After the owner restores the desktop session, start the installed reviewed build under the VM lease. Refresh state, inventory, meals, threats and current base settings; obtain available supplies through ordinary native access before the roughly 513 m journey. Pin the owner-confirmed saved home and use bounded supported hostile-avoiding travel with receipts and observed floor arrival. Respond to concrete obstruction evidence instead of repeating unchanged routes. At the base, select an observed free bed, claim through native interaction, verify ownership and bind a supported sleeping approach. Familiarize the existing 60 m base, inspect each reachable storage entity without transfers, and retain vertical position, access gaps and double-door traversal/cleanup evidence. Keep Loot disabled, preserve other ticket claims and leave Tas online. Report partial/blocked outcomes honestly; no criterion is earned by map visibility alone.
+
+Native November 4 raised-base correction: the first survey refreshed17 places but skipped its 35m bound storage connection because all intermediate terrain samples were underwater beneath the deck. When no fresh dry terrain approach exists, allow an exact already-bound role within60m to reach the existing bounded native dry/hostile-avoiding walker. Do not invent intermediate floor heights or relax native water/support/obstacle/portal guards. Retain budgets, refusal memory and separate arrival receipts. Regress this wet-under-deck case and both-way role verification, run the full gate and committed review, deploy controller-only while Tas remains sheltered/online, then retry the same selected base survey and record partial coverage honestly. Bed binding remains pending an actual available bed.
 
 ## Notes
 
@@ -125,6 +138,56 @@ Earlier ordinary native arrival at new home and the saved/bound new home storage
 
 Supersedes the healthy remote-platform snapshot in the preceding note. On deployed cc5f323, Greydwarf 1629975892:102 hit at 15:54:52.701Z (11.99 damage), 15:54:54.821Z (12.28) and 15:55:04.879Z (11.44). Automatic flee t-2 started within 0.28s of the first hit, failed unreachable at 15:54:55.186Z; replacement flee t-5 remained active until death at 15:55:04.915Z near [413.36,31.65,-1177.66]. No direct probe interrupted these retreats. Respawn at 15:55:22.962Z was at the old base [-31.08,36.55,15.19], followed by automatic strict-dry return t-7, which failed unreachable at 15:55:44.553Z. Latest resumed observation at 15:56:28Z: idle 25/25HP near [-46.32,33.79,10.13], no active/carried food, empty pack and no equipped gear; fresh local perception had no characters. Loot remains disabled. Exact retained events/states/inventory: .checks/audit-window-M3BtxI.jsonl; fresh state/map .checks/new-home-resume-runtime.json and .checks/new-home-resume-map.json. This is a death/failed escape, not a safe portal arrival or return, and does not earn survey, bed or survival acceptance.
 
+**agent:codex/portal-deploy** at 2026-11-04T15:46:59Z
+
+### Selected live objective; VM desktop prerequisite
+
+The owner requested bringing Tas online, navigating from the current position to the saved new home, assigning a bed and updating area/chest knowledge. The owner confirmed the saved destination near X -204, Z -467. The new base contains vertically stacked chests/barrels, more complicated navigation and additional double doors. Existing selected base is new home, radius 60 m, return home, storage new home storage west at [-169.13,30.97,-467.75], with no sleeping binding. Preserve historical markers and other ticket claims.
+
+At 2026-11-04 15:43–15:46Z, the VM was reachable but Valheim and controller were stopped. just vm panel-start failed before any game/body work: its scheduled task requires an interactive Admin logon. Read-only inspection through just vm shell confirmed quser reports no users, RenkiStart/RenkiController use Interactive logon, and the VM rebooted at local 03:15:26 on November 4. No game startup, route, survey or bed action occurred. Asked the owner to sign into Blight and use C:\renki\release-rdp.ps1 when leaving RDP. This is an external desktop prerequisite, not a deployment or compatibility failure.
+
+Continuation: reacquire the VM lease; start panel/game, obtain fresh scoped position, health, food, inventory, threats and base/waypoint settings. Prepare supplies before a long trip; the last session had an empty pack and no meals, but that is historical until reobserved. Use bounded native supported hostile-avoiding travel toward unchanged saved home, retaining receipts and floor-aware arrival evidence. Do not force portals or repeat an unchanged failed route. At the new base claim only an actually observed free bed, verify ownership/spawn and save a supported sleeping approach/binding. Then run bounded familiarization and read-only chest inspections, keeping identity/elevation and inaccessible candidates distinct. Verify both leaves and cleanup of double doors in actual travel. Map observation alone does not prove access to stacked storage. Leave Tas online, Loot disabled, and unearned live acceptance criteria unticked. No native goal can be created while its controller is offline.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:25:59Z
+
+On November 4, the owner restored the signed-in console and Tas restarted on deployed 501ca8d (just check vm start passed, .checks/20261104T155916Z-waASAP.log). Empty inventory, no active/carried food. Fresh normal read-only searches of outdoor chests 1:75525, 1:75526 and 1:77215 and house pantry 1:75501 found no ready food. Pantry now holds fish; historical mushrooms were absent. Northern berries were refused due Elite clearance. A southern mushroom attempt ended in death: Greydwarf 2675073813:273 approached, bank retreats t-18/t-20 and t-23/t-25 failed bearings_exhausted, damage at 16:12:35.238Z and 16:12:41.296Z, death at 16:12:41.322Z near [-11.08,30.8,44.77]. No food was collected. Audit .checks/audit-window-CReSWs.jsonl retains exact events. This supersedes earlier healthy/staged snapshots; neither forage nor retreat succeeded. The owner was informed; the agent should have abandoned the source as soon as the Greydwarf appeared.
+
+Respawn was 25/25HP at old bed. Stopped automatic home travel; persisted home.idleMinutes=0 and home.afterDeath=stay (afterOutage=false retained) to prevent another unsupplied 500m trip. RecoveryGuard/AutoLogout remain false; combat/gather permissions retained; Loot, Relocation mushrooms and Relocation food search disabled. Two bounded shelter returns failed without injury, leaving Tas at [-43.39,33.73,8.53], idle, grounded, 25/25HP with empty pack. Latest fresh perception at 16:24Z showed a non-targeting Boar ~30m away. Old double gates are open after these failed returns; closed-state observations from the earlier pantry inspection do not establish final door restoration.
+
+The owner says nearby SpawnCamp portal 1:166576 leads to the new base and cannot supply old-base food. Fresh native link is connected to 1:166579 at source [-50.26,34.09,13.84], without remote coordinates. Explicit ordered crossing is being added under TKT-01M6AZ7DJYGTWDR9G9ZP0MA20M (Traverse known portals with verified arrivals). No crossing, free bed, new-home food or survey completion is claimed yet. Saved home remains [-204.39,32.97,-467.43]. Keep Tas online except required implementation deployment restart.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:48:30Z
+
+Deployed reviewed bdd70e7 after full CI, committed review and verified preflight/checksums/receipt. The owner-selected source was freshly observed connected: SpawnCamp 1:166576 ->1:166579. First dry approach t-1 failed without moving; checked-wading stairs approach t-2 made progress but stopped unsupported_footing. Retrying explicit crossing t-3 from the changed position made a small safe approach then refused before entry. Two invalid mode combinations (scope+wade, ordinary travel+avoidHostiles) were rejected before dispatch; no movement occurred from them. A supervised normal native walk t-4 to the observed staircase at[-44.13,34.09,18.02] succeeded, retaining ordinary portal guards; native hostile avoidance is unavailable in that movement mode, and fresh non-targeting creatures remained outside the route. No injury occurred.
+
+From the stairs, exact-link crossing t-5 succeeded through the native trigger and observed teleport. Receipt: source1:166576, destination1:166579, actual grounded arrival[-168.53,30.97,-458.92], observedReturnTo1:166576. This is inside the selected new-base area, near its storage, not the exact saved home/bed. The exit was freshly observed connected with native target1:166576 and source coordinates; actual arrival is retained separately in the task/audit receipt. HP25/25, grounded on structure, not in water, near fire; no perceived hostile creatures. Evidence .checks/task-pm_oi5en.json and .checks/newbase-arrival-status.json/.checks/newbase-arrival-map.json. The private stream reported verified gameplay. The new base has stacked chests/barrels, both observed individually. A bounded read-only storage search is underway; fresh snapshots already establish ready food in upper barrel1:15597 and berries in1:15598. No bed has been claimed.
+
+This earns the explicit crossing implementation and one real outward traversal only. Durable map-level arrival/return route knowledge and repeated native return/restoration trials remain open. Do not infer safe return from the observed reverse link, or enable Loot. Keep home idle/death travel paused until food and safe staging are verified.
+
+**agent:codex/portal-deploy** at 2026-11-04T16:56:23Z
+
+Native November 4 delivery on reviewed/deployed bdd70e7: exact-link portal crossing t-5 arrived at new-base storage without injury. Bounded New home storage survey searched23 explicit chest/barrel IDs with radius30m, 180s/180m limits. Final report: checked20, unchecked3, matching consumables in3 containers. Inaccessible IDs1:15433,1:15438,1:15414 remain unknown; no entire-base absence/completion claim. Stacked upper barrel1:15597 at[-165.89,32,-466.76] freshly held71 ready meals, including sausages, deer stew, jerky, carrot soup and cooked fish. Upper barrel1:15598 held32 berries/mushrooms. Chest1:15420 held27 Pukeberries; generic consumable matching reports them, but they were not treated as sustaining meals or consumed.
+
+The complete read-only search left inventory exactly unchanged: same world/connection, inventory seq112/t375006.49987785146, empty items, weight0 before and after. Evidence .checks/newbase-inventory-before.json, .checks/newbase-search-inventory-after.json, .checks/newbase-search-final.json and .checks/newbase-storage-map4.json. Fresh stored snapshots distinguish upper/lower entity IDs and actual heights; no items moved during inspection.
+
+Only after the read-only evidence was retained, separate withdraw t-30 moved3 Sausages,3 BoarJerky,2 CarrotSoup from1:15597 (.checks/task-v8wtntcx.json). Existing food maintenance consumed one of each; fresh active meals and carried reserves were observed. HP recovered to the current decaying food maximum with injurySeq0. Scoped supported/hostile-avoiding move t-34 reached saved home[-203.53,32.97,-467.58] safely and sheltered; .checks/task-iettvo4g.json retains39.18m measured travel/trail. This is not a claim of access to the three failed containers or restoration of every door.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:05:38Z
+
+Reviewed commit83a4743 passed just check ci (222s, .checks/20261104T165535Z-FOYm2i.log), committed just check review with no findings (.checks/20261104T165928Z-Ml5zXw.log), then just check vm deploy-controller with preflight/checksum/receipt verification (.checks/20261104T165942Z-50whAH.log). Valheim stayed online.
+
+Survey9efba35d2e5246771e077c4d actually reached the bound storage approach: t-1 succeeded at[-170.06,31.04,-467.82], with35.485m measured travel. The return leg t-2 failed after11.979m at[-177.89,30.97,-471.19]. Native evidence shows a wave-dependent bank-buffer refusal, not missing terrain alone: deck/support y30.97, water30.155 rising to30.275, flat normal[0,1,0]. WaitingMargin0.9 activated bank departure; its stronger1.1m recovery threshold was not reached on the level deck, and the3m bound refused distance_limit. No water/support/hostile safeguards were relaxed. Subsequent terrain approaches also refused; the agent stopped the survey rather than spending the remaining600s. Final retained survey coverage690/704 measured,598 refreshed,14 unknown;7 new places,9 protected old markers. Survey status is cancelled, not a verified completed return.
+
+Separate ordinary native move t-12 succeeded back to saved home, recording71 route points. It was a supervised recovery and does not earn the bounded survey return or separated-building criterion. Exact live audit .checks/audit-window-IxX5Fs.jsonl and compact .checks/survey-return-audit-summary.txt; final goal checkpoint in .checks/continuation-observe.json. Missing trail arrays in the goal checkpoint do not mean native receipts lacked trails; full audit retains them.
+
+Fresh17:03Z perception still has four owned/non-mine beds1:14774,1:15016,1:14773,1:15382; no claim attempted. Owner previously asked to make a bed available; sleeping remains unbound. Explicit t-14 closed home door1:14823, and .checks/home-after-close-map.json verifies closed. Storage leaves1:15335/1:15334 remain observed open; automatic cleanup is not earned.
+
+At17:04Z Tas is idle, grounded/sheltered at[-203.11,32.97,-467.58],115.7/115.7HP,injurySeq0, with three active meals and carried sausage/jerky reserves. Loot is disabled, idle home travel0, afterDeath stay, afterOutage false. Private OBS is still verified gameplay (.checks/final-home-video.json). Next native work is to handle the wave-sensitive raised-deck dry-route refusal while preserving actual-water guards, then verify the round trip and an actually available bed. Do not repeat the same failed survey unchanged or infer all rooms/storage/doors were inspected.
+
+**agent:codex/portal-deploy** at 2026-11-04T17:37:38Z
+
+Owner-adjusted replacement bed1274003559:489 was claimed through native t-22 with Spawn point set and fresh Mine ownership. Saved supported tas bed approach[-204.89,32.97,-467.49] and bound new home.sleeping with expectedAt conflict protection; no invented floor/bed coordinates or replacement of old-base markers. Ordinary native lower-room visit and t-29 return succeeded without injury; actual stable heat/sleep is not earned. Full claim/navigation/fire evidence is on TKT-01M62PRDSBCRCPH5S0TGGCMAEY (Claim a bed near home, or tell the owner there is none), .checks/task-bvggbxpu.json and .checks/bed-final-base.json. The earlier wave-sensitive bounded storage return remains unresolved; do not repeat the unchanged survey or tick criteria5/7.
+
 ## Summary
 
-Configurable familiarization, independent base roles and supported wading are deployed in PR #176 (runtime cc5f323). Tas earlier reached the saved home and an actual storage approach is saved/bound. Owner food restored health, then automatic Loot accidentally entered darkforest; Loot is paused and its final-guard continuation bug is fixed and native-verified. Tas is now healthy on the remote portal platform. No bed claimed or survey admitted; native criteria5/7 remain unticked. Controlled return, meal readiness and a free Tas bed/verified sleeping approach remain pending.
+Deployed reviewed83a4743 over merged PRs176/177/178. Tas crossed the observed old-base portal, inspected20/23 selected stacked storage containers without transfers, then separately withdrew native food and reached saved home. Survey reached storage and refreshed598/704 terrain samples, but its bounded return failed on wave-sensitive deck clearance; cancelled and recovered home through a separate ordinary native walk. No survey return/complete-area claim. Tas remains online, sheltered, healthy and fed with verified private OBS gameplay. Four observed beds remain owned by others; no bed claimed. Sleeping binding, dry round-trip survey and double-door restoration remain open.

@@ -1,163 +1,155 @@
 # Handoff
 
 Replace this page at each handoff; tickets retain decisions and evidence.
-Handoff of 2026-11-03 from `agent:codex/portal-deploy`.
+Current work of 2026-11-04 by `agent:codex/explore-night`.
 
-Read AGENTS.md, docs/ROADMAP.md, docs/BEHAVIOURS.md, docs/PORTALS.md,
-docs/TESTING.md and docs/VM.md before resuming live work.
+## Current state and owner choices
 
-## Owner decisions and branch stack
+Branch `t3/renki-portal-travel-startup`, PR179. Installed plugin/controller
+**f254e95** includes the panel views/multi-food plans/viewer sharing, activity-aware
+food and coherent bedtime-clock correction. Later evidence-only commits need no
+redeployment. VM lease released; take it again before live changes.
+Keep Tas and private video online. Loot and automatic logout remain disabled.
+Do not take older ticket claims or promote unselected drafts.
 
-The owner selected portal following, authorized its deployment, then selected
-all three next drafts: deployment preflight, anchor activity tracking and Loot
-panel visibility. The owner explicitly chose **keep the game offline** while
-this batch is implemented. Do not start Valheim for these implementation checks.
+Tas returned home through checked stair-foot/top approaches: final t-15 succeeded
+at[-204.18,32.97,-467.58], receipt .checks/task-0scabckn.json. Final post-deployment status
+.checks/panel-batch-final-status.json shows[-204.3,32.97,-467.57],38.5/38.5HP,
+injurySeq0,one active BoarJerky,two carried. Health-cap decline is food decay;
+the normal keeper remains responsible for eligible refresh. No injury occurred. Leather helmet/chest/legs and full flint axe remain
+his equipment. Restored home.whenStuck=true after supervised travel. Saved new
+home remains[-204.39,32.97,-467.43],radius60; that protected no-harvest boundary
+was never enlarged for exploration. Bed1274003559:489 is the owned saved spawn;
+actual sleep/respawn remains untested.
 
-- PR #176, `t3/map-home-location`, head dd0042f, holds the newer installed
-  prerequisite: atlas schema 2, home surveys, checked wading, chest inspection,
-  door cleanup and proactive/blocked-escape protection.
-- PR #177, `t3/continue-renki-bot`, head a148089, is stacked on #176 and adds
-  portal following. The installed runtime from this branch is **871d818**;
-  a148089 adds deployment records only.
-- The next batch is on `t3/renki-runtime-loot-batch`, based on a148089. Its delivery
-  base is `t3/continue-renki-bot` (#177). No PR was merged in this session.
+Owner selected:200m exploration radius then return; bedtime shout when another
+player is online; Meadows/Black Forest meals(tiers1–2) for idle, reserving later
+and unknown meals for work with emergency override. The latest request adds
+multiple foods per household plan and separate operations/config/settings/views.
+Use the existing private panel address for sharing. No public publication was
+requested or performed.
 
-## Current implementation batch
+## Bedtime and activity-aware food
 
-- TKT-01M6H80F6B (VM: detect runtime drift before installing older builds):
-  both install paths stage and preflight before stopping/replacing the current
-  runtime. The manifest records committed source/branch/ancestry, supported atlas
-  schema/tasks, checksums and actor. The staged controller reads config, saved
-  task permissions and SQLite schema without startup/migration/writable stores.
-  Unknown/newer/unmerged builds, changed checksums and incompatible data refuse.
-  An identifiable clean legacy ancestor can be adopted. Dirty/uncommitted source
-  is refused. Successful installs retain a receipt with verified hashes and prior
-  game/controller state. Installation keeps the game offline; only deploy/start
-  explicitly starts it. `just check vm deployment-refusal` exercises compatible
-  read-only inspection and both actual refusal entry points while retaining the
-  running panel, controller PID and installed/config/data hashes. Run only with
-  the game already offline, under the VM lease, on a committed reviewed candidate.
-- TKT-01M6F877Q8 (Behaviours: infer the anchor's activity from changes around
-  them): a pure tracker infers felling/mining/picking from vanished resources
-  within 12 m of a live authorized anchor, carries prefab/ID/position/time/age,
-  and expires after 30 s. Mixed evidence chooses nearest, then kind and ID.
-  Duplicate/old/stale/gapped frames, changed scope, jumps, capped kinds and scan
-  edges cannot invent new activity. `View.Activity` and behaviour status expose
-  it without enabling gathering or dispatching tasks. These are inferences;
-  current perception cannot identify the actor or prove every scan complete.
-- TKT-01M6EYEMTX (Panel: show loot's anchor, settle area, reach and drop
-  decisions): `/api/behaviours` carries per-instance scoped, timestamped Loot
-  diagnostics. Selection and diagnostics share the decision function. A read-only
-  card shows enablement, anchor/settle/reach, recent inferred work, all effective
-  parameters/defaults and drop reasons. The map's Loot reach layer shows the
-  anchor, settle/reach circles, eligible filled drops, deliberate crosses and
-  hollow out-of-reach drops. Select an instance if several exist. Offline,
-  stale, changed-scope and saved-atlas views clear the live overlay; polling the
-  same frame cannot renew it. Disabled Loot stays disabled. The owner-in-game
-  reach-over-time criterion remains unearned.
+TKT-01M6KZ8KGV2MQANWADECVXBSPP (Ask players about bedtime once per game night):
+mode presence.bedtime=shout is persisted. Fresh native audience/time, scoped
+instant say, durable world/character calendar/night high-water marks; reserve
+before send so uncertainty cannot replay. No automatic sleep/body interruption.
+The complete audit19:24:00Z..19:45:00Z(.checks/audit-window-nxUeVD.jsonl) exposed
+TWO shouts in the same night, t-13 at19:26:21Z and t-20 at19:30:50Z. This corrects
+the earlier interim no-repeat inference. GetDay uses raw network time while
+GetDayFraction is smoothed lighting, still0.998 when day advanced213→214.
 
-The full `just check ci` gate passed on the implementation (225 s) and again
-after the native verification correction (180 s), most recently retained in
-.checks/20261103T181030Z-mkQMwC.log. Focused Go/race checks and the desktop/mobile
-`loot-reach` UI scenario passed.
-The UI scenario also verifies distinct canvas colors, layer toggling, expiry of
-an unchanged frame and no non-GET requests. Committed review of candidate bc64ae9 passed with no findings
-(.checks/20261103T181344Z-riCsUg.log). Activity and preflight tickets are done and
-released; the panel ticket is in review and released with its in-game criterion
-unchecked.
+The installed fix samples day/calendarFraction coherently from one native clock
+reading and configured day length. Invitations require this optional raw field
+and both raw/native night; older/missing clocks defer. Exact mismatch, restart,
+midnight, rollback, missing/stale audience, uncertain send, persistence failure
+and time-skip regressions are covered. Retain existing high-water marks; the
+previous duplicate can conservatively suppress the next evening. Corrected
+live midnight proof remains unearned; do not reset history or claim it passed.
 
-`just check vm deployment-refusal` passed in 11 s under the VM lease
-(.checks/20261103T181353Z-vMP7sd.log). The compatible candidate read the real
-config/settings/atlas successfully. With only staging ancestry then altered,
-both actual installers refused before stopping/replacing anything, retaining
-controller PID 39640 and installed/config/data hashes. Final VM status confirms
-Valheim stopped, controller running and bot disconnected. Lease released. The
-first verifier run had hit Get-FileHash sharing SQLite's open writer; its retained
-failure was corrected with a read-only shared handle before the passing rerun.
-No production build, configuration or Loot setting was changed.
+TKT-01M6KZZ5F5C3YYJWX7RV2C3TMS (Choose food by activity and reserve better meals
+for work): installed08590de,food.activityAware=true,food.idleMaxTier=2. Pure shared
+explained decisions cover background maintenance and food goals. Tier overrides
+are configurable; unknown/modded food is reserved while idle. Idle prefers low
+tier and late refresh; work ranks observed health+stamina; no meal or low health
+permits emergency food. Native eligibility, task ownership, freshness and receipts
+remain authoritative. Explicit owner eat orders retain their item. Policy/audit
+and runtime settings were verified live with carried BoarJerky/DeerStew; premium
+versus cheap consumption was not tested because that choice was absent.
 
-## Installed runtime and required offline state
+Prior gates:4e57efd fullCI220s;08590de fullCI176s including actual plugin build;
+both committed reviews clean. Logs retained in .checks/20261104T19*.log.
 
-The initial portal-only deployment of 77a527c installed with verified checksums
-but its controller exited: `atlas schema 2 is newer than supported schema 1`.
-Saved settings also included `inspect_container`. The actual baseline was
-unmerged PR #176 (runtime 2e8c6d1), newer than the older main handoff suggested.
-The failed deploy's local wait was interrupted, then `just vm stop` stopped the
-game. No atlas/settings were deleted, reset or downgraded. Never deploy 77a527c
-alone against this runtime.
+## Deployed panel and validation
 
-Combined build **871d818** installed successfully with `just check vm install`
-(.checks/20261103T174828Z-CbVn1x.log). Controller/Core/plugin checksums verified.
-`just vm panel-start` started only the controller/panel. `/api/status` reported
-871d818 and disconnected; VM status confirmed Valheim stopped and controller
-PID 39640 running. `/api/behaviours` confirmed **Loot disabled and not running**.
-The combined CI gate and committed review passed. Deployment lease released.
-The new implementation batch has not been installed in production.
+TKT-01M6M15PSGDEV44W48XCKXK1M5 (Group household food targets and split panel
+configuration views):1–8 distinct supported foods with independent target/minimum
+maps in one plan. Existing backend supports this; saved cards display the whole
+mix. Forage/basic cooking only; do not imply unsupported cauldron recipes.
 
-PR #176's historical emergency stop was around 16:12Z: position
-[150.65,70.48,-33.81], 15.8/25 HP, no active/carried food and two targeting
-Greylings. This is not a fresh health/location claim after the brief failed
-startup. Grave recovery and a safe return remain unresolved; menu HP0 is not
-proof of death. Saved home is [-204.39,32.97,-467.43], base radius 60 m, storage
-approach [-169.13,30.97,-467.75]. Sleeping is unassigned; no free Tas bed was
-confirmed or claimed. Keep Loot disabled: it previously entered a portal during
-stuck recovery and stranded Tas. Retain #176's final guard that immediately
-fails a body task when portal input is refused.
+Operator views:Operations,Goals & kit,Places & base,People,Decisions,Settings.
+They stay mounted to preserve edits and one video/map instance. Settings manages
+a separate persisted random viewer credential. /view reuses map/video in monitor
+mode without control components. Fragment exchange scrubs the link into a separate
+HttpOnly/SameSite cookie. Server allowlist permits only filtered observation/map/
+atlas/video playback; no chest contents,inventory,settings,audit/chat,commands.
+Streams recheck revocation; established WebRTC media can continue until disconnect.
+Viewer map positions and visible game content remain shared, not redacted broadcast.
 
-## Portal following and remaining native checks
+Sharing is disabled after the live check, matching its initial state. just check vm viewer-check temporarily enables/rotates
+only if initially disabled, restores that state, preserves existing links and
+writes credential-free .checks/viewer-live.json. New dataDir/panel-viewer.json
+must survive deployment. Do not publish the operator token in viewer links/logs.
 
-TKT-01M6FT1ZVW (Follow: go through the portal the leader just used) stays in
-review, released, with live criterion 5 unchecked. The plugin remembers nearby
-leader/source observations for 8 s, even during passive pickup. Disappearance or
-remote position jumps can start a bounded native crossing; returned follows
-accept that evidence. Only the observed source and unchanged destination are
-admitted, scoped to route planning and the active input step. Cancellation,
-standing, failure and teleport revoke the allowance; other portals stay blocked.
-Valheim's cargo/teleport rules remain authoritative. Cargo and crossing failures
-explain why Tas stopped without silently walking home. Arrival clears geometry
-and resumes follow. Offline policy/protocol/chat coverage does not prove entry
-into a native portal or actual arrival.
+Focused backend,desktop/mobile multi-food,viewer and navigation checks pass.
+Full just check ci passed203s (.checks/20261104T200146Z-Ge5pgb.log), including66/66
+desktop/mobile scenarios,Go race checks,actual plugin build and1033 native tests.
+Committed review08590de..HEAD was clean(.checks/20261104T200526Z-33HvVe.log).
+just check vm install passed32s(preflight,checksums,receipt,durable data retained),
+just check vm online passed62s and just check vm viewer-check passed14s.
+Logs .checks/20261104T200545Z-LsrO6X.log,200617Z-H2Dax5.log,200719Z-U73Mqu.log.
+Live viewer login204,allowed reads200,private/control refusals403,rotation401;
+credential-free results .checks/viewer-live.json. Both live and saved chest
+contents are excluded. Private /api/video reports gameplay. Food/presence/home
+settings persisted. Native calendarFraction is present(day215),but corrected
+live night/midnight delivery remains unearned. Final status/map/inventory files
+are .checks/panel-batch-final-*.json; exact final audit
+.checks/audit-window-1RhaJy.jsonl. No body tasks were issued by viewer testing.
 
-After the owner stages a safe supervised rejoin:
+Bedtime,food and panel tickets are done/released. The partial survey ticket is
+blocked/released with all safe-outing/return evidence retained; this is not full
+coverage. Leave Tas and private output online. Before another live operation,
+read current state/food and take a new lease; do not infer current stock from cache.
 
-1. Take `just vm lease agent:tool/session`; start a reviewed installed build.
-2. Follow Nimah through a connected portal pair and back; retain departure,
-   arrival/failure and task outcomes. Tick criterion 5 only after the pair passes.
-3. Agree with the owner before enabling passive Loot. Check departure during a
-   felling-drop pickup, native cargo refusal, stop/new-order takeover, and refusal
-   of other portals. Do not enable Loot for an offline deploy.
-4. Record Loot's anchor, settle and growing/reset reach while the owner stands,
-   fells and leaves. Record the real reach over time for the panel ticket.
-5. Release the VM lease after cleanup.
+## Partial exploration and navigation follow-up
 
-Also still owed:
+TKT-01M6KZ8KJGYWKA20FYWR6EP0HP (Survey safe land around saved home and record
+map gains) is blocked after a safe partial survey. Within the requested200m
+circle:3288→3400 canonical measured samples,112 new,1425 refreshed,0 lost;
+395 landmarks unchanged. Evidence .checks/explore-night-atlas-{before,final}.json,
+.checks/explore-night-final-summary.json. Do not claim full200m coverage.
 
-- TKT-01M6EWN4WH (Behaviours: passive mode lends an owner's follow to passive
-  instances), criterion 6: collect felling drops and fall back in; leave an
-  owner-dropped stack; yield to movement mid-pickup and any new order. Earlier
-  a892cfa checks worked but churned before #174; the full rerun is missing.
-- TKT-01M6EF5DTG (VM: exclusive lease for deploys and live trials), criterion 1:
-  A/B refusal check with `/api/act/home` as the refused POST. Existing claim stays.
+Both strict dry building exits had routing failures. Existing bounded
+supported_wading_v1 east-gate exit reached dry terrain[-144.85,31.51,-479.64]
+without swimming/injury. Subsequent native200m scoped movement refused a fresh
+Greydwarf/Elite exclusion and wet detours. A daylight retry reached southern
+staging[-156.57,30.87,-483.29] but a roaming boar constrained onward routing.
+No harvesting,combat,portals,swimming or injury. Return succeeded with separate
+checked legs: east door[-156.8,30.97,-474.8] → warehouse west
+[-169.69,31.03,-467.8] → stair foot[-189.51,31.26,-471.72] →
+stair top[-193.01,32.97,-471.11] → saved home. Generic angled approaches can
+still snag corners/fall toward the lower floor; do not repeat unchanged failures.
 
-## Next drafts and known gaps
+TKT-01M6M0HDCE27H971Q6SN08FHQN (Prefer clear building interiors and centered
+stair approaches) remains draft. Current Walker follows navmesh corners or0.5m
+supported local grid; no deliberate piece-center or stair-foot obligation.
+Clearance preference plus doorway/stair connectors is proposed, not implemented.
 
-Only the three selected drafts were promoted. Passive gathering
-TKT-01M6F877TX (Behaviours: passive gather works alongside the anchor) still needs
-the owner's selection and deliberate policy work: existing gathering is
-beech-only, excludes players within 32 m of standing trees while passive reach
-is 30 m, and must fix re-lend churn. It is not an enable switch. Later work is
-TKT-01M6F877XV (Behaviours: needs ledger ranks passive work by what the base lacks)
-and TKT-01M6F8780V (Agent: supply the passive list, with validation and built-in
-fallback). Do not promote these yourself.
+## Architecture review and retained base evidence
 
-- The 32 older in-progress claims remain; do not take them over without the owner.
-- A zero-health frame without a subsequent death can lose a lent follow.
-- Non-default settle shapes are forgotten after ten minutes without being asked
-  for, even while busy. Other perception checks still have older tolerances.
-- Nine saved `goal/<hash>` instances warn as unknown; ask before deleting them.
-- App timing/race flakes: TKT-01M6ESNXKF and TKT-01M6EWJ9. Read retained diagnostics
-  before a focused rerun; do not relax production freshness to make tests pass.
-- Ignored `vm.local` and `plugin/game.local.props` are configured. Never print
-  their contents, panel/CPA tokens, provider keys or server passwords.
-- Do not kill `renki-ctl` on the VM. Use the lease for mutations; read-only
-  inspection needs none. Write local JSON without a BOM.
+Owner-authorized read-only architecture review is complete at docs/BEHAVIOUR-REVIEW.md.
+Keep Runner/Template,durable goal adapters,leases/native authority; no behavior-tree
+rewrite. Prefer explained pure decisions,scoped durable audits,immutable observer
+snapshots and semantic replay. Food improves workload reads locally, but existing
+Engine.List→view and Loot.Inspect→Observe can mutate tracker history on status reads.
+TKT-01M6M0JWD09GYPTKV2MR28NW9N (Unify behavior decision audits and immutable
+inspection snapshots) remains draft; do not promote without owner selection.
+
+Prior harvest protection is deployed: saved base circles protect wood/stone/ore,
+dry measured roots are required,underwater markers pruned,and static FirTree_oldLog
+is a log. No destructive camp harvesting was done. Owner places/boundaries retained.
+
+Warehouse west forge1:15324[-165.67,30.31,-473.28],east workbench1:15887
+[-158.49,30.30,-476.39]. Close standing[-159,30.97,-475.07] repaired leather to400/400;
+ordinary approach can stop at2.004m3D and fail strict native reach. Draft repair
+approach ticketTKT-01M6KX627 remains unselected. Station levels are not exposed.
+Flint axe came from door chest1:15433; clothing from upper barrel1:15599. Lower/
+upper storage access is proven, not every third layer;1:15414/1:15438 remain
+previously unread. Cached contents are not guaranteed stock.
+
+Hearth1274003559:2382[-203.66,30.37,-470.56] accepted exactly2 Wood through the
+half-wall opening from[-205.54,30.26,-466.89],with pack decrement/fuel increase
+receipts(.checks/task-v5io_9bo.json). Native add_to supports ordinary finite fire
+fuel. This proves reach/refill, not smoke safety in all weather. Return upstairs
+succeeded. Keep ordinary ward/reach/heat/support/threat guards intact.

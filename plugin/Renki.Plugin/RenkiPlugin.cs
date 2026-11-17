@@ -96,6 +96,8 @@ namespace Renki.Plugin
             safety.AllowMovement = Config.Bind("Safety", "AllowMovement", true, "move_to, follow, look_at.").Value;
             safety.AllowChat = Config.Bind("Safety", "AllowChat", true, "say and emote.").Value;
             safety.AllowGather = Config.Bind("Safety", "AllowGather", false, "harvest, pickup (M2).").Value;
+            safety.AllowStations = Config.Bind("Safety", "AllowStations", false,
+                "add_to: ordinary fireplace fuel; also requires AllowGather and AllowMovement.").Value;
             safety.AllowDrop = Config.Bind("Safety", "AllowDrop", true,
                 "drop: put items down at the bot's feet, never what it has equipped. The controller drops to free a bot that carries too much to move.").Value;
             safety.AllowCombat = Config.Bind("Safety", "AllowCombat", false, "Explicit attack (M3). Flee remains available with AllowMovement.").Value;
@@ -432,7 +434,7 @@ namespace Renki.Plugin
             Character = Game.instance?.GetPlayerProfile()?.GetName() ?? "",
             World = ZNet.instance != null ? ZNet.instance.GetWorldName() ?? "" : "",
             Capabilities = runner.Capabilities.ToList(),
-            Features = new List<string> { "deposit_match_existing_v1", "bounded_move_v1", "supported_wading_v1", "inspect_container_v1" },
+            Features = new List<string> { "deposit_match_existing_v1", "bounded_move_v1", "supported_wading_v1", "inspect_container_v1", "portal_travel_v1", "harvest_exclusions_v1" },
         };
 
         void OnDestroy()
