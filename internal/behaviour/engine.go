@@ -129,7 +129,7 @@ func New(o Options) *Engine {
 	if o.Anchor == nil {
 		o.Anchor = func() string { return "" }
 	}
-	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
+	templates := map[string]Template{"move_to": MoveTo{}, "search_chests": SearchChests{}, "census": Census{}, "stow": Stow{}, "collect": Collect{}, "gather": Gather{}, "combat": Combat{}, "marker_food": MarkerFood{}, "marker_cargo": MarkerCargo{}, "marker_rest": MarkerRest{}, "loot": &Loot{}}
 	for name, t := range o.Templates {
 		templates[name] = t
 	}

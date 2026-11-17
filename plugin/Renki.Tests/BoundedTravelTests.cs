@@ -22,6 +22,20 @@ namespace Renki.Tests
             Assert.Equal(0, (double)receipt["final"][0]);
         }
         [Fact]
+        public void StandingSpotsAppearOnlyWhenVerifiedAndAreBounded()
+        {
+            var s = new BoundedTravel(Scope(), V3.Zero, 0);
+            Assert.Null(JObject.Parse(s.Receipt(V3.Zero, "x", "inspection").Substring(11))["standing"]);
+            Assert.Null(JObject.Parse(s.Receipt(V3.Zero, "x", "inspection", new V3[0]).Substring(11))["standing"]);
+            var spots = new[] { new V3(1, 2, 3), new V3(double.NaN, 0, 0), new V3(4, 5, 6), new V3(7, 0, 0), new V3(8, 0, 0), new V3(9, 0, 0) };
+            var receipt = JObject.Parse(s.Receipt(V3.Zero, "no position", "inspection", spots).Substring(11));
+            var standing = (JArray)receipt["standing"];
+            Assert.Equal(BoundedTravel.MaxStanding, standing.Count);
+            Assert.Equal(new double[] { 1, 2, 3 }, standing[0].ToObject<double[]>());
+            Assert.Equal(new double[] { 4, 5, 6 }, standing[1].ToObject<double[]>());
+            Assert.Equal("no position", (string)receipt["detail"]);
+        }
+        [Fact]
         public void BoundaryBudgetAndDeadlineNeverResetOnObservation()
         {
             var scope = Scope(); var s = new BoundedTravel(scope, V3.Zero, 10);

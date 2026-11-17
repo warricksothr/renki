@@ -30,7 +30,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-17T17:56:06Z
+updated_at: 2026-11-17T18:27:33Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
@@ -89,6 +89,10 @@ Live evidence is the assignments section of `just vm upkeep-report` in TKT-01M6E
 - [ ] The table is kept per bot and world in the settings store and served by GET and POST /api/assignments with the source recorded
 - [ ] An assigned item goes only to its chests; a full assigned chest is reported with item and count rather than spilled elsewhere
 - [ ] With an empty table, marker_cargo and stow behave as before, in a test
+
+## Implementation plan
+
+Three steps, each its own pull request. (1) Discovery: scripts/vm/chest-census.py (PR #181), then the controller census behaviour with native standing spots in the inspection receipt, so memory can be refreshed in minutes wherever Tas is. (2) Storage plan: per-world roles for containers (dedicated to one item, shared by a category such as trophies, loose, do not touch) and adjacent containers treated as groups; proposed from census contents for the owner to approve. (3) Unloading and idle sorting that follow the plan. The chat-editing dependency is dropped for step 2: the API and panel come first.
 
 ## Notes
 

@@ -122,6 +122,32 @@ class CensusTest(unittest.TestCase):
                    {'frame': {'type': 'task', 'status': 'failed'}}, {'kind': 'log'}]
         self.assertEqual(census.standing_spots(records), [[1, 0, 1], [2, 0, 2]])
 
+    def test_controller_run_is_finished_only_after_its_own_run_ends(self):
+        self.assertFalse(census.finished(2, None))
+        self.assertFalse(census.finished(2, {'runs': 2, 'running': False}))
+        self.assertFalse(census.finished(2, {'runs': 3, 'running': True}))
+        self.assertFalse(census.finished(2, {'runs': 3, 'pending': True}))
+        self.assertTrue(census.finished(2, {'runs': 3, 'running': False, 'last': 'Census: opened 4'}))
+        got = census.census_status([{'name': 'other'}, {'name': census.CENSUS_INSTANCE, 'runs': 1}])
+        self.assertEqual(got['runs'], 1)
+        definition = census.census_definition('w', [1, 2, 3], 30, 0)
+        self.assertEqual(definition['params'], {'world': 'w', 'center': [1, 2, 3], 'radius': 30})
+        self.assertEqual((definition['enabled'], definition['trigger']['kind']), (False, 'manual'))
+        self.assertEqual(census.census_definition('w', [1, 2, 3], 30, 5)['params']['maxContainers'], 5)
+
+    def test_inventory_counts_only_fresh_containers_in_range(self):
+        containers = [
+            {'entity': 'a', 'pos': [1, 0, 0], 'ageS': 30, 'items': [{'prefab': 'Wood', 'stack': 50}]},
+            {'entity': 'b', 'pos': [2, 0, 0], 'ageS': 40, 'items': [{'prefab': 'Wood', 'stack': 20},
+                                                                  {'prefab': 'Stone', 'stack': 3}]},
+            {'entity': 'c', 'pos': [3, 0, 0], 'ageS': 50, 'items': []},
+            {'entity': 'old', 'pos': [4, 0, 0], 'ageS': 99999, 'items': [{'prefab': 'Wood', 'stack': 999}]},
+            {'entity': 'far', 'pos': [400, 0, 0], 'ageS': 30, 'items': [{'prefab': 'Wood', 'stack': 999}]}]
+        inv = census.inventory(containers, [0, 0, 0], 30, 600)
+        self.assertEqual((inv['fresh'], inv['known'], inv['empty']), (3, 4, 1))
+        self.assertEqual(inv['items'], {'Wood': {'count': 70, 'containers': 2}, 'Stone': {'count': 3, 'containers': 1}})
+        self.assertIn('Wood: 70 in 2 containers', census.render_inventory(inv))
+
     def test_summary_counts_refusals_and_items_split_across_chests(self):
         results = [
             {'entity': 'a', 'ids': ['a'], 'status': 'succeeded', 'openedBefore': True},

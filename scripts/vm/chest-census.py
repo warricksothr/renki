@@ -15,8 +15,15 @@ a refused chest is recorded with its reason and the walk goes on.
     --only stale     skip chests whose remembered contents are under --fresh-s old
     --fresh-s S      what counts as fresh for --only stale (900)
 
-Results go to .checks/census/<UTC>.json; summarise() is printed. Selection,
-ordering and the summary are pure and tested offline (chest-census-test.py).
+    --via ssh        drive each inspection from here instead (see below)
+
+By default the controller's `census` behaviour does the walking: one request
+starts it, it opens containers over the local bridge at a few seconds each,
+and this script waits and prints what it reported and what memory now holds.
+`--via ssh` is the original loop, one SSH round trip per request at about a
+minute per container. It needs no census support in the installed build, and
+it keeps per-container evidence under .checks/census/<UTC>.json. Selection,
+ordering and the summaries are pure and tested offline (chest-census-test.py).
 """
 import argparse
 import datetime
@@ -304,6 +311,91 @@ def attempt(chest, scope, start):
             run_task('move_to', {'to': start, 'stopDistance': 1.0}, 60)
 
 
+CENSUS_INSTANCE = 'Container census'
+
+
+def census_definition(world, center, radius, limit):
+    params = {'world': world, 'center': center, 'radius': radius}
+    if limit:
+        params['maxContainers'] = limit
+    return {'template': 'census', 'params': params, 'trigger': {'kind': 'manual'}, 'repeat': {'mode': 'once'},
+            'priority': 10, 'enabled': False}
+
+
+def census_status(instances):
+    return next((i for i in instances or [] if i.get('name') == CENSUS_INSTANCE), None)
+
+
+def finished(before_runs, status):
+    """The run this script started is over: the count moved on and nothing
+    is pending or running. A missing instance is never finished."""
+    return bool(status) and status.get('runs', 0) > before_runs and not status.get('running') \
+        and not status.get('pending')
+
+
+def inventory(containers, center, radius, fresh_s):
+    """What freshly opened containers near center hold: per item, the total
+    and how many containers share it."""
+    fresh = [c for c in containers or [] if math.dist(c['pos'], center) <= radius
+             and c.get('ageS') is not None and 0 <= c['ageS'] <= fresh_s]
+    items = {}
+    for c in fresh:
+        for stack in c.get('items') or []:
+            entry = items.setdefault(stack.get('prefab'), {'count': 0, 'containers': set()})
+            entry['count'] += int(stack.get('stack') or 1)
+            entry['containers'].add(c['entity'])
+    return {'fresh': len(fresh), 'known': sum(1 for c in containers or [] if math.dist(c['pos'], center) <= radius),
+            'empty': sum(1 for c in fresh if not c.get('items')),
+            'items': {name: {'count': v['count'], 'containers': len(v['containers'])}
+                      for name, v in sorted(items.items(), key=lambda kv: (-len(kv[1]['containers']), kv[0] or ''))}}
+
+
+def render_inventory(inv):
+    lines = [f"memory: {inv['fresh']} of {inv['known']} remembered containers here are fresh ({inv['empty']} empty)"]
+    split = [(n, v) for n, v in inv['items'].items() if v['containers'] > 1]
+    lines.append(f"  {len(inv['items'])} distinct items; {len(split)} are split across containers")
+    lines += [f"    {n}: {v['count']} in {v['containers']} containers" for n, v in split[:15]]
+    return '\n'.join(lines)
+
+
+def via_controller(args, status):
+    start, world = status['pos'], status.get('world')
+    if not 10 <= args.radius <= 100:
+        raise SystemExit('the controller census takes --radius 10-100 m')
+    before = (census_status(vm('panel', 'GET', '/api/behaviours')) or {}).get('runs', 0)
+    definition = census_definition(world, start, args.radius, args.limit)
+    try:
+        vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'save',
+                                                           'definition': definition}))
+    except SystemExit:
+        raise SystemExit('the installed controller refused the census definition; deploy a build with the '
+                         'census behaviour or pass --via ssh')
+    vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'start'}))
+    began = time.monotonic()
+    deadline = began + 1300
+    state = None
+    while time.monotonic() < deadline:
+        time.sleep(8)
+        state = census_status(vm('panel', 'GET', '/api/behaviours'))
+        if finished(before, state):
+            break
+    else:
+        vm('panel', 'POST', '/api/behaviours', json.dumps({'name': CENSUS_INSTANCE, 'action': 'stop'}))
+        print('stopping: the census did not finish within its wait; stop sent')
+    print(f"{(state or {}).get('last') or 'no report'}")
+    print(f'  took {time.monotonic() - began:.0f} s')
+    containers = vm('panel', 'GET', '/api/memory/containers').get('containers')
+    inv = inventory(containers, start, args.radius, time.monotonic() - began + 60)
+    print(render_inventory(inv))
+    out = ROOT / '.checks' / 'census'
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / (datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '.json')
+    path.write_text(json.dumps({'via': 'controller', 'start': start, 'definition': definition, 'status': state,
+                                'inventory': inv, 'containers': containers}, indent=1) + '\n')
+    print(f'Evidence: {path}')
+    return 0 if finished(before, state) else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--plan', action='store_true')
@@ -311,6 +403,7 @@ def main(argv=None):
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--only', choices=['stale'])
     parser.add_argument('--fresh-s', type=float, default=900)
+    parser.add_argument('--via', choices=['controller', 'ssh'], default='controller')
     args = parser.parse_args(argv)
     if not 10 <= args.radius <= 240:
         raise SystemExit('--radius must be 10-240 m')
@@ -318,6 +411,10 @@ def main(argv=None):
     status = vm('panel', 'GET', '/api/status')
     if status.get('phase') != 'in_world' or not status.get('pos'):
         raise SystemExit('the bot is not in the world')
+    if args.via == 'controller' and not args.plan:
+        if args.only:
+            raise SystemExit('--only applies to --via ssh; the controller census opens every container in range')
+        return via_controller(args, status)
     start = status['pos']
     world_map = vm('panel', 'GET', '/api/map')
     chests = candidates(vm('panel', 'GET', '/api/memory/containers').get('containers'), world_map.get('landmarks'),

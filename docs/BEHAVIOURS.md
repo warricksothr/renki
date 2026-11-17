@@ -758,7 +758,47 @@ checked chests, matches/counts/locations, and unchecked/inaccessible candidates.
 It never claims undiscovered storage is empty. Chat reports counters and the
 first match; behavior status retains all findings and failures.
 
-The run is bounded by a fixed radius, actual native travel, time and candidate
+### Container census
+
+`census` opens every container within a radius, nearest to the body first,
+and takes nothing. Use it on a first visit, after time away, or when memory
+has proved wrong: remembered contents are a hint with an age.
+
+```json
+{"template": "census",
+ "params": {"world": "your world", "radius": 30, "maxContainers": 64,
+            "durationS": 600, "travelM": 600},
+ "trigger": {"kind": "manual"}, "repeat": {"mode": "once"}, "enabled": false}
+```
+
+Radius is 10–100 m (default 30), maxContainers 1–96 (default 64), durationS
+30–1200 s (default 600) and travelM 10–2000 m (default 600). Optional `center`
+pins coordinates; otherwise the starting position is pinned. Candidates are
+the containers perception reports and those memory holds, as for the search.
+Admission, health, threat, freshness and budget rules are the search's.
+
+Each container ends as one of three outcomes:
+
+- **opened**: a fresh native `inspect_container` receipt arrived, so memory now
+  holds its contents. The report counts those opened for the first time.
+- **gone**: the plugin found no container under that id while the body stood
+  within 30 m. From farther away the same answer is only a refusal, because
+  the object may not be loaded.
+- **refused**: anything else, with the native reason.
+
+When an inspection fails `unreachable` and its receipt lists `standing`
+positions, the census walks to the first one inside its radius with an
+ordinary `move_to` and asks again, at most twice per container. The
+inspection's own bounded walk gives up within its local search limit where an
+ordinary move goes round a row of chests. The walk counts against the travel
+budget. Six refusals in a row end the run; gone containers do not count.
+
+The run says one line in chat and its status keeps the counts, the gone ids
+and each refusal. `just vm chest-census` starts it and prints that report with
+what memory now holds (docs/MEMORY.md). It does not forget gone containers
+yet; it reports them.
+
+The search run is bounded by a fixed radius, actual native travel, time and candidate
 count. It requires dry grounded footing, at least 15 HP and 40% max health,
 and stops for injury, threats, stale data or changed world/owner orders. A
 missing native travel receipt stops further inspections. It leaves all items

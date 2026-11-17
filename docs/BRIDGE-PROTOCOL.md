@@ -732,6 +732,11 @@ Notes:
   container frame has `task` set to the request ID and `direction` set to
   `inspect_container`, including an empty chest. Final native outcomes use
   `inspection:{"travel":...,"final":[...],"trail":[...],"detail":...}`.
+  An `unreachable` failure may add `"standing":[[x,y,z],...]`: up to four
+  positions verified for reach and body clearance that the bounded walk
+  could not get to, oldest first. The key is absent when none was verified.
+  A caller may reach one by ordinary travel and ask again; the inspection
+  measures reach afresh.
   Cancellation/driver refusal may lack that receipt; callers must stop
   rather than replenish travel from partial controller observations.
 - `flee` runs from `from` until it is `distance` away across the ground, and

@@ -39,7 +39,24 @@ namespace Renki.Movement
             if (now - began >= scope.DurationS) return "survey leg time limit";
             return null;
         }
-        public string Receipt(V3 at, string detail = null, string kind = "survey") => kind + ":" + JsonConvert.SerializeObject(new
-        { travel = Travel, final = at.ToArray(), trail = trail.ToArray(), detail });
+        public const int MaxStanding = 4;
+
+        /// <summary><paramref name="standing"/> lists positions verified for
+        /// reach and body clearance that the bounded walk could not get to.
+        /// A caller may reach one by ordinary travel and ask again. The key
+        /// is absent when there are none, so older receipts stay valid.</summary>
+        public string Receipt(V3 at, string detail = null, string kind = "survey", IReadOnlyList<V3> standing = null)
+        {
+            var body = new Dictionary<string, object>
+            { ["travel"] = Travel, ["final"] = at.ToArray(), ["trail"] = trail.ToArray(), ["detail"] = detail };
+            if (standing != null && standing.Count > 0)
+            {
+                var spots = new List<double[]>();
+                foreach (var spot in standing)
+                    if (TravelScope.Finite(spot) && spots.Count < MaxStanding) spots.Add(spot.ToArray());
+                if (spots.Count > 0) body["standing"] = spots;
+            }
+            return kind + ":" + JsonConvert.SerializeObject(body);
+        }
     }
 }
