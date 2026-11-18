@@ -264,3 +264,29 @@ func standardWaypoints(seen *protocol.Perception, bot protocol.Vec3, at time.Tim
 	}
 	return out
 }
+
+// travelHome starts a trip home over walked ground for by. It reports true
+// when the trip started, or with an error when a newer order replaced it as
+// it started; either way no direct move may follow. False means nothing was
+// started: there is no home here, the body cannot set out, or route memory
+// has no way of two legs or more, and Keeper.GoHome answers for the rest.
+func (a *App) travelHome(ctx context.Context, by string) (bool, error) {
+	st := a.Session.State()
+	if st == nil || st.Phase != protocol.PhaseInWorld || st.Stranded() {
+		return false, nil
+	}
+	h, ok := a.Memory.Store.WorkHome(st.World)
+	if !ok {
+		return false, nil
+	}
+	// As GoHome does: run a long way, walk the last of it.
+	run := true
+	if d, ok := a.Home.HomeDistance(); ok && d < 15 {
+		run = false
+	}
+	_, err := a.Behaviours.StartTravel(ctx, by, behaviour.TravelParams{World: st.World, To: h.Pos, Place: "home", StopM: home.Arrive, Run: run})
+	if errors.Is(err, behaviour.ErrReplaced) {
+		return true, err
+	}
+	return err == nil, nil
+}

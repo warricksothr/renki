@@ -28,7 +28,7 @@ claim:
   expires_at: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T23:40:22Z
+updated_at: 2026-11-17T23:57:43Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -132,3 +132,9 @@ Left: gather's own moves (step 3); go home, the corpse run, retreat (step 2); fo
 **agent:claude-code/chests** at 2026-11-17T23:40:22Z
 
 Step 3 is done (branch t3/walker-gather): gather falls back to a known way for its walk home, its move to the work point and its return there. Its move toward a tree is left alone. docs/HANDOFF.md now lists what is done and what is left: go home, the corpse run and retreat (step 2), the food goals and return home (step 4), the home survey (step 5). Not run live.
+
+**agent:claude-code/chests** at 2026-11-17T23:57:43Z
+
+Step 2, go home (branch t3/walker-home): chat's go home and the panel's home button take the trip over walked ground when route memory has a way of two legs or more, and otherwise the keeper's direct move. Live on 2026-11-18 (UTC): the panel sent Tas to "new home storage west" ("route 11 legs 44 m; arrived") and then home ("route 6 legs 38 m; arrived"), up the stairs.
+
+Left in step 2: the trips home Tas starts himself (Keeper.GoHome when idle or after a failed follow or move) and the corpse run; each follows one task by id. Retreat is an escape and may not suit a planned walk. Then step 4 (food goals, return home) and step 5 (home survey).

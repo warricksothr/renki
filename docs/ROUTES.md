@@ -120,8 +120,8 @@ Read it before guiding the body by hand: it says which leg failed and why.
 
 ### Going to a place
 
-`Tas, go to <place>` in chat and the panel's go button take a trip over walked
-ground when route memory has a plan of two legs or more: the `travel`
+`Tas, go to <place>` and `Tas, go home` in chat, and the panel's go and home
+buttons, take a trip over walked ground when route memory has a plan of two legs or more: the `travel`
 behaviour, saved as `Owner travel` (docs/BEHAVIOURS.md). Its status says how
 the walk went, and Tas says why in the game when he does not arrive. With no
 such plan, or while Tas is busy with something else, they send the one direct
@@ -164,8 +164,9 @@ plans from where the body stands and returns the first move, with nothing to
 remember between moves. `Arrived` judges a move and `LegFailed` reports one
 that failed.
 
-Not converted yet: go home, the corpse run, retreat, the food goals and the
-home survey.
+Not converted yet: the trips home Tas starts himself (when idle, or after a
+failed follow or move), the corpse run, retreat, the food goals and the home
+survey.
 
 ## Limits
 

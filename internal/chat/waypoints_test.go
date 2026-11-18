@@ -112,3 +112,32 @@ func TestGoToPrefersATripAndFallsBackToTheDirectMove(t *testing.T) {
 		t.Fatalf("direct moves = %d", moves())
 	}
 }
+
+// Going home prefers the trip over known ground; the keeper's direct move is
+// sent only when no trip was started, and never over a newer order.
+func TestGoHomePrefersATripAndFallsBackToTheKeeper(t *testing.T) {
+	b, f, h := homeBrain()
+	h.home = &protocol.Vec3{}
+	asked := 0
+	settled, failure := true, error(nil)
+	b.opts.TravelHome = func(_ context.Context, by string) (bool, error) {
+		if asked++; by != "Sothr" {
+			t.Fatalf("by = %q", by)
+		}
+		return settled, failure
+	}
+	b.Chat(line("Sothr", "bjorn go home"))
+	if got := f.said(); asked != 1 || len(h.trips) != 0 || len(got) != 1 || got[0] != "Heading home." {
+		t.Fatal(asked, h.trips, got)
+	}
+	failure = errors.New("a newer order replaced the trip")
+	b.Chat(line("Sothr", "bjorn go home"))
+	if len(h.trips) != 0 {
+		t.Fatal("went home over a newer order")
+	}
+	settled, failure = false, nil
+	b.Chat(line("Sothr", "bjorn go home"))
+	if len(h.trips) != 1 {
+		t.Fatalf("keeper trips = %v", h.trips)
+	}
+}
