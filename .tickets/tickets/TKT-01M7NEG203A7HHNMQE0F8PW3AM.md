@@ -3,7 +3,7 @@ schema: 4
 id: TKT-01M7NEG203A7HHNMQE0F8PW3AM
 title: "Route memory: plan building routes over ground Tas has walked"
 type: task
-status: in-progress
+status: ready
 status_reason: null
 priority: high
 due_on: null
@@ -18,17 +18,10 @@ dependencies: []
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/chests
-  branch: t3/controller-census
-  worktree: /home/sothr/.t3/worktrees/renki/t3-527f19de-ed082ea71ff42b98
-  commit: f48dc9064bbbba7e1291c44f0e090c91f3daf4fd
-  session: null
-  claimed_at: 2026-11-17T19:30:59Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-11-17T19:07:17Z
-updated_at: 2026-11-17T23:57:43Z
+updated_at: 2026-11-18T00:31:39Z
 created_by:
   id: agent:claude-code/chests
   name: ""
@@ -70,10 +63,10 @@ Changing the bounded walker's search, or centring on stairs and doorways: TKT-01
 ## Acceptance criteria
 
 - [x] Completed walks become per-world links with height, persisted across restarts
-- [ ] A target on another floor or in another building is reached by planned legs over proven links
-- [ ] A failed link is avoided until it is walked again
+- [x] A target on another floor or in another building is reached by planned legs over proven links
+- [x] A failed link is avoided until it is walked again
 - [ ] Containers and stations are grouped by building and floor
-- [ ] Live: home to warehouse and back, and a census across both buildings, without hand-fed waypoints
+- [x] Live: home to warehouse and back, and a census across both buildings, without hand-fed waypoints
 
 ## Implementation plan
 
@@ -138,3 +131,13 @@ Step 3 is done (branch t3/walker-gather): gather falls back to a known way for i
 Step 2, go home (branch t3/walker-home): chat's go home and the panel's home button take the trip over walked ground when route memory has a way of two legs or more, and otherwise the keeper's direct move. Live on 2026-11-18 (UTC): the panel sent Tas to "new home storage west" ("route 11 legs 44 m; arrived") and then home ("route 6 legs 38 m; arrived"), up the stairs.
 
 Left in step 2: the trips home Tas starts himself (Keeper.GoHome when idle or after a failed follow or move) and the corpse run; each follows one task by id. Retreat is an escape and may not suit a planned walk. Then step 4 (food goals, return home) and step 5 (home survey).
+
+**agent:claude-code/chests** at 2026-11-18T00:28:06Z
+
+Handing off on 2026-11-18; claim released, docs/HANDOFF.md has the state.
+
+Criteria ticked now, with what earned each: 2, live trips by planned legs between home's upper floor and the warehouse (PRs #185, #187, #191); 3, tests in internal/route and internal/behaviour (a failed link is skipped until walked again in that direction); 5, live on 2026-11-17 and 18: the panel sent Tas to the warehouse and home again, and a census crossed both buildings with no hand-fed waypoints.
+
+Criterion 4 is not done: nothing groups containers and stations by building and floor. It belongs with the storage plan, TKT-01M62VXZ84SA9TSJC6NJNPV8KJ (Controller: assign every item to chests, with a loose-items chest).
+
+Still open here beyond the criteria: the trips home Tas starts himself, the corpse run, the food goals and return home, and the home survey.
