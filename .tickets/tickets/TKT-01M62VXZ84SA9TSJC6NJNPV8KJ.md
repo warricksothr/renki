@@ -20,17 +20,10 @@ dependencies:
 blocks_on: none
 references: []
 moved_to: null
-claim:
-  actor: agent:claude-code/chests
-  branch: t3/agent-tooling-chests
-  worktree: /home/sothr/.t3/worktrees/renki/t3-527f19de-ed082ea71ff42b98
-  commit: f5f77d2be6a4dc656f76fd56502c35db91e2d63a
-  session: null
-  claimed_at: 2026-11-17T17:35:47Z
-  expires_at: null
+claim: null
 archive: null
 created_at: 2026-10-29T03:40:48Z
-updated_at: 2026-11-17T19:27:11Z
+updated_at: 2026-11-18T00:27:53Z
 created_by:
   id: agent:claude-code/renki-groom
   name: Claude Code
